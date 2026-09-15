@@ -1,0 +1,228 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}Ish Haqi Balansi & To'lovlar — SUPER ADMIN{% endblock %}
+
+{% block superadmin_header %}
+<div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+        <i class="fa-solid fa-money-check-dollar"></i>
+    </div>
+    <h2 class="text-lg font-black text-white">Tikuvchilar Ish Haqi Balansi & To'lovlar Daftari</h2>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Summary Banner -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-6">
+        <div class="flex flex-wrap items-center gap-8">
+            <div>
+                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Jami Hisoblangan</span>
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ grand_earned|floatformat:0 }} <small class="text-xs text-slate-400">UZS</small></span>
+            </div>
+            <div class="h-10 w-px bg-slate-800 hidden sm:block"></div>
+            <div>
+                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Jami To'langan (Avans+Oylik)</span>
+                <span class="text-2xl font-black text-cyan-400 digital-font">{{ grand_paid|floatformat:0 }} <small class="text-xs text-slate-400">UZS</small></span>
+            </div>
+            <div class="h-10 w-px bg-slate-800 hidden sm:block"></div>
+            <div>
+                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Qoldiq Qarzdorlik</span>
+                <span class="text-2xl font-black text-amber-400 digital-font">{{ grand_balance|floatformat:0 }} <small class="text-xs text-slate-400">UZS</small></span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'superadmin_payroll_export' %}" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-file-excel text-base"></i> Buxgalteriya Tabeli (Excel/CSV)
+            </a>
+            <button onclick="openPayoutModal(null, '')" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-hand-holding-dollar text-base"></i> Yangi To'lov Yozish
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKER BALANCES TABLE -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-users text-amber-400"></i> Tikuvchilar Balansi va Qoldiqlari
+            </h3>
+            <span class="text-xs text-slate-400 font-medium">Jami xodimlar: {{ payroll_data|length }} nafar</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3.5 px-4">Xodim ID</th>
+                        <th class="py-3.5 px-4">Tikuvchi F.I.SH</th>
+                        <th class="py-3.5 px-4">Telefon</th>
+                        <th class="py-3.5 px-4 text-right">Ishlangan Summa</th>
+                        <th class="py-3.5 px-4 text-right">To'langan (Avans)</th>
+                        <th class="py-3.5 px-6 text-right">Qoldiq Balans</th>
+                        <th class="py-3.5 px-4 text-right">Amal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-200">
+                    {% for row in payroll_data %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4">
+                            <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-2.5 py-1 rounded text-xs digital-font">
+                                {{ row.worker.worker_id }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-white text-base">
+                            {{ row.worker.full_name }}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-400 text-xs font-mono">
+                            {{ row.worker.phone_number|default:"—" }}
+                        </td>
+                        <td class="py-3.5 px-4 text-right font-black text-emerald-400 digital-font text-base">
+                            {{ row.total_earned|floatformat:0 }} <small class="text-xs text-slate-500 font-normal">so'm</small>
+                        </td>
+                        <td class="py-3.5 px-4 text-right font-black text-cyan-400 digital-font text-base">
+                            {{ row.total_paid|floatformat:0 }} <small class="text-xs text-slate-500 font-normal">so'm</small>
+                        </td>
+                        <td class="py-3.5 px-6 text-right font-black digital-font text-lg {% if row.balance > 0 %}text-amber-400{% elif row.balance == 0 %}text-slate-500{% else %}text-rose-400{% endif %}">
+                            {{ row.balance|floatformat:0 }} <small class="text-xs text-slate-500 font-normal">so'm</small>
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <button onclick="openPayoutModal({{ row.worker.id }}, '{{ row.worker.full_name }} ({{ row.worker.worker_id }})')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 ml-auto">
+                                <i class="fa-solid fa-money-bill-transfer"></i> To'lov Qilish
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-500">
+                            Xodimlar mavjud emas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- RECENT PAYOUTS JOURNAL -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-receipt text-cyan-400"></i> So'nggi Berilgan Avans va To'lovlar Jurnali
+            </h3>
+            <span class="text-xs text-slate-400">Oxirgi 20 ta to'lov</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-2.5 px-3">Sana</th>
+                        <th class="py-2.5 px-3">Xodim</th>
+                        <th class="py-2.5 px-3">To'lov Turi</th>
+                        <th class="py-2.5 px-3 text-right">Summa (UZS)</th>
+                        <th class="py-2.5 px-3">Izoh</th>
+                        <th class="py-2.5 px-3">To'lovchi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                    {% for p in recent_payouts %}
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="py-3 px-3 font-mono text-slate-400">{{ p.payout_date|date:"d.m.Y" }}</td>
+                        <td class="py-3 px-3 font-bold text-white">
+                            {{ p.worker.full_name }} <span class="text-cyan-400 font-mono">({{ p.worker.worker_id }})</span>
+                        </td>
+                        <td class="py-3 px-3">
+                            <span class="bg-slate-800 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                {{ p.get_payout_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right font-black text-cyan-400 digital-font text-sm">
+                            {{ p.amount|floatformat:0 }} so'm
+                        </td>
+                        <td class="py-3 px-3 text-slate-400 text-[11px]">{{ p.note|default:"—" }}</td>
+                        <td class="py-3 px-3 text-slate-500 text-[11px]">{{ p.created_by.username|default:"Admin" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-500 text-xs">
+                            Hozircha to'lovlar jurnali bo'sh.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Payout Create -->
+<div id="payout-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-hand-holding-dollar text-amber-500"></i> Xodimga To'lov / Avans Yozish
+            </h3>
+            <button onclick="document.getElementById('payout-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_payout_create' %}" class="space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tikuvchi Xodim</label>
+                <select name="worker_id" id="modal-worker-select" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <option value="">-- Xodimni tanlang --</option>
+                    {% for w in workers %}
+                    <option value="{{ w.id }}">{{ w.worker_id }} - {{ w.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">To'lov Summasi (UZS)</label>
+                <input type="number" name="amount" required min="1" step="1000" placeholder="Masalan: 200000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">To'lov Turi</label>
+                    <select name="payout_type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <option value="ADVANCE">Avans</option>
+                        <option value="SALARY">Oylik hisob</option>
+                        <option value="BONUS">Mukofot / Bonus</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">To'lov Sanasi</label>
+                    <input type="date" name="payout_date" value="{{ today_str }}" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Izoh (Ixtiyoriy)</label>
+                <input type="text" name="note" placeholder="Masalan: 1-15 kunlik avans naqd to'landi" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('payout-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
+                <button type="submit" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">To'lovni Tasdiqlash</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPayoutModal(workerId, workerName) {
+        if (workerId) {
+            document.getElementById('modal-worker-select').value = workerId;
+        }
+        document.getElementById('payout-modal').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}Moliya va Ishlab Chiqarish — SUPER ADMIN{% endblock %}
+
+{% block superadmin_header %}
+<div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+        <i class="fa-solid fa-chart-pie"></i>
+    </div>
+    <h2 class="text-lg font-black text-white">Moliya & Ishlab Chiqarish Tahlili</h2>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Filter Bar (Period Selection) -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-bold uppercase mr-2"><i class="fa-regular fa-calendar mr-1"></i> Davr:</span>
+            <a href="?period=today" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'today' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Bugun</a>
+            <a href="?period=week" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'week' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Shu Hafta</a>
+            <a href="?period=month" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'month' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Shu Oy</a>
+            <a href="?period=all" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'all' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Barcha Vaqt</a>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-400 font-mono">Bugungi sana: <strong class="text-slate-200">{{ today_str }}</strong></span>
+            <a href="{% url 'superadmin_payroll_export' %}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2">
+                <i class="fa-solid fa-file-excel"></i> Ish Haqi Tabelini Yuklash (Excel/CSV)
+            </a>
+        </div>
+    </div>
+
+    <!-- PRIMARY FINANCIAL KPI CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Davr bo'yicha hisoblangan -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <span class="text-xs font-bold uppercase text-slate-400 tracking-wider block mb-1">
+                Davrda Hisoblangan Ish Haqi
+            </span>
+            <div class="text-2xl lg:text-3xl font-black text-emerald-400 digital-font">
+                {{ total_earned|floatformat:0 }} <small class="text-xs text-emerald-300">UZS</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">Bajarilgan barcha operatsiyalar</div>
+        </div>
+
+        <!-- 2. Jami to'langan avans va oyliklar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <span class="text-xs font-bold uppercase text-slate-400 tracking-wider block mb-1">
+                Jami To'langan (Avans + Oylik)
+            </span>
+            <div class="text-2xl lg:text-3xl font-black text-cyan-400 digital-font">
+                {{ all_time_paid|floatformat:0 }} <small class="text-xs text-cyan-300">UZS</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">Buxgalteriya to'lovlari jami</div>
+        </div>
+
+        <!-- 3. Qoldiq to'lanishi kerak (Qarz) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <span class="text-xs font-bold uppercase text-slate-400 tracking-wider block mb-1">
+                To'lanishi Kerak Bo'lgan Qoldiq
+            </span>
+            <div class="text-2xl lg:text-3xl font-black text-amber-400 digital-font">
+                {{ all_time_balance|floatformat:0 }} <small class="text-xs text-amber-300">UZS</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">
+                <a href="{% url 'superadmin_payroll' %}" class="text-amber-400 underline">Xodimlar balansi tabeliga o'tish &rarr;</a>
+            </div>
+        </div>
+
+        <!-- 4. Tikilgan donalar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <span class="text-xs font-bold uppercase text-slate-400 tracking-wider block mb-1">
+                Bajarilgan Kiyim Donalari
+            </span>
+            <div class="text-2xl lg:text-3xl font-black text-purple-400 digital-font">
+                {{ total_units }} <small class="text-xs text-purple-300">dona</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">Tanlangan davr bo'yicha</div>
+        </div>
+    </div>
+
+    <!-- 2 COLUMN SECTION: Masters activity & Screen loading -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Masterlar Faoliyati (6 cols) -->
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-tie text-amber-400"></i> Masterlar Skanerlash Faoliyati (Bugun)
+                </h3>
+                <a href="{% url 'superadmin_users' %}" class="text-xs text-amber-400 hover:text-amber-300 font-semibold">
+                    Staff boshqaruvi &rarr;
+                </a>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                            <th class="py-2.5 px-3">Master F.I.SH / Login</th>
+                            <th class="py-2.5 px-3">Telegram ID</th>
+                            <th class="py-2.5 px-3 text-center">Biletlar</th>
+                            <th class="py-2.5 px-3 text-right">Summa (UZS)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                        {% for m in master_stats %}
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="py-3 px-3">
+                                <strong class="text-white text-sm block">{{ m.master.get_full_name|default:m.master.username }}</strong>
+                                <span class="text-slate-500 font-mono text-[11px]">@{{ m.master.username }}</span>
+                            </td>
+                            <td class="py-3 px-3 font-mono text-[11px] text-cyan-400">
+                                {{ m.telegram_id }}
+                            </td>
+                            <td class="py-3 px-3 text-center font-bold text-slate-200 digital-font text-sm">
+                                {{ m.tickets_count }} ta
+                            </td>
+                            <td class="py-3 px-3 text-right font-black text-emerald-400 digital-font text-sm">
+                                {{ m.total_amount|floatformat:0 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="py-6 text-center text-slate-500">
+                                Masterlar ro'yxati bo'sh.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 10 Sex Ekranlari (6 cols) -->
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-tv text-purple-400"></i> Sex Ekranlari Yuklamasi (Bugun)
+                </h3>
+                <a href="{% url 'screens:overview' %}" target="_blank" class="text-xs text-purple-400 hover:text-purple-300 font-semibold">
+                    Jonli TV ochish &rarr;
+                </a>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {% for s in screen_stats %}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-black text-amber-400 digital-font">TV {{ s.screen_number }}</span>
+                        <span class="text-[10px] text-slate-500 font-mono">{{ s.workers_count }} xodim</span>
+                    </div>
+                    <div class="text-sm font-black text-emerald-400 digital-font">
+                        {{ s.total_amount|floatformat:0 }}
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-medium mt-1">
+                        {{ s.units_count }} dona tikildi
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

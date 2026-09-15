@@ -75,5 +75,44 @@ class Worker(models.Model):
             self.generate_qr_code()
         super().save(*args, **kwargs)
 
+    @property
+    def total_earned(self):
+        from production.models import Ticket
+        res = self.tickets.filter(status=Ticket.Status.SCANNED).aggregate(s=models.Sum('total_amount'))['s']
+        return res or 0
+
+    @property
+    def total_paid(self):
+        res = self.payouts.aggregate(s=models.Sum('amount'))['s']
+        return res or 0
+
+    @property
+    def balance(self):
+        return self.total_earned - self.total_paid
+
     def __str__(self):
         return f"{self.worker_id} - {self.full_name}"
+
+
+class WorkerPayout(models.Model):
+    class PayoutType(models.TextChoices):
+        SALARY = 'SALARY', "Oylik to'lov"
+        ADVANCE = 'ADVANCE', "Avans"
+        BONUS = 'BONUS', "Mukofot / Bonus"
+
+    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name='payouts', verbose_name="Tikuvchi")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="To'lov summasi (UZS)")
+    payout_type = models.CharField(max_length=20, choices=PayoutType.choices, default=PayoutType.ADVANCE, verbose_name="To'lov turi")
+    payout_date = models.DateField(verbose_name="To'lov sanasi")
+    note = models.CharField(max_length=255, blank=True, verbose_name="Izoh")
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="To'lovchi")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Xodimga to'lov / Avans"
+        verbose_name_plural = "Xodimlar to'lovlari va avanslari"
+        ordering = ['-payout_date', '-created_at']
+
+    def __str__(self):
+        return f"{self.worker.worker_id} - {int(self.amount):,} UZS ({self.get_payout_type_display()})"
+

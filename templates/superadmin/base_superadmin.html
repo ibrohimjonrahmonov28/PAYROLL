@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SUPER ADMIN PANELI — PAYROLL{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .digital-font {
+            font-family: 'Chakra Petch', monospace;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row">
+
+    <!-- SUPER ADMIN SIDEBAR -->
+    <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0">
+        <!-- Brand Header -->
+        <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center font-black text-xl shadow-lg">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <div>
+                <h1 class="font-black text-lg text-white leading-tight">SUPER ADMIN</h1>
+                <span class="text-[11px] text-amber-400 font-bold uppercase tracking-wider">Boshqaruv Markazi</span>
+            </div>
+        </div>
+
+        <!-- Super Admin Nav Links -->
+        <nav class="p-4 space-y-1.5 flex-1">
+            <div class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3 mb-2">Boshqaruv</div>
+
+            <a href="{% url 'superadmin_dashboard' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'superadmin_dashboard' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                <span>Moliya & Ishlab Chiqarish</span>
+            </a>
+
+            <a href="{% url 'superadmin_users' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'superadmin_users' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-users-gear w-5 text-center"></i>
+                <span>Foydalanuvchilar (Staff)</span>
+            </a>
+
+            <a href="{% url 'superadmin_payroll' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'payroll' in request.resolver_match.url_name %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-money-check-dollar w-5 text-center"></i>
+                <span>Ish Haqi & To'lovlar</span>
+            </a>
+
+            <a href="{% url 'superadmin_pricing' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'superadmin_pricing' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-sliders w-5 text-center"></i>
+                <span>Narxlar Matritsasi</span>
+            </a>
+
+            <div class="pt-4 border-t border-slate-800 my-3">
+                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Asosiy Tizim</span>
+            </div>
+
+            <a href="{% url 'production:dashboard' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
+                <span>Ishlab Chiqarish Paneli</span>
+            </a>
+
+            <a href="{% url 'screens:overview' %}" target="_blank" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-cyan-400 hover:bg-cyan-950/40 hover:text-cyan-300 transition">
+                <i class="fa-solid fa-tv w-5 text-center"></i>
+                <span>Sex Ekranlari (1–10)</span>
+            </a>
+
+            <a href="{% url 'bot:bot_simulator' %}" target="_blank" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-amber-300 hover:bg-amber-500/10 transition">
+                <i class="fa-brands fa-telegram w-5 text-center text-lg"></i>
+                <span>Master Bot Simulyatori</span>
+            </a>
+        </nav>
+
+        <!-- User Info Bar -->
+        <div class="p-4 border-t border-slate-800 bg-slate-900/60 text-xs text-slate-400 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-user-shield text-xs"></i>
+                </div>
+                <div>
+                    <strong class="text-slate-200 block text-xs">{{ request.user.username }}</strong>
+                    <span class="text-[10px] text-amber-400 font-semibold">Super Admin</span>
+                </div>
+            </div>
+            <a href="/admin/logout/" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Chiqish">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Top Nav Header -->
+        <header class="h-16 border-b border-slate-800 bg-slate-900/40 px-6 flex items-center justify-between">
+            <div>
+                {% block superadmin_header %}
+                <h2 class="text-lg font-black text-white">Super Admin Boshqaruv Markazi</h2>
+                {% endblock %}
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                    <span>To'liq Boshqaruv Huquqi</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Flash messages -->
+        {% if messages %}
+        <div class="p-4 space-y-2">
+            {% for message in messages %}
+            <div class="p-3.5 rounded-xl text-sm font-semibold flex items-center gap-2.5 {% if message.tags == 'error' %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% elif message.tags == 'success' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% endif %}">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Body Content -->
+        <main class="flex-1 p-4 md:p-6 overflow-y-auto">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
