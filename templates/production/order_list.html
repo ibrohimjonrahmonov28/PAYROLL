@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Buyurtmalar — PAYROLL{% endblock %}
+
+{% block page_header %}
+<div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+        <i class="fa-solid fa-boxes-stacked"></i>
+    </div>
+    <h2 class="text-lg font-bold text-white">Ishlab Chiqarish Buyurtmalari & Qutilar</h2>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header Actions -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div>
+            <h3 class="text-base font-bold text-white">Barcha Buyurtmalar</h3>
+            <p class="text-xs text-slate-400">Jami buyurtmalar: {{ orders|length }} ta</p>
+        </div>
+        <div>
+            <button onclick="document.getElementById('new-order-modal').classList.remove('hidden')" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Yangi Buyurtma Yaratish
+            </button>
+        </div>
+    </div>
+
+    <!-- Orders Grid / Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-950 border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider font-bold">
+                        <th class="py-3.5 px-4">Buyurtma #</th>
+                        <th class="py-3.5 px-4">Model (Artikul)</th>
+                        <th class="py-3.5 px-4">Buyurtmachi</th>
+                        <th class="py-3.5 px-4 text-center">Reja (dona)</th>
+                        <th class="py-3.5 px-4 text-center">Qutilar</th>
+                        <th class="py-3.5 px-4 text-center">Bajarilishi</th>
+                        <th class="py-3.5 px-4 text-center">Holati</th>
+                        <th class="py-3.5 px-4 text-right">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-200">
+                    {% for o in orders %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-4 px-4 font-bold text-white">
+                            <a href="{% url 'production:order_detail' o.id %}" class="hover:text-amber-400 flex items-center gap-2">
+                                <i class="fa-solid fa-folder text-amber-500 text-xs"></i>
+                                {{ o.order_number }}
+                            </a>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="font-bold text-slate-100">{{ o.article.name }}</span>
+                            <span class="text-xs text-cyan-400 font-mono block">({{ o.article.code }})</span>
+                        </td>
+                        <td class="py-4 px-4 text-slate-400 text-xs">
+                            {{ o.client_name|default:"—" }}
+                        </td>
+                        <td class="py-4 px-4 text-center font-bold text-amber-400 digital-font text-base">
+                            {{ o.total_quantity }}
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="bg-slate-800 text-slate-300 px-2.5 py-1 rounded text-xs font-semibold">
+                                {{ o.boxes.count }} ta quti ({{ o.total_boxes_quantity }} dona)
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <div class="w-32 mx-auto">
+                                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                    <span>{{ o.completed_tickets_count }}/{{ o.total_tickets_count }}</span>
+                                    <span>{{ o.progress_percentage }}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                    <div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ o.progress_percentage }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if o.status == 'COMPLETED' %}
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                Yakunlandi
+                            </span>
+                            {% else %}
+                            <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                Ishlab chiqarishda
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-right">
+                            <a href="{% url 'production:order_detail' o.id %}" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold rounded-lg border border-slate-700 transition">
+                                Tafsilotlar &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500 text-sm">
+                            Hozircha buyurtmalar yo'q. "Yangi Buyurtma Yaratish" tugmasini bosing.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: New Order -->
+<div id="new-order-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-box-open text-amber-500"></i> Yangi Buyurtma Yaratish
+            </h3>
+            <button onclick="document.getElementById('new-order-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Buyurtma Raqami</label>
+                <input type="text" name="order_number" required placeholder="Masalan: ORD-2026-001" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model (Artikul)</label>
+                <select name="article_id" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <option value="">-- Modelni tanlang --</option>
+                    {% for a in articles %}
+                    <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if not articles %}
+                <p class="text-[11px] text-amber-400 mt-1">Avval "Modellar & Narxlar" bo'limida model yarating!</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Jami Reja Miqdori (dona)</label>
+                <input type="number" name="total_quantity" required min="1" placeholder="Masalan: 1000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Buyurtmachi / Mijoz (Ixtiyoriy)</label>
+                <input type="text" name="client_name" placeholder="Masalan: Ideal Garment MCHJ" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Topshirish muddati (Ixtiyoriy)</label>
+                <input type="date" name="deadline" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('new-order-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+                    Bekor qilish
+                </button>
+                <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">
+                    Yaratish & Davom etish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

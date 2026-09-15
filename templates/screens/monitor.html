@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MONITOR {{ screen_number }} — FABRIKA ISHLAB CHIQARISH VA ISH HAQI EKRANI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070d18;
+            color: #f1f5f9;
+        }
+
+        .digital-font {
+            font-family: 'Chakra Petch', monospace;
+        }
+
+        /* High contrast glow effects */
+        .glow-amber {
+            text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+        .glow-emerald {
+            text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+        .glow-cyan {
+            text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+
+        /* Alternating row subtle highlighting */
+        tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Top 3 rank badges */
+        .rank-1 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 900; }
+        .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #000; font-weight: 900; }
+        .rank-3 { background: linear-gradient(135deg, #b45309, #78350f); color: #fff; font-weight: 900; }
+        .rank-default { background: #1e293b; color: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-6 select-none">
+
+    <!-- HEADER / STATUS BAR -->
+    <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
+        <!-- Title & Monitor Badge -->
+        <div class="flex items-center gap-4">
+            <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-5 py-2 rounded-xl shadow-lg flex items-center gap-3">
+                <i class="fa-solid fa-tv"></i>
+                <span>EKRAN {{ screen_number }}</span>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black tracking-wide text-white flex items-center gap-2">
+                    TIKUVCHILIK FABRIKASI
+                    <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold">
+                        Real-vaqt rejimida
+                    </span>
+                </h1>
+                <p class="text-sm text-slate-400 font-medium">Dona-bay ish haqi va ishlab chiqarish ko'rsatkichlari</p>
+            </div>
+        </div>
+
+        <!-- Middle Summary Stats -->
+        <div class="flex items-center gap-6 bg-slate-900/90 border border-slate-800 px-6 py-2 rounded-xl">
+            <div class="text-center">
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Faol Tikuvchilar</span>
+                <span id="stat-active-workers" class="text-2xl font-black text-cyan-400 digital-font">{{ active_workers_count }}</span>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div class="text-center">
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Jami Tikilgan (dona)</span>
+                <span id="stat-total-units" class="text-2xl font-black text-amber-400 digital-font">{{ grand_total_units }}</span>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div class="text-center">
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Bugungi Ish Haqi</span>
+                <span id="stat-total-earnings" class="text-2xl font-black text-emerald-400 digital-font glow-emerald">{{ grand_total_earnings_formatted }} <small class="text-xs text-emerald-300">UZS</small></span>
+            </div>
+        </div>
+
+        <!-- Clock, Refresh & Fullscreen -->
+        <div class="flex items-center gap-3">
+            <!-- Countdown Timer Indicator -->
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
+                <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
+                <span>Yangilanish: <strong id="timer-countdown" class="text-white digital-font text-sm">60</strong>s</span>
+            </div>
+
+            <!-- Digital Clock -->
+            <div class="bg-slate-900 border border-slate-800 px-4 py-1.5 rounded-xl text-right">
+                <div id="live-clock" class="text-2xl font-black digital-font text-amber-400 leading-none">00:00:00</div>
+                <div class="text-xs text-slate-400 font-medium">{{ date_str }}</div>
+            </div>
+
+            <!-- Fullscreen Button -->
+            <button onclick="toggleFullscreen()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl transition" title="To'liq ekran">
+                <i class="fa-solid fa-expand text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- SCREEN SWITCHER NAVIGATION (Quick TV access) -->
+    <nav class="flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 text-xs font-bold scrollbar-none">
+        <span class="text-slate-500 mr-2 uppercase tracking-wider flex items-center gap-1">
+            <i class="fa-solid fa-display"></i> Ekranlar:
+        </span>
+        {% for s in "12345678910"|make_list %}
+            {# handling string splits for 1..10 cleanly #}
+        {% endfor %}
+        <a href="{% url 'screens:screen_view' 1 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 1 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">1</a>
+        <a href="{% url 'screens:screen_view' 2 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 2 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">2</a>
+        <a href="{% url 'screens:screen_view' 3 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 3 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">3</a>
+        <a href="{% url 'screens:screen_view' 4 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 4 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">4</a>
+        <a href="{% url 'screens:screen_view' 5 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 5 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">5</a>
+        <a href="{% url 'screens:screen_view' 6 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 6 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">6</a>
+        <a href="{% url 'screens:screen_view' 7 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 7 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">7</a>
+        <a href="{% url 'screens:screen_view' 8 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 8 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">8</a>
+        <a href="{% url 'screens:screen_view' 9 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 9 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">9</a>
+        <a href="{% url 'screens:screen_view' 10 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 10 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">10</a>
+        
+        <a href="{% url 'screens:overview' %}" class="ml-auto px-4 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-table-cells"></i> Barcha Ekranlar Umumiy
+        </a>
+    </nav>
+
+    <!-- MAIN LEADERBOARD TABLE -->
+    <main class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+        <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold">
+                        <th class="py-4 px-4 text-center w-16">№</th>
+                        <th class="py-4 px-6 w-36">Xodim ID</th>
+                        <th class="py-4 px-6">Tikuvchi F.I.SH</th>
+                        <th class="py-4 px-6 text-center w-40">Biletlar</th>
+                        <th class="py-4 px-6 text-center w-48">Tikilgan Donalar</th>
+                        <th class="py-4 px-8 text-right w-72">Bugungi Ish Haqi (UZS)</th>
+                        <th class="py-4 px-6 text-center w-36">Oxirgi skan</th>
+                    </tr>
+                </thead>
+                <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-xl">
+                    {% for w in workers %}
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="py-4 px-4 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
+                                {{ forloop.counter }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-lg text-lg tracking-wide digital-font">
+                                {{ w.worker_id }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 font-bold text-white tracking-wide text-xl md:text-2xl">
+                            {{ w.full_name }}
+                        </td>
+                        <td class="py-4 px-6 text-center text-slate-300 font-semibold digital-font">
+                            {{ w.ticket_count }} ta
+                        </td>
+                        <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
+                            {{ w.total_units }}
+                        </td>
+                        <td class="py-4 px-8 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald">
+                            {{ w.total_earnings_formatted }} <span class="text-sm font-semibold text-emerald-500">so'm</span>
+                        </td>
+                        <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
+                            {{ w.last_scan }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="empty-row">
+                        <td colspan="7" class="py-20 text-center text-slate-500">
+                            <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
+                            <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar biriktirilmadi</span>
+                            <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- FOOTER INFO -->
+    <footer class="mt-4 flex items-center justify-between text-xs text-slate-500 font-medium px-2">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Tizim holati: Barcha xizmatlar normal ishlamoqda</span>
+        </div>
+        <div>
+            Har 60 soniyada avtomatik yangilanadi • Sdelshina Payroll Monitoring Tizimi
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT: Auto-refresh and live clock -->
+    <script>
+        const SCREEN_NUMBER = {{ screen_number }};
+        let countdown = 60;
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('live-clock').innerText = `${hours}:${minutes}:${seconds}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Refresh Countdown & Polling
+        async function fetchScreenData() {
+            try {
+                const response = await fetch(`/screens/api/${SCREEN_NUMBER}/`);
+                if (!response.ok) return;
+                const data = await response.json();
+
+                // Update summary badges
+                document.getElementById('stat-active-workers').innerText = data.active_workers_count;
+                document.getElementById('stat-total-units').innerText = data.grand_total_units;
+                document.getElementById('stat-total-earnings').innerHTML = `${data.grand_total_earnings_formatted} <small class="text-xs text-emerald-300">UZS</small>`;
+
+                // Render Table Rows
+                const tbody = document.getElementById('workers-tbody');
+                if (data.workers.length === 0) {
+                    tbody.innerHTML = `
+                    <tr id="empty-row">
+                        <td colspan="7" class="py-20 text-center text-slate-500">
+                            <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
+                            <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar biriktirilmadi</span>
+                            <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                        </td>
+                    </tr>`;
+                } else {
+                    let html = '';
+                    data.workers.forEach((w, index) => {
+                        const rank = index + 1;
+                        let rankClass = 'rank-default';
+                        if (rank === 1) rankClass = 'rank-1';
+                        else if (rank === 2) rankClass = 'rank-2';
+                        else if (rank === 3) rankClass = 'rank-3';
+
+                        html += `
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="py-4 px-4 text-center">
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm ${rankClass}">
+                                    ${rank}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-lg text-lg tracking-wide digital-font">
+                                    ${w.worker_id}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6 font-bold text-white tracking-wide text-xl md:text-2xl">
+                                ${w.full_name}
+                            </td>
+                            <td class="py-4 px-6 text-center text-slate-300 font-semibold digital-font">
+                                ${w.ticket_count} ta
+                            </td>
+                            <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
+                                ${w.total_units}
+                            </td>
+                            <td class="py-4 px-8 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald">
+                                ${w.total_earnings_formatted} <span class="text-sm font-semibold text-emerald-500">so'm</span>
+                            </td>
+                            <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
+                                ${w.last_scan}
+                            </td>
+                        </tr>`;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (err) {
+                console.error("Screen polling error:", err);
+            }
+        }
+
+        // Countdown Timer
+        setInterval(() => {
+            countdown--;
+            document.getElementById('timer-countdown').innerText = countdown;
+            if (countdown <= 0) {
+                countdown = 60;
+                fetchScreenData();
+            }
+        }, 1000);
+
+        // Fullscreen Toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

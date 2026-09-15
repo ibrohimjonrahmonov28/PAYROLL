@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Tikuvchilar (Xodimlar) — PAYROLL{% endblock %}
+
+{% block page_header %}
+<div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+        <i class="fa-solid fa-id-badge"></i>
+    </div>
+    <h2 class="text-lg font-bold text-white">Tikuvchilar va QR Nishonlar</h2>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Action Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div>
+            <h3 class="text-base font-bold text-white">Tikuvchi xodimlar bazasi</h3>
+            <p class="text-xs text-slate-400">Jami ro'yxatdan o'tgan xodimlar: {{ workers|length }} nafar</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'accounts:print_worker_badges' %}" target="_blank" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> Barcha Beydjiklarni Chop Etish
+            </a>
+            <button onclick="document.getElementById('new-worker-modal').classList.remove('hidden')" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Yangi Tikuvchi Qo'shish
+            </button>
+        </div>
+    </div>
+
+    <!-- Workers Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-950 border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider font-bold">
+                        <th class="py-3 px-4">Xodim ID</th>
+                        <th class="py-3 px-4">F.I.SH</th>
+                        <th class="py-3 px-4">Telefon</th>
+                        <th class="py-3 px-4 text-center">QR Kod</th>
+                        <th class="py-3 px-4 text-center">Holati</th>
+                        <th class="py-3 px-4">Qo'shilgan sana</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-200">
+                    {% for w in workers %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4">
+                            <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-2.5 py-1 rounded text-xs digital-font">
+                                {{ w.worker_id }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-white text-base">
+                            {{ w.full_name }}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-400 font-mono text-xs">
+                            {{ w.phone_number|default:"—" }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if w.qr_code %}
+                            <a href="{{ w.qr_code.url }}" target="_blank" class="inline-block p-1 bg-white rounded border border-slate-600 hover:scale-110 transition shadow-sm">
+                                <img src="{{ w.qr_code.url }}" alt="QR" class="w-8 h-8 object-contain">
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if w.is_active %}
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                Faol
+                            </span>
+                            {% else %}
+                            <span class="bg-rose-500/20 text-rose-400 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                Nofaol
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-400 text-xs">
+                            {{ w.created_at|date:"d.m.Y H:i" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-500">
+                            Xodimlar mavjud emas. Yuqoridagi tugma orqali yangi tikuvchi qo'shing.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: New Worker -->
+<div id="new-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-amber-500"></i> Yangi Tikuvchi Qo'shish
+            </h3>
+            <button onclick="document.getElementById('new-worker-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Xodim ID (Noyob kod)</label>
+                <input type="text" name="worker_id" required placeholder="Masalan: W-001 yoki TIK-101" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ismi</label>
+                <input type="text" name="first_name" required placeholder="Masalan: Malika" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Familiyasi</label>
+                <input type="text" name="last_name" required placeholder="Masalan: Karimova" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telefon raqami (Ixtiyoriy)</label>
+                <input type="text" name="phone_number" placeholder="+998 90 123 45 67" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('new-worker-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+                    Bekor qilish
+                </button>
+                <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">
+                    Saqlash & QR Yaratish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

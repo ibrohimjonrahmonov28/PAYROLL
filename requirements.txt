@@ -1,2 +1,5 @@
 django>=5.1,<5.2
 python-dotenv>=1.0.1
+pillow>=10.4.0
+qrcode[pil]>=7.4.2
+python-telegram-bot>=21.0
