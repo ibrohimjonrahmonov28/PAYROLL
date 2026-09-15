@@ -21,10 +21,12 @@
             <p class="text-xs text-slate-400">Har bir modelga tegishli operatsiyalar va dona narxi (UZS)</p>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="document.getElementById('new-operation-modal').classList.remove('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <button onclick="document.getElementById('new-operation-modal').classList.remove('hidden')"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
                 <i class="fa-solid fa-plus"></i> Yangi Operatsiya
             </button>
-            <button onclick="document.getElementById('new-article-modal').classList.remove('hidden')" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
+            <button onclick="document.getElementById('new-article-modal').classList.remove('hidden')"
+                class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
                 <i class="fa-solid fa-shirt"></i> Yangi Model (Artikul)
             </button>
         </div>
@@ -36,7 +38,8 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
                 <div class="flex items-center gap-3">
-                    <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-xl text-sm font-mono">
+                    <span
+                        class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-xl text-sm font-mono">
                         {{ article.code }}
                     </span>
                     <div>
@@ -48,7 +51,8 @@
                 </div>
 
                 <!-- Link Operation button for this article -->
-                <button onclick="openLinkOpModal({{ article.id }}, '{{ article.code }} - {{ article.name }}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                <button onclick="openLinkOpModal({{ article.id }}, '{{ article.code }} - {{ article.name }}')"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
                     <i class="fa-solid fa-link"></i> Operatsiya & Narx Biriktirish
                 </button>
             </div>
@@ -57,7 +61,8 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <tr
+                            class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                             <th class="py-2.5 px-3 w-12 text-center">Tartib</th>
                             <th class="py-2.5 px-3">Operatsiya Kodi</th>
                             <th class="py-2.5 px-3">Operatsiya Nomi</th>
@@ -71,7 +76,8 @@
                             <td class="py-3 px-3 font-mono font-bold text-amber-400">{{ ao.operation.code }}</td>
                             <td class="py-3 px-3 font-bold text-white text-sm">{{ ao.operation.name }}</td>
                             <td class="py-3 px-4 text-right font-black text-emerald-400 digital-font text-base">
-                                {{ ao.price_per_unit|floatformat:0 }} <span class="text-xs text-slate-500 font-normal">so'm</span>
+                                {{ ao.price_per_unit|floatformat:0 }} <span
+                                    class="text-xs text-slate-500 font-normal">so'm</span>
                             </td>
                         </tr>
                         {% empty %}
@@ -95,13 +101,15 @@
 </div>
 
 <!-- Modal: New Article -->
-<div id="new-article-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="new-article-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-shirt text-amber-500"></i> Yangi Model (Artikul)
             </h3>
-            <button onclick="document.getElementById('new-article-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button onclick="document.getElementById('new-article-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -109,33 +117,43 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="create_article">
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model Kodi (Artikul)</label>
-                <input type="text" name="code" required placeholder="Masalan: ART-2026-01" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model Kodi
+                    (Artikul)</label>
+                <input type="text" name="code" required placeholder="Masalan: ART-2026-01"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model Nomi</label>
-                <input type="text" name="name" required placeholder="Masalan: Erkaklar Futbolkasi Premium" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                <input type="text" name="name" required placeholder="Masalan: Erkaklar Futbolkasi Premium"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tavsif (Ixtiyoriy)</label>
-                <textarea name="description" rows="2" placeholder="Material, o'lchamlar yoki maxsus talablar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tavsif
+                    (Ixtiyoriy)</label>
+                <textarea name="description" rows="2" placeholder="Material, o'lchamlar yoki maxsus talablar"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
             </div>
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('new-article-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
-                <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
+                <button type="button" onclick="document.getElementById('new-article-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
+                    qilish</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Modal: New Operation -->
-<div id="new-operation-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="new-operation-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-list-check text-cyan-400"></i> Yangi Operatsiya Katalogi
             </h3>
-            <button onclick="document.getElementById('new-operation-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button onclick="document.getElementById('new-operation-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -143,29 +161,38 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="create_operation">
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya Kodi</label>
-                <input type="text" name="code" required placeholder="Masalan: OP-01, OP-YOQA" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya
+                    Kodi</label>
+                <input type="text" name="code" required placeholder="Masalan: OP-01, OP-YOQA"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya Nomi</label>
-                <input type="text" name="name" required placeholder="Masalan: Yoqa tikish, Yeng ulash, Tugma qadash" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya
+                    Nomi</label>
+                <input type="text" name="name" required placeholder="Masalan: Yoqa tikish, Yeng ulash, Tugma qadash"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
             </div>
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('new-operation-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
-                <button type="submit" class="px-5 py-2 bg-cyan-500 hover:bg-cyan-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Qo'shish</button>
+                <button type="button" onclick="document.getElementById('new-operation-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
+                    qilish</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-cyan-500 hover:bg-cyan-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Qo'shish</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Modal: Link Operation & Price -->
-<div id="link-op-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="link-op-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-link text-amber-500"></i> Modelga Operatsiya & Narx Biriktirish
             </h3>
-            <button onclick="document.getElementById('link-op-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button onclick="document.getElementById('link-op-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -175,13 +202,16 @@
             <input type="hidden" name="article_id" id="modal-link-article-id">
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tanlangan Model</label>
-                <input type="text" id="modal-link-article-name" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-400">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tanlangan
+                    Model</label>
+                <input type="text" id="modal-link-article-name" readonly
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-400">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya</label>
-                <select name="operation_id" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                <select name="operation_id" required
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                     <option value="">-- Operatsiyani tanlang --</option>
                     {% for op in operations %}
                     <option value="{{ op.id }}">{{ op.code }} - {{ op.name }}</option>
@@ -190,18 +220,26 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona-bay narxi (UZS)</label>
-                <input type="number" name="price_per_unit" step="0.01" required min="1" placeholder="Masalan: 500 yoki 1200" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-bold digital-font text-base focus:outline-none focus:border-emerald-500">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona-bay narxi
+                    (UZS)</label>
+                <input type="number" name="price_per_unit" step="0.01" required min="1"
+                    placeholder="Masalan: 500 yoki 1200"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-bold digital-font text-base focus:outline-none focus:border-emerald-500">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ketma-ketlik tartibi</label>
-                <input type="number" name="sequence" value="1" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ketma-ketlik
+                    tartibi</label>
+                <input type="number" name="sequence" value="1" min="1"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('link-op-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
-                <button type="submit" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Biriktirish</button>
+                <button type="button" onclick="document.getElementById('link-op-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
+                    qilish</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Biriktirish</button>
             </div>
         </form>
     </div>

@@ -93,3 +93,4 @@ def create_boxes_for_order(order: Order, box_sizes: list[int]) -> list[Box]:
         created_boxes.append(box)
 
     return created_boxes
+

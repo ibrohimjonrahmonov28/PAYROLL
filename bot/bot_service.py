@@ -140,3 +140,4 @@ def create_bot_app(token: str):
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(handle_callback_query))
     return app
+

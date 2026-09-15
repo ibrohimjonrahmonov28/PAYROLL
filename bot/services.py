@@ -181,3 +181,4 @@ def finalize_and_route(session_key: str, screen_number: int, master_user: User |
         f"<i>Natijalar {screen_number}-ekranda aks etmoqda. Keyingi xodimni skanerlashingiz mumkin.</i>"
     )
     return True, msg, summary
+

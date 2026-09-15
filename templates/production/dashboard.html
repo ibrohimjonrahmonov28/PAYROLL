@@ -18,7 +18,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- KPI 1 -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <div
+                class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                 <span>Bugungi Ish Haqi</span>
                 <i class="fa-solid fa-money-bill-wave text-emerald-400 text-lg"></i>
             </div>
@@ -30,7 +31,8 @@
 
         <!-- KPI 2 -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <div
+                class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                 <span>Tikilgan Donalar</span>
                 <i class="fa-solid fa-shirt text-amber-400 text-lg"></i>
             </div>
@@ -42,7 +44,8 @@
 
         <!-- KPI 3 -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <div
+                class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                 <span>Faol Tikuvchilar</span>
                 <i class="fa-solid fa-users text-cyan-400 text-lg"></i>
             </div>
@@ -54,7 +57,8 @@
 
         <!-- KPI 4 -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-            <div class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <div
+                class="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                 <span>Sex Ekranlari</span>
                 <i class="fa-solid fa-tv text-purple-400 text-lg"></i>
             </div>
@@ -78,7 +82,8 @@
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-boxes-stacked text-amber-500"></i> Ishlab Chiqarish Buyurtmalari
                 </h3>
-                <a href="{% url 'production:order_list' %}" class="text-xs text-amber-400 hover:text-amber-300 font-semibold">
+                <a href="{% url 'production:order_list' %}"
+                    class="text-xs text-amber-400 hover:text-amber-300 font-semibold">
                     Barchasi &rarr;
                 </a>
             </div>
@@ -88,7 +93,8 @@
                 <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
-                            <a href="{% url 'production:order_detail' o.id %}" class="font-bold text-white hover:text-amber-400 text-base">
+                            <a href="{% url 'production:order_detail' o.id %}"
+                                class="font-bold text-white hover:text-amber-400 text-base">
                                 {{ o.order_number }}
                             </a>
                             <span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded font-mono">
@@ -96,23 +102,27 @@
                             </span>
                         </div>
                         <span class="text-xs font-bold text-slate-400 digital-font">
-                            {{ o.completed_tickets_count }}/{{ o.total_tickets_count }} bilet ({{ o.progress_percentage }}%)
+                            {{ o.completed_tickets_count }}/{{ o.total_tickets_count }} bilet ({{ o.progress_percentage
+                            }}%)
                         </span>
                     </div>
 
                     <!-- Progress bar -->
                     <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: {{ o.progress_percentage }}%;"></div>
+                        <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500"
+                            style="width: {{ o.progress_percentage }}%;"></div>
                     </div>
 
                     <div class="flex items-center justify-between text-xs text-slate-500 mt-2">
-                        <span>Reja: <strong class="text-slate-300">{{ o.total_quantity }} dona</strong> (Qutilarda: {{ o.total_boxes_quantity }} dona)</span>
+                        <span>Reja: <strong class="text-slate-300">{{ o.total_quantity }} dona</strong> (Qutilarda: {{
+                            o.total_boxes_quantity }} dona)</span>
                         <span>Yaratilgan: {{ o.created_at|date:"d.m.Y" }}</span>
                     </div>
                 </div>
                 {% empty %}
                 <div class="py-12 text-center text-slate-500 text-sm">
-                    Faol buyurtmalar mavjud emas. <a href="{% url 'production:order_list' %}" class="text-amber-400 underline">Yangi buyurtma yarating</a>.
+                    Faol buyurtmalar mavjud emas. <a href="{% url 'production:order_list' %}"
+                        class="text-amber-400 underline">Yangi buyurtma yarating</a>.
                 </div>
                 {% endfor %}
             </div>
@@ -129,14 +139,18 @@
 
             <div class="space-y-3 flex-1">
                 {% for w in top_workers %}
-                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                     <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 rounded-full text-xs font-black flex items-center justify-center {% if forloop.counter == 1 %}bg-amber-500 text-slate-950{% elif forloop.counter == 2 %}bg-slate-400 text-slate-950{% elif forloop.counter == 3 %}bg-amber-800 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">
+                        <span
+                            class="w-6 h-6 rounded-full text-xs font-black flex items-center justify-center {% if forloop.counter == 1 %}bg-amber-500 text-slate-950{% elif forloop.counter == 2 %}bg-slate-400 text-slate-950{% elif forloop.counter == 3 %}bg-amber-800 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">
                             {{ forloop.counter }}
                         </span>
                         <div>
-                            <div class="text-sm font-bold text-white">{{ w.worker__first_name }} {{ w.worker__last_name }}</div>
-                            <div class="text-[11px] text-cyan-400 font-mono">{{ w.worker__worker_id }} • {{ w.total_units }} dona</div>
+                            <div class="text-sm font-bold text-white">{{ w.worker__first_name }} {{ w.worker__last_name
+                                }}</div>
+                            <div class="text-[11px] text-cyan-400 font-mono">{{ w.worker__worker_id }} • {{
+                                w.total_units }} dona</div>
                         </div>
                     </div>
                     <div class="text-right">
@@ -168,7 +182,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                    <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                    <tr
+                        class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                         <th class="py-2.5 px-3">Vaqt</th>
                         <th class="py-2.5 px-3">Xodim</th>
                         <th class="py-2.5 px-3">Operatsiya</th>
@@ -183,17 +198,22 @@
                     <tr class="hover:bg-slate-800/40 transition">
                         <td class="py-2.5 px-3 font-mono text-slate-400">{{ t.scanned_at|date:"H:i:s" }}</td>
                         <td class="py-2.5 px-3 font-bold text-white">
-                            {{ t.worker.full_name }} <span class="text-cyan-400 font-mono">({{ t.worker.worker_id }})</span>
+                            {{ t.worker.full_name }} <span class="text-cyan-400 font-mono">({{ t.worker.worker_id
+                                }})</span>
                         </td>
                         <td class="py-2.5 px-3">{{ t.article_operation.operation.name }}</td>
-                        <td class="py-2.5 px-3 text-center font-bold text-amber-400 digital-font text-sm">{{ t.quantity }}</td>
-                        <td class="py-2.5 px-3 text-right font-black text-emerald-400 digital-font text-sm">{{ t.total_amount|floatformat:0 }}</td>
+                        <td class="py-2.5 px-3 text-center font-bold text-amber-400 digital-font text-sm">{{ t.quantity
+                            }}</td>
+                        <td class="py-2.5 px-3 text-right font-black text-emerald-400 digital-font text-sm">{{
+                            t.total_amount|floatformat:0 }}</td>
                         <td class="py-2.5 px-3 text-center">
-                            <span class="bg-slate-800 text-amber-400 border border-slate-700 px-2 py-0.5 rounded font-black text-[11px]">
+                            <span
+                                class="bg-slate-800 text-amber-400 border border-slate-700 px-2 py-0.5 rounded font-black text-[11px]">
                                 TV {{ t.screen_number }}
                             </span>
                         </td>
-                        <td class="py-2.5 px-3 font-mono text-[10px] text-slate-500 truncate max-w-[140px]">{{ t.ticket_code }}</td>
+                        <td class="py-2.5 px-3 font-mono text-[10px] text-slate-500 truncate max-w-[140px]">{{
+                            t.ticket_code }}</td>
                     </tr>
                     {% empty %}
                     <tr>

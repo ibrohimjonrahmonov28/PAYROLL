@@ -8,3 +8,4 @@ urlpatterns = [
     path('<int:screen_number>/', views.screen_view, name='screen_view'),
     path('api/<int:screen_number>/', views.screen_api_view, name='screen_api'),
 ]
+

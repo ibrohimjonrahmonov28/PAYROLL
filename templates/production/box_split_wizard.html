@@ -4,7 +4,8 @@
 
 {% block page_header %}
 <div class="flex items-center gap-3">
-    <a href="{% url 'production:order_detail' box.order.id %}" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+    <a href="{% url 'production:order_detail' box.order.id %}"
+        class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
         <i class="fa-solid fa-arrow-left"></i>
     </a>
     <h2 class="text-lg font-bold text-white">Operatsiyalarni Bo'lish (Split Wizard) — Quti #{{ box.box_number }}</h2>
@@ -15,7 +16,8 @@
 <div class="max-w-5xl mx-auto space-y-6">
 
     <!-- Box Context Banner -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-3">
                 <span class="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-lg digital-font">
@@ -24,7 +26,8 @@
                 <h1 class="text-xl font-bold text-white">{{ box.order.order_number }}</h1>
             </div>
             <p class="text-sm text-slate-400 mt-1">
-                Model: <strong class="text-slate-200">{{ box.order.article.name }}</strong> ({{ box.order.article.code }}) • Quti hajmi: <strong class="text-amber-400 digital-font text-base">{{ box.quantity }} dona</strong>
+                Model: <strong class="text-slate-200">{{ box.order.article.name }}</strong> ({{ box.order.article.code
+                }}) • Quti hajmi: <strong class="text-amber-400 digital-font text-base">{{ box.quantity }} dona</strong>
             </p>
         </div>
 
@@ -35,15 +38,19 @@
     </div>
 
     <!-- Split Form -->
-    <form method="POST" id="split-form" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+    <form method="POST" id="split-form"
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
         {% csrf_token %}
 
         <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-scissors text-amber-500"></i> Har bir operatsiya uchun bo'laklar (Split) sonini kiriting
+                <i class="fa-solid fa-scissors text-amber-500"></i> Har bir operatsiya uchun bo'laklar (Split) sonini
+                kiriting
             </h3>
             <p class="text-xs text-slate-400 mt-1">
-                Agar operatsiyani 1 kishi bajarsa <strong>1</strong> deb qoldiring. Agar operatsiya bir nechta tikuvchiga bo'lib berilsa (masalan 2 yoki 3 kishi), tegishli sonni kiriting. Tizim donalarni avtomatik ravishda qoldiqsiz taqsimlaydi.
+                Agar operatsiyani 1 kishi bajarsa <strong>1</strong> deb qoldiring. Agar operatsiya bir nechta
+                tikuvchiga bo'lib berilsa (masalan 2 yoki 3 kishi), tegishli sonni kiriting. Tizim donalarni avtomatik
+                ravishda qoldiqsiz taqsimlaydi.
             </p>
         </div>
 
@@ -51,7 +58,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                    <tr
+                        class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
                         <th class="py-3 px-4 w-12">№</th>
                         <th class="py-3 px-4">Operatsiya Nomi</th>
                         <th class="py-3 px-4 text-right">Dona Narxi</th>
@@ -70,25 +78,21 @@
                             <div class="text-xs text-cyan-400 font-mono">Kod: {{ item.art_op.operation.code }}</div>
                         </td>
                         <td class="py-4 px-4 text-right">
-                            <span class="font-bold text-emerald-400 digital-font text-base">{{ item.art_op.price_per_unit|floatformat:0 }}</span>
+                            <span class="font-bold text-emerald-400 digital-font text-base">{{
+                                item.art_op.price_per_unit|floatformat:0 }}</span>
                             <span class="text-[10px] text-slate-500 block">so'm</span>
                         </td>
                         <td class="py-4 px-4 text-center">
-                            <input 
-                                type="number" 
-                                name="split_{{ item.art_op.id }}" 
-                                id="split-input-{{ item.art_op.id }}"
-                                value="{{ item.split }}" 
-                                min="1" 
-                                max="{{ box.quantity }}"
+                            <input type="number" name="split_{{ item.art_op.id }}" id="split-input-{{ item.art_op.id }}"
+                                value="{{ item.split }}" min="1" max="{{ box.quantity }}"
                                 class="w-20 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-center text-amber-400 font-bold digital-font text-base focus:outline-none focus:border-amber-500"
-                                oninput="recalculateSplits({{ item.art_op.id }}, {{ box.quantity }})"
-                            >
+                                oninput="recalculateSplits({{ item.art_op.id }}, {{ box.quantity }})">
                         </td>
                         <td class="py-4 px-6">
                             <div id="preview-alloc-{{ item.art_op.id }}" class="flex flex-wrap gap-1.5 items-center">
                                 {% for alloc in item.allocations %}
-                                <span class="bg-slate-800 text-slate-200 border border-slate-700 px-2.5 py-1 rounded-lg text-xs font-black digital-font">
+                                <span
+                                    class="bg-slate-800 text-slate-200 border border-slate-700 px-2.5 py-1 rounded-lg text-xs font-black digital-font">
                                     {{ alloc }} dona
                                 </span>
                                 {% endfor %}
@@ -108,10 +112,12 @@
 
         <!-- Submit Button -->
         <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <a href="{% url 'production:order_detail' box.order.id %}" class="px-5 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+            <a href="{% url 'production:order_detail' box.order.id %}"
+                class="px-5 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
                 Orqaga qaytish
             </a>
-            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-sm shadow-xl transition flex items-center gap-2">
+            <button type="submit"
+                class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-sm shadow-xl transition flex items-center gap-2">
                 <i class="fa-solid fa-qrcode"></i> QR Stikerlarni Generatsiya Qilish & Chop Etish
             </button>
         </div>

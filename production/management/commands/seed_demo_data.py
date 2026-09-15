@@ -123,3 +123,4 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("✅ Demo ma'lumotlar muvaffaqiyatli yuklandi!"))
         self.stdout.write(self.style.SUCCESS("Superadmin: login 'admin', parol 'admin123'"))
+

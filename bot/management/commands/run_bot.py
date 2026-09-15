@@ -22,3 +22,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Master Telegram Boti ishga tushmoqda... (To'xtatish uchun Ctrl+C)"))
         app = create_bot_app(token)
         app.run_polling()
+

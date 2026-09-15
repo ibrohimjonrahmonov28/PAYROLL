@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="uz">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #070d18;
@@ -23,9 +24,11 @@
         .glow-amber {
             text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
         }
+
         .glow-emerald {
             text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
         }
+
         .glow-cyan {
             text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
         }
@@ -36,26 +39,47 @@
         }
 
         /* Top 3 rank badges */
-        .rank-1 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 900; }
-        .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #000; font-weight: 900; }
-        .rank-3 { background: linear-gradient(135deg, #b45309, #78350f); color: #fff; font-weight: 900; }
-        .rank-default { background: #1e293b; color: #94a3b8; }
+        .rank-1 {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #000;
+            font-weight: 900;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+            color: #000;
+            font-weight: 900;
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #b45309, #78350f);
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .rank-default {
+            background: #1e293b;
+            color: #94a3b8;
+        }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col p-4 md:p-6 select-none">
 
     <!-- HEADER / STATUS BAR -->
     <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
         <!-- Title & Monitor Badge -->
         <div class="flex items-center gap-4">
-            <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-5 py-2 rounded-xl shadow-lg flex items-center gap-3">
+            <div
+                class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-5 py-2 rounded-xl shadow-lg flex items-center gap-3">
                 <i class="fa-solid fa-tv"></i>
                 <span>EKRAN {{ screen_number }}</span>
             </div>
             <div>
                 <h1 class="text-xl md:text-2xl font-black tracking-wide text-white flex items-center gap-2">
                     TIKUVCHILIK FABRIKASI
-                    <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold">
+                    <span
+                        class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                         Real-vaqt rejimida
                     </span>
                 </h1>
@@ -67,26 +91,32 @@
         <div class="flex items-center gap-6 bg-slate-900/90 border border-slate-800 px-6 py-2 rounded-xl">
             <div class="text-center">
                 <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Faol Tikuvchilar</span>
-                <span id="stat-active-workers" class="text-2xl font-black text-cyan-400 digital-font">{{ active_workers_count }}</span>
+                <span id="stat-active-workers" class="text-2xl font-black text-cyan-400 digital-font">{{
+                    active_workers_count }}</span>
             </div>
             <div class="h-8 w-px bg-slate-800"></div>
             <div class="text-center">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Jami Tikilgan (dona)</span>
-                <span id="stat-total-units" class="text-2xl font-black text-amber-400 digital-font">{{ grand_total_units }}</span>
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Jami Tikilgan
+                    (dona)</span>
+                <span id="stat-total-units" class="text-2xl font-black text-amber-400 digital-font">{{ grand_total_units
+                    }}</span>
             </div>
             <div class="h-8 w-px bg-slate-800"></div>
             <div class="text-center">
                 <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Bugungi Ish Haqi</span>
-                <span id="stat-total-earnings" class="text-2xl font-black text-emerald-400 digital-font glow-emerald">{{ grand_total_earnings_formatted }} <small class="text-xs text-emerald-300">UZS</small></span>
+                <span id="stat-total-earnings" class="text-2xl font-black text-emerald-400 digital-font glow-emerald">{{
+                    grand_total_earnings_formatted }} <small class="text-xs text-emerald-300">UZS</small></span>
             </div>
         </div>
 
         <!-- Clock, Refresh & Fullscreen -->
         <div class="flex items-center gap-3">
             <!-- Countdown Timer Indicator -->
-            <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
+            <div
+                class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
                 <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
-                <span>Yangilanish: <strong id="timer-countdown" class="text-white digital-font text-sm">60</strong>s</span>
+                <span>Yangilanish: <strong id="timer-countdown"
+                        class="text-white digital-font text-sm">60</strong>s</span>
             </div>
 
             <!-- Digital Clock -->
@@ -96,7 +126,9 @@
             </div>
 
             <!-- Fullscreen Button -->
-            <button onclick="toggleFullscreen()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl transition" title="To'liq ekran">
+            <button onclick="toggleFullscreen()"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl transition"
+                title="To'liq ekran">
                 <i class="fa-solid fa-expand text-lg"></i>
             </button>
         </div>
@@ -108,20 +140,31 @@
             <i class="fa-solid fa-display"></i> Ekranlar:
         </span>
         {% for s in "12345678910"|make_list %}
-            {# handling string splits for 1..10 cleanly #}
+        {# handling string splits for 1..10 cleanly #}
         {% endfor %}
-        <a href="{% url 'screens:screen_view' 1 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 1 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">1</a>
-        <a href="{% url 'screens:screen_view' 2 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 2 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">2</a>
-        <a href="{% url 'screens:screen_view' 3 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 3 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">3</a>
-        <a href="{% url 'screens:screen_view' 4 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 4 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">4</a>
-        <a href="{% url 'screens:screen_view' 5 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 5 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">5</a>
-        <a href="{% url 'screens:screen_view' 6 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 6 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">6</a>
-        <a href="{% url 'screens:screen_view' 7 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 7 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">7</a>
-        <a href="{% url 'screens:screen_view' 8 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 8 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">8</a>
-        <a href="{% url 'screens:screen_view' 9 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 9 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">9</a>
-        <a href="{% url 'screens:screen_view' 10 %}" class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 10 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">10</a>
-        
-        <a href="{% url 'screens:overview' %}" class="ml-auto px-4 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+        <a href="{% url 'screens:screen_view' 1 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 1 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">1</a>
+        <a href="{% url 'screens:screen_view' 2 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 2 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">2</a>
+        <a href="{% url 'screens:screen_view' 3 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 3 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">3</a>
+        <a href="{% url 'screens:screen_view' 4 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 4 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">4</a>
+        <a href="{% url 'screens:screen_view' 5 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 5 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">5</a>
+        <a href="{% url 'screens:screen_view' 6 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 6 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">6</a>
+        <a href="{% url 'screens:screen_view' 7 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 7 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">7</a>
+        <a href="{% url 'screens:screen_view' 8 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 8 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">8</a>
+        <a href="{% url 'screens:screen_view' 9 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 9 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">9</a>
+        <a href="{% url 'screens:screen_view' 10 %}"
+            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 10 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">10</a>
+
+        <a href="{% url 'screens:overview' %}"
+            class="ml-auto px-4 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
             <i class="fa-solid fa-table-cells"></i> Barcha Ekranlar Umumiy
         </a>
     </nav>
@@ -131,7 +174,8 @@
         <div class="overflow-x-auto flex-1">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold">
+                    <tr
+                        class="bg-slate-950/80 border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold">
                         <th class="py-4 px-4 text-center w-16">№</th>
                         <th class="py-4 px-6 w-36">Xodim ID</th>
                         <th class="py-4 px-6">Tikuvchi F.I.SH</th>
@@ -145,12 +189,14 @@
                     {% for w in workers %}
                     <tr class="hover:bg-slate-800/50 transition-colors">
                         <td class="py-4 px-4 text-center">
-                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
+                            <span
+                                class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
                                 {{ forloop.counter }}
                             </span>
                         </td>
                         <td class="py-4 px-6">
-                            <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-lg text-lg tracking-wide digital-font">
+                            <span
+                                class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-lg text-lg tracking-wide digital-font">
                                 {{ w.worker_id }}
                             </span>
                         </td>
@@ -163,8 +209,10 @@
                         <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
                             {{ w.total_units }}
                         </td>
-                        <td class="py-4 px-8 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald">
-                            {{ w.total_earnings_formatted }} <span class="text-sm font-semibold text-emerald-500">so'm</span>
+                        <td
+                            class="py-4 px-8 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald">
+                            {{ w.total_earnings_formatted }} <span
+                                class="text-sm font-semibold text-emerald-500">so'm</span>
                         </td>
                         <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
                             {{ w.last_scan }}
@@ -174,8 +222,10 @@
                     <tr id="empty-row">
                         <td colspan="7" class="py-20 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
-                            <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar biriktirilmadi</span>
-                            <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                            <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar
+                                biriktirilmadi</span>
+                            <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan
+                                biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -301,4 +351,5 @@
         }
     </script>
 </body>
+
 </html>

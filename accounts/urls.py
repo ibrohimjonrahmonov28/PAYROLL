@@ -7,3 +7,4 @@ urlpatterns = [
     path('workers/', views.worker_list_view, name='worker_list'),
     path('workers/print-badges/', views.worker_badges_print_view, name='print_worker_badges'),
 ]
+

@@ -15,11 +15,13 @@
 <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
 
     <!-- TELEGRAM CHAT SIMULATOR (7 COLS) -->
-    <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[700px]">
+    <div
+        class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[700px]">
         <!-- Chat Header -->
         <div class="bg-slate-950 border-b border-slate-800 p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white text-lg shadow-md">
+                <div
+                    class="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white text-lg shadow-md">
                     <i class="fa-solid fa-robot"></i>
                 </div>
                 <div>
@@ -30,7 +32,8 @@
                 </div>
             </div>
 
-            <button onclick="resetSession()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 transition">
+            <button onclick="resetSession()"
+                class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 transition">
                 <i class="fa-solid fa-rotate-right mr-1"></i> Qayta Boshlash
             </button>
         </div>
@@ -39,11 +42,16 @@
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-950/40 text-sm">
             <!-- Bot Welcome Message -->
             <div class="flex items-start gap-2.5 max-w-[85%]">
-                <div class="w-7 h-7 rounded-full bg-sky-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">B</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-slate-200 shadow-sm leading-relaxed">
+                <div
+                    class="w-7 h-7 rounded-full bg-sky-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                    B</div>
+                <div
+                    class="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-slate-200 shadow-sm leading-relaxed">
                     👋 <strong>Assalomu alaykum, Hurmatli Master!</strong><br><br>
-                    Ushbu bot tikuvchilarning operatsiya QR biletlarini qabul qilish va sex ekranlariga (1–10) yo'naltirish uchun xizmat qiladi.<br><br>
-                    👉 <strong>1-qadam:</strong> Tikuvchining shaxsiy QR nishonini skanerlang yoki ID raqamini kiriting (Masalan: <code class="text-amber-400 bg-slate-950 px-1 py-0.5 rounded">W-001</code>):
+                    Ushbu bot tikuvchilarning operatsiya QR biletlarini qabul qilish va sex ekranlariga (1–10)
+                    yo'naltirish uchun xizmat qiladi.<br><br>
+                    👉 <strong>1-qadam:</strong> Tikuvchining shaxsiy QR nishonini skanerlang yoki ID raqamini kiriting
+                    (Masalan: <code class="text-amber-400 bg-slate-950 px-1 py-0.5 rounded">W-001</code>):
                 </div>
             </div>
         </div>
@@ -54,14 +62,12 @@
         <!-- Chat Input Bar -->
         <div class="p-4 bg-slate-950 border-t border-slate-800">
             <form id="chat-form" onsubmit="handleSend(event)" class="flex items-center gap-2">
-                <input 
-                    type="text" 
-                    id="chat-input" 
-                    placeholder="QR kod skaneri / Matn kiriting (masalan: W-001 yoki TK-...)" 
+                <input type="text" id="chat-input"
+                    placeholder="QR kod skaneri / Matn kiriting (masalan: W-001 yoki TK-...)"
                     class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
-                    autocomplete="off"
-                >
-                <button type="submit" class="w-12 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center text-lg font-bold transition shadow-lg flex-shrink-0">
+                    autocomplete="off">
+                <button type="submit"
+                    class="w-12 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center text-lg font-bold transition shadow-lg flex-shrink-0">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </form>
@@ -85,7 +91,8 @@
             </div>
             <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                 {% for w in workers %}
-                <button onclick="quickSelectWorker('{{ w.worker_id }}')" class="w-full text-left px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition flex items-center justify-between text-xs">
+                <button onclick="quickSelectWorker('{{ w.worker_id }}')"
+                    class="w-full text-left px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition flex items-center justify-between text-xs">
                     <div>
                         <span class="font-bold text-white">{{ w.full_name }}</span>
                         <span class="text-cyan-400 font-mono ml-2 font-bold">{{ w.worker_id }}</span>
@@ -93,7 +100,8 @@
                     <span class="text-slate-500 text-[10px]"><i class="fa-solid fa-qrcode mr-1"></i>QR scan</span>
                 </button>
                 {% empty %}
-                <div class="text-xs text-slate-500 py-3 text-center">Xodimlar yo'q. <a href="{% url 'accounts:worker_list' %}" class="text-amber-400 underline">Qo'shing</a>.</div>
+                <div class="text-xs text-slate-500 py-3 text-center">Xodimlar yo'q. <a
+                        href="{% url 'accounts:worker_list' %}" class="text-amber-400 underline">Qo'shing</a>.</div>
                 {% endfor %}
             </div>
         </div>
@@ -108,18 +116,22 @@
             </div>
             <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                 {% for t in pending_tickets %}
-                <button onclick="quickScanTicket('{{ t.ticket_code }}')" class="w-full text-left px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition flex items-center justify-between text-xs">
+                <button onclick="quickScanTicket('{{ t.ticket_code }}')"
+                    class="w-full text-left px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition flex items-center justify-between text-xs">
                     <div class="truncate max-w-[190px]">
                         <span class="font-bold text-white">{{ t.article_operation.operation.name }}</span>
-                        <span class="text-[10px] text-slate-500 block">Quti #{{ t.box.box_number }} • {{ t.quantity }} dona</span>
+                        <span class="text-[10px] text-slate-500 block">Quti #{{ t.box.box_number }} • {{ t.quantity }}
+                            dona</span>
                     </div>
                     <div class="text-right flex-shrink-0">
-                        <span class="font-bold text-emerald-400 digital-font">{{ t.total_amount|floatformat:0 }} UZS</span>
+                        <span class="font-bold text-emerald-400 digital-font">{{ t.total_amount|floatformat:0 }}
+                            UZS</span>
                     </div>
                 </button>
                 {% empty %}
                 <div class="text-xs text-slate-500 py-3 text-center">
-                    Kutilayotgan biletlar yo'q. <a href="{% url 'production:order_list' %}" class="text-amber-400 underline">Buyurtma va qutilarni bo'ling</a>.
+                    Kutilayotgan biletlar yo'q. <a href="{% url 'production:order_list' %}"
+                        class="text-amber-400 underline">Buyurtma va qutilarni bo'ling</a>.
                 </div>
                 {% endfor %}
             </div>
@@ -135,18 +147,38 @@
             </div>
             <div class="grid grid-cols-5 gap-1.5">
                 {% for i in "12345678910"|make_list %}
-                    {# custom loop #}
+                {# custom loop #}
                 {% endfor %}
-                <a href="{% url 'screens:screen_view' 1 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 1</a>
-                <a href="{% url 'screens:screen_view' 2 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 2</a>
-                <a href="{% url 'screens:screen_view' 3 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 3</a>
-                <a href="{% url 'screens:screen_view' 4 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 4</a>
-                <a href="{% url 'screens:screen_view' 5 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 5</a>
-                <a href="{% url 'screens:screen_view' 6 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 6</a>
-                <a href="{% url 'screens:screen_view' 7 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 7</a>
-                <a href="{% url 'screens:screen_view' 8 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 8</a>
-                <a href="{% url 'screens:screen_view' 9 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 9</a>
-                <a href="{% url 'screens:screen_view' 10 %}" target="_blank" class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV 10</a>
+                <a href="{% url 'screens:screen_view' 1 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    1</a>
+                <a href="{% url 'screens:screen_view' 2 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    2</a>
+                <a href="{% url 'screens:screen_view' 3 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    3</a>
+                <a href="{% url 'screens:screen_view' 4 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    4</a>
+                <a href="{% url 'screens:screen_view' 5 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    5</a>
+                <a href="{% url 'screens:screen_view' 6 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    6</a>
+                <a href="{% url 'screens:screen_view' 7 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    7</a>
+                <a href="{% url 'screens:screen_view' 8 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    8</a>
+                <a href="{% url 'screens:screen_view' 9 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    9</a>
+                <a href="{% url 'screens:screen_view' 10 %}" target="_blank"
+                    class="py-2 bg-slate-950 hover:bg-purple-950 border border-slate-800 hover:border-purple-500 rounded-lg text-center text-xs font-black text-purple-300 digital-font transition">TV
+                    10</a>
             </div>
         </div>
 
@@ -224,8 +256,8 @@
             // Identify worker
             const res = await fetch('/bot/simulator/api/', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'identify_worker', worker_input: text, session_key: SESSION_KEY})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'identify_worker', worker_input: text, session_key: SESSION_KEY })
             });
             const data = await res.json();
             addMessage('bot', data.message);
@@ -236,13 +268,13 @@
             // Scan ticket
             const res = await fetch('/bot/simulator/api/', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'scan_ticket', ticket_input: text, session_key: SESSION_KEY})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'scan_ticket', ticket_input: text, session_key: SESSION_KEY })
             });
             const data = await res.json();
             addMessage('bot', data.message);
             if (data.success && data.ticket_data) {
-                showInlineButtons('finalize_prompt', {count: data.ticket_data.total_tickets_count});
+                showInlineButtons('finalize_prompt', { count: data.ticket_data.total_tickets_count });
             }
         }
     }
@@ -264,8 +296,8 @@
     async function submitFinalize(screenNumber) {
         const res = await fetch('/bot/simulator/api/', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: 'finalize', screen_number: screenNumber, session_key: SESSION_KEY})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'finalize', screen_number: screenNumber, session_key: SESSION_KEY })
         });
         const data = await res.json();
         addMessage('bot', data.message);
@@ -276,8 +308,8 @@
     async function cancelSession() {
         await fetch('/bot/simulator/api/', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: 'cancel', session_key: SESSION_KEY})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'cancel', session_key: SESSION_KEY })
         });
         addMessage('bot', '❌ Amal bekor qilindi. Yangi xodimning QR nishoni yoki ID raqamini yuboring:');
         document.getElementById('inline-keyboard-area').classList.add('hidden');
