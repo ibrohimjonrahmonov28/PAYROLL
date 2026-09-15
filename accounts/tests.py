@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from accounts.models import User, Worker, WorkerPayout
-from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket
+from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
 
 
 class SuperAdminPanelTest(TestCase):
@@ -46,6 +46,11 @@ class SuperAdminPanelTest(TestCase):
             order_number="ORD-TEST-SA",
             article=self.article,
             total_quantity=100
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order,
+            article=self.article,
+            quantity=100
         )
         self.box = Box.objects.create(
             order=self.order,
@@ -144,3 +149,56 @@ class SuperAdminPanelTest(TestCase):
         self.art_op.refresh_from_db()
         self.assertEqual(self.art_op.price_per_unit, Decimal("1500.00"))
         self.assertEqual(self.art_op.sequence, 2)
+
+    def test_superadmin_create_order_with_model_and_checked_operations(self):
+        self.client.force_login(self.superadmin)
+        post_data = {
+            'order_number': 'ORD-NEW-2026',
+            'client_name': 'Katta Tikuvchilik MCHJ',
+            'model_name': 'Klassik Polo Futbolka',
+            'model_code': 'POLO-NEW',
+            'quantity': '1000',
+            'selected_operations': [self.operation.id],
+            f'price_{self.operation.id}': '1250.00',
+        }
+        res = self.client.post(reverse('superadmin_orders_list'), post_data)
+        self.assertEqual(res.status_code, 302)
+
+        order = Order.objects.get(order_number='ORD-NEW-2026')
+        self.assertEqual(order.client_name, 'Katta Tikuvchilik MCHJ')
+        self.assertEqual(order.items.count(), 1)
+
+        item = order.items.first()
+        self.assertEqual(item.article.code, 'POLO-NEW')
+        self.assertEqual(item.quantity, 1000)
+
+        # Check operation was linked with price 1250
+        art_op = item.article.article_operations.get(operation=self.operation)
+        self.assertEqual(art_op.price_per_unit, Decimal("1250.00"))
+        self.assertEqual(item.unit_total_rate, Decimal("1250.00"))
+        self.assertEqual(item.total_cost, Decimal("1250000.00"))
+
+    def test_superadmin_order_detail_view(self):
+        self.client.force_login(self.superadmin)
+        res = self.client.get(reverse('superadmin_order_detail', args=[self.order.id]))
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("ORD-TEST-SA", res.content.decode('utf-8'))
+        self.assertIn("Test Model", res.content.decode('utf-8'))
+
+    def test_superadmin_order_add_second_model(self):
+        self.client.force_login(self.superadmin)
+        add_data = {
+            'model_name': 'Ikkinchi Model',
+            'model_code': 'MOD-2',
+            'quantity': '500',
+            'selected_operations': [self.operation.id],
+            f'price_{self.operation.id}': '900.00'
+        }
+        res = self.client.post(reverse('superadmin_order_add_model', args=[self.order.id]), add_data)
+        self.assertEqual(res.status_code, 302)
+
+        self.assertEqual(self.order.items.count(), 2)
+        mod2_item = self.order.items.get(article__code='MOD-2')
+        self.assertEqual(mod2_item.quantity, 500)
+        self.assertEqual(mod2_item.unit_total_rate, Decimal("900.00"))
+

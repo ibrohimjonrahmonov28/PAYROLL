@@ -15,18 +15,29 @@
 <div class="max-w-7xl mx-auto space-y-6">
 
     <!-- Filter Bar (Period Selection) -->
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+    <div
+        class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
         <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 font-bold uppercase mr-2"><i class="fa-regular fa-calendar mr-1"></i> Davr:</span>
-            <a href="?period=today" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'today' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Bugun</a>
-            <a href="?period=week" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'week' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Shu Hafta</a>
-            <a href="?period=month" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'month' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Shu Oy</a>
-            <a href="?period=all" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'all' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Barcha Vaqt</a>
+            <span class="text-xs text-slate-400 font-bold uppercase mr-2"><i class="fa-regular fa-calendar mr-1"></i>
+                Davr:</span>
+            <a href="?period=today"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'today' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Bugun</a>
+            <a href="?period=week"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'week' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Shu
+                Hafta</a>
+            <a href="?period=month"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'month' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Shu
+                Oy</a>
+            <a href="?period=all"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if period == 'all' %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">Barcha
+                Vaqt</a>
         </div>
 
         <div class="flex items-center gap-3">
-            <span class="text-xs text-slate-400 font-mono">Bugungi sana: <strong class="text-slate-200">{{ today_str }}</strong></span>
-            <a href="{% url 'superadmin_payroll_export' %}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-mono">Bugungi sana: <strong class="text-slate-200">{{ today_str
+                    }}</strong></span>
+            <a href="{% url 'superadmin_payroll_export' %}"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2">
                 <i class="fa-solid fa-file-excel"></i> Ish Haqi Tabelini Yuklash (Excel/CSV)
             </a>
         </div>
@@ -65,7 +76,8 @@
                 {{ all_time_balance|floatformat:0 }} <small class="text-xs text-amber-300">UZS</small>
             </div>
             <div class="text-[11px] text-slate-500 mt-2">
-                <a href="{% url 'superadmin_payroll' %}" class="text-amber-400 underline">Xodimlar balansi tabeliga o'tish &rarr;</a>
+                <a href="{% url 'superadmin_payroll' %}" class="text-amber-400 underline">Xodimlar balansi tabeliga
+                    o'tish &rarr;</a>
             </div>
         </div>
 
@@ -90,7 +102,8 @@
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-user-tie text-amber-400"></i> Masterlar Skanerlash Faoliyati (Bugun)
                 </h3>
-                <a href="{% url 'superadmin_users' %}" class="text-xs text-amber-400 hover:text-amber-300 font-semibold">
+                <a href="{% url 'superadmin_users' %}"
+                    class="text-xs text-amber-400 hover:text-amber-300 font-semibold">
                     Staff boshqaruvi &rarr;
                 </a>
             </div>
@@ -98,7 +111,8 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <tr
+                            class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                             <th class="py-2.5 px-3">Master F.I.SH / Login</th>
                             <th class="py-2.5 px-3">Telegram ID</th>
                             <th class="py-2.5 px-3 text-center">Biletlar</th>
@@ -109,7 +123,8 @@
                         {% for m in master_stats %}
                         <tr class="hover:bg-slate-800/40">
                             <td class="py-3 px-3">
-                                <strong class="text-white text-sm block">{{ m.master.get_full_name|default:m.master.username }}</strong>
+                                <strong class="text-white text-sm block">{{
+                                    m.master.get_full_name|default:m.master.username }}</strong>
                                 <span class="text-slate-500 font-mono text-[11px]">@{{ m.master.username }}</span>
                             </td>
                             <td class="py-3 px-3 font-mono text-[11px] text-cyan-400">
@@ -140,7 +155,8 @@
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-tv text-purple-400"></i> Sex Ekranlari Yuklamasi (Bugun)
                 </h3>
-                <a href="{% url 'screens:overview' %}" target="_blank" class="text-xs text-purple-400 hover:text-purple-300 font-semibold">
+                <a href="{% url 'screens:overview' %}" target="_blank"
+                    class="text-xs text-purple-400 hover:text-purple-300 font-semibold">
                     Jonli TV ochish &rarr;
                 </a>
             </div>

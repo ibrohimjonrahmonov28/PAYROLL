@@ -18,9 +18,11 @@
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center justify-between">
         <div>
             <h3 class="text-base font-bold text-white">Model va Operatsiyalar Narxlari</h3>
-            <p class="text-xs text-slate-400">Har bir kiyim operatsiyasi uchun dona-bay narx (UZS). Ushbu narxlar biletlar generatsiya qilinganda avtomatik biriktiriladi.</p>
+            <p class="text-xs text-slate-400">Har bir kiyim operatsiyasi uchun dona-bay narx (UZS). Ushbu narxlar
+                biletlar generatsiya qilinganda avtomatik biriktiriladi.</p>
         </div>
-        <a href="{% url 'production:articles_catalog' %}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-xs font-bold rounded-xl transition flex items-center gap-2">
+        <a href="{% url 'production:articles_catalog' %}"
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-xs font-bold rounded-xl transition flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Yangi Model / Operatsiya Yaratish
         </a>
     </div>
@@ -31,7 +33,8 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
             <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                 <div class="flex items-center gap-3">
-                    <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-xl text-sm font-mono">
+                    <span
+                        class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-xl text-sm font-mono">
                         {{ article.code }}
                     </span>
                     <div>
@@ -47,7 +50,8 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <tr
+                            class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                             <th class="py-3 px-3 w-12 text-center">Tartib</th>
                             <th class="py-3 px-4">Operatsiya Kodi</th>
                             <th class="py-3 px-4">Operatsiya Nomi</th>
@@ -62,10 +66,13 @@
                             <td class="py-3.5 px-4 font-mono font-bold text-amber-400">{{ ao.operation.code }}</td>
                             <td class="py-3.5 px-4 font-bold text-white text-base">{{ ao.operation.name }}</td>
                             <td class="py-3.5 px-6 text-right font-black text-emerald-400 digital-font text-lg">
-                                {{ ao.price_per_unit|floatformat:0 }} <span class="text-xs text-slate-500 font-normal">so'm</span>
+                                {{ ao.price_per_unit|floatformat:0 }} <span
+                                    class="text-xs text-slate-500 font-normal">so'm</span>
                             </td>
                             <td class="py-3.5 px-4 text-right">
-                                <button onclick="openEditPriceModal({{ ao.id }}, '{{ article.code }}', '{{ ao.operation.name }}', {{ ao.price_per_unit }}, {{ ao.sequence }})" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition">
+                                <button
+                                    onclick="openEditPriceModal({{ ao.id }}, '{{ article.code }}', '{{ ao.operation.name }}', {{ ao.price_per_unit }}, {{ ao.sequence }})"
+                                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition">
                                     <i class="fa-solid fa-pen mr-1"></i> Narxni O'zgartirish
                                 </button>
                             </td>
@@ -87,13 +94,15 @@
 </div>
 
 <!-- Modal: Edit Price -->
-<div id="price-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="price-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-tag text-amber-500"></i> Narxni Tahrirlash
             </h3>
-            <button onclick="document.getElementById('price-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button onclick="document.getElementById('price-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -103,23 +112,32 @@
             <input type="hidden" name="article_operation_id" id="modal-ao-id">
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model & Operatsiya</label>
-                <div id="modal-op-title" class="text-sm font-bold text-white bg-slate-950 p-3 rounded-xl border border-slate-800"></div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model &
+                    Operatsiya</label>
+                <div id="modal-op-title"
+                    class="text-sm font-bold text-white bg-slate-950 p-3 rounded-xl border border-slate-800"></div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona Narxi (UZS)</label>
-                <input type="number" name="price_per_unit" id="modal-price-input" step="0.01" required min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona Narxi
+                    (UZS)</label>
+                <input type="number" name="price_per_unit" id="modal-price-input" step="0.01" required min="1"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tartib raqami</label>
-                <input type="number" name="sequence" id="modal-seq-input" required min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tartib
+                    raqami</label>
+                <input type="number" name="sequence" id="modal-seq-input" required min="1"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('price-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
-                <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
+                <button type="button" onclick="document.getElementById('price-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
+                    qilish</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
             </div>
         </form>
     </div>

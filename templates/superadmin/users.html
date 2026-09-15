@@ -15,13 +15,15 @@
 <div class="max-w-7xl mx-auto space-y-6">
 
     <!-- Top Action Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+    <div
+        class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
         <div>
             <h3 class="text-base font-bold text-white">Barcha Mas'ullar va Rollar</h3>
             <p class="text-xs text-slate-400">Super Admin, Admin va Master hisoblarini boshqarish</p>
         </div>
         <div>
-            <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+            <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')"
+                class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
                 <i class="fa-solid fa-user-plus"></i> Yangi Foydalanuvchi Qo'shish
             </button>
         </div>
@@ -32,7 +34,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                    <tr
+                        class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
                         <th class="py-3.5 px-4">Foydalanuvchi</th>
                         <th class="py-3.5 px-4">Roli</th>
                         <th class="py-3.5 px-4">Telegram ID</th>
@@ -47,33 +50,40 @@
                     <tr class="hover:bg-slate-800/40 transition">
                         <td class="py-3.5 px-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full {% if u.role == 'SUPER_ADMIN' %}bg-rose-500/20 text-rose-400{% elif u.role == 'ADMIN' %}bg-amber-500/20 text-amber-400{% else %}bg-sky-500/20 text-sky-400{% endif %} flex items-center justify-center font-bold text-xs">
+                                <div
+                                    class="w-8 h-8 rounded-full {% if u.role == 'SUPER_ADMIN' %}bg-rose-500/20 text-rose-400{% elif u.role == 'ADMIN' %}bg-amber-500/20 text-amber-400{% else %}bg-sky-500/20 text-sky-400{% endif %} flex items-center justify-center font-bold text-xs">
                                     {{ u.username|first|upper }}
                                 </div>
                                 <div>
-                                    <strong class="text-white text-base block">{{ u.get_full_name|default:u.username }}</strong>
-                                    <span class="text-slate-400 font-mono text-xs">@{{ u.username }} {% if u.email %}• {{ u.email }}{% endif %}</span>
+                                    <strong class="text-white text-base block">{{ u.get_full_name|default:u.username
+                                        }}</strong>
+                                    <span class="text-slate-400 font-mono text-xs">@{{ u.username }} {% if u.email %}•
+                                        {{ u.email }}{% endif %}</span>
                                 </div>
                             </div>
                         </td>
                         <td class="py-3.5 px-4">
                             {% if u.role == 'SUPER_ADMIN' %}
-                            <span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black px-2.5 py-1 rounded-lg">
+                            <span
+                                class="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black px-2.5 py-1 rounded-lg">
                                 <i class="fa-solid fa-crown mr-1"></i> Super Admin
                             </span>
                             {% elif u.role == 'ADMIN' %}
-                            <span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 rounded-lg">
+                            <span
+                                class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 rounded-lg">
                                 <i class="fa-solid fa-user-shield mr-1"></i> Admin
                             </span>
                             {% else %}
-                            <span class="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-xs font-bold px-2.5 py-1 rounded-lg">
+                            <span
+                                class="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-xs font-bold px-2.5 py-1 rounded-lg">
                                 <i class="fa-brands fa-telegram mr-1"></i> Master
                             </span>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 font-mono text-xs">
                             {% if u.telegram_user_id %}
-                            <span class="text-cyan-400 font-bold bg-cyan-950/60 border border-cyan-800/50 px-2 py-0.5 rounded">
+                            <span
+                                class="text-cyan-400 font-bold bg-cyan-950/60 border border-cyan-800/50 px-2 py-0.5 rounded">
                                 {{ u.telegram_user_id }}
                             </span>
                             {% else %}
@@ -85,16 +95,20 @@
                         </td>
                         <td class="py-3.5 px-4 text-center">
                             {% if u.is_active %}
-                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">Faol</span>
+                            <span
+                                class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">Faol</span>
                             {% else %}
-                            <span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">Bloklangan</span>
+                            <span
+                                class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold px-2 py-0.5 rounded-full">Bloklangan</span>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 text-slate-400 text-xs">
                             {{ u.date_joined|date:"d.m.Y H:i" }}
                         </td>
                         <td class="py-3.5 px-4 text-right space-x-2">
-                            <button onclick="openEditUserModal({{ u.id }}, '{{ u.username }}', '{{ u.first_name }}', '{{ u.last_name }}', '{{ u.role }}', '{{ u.phone_number }}', '{{ u.telegram_user_id|default:'' }}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-slate-700 transition">
+                            <button
+                                onclick="openEditUserModal({{ u.id }}, '{{ u.username }}', '{{ u.first_name }}', '{{ u.last_name }}', '{{ u.role }}', '{{ u.phone_number }}', '{{ u.telegram_user_id|default:'' }}')"
+                                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-slate-700 transition">
                                 <i class="fa-solid fa-pen-to-square mr-1"></i> Tahrirlash
                             </button>
                             {% if u != request.user %}
@@ -102,7 +116,8 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="toggle_active">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
-                                <button type="submit" class="px-2.5 py-1.5 {% if u.is_active %}bg-rose-500/20 text-rose-400 hover:bg-rose-500/30{% else %}bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30{% endif %} rounded-lg text-xs font-bold transition">
+                                <button type="submit"
+                                    class="px-2.5 py-1.5 {% if u.is_active %}bg-rose-500/20 text-rose-400 hover:bg-rose-500/30{% else %}bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30{% endif %} rounded-lg text-xs font-bold transition">
                                     {% if u.is_active %}Bloklash{% else %}Faollashtirish{% endif %}
                                 </button>
                             </form>
@@ -118,13 +133,15 @@
 </div>
 
 <!-- Modal: New User -->
-<div id="new-user-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="new-user-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-user-plus text-amber-500"></i> Yangi Foydalanuvchi Yaratish
             </h3>
-            <button onclick="document.getElementById('new-user-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button onclick="document.getElementById('new-user-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -135,30 +152,37 @@
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Login (Username)</label>
-                    <input type="text" name="username" required placeholder="masalan: master_ali" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Login
+                        (Username)</label>
+                    <input type="text" name="username" required placeholder="masalan: master_ali"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Parol</label>
-                    <input type="password" name="password" required placeholder="Murakkab parol" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <input type="password" name="password" required placeholder="Murakkab parol"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ismi</label>
-                    <input type="text" name="first_name" placeholder="Ali" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <input type="text" name="first_name" placeholder="Ali"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Familiyasi</label>
-                    <input type="text" name="last_name" placeholder="Valiyev" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <label
+                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Familiyasi</label>
+                    <input type="text" name="last_name" placeholder="Valiyev"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Roli</label>
-                    <select name="role" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <select name="role" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         <option value="MASTER">Master (Telegram Bot Skaner)</option>
                         <option value="ADMIN">Admin (Naryad & Qutilar)</option>
                         <option value="SUPER_ADMIN">Super Admin (To'liq huquq)</option>
@@ -166,32 +190,43 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telefon</label>
-                    <input type="text" name="phone_number" placeholder="+998 90 ..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <input type="text" name="phone_number" placeholder="+998 90 ..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telegram User ID (Masterlar uchun)</label>
-                <input type="number" name="telegram_user_id" placeholder="Masalan: 123456789 (@userinfobot orqali olinadi)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-cyan-400 focus:outline-none focus:border-cyan-500 font-mono">
-                <span class="text-[11px] text-slate-500 mt-1 block">Master Telegram botiga yozganda tizim uni ushbu ID orqali taniydi.</span>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telegram User ID
+                    (Masterlar uchun)</label>
+                <input type="number" name="telegram_user_id"
+                    placeholder="Masalan: 123456789 (@userinfobot orqali olinadi)"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-cyan-400 focus:outline-none focus:border-cyan-500 font-mono">
+                <span class="text-[11px] text-slate-500 mt-1 block">Master Telegram botiga yozganda tizim uni ushbu ID
+                    orqali taniydi.</span>
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('new-user-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
-                <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Yaratish</button>
+                <button type="button" onclick="document.getElementById('new-user-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
+                    qilish</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Yaratish</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Modal: Edit User -->
-<div id="edit-user-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="edit-user-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-user-pen text-amber-500"></i> Foydalanuvchini Tahrirlash: <span id="edit-username-span" class="text-amber-400 font-mono"></span>
+                <i class="fa-solid fa-user-pen text-amber-500"></i> Foydalanuvchini Tahrirlash: <span
+                    id="edit-username-span" class="text-amber-400 font-mono"></span>
             </h3>
-            <button onclick="document.getElementById('edit-user-modal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button onclick="document.getElementById('edit-user-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
@@ -204,18 +239,22 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ismi</label>
-                    <input type="text" name="first_name" id="edit-first-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <input type="text" name="first_name" id="edit-first-name"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Familiyasi</label>
-                    <input type="text" name="last_name" id="edit-last-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <label
+                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Familiyasi</label>
+                    <input type="text" name="last_name" id="edit-last-name"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Roli</label>
-                    <select name="role" id="edit-role" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <select name="role" id="edit-role"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         <option value="MASTER">Master (Telegram Bot Skaner)</option>
                         <option value="ADMIN">Admin (Naryad & Qutilar)</option>
                         <option value="SUPER_ADMIN">Super Admin (To'liq huquq)</option>
@@ -223,23 +262,31 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telefon</label>
-                    <input type="text" name="phone_number" id="edit-phone" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <input type="text" name="phone_number" id="edit-phone"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telegram User ID</label>
-                <input type="number" name="telegram_user_id" id="edit-tg-id" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-cyan-400 font-mono focus:outline-none focus:border-cyan-500">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Telegram User
+                    ID</label>
+                <input type="number" name="telegram_user_id" id="edit-tg-id"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-cyan-400 font-mono focus:outline-none focus:border-cyan-500">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Yangi Parol (O'zgartirmaslik uchun bo'sh qoldiring)</label>
-                <input type="password" name="new_password" placeholder="Yangi parol..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Yangi Parol
+                    (O'zgartirmaslik uchun bo'sh qoldiring)</label>
+                <input type="password" name="new_password" placeholder="Yangi parol..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('edit-user-modal').classList.add('hidden')" class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor qilish</button>
-                <button type="submit" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
+                <button type="button" onclick="document.getElementById('edit-user-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
+                    qilish</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
             </div>
         </form>
     </div>

@@ -6,8 +6,9 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from django.contrib.auth.decorators import user_passes_test
+from django.db import transaction
 from .models import User, Worker, WorkerPayout
-from production.models import Order, Ticket, Article, Operation, ArticleOperation
+from production.models import Order, Ticket, Article, Operation, ArticleOperation, OrderItem
 
 
 def superadmin_required(view_func):
@@ -295,3 +296,161 @@ def superadmin_pricing(request):
 
     articles = Article.objects.all().prefetch_related('article_operations__operation').order_by('code')
     return render(request, 'superadmin/pricing.html', {'articles': articles})
+
+
+@superadmin_required
+def superadmin_orders_list(request):
+    """
+    Zakazlar va Modellar bosh sahifasi:
+    - Barcha oldin yaratilgan zakazlar ro'yxati.
+    - Zakaz raqami, mijoz, ichidagi modellar soni, kiyim donalari, holati.
+    - Yuqori o'ngda Yangi Zakaz va Model qo'shish formasi (modal):
+      - Soni, ptichka bilan operatsiyalar, har biriga narx kiritish.
+    """
+    if request.method == 'POST':
+        order_number = request.POST.get('order_number', '').strip()
+        client_name = request.POST.get('client_name', '').strip()
+        deadline = request.POST.get('deadline') or None
+
+        model_name = request.POST.get('model_name', '').strip()
+        model_code = request.POST.get('model_code', '').strip().upper()
+        quantity_str = request.POST.get('quantity', '0').strip()
+
+        checked_operations = request.POST.getlist('selected_operations')
+
+        if not order_number or not model_name or not model_code or not quantity_str:
+            messages.error(request, "Iltimos, Zakaz raqami, Model nomi, kodi va sonini kiriting!")
+        elif Order.objects.filter(order_number=order_number).exists():
+            messages.error(request, f"'{order_number}' raqamli zakaz allaqachon mavjud!")
+        else:
+            try:
+                quantity = int(quantity_str)
+                with transaction.atomic():
+                    article, _ = Article.objects.get_or_create(
+                        code=model_code,
+                        defaults={'name': model_name}
+                    )
+                    order = Order.objects.create(
+                        order_number=order_number,
+                        client_name=client_name,
+                        deadline=deadline,
+                        article=article,
+                        total_quantity=quantity,
+                        status=Order.Status.IN_PROGRESS
+                    )
+                    OrderItem.objects.create(
+                        order=order,
+                        article=article,
+                        quantity=quantity
+                    )
+                    seq_counter = 1
+                    for op_id in checked_operations:
+                        price_val = request.POST.get(f"price_{op_id}", "0").strip()
+                        try:
+                            price = Decimal(price_val)
+                        except Exception:
+                            price = Decimal("0.00")
+                        
+                        op_obj = Operation.objects.filter(id=op_id).first()
+                        if op_obj:
+                            ArticleOperation.objects.update_or_create(
+                                article=article,
+                                operation=op_obj,
+                                defaults={'price_per_unit': price, 'sequence': seq_counter}
+                            )
+                            seq_counter += 1
+
+                    messages.success(request, f"'{order.order_number}' zakazi va '{article.name}' modeli muvaffaqiyatli yaratildi!")
+                    return redirect('superadmin_order_detail', order_id=order.id)
+            except Exception as e:
+                messages.error(request, f"Xatolik yuz berdi: {str(e)}")
+
+    orders = Order.objects.all().prefetch_related('items__article__article_operations', 'boxes').order_by('-created_at')
+    all_operations = Operation.objects.all().order_by('code')
+
+    return render(request, 'superadmin/orders_list.html', {
+        'orders': orders,
+        'all_operations': all_operations
+    })
+
+
+@superadmin_required
+def superadmin_order_detail(request, order_id: int):
+    """
+    Zakaz ustiga bosganda:
+    - Ichidagi modellar va ularga biriktirilgan barcha operatsiyalar va narxlari jadvali.
+    - 1 dona mahsulot uchun umumiy sdelshina haqi va butun partiya uchun hisoblangan sdelshina fondi.
+    - Yangi model qo'shish imkoniyati.
+    """
+    order = get_object_or_404(Order.objects.prefetch_related(
+        'items__article__article_operations__operation',
+        'boxes__tickets'
+    ), id=order_id)
+
+    if not order.items.exists() and order.article:
+        OrderItem.objects.get_or_create(
+            order=order,
+            article=order.article,
+            defaults={'quantity': order.total_quantity}
+        )
+        order.refresh_from_db()
+
+    items = order.items.all().select_related('article').prefetch_related('article__article_operations__operation')
+    all_operations = Operation.objects.all().order_by('code')
+
+    return render(request, 'superadmin/order_detail.html', {
+        'order': order,
+        'items': items,
+        'all_operations': all_operations
+    })
+
+
+@superadmin_required
+def superadmin_order_add_model(request, order_id: int):
+    """
+    Mavjud Zakaz ichiga yana qo'shimcha Model qo'shish.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    if request.method == 'POST':
+        model_name = request.POST.get('model_name', '').strip()
+        model_code = request.POST.get('model_code', '').strip().upper()
+        quantity_str = request.POST.get('quantity', '0').strip()
+        checked_operations = request.POST.getlist('selected_operations')
+
+        if not model_name or not model_code or not quantity_str:
+            messages.error(request, "Model nomi, kodi va soni to'ldirilishi shart!")
+        else:
+            try:
+                quantity = int(quantity_str)
+                with transaction.atomic():
+                    article, _ = Article.objects.get_or_create(
+                        code=model_code,
+                        defaults={'name': model_name}
+                    )
+                    item, created = OrderItem.objects.update_or_create(
+                        order=order,
+                        article=article,
+                        defaults={'quantity': quantity}
+                    )
+                    seq = 1
+                    for op_id in checked_operations:
+                        price_val = request.POST.get(f"price_{op_id}", "0").strip()
+                        try:
+                            price = Decimal(price_val)
+                        except Exception:
+                            price = Decimal("0.00")
+                        op_obj = Operation.objects.filter(id=op_id).first()
+                        if op_obj:
+                            ArticleOperation.objects.update_or_create(
+                                article=article,
+                                operation=op_obj,
+                                defaults={'price_per_unit': price, 'sequence': seq}
+                            )
+                            seq += 1
+
+                    messages.success(request, f"Zakazga yangi '{article.name}' ({quantity} dona) modeli qo'shildi!")
+            except Exception as e:
+                messages.error(request, f"Xatolik: {str(e)}")
+
+    return redirect('superadmin_order_detail', order_id=order.id)
+

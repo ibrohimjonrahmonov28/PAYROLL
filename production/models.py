@@ -66,8 +66,8 @@ class Order(models.Model):
         CANCELLED = 'CANCELLED', 'Bekor qilindi'
 
     order_number = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Buyurtma raqami")
-    article = models.ForeignKey(Article, on_delete=models.PROTECT, related_name='orders', verbose_name="Model (Artikul)")
-    total_quantity = models.PositiveIntegerField(verbose_name="Jami reja miqdori (dona)")
+    article = models.ForeignKey(Article, on_delete=models.PROTECT, null=True, blank=True, related_name='orders', verbose_name="Asosiy Model (Artikul)")
+    total_quantity = models.PositiveIntegerField(default=0, verbose_name="Jami reja miqdori (dona)")
     client_name = models.CharField(max_length=200, blank=True, verbose_name="Buyurtmachi")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.IN_PROGRESS, verbose_name="Holati")
     deadline = models.DateField(null=True, blank=True, verbose_name="Muddat")
@@ -97,8 +97,45 @@ class Order(models.Model):
             return 0
         return int((self.completed_tickets_count / total) * 100)
 
+    @property
+    def models_count(self):
+        count = self.items.count()
+        return count if count > 0 else (1 if self.article else 0)
+
+    @property
+    def all_models_quantity(self):
+        items_sum = self.items.aggregate(s=models.Sum('quantity'))['s']
+        if items_sum:
+            return items_sum
+        return self.total_quantity
+
     def __str__(self):
-        return f"{self.order_number} ({self.article.code}) - {self.total_quantity} dona"
+        return f"{self.order_number} ({self.client_name or 'Buyurtma'}) - {self.all_models_quantity} dona"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name="Zakaz")
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='order_items', verbose_name="Model (Artikul)")
+    quantity = models.PositiveIntegerField(verbose_name="Soni (dona)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Zakaz Modeli"
+        verbose_name_plural = "Zakaz Modellari"
+        unique_together = ('order', 'article')
+
+    @property
+    def unit_total_rate(self):
+        """Bitta dona kiyim uchun barcha operatsiyalar summasi (UZS)"""
+        return sum(ao.price_per_unit for ao in self.article.article_operations.all())
+
+    @property
+    def total_cost(self):
+        """Ushbu model butun partiyasi uchun jami sdelshina fondi (UZS)"""
+        return self.quantity * self.unit_total_rate
+
+    def __str__(self):
+        return f"{self.order.order_number} -> {self.article.code} ({self.quantity} dona)"
 
 
 class Box(models.Model):
