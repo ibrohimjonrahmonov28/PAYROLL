@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Skanerlash Terminali (Zebra DS22) — PAYROLL SYS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        .digital-font {
+            font-family: 'Chakra Petch', monospace;
+        }
+
+        @keyframes scanGlow {
+
+            0%,
+            100% {
+                border-color: rgba(16, 185, 129, 0.4);
+                box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+            }
+
+            50% {
+                border-color: rgba(16, 185, 129, 0.9);
+                box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+            }
+        }
+
+        .scanner-active {
+            animation: scanGlow 2s infinite;
+        }
+
+        @keyframes alertFlash {
+
+            0%,
+            100% {
+                background-color: rgba(225, 29, 72, 0.2);
+            }
+
+            50% {
+                background-color: rgba(225, 29, 72, 0.6);
+            }
+        }
+
+        .alert-pulse {
+            animation: alertFlash 0.4s ease-in-out 3;
+        }
+
+        @keyframes rowAdd {
+            from {
+                background-color: rgba(16, 185, 129, 0.4);
+                transform: translateY(-8px);
+            }
+
+            to {
+                background-color: transparent;
+                transform: translateY(0);
+            }
+        }
+
+        .new-row-anim {
+            animation: rowAdd 0.7s ease-out;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+    <form id="csrf-token-form" class="hidden">{% csrf_token %}</form>
+
+    <!-- TOP CONTROL BAR -->
+    <header
+        class="bg-slate-900 border-b border-slate-800 px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+        <div class="flex items-center gap-3">
+            {% if request.user.is_authenticated and request.user.role == 'MASTER' %}
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-xl shadow-lg"
+                title="Master Skanerlash Terminali">
+                <i class="fa-solid fa-barcode"></i>
+            </div>
+            {% else %}
+            <a href="{% url 'production:order_list' %}"
+                class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-xl shadow-lg hover:scale-105 transition"
+                title="Bosh sahifaga qaytish">
+                <i class="fa-solid fa-barcode"></i>
+            </a>
+            {% endif %}
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-base md:text-lg font-black text-white tracking-wide">MASTER SKANERLASH TERMINALI
+                    </h1>
+                    <span
+                        class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                        Zebra DS22 Ready
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 flex items-center gap-2">
+                    <span>Sana: <b class="text-slate-200">{{ today_str }}</b></span>
+                    <span>•</span>
+                    <span id="master-info-tag">Master: <b class="text-amber-400">{{
+                            request.user.get_full_name|default:request.user.username|default:"Master" }}</b></span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Middle: Hardware status & Screen selector -->
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Hardware status badge -->
+            <div
+                class="flex items-center gap-2 px-3 py-1.5 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-400 shadow-inner">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>Zebra DS22 Ulangan</span>
+            </div>
+
+            <!-- Screen selector -->
+            <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                <i class="fa-solid fa-tv text-cyan-400"></i>
+                <label for="active-screen-select" class="font-bold text-slate-400">Sex Ekrani:</label>
+                <select id="active-screen-select" onchange="onScreenChange(this.value)"
+                    class="bg-transparent text-cyan-300 font-black focus:outline-none cursor-pointer">
+                    {% for sc in screens_list %}
+                    <option value="{{ sc }}" class="bg-slate-900 text-white">Sex {{ sc }} Ekrani</option>
+                    {% endfor %}
+                </select>
+                <a id="screen-monitor-link" href="/screens/1/" target="_blank"
+                    class="text-cyan-400 hover:text-cyan-300 text-xs ml-1" title="Ushbu ekranni yangi oynada ochish">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+            </div>
+
+            <!-- Sound toggle -->
+            <button onclick="toggleAudio()" id="sound-btn"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 transition flex items-center gap-1.5"
+                title="Ovozni o'chirish/yoqish">
+                <i class="fa-solid fa-volume-high text-amber-400" id="sound-icon"></i>
+                <span id="sound-label">Ovoz: Yoqiq</span>
+            </button>
+
+            <!-- Quick tools -->
+            <button onclick="openBoxLookupModal()"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-amber-400 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-box-archive"></i>
+                <span>Qutini Tekshirish</span>
+            </button>
+
+            <button onclick="openWorkerBalanceModal()"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-sky-400 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-user-check"></i>
+                <span>Xodim Balansi</span>
+            </button>
+
+            <!-- Fullscreen button -->
+            <button onclick="toggleFullscreen()"
+                class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 transition"
+                title="Butun ekranga ochish (F11)">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+
+            <!-- Auth button (Login / Logout) -->
+            {% if request.user.is_authenticated %}
+            <a href="{% url 'accounts:logout' %}"
+                class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 rounded-xl text-xs font-bold text-rose-300 transition flex items-center gap-1.5"
+                title="Tizimdan chiqish">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Chiqish</span>
+            </a>
+            {% else %}
+            <a href="{% url 'accounts:login' %}"
+                class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-300 transition flex items-center gap-1.5"
+                title="Tizimga kirish">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Kirish</span>
+            </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- SCANNER CAPTURE BAR (ALWAYS AUTO-FOCUSED FOR ZEBRA DS22) -->
+    <div class="bg-slate-900/90 border-b border-slate-800 px-4 md:px-6 py-3">
+        <div class="max-w-5xl mx-auto flex items-center gap-3">
+            <div class="relative flex-1">
+                <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                    <i class="fa-solid fa-qrcode text-emerald-400 text-lg"></i>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                </div>
+                <input type="text" id="zebra-scan-input" autocomplete="off" autofocus
+                    placeholder="Zebra DS22 skaneri bilan Nishon yoki Biletni skanerlang (yoki Enter bosing)..."
+                    class="w-full pl-12 pr-28 py-3.5 bg-slate-950 border-2 border-emerald-500/60 rounded-2xl text-white text-base md:text-lg font-bold placeholder-slate-500 focus:outline-none scanner-active transition shadow-2xl">
+
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button type="button" onclick="handleManualScanSubmit()"
+                        class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs shadow-md transition flex items-center gap-1">
+                        <span>Yuborish</span>
+                        <i class="fa-solid fa-arrow-turn-down text-[10px] rotate-90"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="resetScanningSession()"
+                class="px-4 py-3.5 bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 rounded-2xl text-xs font-bold transition flex items-center gap-2"
+                title="Joriy sessiyani tozalash (Esc)">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span class="hidden md:inline">Tozalash (Esc)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- FLASH / STATUS NOTIFICATION BANNER -->
+    <div id="status-banner-container" class="max-w-5xl mx-auto w-full px-4 pt-4 hidden">
+        <div id="status-banner"
+            class="p-4 rounded-2xl border text-sm font-bold flex items-center justify-between shadow-2xl transition">
+            <div class="flex items-center gap-3">
+                <i id="status-banner-icon" class="text-xl"></i>
+                <div>
+                    <h4 id="status-banner-title" class="font-black text-base"></h4>
+                    <p id="status-banner-desc" class="text-xs mt-0.5 whitespace-pre-line"></p>
+                </div>
+            </div>
+            <button onclick="hideStatusBanner()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: WORKER PROFILE (1-BOSQICH) (col-span-4) -->
+        <div class="lg:col-span-4 space-y-4">
+
+            <!-- STEP 1 CARD: NOT SELECTED -->
+            <div id="worker-empty-card"
+                class="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-xl">
+                <div
+                    class="w-20 h-20 mx-auto rounded-3xl bg-amber-500/10 border-2 border-dashed border-amber-500/30 flex items-center justify-center text-amber-400 text-3xl">
+                    <i class="fa-solid fa-id-card-clip animate-pulse"></i>
+                </div>
+                <div>
+                    <span
+                        class="text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                        1-Qadam
+                    </span>
+                    <h3 class="text-lg font-black text-white mt-2">Xodimni Skanerlang</h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Tikuvchining QR nishonini Zebra DS22 bilan skanerlang yoki uning 6 xonali UID raqamini kiriting.
+                    </p>
+                </div>
+
+                <!-- Manual search trigger -->
+                <div class="pt-3 border-t border-slate-800/80">
+                    <button onclick="openWorkerSearchModal()"
+                        class="w-full py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-bold text-slate-300 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-amber-400"></i>
+                        <span>Ism yoki UID orqali qidirish</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 1 CARD: WORKER CONFIRMED (HIDDEN BY DEFAULT) -->
+            <div id="worker-active-card"
+                class="hidden bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-emerald-500/50 rounded-3xl p-6 space-y-5 shadow-2xl relative overflow-hidden">
+                <div
+                    class="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl pointer-events-none">
+                </div>
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <span
+                        class="text-xs font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Xodim Tasdiqlandi</span>
+                    </span>
+                    <button onclick="resetScanningSession()"
+                        class="text-xs text-slate-400 hover:text-rose-400 font-bold transition flex items-center gap-1"
+                        title="Boshqa xodimni tanlash">
+                        <i class="fa-solid fa-user-xmark"></i>
+                        <span>Almashtirish</span>
+                    </button>
+                </div>
+
+                <!-- Worker info -->
+                <div class="flex items-center gap-4">
+                    <div id="worker-avatar"
+                        class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                        W
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h3 id="worker-name" class="text-lg font-black text-white truncate">Malika Karimova</h3>
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
+                            <span id="worker-id-badge"
+                                class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">W-001</span>
+                            <span id="worker-uid-badge"
+                                class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">UID:
+                                468626</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's stats for this worker -->
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center">
+                        <span class="text-[11px] text-slate-400 uppercase font-bold block">Bugun Tikkan</span>
+                        <span id="worker-today-units" class="digital-font text-xl font-black text-cyan-400">0
+                            dona</span>
+                    </div>
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center">
+                        <span class="text-[11px] text-slate-400 uppercase font-bold block">Bugungi Ish Haqi</span>
+                        <span id="worker-today-earned" class="digital-font text-xl font-black text-emerald-400">0
+                            UZS</span>
+                    </div>
+                </div>
+
+                <!-- Lifetime balance -->
+                <div
+                    class="bg-slate-950/90 border border-slate-800/80 rounded-2xl p-3 flex items-center justify-between text-xs">
+                    <span class="text-slate-400 font-bold">Umumiy Joriy Balans:</span>
+                    <span id="worker-total-balance" class="digital-font text-sm font-black text-amber-400">0 UZS</span>
+                </div>
+            </div>
+
+            <!-- TODAY'S TERMINAL LOGS (MINI STREAM) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                        <span>So'nggi Qabul Qilinganlar</span>
+                    </h4>
+                    <span class="text-[11px] text-slate-500 font-mono">Bugun</span>
+                </div>
+
+                <div id="recent-scans-list" class="space-y-2 max-h-56 overflow-y-auto text-xs pr-1">
+                    {% for sc in recent_scans %}
+                    <div
+                        class="p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between">
+                        <div class="min-w-0 pr-2">
+                            <b class="text-slate-200 block truncate">{{ sc.article_operation.operation.name }}</b>
+                            <span class="text-[11px] text-slate-400">{{ sc.worker.full_name|default:"Xodim" }} • {{
+                                sc.quantity }} dona</span>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-emerald-400 font-mono font-bold block">+{{ sc.total_amount|floatformat:0
+                                }}</span>
+                            <span class="text-[10px] text-slate-500">{{ sc.scanned_at|date:"H:i" }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-slate-500 text-xs italic text-center py-4">Bugun hali biletlar yopilmadi</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: TICKET SCANNING TABLE & FINALIZER (2- & 3-BOSQICH) (col-span-8) -->
+        <div class="lg:col-span-8 space-y-4">
+
+            <!-- RUNNING TOTAL CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3.5">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-ticket"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Skanerlangan Biletlar</span>
+                        <span id="batch-ticket-count" class="digital-font text-2xl font-black text-white">0 <small
+                                class="text-xs font-normal text-slate-400">ta</small></span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3.5">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-shirt"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Jami Kiyim Donasi</span>
+                        <span id="batch-units-count" class="digital-font text-2xl font-black text-cyan-400">0 <small
+                                class="text-xs font-normal text-slate-400">dona</small></span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3.5">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Hisoblangan Ish Haqi</span>
+                        <span id="batch-total-amount" class="digital-font text-2xl font-black text-emerald-400">0 <small
+                                class="text-xs font-normal text-slate-400">UZS</small></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TICKET BATCH TABLE -->
+            <div
+                class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col min-h-[380px]">
+                <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                            2-Qadam
+                        </span>
+                        <h3 class="text-sm font-bold text-white">Joriy Partiyadagi Biletlar Ro'yxati</h3>
+                    </div>
+                    <span id="queue-status-hint" class="text-xs text-slate-400 italic">
+                        Zebra DS22 skaneri bilan bilet shtrix-kodlarini ketma-ket skanerlang
+                    </span>
+                </div>
+
+                <!-- Table -->
+                <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[420px]">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead
+                            class="sticky top-0 bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800 z-10">
+                            <tr>
+                                <th class="py-3 px-4 text-center w-12">#</th>
+                                <th class="py-3 px-4">Operatsiya Nomi</th>
+                                <th class="py-3 px-4">Zakaz / Quti</th>
+                                <th class="py-3 px-4 text-center">Soni</th>
+                                <th class="py-3 px-4 text-right">Dona Narxi</th>
+                                <th class="py-3 px-4 text-right">Jami Summa</th>
+                                <th class="py-3 px-4 text-center w-12">Amal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tickets-table-body" class="divide-y divide-slate-800 text-slate-200">
+                            <!-- Empty placeholder -->
+                            <tr id="table-empty-row">
+                                <td colspan="7" class="py-16 text-center text-slate-500">
+                                    <div
+                                        class="w-14 h-14 mx-auto rounded-2xl bg-slate-800/40 flex items-center justify-center text-slate-600 text-2xl mb-3">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </div>
+                                    <p class="text-sm font-bold text-slate-400">Hozircha biletlar skanerlanmadi</p>
+                                    <p class="text-xs text-slate-500 mt-1">Xodimni tanlang va uning biletlarini Zebra
+                                        DS22 bilan skanerlang</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- STEP 3: FINALIZE ACTION BAR -->
+                <div
+                    class="p-4 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="text-xs font-black uppercase tracking-wider text-cyan-400 bg-cyan-950 px-3 py-1.5 rounded-xl border border-cyan-800">
+                            3-Qadam
+                        </span>
+                        <div class="text-xs text-slate-300">
+                            Tanlangan: <b id="footer-screen-name" class="text-cyan-400 font-bold">Sex 1 Ekrani</b>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button onclick="resetScanningSession()" type="button"
+                            class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                            Bekor Qilish
+                        </button>
+
+                        <button id="finalize-btn" onclick="finalizeBatch()" disabled
+                            class="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-slate-950 font-black rounded-xl text-sm shadow-xl transition flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-circle-check text-base"></i>
+                            <span id="finalize-btn-text">QABUL QILISH VA SEX EKRANIGA UZATISH (Enter)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL: MANUAL WORKER SEARCH / MULTIPLE MATCHES -->
+    <div id="worker-search-modal"
+        class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users text-amber-400"></i>
+                    <span id="worker-modal-title">Xodimni Qidirish</span>
+                </h3>
+                <button onclick="closeWorkerSearchModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <p class="text-xs text-slate-400">Xodimning ismi, familiyasi yoki 6 xonali UID raqamini kiriting:</p>
+                <div class="flex gap-2">
+                    <input type="text" id="modal-worker-search-input" placeholder="Masalan: Malika yoki 468626..."
+                        onkeydown="if(event.key==='Enter') executeModalWorkerSearch()"
+                        class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500">
+                    <button onclick="executeModalWorkerSearch()"
+                        class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs">
+                        Qidirish
+                    </button>
+                </div>
+            </div>
+
+            <!-- Candidates list container -->
+            <div id="modal-worker-candidates" class="space-y-2 max-h-60 overflow-y-auto pt-2">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: BOX LOOKUP (QUTI TEKSHIRISH) -->
+    <div id="box-lookup-modal"
+        class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-box-archive text-amber-400"></i>
+                    <span>Quti Ma'lumotlarini Tekshirish</span>
+                </h3>
+                <button onclick="closeBoxLookupModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="box-lookup-input"
+                    placeholder="Quti kodi (masalan: BOX:RFK6TOIA yoki ORD-01-1)..."
+                    onkeydown="if(event.key==='Enter') executeBoxLookup()"
+                    class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500">
+                <button onclick="executeBoxLookup()"
+                    class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs">
+                    Tekshirish
+                </button>
+            </div>
+
+            <div id="box-lookup-results" class="flex-1 overflow-y-auto space-y-4 pr-1">
+                <p class="text-slate-500 text-xs italic text-center py-8">Quti shtrix-kodini skanerlang yoki yuqoriga
+                    yozing.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: WORKER QUICK BALANCE (XODIM BALANSI) -->
+    <div id="worker-balance-modal"
+        class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-check text-sky-400"></i>
+                    <span>Xodim Balansini Tekshirish</span>
+                </h3>
+                <button onclick="closeWorkerBalanceModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="worker-balance-input" placeholder="Xodim UID yoki ID raqami..."
+                    onkeydown="if(event.key==='Enter') executeWorkerBalanceLookup()"
+                    class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-sky-500">
+                <button onclick="executeWorkerBalanceLookup()"
+                    class="px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold rounded-xl text-xs">
+                    Ko'rish
+                </button>
+            </div>
+
+            <div id="worker-balance-results" class="space-y-3 pt-2">
+                <p class="text-slate-500 text-xs italic text-center py-6">Xodim nishonini skanerlang yoki UID kiriting.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO SYNTHESIZER (WEB AUDIO API) & APPLICATION JAVASCRIPT -->
+    <script>
+        // -------------------------------------------------------------
+        // 1. STATE & CONSTANTS
+        // -------------------------------------------------------------
+        let currentWorker = null;
+        let pendingTickets = []; // List of ticket objects
+        let isAudioEnabled = true;
+        let selectedScreenNumber = parseInt(localStorage.getItem('master_terminal_screen') || '1', 10);
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken') || '';
+        }
+
+        const csrfToken = getCsrfToken();
+
+        // -------------------------------------------------------------
+        // 2. AUDIO SYNTHESIZER (Web Audio API: Instant, No external files)
+        // -------------------------------------------------------------
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSuccessBeep() {
+            if (!isAudioEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now); // A5
+                osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08); // E6
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } catch (e) { console.warn("Audio err", e); }
+        }
+
+        function playWorkerChime() {
+            if (!isAudioEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                // Note 1
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(523.25, now); // C5
+                gain1.gain.setValueAtTime(0.2, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.15);
+
+                // Note 2
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(659.25, now + 0.12); // E5
+                gain2.gain.setValueAtTime(0.25, now + 0.12);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.start(now + 0.12);
+                osc2.stop(now + 0.35);
+            } catch (e) { console.warn("Audio err", e); }
+        }
+
+        function playErrorBuzz() {
+            if (!isAudioEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(140, now + 0.1);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch (e) { console.warn("Audio err", e); }
+        }
+
+        function playFinalizeFanfare() {
+            if (!isAudioEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const now = ctx.currentTime + (idx * 0.08);
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                });
+            } catch (e) { console.warn("Audio err", e); }
+        }
+
+        function toggleAudio() {
+            isAudioEnabled = !isAudioEnabled;
+            document.getElementById('sound-label').innerText = isAudioEnabled ? "Ovoz: Yoqiq" : "Ovoz: O'chiq";
+            document.getElementById('sound-icon').className = isAudioEnabled ? "fa-solid fa-volume-high text-amber-400" : "fa-solid fa-volume-xmark text-slate-500";
+            if (isAudioEnabled) playSuccessBeep();
+        }
+
+        // -------------------------------------------------------------
+        // 3. HARDWARE SCANNER AUTO-FOCUS & ROUTING
+        // -------------------------------------------------------------
+        const scanInput = document.getElementById('zebra-scan-input');
+
+        function keepScannerFocused() {
+            const activeEl = document.activeElement;
+            const isModalInput = activeEl && (
+                activeEl.id === 'modal-worker-search-input' ||
+                activeEl.id === 'box-lookup-input' ||
+                activeEl.id === 'worker-balance-input'
+            );
+            if (!isModalInput && activeEl !== scanInput) {
+                scanInput.focus();
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            setTimeout(keepScannerFocused, 150);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeWorkerSearchModal();
+                closeBoxLookupModal();
+                closeWorkerBalanceModal();
+                hideStatusBanner();
+                resetScanningSession();
+                return;
+            }
+            if (e.key === 'F2') {
+                e.preventDefault();
+                finalizeBatch();
+                return;
+            }
+            const activeEl = document.activeElement;
+            const isModalInput = activeEl && (
+                activeEl.id === 'modal-worker-search-input' ||
+                activeEl.id === 'box-lookup-input' ||
+                activeEl.id === 'worker-balance-input'
+            );
+            if (!isModalInput && activeEl !== scanInput) {
+                scanInput.focus();
+            }
+        });
+
+        scanInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = scanInput.value.trim();
+                scanInput.value = '';
+                if (val) {
+                    processIncomingScan(val);
+                }
+            }
+        });
+
+        function handleManualScanSubmit() {
+            const val = scanInput.value.trim();
+            scanInput.value = '';
+            if (val) {
+                processIncomingScan(val);
+            }
+            scanInput.focus();
+        }
+
+        // -------------------------------------------------------------
+        // 4. SCAN PROCESSING DISPATCHER
+        // -------------------------------------------------------------
+        function processIncomingScan(rawText) {
+            const text = rawText.trim();
+            if (!text) return;
+
+            if (text.startsWith('BOX:') || text.startsWith('box:')) {
+                openBoxLookupModal(text);
+                return;
+            }
+
+            if (text.startsWith('USER:') || text.startsWith('WORKER:')) {
+                identifyWorker(text);
+                return;
+            }
+
+            if (text.startsWith('TICKET:') || text.startsWith('TK-')) {
+                if (!currentWorker) {
+                    showStatusBanner('error', "AVVAL XODIMNI SKANERLANG!", "Biletlarni kiritishdan oldin tikuvchining QR nishonini skanerlang.");
+                    playErrorBuzz();
+                    return;
+                }
+                scanTicket(text);
+                return;
+            }
+
+            if (!currentWorker) {
+                identifyWorker(text);
+            } else {
+                scanTicket(text);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 5. WORKER IDENTIFICATION
+        // -------------------------------------------------------------
+        function identifyWorker(code) {
+            const formData = new FormData();
+            formData.append('code', code);
+
+            fetch("{% url 'production:terminal_identify_worker' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        currentWorker = data.worker;
+                        pendingTickets = [];
+                        renderWorkerActiveCard(data.worker);
+                        renderEmptyTablePlaceholder();
+                        playWorkerChime();
+                        showStatusBanner('success', `Xodim tasdiqlandi: ${data.worker.full_name}`, "Endi ushbu tikuvchining biletlarini ketma-ket skanerlang.");
+                    } else if (data.status === 'MULTIPLE_MATCHES') {
+                        playErrorBuzz();
+                        renderWorkerCandidates(data.candidates);
+                    } else {
+                        playErrorBuzz();
+                        showStatusBanner('error', "XODIM TOPILMADI", data.message || "Bunday xodim ro'yxatda mavjud emas.");
+                    }
+                })
+                .catch(err => {
+                    console.error("identifyWorker error:", err);
+                    playErrorBuzz();
+                    showStatusBanner('error', "TIZIM XATOLIGI", "Xatolik: " + (err.message || "Server bilan aloqa uzildi."));
+                });
+        }
+
+        function renderWorkerActiveCard(w) {
+            document.getElementById('worker-empty-card').classList.add('hidden');
+            const card = document.getElementById('worker-active-card');
+            card.classList.remove('hidden');
+
+            document.getElementById('worker-name').innerText = w.full_name;
+            document.getElementById('worker-avatar').innerText = (w.full_name || 'W').charAt(0).toUpperCase();
+            document.getElementById('worker-id-badge').innerText = w.worker_id;
+            document.getElementById('worker-uid-badge').innerText = w.uid ? `UID: ${w.uid}` : '';
+            document.getElementById('worker-today-units').innerText = `${w.today_units} dona`;
+            document.getElementById('worker-today-earned').innerText = `${w.today_earned_formatted} UZS`;
+            document.getElementById('worker-total-balance').innerText = `${w.current_balance_formatted} UZS`;
+
+            document.getElementById('queue-status-hint').innerHTML = `👉 <b>${w.full_name}</b> uchun biletlarni skanerlang...`;
+        }
+
+        // -------------------------------------------------------------
+        // 6. TICKET SCANNING (RAPID FIRE)
+        // -------------------------------------------------------------
+        function scanTicket(ticketCode) {
+            const formData = new FormData();
+            formData.append('ticket_code', ticketCode);
+
+            fetch("{% url 'production:terminal_scan_ticket' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        playSuccessBeep();
+                        pendingTickets.push(data.scanned_ticket);
+                        addTicketRowToTable(data.scanned_ticket, data.summary);
+                        updateBatchSummary(data.summary);
+                    } else if (data.status === 'ALREADY_SCANNED') {
+                        playErrorBuzz();
+                        showStatusBanner('error', "DIQQAT: BILET ALLAQACHON QABUL QILINGAN!", data.message);
+                    } else if (data.status === 'DUPLICATE_IN_SESSION') {
+                        playErrorBuzz();
+                        showStatusBanner('error', "DUBLIKAT BILET", data.message);
+                    } else if (data.status === 'NO_WORKER') {
+                        playErrorBuzz();
+                        showStatusBanner('error', "XODIM TANLANMAGAN", data.message);
+                    } else {
+                        playErrorBuzz();
+                        showStatusBanner('error', "BILET XATOSI", data.message || "Bilet topilmadi.");
+                    }
+                })
+                .catch(err => {
+                    console.error("scanTicket error:", err);
+                    playErrorBuzz();
+                    showStatusBanner('error', "ALOQA XATOLIGI", "Xatolik: " + (err.message || "Serverga ulanishda muammo yuz berdi."));
+                });
+        }
+
+        function addTicketRowToTable(t, summary) {
+            const emptyRow = document.getElementById('table-empty-row');
+            if (emptyRow) emptyRow.remove();
+
+            const tbody = document.getElementById('tickets-table-body');
+            const tr = document.createElement('tr');
+            tr.id = `ticket-row-${t.id}`;
+            tr.className = "hover:bg-slate-800/40 transition new-row-anim";
+
+            const idx = pendingTickets.length;
+            tr.innerHTML = `
+                <td class="py-3 px-4 text-center font-bold text-slate-400 text-xs">${idx}</td>
+                <td class="py-3 px-4 font-bold text-white">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-scissors text-amber-400 text-xs"></i>
+                        <span>${t.operation_name}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 font-mono block">${t.ticket_code}</span>
+                </td>
+                <td class="py-3 px-4 text-xs font-semibold text-slate-300">
+                    <span class="font-mono text-cyan-400">${t.order_number}</span> #${t.box_number}
+                    <span class="text-[11px] text-slate-400 block">${t.model_name || ''}</span>
+                </td>
+                <td class="py-3 px-4 text-center font-black text-amber-400 digital-font text-base">${t.quantity} <small class="text-[10px] text-slate-400 font-normal">ta</small></td>
+                <td class="py-3 px-4 text-right font-mono text-slate-300 text-xs">${t.price_formatted} so'm</td>
+                <td class="py-3 px-4 text-right font-black text-emerald-400 digital-font text-base">+${t.total_amount_formatted} so'm</td>
+                <td class="py-3 px-4 text-center">
+                    <button onclick="removeTicketFromBatch(${t.id})" class="p-1.5 text-slate-500 hover:text-rose-400 transition" title="Partiyadan o'chirish">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tbody.insertBefore(tr, tbody.firstChild);
+        }
+
+        function removeTicketFromBatch(ticketId) {
+            const formData = new FormData();
+            formData.append('ticket_id', ticketId);
+
+            fetch("{% url 'production:terminal_remove_ticket' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        const row = document.getElementById(`ticket-row-${ticketId}`);
+                        if (row) row.remove();
+                        pendingTickets = pendingTickets.filter(t => t.id !== ticketId);
+                        updateBatchSummary(data.summary);
+
+                        if (pendingTickets.length === 0) {
+                            renderEmptyTablePlaceholder();
+                        }
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function updateBatchSummary(summary) {
+            document.getElementById('batch-ticket-count').innerHTML = `${summary.count} <small class="text-xs font-normal text-slate-400">ta</small>`;
+            document.getElementById('batch-units-count').innerHTML = `${summary.units} <small class="text-xs font-normal text-slate-400">dona</small>`;
+            document.getElementById('batch-total-amount').innerHTML = `${summary.amount_formatted} <small class="text-xs font-normal text-slate-400">UZS</small>`;
+
+            const finalizeBtn = document.getElementById('finalize-btn');
+            if (summary.count > 0 && currentWorker) {
+                finalizeBtn.disabled = false;
+            } else {
+                finalizeBtn.disabled = true;
+            }
+        }
+
+        function renderEmptyTablePlaceholder() {
+            const tbody = document.getElementById('tickets-table-body');
+            tbody.innerHTML = `
+                <tr id="table-empty-row">
+                    <td colspan="7" class="py-16 text-center text-slate-500">
+                        <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-800/40 flex items-center justify-center text-slate-600 text-2xl mb-3">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-400">Hozircha biletlar skanerlanmadi</p>
+                        <p class="text-xs text-slate-500 mt-1">Xodimni tanlang va uning biletlarini Zebra DS22 bilan skanerlang</p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderTicketsTable() {
+            renderEmptyTablePlaceholder();
+        }
+
+        // -------------------------------------------------------------
+        // 7. FINALIZE & ROUTE TO SCREEN (3-BOSQICH)
+        // -------------------------------------------------------------
+        function finalizeBatch() {
+            if (!currentWorker || pendingTickets.length === 0) return;
+
+            const finalizeBtn = document.getElementById('finalize-btn');
+            finalizeBtn.disabled = true;
+            document.getElementById('finalize-btn-text').innerText = "Qabul qilinmoqda...";
+
+            const formData = new FormData();
+            formData.append('screen_number', selectedScreenNumber);
+
+            fetch("{% url 'production:terminal_finalize' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        playFinalizeFanfare();
+                        const sm = data.summary;
+                        showStatusBanner('success',
+                            `✅ ${sm.total_amount_formatted} UZS QABUL QILINDI!`,
+                            `Tikuvchi: ${sm.worker_name} (${sm.worker_id})\nSex ${sm.screen_number} Ekrani yangilandi: ${sm.tickets_count} ta bilet, ${sm.total_units} dona kiyim.`
+                        );
+
+                        prependRecentScanLog(sm.worker_name, sm.total_units, sm.total_amount_formatted);
+
+                        setTimeout(() => {
+                            resetScanningSession(true);
+                        }, 2500);
+                    } else {
+                        playErrorBuzz();
+                        showStatusBanner('error', "YAKUNLASHDA XATOLIK", data.message || "Biletlarni yozishda xatolik yuz berdi.");
+                        finalizeBtn.disabled = false;
+                        document.getElementById('finalize-btn-text').innerText = "QABUL QILISH VA SEX EKRANIGA UZATISH (Enter)";
+                    }
+                })
+                .catch(err => {
+                    console.error("finalizeBatch error:", err);
+                    playErrorBuzz();
+                    showStatusBanner('error', "XATOLIK", "Xatolik: " + (err.message || "Server bilan aloqa uzildi."));
+                    finalizeBtn.disabled = false;
+                    document.getElementById('finalize-btn-text').innerText = "QABUL QILISH VA SEX EKRANIGA UZATISH (Enter)";
+                });
+        }
+
+        function prependRecentScanLog(workerName, units, amountStr) {
+            const list = document.getElementById('recent-scans-list');
+            const item = document.createElement('div');
+            item.className = "p-2.5 bg-slate-950/60 border border-emerald-500/40 rounded-xl flex items-center justify-between new-row-anim";
+            item.innerHTML = `
+                <div class="min-w-0 pr-2">
+                    <b class="text-emerald-300 block truncate">${workerName}</b>
+                    <span class="text-[11px] text-slate-400">Sex ${selectedScreenNumber} • ${units} dona</span>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span class="text-emerald-400 font-mono font-bold block">+${amountStr}</span>
+                    <span class="text-[10px] text-slate-500">Hozirgina</span>
+                </div>
+            `;
+            list.insertBefore(item, list.firstChild);
+        }
+
+        function resetScanningSession(keepBanner) {
+            currentWorker = null;
+            pendingTickets = [];
+
+            fetch("{% url 'production:terminal_reset_session' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+
+            document.getElementById('worker-active-card').classList.add('hidden');
+            document.getElementById('worker-empty-card').classList.remove('hidden');
+            document.getElementById('queue-status-hint').innerText = "Zebra DS22 skaneri bilan bilet shtrix-kodlarini ketma-ket skanerlang";
+
+            updateBatchSummary({ count: 0, units: 0, amount: 0, amount_formatted: '0' });
+            renderEmptyTablePlaceholder();
+
+            if (!keepBanner) {
+                hideStatusBanner();
+            }
+
+            document.getElementById('finalize-btn-text').innerText = "QABUL QILISH VA SEX EKRANIGA UZATISH (Enter)";
+            scanInput.focus();
+        }
+
+        // -------------------------------------------------------------
+        // 8. SCREEN SELECTION & LOCALSTORAGE MEMORY
+        // -------------------------------------------------------------
+        function initScreenSelection() {
+            const select = document.getElementById('active-screen-select');
+            select.value = selectedScreenNumber;
+            updateScreenLinks(selectedScreenNumber);
+        }
+
+        function onScreenChange(val) {
+            selectedScreenNumber = parseInt(val, 10);
+            localStorage.setItem('master_terminal_screen', selectedScreenNumber);
+            updateScreenLinks(selectedScreenNumber);
+        }
+
+        function updateScreenLinks(sc) {
+            document.getElementById('footer-screen-name').innerText = `Sex ${sc} Ekrani`;
+            document.getElementById('screen-monitor-link').href = `/screens/${sc}/`;
+        }
+
+        // -------------------------------------------------------------
+        // 9. STATUS BANNER
+        // -------------------------------------------------------------
+        function showStatusBanner(type, title, desc) {
+            const container = document.getElementById('status-banner-container');
+            const banner = document.getElementById('status-banner');
+            const icon = document.getElementById('status-banner-icon');
+            const titleEl = document.getElementById('status-banner-title');
+            const descEl = document.getElementById('status-banner-desc');
+
+            container.classList.remove('hidden');
+            titleEl.innerText = title;
+            descEl.innerText = desc;
+
+            if (type === 'success') {
+                banner.className = "p-4 rounded-2xl border text-sm font-bold flex items-center justify-between shadow-2xl bg-emerald-950/80 border-emerald-500/50 text-emerald-200";
+                icon.className = "fa-solid fa-circle-check text-emerald-400 text-2xl";
+            } else {
+                banner.className = "p-4 rounded-2xl border text-sm font-bold flex items-center justify-between shadow-2xl bg-rose-950/90 border-rose-500/80 text-rose-100 alert-pulse";
+                icon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-2xl";
+            }
+        }
+
+        function hideStatusBanner() {
+            document.getElementById('status-banner-container').classList.add('hidden');
+        }
+
+        // -------------------------------------------------------------
+        // 10. MODALS: WORKER SEARCH / MULTIPLE MATCHES
+        // -------------------------------------------------------------
+        function openWorkerSearchModal() {
+            document.getElementById('worker-search-modal').classList.remove('hidden');
+            document.getElementById('modal-worker-search-input').focus();
+        }
+
+        function closeWorkerSearchModal() {
+            document.getElementById('worker-search-modal').classList.add('hidden');
+            scanInput.focus();
+        }
+
+        function executeModalWorkerSearch() {
+            const query = document.getElementById('modal-worker-search-input').value.trim();
+            if (!query) return;
+            identifyWorker(query);
+            closeWorkerSearchModal();
+        }
+
+        function renderWorkerCandidates(candidates) {
+            openWorkerSearchModal();
+            document.getElementById('worker-modal-title').innerText = "Bir nechta xodim topildi — Tanlang:";
+            const container = document.getElementById('modal-worker-candidates');
+            container.innerHTML = '';
+
+            candidates.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-3 bg-slate-950 hover:bg-amber-500/10 border border-slate-800 hover:border-amber-500/40 rounded-2xl text-left transition flex items-center justify-between";
+                btn.onclick = () => {
+                    closeWorkerSearchModal();
+                    identifyWorker(c.worker_id);
+                };
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-800 text-amber-400 font-black flex items-center justify-center">
+                            ${c.full_name.charAt(0)}
+                        </div>
+                        <div>
+                            <b class="text-white text-sm block">${c.full_name}</b>
+                            <span class="text-xs text-slate-400 font-mono">${c.worker_id} • UID: ${c.uid || '—'}</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-amber-400">Tanlash &rarr;</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 11. MODAL: BOX LOOKUP (QUTI TEKSHIRISH)
+        // -------------------------------------------------------------
+        function openBoxLookupModal(initialCode) {
+            document.getElementById('box-lookup-modal').classList.remove('hidden');
+            const inp = document.getElementById('box-lookup-input');
+            if (initialCode) {
+                inp.value = initialCode;
+                executeBoxLookup();
+            } else {
+                inp.value = '';
+                inp.focus();
+            }
+        }
+
+        function closeBoxLookupModal() {
+            document.getElementById('box-lookup-modal').classList.add('hidden');
+            scanInput.focus();
+        }
+
+        function executeBoxLookup() {
+            const query = document.getElementById('box-lookup-input').value.trim();
+            if (!query) return;
+
+            const resDiv = document.getElementById('box-lookup-results');
+            resDiv.innerHTML = '<p class="text-slate-400 text-center py-6">Qidirilmoqda...</p>';
+
+            fetch(`{% url 'production:terminal_box_lookup' %}?identifier=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        playSuccessBeep();
+                        const b = data.box;
+                        let ticketsHtml = '';
+                        b.tickets.forEach((t, i) => {
+                            const isScanned = t.status === 'SCANNED';
+                            const badge = isScanned ?
+                                `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Bajarilgan (${t.worker_name})</span>` :
+                                `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Kutilmoqda</span>`;
+
+                            ticketsHtml += `
+                            <tr class="hover:bg-slate-800/40 text-xs">
+                                <td class="py-2.5 px-3 text-center text-slate-400 font-mono">${i + 1}</td>
+                                <td class="py-2.5 px-3 font-bold text-white">${t.operation_name}</td>
+                                <td class="py-2.5 px-3 text-center font-bold text-amber-400">${t.quantity} dona</td>
+                                <td class="py-2.5 px-3 text-right font-mono">${t.price_formatted} UZS</td>
+                                <td class="py-2.5 px-3 text-center">${badge}</td>
+                                <td class="py-2.5 px-3 text-right text-slate-400">${t.scanned_at}</td>
+                            </tr>
+                        `;
+                        });
+
+                        resDiv.innerHTML = `
+                        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                                <div>
+                                    <h4 class="text-base font-black text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-box text-amber-500"></i>
+                                        <span>Quti #${b.box_number} (Kod: <code>${b.box_code}</code>)</span>
+                                    </h4>
+                                    <p class="text-xs text-slate-400 mt-0.5">Zakaz: <b class="text-amber-400 font-mono">${b.order_number}</b> • Buyurtmachi: ${b.client_name}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-slate-400 block">Jami mahsulot</span>
+                                    <b class="text-lg font-black text-cyan-400 digital-font">${b.quantity} dona</b>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs font-semibold">
+                                <span class="text-slate-400">Bajarilish progressi:</span>
+                                <span class="text-emerald-400 font-bold">${b.scanned_tickets} / ${b.total_tickets} ta operatsiya (${b.progress_percent}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${b.progress_percent}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-900 text-slate-400 text-[11px] uppercase font-bold border-b border-slate-800">
+                                    <tr>
+                                        <th class="py-2 px-3 text-center">#</th>
+                                        <th class="py-2 px-3">Operatsiya</th>
+                                        <th class="py-2 px-3 text-center">Soni</th>
+                                        <th class="py-2 px-3 text-right">Narxi</th>
+                                        <th class="py-2 px-3 text-center">Holati</th>
+                                        <th class="py-2 px-3 text-right">Vaqti</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    ${ticketsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    } else {
+                        playErrorBuzz();
+                        resDiv.innerHTML = `<p class="text-rose-400 text-center py-6 font-bold">${data.message || "Quti topilmadi"}</p>`;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    resDiv.innerHTML = '<p class="text-rose-400 text-center py-6 font-bold">Xatolik yuz berdi</p>';
+                });
+        }
+
+        // -------------------------------------------------------------
+        // 12. MODAL: WORKER BALANCE (XODIM BALANSI)
+        // -------------------------------------------------------------
+        function openWorkerBalanceModal() {
+            document.getElementById('worker-balance-modal').classList.remove('hidden');
+            const inp = document.getElementById('worker-balance-input');
+            inp.value = '';
+            inp.focus();
+        }
+
+        function closeWorkerBalanceModal() {
+            document.getElementById('worker-balance-modal').classList.add('hidden');
+            scanInput.focus();
+        }
+
+        function executeWorkerBalanceLookup() {
+            const query = document.getElementById('worker-balance-input').value.trim();
+            if (!query) return;
+
+            const resDiv = document.getElementById('worker-balance-results');
+            resDiv.innerHTML = '<p class="text-slate-400 text-center py-6">Yuklanmoqda...</p>';
+
+            fetch(`{% url 'production:terminal_worker_balance' %}?code=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        playWorkerChime();
+                        const w = data.worker;
+                        let recentHtml = '';
+                        if (w.recent_scans && w.recent_scans.length > 0) {
+                            w.recent_scans.forEach(r => {
+                                recentHtml += `
+                                <div class="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
+                                    <span class="text-slate-300">${r.operation_name} (${r.quantity} ta)</span>
+                                    <span class="text-emerald-400 font-mono font-bold">+${r.amount_formatted} UZS</span>
+                                </div>
+                            `;
+                            });
+                        } else {
+                            recentHtml = '<p class="text-slate-500 text-xs italic">Bugun hali operatsiya skanerlanmagan</p>';
+                        }
+
+                        resDiv.innerHTML = `
+                        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                            <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                                <div class="w-12 h-12 rounded-xl bg-sky-500 text-slate-950 font-black text-xl flex items-center justify-center">
+                                    ${w.full_name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h4 class="text-base font-black text-white">${w.full_name}</h4>
+                                    <span class="text-xs text-amber-400 font-mono">${w.worker_id} • UID: ${w.uid || '—'}</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 text-center">
+                                <div class="p-2.5 bg-slate-900 rounded-xl">
+                                    <span class="text-[10px] text-slate-400 uppercase font-bold block">Bugun Tikkan</span>
+                                    <b class="text-sm font-black text-cyan-400 digital-font">${w.today_units} dona</b>
+                                </div>
+                                <div class="p-2.5 bg-slate-900 rounded-xl">
+                                    <span class="text-[10px] text-slate-400 uppercase font-bold block">Bugungi Ish Haqi</span>
+                                    <b class="text-sm font-black text-emerald-400 digital-font">${w.today_earned_formatted} UZS</b>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl flex items-center justify-between">
+                                <span class="text-xs text-slate-300 font-bold">Umumiy Balans:</span>
+                                <span class="text-base font-black text-emerald-400 digital-font">${w.balance_formatted} UZS</span>
+                            </div>
+
+                            <div class="pt-2">
+                                <span class="text-[11px] font-bold text-slate-400 uppercase block mb-1">Bugungi so'nggi operatsiyalar:</span>
+                                ${recentHtml}
+                            </div>
+                        </div>
+                    `;
+                    } else {
+                        playErrorBuzz();
+                        resDiv.innerHTML = `<p class="text-rose-400 text-center py-6 font-bold">${data.message || "Xodim topilmadi"}</p>`;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    resDiv.innerHTML = '<p class="text-rose-400 text-center py-6 font-bold">Xatolik yuz berdi</p>';
+                });
+        }
+
+        // -------------------------------------------------------------
+        // 13. FULLSCREEN
+        // -------------------------------------------------------------
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initScreenSelection();
+            keepScannerFocused();
+        });
+    </script>
+</body>
+
+</html>

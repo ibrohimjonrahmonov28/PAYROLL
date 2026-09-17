@@ -1,8 +1,20 @@
 import io
+import secrets
+from decimal import Decimal
 import qrcode
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.files.base import ContentFile
+from django.utils import timezone
+
+
+def generate_unique_user_uid():
+    """6 xonali unikal raqamli UID generatsiya qilish (100000 - 999999)"""
+    from accounts.models import User
+    while True:
+        code = str(secrets.randbelow(900000) + 100000)
+        if not User.objects.filter(uid=code).exists():
+            return code
 
 
 class User(AbstractUser):
@@ -10,15 +22,50 @@ class User(AbstractUser):
         SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
         ADMIN = 'ADMIN', 'Admin'
         MASTER = 'MASTER', 'Master'
+        USER = 'USER', 'Oddiy User'
 
-    role = models.CharField(max_length=20, choices=Role.choices, default=Role.ADMIN)
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
     phone_number = models.CharField(max_length=20, blank=True)
+    uid = models.CharField(
+        max_length=6,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Unikal 6 xonali UID"
+    )
+    qr_code = models.ImageField(upload_to='qr_codes/users/', blank=True, null=True, verbose_name="QR Kod")
     telegram_user_id = models.BigIntegerField(
         null=True, 
         blank=True, 
         unique=True,
         help_text="Master Telegram hisobi ID raqami (masalan: 123456789)"
     )
+
+    def generate_qr_code(self):
+        if not self.uid:
+            self.uid = generate_unique_user_uid()
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(f"USER:{self.uid}")
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        filename = f"user_qr_{self.uid}.png"
+        self.qr_code.save(filename, ContentFile(buffer.getvalue()), save=False)
+
+    def save(self, *args, **kwargs):
+        if not self.uid:
+            self.uid = generate_unique_user_uid()
+        if not self.qr_code:
+            self.generate_qr_code()
+        super().save(*args, **kwargs)
 
     def is_superadmin(self):
         return self.is_superuser or self.role == self.Role.SUPER_ADMIN
@@ -29,8 +76,19 @@ class User(AbstractUser):
     def is_master(self):
         return self.role == self.Role.MASTER or self.is_superuser
 
+    def is_regular_user(self):
+        return self.role == self.Role.USER
+
 
 class Worker(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='worker_profile',
+        verbose_name="Foydalanuvchi hisobi"
+    )
     worker_id = models.CharField(
         max_length=30, 
         unique=True, 
@@ -40,7 +98,7 @@ class Worker(models.Model):
     first_name = models.CharField(max_length=100, verbose_name="Ismi")
     last_name = models.CharField(max_length=100, verbose_name="Familiyasi")
     phone_number = models.CharField(max_length=25, blank=True, verbose_name="Telefon raqami")
-    is_active = models.BooleanField(default=True, verbose_name="Faolmi?")
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faolmi?")
     qr_code = models.ImageField(upload_to='qr_codes/workers/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -71,6 +129,35 @@ class Worker(models.Model):
         self.qr_code.save(filename, ContentFile(buffer.getvalue()), save=False)
 
     def save(self, *args, **kwargs):
+        # 1. Yangi ishchi qo'shilganda avtomatik 'ODDIY USER' hisobini yaratish yoki bog'lash
+        if not self.user:
+            base_username = f"worker_{self.worker_id.lower().replace('-', '_')}"
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{counter}"
+                counter += 1
+
+            new_user = User(
+                username=username,
+                first_name=self.first_name,
+                last_name=self.last_name,
+                phone_number=self.phone_number,
+                role=User.Role.USER,
+                is_staff=False,
+                is_superuser=False
+            )
+            new_user.set_password("worker123")
+            new_user.save()
+            self.user = new_user
+        else:
+            # Agar ishchining ismi yoki familiyasi o'zgarsa, user hisobini ham yangilash
+            if self.user.first_name != self.first_name or self.user.last_name != self.last_name or self.user.phone_number != self.phone_number:
+                self.user.first_name = self.first_name
+                self.user.last_name = self.last_name
+                self.user.phone_number = self.phone_number
+                self.user.save(update_fields=['first_name', 'last_name', 'phone_number'])
+
         if not self.qr_code:
             self.generate_qr_code()
         super().save(*args, **kwargs)
@@ -79,12 +166,32 @@ class Worker(models.Model):
     def total_earned(self):
         from production.models import Ticket
         res = self.tickets.filter(status=Ticket.Status.SCANNED).aggregate(s=models.Sum('total_amount'))['s']
+        return res or Decimal('0.00')
+
+    @property
+    def today_earned(self):
+        from production.models import Ticket
+        today = timezone.localdate()
+        res = self.tickets.filter(
+            status=Ticket.Status.SCANNED,
+            scanned_at__date=today
+        ).aggregate(s=models.Sum('total_amount'))['s']
+        return res or Decimal('0.00')
+
+    @property
+    def today_units(self):
+        from production.models import Ticket
+        today = timezone.localdate()
+        res = self.tickets.filter(
+            status=Ticket.Status.SCANNED,
+            scanned_at__date=today
+        ).aggregate(s=models.Sum('quantity'))['s']
         return res or 0
 
     @property
     def total_paid(self):
         res = self.payouts.aggregate(s=models.Sum('amount'))['s']
-        return res or 0
+        return res or Decimal('0.00')
 
     @property
     def balance(self):
@@ -102,8 +209,8 @@ class WorkerPayout(models.Model):
 
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name='payouts', verbose_name="Tikuvchi")
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="To'lov summasi (UZS)")
-    payout_type = models.CharField(max_length=20, choices=PayoutType.choices, default=PayoutType.ADVANCE, verbose_name="To'lov turi")
-    payout_date = models.DateField(verbose_name="To'lov sanasi")
+    payout_type = models.CharField(max_length=20, choices=PayoutType.choices, default=PayoutType.ADVANCE, db_index=True, verbose_name="To'lov turi")
+    payout_date = models.DateField(db_index=True, verbose_name="To'lov sanasi")
     note = models.CharField(max_length=255, blank=True, verbose_name="Izoh")
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="To'lovchi")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -112,7 +219,47 @@ class WorkerPayout(models.Model):
         verbose_name = "Xodimga to'lov / Avans"
         verbose_name_plural = "Xodimlar to'lovlari va avanslari"
         ordering = ['-payout_date', '-created_at']
+        indexes = [
+            models.Index(fields=['worker', 'payout_date'], name='payout_worker_date_idx'),
+            models.Index(fields=['payout_type', 'payout_date'], name='payout_type_date_idx'),
+        ]
 
     def __str__(self):
         return f"{self.worker.worker_id} - {int(self.amount):,} UZS ({self.get_payout_type_display()})"
+
+
+class DailyWorkerClosing(models.Model):
+    """
+    Har kuni kechqurun soat 12:00 (00:00) da xodimning kunlik ishlab topgan summasini
+    va tikkan donalarini doimiy reestr sifatida muhrlab boruvchi model.
+    """
+    worker = models.ForeignKey(
+        Worker, 
+        on_delete=models.CASCADE, 
+        related_name='daily_closings', 
+        verbose_name="Tikuvchi"
+    )
+    date = models.DateField(db_index=True, verbose_name="Hisob sanasi")
+    total_units = models.PositiveIntegerField(default=0, verbose_name="Tikilgan donalar")
+    total_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=Decimal('0.00'), 
+        verbose_name="Kunlik ish haqi (UZS)"
+    )
+    ticket_count = models.PositiveIntegerField(default=0, verbose_name="Biletlar soni")
+    closed_at = models.DateTimeField(auto_now_add=True, verbose_name="Yopilgan vaqti")
+
+    class Meta:
+        verbose_name = "Kunlik Ish Haqi Yopilishi"
+        verbose_name_plural = "Kunlik Ish Haqi Yopilishlari"
+        unique_together = ('worker', 'date')
+        ordering = ['-date', 'worker']
+        indexes = [
+            models.Index(fields=['date', 'worker'], name='daily_date_worker_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.date} | {self.worker.worker_id} - {self.total_amount:,.0f} UZS ({self.total_units} dona)"
+
 

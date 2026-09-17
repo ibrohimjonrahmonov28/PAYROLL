@@ -93,6 +93,166 @@
         </div>
     </div>
 
+    <!-- SECTION: Workers Daily Norm & Difficulty KPI Performance -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bullseye text-amber-400"></i> Tikuvchilarning Norma Bajarilishi (KPI &
+                    Reyting)
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Har bir modelning o'z umumiy normasi bo'yicha ball to'planadi (Formula:
+                    <code>dona &times; qiyinlik</code>) va chevarning barcha modellar bo'yicha umumiy foiz yig'indisi
+                    hisoblanadi.
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <span
+                    class="px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i> Bajargan/Oshirgan: <strong>{{ above_norm_count }}</strong>
+                </span>
+                <span
+                    class="px-3 py-1.5 rounded-xl bg-rose-950/60 border border-rose-800/60 text-rose-400 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-exclamation"></i> Yetmagan: <strong>{{ below_norm_count }}</strong>
+                </span>
+                <span
+                    class="px-3 py-1.5 rounded-xl bg-amber-950/60 border border-amber-800/60 text-amber-400 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-gauge-high"></i> O'rtacha KPI: <strong>{{ avg_factory_kpi }}%</strong>
+                </span>
+                <a href="{% url 'superadmin_orders_list' %}"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition">
+                    <i class="fa-solid fa-shirt text-amber-400 mr-1"></i> Zakazlar va Modellar
+                </a>
+            </div>
+        </div>
+
+        <!-- Search input -->
+        <div class="flex items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-xs">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" id="kpi-worker-search" oninput="filterKpiWorkers(this.value)"
+                    placeholder="Tikuvchi qidirish..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+            </div>
+            <span class="text-xs text-slate-400 font-mono" id="kpi-count-badge">Jami: {{ worker_kpi_list|length }}
+                xodim</span>
+        </div>
+
+        <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead class="sticky top-0 bg-slate-950 z-10">
+                    <tr class="text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3 px-3 w-12 text-center">#</th>
+                        <th class="py-3 px-3 min-w-[180px]">Tikuvchi (F.I.SH & ID)</th>
+                        <th class="py-3 px-3 min-w-[340px]">Bajarilgan Modellar & Normalar (Har bir model)</th>
+                        <th class="py-3 px-3 text-center min-w-[130px]">Jami Ball & Dona</th>
+                        <th class="py-3 px-4 min-w-[220px]">Umumiy Yig'indi Foizi & Holat</th>
+                        <th class="py-3 px-3 text-right min-w-[130px]">Bugun Ishlagan Puli</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 text-slate-300" id="kpi-tbody">
+                    {% for row in worker_kpi_list %}
+                    <tr class="hover:bg-slate-800/40 kpi-row"
+                        data-search="{{ row.worker.full_name }} {{ row.worker.worker_id }}">
+                        <td class="py-3 px-3 text-center font-mono font-bold text-slate-500 align-top">{{
+                            forloop.counter }}</td>
+                        <td class="py-3 px-3 align-top">
+                            <strong class="text-white text-sm block">{{ row.worker.full_name }}</strong>
+                            <span class="text-slate-500 font-mono text-[11px]">{{ row.worker.worker_id }}</span>
+                        </td>
+                        <!-- Har bir model ko'rsatkichlari -->
+                        <td class="py-3 px-3 align-top">
+                            {% if row.models_list %}
+                            <div class="space-y-1.5">
+                                {% for m in row.models_list %}
+                                <div
+                                    class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2.5 flex items-center justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="font-bold text-white text-xs truncate">{{ m.model_name
+                                                }}</span>
+                                            <span class="text-[10px] font-mono text-cyan-400 font-bold">({{
+                                                m.order_number }})</span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-400 mt-0.5">
+                                            <strong class="text-purple-300 font-mono">{{ m.units }} dona</strong>
+                                            &times; qiyinlik = <strong class="text-amber-300 font-mono">{{ m.points }}
+                                                ball</strong>
+                                            <span class="text-slate-500">/ norma: {{ m.norm }} ball</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0 text-right">
+                                        <span
+                                            class="font-black text-xs digital-font px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-amber-400">
+                                            {{ m.percentage }}%
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-slate-500 italic text-xs block py-2">Hali birorta model tikmadi</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Jami to'plangan ball va dona -->
+                        <td class="py-3 px-3 text-center align-top">
+                            <div class="text-sm font-black text-amber-300 digital-font">
+                                {{ row.earned_points }} <small
+                                    class="text-[10px] text-slate-500 font-normal">ball</small>
+                            </div>
+                            <div class="text-[11px] font-bold text-purple-300 font-mono mt-0.5">
+                                {{ row.actual_units }} <small
+                                    class="text-[10px] text-slate-500 font-normal">dona</small>
+                            </div>
+                        </td>
+
+                        <!-- Umumiy yig'indi foizi va holati -->
+                        <td class="py-3 px-4 align-top">
+                            <div class="flex items-center justify-between mb-1">
+                                <span
+                                    class="font-black text-sm digital-font {% if row.percentage >= 100 %}text-emerald-400{% elif row.percentage >= 70 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ row.percentage }}%
+                                </span>
+                                <span
+                                    class="text-[11px] font-bold font-mono {% if row.is_above %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                    {% if row.is_above %}
+                                    +{{ row.diff_pct }}% (oshgan)
+                                    {% else %}
+                                    {{ row.diff_pct }}% (yetmagan)
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                                <div class="h-full rounded-full transition-all duration-500 {% if row.percentage >= 100 %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif row.percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400{% else %}bg-gradient-to-r from-rose-500 to-red-400{% endif %}"
+                                    style="width: {{ row.progress_width }}%;"></div>
+                            </div>
+                            <span class="text-[10px] text-slate-500 mt-1 block">Barcha modellar foizlari
+                                yig'indisi</span>
+                        </td>
+
+                        <!-- Bugun ishlab topgan puli -->
+                        <td class="py-3 px-3 text-right align-top">
+                            <span class="font-black text-sm text-emerald-400 digital-font block">
+                                {{ row.earned_sum|floatformat:0 }} <small
+                                    class="text-[10px] text-slate-500 font-normal">UZS</small>
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-500">
+                            Faol tikuvchilar topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- 2 COLUMN SECTION: Masters activity & Screen loading -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -182,4 +342,25 @@
     </div>
 
 </div>
+
+<script>
+    function filterKpiWorkers(query) {
+        const filter = query.toLowerCase().trim();
+        const rows = document.querySelectorAll('.kpi-row');
+        let count = 0;
+        rows.forEach(r => {
+            const data = (r.getAttribute('data-search') || '').toLowerCase();
+            if (!filter || data.includes(filter)) {
+                r.style.display = '';
+                count++;
+            } else {
+                r.style.display = 'none';
+            }
+        });
+        const badge = document.getElementById('kpi-count-badge');
+        if (badge) {
+            badge.innerText = filter ? `Topildi: ${count} ta` : `Jami: ${rows.length} xodim`;
+        }
+    }
+</script>
 {% endblock %}

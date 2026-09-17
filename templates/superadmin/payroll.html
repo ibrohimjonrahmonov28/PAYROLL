@@ -1,61 +1,153 @@
 {% extends 'superadmin/base_superadmin.html' %}
 
-{% block title %}Ish Haqi Balansi & To'lovlar — SUPER ADMIN{% endblock %}
+{% block title %}Buxgalteriya Oylik Ish Haqi Tabeli — SUPER ADMIN{% endblock %}
 
 {% block superadmin_header %}
 <div class="flex items-center gap-3">
-    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
-        <i class="fa-solid fa-money-check-dollar"></i>
+    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+        <i class="fa-solid fa-calculator"></i>
     </div>
-    <h2 class="text-lg font-black text-white">Tikuvchilar Ish Haqi Balansi & To'lovlar Daftari</h2>
+    <div>
+        <h2 class="text-lg font-black text-white">Buxgalteriya Oylik Ish Haqi Tabeli & Hisob-Kitobi</h2>
+        <p class="text-xs text-slate-400 font-medium">Dona-bay sdelshina ish haqi, tungi 00:00 balans muhrlanishi va
+            avanslar hisobi</p>
+    </div>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Top Summary Banner -->
+    <!-- MONTH & YEAR FILTER + ACTION BAR -->
     <div
-        class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-6">
-        <div class="flex flex-wrap items-center gap-8">
-            <div>
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Jami Hisoblangan</span>
-                <span class="text-2xl font-black text-emerald-400 digital-font">{{ grand_earned|floatformat:0 }} <small
-                        class="text-xs text-slate-400">UZS</small></span>
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <!-- Month / Year Selector Form -->
+        <form method="GET" action="{% url 'superadmin_payroll' %}" class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Davr:</label>
+                <select name="month"
+                    class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
+                    {% for m_num, m_name in months_list %}
+                    <option value="{{ m_num }}" {% if m_num==selected_month %}selected{% endif %}>{{ m_name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="year"
+                    class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
+                    {% for y in years_list %}
+                    <option value="{{ y }}" {% if y==selected_year %}selected{% endif %}>{{ y }} yil</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
+                    <i class="fa-solid fa-filter text-amber-400"></i> Filtrlash
+                </button>
             </div>
-            <div class="h-10 w-px bg-slate-800 hidden sm:block"></div>
-            <div>
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Jami To'langan (Avans+Oylik)</span>
-                <span class="text-2xl font-black text-cyan-400 digital-font">{{ grand_paid|floatformat:0 }} <small
-                        class="text-xs text-slate-400">UZS</small></span>
-            </div>
-            <div class="h-10 w-px bg-slate-800 hidden sm:block"></div>
-            <div>
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Qoldiq Qarzdorlik</span>
-                <span class="text-2xl font-black text-amber-400 digital-font">{{ grand_balance|floatformat:0 }} <small
-                        class="text-xs text-slate-400">UZS</small></span>
-            </div>
-        </div>
+        </form>
 
-        <div class="flex items-center gap-3">
-            <a href="{% url 'superadmin_payroll_export' %}"
-                class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm">
-                <i class="fa-solid fa-file-excel text-base"></i> Buxgalteriya Tabeli (Excel/CSV)
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Midnight Closing Status / Manual Trigger -->
+            <form method="POST" action="{% url 'superadmin_close_daily_now' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ today_str }}">
+                <button type="submit"
+                    class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-2"
+                    title="Kechqurun 00:00 da avtomatik yopiladi. Shoshilinch zarurat bo'lsa hozir ham yopishingiz mumkin.">
+                    <i class="fa-solid fa-moon text-indigo-400"></i>
+                    <span>Tungi hisobni yopish</span>
+                    {% if today_is_closed %}
+                    <span
+                        class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-1.5 py-0.5 rounded font-mono">Yopilgan</span>
+                    {% else %}
+                    <span
+                        class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-mono">00:00
+                        da</span>
+                    {% endif %}
+                </button>
+            </form>
+
+            <!-- CSV / Excel Export -->
+            <a href="{% url 'superadmin_payroll_export' %}?year={{ selected_year }}&month={{ selected_month }}"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-file-excel text-base"></i> Buxgalteriya Tabeli (Excel)
             </a>
-            <button onclick="openPayoutModal(null, '')"
-                class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
-                <i class="fa-solid fa-hand-holding-dollar text-base"></i> Yangi To'lov Yozish
+
+            <!-- New Payout Modal Trigger -->
+            <button onclick="openPayoutModal(null, '', null, 'ADVANCE')"
+                class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-hand-holding-dollar text-base"></i> To'lov Yozish
             </button>
         </div>
     </div>
 
-    <!-- WORKER BALANCES TABLE -->
+    <!-- MONTHLY SUMMARY KPI BANNER -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                {{ selected_month_name }} — Hisoblangan Maosh
+            </span>
+            <span class="text-xl lg:text-2xl font-black text-emerald-400 digital-font">
+                {{ grand_gross_month|floatformat:0 }} <small class="text-xs text-slate-400 font-normal">UZS</small>
+            </span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                Berilgan Avanslar (Oy)
+            </span>
+            <span class="text-xl lg:text-2xl font-black text-cyan-400 digital-font">
+                {{ grand_advances_month|floatformat:0 }} <small class="text-xs text-slate-400 font-normal">UZS</small>
+            </span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                To'lanishi Kerak Sof Oylik
+            </span>
+            <span class="text-xl lg:text-2xl font-black text-amber-400 digital-font">
+                {{ grand_net_month|floatformat:0 }} <small class="text-xs text-slate-400 font-normal">UZS</small>
+            </span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                Jami Tikilgan Donalar
+            </span>
+            <span class="text-xl lg:text-2xl font-black text-indigo-400 digital-font">
+                {{ grand_units_month }} <small class="text-xs text-slate-400 font-normal">dona</small>
+            </span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                Ishlagan Xodimlar
+            </span>
+            <span class="text-xl lg:text-2xl font-black text-white digital-font">
+                {{ active_workers_count }} <small class="text-xs text-slate-400 font-normal">/ {{ workers|length
+                    }}</small>
+            </span>
+        </div>
+    </div>
+
+    <!-- MAIN MONTHLY PAYROLL TABLE -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div class="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-users text-amber-400"></i> Tikuvchilar Balansi va Qoldiqlari
-            </h3>
-            <span class="text-xs text-slate-400 font-medium">Jami xodimlar: {{ payroll_data|length }} nafar</span>
+        <div class="p-4 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-users text-amber-400"></i>
+                <h3 class="text-sm font-bold text-white">
+                    {{ selected_month_name }} {{ selected_year }} — Xodimlar Oylik Ish Haqi Tabeli
+                </h3>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="relative w-72">
+                    <input type="text" id="payroll-live-search" oninput="liveFilterPayroll(this.value)"
+                        placeholder="Xodim qidirish (ID, UID, Ism)..."
+                        class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-xs text-slate-500"></i>
+                </div>
+                <span class="text-xs text-slate-400 font-medium" id="payroll-count-badge">Jami: {{ payroll_data|length
+                    }} nafar xodim</span>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -63,70 +155,138 @@
                 <thead>
                     <tr
                         class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
-                        <th class="py-3.5 px-4">Xodim ID</th>
-                        <th class="py-3.5 px-4">Tikuvchi F.I.SH</th>
-                        <th class="py-3.5 px-4">Telefon</th>
-                        <th class="py-3.5 px-4 text-right">Ishlangan Summa</th>
-                        <th class="py-3.5 px-4 text-right">To'langan (Avans)</th>
-                        <th class="py-3.5 px-6 text-right">Qoldiq Balans</th>
-                        <th class="py-3.5 px-4 text-right">Amal</th>
+                        <th class="py-3 px-3 text-center w-12">№</th>
+                        <th class="py-3 px-4">Xodim ID / UID</th>
+                        <th class="py-3 px-4">Tikuvchi F.I.SH</th>
+                        <th class="py-3 px-3 text-center">Ish Kunlari</th>
+                        <th class="py-3 px-3 text-center">Tikilgan Dona</th>
+                        <th class="py-3 px-4 text-right">Hisoblangan Maosh</th>
+                        <th class="py-3 px-4 text-right">Berilgan Avans</th>
+                        <th class="py-3 px-4 text-right">Sof Oylik (Qoldiq)</th>
+                        <th class="py-3 px-4 text-right">Umumiy Balans</th>
+                        <th class="py-3 px-3 text-center">Holati</th>
+                        <th class="py-3 px-4 text-right">Amallar</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800 text-slate-200">
+                <tbody id="payroll-tbody" class="divide-y divide-slate-800 text-slate-200">
                     {% for row in payroll_data %}
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="py-3.5 px-4">
-                            <span
-                                class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-2.5 py-1 rounded text-xs digital-font">
-                                {{ row.worker.worker_id }}
-                            </span>
+                    <tr class="hover:bg-slate-800/40 transition payroll-worker-row"
+                        data-search="{{ row.worker.worker_id }} {{ row.worker.user.uid|default:'' }} {{ row.worker.full_name }} {{ row.worker.phone_number|default:'' }}">
+                        <td class="py-3 px-3 text-center text-slate-500 text-xs font-mono">
+                            {{ forloop.counter }}
                         </td>
-                        <td class="py-3.5 px-4 font-bold text-white text-base">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-1.5">
+                                <span
+                                    class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-2 py-0.5 rounded text-xs digital-font">
+                                    {{ row.worker.worker_id }}
+                                </span>
+                                {% if row.worker.user and row.worker.user.uid %}
+                                <span
+                                    class="bg-slate-800 text-amber-300 border border-slate-700 font-mono px-1.5 py-0.5 rounded text-[11px]"
+                                    title="6-xonali unikal UID">
+                                    UID: {{ row.worker.user.uid }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 font-bold text-white text-base">
                             {{ row.worker.full_name }}
+                            {% if row.worker.phone_number %}
+                            <span class="block text-[11px] text-slate-500 font-normal font-mono">{{
+                                row.worker.phone_number }}</span>
+                            {% endif %}
                         </td>
-                        <td class="py-3.5 px-4 text-slate-400 text-xs font-mono">
-                            {{ row.worker.phone_number|default:"—" }}
+                        <td class="py-3 px-3 text-center font-bold text-slate-300 digital-font">
+                            {{ row.days_worked }} kun
                         </td>
-                        <td class="py-3.5 px-4 text-right font-black text-emerald-400 digital-font text-base">
-                            {{ row.total_earned|floatformat:0 }} <small
+                        <td class="py-3 px-3 text-center font-bold text-indigo-400 digital-font">
+                            {{ row.month_units }} dona
+                        </td>
+                        <td class="py-3 px-4 text-right font-black text-emerald-400 digital-font text-base">
+                            {{ row.month_gross|floatformat:0 }} <small
                                 class="text-xs text-slate-500 font-normal">so'm</small>
                         </td>
-                        <td class="py-3.5 px-4 text-right font-black text-cyan-400 digital-font text-base">
-                            {{ row.total_paid|floatformat:0 }} <small
+                        <td class="py-3 px-4 text-right font-black text-cyan-400 digital-font text-base">
+                            {{ row.advances|floatformat:0 }} <small
                                 class="text-xs text-slate-500 font-normal">so'm</small>
                         </td>
                         <td
-                            class="py-3.5 px-6 text-right font-black digital-font text-lg {% if row.balance > 0 %}text-amber-400{% elif row.balance == 0 %}text-slate-500{% else %}text-rose-400{% endif %}">
-                            {{ row.balance|floatformat:0 }} <small
+                            class="py-3 px-4 text-right font-black digital-font text-base {% if row.net_payable_month > 0 %}text-amber-400{% elif row.net_payable_month == 0 %}text-slate-500{% else %}text-emerald-400{% endif %}">
+                            {{ row.net_payable_month|floatformat:0 }} <small
                                 class="text-xs text-slate-500 font-normal">so'm</small>
                         </td>
-                        <td class="py-3.5 px-4 text-right">
-                            <button
-                                onclick="openPayoutModal({{ row.worker.id }}, '{{ row.worker.full_name }} ({{ row.worker.worker_id }})')"
-                                class="px-3.5 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 ml-auto">
-                                <i class="fa-solid fa-money-bill-transfer"></i> To'lov Qilish
-                            </button>
+                        <td class="py-3 px-4 text-right font-bold digital-font text-sm {% if row.lifetime_balance > 0 %}text-slate-300{% else %}text-slate-500{% endif %}"
+                            title="Xodimning butun vaqtdagi umumiy qoldiq balansi">
+                            {{ row.lifetime_balance|floatformat:0 }}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if row.status_badge == 'emerald' %}
+                            <span
+                                class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                {{ row.status_text }}
+                            </span>
+                            {% elif row.status_badge == 'amber' %}
+                            <span
+                                class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                {{ row.status_text }}
+                            </span>
+                            {% elif row.status_badge == 'cyan' %}
+                            <span
+                                class="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                                {{ row.status_text }}
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 text-slate-500">
+                                {{ row.status_text }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <!-- Kunbay ko'rish button -->
+                                <button onclick="openDailyBreakdownModal({{ row.worker.id }})"
+                                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1"
+                                    title="Ushbu oyning har bir kuni tafsilotini ko'rish">
+                                    <i class="fa-solid fa-calendar-day"></i> Kunbay
+                                </button>
+                                <!-- Oylik to'lash button -->
+                                <button
+                                    onclick="openPayoutModal({{ row.worker.id }}, '{{ row.worker.full_name }} ({{ row.worker.worker_id }})', '{{ row.net_payable_month }}', 'SALARY')"
+                                    class="px-3 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1"
+                                    title="Oylik maosh yoki avans to'lovini yozish">
+                                    <i class="fa-solid fa-money-bill-transfer"></i> To'lash
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="py-8 text-center text-slate-500">
-                            Xodimlar mavjud emas.
+                        <td colspan="11" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-users text-4xl mb-2 block text-slate-700"></i>
+                            Tizimda tikuvchilar mavjud emas.
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr id="payroll-search-empty" class="hidden">
+                        <td colspan="11" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-magnifying-glass text-3xl mb-2 block text-slate-700"></i>
+                            Qidiruv bo'yicha xodim topilmadi.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- RECENT PAYOUTS JOURNAL -->
+    <!-- RECENT PAYOUTS JOURNAL FOR SELECTED MONTH -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div class="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
             <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-receipt text-cyan-400"></i> So'nggi Berilgan Avans va To'lovlar Jurnali
+                <i class="fa-solid fa-receipt text-cyan-400"></i> {{ selected_month_name }} {{ selected_year }} —
+                Berilgan Avanslar va To'lovlar Jurnali
             </h3>
-            <span class="text-xs text-slate-400">Oxirgi 20 ta to'lov</span>
+            <span class="text-xs text-slate-400">{{ recent_payouts|length }} ta to'lov</span>
         </div>
 
         <div class="overflow-x-auto">
@@ -160,13 +320,13 @@
                             {{ p.amount|floatformat:0 }} so'm
                         </td>
                         <td class="py-3 px-3 text-slate-400 text-[11px]">{{ p.note|default:"—" }}</td>
-                        <td class="py-3 px-3 text-slate-500 text-[11px]">{{ p.created_by.username|default:"Admin" }}
-                        </td>
+                        <td class="py-3 px-3 text-slate-500 text-[11px]">{{ p.created_by.username|default:"SuperAdmin"
+                            }}</td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="6" class="py-8 text-center text-slate-500 text-xs">
-                            Hozircha to'lovlar jurnali bo'sh.
+                            {{ selected_month_name }} oyida to'lovlar yozilmagan.
                         </td>
                     </tr>
                     {% endfor %}
@@ -177,7 +337,83 @@
 
 </div>
 
-<!-- Modal: Payout Create -->
+<!-- MODAL: KUNBAY TAFSILOT (DRILL-DOWN DAILY MODAL) -->
+<div id="daily-breakdown-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+        class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2" id="db-modal-title">
+                    <i class="fa-solid fa-calendar-day text-amber-400"></i>
+                    <span>Xodim Kunbay Ish Haqi Tafsiloti</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5" id="db-modal-subtitle">Yuklanmoqda...</p>
+            </div>
+            <button onclick="document.getElementById('daily-breakdown-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Summary KPI in modal -->
+        <div
+            class="grid grid-cols-4 gap-2 my-4 bg-slate-950 p-3 rounded-xl border border-slate-800 text-center text-xs">
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Ish Kunlari</span>
+                <span id="db-stat-days" class="text-white font-black digital-font text-sm">0 kun</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Jami Dona</span>
+                <span id="db-stat-units" class="text-indigo-400 font-black digital-font text-sm">0</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Hisoblangan</span>
+                <span id="db-stat-earned" class="text-emerald-400 font-black digital-font text-sm">0 UZS</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Olingan Avans</span>
+                <span id="db-stat-advance" class="text-cyan-400 font-black digital-font text-sm">0 UZS</span>
+            </div>
+        </div>
+
+        <!-- Scrollable Table -->
+        <div class="overflow-y-auto flex-1 border border-slate-800 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 uppercase font-bold border-b border-slate-800 sticky top-0">
+                        <th class="py-2.5 px-3">Sana</th>
+                        <th class="py-2.5 px-3">Hafta Kuni</th>
+                        <th class="py-2.5 px-3 text-center">Bilet / Dona</th>
+                        <th class="py-2.5 px-3 text-right">Kunlik Ish Haqi</th>
+                        <th class="py-2.5 px-3 text-right">Olingan Avans</th>
+                        <th class="py-2.5 px-3 text-center">Tungi 00:00 Reestri</th>
+                    </tr>
+                </thead>
+                <tbody id="db-modal-tbody" class="divide-y divide-slate-800/80 text-slate-300">
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-500">
+                            <i class="fa-solid fa-arrows-rotate animate-spin text-lg mr-2"></i> Ma'lumotlar
+                            yuklanmoqda...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-4 border-t border-slate-800 mt-4 flex items-center justify-between text-xs text-slate-400">
+            <span>Har kuni soat 00:00 da kunlik summa balansga muhrlanadi.</span>
+            <button onclick="document.getElementById('daily-breakdown-modal').classList.add('hidden')"
+                class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
+                Yopish
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PAYOUT CREATE -->
 <div id="payout-modal"
     class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
@@ -193,23 +429,39 @@
 
         <form method="POST" action="{% url 'superadmin_payout_create' %}" class="space-y-4">
             {% csrf_token %}
+            <input type="hidden" name="selected_year" value="{{ selected_year }}">
+            <input type="hidden" name="selected_month" value="{{ selected_month }}">
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tikuvchi
-                    Xodim</label>
-                <select name="worker_id" id="modal-worker-select" required
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    <option value="">-- Xodimni tanlang --</option>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Tikuvchi Xodim (ID, 6-UID yoki Ism bo'yicha qidirish)
+                </label>
+                <div class="relative mb-2">
+                    <input type="text" id="modal-worker-search" oninput="filterModalWorkerSelect(this.value)"
+                        placeholder="Masalan: W-001, 468626 yoki Malika..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-amber-400 placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-xs text-slate-500"></i>
+                </div>
+                <select name="worker_id" id="modal-worker-select" required size="4"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <option value="">-- Ro'yxatdan xodimni tanlang --</option>
                     {% for w in workers %}
-                    <option value="{{ w.id }}">{{ w.worker_id }} - {{ w.full_name }}</option>
+                    <option value="{{ w.id }}"
+                        data-search="{{ w.worker_id }} {{ w.user.uid|default:'' }} {{ w.full_name }}">
+                        {{ w.worker_id }} {% if w.user and w.user.uid %}[UID: {{ w.user.uid }}]{% endif %} — {{
+                        w.full_name }}
+                    </option>
                     {% endfor %}
                 </select>
+                <span id="modal-worker-hint" class="text-[11px] text-slate-500 block mt-1">Xodimni tanlang yoki
+                    qidiring</span>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">To'lov Summasi
                     (UZS)</label>
-                <input type="number" name="amount" required min="1" step="1000" placeholder="Masalan: 200000"
+                <input type="number" name="amount" id="modal-amount-input" required min="1" step="1"
+                    placeholder="Masalan: 200000"
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
             </div>
 
@@ -217,10 +469,10 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">To'lov
                         Turi</label>
-                    <select name="payout_type"
+                    <select name="payout_type" id="modal-payout-type"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         <option value="ADVANCE">Avans</option>
-                        <option value="SALARY">Oylik hisob</option>
+                        <option value="SALARY">Oylik hisob (Yakuniy)</option>
                         <option value="BONUS">Mukofot / Bonus</option>
                     </select>
                 </div>
@@ -235,28 +487,183 @@
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Izoh
                     (Ixtiyoriy)</label>
-                <input type="text" name="note" placeholder="Masalan: 1-15 kunlik avans naqd to'landi"
+                <input type="text" name="note" id="modal-note-input"
+                    placeholder="Masalan: 1-15 kunlik avans naqd to'landi"
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
                 <button type="button" onclick="document.getElementById('payout-modal').classList.add('hidden')"
-                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
-                    qilish</button>
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+                    Bekor qilish
+                </button>
                 <button type="submit"
-                    class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">To'lovni
-                    Tasdiqlash</button>
+                    class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">
+                    To'lovni Tasdiqlash
+                </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- JAVASCRIPT LOGIC -->
 <script>
-    function openPayoutModal(workerId, workerName) {
+    const SELECTED_YEAR = {{ selected_year }};
+    const SELECTED_MONTH = {{ selected_month }};
+
+    function liveFilterPayroll(query) {
+        const filter = query.toLowerCase().trim();
+        const rows = document.querySelectorAll('.payroll-worker-row');
+        let visibleCount = 0;
+        rows.forEach(r => {
+            const data = (r.getAttribute('data-search') || '').toLowerCase();
+            if (!filter || data.includes(filter)) {
+                r.style.display = '';
+                visibleCount++;
+            } else {
+                r.style.display = 'none';
+            }
+        });
+        const badge = document.getElementById('payroll-count-badge');
+        if (badge) {
+            badge.innerText = filter ? `Topildi: ${visibleCount} ta` : `Jami: ${rows.length} nafar xodim`;
+        }
+        const empty = document.getElementById('payroll-search-empty');
+        if (empty) {
+            if (visibleCount === 0 && rows.length > 0) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+            }
+        }
+    }
+
+    function filterModalWorkerSelect(query) {
+        const filter = query.toLowerCase().trim();
+        const select = document.getElementById('modal-worker-select');
+        const options = select.querySelectorAll('option');
+        let matchCount = 0;
+        let firstMatch = null;
+
+        options.forEach(opt => {
+            if (!opt.value) return;
+            const searchStr = (opt.getAttribute('data-search') || opt.text).toLowerCase();
+            if (!filter || searchStr.includes(filter)) {
+                opt.style.display = '';
+                matchCount++;
+                if (!firstMatch) firstMatch = opt;
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+
+        const hint = document.getElementById('modal-worker-hint');
+        if (filter) {
+            hint.innerText = `${matchCount} ta xodim mos keldi. Keraklisini bosing.`;
+            if (firstMatch && matchCount === 1) {
+                select.value = firstMatch.value;
+                hint.innerText = `Tanlandi: ${firstMatch.text}`;
+            }
+        } else {
+            hint.innerText = `Xodimni tanlang yoki qidiring`;
+        }
+    }
+
+    function openPayoutModal(workerId, workerName, netPayable, payoutType) {
+        const select = document.getElementById('modal-worker-select');
         if (workerId) {
-            document.getElementById('modal-worker-select').value = workerId;
+            select.value = workerId;
+            const searchInput = document.getElementById('modal-worker-search');
+            if (searchInput) searchInput.value = '';
+            filterModalWorkerSelect('');
+            const hint = document.getElementById('modal-worker-hint');
+            if (hint) hint.innerText = `Tanlangan: ${workerName}`;
+        }
+        if (payoutType) {
+            document.getElementById('modal-payout-type').value = payoutType;
+        }
+        if (netPayable && Number(netPayable) > 0) {
+            document.getElementById('modal-amount-input').value = Math.round(Number(netPayable));
+            document.getElementById('modal-note-input').value = `${SELECTED_YEAR}-yil ${SELECTED_MONTH}-oy uchun to'liq oylik hisob-kitobi`;
+        } else {
+            document.getElementById('modal-amount-input').value = '';
+            document.getElementById('modal-note-input').value = '';
         }
         document.getElementById('payout-modal').classList.remove('hidden');
+    }
+
+    async function openDailyBreakdownModal(workerId) {
+        const modal = document.getElementById('daily-breakdown-modal');
+        const tbody = document.getElementById('db-modal-tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500">
+                    <i class="fa-solid fa-arrows-rotate animate-spin text-lg mr-2"></i> Ma'lumotlar yuklanmoqda...
+                </td>
+            </tr>`;
+        modal.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(`/superadmin/payroll/worker/${workerId}/daily/?year=${SELECTED_YEAR}&month=${SELECTED_MONTH}`);
+            if (!resp.ok) throw new Error('Yuklashda xatolik');
+            const data = await resp.json();
+
+            document.getElementById('db-modal-title').innerHTML = `
+                <i class="fa-solid fa-calendar-day text-amber-400"></i>
+                <span>${data.full_name} (${data.worker_id})</span>
+            `;
+            document.getElementById('db-modal-subtitle').innerText = `
+                ${data.year}-yil ${data.month}-oy kunbay tafsiloti • UID: ${data.uid}
+            `;
+            document.getElementById('db-stat-days').innerText = `${data.days_count} kun`;
+            document.getElementById('db-stat-units').innerText = `${data.total_units} dona`;
+            document.getElementById('db-stat-earned').innerText = data.total_earned_formatted;
+            document.getElementById('db-stat-advance').innerText = data.total_advance_formatted;
+
+            if (data.rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-500">
+                            Ushbu oyda xodim uchun ishlar yoki to'lovlar qayd etilmagan.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            let html = '';
+            data.rows.forEach(r => {
+                const closedBadge = r.is_closed
+                    ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono text-[10px]">✓ 00:00 da yopilgan</span>`
+                    : `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-mono text-[10px]">Bugungi navbat</span>`;
+
+                html += `
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="py-2.5 px-3 font-mono font-bold text-white">${r.date_str}</td>
+                        <td class="py-2.5 px-3 text-slate-400">${r.day_name}</td>
+                        <td class="py-2.5 px-3 text-center digital-font">
+                            ${r.ticket_count > 0 ? `<span class="text-indigo-400 font-bold">${r.units} dona</span> <span class="text-slate-500">(${r.ticket_count} ta bilet)</span>` : '—'}
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-black text-emerald-400 digital-font">
+                            ${r.amount > 0 ? r.amount_formatted : '0 UZS'}
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-black text-cyan-400 digital-font">
+                            ${r.advance_formatted}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            ${closedBadge}
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        } catch (err) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-rose-400">
+                        Ma'lumotlarni yuklab bo'lmadi. Iltimos qaytadan urinib ko'ring.
+                    </td>
+                </tr>`;
+        }
     }
 </script>
 {% endblock %}

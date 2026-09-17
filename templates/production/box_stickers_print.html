@@ -3,8 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUTI #{{ box.box_number }} STIKERLARI — {{ box.order.order_number }}</title>
+    <title>{% if not is_order_all and box.id %}{{
+        box.target_article.code|default:selected_article.code|default:"ARTIKUL" }}_QUTI_{{ box.box_number }}{% elif
+        selected_article %}{{ selected_article.code }}_BARCHA_QUTILAR_{{ order.order_number }}{% else %}{{
+        order.order_number }}_BARCHA_QUTILARI{% endif %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -12,7 +14,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
             color: #0f172a;
         }
 
@@ -20,25 +22,37 @@
             font-family: 'Chakra Petch', monospace;
         }
 
-        /* Printable sticker styles */
+        /* 100mm x 60mm standart termal stiker o'lchami */
+        @page {
+            size: 100mm 60mm;
+            margin: 0;
+        }
+
         .sticker-card {
-            width: 70mm;
-            min-height: 48mm;
-            padding: 3mm;
-            border: 2px dashed #94a3b8;
+            width: 100mm;
+            height: 60mm;
+            min-height: 60mm;
+            max-height: 60mm;
+            padding: 2.5mm 3.5mm;
+            border: 2px solid #0f172a;
             box-sizing: border-box;
             background: white;
             page-break-inside: avoid;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            overflow: hidden;
+            position: relative;
         }
 
         @media print {
+
+            html,
             body {
-                background: white;
-                padding: 0;
-                margin: 0;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100mm !important;
             }
 
             .no-print {
@@ -46,15 +60,24 @@
             }
 
             .sticker-grid {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                gap: 2mm !important;
+                display: block !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                gap: 0 !important;
             }
 
             .sticker-card {
-                border: 1px solid #000;
+                width: 100mm !important;
+                height: 60mm !important;
+                min-height: 60mm !important;
+                max-height: 60mm !important;
+                border: 2px solid #000 !important;
+                box-shadow: none !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                margin: 0 !important;
+                padding: 2.5mm 3.5mm !important;
+                box-sizing: border-box !important;
             }
         }
     </style>
@@ -63,85 +86,263 @@
 <body class="p-4 md:p-8">
 
     <!-- Print Control Bar (Screen only) -->
-    <div
-        class="no-print max-w-5xl mx-auto mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-        <div>
-            <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-print text-amber-500"></i>
-                QR Stikerlar: {{ box.order.order_number }} — Quti #{{ box.box_number }}
-            </h1>
-            <p class="text-sm text-slate-500">Jami {{ tickets|length }} ta operatsiya stikeri (Quti miqdori: {{
-                box.quantity }} dona)</p>
+    <div class="no-print max-w-5xl mx-auto mb-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span
+                        class="px-2.5 py-0.5 bg-slate-900 text-white rounded-md text-xs font-mono font-black tracking-wider uppercase">
+                        TERRY JAR
+                    </span>
+                    <span
+                        class="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-md text-xs font-mono font-black tracking-wider">
+                        {% if selected_article %}
+                        MODEL: {{ selected_article.code }}
+                        {% elif is_order_all %}
+                        BARCHA MODELLAR
+                        {% else %}
+                        QUTI ID: {{ box.box_code }}
+                        {% endif %}
+                    </span>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono text-[11px] font-black">
+                        100x60 MM TERMAL STIKER
+                    </span>
+                </div>
+                <h1 class="text-xl font-black text-slate-900 flex items-center gap-2 mt-1.5">
+                    <i class="fa-solid fa-qrcode text-amber-600"></i>
+                    Zakaz: {{ order.order_number|default:box.order.order_number }}
+                    {% if selected_article %}
+                    <span class="text-sm font-bold text-slate-600">— {{ selected_article.name }}</span>
+                    {% endif %}
+                </h1>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Jami <strong>{{ tickets|length }} ta stiker</strong> ko'rsatilmoqda • {{
+                    articles_grouped_list|length }} ta model guruhi
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <a href="javascript:history.back()"
+                    class="px-4 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Orqaga
+                </a>
+                {% if is_order_all %}
+                <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}{% if selected_article %}?article_id={{ selected_article.id }}{% endif %}"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-sm"></i> 100x60 PDF Faylini Yuklab Olish
+                </a>
+                {% elif box.id %}
+                <a href="{% url 'production:box_download_stickers_pdf' box.id %}"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-sm"></i> 100x60 PDF Faylini Yuklab Olish
+                </a>
+                {% endif %}
+                <button onclick="window.print()"
+                    class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> Printerdan Chop Etish (100x60)
+                </button>
+            </div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <a href="javascript:history.back()"
-                class="px-4 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition">
-                <i class="fa-solid fa-arrow-left mr-1"></i> Orqaga
+        <!-- Model Filter Buttons Bar (if more than 1 model available) -->
+        {% if is_order_all and available_articles|length > 1 %}
+        <div class="pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-slate-500 mr-1"><i class="fa-solid fa-filter text-amber-500 mr-1"></i>
+                Model bo'yicha ajratish:</span>
+            <a href="{% url 'production:order_print_all_stickers' order.id %}"
+                class="px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if not selected_article %}bg-amber-500 text-slate-950 shadow-sm{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">
+                <i class="fa-solid fa-layer-group text-[11px]"></i> Barcha Modellar (Jami)
             </a>
-            <button onclick="window.print()"
-                class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-sm font-black shadow-lg transition flex items-center gap-2">
-                <i class="fa-solid fa-print"></i> Chop Etish (Print)
-            </button>
+            {% for art in available_articles %}
+            <a href="{% url 'production:order_print_all_stickers' order.id %}?article_id={{ art.id }}"
+                class="px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if selected_article and selected_article.id == art.id %}bg-cyan-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">
+                <span class="font-mono">{{ art.code }}</span> — {{ art.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Grouped Content by Article and Box -->
+    {% for group in articles_grouped_list %}
+    <!-- Model Guruhi Sarlavhasi (Screen Only) -->
+    <div
+        class="no-print max-w-5xl mx-auto mt-8 mb-3 bg-slate-900 text-white rounded-2xl p-4 border-2 border-cyan-500/50 shadow-lg flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-shirt"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="px-2.5 py-0.5 bg-cyan-400 text-slate-950 font-black rounded-lg font-mono text-xs uppercase tracking-wider">
+                        {{ group.article_code }}
+                    </span>
+                    <h2 class="text-base font-black text-white uppercase">{{ group.article_name }}</h2>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    {{ group.boxes_count }} ta quti • {{ group.total_tickets }} ta QR stiker • {{ group.total_quantity
+                    }} dona mahsulot
+                </p>
+            </div>
+        </div>
+        {% if is_order_all and group.article_id %}
+        <div class="flex items-center gap-2">
+            <a href="{% url 'production:order_print_all_stickers' order.id %}?article_id={{ group.article_id }}"
+                class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-filter"></i> Faqat shu modelni ko'rish
+            </a>
+            <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}?article_id={{ group.article_id }}"
+                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-pdf"></i> Faqat shu model PDF
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% for box_item in group.boxes %}
+    <!-- Quti Ajratuvchi Lenta (Screen Only) -->
+    <div
+        class="no-print max-w-5xl mx-auto my-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2.5 flex items-center justify-between text-amber-950 shadow-sm">
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
+            <strong class="font-black text-sm">QUTI #{{ box_item.box.box_number }}</strong>
+            <span
+                class="font-mono text-xs px-2.5 py-0.5 bg-white border border-amber-400 rounded-md font-black tracking-widest text-slate-900 shadow-xs">
+                {{ box_item.box.box_code }}
+            </span>
+            <span class="text-xs text-amber-900 font-bold">• {{ box_item.box.quantity }} dona mahsulot</span>
+            <span class="text-xs text-slate-600">({{ box_item.tickets|length }} ta bilet)</span>
+        </div>
+        <a href="{% url 'production:box_print_stickers' box_item.box.id %}" target="_blank"
+            class="text-xs font-bold text-amber-900 hover:text-amber-950 hover:underline flex items-center gap-1">
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Alohida quti oynasi
+        </a>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'production:box_download_stickers_pdf' box_item.box.id %}"
+                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                title="100x60 PDF Faylini Saqlash ({{ box_item.box.target_article.code }}_QUTI_{{ box_item.box.box_number }})">
+                <i class="fa-solid fa-file-pdf"></i> PDF Saqlash
+            </a>
+            <a href="{% url 'production:box_print_stickers' box_item.box.id %}" target="_blank"
+                class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm"
+                title="Printerga yuborish ({{ box_item.box.target_article.code }}_QUTI_{{ box_item.box.box_number }})">
+                <i class="fa-solid fa-print"></i> Faqat shu quti
+            </a>
         </div>
     </div>
 
-    <!-- Stickers Grid -->
-    <div class="sticker-grid max-w-5xl mx-auto flex flex-wrap gap-4 justify-center">
-        {% for ticket in tickets %}
-        <div class="sticker-card rounded-lg shadow-sm border border-slate-300">
-            <!-- Top Line: Order & Box & Split badge -->
-            <div
-                class="flex items-center justify-between border-b border-slate-200 pb-1 text-[11px] font-extrabold uppercase">
-                <span class="text-slate-800">{{ ticket.box.order.order_number }}</span>
-                <span class="bg-slate-100 text-slate-900 px-1.5 py-0.2 rounded border border-slate-300">
-                    QUTI #{{ ticket.box.box_number }}
-                </span>
-                <span class="text-amber-700">
-                    Bo'lak {{ ticket.split_index }}/{{ ticket.total_splits }}
-                </span>
+    <!-- Stickers Grid for this Box -->
+    <div class="sticker-grid max-w-5xl mx-auto flex flex-wrap gap-4 justify-center mb-6">
+        {% for ticket in box_item.tickets %}
+        <div class="sticker-card rounded-xl shadow-sm">
+            <!-- 1. Top Header: Model kodi va QUTI ID ajratilgan holda -->
+            <div class="flex items-center justify-between border-b-2 border-slate-950 pb-1">
+                <div class="min-w-0 flex-1 pr-2">
+                    <div class="flex items-center gap-1.5">
+                        <span
+                            class="font-mono font-black text-[10px] px-1.5 py-0.5 bg-slate-950 text-white rounded uppercase leading-none">
+                            {{ ticket.article_operation.article.code|default:ticket.box.target_article.code }}
+                        </span>
+                        <strong class="text-xs font-black text-slate-950 uppercase truncate block leading-tight">
+                            {{ ticket.article_operation.article.name|default:ticket.box.target_article.name }}
+                        </strong>
+                    </div>
+                    <span class="text-[9px] font-bold text-slate-500 block leading-none mt-0.5 truncate">
+                        Zakaz: {{ ticket.box.order.order_number }}
+                    </span>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <div
+                        class="font-mono font-black text-xs px-2 py-0.5 bg-amber-100 border-2 border-slate-950 text-slate-950 rounded tracking-wider leading-tight">
+                        QUTI #{{ ticket.box.box_number }}
+                    </div>
+                    <span class="font-mono text-[9px] font-black text-slate-700 block text-center mt-0.5">
+                        [{{ ticket.box.box_code }}]
+                    </span>
+                </div>
             </div>
 
-            <!-- Middle Details & QR Code -->
-            <div class="flex items-center gap-2 my-1">
-                <!-- QR Code image -->
-                <div class="w-20 h-20 flex-shrink-0 border border-slate-200 rounded p-0.5 bg-white">
+            <!-- 2. Middle Body: Katta QR Code + Operatsiya nomi, Soni, Qiyinlik -->
+            <div class="flex items-center gap-3 my-1.5">
+                <!-- Katta QR Code image -->
+                <div
+                    class="w-28 h-28 flex-shrink-0 border-2 border-slate-950 rounded-xl p-1 bg-white flex items-center justify-center shadow-inner">
                     {% if ticket.qr_code_image %}
                     <img src="{{ ticket.qr_code_image.url }}" alt="QR" class="w-full h-full object-contain">
                     {% else %}
-                    <div class="w-full h-full bg-slate-100 flex items-center justify-center text-[9px] text-slate-400">
-                        QR</div>
+                    <div class="text-xs font-bold text-slate-400">QR</div>
                     {% endif %}
                 </div>
 
-                <!-- Operation Details -->
-                <div class="flex-1 min-w-0 text-left">
-                    <div class="text-[10px] text-slate-500 font-semibold truncate">{{ ticket.box.order.article.name }}
-                        ({{ ticket.box.order.article.code }})</div>
-                    <div class="text-sm font-black text-slate-950 leading-tight my-0.5 truncate">
-                        {{ ticket.article_operation.operation.name }}
+                <!-- Labels -->
+                <div class="flex-1 min-w-0 text-left space-y-1">
+                    <!-- Qilinadigan Operatsiya Nomi -->
+                    <div>
+                        <span
+                            class="text-[8px] font-bold uppercase text-slate-500 block leading-none">Operatsiya:</span>
+                        <div class="text-xs font-black text-slate-950 leading-tight uppercase truncate"
+                            title="{{ ticket.article_operation.operation.name }}">
+                            {{ ticket.article_operation.operation.name }}
+                        </div>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-700">
-                        Kod: <span class="font-mono">{{ ticket.article_operation.operation.code }}</span>
+
+                    <!-- Mahsulot Soni va Qiyinlik -->
+                    <div class="flex items-center justify-between pt-0.5 border-t border-slate-200">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-[9px] font-black uppercase text-slate-600">Soni:</span>
+                            <span class="text-xl font-black text-slate-950 digital-font leading-none">{{ ticket.quantity
+                                }}</span>
+                            <span class="text-[9px] font-black text-slate-700 uppercase">dona</span>
+                        </div>
+                        <div class="flex items-center gap-1 bg-slate-100 border border-slate-900 rounded px-1.5 py-0.5">
+                            <span class="text-[8px] font-extrabold uppercase text-slate-600">Qiyinlik:</span>
+                            <span class="text-xs font-black font-mono text-slate-950 leading-none">
+                                {{ ticket.article_operation.difficulty_display }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="text-base font-black text-amber-600 digital-font mt-0.5">
-                        {{ ticket.quantity }} <span class="text-xs font-bold text-slate-700">DONA</span>
+
+                    {% if ticket.total_splits > 1 %}
+                    <div
+                        class="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 inline-block">
+                        Bo'lak: {{ ticket.split_index }}/{{ ticket.total_splits }}
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Bottom Line: Price, Total, and Ticket Code -->
-            <div class="border-t border-slate-200 pt-1 flex items-center justify-between text-[10px] text-slate-600">
-                <span>{{ ticket.price_per_unit|floatformat:0 }} so'm/dona</span>
-                <strong class="text-slate-900 font-black">{{ ticket.total_amount|floatformat:0 }} so'm</strong>
-            </div>
-            <div class="text-[8px] text-slate-400 font-mono text-center tracking-tighter truncate mt-0.5">
-                {{ ticket.ticket_code }}
+            <!-- 3. Bottom Footer: TERRY JAR & Unikal Bilet Kodi (No Price!) -->
+            <div
+                class="border-t border-slate-300 pt-1 flex items-center justify-between text-[8px] text-slate-600 font-bold uppercase tracking-wider">
+                <span class="font-extrabold text-slate-800">TERRY JAR</span>
+                <span class="font-mono text-[8px] text-slate-500 tracking-tight">{{ ticket.ticket_code }}</span>
             </div>
         </div>
         {% endfor %}
     </div>
+    {% endfor %}
+    {% empty %}
+    <div class="text-center py-16 text-slate-500 no-print">
+        <div
+            class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
+            <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <p class="text-base font-black text-slate-700">QR Stikerlar topilmadi</p>
+        <p class="text-xs text-slate-500 mt-1">Ushbu model yoki quti uchun stikerlar hali yaratilmagan.</p>
+    </div>
+    {% endfor %}
 
+    <script>
+        (function () {
+            var targetTitle = "{% if not is_order_all and box.id %}{{ box.target_article.code|default:selected_article.code|default:'ARTIKUL' }}_QUTI_{{ box.box_number }}{% elif selected_article %}{{ selected_article.code }}_BARCHA_QUTILAR_{{ order.order_number }}{% else %}{{ order.order_number }}_BARCHA_QUTILARI{% endif %}";
+            document.title = targetTitle;
+            window.addEventListener('beforeprint', function () {
+                document.title = targetTitle;
+            });
+        })();
+    </script>
 </body>
 
 </html>

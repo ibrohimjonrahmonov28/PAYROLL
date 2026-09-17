@@ -1,0 +1,16 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.gitignore
+.DS_Store
+*.sqlite3
+media_backup.tar.gz
+payroll_backup.sql
+data_backup.json
+node_modules/
+.gemini/
+

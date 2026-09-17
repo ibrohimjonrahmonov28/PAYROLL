@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tizimga Kirish | Dona-bay Payroll</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .digital-font {
+            font-family: 'Chakra Petch', monospace;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md">
+        <!-- Brand Header -->
+        <div class="text-center mb-8">
+            <div
+                class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 text-3xl font-black shadow-xl shadow-amber-500/20 mb-4">
+                <i class="fa-solid fa-shirt"></i>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide">TERRY JAR</h1>
+            <p class="text-sm text-slate-400 mt-1">Terry Jar Dona-bay Ish Haqi & Master Terminali</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+            <div
+                class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-emerald-500 to-cyan-500">
+            </div>
+
+            <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-lock text-amber-400"></i>
+                <span>Tizimga Kirish</span>
+            </h2>
+            <p class="text-xs text-slate-400 mb-6">
+                Master, Admin yoki Rahbariyat hisobingiz orqali kiring.
+            </p>
+
+            <!-- Alerts -->
+            {% if messages %}
+            <div class="space-y-2 mb-6">
+                {% for message in messages %}
+                <div
+                    class="p-3.5 rounded-xl text-xs font-semibold flex items-center gap-3 {% if message.tags == 'error' %}bg-rose-500/20 text-rose-300 border border-rose-500/40{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40{% endif %}">
+                    <i
+                        class="fa-solid {% if message.tags == 'error' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %} text-base flex-shrink-0"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+
+                <!-- Username -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5"
+                        for="username">
+                        Foydalanuvchi Logini (Login / UID)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" name="username" id="username" required autofocus
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                            placeholder="Masalan: master_1 yoki 468626">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5"
+                        for="password">
+                        Maxfiy Parol
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                            <i class="fa-solid fa-key"></i>
+                        </span>
+                        <input type="password" name="password" id="password" required
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+
+                <!-- Role Info Notice -->
+                <div
+                    class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-[11px] text-slate-400 flex items-start gap-2.5">
+                    <i class="fa-solid fa-circle-info text-amber-400 text-sm mt-0.5 flex-shrink-0"></i>
+                    <span>
+                        <b>Eslatma:</b> Master hisobi bilan kirilganda tizim avtomatik ravishda <b>Master Skanerlash
+                            Terminali</b>ga yo'naltiriladi.
+                    </span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                    class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm tracking-wide shadow-lg shadow-amber-500/20 transition active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span>Tizimga Kirish</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-slate-600 mt-6">
+            Dona-bay Payroll & Zebra DS22 Skaner Terminali &copy; 2026
+        </p>
+    </div>
+
+</body>
+
+</html>

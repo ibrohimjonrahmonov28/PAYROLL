@@ -20,7 +20,21 @@
             <h3 class="text-base font-bold text-white">Barcha Buyurtmalar</h3>
             <p class="text-xs text-slate-400">Jami buyurtmalar: {{ orders|length }} ta</p>
         </div>
-        <div>
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Search Bar -->
+            <form method="GET" class="relative flex items-center">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-500 text-xs pointer-events-none"></i>
+                <input type="text" id="order-search-input" name="q" value="{{ search_q }}"
+                    placeholder="Buyurtma, model yoki quti..."
+                    oninput="liveFilterOrders(this.value)"
+                    class="pl-9 pr-8 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 w-52 md:w-64 shadow-inner transition">
+                {% if search_q %}
+                <a href="{% url 'production:order_list' %}" class="absolute right-3 text-slate-500 hover:text-rose-400 text-xs" title="Filtrni tozalash">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </form>
+
             <button onclick="document.getElementById('new-order-modal').classList.remove('hidden')"
                 class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
                 <i class="fa-solid fa-plus"></i> Yangi Buyurtma Yaratish
@@ -47,7 +61,8 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800 text-slate-200">
                     {% for o in orders %}
-                    <tr class="hover:bg-slate-800/40 transition">
+                    <tr class="order-row hover:bg-slate-800/40 transition"
+                        data-search="{{ o.order_number|lower }} {{ o.client_name|default:''|lower }} {% for it in o.items.all %}{{ it.article.code|lower }} {{ it.article.name|lower }} {% endfor %} {% if o.article %}{{ o.article.code|lower }} {{ o.article.name|lower }} {% endif %} {% for b in o.boxes.all %}{{ b.box_code|lower }} {% endfor %}">
                         <td class="py-4 px-4 font-bold text-white">
                             <a href="{% url 'production:order_detail' o.id %}"
                                 class="hover:text-amber-400 flex items-center gap-2">
@@ -56,14 +71,28 @@
                             </a>
                         </td>
                         <td class="py-4 px-4">
+                            {% if o.items.exists %}
+                            <div class="flex flex-wrap gap-1">
+                                {% for it in o.items.all %}
+                                <span
+                                    class="bg-cyan-950 text-cyan-300 border border-cyan-800/80 font-bold px-2 py-0.5 rounded text-xs font-mono uppercase">
+                                    {{ it.article.code }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            <span class="text-[11px] text-slate-400 block mt-1">{{ o.items.count }} ta model</span>
+                            {% elif o.article %}
                             <span class="font-bold text-slate-100">{{ o.article.name }}</span>
                             <span class="text-xs text-cyan-400 font-mono block">({{ o.article.code }})</span>
+                            {% else %}
+                            <span class="text-xs text-slate-500">—</span>
+                            {% endif %}
                         </td>
                         <td class="py-4 px-4 text-slate-400 text-xs">
                             {{ o.client_name|default:"—" }}
                         </td>
                         <td class="py-4 px-4 text-center font-bold text-amber-400 digital-font text-base">
-                            {{ o.total_quantity }}
+                            {{ o.all_models_quantity }}
                         </td>
                         <td class="py-4 px-4 text-center">
                             <span class="bg-slate-800 text-slate-300 px-2.5 py-1 rounded text-xs font-semibold">
@@ -109,6 +138,12 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr id="orders-empty-filter" style="display: none;">
+                        <td colspan="8" class="py-12 text-center text-slate-500 text-sm">
+                            <i class="fa-solid fa-magnifying-glass text-2xl text-slate-600 mb-2 block"></i>
+                            Qidiruv bo'yicha hech qanday buyurtma topilmadi.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -150,7 +185,7 @@
                     {% endfor %}
                 </select>
                 {% if not articles %}
-                <p class="text-[11px] text-amber-400 mt-1">Avval "Modellar & Narxlar" bo'limida model yarating!</p>
+                <p class="text-[11px] text-amber-400 mt-1">Avval Superadmin tomonidan model kiritilishi lozim!</p>
                 {% endif %}
             </div>
 
@@ -188,4 +223,25 @@
         </form>
     </div>
 </div>
+
+<script>
+    function liveFilterOrders(q) {
+        const term = (q || '').trim().toLowerCase();
+        const rows = document.querySelectorAll('.order-row');
+        let visibleCount = 0;
+        rows.forEach(r => {
+            const text = r.getAttribute('data-search') || '';
+            if (!term || text.includes(term)) {
+                r.style.display = '';
+                visibleCount++;
+            } else {
+                r.style.display = 'none';
+            }
+        });
+        const emptyNotice = document.getElementById('orders-empty-filter');
+        if (emptyNotice) {
+            emptyNotice.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
+    }
+</script>
 {% endblock %}

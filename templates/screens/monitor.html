@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITOR {{ screen_number }} — FABRIKA ISHLAB CHIQARISH VA ISH HAQI EKRANI</title>
+    <title>MONITOR {{ screen_number }} — TERRY JAR </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -61,13 +61,23 @@
             background: #1e293b;
             color: #94a3b8;
         }
+
+        /* TV mode: Hide scrollbars for clean display */
+        #table-scroll-container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        #table-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col p-4 md:p-6 select-none">
+<body class="h-screen flex flex-col p-3 md:p-5 select-none overflow-hidden bg-[#070d18] text-[#f1f5f9]">
 
     <!-- HEADER / STATUS BAR -->
-    <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
+    <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-3 gap-3 flex-shrink-0">
         <!-- Title & Monitor Badge -->
         <div class="flex items-center gap-4">
             <div
@@ -77,13 +87,13 @@
             </div>
             <div>
                 <h1 class="text-xl md:text-2xl font-black tracking-wide text-white flex items-center gap-2">
-                    TIKUVCHILIK FABRIKASI
+                    TERRY JAR
                     <span
                         class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                         Real-vaqt rejimida
                     </span>
                 </h1>
-                <p class="text-sm text-slate-400 font-medium">Dona-bay ish haqi va ishlab chiqarish ko'rsatkichlari</p>
+                <p class="text-sm text-slate-400 font-medium">Dona-bay ish haqi va monitoring tizimi</p>
             </div>
         </div>
 
@@ -96,16 +106,18 @@
             </div>
             <div class="h-8 w-px bg-slate-800"></div>
             <div class="text-center">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Jami Tikilgan
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan
                     (dona)</span>
                 <span id="stat-total-units" class="text-2xl font-black text-amber-400 digital-font">{{ grand_total_units
                     }}</span>
             </div>
             <div class="h-8 w-px bg-slate-800"></div>
             <div class="text-center">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Bugungi Ish Haqi</span>
-                <span id="stat-total-earnings" class="text-2xl font-black text-emerald-400 digital-font glow-emerald">{{
-                    grand_total_earnings_formatted }} <small class="text-xs text-emerald-300">UZS</small></span>
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">O'rtacha KPI
+                    (Norma)</span>
+                <span id="stat-avg-kpi" class="text-2xl font-black text-emerald-400 digital-font glow-emerald">
+                    {{ avg_screen_kpi }}%
+                </span>
             </div>
         </div>
 
@@ -116,26 +128,34 @@
                 class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
                 <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
                 <span>Yangilanish: <strong id="timer-countdown"
-                        class="text-white digital-font text-sm">60</strong>s</span>
+                        class="text-white digital-font text-sm">30</strong>s</span>
             </div>
 
             <!-- Digital Clock -->
             <div class="bg-slate-900 border border-slate-800 px-4 py-1.5 rounded-xl text-right">
                 <div id="live-clock" class="text-2xl font-black digital-font text-amber-400 leading-none">00:00:00</div>
-                <div class="text-xs text-slate-400 font-medium">{{ date_str }}</div>
+                <div id="live-date" class="text-xs text-slate-400 font-medium">{{ date_str }}</div>
             </div>
+
+            <!-- Auto-scroll indicator & toggle for TV -->
+            <button id="btn-toggle-scroll" onclick="toggleAutoScroll()"
+                class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70"
+                title="64-lik TV: Avtomatik pastga tushish (Auto-scroll)">
+                <i id="scroll-icon" class="fa-solid fa-arrows-up-down animate-pulse"></i>
+                <span id="scroll-text" class="hidden md:inline">Avto-tushish: Faol</span>
+            </button>
 
             <!-- Fullscreen Button -->
             <button onclick="toggleFullscreen()"
                 class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl transition"
-                title="To'liq ekran">
+                title="To'liq ekran (F11)">
                 <i class="fa-solid fa-expand text-lg"></i>
             </button>
         </div>
     </header>
 
     <!-- SCREEN SWITCHER NAVIGATION (Quick TV access) -->
-    <nav class="flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 text-xs font-bold scrollbar-none">
+    <nav class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 text-xs font-bold scrollbar-none flex-shrink-0">
         <span class="text-slate-500 mr-2 uppercase tracking-wider flex items-center gap-1">
             <i class="fa-solid fa-display"></i> Ekranlar:
         </span>
@@ -170,18 +190,20 @@
     </nav>
 
     <!-- MAIN LEADERBOARD TABLE -->
-    <main class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
-        <div class="overflow-x-auto flex-1">
+    <main
+        class="flex-1 min-h-0 bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative">
+        <div id="table-scroll-container" class="overflow-y-auto overflow-x-auto flex-1 relative scroll-smooth">
             <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr
-                        class="bg-slate-950/80 border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold">
+                <thead
+                    class="sticky top-0 z-20 bg-[#070d18] border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold shadow-lg">
+                    <tr>
                         <th class="py-4 px-4 text-center w-16">№</th>
-                        <th class="py-4 px-6 w-36">Xodim ID</th>
-                        <th class="py-4 px-6">Tikuvchi F.I.SH</th>
-                        <th class="py-4 px-6 text-center w-40">Biletlar</th>
-                        <th class="py-4 px-6 text-center w-48">Tikilgan Donalar</th>
-                        <th class="py-4 px-8 text-right w-72">Bugungi Ish Haqi (UZS)</th>
+                        <th class="py-4 px-6 w-32">Xodim ID</th>
+                        <th class="py-4 px-6 min-w-[200px]">Tikuvchi F.I.SH</th>
+                        <th class="py-4 px-6 text-center w-36">Bugun Tikilgan</th>
+                        <th class="py-4 px-6 text-center min-w-[300px]">Model Bo'yicha Norma</th>
+                        <th class="py-4 px-6 text-center min-w-[200px]">Umumiy Foiz</th>
+                        <th class="py-4 px-6 text-right w-44">Ish Haqi</th>
                         <th class="py-4 px-6 text-center w-36">Oxirgi skan</th>
                     </tr>
                 </thead>
@@ -203,24 +225,59 @@
                         <td class="py-4 px-6 font-bold text-white tracking-wide text-xl md:text-2xl">
                             {{ w.full_name }}
                         </td>
-                        <td class="py-4 px-6 text-center text-slate-300 font-semibold digital-font">
-                            {{ w.ticket_count }} ta
-                        </td>
                         <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
-                            {{ w.total_units }}
+                            {{ w.total_units }} <small class="text-xs text-slate-400 font-sans">dona</small>
                         </td>
+
+                        <!-- Model bo'yicha norma: 50/1500, agar 2 model bo'lsa 500/1000 -->
+                        <td class="py-4 px-6 text-center">
+                            {% if w.models %}
+                            <div class="flex flex-wrap items-center justify-center gap-2">
+                                {% for m in w.models %}
+                                <div
+                                    class="bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl inline-flex items-center gap-2 shadow-sm">
+                                    <span class="text-xs text-cyan-400 font-mono font-bold">{{ m.model_code }}:</span>
+                                    <span class="text-lg font-black text-amber-300 digital-font">{{ m.ratio_str
+                                        }}</span>
+                                    <span class="text-xs font-bold text-slate-400 digital-font">({{ m.percentage
+                                        }}%)</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-slate-500 italic text-sm">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Umumiy foiz -->
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex items-center justify-center gap-2 mb-1">
+                                <span
+                                    class="text-xl md:text-2xl font-black digital-font {% if w.is_above_norm %}text-emerald-400 glow-emerald{% elif w.total_percentage >= 70 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ w.total_percentage }}%
+                                </span>
+                            </div>
+                            <div
+                                class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto">
+                                <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400{% else %}bg-gradient-to-r from-rose-500 to-red-400{% endif %}"
+                                    style="width: {{ w.progress_width }}%;"></div>
+                            </div>
+                        </td>
+
+                        <!-- Ish haqi -->
                         <td
-                            class="py-4 px-8 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald">
+                            class="py-4 px-6 text-right font-black text-xl md:text-2xl text-emerald-400 digital-font glow-emerald">
                             {{ w.total_earnings_formatted }} <span
-                                class="text-sm font-semibold text-emerald-500">so'm</span>
+                                class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                         </td>
+
                         <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
                             {{ w.last_scan }}
                         </td>
                     </tr>
                     {% empty %}
                     <tr id="empty-row">
-                        <td colspan="7" class="py-20 text-center text-slate-500">
+                        <td colspan="8" class="py-20 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar
                                 biriktirilmadi</span>
@@ -235,20 +292,21 @@
     </main>
 
     <!-- FOOTER INFO -->
-    <footer class="mt-4 flex items-center justify-between text-xs text-slate-500 font-medium px-2">
+    <footer
+        class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500 font-medium px-2 flex-shrink-0">
         <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Tizim holati: Barcha xizmatlar normal ishlamoqda</span>
         </div>
         <div>
-            Har 60 soniyada avtomatik yangilanadi • Sdelshina Payroll Monitoring Tizimi
+            Har 30 soniyada avtomatik yangilanadi • 64" TV Avto-tushish rejimi faol • Sdelshina Payroll
         </div>
     </footer>
 
-    <!-- JAVASCRIPT: Auto-refresh and live clock -->
+    <!-- JAVASCRIPT: Auto-refresh, TV Auto-scroll, and live clock -->
     <script>
         const SCREEN_NUMBER = {{ screen_number }};
-        let countdown = 60;
+        let countdown = 30;
 
         // Clock Update
         function updateClock() {
@@ -269,16 +327,24 @@
                 const data = await response.json();
 
                 // Update summary badges
-                document.getElementById('stat-active-workers').innerText = data.active_workers_count;
-                document.getElementById('stat-total-units').innerText = data.grand_total_units;
-                document.getElementById('stat-total-earnings').innerHTML = `${data.grand_total_earnings_formatted} <small class="text-xs text-emerald-300">UZS</small>`;
+                if (data.date_str) {
+                    const dateElem = document.getElementById('live-date');
+                    if (dateElem) dateElem.innerText = data.date_str;
+                }
+                const statActiveWorkers = document.getElementById('stat-active-workers');
+                if (statActiveWorkers) statActiveWorkers.innerText = data.active_workers_count;
+                const statTotalUnits = document.getElementById('stat-total-units');
+                if (statTotalUnits) statTotalUnits.innerText = data.grand_total_units;
+                const statAvgKpi = document.getElementById('stat-avg-kpi');
+                if (statAvgKpi && data.avg_screen_kpi !== undefined) statAvgKpi.innerText = `${data.avg_screen_kpi}%`;
 
                 // Render Table Rows
                 const tbody = document.getElementById('workers-tbody');
-                if (data.workers.length === 0) {
+                if (!tbody) return;
+                if (!data.workers || data.workers.length === 0) {
                     tbody.innerHTML = `
                     <tr id="empty-row">
-                        <td colspan="7" class="py-20 text-center text-slate-500">
+                        <td colspan="8" class="py-20 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar biriktirilmadi</span>
                             <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
@@ -292,6 +358,30 @@
                         if (rank === 1) rankClass = 'rank-1';
                         else if (rank === 2) rankClass = 'rank-2';
                         else if (rank === 3) rankClass = 'rank-3';
+
+                        let modelsHtml = '';
+                        if (w.models && w.models.length > 0) {
+                            modelsHtml = `<div class="flex flex-wrap items-center justify-center gap-2">` +
+                                w.models.map(m => `
+                                    <div class="bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl inline-flex items-center gap-2 shadow-sm">
+                                        <span class="text-xs text-cyan-400 font-mono font-bold">${m.model_code}:</span>
+                                        <span class="text-lg font-black text-amber-300 digital-font">${m.ratio_str}</span>
+                                        <span class="text-xs font-bold text-slate-400 digital-font">(${m.percentage}%)</span>
+                                    </div>
+                                `).join('') + `</div>`;
+                        } else {
+                            modelsHtml = `<span class="text-slate-500 italic text-sm">—</span>`;
+                        }
+
+                        let pctColor = 'text-rose-400';
+                        let barGradient = 'bg-gradient-to-r from-rose-500 to-red-400';
+                        if (w.is_above_norm) {
+                            pctColor = 'text-emerald-400 glow-emerald';
+                            barGradient = 'bg-gradient-to-r from-emerald-500 to-teal-400';
+                        } else if (w.total_percentage >= 70) {
+                            pctColor = 'text-amber-400';
+                            barGradient = 'bg-gradient-to-r from-amber-500 to-yellow-400';
+                        }
 
                         html += `
                         <tr class="hover:bg-slate-800/50 transition-colors">
@@ -308,14 +398,25 @@
                             <td class="py-4 px-6 font-bold text-white tracking-wide text-xl md:text-2xl">
                                 ${w.full_name}
                             </td>
-                            <td class="py-4 px-6 text-center text-slate-300 font-semibold digital-font">
-                                ${w.ticket_count} ta
-                            </td>
                             <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
-                                ${w.total_units}
+                                ${w.total_units} <small class="text-xs text-slate-400 font-sans">dona</small>
                             </td>
-                            <td class="py-4 px-8 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald">
-                                ${w.total_earnings_formatted} <span class="text-sm font-semibold text-emerald-500">so'm</span>
+                            <td class="py-4 px-6 text-center">
+                                ${modelsHtml}
+                            </td>
+                            <td class="py-4 px-6 text-center">
+                                <div class="flex items-center justify-center gap-2 mb-1">
+                                    <span class="text-xl md:text-2xl font-black digital-font ${pctColor}">
+                                        ${w.total_percentage}%
+                                    </span>
+                                </div>
+                                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto">
+                                    <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
+                                        style="width: ${w.progress_width}%;"></div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6 text-right font-black text-xl md:text-2xl text-emerald-400 digital-font glow-emerald">
+                                ${w.total_earnings_formatted} <span class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                             </td>
                             <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
                                 ${w.last_scan}
@@ -334,7 +435,7 @@
             countdown--;
             document.getElementById('timer-countdown').innerText = countdown;
             if (countdown <= 0) {
-                countdown = 60;
+                countdown = 30;
                 fetchScreenData();
             }
         }, 1000);
@@ -349,6 +450,96 @@
                 }
             }
         }
+
+        // ==========================================
+        // AUTO-SCROLL ENGINE FOR 64" TV MONITORS
+        // Automatically smoothly scrolls down if 20+ seamstresses overflow the screen
+        // ==========================================
+        let autoScrollEnabled = true;
+        let scrollInterval = null;
+        let isScrollPaused = false;
+        let pauseTimeout = null;
+        let scrollDirection = 1; // 1 = down, -1 = up
+
+        function pauseAutoScroll(durationMs = 6000) {
+            isScrollPaused = true;
+            if (pauseTimeout) clearTimeout(pauseTimeout);
+            pauseTimeout = setTimeout(() => {
+                isScrollPaused = false;
+            }, durationMs);
+        }
+
+        function initAutoScroll() {
+            const container = document.getElementById('table-scroll-container');
+            if (!container) return;
+
+            if (scrollInterval) clearInterval(scrollInterval);
+
+            // Initial pause at top: 6 seconds to read top ranked workers
+            pauseAutoScroll(6000);
+
+            scrollInterval = setInterval(() => {
+                if (!autoScrollEnabled || isScrollPaused) return;
+
+                const maxScroll = container.scrollHeight - container.clientHeight;
+                if (maxScroll <= 15) {
+                    // All seamstresses fit comfortably on screen without scrolling
+                    return;
+                }
+
+                if (scrollDirection === 1) {
+                    // Smoothly scroll down at readable speed (~33px/sec)
+                    container.scrollTop += 1;
+                    if (container.scrollTop >= maxScroll - 2) {
+                        container.scrollTop = maxScroll;
+                        scrollDirection = -1;
+                        pauseAutoScroll(6000); // Pause at bottom for 6s so lower workers are visible
+                    }
+                } else {
+                    // Smooth return back up to the top
+                    container.scrollTop -= 4; // faster return up
+                    if (container.scrollTop <= 2) {
+                        container.scrollTop = 0;
+                        scrollDirection = 1;
+                        pauseAutoScroll(6000); // Pause at top for 6s
+                    }
+                }
+            }, 30);
+        }
+
+        function toggleAutoScroll() {
+            autoScrollEnabled = !autoScrollEnabled;
+            const icon = document.getElementById('scroll-icon');
+            const text = document.getElementById('scroll-text');
+            const btn = document.getElementById('btn-toggle-scroll');
+            if (autoScrollEnabled) {
+                if (btn) {
+                    btn.classList.add('text-amber-400');
+                    btn.classList.remove('text-slate-500');
+                }
+                if (icon) icon.classList.add('animate-pulse');
+                if (text) text.innerText = 'Avto-tushish: Faol';
+                pauseAutoScroll(2000);
+            } else {
+                if (btn) {
+                    btn.classList.remove('text-amber-400');
+                    btn.classList.add('text-slate-500');
+                }
+                if (icon) icon.classList.remove('animate-pulse');
+                if (text) text.innerText = 'Avto-tushish: To\'xtatilgan';
+            }
+        }
+
+        // Pause on manual touch or mouse wheel
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('table-scroll-container');
+            if (container) {
+                container.addEventListener('wheel', () => pauseAutoScroll(8000), { passive: true });
+                container.addEventListener('touchstart', () => pauseAutoScroll(8000), { passive: true });
+                container.addEventListener('mousedown', () => pauseAutoScroll(8000), { passive: true });
+            }
+            initAutoScroll();
+        });
     </script>
 </body>
 

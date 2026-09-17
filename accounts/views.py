@@ -1,6 +1,57 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from .models import Worker, User
+
+
+def login_view(request):
+    """
+    Foydalanuvchi tizimga kirish sahifasi.
+    Master roli egalari kirgach avtomatik ravishda /terminal/ ga yo'naltiriladi.
+    """
+    if request.user.is_authenticated:
+        if getattr(request.user, 'role', None) == User.Role.MASTER:
+            return redirect('production:terminal_home')
+        if request.user.is_superadmin():
+            return redirect('superadmin_dashboard')
+        return redirect('production:order_list')
+
+    next_url = request.GET.get('next', '')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+
+        if not username or not password:
+            messages.error(request, "Iltimos, login va parolni kiriting.")
+        else:
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                
+                # Master roli faqat terminalga yo'naltiriladi
+                if user.role == User.Role.MASTER:
+                    return redirect('production:terminal_home')
+                
+                if next_url and next_url.startswith('/'):
+                    return redirect(next_url)
+                
+                if user.is_superadmin():
+                    return redirect('superadmin_dashboard')
+                return redirect('production:order_list')
+            else:
+                messages.error(request, "Login yoki parol noto'g'ri!")
+
+    return render(request, 'accounts/login.html', {'next_url': next_url})
+
+
+def logout_view(request):
+    """
+    Tizimdan chiqish.
+    """
+    auth_logout(request)
+    messages.info(request, "Tizimdan muvaffaqiyatli chiqdingiz.")
+    return redirect('accounts:login')
 
 
 def worker_list_view(request):

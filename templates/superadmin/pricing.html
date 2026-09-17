@@ -44,6 +44,25 @@
                         {% endif %}
                     </div>
                 </div>
+                <div class="flex items-center gap-3">
+                    <form method="POST" action="{% url 'superadmin_pricing' %}"
+                        class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 p-2 rounded-xl">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_article_norm">
+                        <input type="hidden" name="article_id" value="{{ article.id }}">
+                        <span
+                            class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-bullseye text-amber-400"></i> Kunlik Norma:
+                        </span>
+                        <input type="number" name="daily_norm" value="{{ article.daily_norm }}" min="1" step="1"
+                            class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-bold text-amber-300 text-center focus:outline-none focus:border-amber-500">
+                        <span class="text-xs text-slate-500 font-mono">ball</span>
+                        <button type="submit"
+                            class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg transition shadow">
+                            Saqlash
+                        </button>
+                    </form>
+                </div>
             </div>
 
             <!-- Operations Table -->
@@ -55,6 +74,7 @@
                             <th class="py-3 px-3 w-12 text-center">Tartib</th>
                             <th class="py-3 px-4">Operatsiya Kodi</th>
                             <th class="py-3 px-4">Operatsiya Nomi</th>
+                            <th class="py-3 px-3 text-center">Qiyinlik</th>
                             <th class="py-3 px-6 text-right">Dona Narxi (UZS)</th>
                             <th class="py-3 px-4 text-right w-36">Amal</th>
                         </tr>
@@ -65,13 +85,19 @@
                             <td class="py-3.5 px-3 text-center font-mono text-slate-500 text-sm">{{ ao.sequence }}</td>
                             <td class="py-3.5 px-4 font-mono font-bold text-amber-400">{{ ao.operation.code }}</td>
                             <td class="py-3.5 px-4 font-bold text-white text-base">{{ ao.operation.name }}</td>
+                            <td class="py-3.5 px-3 text-center">
+                                <span
+                                    class="px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60 text-indigo-400 font-mono font-bold text-xs">
+                                    {{ ao.difficulty_display }}
+                                </span>
+                            </td>
                             <td class="py-3.5 px-6 text-right font-black text-emerald-400 digital-font text-lg">
                                 {{ ao.price_per_unit|floatformat:0 }} <span
                                     class="text-xs text-slate-500 font-normal">so'm</span>
                             </td>
                             <td class="py-3.5 px-4 text-right">
                                 <button
-                                    onclick="openEditPriceModal({{ ao.id }}, '{{ article.code }}', '{{ ao.operation.name }}', {{ ao.price_per_unit }}, {{ ao.sequence }})"
+                                    onclick="openEditPriceModal({{ ao.id }}, '{{ article.code }}', '{{ ao.operation.name }}', {{ ao.price_per_unit }}, {{ ao.sequence }}, '{{ ao.difficulty_display }}')"
                                     class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition">
                                     <i class="fa-solid fa-pen mr-1"></i> Narxni O'zgartirish
                                 </button>
@@ -79,7 +105,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="py-6 text-center text-slate-500 italic">
+                            <td colspan="6" class="py-6 text-center text-slate-500 italic">
                                 Operatsiyalar biriktirilmagan.
                             </td>
                         </tr>
@@ -118,11 +144,18 @@
                     class="text-sm font-bold text-white bg-slate-950 p-3 rounded-xl border border-slate-800"></div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona Narxi
-                    (UZS)</label>
-                <input type="number" name="price_per_unit" id="modal-price-input" step="0.01" required min="1"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona Narxi
+                        (UZS)</label>
+                    <input type="number" name="price_per_unit" id="modal-price-input" step="1" required min="0"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Qiyinlik</label>
+                    <input type="number" name="difficulty" id="modal-diff-input" step="any" min="0" placeholder="1.0"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-indigo-400 font-mono font-bold focus:outline-none focus:border-indigo-500">
+                </div>
             </div>
 
             <div>
@@ -144,11 +177,12 @@
 </div>
 
 <script>
-    function openEditPriceModal(id, artCode, opName, price, seq) {
+    function openEditPriceModal(id, artCode, opName, price, seq, diff) {
         document.getElementById('modal-ao-id').value = id;
         document.getElementById('modal-op-title').innerText = `${artCode} -> ${opName}`;
         document.getElementById('modal-price-input').value = price;
         document.getElementById('modal-seq-input').value = seq;
+        document.getElementById('modal-diff-input').value = diff || '1';
         document.getElementById('price-modal').classList.remove('hidden');
     }
 </script>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIVERSAL BIRKA — {{ target_user.get_full_name|default:target_user.username }} [UID: {{ target_user.uid }}]
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #0f172a;
+        }
+
+        .digital-font {
+            font-family: 'Chakra Petch', monospace;
+        }
+
+        /* Standart CR80 Karta O'lchami: 85.6mm x 54mm */
+        .universal-badge-card {
+            width: 86mm;
+            height: 54mm;
+            padding: 3.5mm 4mm;
+            border: 2px solid #0f172a;
+            border-radius: 4mm;
+            box-sizing: border-box;
+            background: #ffffff;
+            page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Beydjik tasmachasi (lanyard slot) teshik o'rni */
+        .lanyard-slot-mark {
+            position: absolute;
+            top: 1.5mm;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12mm;
+            height: 2mm;
+            border: 1px dashed #94a3b8;
+            border-radius: 1mm;
+            background: #f8fafc;
+        }
+
+        @media print {
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-container {
+                padding: 0 !important;
+                margin: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-height: 100vh !important;
+            }
+
+            .universal-badge-card {
+                box-shadow: none !important;
+                border: 2px solid #000000 !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 min-h-screen flex flex-col justify-between">
+
+    <!-- Print Control Bar -->
+    <div
+        class="no-print max-w-xl mx-auto w-full mb-8 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-id-badge"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-black text-white">Universal Birka (Beydjik)</h1>
+                <p class="text-xs text-slate-400">{{ target_user.get_full_name|default:target_user.username }} uchun</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'superadmin_users' %}"
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-left"></i> Ortga
+            </a>
+            {% if target_user.qr_code %}
+            <a href="{{ target_user.qr_code.url }}" download="birka_qr_{{ target_user.uid }}.png"
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                title="Faqat QR kod rasmini yuklab olish">
+                <i class="fa-solid fa-download"></i> QR Kod
+            </a>
+            {% endif %}
+            <button onclick="window.print()"
+                class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> Chop Etish (Print)
+            </button>
+        </div>
+    </div>
+
+    <!-- Badge Display Card (Print Container) -->
+    <div class="print-container flex items-center justify-center flex-1">
+        <div class="universal-badge-card">
+            <!-- Beydjik tasmachasi teshik o'rni belgisi -->
+            <div class="lanyard-slot-mark"></div>
+
+            <!-- 1. Header: Kompaniya va Rol -->
+            <div class="flex items-center justify-between border-b border-slate-300 pb-1.5 pt-1">
+                <div class="flex items-center gap-1.5">
+                    <div
+                        class="w-4 h-4 rounded bg-amber-500 text-slate-950 flex items-center justify-center text-[9px] font-black">
+                        <i class="fa-solid fa-shirt"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-black tracking-wider uppercase text-slate-900 block leading-none">
+                            TERRY JAR TIKUVCHILIK FABRIKASI
+                        </span>
+                        <span
+                            class="text-[7.5px] font-bold tracking-widest uppercase text-slate-500 block leading-none mt-0.5">
+                            ISHLAB CHIQARISH KOMPLEKSI
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Rol Nishoni -->
+                <div>
+                    {% if target_user.role == 'SUPER_ADMIN' %}
+                    <span
+                        class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300">
+                        SUPER ADMIN
+                    </span>
+                    {% elif target_user.role == 'ADMIN' %}
+                    <span
+                        class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                        ADMIN
+                    </span>
+                    {% elif target_user.role == 'MASTER' %}
+                    <span
+                        class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-300">
+                        MASTER
+                    </span>
+                    {% else %}
+                    <span
+                        class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        TIKUVCHI / XODIM
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 2. Asosiy Qism: Ism, Familiya, UID va QR Kod -->
+            <div class="flex items-center justify-between gap-2.5 my-auto">
+                <!-- Chap tomon: Ism, Familiya va UID -->
+                <div class="flex-1 min-w-0 pr-1">
+                    <span class="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">
+                        XODIM IDENTIFIKATORI
+                    </span>
+
+                    <!-- Ismi va Familiyasi (Katta va qalin) -->
+                    <h2 class="text-base sm:text-lg font-black text-slate-950 leading-tight uppercase truncate">
+                        {{ target_user.first_name|default:target_user.username }}
+                    </h2>
+                    <h3
+                        class="text-sm sm:text-base font-extrabold text-slate-800 leading-tight uppercase truncate mb-2">
+                        {{ target_user.last_name }}
+                    </h3>
+
+                    <!-- 6 Xonali Unikal UID (Katta Qora/Sariq Blok) -->
+                    <div
+                        class="inline-flex items-center gap-1.5 bg-slate-950 text-amber-400 px-3 py-1 rounded-lg border border-slate-800 shadow-inner">
+                        <i class="fa-solid fa-id-badge text-xs text-amber-400/80"></i>
+                        <span class="digital-font text-base sm:text-lg font-black tracking-widest">
+                            UID: {{ target_user.uid|default:"------" }}
+                        </span>
+                    </div>
+
+                    <!-- Qo'shimcha ma'lumot (agar bo'lsa) -->
+                    <div class="flex items-center gap-2 mt-1.5 text-[8.5px] text-slate-500 font-medium">
+                        {% if target_user.worker_profile %}
+                        <span
+                            class="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
+                            {{ target_user.worker_profile.worker_id }}
+                        </span>
+                        {% endif %}
+                        <span class="font-mono">@{{ target_user.username }}</span>
+                        {% if target_user.phone_number %}
+                        <span>• {{ target_user.phone_number }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- O'ng tomon: Yuqori Sifatli QR Kod -->
+                <div class="flex-shrink-0 flex flex-col items-center">
+                    <div
+                        class="w-24 h-24 sm:w-26 sm:h-26 p-1 border-2 border-slate-900 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                        {% if target_user.qr_code %}
+                        <img src="{{ target_user.qr_code.url }}" alt="QR: USER:{{ target_user.uid }}"
+                            class="w-full h-full object-contain">
+                        {% else %}
+                        <div class="text-[10px] text-slate-400 font-bold text-center">
+                            <i class="fa-solid fa-qrcode text-2xl block mb-1"></i>
+                            QR Mavjud emas
+                        </div>
+                        {% endif %}
+                    </div>
+                    <span class="text-[7.5px] font-black text-slate-700 uppercase tracking-wider mt-1">
+                        ZEBRA DS22 / TERMINAL
+                    </span>
+                </div>
+            </div>
+
+            <!-- 3. Footer: Kesish va skaner eslatmasi -->
+            <div
+                class="border-t border-slate-300 pt-1 flex items-center justify-between text-[8px] text-slate-500 font-semibold">
+                <span>Operatsiyalarni qabul qilish va topshirish uchun</span>
+                <span class="font-mono font-bold text-slate-700">USER:{{ target_user.uid }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pastki maslahat -->
+    <div class="no-print text-center text-xs text-slate-500 mt-6 pb-2">
+        <i class="fa-solid fa-circle-info text-amber-500/80 mr-1"></i>
+        Standart ID karta (CR-80) o'lchamida chiqariladi. Printer sozlamalarida <b>"Ko'lami: 100%"</b> qilib chop eting.
+    </div>
+
+</body>
+
+</html>

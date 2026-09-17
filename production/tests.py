@@ -83,3 +83,152 @@ class BoxTicketGenerationTest(TestCase):
         # QR code is generated
         self.assertTrue(bool(tickets[0].qr_code_image))
         self.assertTrue(tickets[0].ticket_code.startswith("TK-ORD-TEST-01-1-"))
+
+    def test_create_box_when_gaps_exist(self):
+        from production.services import create_box_with_tickets
+        # Box 1 already exists. Create box 2 and box 3.
+        boxes = create_box_with_tickets(order=self.order, article=self.article, quantity=50, count=2)
+        self.assertEqual([b.box_number for b in boxes], [2, 3])
+        # Delete box 1 and box 2. Only box 3 remains (count = 1).
+        self.box.delete()
+        boxes[0].delete()
+        self.assertEqual(self.order.boxes.count(), 1)
+        self.assertEqual(self.order.boxes.first().box_number, 3)
+        # Creating a new box should get box_number 4, NOT box_number 2 (which count+1 would give)
+        new_boxes = create_box_with_tickets(order=self.order, article=self.article, quantity=50, count=1)
+        self.assertEqual(new_boxes[0].box_number, 4)
+
+
+import json
+from django.urls import reverse
+from accounts.models import User
+
+
+class OrdersAdminAccessTest(TestCase):
+    def setUp(self):
+        self.article = Article.objects.create(code="ART-TEST-ADMIN", name="Test Model")
+        self.order_admin = User.objects.create_user(
+            username='test_order_admin',
+            password='test_password123',
+            role=User.Role.ADMIN,
+            is_staff=False,
+            is_superuser=False
+        )
+        self.client.login(username='test_order_admin', password='test_password123')
+
+    def test_orders_admin_can_access_orders_html(self):
+        response = self.client.get(reverse('production:order_list'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_orders_admin_can_access_orders_json_api(self):
+        response = self.client.get(reverse('production:order_list'), HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'SUCCESS')
+        self.assertIn('orders', data)
+
+    def test_orders_admin_can_create_order_via_json_api(self):
+        payload = {
+            'order_number': 'ORD-API-TEST-999',
+            'article_id': self.article.id,
+            'total_quantity': 500,
+            'client_name': 'Test Client'
+        }
+        response = self.client.post(
+            reverse('production:order_list'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data['status'], 'SUCCESS')
+        self.assertTrue(Order.objects.filter(order_number='ORD-API-TEST-999').exists())
+
+    def test_orders_admin_cannot_access_terminal(self):
+        # Browser request should be redirected to /orders/
+        response = self.client.get(reverse('production:terminal_home'))
+        self.assertRedirects(response, reverse('production:order_list'))
+
+        # API / AJAX request to terminal should return 403 Forbidden
+        response_api = self.client.get(reverse('production:terminal_home'), HTTP_ACCEPT='application/json')
+        self.assertEqual(response_api.status_code, 403)
+        self.assertEqual(response_api.json()['status'], 'FORBIDDEN')
+
+    def test_orders_admin_cannot_access_superadmin(self):
+        response = self.client.get('/superadmin/')
+        self.assertRedirects(response, reverse('production:order_list'))
+
+    def test_orders_admin_cannot_access_screens(self):
+        response = self.client.get('/screens/monitor/')
+        self.assertRedirects(response, reverse('production:order_list'))
+
+
+class OrderPrintSeparationTest(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='super_admin',
+            password='super_password123',
+            role=User.Role.SUPER_ADMIN
+        )
+        self.client.login(username='super_admin', password='super_password123')
+
+        self.art1 = Article.objects.create(code="ART-01", name="Model Bir")
+        self.art2 = Article.objects.create(code="ART-02", name="Model Ikki")
+
+        self.op1 = Operation.objects.create(code="OP-A", name="Tikish A")
+        self.op2 = Operation.objects.create(code="OP-B", name="Tikish B")
+
+        self.ao1 = ArticleOperation.objects.create(article=self.art1, operation=self.op1, price_per_unit=Decimal("500"), sequence=1)
+        self.ao2 = ArticleOperation.objects.create(article=self.art2, operation=self.op2, price_per_unit=Decimal("600"), sequence=1)
+
+        self.order = Order.objects.create(order_number="ORD-SEP-01", total_quantity=200)
+
+        # Create 1 box for art1 and 1 box for art2
+        self.box1 = Box.objects.create(order=self.order, article=self.art1, box_number=1, quantity=100)
+        self.box2 = Box.objects.create(order=self.order, article=self.art2, box_number=2, quantity=100)
+
+        generate_box_tickets(self.box1, {self.ao1.id: 1})
+        generate_box_tickets(self.box2, {self.ao2.id: 1})
+
+    def test_print_all_stickers_view_unfiltered(self):
+        url = reverse('production:order_print_all_stickers', args=[self.order.id])
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('articles_grouped_list', res.context)
+        # Should have 2 article groups
+        self.assertEqual(len(res.context['articles_grouped_list']), 2)
+        # Total tickets = 2
+        self.assertEqual(len(res.context['tickets']), 2)
+
+    def test_print_all_stickers_filtered_by_article(self):
+        url = reverse('production:order_print_all_stickers', args=[self.order.id])
+        res = self.client.get(url, {'article_id': self.art1.id})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.context['articles_grouped_list']), 1)
+        self.assertEqual(res.context['articles_grouped_list'][0]['article_code'], "ART-01")
+        self.assertEqual(len(res.context['tickets']), 1)
+        self.assertEqual(res.context['tickets'][0].box.box_number, 1)
+
+    def test_download_all_stickers_pdf_filtered(self):
+        url = reverse('production:order_download_all_stickers_pdf', args=[self.order.id])
+        res = self.client.get(url, {'article_id': self.art1.id})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/pdf')
+        self.assertIn('ART-01_BARCHA_QUTILAR', res['Content-Disposition'])
+
+    def test_single_box_print_title_and_pdf_filename(self):
+        # 1. Print page should have title containing Artikul and Box Number
+        url_print = reverse('production:box_print_stickers', args=[self.box1.id])
+        res_print = self.client.get(url_print)
+        self.assertEqual(res_print.status_code, 200)
+        self.assertContains(res_print, "<title>ART-01_QUTI_1_ORD-SEP-01</title>")
+
+        # 2. PDF download filename should begin with Artikul and Box number
+        url_pdf = reverse('production:box_download_stickers_pdf', args=[self.box1.id])
+        res_pdf = self.client.get(url_pdf)
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
+        self.assertIn(f'ART-01_QUTI_1_{self.box1.box_code}_ORD-SEP-01.pdf', res_pdf['Content-Disposition'])
+
+
+

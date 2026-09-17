@@ -1,0 +1,5687 @@
+[
+{
+  "model": "sessions.session",
+  "pk": "0hxww67xz68eibyfw5a09vu2n7mm0esz",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6SFh:xXMcrkL_k41W5kf4DC47E6Usx5bhOSEoPHBmBhvcYyo",
+    "expire_date": "2026-09-29T12:27:09.386Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "1p25ad68l5fxw9d90rf1irmlxth6h15m",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6OrV:uum9_oJVN4sMet1-muqbXXyvTidKKmFrsw4sv1FQVDo",
+    "expire_date": "2026-09-29T08:49:57.171Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "1u9iyuybuornpgizt0em3w22r2adpcrj",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6RVH:awF8IaqgbbH5R_FXLTHjnaIBQLEYBdLz5m-rN9RrB50",
+    "expire_date": "2026-09-29T11:39:11.209Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "1ycetn8b755fg9jq6588el0zrv19n41y",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6ocu:Q1O5aDxatMkwKJ8rw5JwmqBekInJIKCjWYrFa2Y0JDI",
+    "expire_date": "2026-09-30T12:20:36.542Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "2g1sf9lw7zw0kztpkhogdrtrl1ikclhm",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lAU:6lhhRLuCe8GAWf85ZvCpJCEIfcBf-NP_XL_C7d_Lyzs",
+    "expire_date": "2026-09-30T08:39:02.642Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "3p4cmf4h221m7o3no0sfzsik9mziry45",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjcsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lEP:W4QH2kPVysG9c2RUdGEOJwgySOMPiTp6B7Ab6eYDb7E",
+    "expire_date": "2026-09-30T08:43:05.293Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "3qlzteabrhexwrpw1sgfvyy0digrwgdv",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6k8U:cdzwBRkS_D_iWMbc6YOeohIQdwCGxi4WWfxFOtbftdk",
+    "expire_date": "2026-09-30T07:32:54.420Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5i3opghp92gya94vq97lim40mvmtqw26",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6S1p:3X_CQZ7NcZK_2mYpRoLABMO-trSOcPnZaUCl-mHZT8Y",
+    "expire_date": "2026-09-29T12:12:49.821Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5rfdlf11x0kddtb2yqrd5ujmjfvvrrwq",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6oiC:o11XyiJ9BzY2mnN5FWAg9lO11mRirHV8kOCZVlGoiYk",
+    "expire_date": "2026-09-30T12:26:04.440Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5wapzpoz2yy9gd9406c3n1b0copr1073",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjcsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lSQ:oXK6zFIUGMg9zecha9fUzOfM3y-WRo0xuJ0nkhZ2ssI",
+    "expire_date": "2026-09-30T08:57:34.494Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "6u5kskb0zo2jhcit6xm92g5wd9v51650",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6hT0:xYdspAvHeR3khVp1OUAVkMHWswNMO1nvDTE2Fjxb1X8",
+    "expire_date": "2026-09-30T04:41:54.378Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "969a4pthbbyjj06x7abkg5fbze3gb940",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6Q7k:AllB29-dLVG0wrXRMJaZj5iD0r511KbRZTJ0gvtQKGY",
+    "expire_date": "2026-09-29T10:10:48.699Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "9f9hrocu2qot5sry9es2u9y3pq1y6p7o",
+  "fields": {
+    "session_data": "e30:1x6oRI:nnNEpYxI0thnOnS7HMkTVtPtOGLohtMPU0mxO7atsnE",
+    "expire_date": "2026-09-30T12:08:36.429Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "a8cayr2k28796snz13wsvjhmjfqecpny",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lEU:Qiytib0RILy4m1j_52Wg51Z_BV-F4s1UYVBwE06jpDc",
+    "expire_date": "2026-09-30T08:43:10.063Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "arsusn2xq2sdquit5gvmbycimrqp4zb7",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6hzs:tH-RBBdvH6vMRKushsxUTvnPFmAQygNSzHu7No4KnYc",
+    "expire_date": "2026-09-30T05:15:52.527Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ayj09snjdlrkymt5ehb4d3k1bcewrqc1",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6SBe:a7UXTP-AOXg7g5yGO0HW9eTQ-i0dCQ8hB4-f2PMXb-4",
+    "expire_date": "2026-09-29T12:22:58.135Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "cbt5iot3dgna1ln67laq3vhbxhsimg92",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lSq:wkDd3LbwIKc6OLTmK7EjksY6oyBHzNax1C9jaFG5o-Q",
+    "expire_date": "2026-09-30T08:58:00.067Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "d5nye3ke3llkboe8tow19m7i05f0c9e6",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lSq:wkDd3LbwIKc6OLTmK7EjksY6oyBHzNax1C9jaFG5o-Q",
+    "expire_date": "2026-09-30T08:58:00.045Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "d7swm8c4z3a7ahrlv2zrzkkrqgek1nus",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6S3F:PMgPJ6CIYvWN6f4bd7totFIyQujudXiLHFlMJG4kriw",
+    "expire_date": "2026-09-29T12:14:17.693Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "dh0fy6a030ocpyyi89bame3ln7mcdwq9",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6R7D:bz5vj7DYkYrPQH6HAuuLha8ptwxhCj90wu-E2K5sR-k",
+    "expire_date": "2026-09-29T11:14:19.921Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "e2tspt0yz4lb3o5utskr1qdq6ya7laon",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6Rfw:G2fYq3zTtW9rWOHKuBCTmqD_Coj8hSjUYBzwSncMNUU",
+    "expire_date": "2026-09-29T11:50:12.714Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "e70r8zmrtiguktur6s2de13qx2f74gpf",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6hwp:Cu1gf1LfoIUaFaUYsDHasLTFuLYfuWM7acauylK_x2w",
+    "expire_date": "2026-09-30T05:12:43.797Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "efx92u4rj21p25tp7vkmm530d1k3c27r",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6RuA:AQV7dho5FTf-DyI4Oijp1iBuhGvciKi74L8o1XmZJ3A",
+    "expire_date": "2026-09-29T12:04:54.748Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "er7anspii47t32p9p748w5k5i14n56ei",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6RXQ:2Z_-9830gD7rmkYB616PMEAsiFzSMF-bnDObAfeHDuk",
+    "expire_date": "2026-09-29T11:41:24.266Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "fm83td798uz53vffmiffoteugdxegufk",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lEg:Ijz5muJFlZcqQXTUKKqCAhzlNidvG0PyhdlZ0G5lV7s",
+    "expire_date": "2026-09-30T08:43:22.266Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "gb00qu29p0988jlnjfrlwdh661jyj238",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lEa:Di5U7nzvXXnbAH5thOM-gXDU6lgH9Ky_OAMwEczHOcQ",
+    "expire_date": "2026-09-30T08:43:16.230Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "gfdzphdv3h8air3c5gt7oixd5mx5j3m1",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lSq:wkDd3LbwIKc6OLTmK7EjksY6oyBHzNax1C9jaFG5o-Q",
+    "expire_date": "2026-09-30T08:58:00.090Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "gslw30snjc6hr4ht4qwho43ee6tdknsx",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6PNi:qQoyQPr1T-RcM35iRUztqNqLuQE0UuOgbSseFLS5nno",
+    "expire_date": "2026-09-29T09:23:14.568Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "gz41471jjl8r9u03xuwsvresonty7pfd",
+  "fields": {
+    "session_data": "e30:1x6oRI:nnNEpYxI0thnOnS7HMkTVtPtOGLohtMPU0mxO7atsnE",
+    "expire_date": "2026-09-30T12:08:36.439Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "hf6cqmim4xooxg5d3cmqxbik4n3ry67j",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6SFO:JqhbfDPSOjrE_Tw-rKUUp-q1wi1RBtgoGBHNYBlZZVE",
+    "expire_date": "2026-09-29T12:26:50.375Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "i21y9xrgg2xe8zrgnv340q20fo9gzilt",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6R6D:4ZD2bbVSjKeot3VyC1Hw7t6plSKs3i28R1pqJkjkdPE",
+    "expire_date": "2026-09-29T11:13:17.337Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "iefu6xdwy6qrvahvwi5ff4i43xnbsb27",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6hW6:j6XXO8DSo4oY8W3j4A9DB4uaWDzcmbjtTCOcveb7BhA",
+    "expire_date": "2026-09-30T04:45:06.487Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ift87eux1wksdze3535sf8wiqtfrfisz",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjcsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lSM:oopOZEkh9b72_i6fCHojXMvLo9QJM8-dtwtmCy4lDc8",
+    "expire_date": "2026-09-30T08:57:30.183Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "igz635gv03dw70amh2gv4otrrmfqchyb",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6hzT:VnyIJTEAxMQCl935tUiL7bW5s7qBfaAcukLpcBU9Xv0",
+    "expire_date": "2026-09-30T05:15:27.459Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "kx18r01kix4thhm3qqqifx47svfgcuc2",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6miC:dUM_IHh3E9NDeAQzP89M9VffJzeVpWVYuWJAWK7LpxI",
+    "expire_date": "2026-09-30T10:17:56.481Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "l1q2hszqolhrwqv59ibq1owwfq6xhd4d",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjYsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lEH:pPCcfwBM0NL7Vp8dTr5OknH5xfjxnq_xAWlI7AWM3R4",
+    "expire_date": "2026-09-30T08:42:57.550Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "m3d17f4hi592qlf67v765mjl05ls31p8",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6Ozo:ittpHJN_YGIxDBRanGBz6ZTKRnAJ8Rl0qjXumhh9LPw",
+    "expire_date": "2026-09-29T08:58:32.981Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "nd0v3qiogxyjk7t963gm224ffzapwuou",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6Puy:J-zZCMoLgnQNK5sf4MmHZFRtaEwNqLrV2IS_vq8sMFU",
+    "expire_date": "2026-09-29T09:57:36.943Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "nh50iq9r4nici7qoswthvbkrsnn5u472",
+  "fields": {
+    "session_data": "e30:1x6oRI:nnNEpYxI0thnOnS7HMkTVtPtOGLohtMPU0mxO7atsnE",
+    "expire_date": "2026-09-30T12:08:36.422Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "nnkzifwg75t6vaiirckgo7wpi4kz2ge4",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6Rff:ve1UsSuer70PMBhNhuYT5OcnjjiS4yRCM8YWzA6U6cg",
+    "expire_date": "2026-09-29T11:49:55.912Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ql3u4rx9py5ch4u4mguawfrbkahlt3nd",
+  "fields": {
+    "session_data": "e30:1x6oRI:nnNEpYxI0thnOnS7HMkTVtPtOGLohtMPU0mxO7atsnE",
+    "expire_date": "2026-09-30T12:08:36.434Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "r0nrouj0f8zicdomr4vskb07r0bgk48o",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6SCn:iWA0PyIbwgzS3AIta9Pt9UKRW-4kVtWLKSu5O3_I3is",
+    "expire_date": "2026-09-29T12:24:09.803Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "s4qnvrpowm1chvrzyh6lik4g1jum6z9u",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6PI0:81av13FIyBOfQivKDwYgg5BlcjBh9oJu_HY-TtXYyyM",
+    "expire_date": "2026-09-29T09:17:20.256Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "v5pb068e4vda3va90mdh12v31h77sehm",
+  "fields": {
+    "session_data": "eyJ0ZXJtaW5hbF93b3JrZXJfaWQiOjcsInRlcm1pbmFsX3BlbmRpbmdfdGlja2V0cyI6W119:1x6lAP:2hqD0bCdVPhnr3b6-1MjhgT_X_ee2zGvi0mBr3Hy4FY",
+    "expire_date": "2026-09-30T08:38:57.666Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "v75qo1tzrggz1ur8n9qgp6mvprvmyota",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6RXA:lavm8JK2pqcTcsmyrPL1921-ewkg1KPoP3gvtrfaAFU",
+    "expire_date": "2026-09-29T11:41:08.246Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "vlpstwcl9ei53udzs2dqz0gmihi8jini",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6SCZ:w7i9Gs9kv0AIJ0b4XCo7gPSpcxIsUW-fIpbnYaiN3GQ",
+    "expire_date": "2026-09-29T12:23:55.522Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "w29jucptmlhkcfmah4vyjskl34h7w2tq",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6hYT:XttQueA8EwJAxLBUniNQsnetaRiFTGHG9N5pNMsRl34",
+    "expire_date": "2026-09-30T04:47:33.181Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "wyyb8ideeg9grpo7hcbjtyx9jez2b952",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6SG0:sIe0kugm24gzIvtXcTScUjyW_2IK2tx_BrTpJSCJwa0",
+    "expire_date": "2026-09-29T12:27:28.686Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "xn5508rq2ieuq45zn3gampbkezcl4gke",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGlmON_6Ekp4zWOvdNQ6gRIqTCnF3iJQCpFe9Gc1LJdzWmrYmSxpZnVWnTr9fRnrItAO-43SbNc3TuoxZ74o-aNPXmeV5Ody_QMVW92w_AEMWR2TISIdM4FwYqERkAz2AhxAD5ME47q39jmMxRSyJ8T6r9wfdqTeT:1x6ocT:3W-NBVHPQ1b38B7lkeolca4i1aKdeYTRgfq-9OZyMFo",
+    "expire_date": "2026-09-30T12:20:09.391Z"
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$hAwGncxO5iZlUXl0KNnWbx$COdhkv/O/ldn35+74hm8wSaH+cX09nUtRnONFstIqCY=",
+    "last_login": "2026-09-16T12:20:36.541Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "Ibrohim",
+    "last_name": "Rahmonov",
+    "email": "admin@factory.uz",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-09-15T05:37:33.705Z",
+    "role": "SUPER_ADMIN",
+    "phone_number": "",
+    "uid": "468626",
+    "qr_code": "qr_codes/users/user_qr_468626_Pr2SQHl.png",
+    "telegram_user_id": 7488599311,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$4qlZJwx7pkIKE4Q63s77yd$lCEAZQaEy2bCQjIjoPCxQvQhrQ6m/XqeU5+tZMkcVbw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "doos",
+    "first_name": "aziz",
+    "last_name": "goyipov",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T07:43:09.554Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "729170",
+    "qr_code": "qr_codes/users/user_qr_729170.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$1mjj6PqyldEO9oMjw3AmHJ$FEiWNhYJ89ll9i1crTlj3rKIs+vlYBdkYTFh/wLs18A=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "manzura_abdurahmonova",
+    "first_name": "Manzura",
+    "last_name": "Abdurahmonova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:30.846Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "670040",
+    "qr_code": "qr_codes/users/user_qr_670040.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$0dvOo6QK8vUSCqrzCBEMfJ$Xr5+f61XhCd6XW654+VIgpa3doSu6jf2EifeN1Ah3b4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "mahliyo_bozorova",
+    "first_name": "Mahliyo",
+    "last_name": "Bozorova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:31.049Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "127831",
+    "qr_code": "qr_codes/users/user_qr_127831.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$NtdCERYQrr2DaWQFtm8WQM$QOnK86hLBfTicA49NB7DRHGPpL71bxrNqJucxYEgCxU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "malika_jorayeva",
+    "first_name": "Malika",
+    "last_name": "Jo'rayeva",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:31.227Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "996848",
+    "qr_code": "qr_codes/users/user_qr_996848.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$YCDms5Vwlp86AyNv5mgJpV$5aHKZkBAyeA8PQzXgtBGRqRIfEBX/3KI2Pmxa/voQhE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "aziza_kenjayeva",
+    "first_name": "Aziza",
+    "last_name": "Kenjayeva",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:31.404Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "266620",
+    "qr_code": "qr_codes/users/user_qr_266620.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$H0PN5EFGBzap5fheQ894an$0+pYjqVvpJjitPYv5OfABwJZru8Fa8+QXE1MzgjDZqw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "xabiba_sharipova",
+    "first_name": "Xabiba",
+    "last_name": "Sharipova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:31.584Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "620978",
+    "qr_code": "qr_codes/users/user_qr_620978.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$sgGivkNtCyJ0JzpxBD8A0H$xumMwXGdYt2jWVe6VBQKWXhIKrm2Y7bROD7kN5VlluQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "zulayho_kamoliddinova",
+    "first_name": "Zulayho",
+    "last_name": "Kamoliddinova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:31.784Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "825001",
+    "qr_code": "qr_codes/users/user_qr_825001.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$19GJ8dZ1pEZDSc5TKElY6A$FUSZs+2GgVvmZa4s4GAMrATok4xAxVsH71ONiQ1DZSQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "dildora_ernazarova",
+    "first_name": "Dildora",
+    "last_name": "Ernazarova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:31.961Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "755642",
+    "qr_code": "qr_codes/users/user_qr_755642.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$v8CVLMPIFipenXDvQiFvQM$hmuZW3cXL2ZrwGMDJR3+j9xq7zi69/vlweOTLrVvyAo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ozoda_saidova",
+    "first_name": "Ozoda",
+    "last_name": "Saidova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:32.139Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "373852",
+    "qr_code": "qr_codes/users/user_qr_373852.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$1qRj4Sccm2GrGeZeSQE8pR$beD6VOJPmSz5xtCZr0ENE/ahcqXCASlE+i9W5HCk/xI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "bahriddin_fazliddinov",
+    "first_name": "Bahriddin",
+    "last_name": "Fazliddinov",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:32.317Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "853351",
+    "qr_code": "qr_codes/users/user_qr_853351.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$hhL6gZMNwW1lc6RFTDTwKE$lWktshWBzYtqaMGpgjK37ksnMN39V89QCz/lq5ku+HU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "gulshoda_jamoliddinova",
+    "first_name": "Gulshoda",
+    "last_name": "Jamoliddinova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:32.495Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "327333",
+    "qr_code": "qr_codes/users/user_qr_327333.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$8XPCwgZa0YFyWanGErSmT6$/iLfRxSyYJXdS0TqIzgRqJbRc+t11/+rbNIpWutTVhM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "goliba_zohidova",
+    "first_name": "G'oliba",
+    "last_name": "Zohidova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:32.672Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "884445",
+    "qr_code": "qr_codes/users/user_qr_884445.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$uKCSGmb8neLMG8rAqtMgmK$xpP9KQSMSWsiCIkEsWyXELtcV7ArOd9mJ1cuuWqCb3o=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "zahro_qurbonova",
+    "first_name": "Zahro",
+    "last_name": "Qurbonova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:32.850Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "865911",
+    "qr_code": "qr_codes/users/user_qr_865911.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$SskWvNhPO1yJtr3cMlK3lB$nkc1OAXlA80Dv3VMQl07Crxccq8tMtmhWRr5t0/fN/0=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "rano_xojambekova",
+    "first_name": "Ra'no",
+    "last_name": "Xo'jambekova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:33.027Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "768690",
+    "qr_code": "qr_codes/users/user_qr_768690.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$CCR0oLfgxu49BR2ygbY8zm$k1xXVZDRlbi45EgTJxOFbEciGldfzJDZ8TEFJMbZVI8=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "dilrorom_ergasheva",
+    "first_name": "Dilrorom",
+    "last_name": "Ergasheva",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:33.204Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "722290",
+    "qr_code": "qr_codes/users/user_qr_722290.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$rWlAYPCUWSimf7ewDT7M1L$O5AxIsgDnU7Rkc3mzt5zwdzdReuXreojWyfRRy7sK3Y=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "shukrona_abdullayeva",
+    "first_name": "Shukrona",
+    "last_name": "Abdullayeva",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:33.380Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "772809",
+    "qr_code": "qr_codes/users/user_qr_772809.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$82JlYCNyq6HoFkKjZpoyZ9$UDDEF9VnWm7KlRYSvwJavimE9i1yjR50knqXAfKGlfA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "nargiza_xolqoziyeva",
+    "first_name": "Nargiza",
+    "last_name": "Xolqo'ziyeva",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:33.557Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "583605",
+    "qr_code": "qr_codes/users/user_qr_583605.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$mcU3kTBpPkvmMACfYGU8Ly$iB89zLPMPCQA3pN9JsivwLO15rgXXvylCb+9ibqoCLY=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "zaynab_boriboyeva",
+    "first_name": "Zaynab",
+    "last_name": "Bo'riboyeva",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:33.736Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "417108",
+    "qr_code": "qr_codes/users/user_qr_417108.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$MwcxFtcxRBaThFpTRMnaYE$0qetPhVQ7Grq0Q1XuKCB4gs4LGZfMRhmMIQh6GYTh14=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "zuxra_sattorova",
+    "first_name": "Zuxra",
+    "last_name": "Sattorova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:33.936Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "233167",
+    "qr_code": "qr_codes/users/user_qr_233167.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$z1u1czR4BYWjtGXKqKCzP7$EtYhTOju4njJUT6oyzc2p+1GDu2U/uVvzza4xwIjy2w=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ziyoda_qosimova",
+    "first_name": "Ziyoda",
+    "last_name": "Qosimova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:34.112Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "412222",
+    "qr_code": "qr_codes/users/user_qr_412222.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$870000$rBEVmXMKvzTHlfQRZPHdxe$CFa2jmMBnC8erbMunRHnO5oBjed1N7u/fGvwSed2zcI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "nasiba_dolajonova",
+    "first_name": "Nasiba",
+    "last_name": "Do'lajonova",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-16T12:07:34.289Z",
+    "role": "USER",
+    "phone_number": "",
+    "uid": "519815",
+    "qr_code": "qr_codes/users/user_qr_519815.png",
+    "telegram_user_id": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 6,
+  "fields": {
+    "user": [
+      "doos"
+    ],
+    "worker_id": "W-001",
+    "first_name": "aziz",
+    "last_name": "goyipov",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-001_xfP7TC5.png",
+    "created_at": "2026-09-16T07:43:09.759Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 7,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "worker_id": "W-001_admin",
+    "first_name": "Ibrohim",
+    "last_name": "Rahmonov",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-001_admin.png",
+    "created_at": "2026-09-16T08:38:31.999Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 8,
+  "fields": {
+    "user": [
+      "manzura_abdurahmonova"
+    ],
+    "worker_id": "W-002",
+    "first_name": "Manzura",
+    "last_name": "Abdurahmonova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-002_sR95EWv.png",
+    "created_at": "2026-09-16T12:07:31.047Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 9,
+  "fields": {
+    "user": [
+      "mahliyo_bozorova"
+    ],
+    "worker_id": "W-003",
+    "first_name": "Mahliyo",
+    "last_name": "Bozorova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-003.png",
+    "created_at": "2026-09-16T12:07:31.226Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 10,
+  "fields": {
+    "user": [
+      "malika_jorayeva"
+    ],
+    "worker_id": "W-004",
+    "first_name": "Malika",
+    "last_name": "Jo'rayeva",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-004.png",
+    "created_at": "2026-09-16T12:07:31.404Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 11,
+  "fields": {
+    "user": [
+      "aziza_kenjayeva"
+    ],
+    "worker_id": "W-005",
+    "first_name": "Aziza",
+    "last_name": "Kenjayeva",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-005.png",
+    "created_at": "2026-09-16T12:07:31.583Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 12,
+  "fields": {
+    "user": [
+      "xabiba_sharipova"
+    ],
+    "worker_id": "W-006",
+    "first_name": "Xabiba",
+    "last_name": "Sharipova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-006.png",
+    "created_at": "2026-09-16T12:07:31.783Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 13,
+  "fields": {
+    "user": [
+      "zulayho_kamoliddinova"
+    ],
+    "worker_id": "W-007",
+    "first_name": "Zulayho",
+    "last_name": "Kamoliddinova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-007.png",
+    "created_at": "2026-09-16T12:07:31.960Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 14,
+  "fields": {
+    "user": [
+      "dildora_ernazarova"
+    ],
+    "worker_id": "W-008",
+    "first_name": "Dildora",
+    "last_name": "Ernazarova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-008.png",
+    "created_at": "2026-09-16T12:07:32.138Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 15,
+  "fields": {
+    "user": [
+      "ozoda_saidova"
+    ],
+    "worker_id": "W-009",
+    "first_name": "Ozoda",
+    "last_name": "Saidova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-009.png",
+    "created_at": "2026-09-16T12:07:32.317Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 16,
+  "fields": {
+    "user": [
+      "bahriddin_fazliddinov"
+    ],
+    "worker_id": "W-010",
+    "first_name": "Bahriddin",
+    "last_name": "Fazliddinov",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-010.png",
+    "created_at": "2026-09-16T12:07:32.494Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 17,
+  "fields": {
+    "user": [
+      "gulshoda_jamoliddinova"
+    ],
+    "worker_id": "W-011",
+    "first_name": "Gulshoda",
+    "last_name": "Jamoliddinova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-011.png",
+    "created_at": "2026-09-16T12:07:32.671Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 18,
+  "fields": {
+    "user": [
+      "goliba_zohidova"
+    ],
+    "worker_id": "W-012",
+    "first_name": "G'oliba",
+    "last_name": "Zohidova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-012.png",
+    "created_at": "2026-09-16T12:07:32.849Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 19,
+  "fields": {
+    "user": [
+      "zahro_qurbonova"
+    ],
+    "worker_id": "W-013",
+    "first_name": "Zahro",
+    "last_name": "Qurbonova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-013.png",
+    "created_at": "2026-09-16T12:07:33.027Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 20,
+  "fields": {
+    "user": [
+      "rano_xojambekova"
+    ],
+    "worker_id": "W-014",
+    "first_name": "Ra'no",
+    "last_name": "Xo'jambekova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-014.png",
+    "created_at": "2026-09-16T12:07:33.203Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 21,
+  "fields": {
+    "user": [
+      "dilrorom_ergasheva"
+    ],
+    "worker_id": "W-015",
+    "first_name": "Dilrorom",
+    "last_name": "Ergasheva",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-015.png",
+    "created_at": "2026-09-16T12:07:33.379Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 22,
+  "fields": {
+    "user": [
+      "shukrona_abdullayeva"
+    ],
+    "worker_id": "W-016",
+    "first_name": "Shukrona",
+    "last_name": "Abdullayeva",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-016.png",
+    "created_at": "2026-09-16T12:07:33.557Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 23,
+  "fields": {
+    "user": [
+      "nargiza_xolqoziyeva"
+    ],
+    "worker_id": "W-017",
+    "first_name": "Nargiza",
+    "last_name": "Xolqo'ziyeva",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-017.png",
+    "created_at": "2026-09-16T12:07:33.735Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 24,
+  "fields": {
+    "user": [
+      "zaynab_boriboyeva"
+    ],
+    "worker_id": "W-018",
+    "first_name": "Zaynab",
+    "last_name": "Bo'riboyeva",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-018.png",
+    "created_at": "2026-09-16T12:07:33.935Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 25,
+  "fields": {
+    "user": [
+      "zuxra_sattorova"
+    ],
+    "worker_id": "W-019",
+    "first_name": "Zuxra",
+    "last_name": "Sattorova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-019.png",
+    "created_at": "2026-09-16T12:07:34.112Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 26,
+  "fields": {
+    "user": [
+      "ziyoda_qosimova"
+    ],
+    "worker_id": "W-020",
+    "first_name": "Ziyoda",
+    "last_name": "Qosimova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-020.png",
+    "created_at": "2026-09-16T12:07:34.289Z"
+  }
+},
+{
+  "model": "accounts.worker",
+  "pk": 27,
+  "fields": {
+    "user": [
+      "nasiba_dolajonova"
+    ],
+    "worker_id": "W-021",
+    "first_name": "Nasiba",
+    "last_name": "Do'lajonova",
+    "phone_number": "",
+    "is_active": true,
+    "qr_code": "qr_codes/workers/worker_qr_W-021.png",
+    "created_at": "2026-09-16T12:07:34.466Z"
+  }
+},
+{
+  "model": "production.article",
+  "pk": 11,
+  "fields": {
+    "code": "САРАФАН УЗУН КУЛ",
+    "name": "Детский сарафан узун кул",
+    "description": "",
+    "created_at": "2026-09-16T09:36:49.939Z"
+  }
+},
+{
+  "model": "production.article",
+  "pk": 12,
+  "fields": {
+    "code": "САРАФАН",
+    "name": "Детский сарафан узун кул",
+    "description": "",
+    "created_at": "2026-09-16T10:03:45.323Z"
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 15,
+  "fields": {
+    "code": "ORQA SATIN",
+    "name": "ORQA SATIN",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 16,
+  "fields": {
+    "code": "OLDI SELEKON",
+    "name": "OLDI SELEKON",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 17,
+  "fields": {
+    "code": "ORQA SELEKON",
+    "name": "ORQA SELEKON",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 18,
+  "fields": {
+    "code": "1 TOMON YELKA",
+    "name": "1 TOMON YELKA",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 19,
+  "fields": {
+    "code": "BEYKA",
+    "name": "BEYKA",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 20,
+  "fields": {
+    "code": "2 TOMON YELKA",
+    "name": "2 TOMON YELKA",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 21,
+  "fields": {
+    "code": "YENG QO'YISH",
+    "name": "YENG QO'YISH",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 22,
+  "fields": {
+    "code": "BAKAVOY RAZMER BILAN",
+    "name": "BAKAVOY RAZMER BILAN",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 23,
+  "fields": {
+    "code": "ETAK RESHMA",
+    "name": "ETAK RESHMA",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 24,
+  "fields": {
+    "code": "YELKA TAK TAK",
+    "name": "YELKA TAK TAK",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 25,
+  "fields": {
+    "code": "CHISTKA",
+    "name": "CHISTKA",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 26,
+  "fields": {
+    "code": "METO",
+    "name": "METO",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 27,
+  "fields": {
+    "code": "DAZMOL",
+    "name": "DAZMOL",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.operation",
+  "pk": 28,
+  "fields": {
+    "code": "QO'L RESHMA",
+    "name": "QO'L RESHMA",
+    "description": "",
+    "default_difficulty": 1.0
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 57,
+  "fields": {
+    "article": 12,
+    "operation": 18,
+    "price_per_unit": "39.00",
+    "sequence": 1,
+    "difficulty": 0.5
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 58,
+  "fields": {
+    "article": 12,
+    "operation": 20,
+    "price_per_unit": "54.00",
+    "sequence": 2,
+    "difficulty": 0.75
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 59,
+  "fields": {
+    "article": 12,
+    "operation": 22,
+    "price_per_unit": "391.00",
+    "sequence": 3,
+    "difficulty": 4.0
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 60,
+  "fields": {
+    "article": 12,
+    "operation": 19,
+    "price_per_unit": "89.00",
+    "sequence": 4,
+    "difficulty": 0.75
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 61,
+  "fields": {
+    "article": 12,
+    "operation": 25,
+    "price_per_unit": "177.00",
+    "sequence": 5,
+    "difficulty": 1.5
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 62,
+  "fields": {
+    "article": 12,
+    "operation": 27,
+    "price_per_unit": "177.00",
+    "sequence": 6,
+    "difficulty": 1.5
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 63,
+  "fields": {
+    "article": 12,
+    "operation": 23,
+    "price_per_unit": "104.00",
+    "sequence": 7,
+    "difficulty": 1.0
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 64,
+  "fields": {
+    "article": 12,
+    "operation": 26,
+    "price_per_unit": "54.00",
+    "sequence": 8,
+    "difficulty": 0.75
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 65,
+  "fields": {
+    "article": 12,
+    "operation": 16,
+    "price_per_unit": "104.00",
+    "sequence": 9,
+    "difficulty": 1.0
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 66,
+  "fields": {
+    "article": 12,
+    "operation": 15,
+    "price_per_unit": "54.00",
+    "sequence": 10,
+    "difficulty": 0.75
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 67,
+  "fields": {
+    "article": 12,
+    "operation": 17,
+    "price_per_unit": "104.00",
+    "sequence": 11,
+    "difficulty": 1.0
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 68,
+  "fields": {
+    "article": 12,
+    "operation": 24,
+    "price_per_unit": "68.00",
+    "sequence": 12,
+    "difficulty": 0.75
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 69,
+  "fields": {
+    "article": 12,
+    "operation": 21,
+    "price_per_unit": "272.00",
+    "sequence": 13,
+    "difficulty": 2.5
+  }
+},
+{
+  "model": "production.articleoperation",
+  "pk": 70,
+  "fields": {
+    "article": 12,
+    "operation": 28,
+    "price_per_unit": "150.00",
+    "sequence": 14,
+    "difficulty": 1.75
+  }
+},
+{
+  "model": "production.order",
+  "pk": 5,
+  "fields": {
+    "order_number": "Детский сарафан узун кул",
+    "article": 12,
+    "total_quantity": 1500,
+    "client_name": "DC",
+    "status": "IN_PROGRESS",
+    "deadline": "2026-09-25",
+    "created_at": "2026-09-16T10:03:45.324Z"
+  }
+},
+{
+  "model": "production.orderitem",
+  "pk": 10,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "quantity": 1500,
+    "created_at": "2026-09-16T10:03:45.324Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 23,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "KW33B2R4",
+    "box_number": 1,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:49.958Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 24,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "I6D4V251",
+    "box_number": 2,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:50.138Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 25,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "0XC1JEG7",
+    "box_number": 3,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:50.286Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 26,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "H5FEH6KM",
+    "box_number": 4,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:50.437Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 27,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "Y7V0HRYV",
+    "box_number": 5,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:50.587Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 28,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "DN31HVFM",
+    "box_number": 6,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:50.736Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 29,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "FZWCG5F6",
+    "box_number": 7,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:50.886Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 30,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "956Y2TEH",
+    "box_number": 8,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:51.039Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 31,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "G2P3ZV0R",
+    "box_number": 9,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:51.188Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 32,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "30GC3G0Z",
+    "box_number": 10,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:51.335Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 33,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "7MPJ4AR4",
+    "box_number": 11,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:51.485Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 34,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "QMOY4LN0",
+    "box_number": 12,
+    "quantity": 88,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:29:51.632Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 35,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "Q0S13EZI",
+    "box_number": 13,
+    "quantity": 44,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:41:01.324Z"
+  }
+},
+{
+  "model": "production.box",
+  "pk": 36,
+  "fields": {
+    "order": 5,
+    "article": 12,
+    "box_code": "4WNZXIKH",
+    "box_number": 14,
+    "quantity": 44,
+    "status": "CREATED",
+    "created_at": "2026-09-16T11:41:01.486Z"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 126,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-A0F713",
+    "box": 23,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-A0F713.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 127,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-15C86C",
+    "box": 23,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-15C86C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 128,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-C7C014",
+    "box": 23,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-C7C014.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 129,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-F6D077",
+    "box": 23,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-F6D077.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 130,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-E78F2C",
+    "box": 23,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-E78F2C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 131,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-D80B47",
+    "box": 23,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-D80B47.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 132,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-4BD1A6",
+    "box": 23,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-4BD1A6.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 133,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-A0ACFD",
+    "box": 23,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-A0ACFD.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 134,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-AD2585",
+    "box": 23,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-AD2585.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 135,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-3F5ACA",
+    "box": 23,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-3F5ACA.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 136,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-C87392",
+    "box": 23,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-C87392.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 137,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-47DF9E",
+    "box": 23,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-47DF9E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 138,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-A8906F",
+    "box": 23,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-A8906F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 139,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-1-KW33B2R4-20C633",
+    "box": 23,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-1-KW33B2R4-20C633.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 140,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-A53969",
+    "box": 24,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-A53969.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 141,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-3675E5",
+    "box": 24,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-3675E5.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 142,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-574667",
+    "box": 24,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-574667.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 143,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-473A3B",
+    "box": 24,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-473A3B.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 144,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-F65C6A",
+    "box": 24,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-F65C6A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 145,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-AEA85A",
+    "box": 24,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-AEA85A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 146,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-E735C3",
+    "box": 24,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-E735C3.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 147,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-7986EA",
+    "box": 24,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-7986EA.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 148,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-D0D0A4",
+    "box": 24,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-D0D0A4.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 149,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-F1306B",
+    "box": 24,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-F1306B.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 150,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-B59264",
+    "box": 24,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-B59264.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 151,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-EAA8AE",
+    "box": 24,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-EAA8AE.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 152,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-6285E3",
+    "box": 24,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-6285E3.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 153,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-2-I6D4V251-BBB692",
+    "box": 24,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-2-I6D4V251-BBB692.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 154,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-F908E9",
+    "box": 25,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-F908E9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 155,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-F0611C",
+    "box": 25,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-F0611C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 156,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-1B279E",
+    "box": 25,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-1B279E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 157,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-A51CBF",
+    "box": 25,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-A51CBF.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 158,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-095AAC",
+    "box": 25,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-095AAC.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 159,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-1B0AEF",
+    "box": 25,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-1B0AEF.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 160,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-E129B4",
+    "box": 25,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-E129B4.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 161,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-728CFE",
+    "box": 25,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-728CFE.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 162,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-269557",
+    "box": 25,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-269557.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 163,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-704F1E",
+    "box": 25,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-704F1E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 164,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-FB4D6E",
+    "box": 25,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-FB4D6E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 165,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-8B0B37",
+    "box": 25,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-8B0B37.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 166,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-87A160",
+    "box": 25,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-87A160.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 167,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-3-0XC1JEG7-CBE5C1",
+    "box": 25,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-3-0XC1JEG7-CBE5C1.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 168,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-B5D94E",
+    "box": 26,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-B5D94E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 169,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-526296",
+    "box": 26,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-526296.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 170,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-EF7BAD",
+    "box": 26,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-EF7BAD.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 171,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-FC0424",
+    "box": 26,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-FC0424.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 172,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-634530",
+    "box": 26,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-634530.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 173,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-502E1D",
+    "box": 26,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-502E1D.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 174,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-C3D04A",
+    "box": 26,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-C3D04A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 175,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-0D885A",
+    "box": 26,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-0D885A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 176,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-BD5736",
+    "box": 26,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-BD5736.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 177,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-612F36",
+    "box": 26,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-612F36.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 178,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-A462C2",
+    "box": 26,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-A462C2.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 179,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-097024",
+    "box": 26,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-097024.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 180,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-EDABF7",
+    "box": 26,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-EDABF7.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 181,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-4-H5FEH6KM-3A9115",
+    "box": 26,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-4-H5FEH6KM-3A9115.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 182,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-8EA016",
+    "box": 27,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-8EA016.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 183,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-202130",
+    "box": 27,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-202130.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 184,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-FA85AF",
+    "box": 27,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-FA85AF.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 185,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-9F929A",
+    "box": 27,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-9F929A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 186,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-0FBC08",
+    "box": 27,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-0FBC08.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 187,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-A3EAF8",
+    "box": 27,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-A3EAF8.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 188,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-BD17DB",
+    "box": 27,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-BD17DB.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 189,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-5445A3",
+    "box": 27,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-5445A3.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 190,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-6B34FB",
+    "box": 27,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-6B34FB.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 191,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-83F567",
+    "box": 27,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-83F567.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 192,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-8DA8B2",
+    "box": 27,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-8DA8B2.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 193,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-9C0397",
+    "box": 27,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-9C0397.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 194,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-796EF2",
+    "box": 27,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-796EF2.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 195,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-5-Y7V0HRYV-1CD7CC",
+    "box": 27,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-5-Y7V0HRYV-1CD7CC.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 196,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-5F2224",
+    "box": 28,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-5F2224.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 197,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-D9CBAA",
+    "box": 28,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-D9CBAA.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 198,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-8D0ED1",
+    "box": 28,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-8D0ED1.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 199,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-AF8481",
+    "box": 28,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-AF8481.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 200,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-A3A1E4",
+    "box": 28,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-A3A1E4.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 201,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-AC54E8",
+    "box": 28,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-AC54E8.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 202,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-92DC3A",
+    "box": 28,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-92DC3A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 203,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-2C021F",
+    "box": 28,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-2C021F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 204,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-759901",
+    "box": 28,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-759901.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 205,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-24CC67",
+    "box": 28,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-24CC67.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 206,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-7BF8C6",
+    "box": 28,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-7BF8C6.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 207,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-580485",
+    "box": 28,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-580485.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 208,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-6C7035",
+    "box": 28,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-6C7035.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 209,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-6-DN31HVFM-6557FF",
+    "box": 28,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-6-DN31HVFM-6557FF.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 210,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-ECA973",
+    "box": 29,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-ECA973.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 211,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-8FBAF6",
+    "box": 29,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-8FBAF6.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 212,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-759D95",
+    "box": 29,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-759D95.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 213,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-91C0CD",
+    "box": 29,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-91C0CD.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 214,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-0173C4",
+    "box": 29,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-0173C4.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 215,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-64C408",
+    "box": 29,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-64C408.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 216,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-EDC2B2",
+    "box": 29,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-EDC2B2.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 217,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-A08319",
+    "box": 29,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-A08319.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 218,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-3AF3B2",
+    "box": 29,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-3AF3B2.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 219,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-3E0DAD",
+    "box": 29,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-3E0DAD.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 220,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-467E40",
+    "box": 29,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-467E40.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 221,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-445F46",
+    "box": 29,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-445F46.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 222,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-845650",
+    "box": 29,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-845650.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 223,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-7-FZWCG5F6-161268",
+    "box": 29,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-7-FZWCG5F6-161268.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 224,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-068B39",
+    "box": 30,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-068B39.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 225,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-07EAF9",
+    "box": 30,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-07EAF9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 226,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-61E2C6",
+    "box": 30,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-61E2C6.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 227,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-CB48FC",
+    "box": 30,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-CB48FC.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 228,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-38C90E",
+    "box": 30,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-38C90E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 229,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-9C8108",
+    "box": 30,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-9C8108.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 230,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-8A8342",
+    "box": 30,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-8A8342.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 231,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-20DDAE",
+    "box": 30,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-20DDAE.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 232,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-C37B4B",
+    "box": 30,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-C37B4B.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 233,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-394B13",
+    "box": 30,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-394B13.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 234,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-62121C",
+    "box": 30,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-62121C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 235,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-1214C4",
+    "box": 30,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-1214C4.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 236,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-20D837",
+    "box": 30,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-20D837.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 237,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-8-956Y2TEH-D9DCEE",
+    "box": 30,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-8-956Y2TEH-D9DCEE.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 238,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-1F6A80",
+    "box": 31,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-1F6A80.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 239,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-566891",
+    "box": 31,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-566891.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 240,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-EC4B8C",
+    "box": 31,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-EC4B8C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 241,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-EC816B",
+    "box": 31,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-EC816B.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 242,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-E4D92D",
+    "box": 31,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-E4D92D.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 243,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-DFB55F",
+    "box": 31,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-DFB55F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 244,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-BF0277",
+    "box": 31,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-BF0277.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 245,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-084057",
+    "box": 31,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-084057.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 246,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-2AD257",
+    "box": 31,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-2AD257.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 247,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-C55FF1",
+    "box": 31,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-C55FF1.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 248,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-000F0D",
+    "box": 31,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-000F0D.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 249,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-FBF13C",
+    "box": 31,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-FBF13C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 250,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-4198E0",
+    "box": 31,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-4198E0.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 251,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-9-G2P3ZV0R-CFBBDD",
+    "box": 31,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-9-G2P3ZV0R-CFBBDD.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 252,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-FA14C8",
+    "box": 32,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-FA14C8.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 253,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-797381",
+    "box": 32,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-797381.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 254,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-5EC049",
+    "box": 32,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-5EC049.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 255,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-E7D5D9",
+    "box": 32,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-E7D5D9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 256,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-CF6916",
+    "box": 32,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-CF6916.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 257,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-838601",
+    "box": 32,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-838601.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 258,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-24E9D1",
+    "box": 32,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-24E9D1.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 259,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-641256",
+    "box": 32,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-641256.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 260,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-C51D0C",
+    "box": 32,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-C51D0C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 261,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-D52FB4",
+    "box": 32,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-D52FB4.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 262,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-1DD593",
+    "box": 32,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-1DD593.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 263,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-ECF465",
+    "box": 32,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-ECF465.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 264,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-35417F",
+    "box": 32,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-35417F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 265,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-10-30GC3G0Z-018A2D",
+    "box": 32,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-10-30GC3G0Z-018A2D.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 266,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-75E635",
+    "box": 33,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-75E635.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 267,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-CE4F04",
+    "box": 33,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-CE4F04.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 268,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-C295EF",
+    "box": 33,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-C295EF.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 269,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-52D30C",
+    "box": 33,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-52D30C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 270,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-9D420D",
+    "box": 33,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-9D420D.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 271,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-756E73",
+    "box": 33,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-756E73.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 272,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-08F878",
+    "box": 33,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-08F878.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 273,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-887FA9",
+    "box": 33,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-887FA9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 274,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-E1B63D",
+    "box": 33,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-E1B63D.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 275,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-BE3B16",
+    "box": 33,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-BE3B16.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 276,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-6ED4B9",
+    "box": 33,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-6ED4B9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 277,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-C561AF",
+    "box": 33,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-C561AF.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 278,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-327B6A",
+    "box": 33,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-327B6A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 279,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-11-7MPJ4AR4-64679F",
+    "box": 33,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-11-7MPJ4AR4-64679F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 280,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-CC62BE",
+    "box": 34,
+    "article_operation": 57,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "3432.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-CC62BE.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 281,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-2BF8F9",
+    "box": 34,
+    "article_operation": 58,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-2BF8F9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 282,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-8B7B10",
+    "box": 34,
+    "article_operation": 59,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "34408.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-8B7B10.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 283,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-E524E7",
+    "box": 34,
+    "article_operation": 60,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "7832.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-E524E7.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 284,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-63962A",
+    "box": 34,
+    "article_operation": 61,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-63962A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 285,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-9E1678",
+    "box": 34,
+    "article_operation": 62,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "15576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-9E1678.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 286,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-C31E9A",
+    "box": 34,
+    "article_operation": 63,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-C31E9A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 287,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-1E5396",
+    "box": 34,
+    "article_operation": 64,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-1E5396.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 288,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-7FF932",
+    "box": 34,
+    "article_operation": 65,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-7FF932.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 289,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-3173EE",
+    "box": 34,
+    "article_operation": 66,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "4752.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-3173EE.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 290,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-A89759",
+    "box": 34,
+    "article_operation": 67,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "9152.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-A89759.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 291,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-A413E5",
+    "box": 34,
+    "article_operation": 68,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "5984.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-A413E5.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 292,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-C7BCE6",
+    "box": 34,
+    "article_operation": 69,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "23936.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-C7BCE6.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 293,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-12-QMOY4LN0-CC8ADB",
+    "box": 34,
+    "article_operation": 70,
+    "quantity": 88,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "13200.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-12-QMOY4LN0-CC8ADB.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 294,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-57C793",
+    "box": 35,
+    "article_operation": 57,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "1716.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-57C793.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 295,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-B2DB13",
+    "box": 35,
+    "article_operation": 58,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "2376.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-B2DB13.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 296,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-04D95C",
+    "box": 35,
+    "article_operation": 59,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "17204.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-04D95C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 297,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-1DC9D9",
+    "box": 35,
+    "article_operation": 60,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "3916.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-1DC9D9.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 298,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-5DD86A",
+    "box": 35,
+    "article_operation": 61,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "7788.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-5DD86A.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 299,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-CCF549",
+    "box": 35,
+    "article_operation": 62,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "7788.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-CCF549.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 300,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-76DB8F",
+    "box": 35,
+    "article_operation": 63,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "4576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-76DB8F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 301,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-928102",
+    "box": 35,
+    "article_operation": 64,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "2376.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-928102.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 302,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-56402E",
+    "box": 35,
+    "article_operation": 65,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "4576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-56402E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 303,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-3B6412",
+    "box": 35,
+    "article_operation": 66,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "2376.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-3B6412.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 304,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-A97311",
+    "box": 35,
+    "article_operation": 67,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "4576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-A97311.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 305,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-464185",
+    "box": 35,
+    "article_operation": 68,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "2992.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-464185.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 306,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-AB9F31",
+    "box": 35,
+    "article_operation": 69,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "11968.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-AB9F31.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 307,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-13-Q0S13EZI-6B993B",
+    "box": 35,
+    "article_operation": 70,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "6600.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-13-Q0S13EZI-6B993B.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 308,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-6C2170",
+    "box": 36,
+    "article_operation": 57,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "39.00",
+    "total_amount": "1716.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-6C2170.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 309,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-5A1E23",
+    "box": 36,
+    "article_operation": 58,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "2376.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-5A1E23.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 310,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-2CD945",
+    "box": 36,
+    "article_operation": 59,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "391.00",
+    "total_amount": "17204.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-2CD945.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 311,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-215A6F",
+    "box": 36,
+    "article_operation": 60,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "89.00",
+    "total_amount": "3916.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-215A6F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 312,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-A0910E",
+    "box": 36,
+    "article_operation": 61,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "7788.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-A0910E.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 313,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-FD10E7",
+    "box": 36,
+    "article_operation": 62,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "177.00",
+    "total_amount": "7788.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-FD10E7.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 314,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-778217",
+    "box": 36,
+    "article_operation": 63,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "4576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-778217.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 315,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-7247A0",
+    "box": 36,
+    "article_operation": 64,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "2376.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-7247A0.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 316,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-710595",
+    "box": 36,
+    "article_operation": 65,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "4576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-710595.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 317,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-3F6A6C",
+    "box": 36,
+    "article_operation": 66,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "54.00",
+    "total_amount": "2376.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-3F6A6C.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 318,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-5AB28F",
+    "box": 36,
+    "article_operation": 67,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "104.00",
+    "total_amount": "4576.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-5AB28F.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 319,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-C83A55",
+    "box": 36,
+    "article_operation": 68,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "68.00",
+    "total_amount": "2992.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-C83A55.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 320,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-86B222",
+    "box": 36,
+    "article_operation": 69,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "272.00",
+    "total_amount": "11968.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-86B222.png"
+  }
+},
+{
+  "model": "production.ticket",
+  "pk": 321,
+  "fields": {
+    "ticket_code": "TK-Детский сарафан узун кул-14-4WNZXIKH-7249A4",
+    "box": 36,
+    "article_operation": 70,
+    "quantity": 44,
+    "split_index": 1,
+    "total_splits": 1,
+    "price_per_unit": "150.00",
+    "total_amount": "6600.00",
+    "status": "PENDING",
+    "worker": null,
+    "scanned_by": null,
+    "screen_number": null,
+    "scanned_at": null,
+    "qr_code_image": "qr_codes/tickets/ticket_TK-Детский_сарафан_узун_кул-14-4WNZXIKH-7249A4.png"
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 1,
+  "fields": {
+    "action_time": "2026-09-15T05:41:37.947Z",
+    "user": [
+      "admin"
+    ],
+    "content_type": [
+      "production",
+      "article"
+    ],
+    "object_id": "1",
+    "object_repr": "POLO-2026 - Erkaklar Polo Futbolkasi (Paxta)",
+    "action_flag": 2,
+    "change_message": "[]"
+  }
+}
+]

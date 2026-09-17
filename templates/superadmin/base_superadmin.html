@@ -56,7 +56,7 @@
             <a href="{% url 'superadmin_users' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'superadmin_users' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-users-gear w-5 text-center"></i>
-                <span>Foydalanuvchilar (Staff)</span>
+                <span>Foydalanuvchilar (Users & QR)</span>
             </a>
 
             <a href="{% url 'superadmin_payroll' %}"
@@ -87,10 +87,14 @@
                 <span>Sex Ekranlari (1–10)</span>
             </a>
 
-            <a href="{% url 'bot:bot_simulator' %}" target="_blank"
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-amber-300 hover:bg-amber-500/10 transition">
-                <i class="fa-brands fa-telegram w-5 text-center text-lg"></i>
-                <span>Master Bot Simulyatori</span>
+            <a href="{% url 'production:terminal_home' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/30 transition shadow-sm">
+                <i class="fa-solid fa-barcode w-5 text-center text-emerald-400"></i>
+                <div class="flex-1 min-w-0">
+                    <span class="block leading-tight">Master Terminali</span>
+                    <span class="text-[10px] text-emerald-400/80 font-normal uppercase tracking-wider">Zebra DS22
+                        Skaner</span>
+                </div>
             </a>
         </nav>
 
@@ -107,7 +111,8 @@
                     <span class="text-[10px] text-amber-400 font-semibold">Super Admin</span>
                 </div>
             </div>
-            <a href="/admin/logout/" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Chiqish">
+            <a href="{% url 'accounts:logout' %}" class="p-1.5 text-slate-400 hover:text-rose-400 transition"
+                title="Chiqish">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
             </a>
         </div>
@@ -125,10 +130,17 @@
 
             <div class="flex items-center gap-4">
                 <div
-                    class="flex items-center gap-2 text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-full">
+                    class="hidden sm:flex items-center gap-2 text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-full">
                     <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                     <span>To'liq Boshqaruv Huquqi</span>
                 </div>
+
+                <a href="{% url 'accounts:logout' %}"
+                    class="flex items-center gap-2 px-3.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold transition shadow-sm"
+                    title="Tizimdan chiqish">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Chiqish</span>
+                </a>
             </div>
         </header>
 

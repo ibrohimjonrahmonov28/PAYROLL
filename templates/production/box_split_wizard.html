@@ -62,7 +62,6 @@
                         class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
                         <th class="py-3 px-4 w-12">№</th>
                         <th class="py-3 px-4">Operatsiya Nomi</th>
-                        <th class="py-3 px-4 text-right">Dona Narxi</th>
                         <th class="py-3 px-4 text-center w-36">Split (Bo'laklar)</th>
                         <th class="py-3 px-6">Taqsimlangan Stikerlar (Donalar)</th>
                     </tr>
@@ -74,13 +73,14 @@
                             {{ item.art_op.sequence }}
                         </td>
                         <td class="py-4 px-4">
-                            <div class="font-bold text-white text-base">{{ item.art_op.operation.name }}</div>
+                            <div class="font-bold text-white text-base flex items-center gap-2">
+                                <span>{{ item.art_op.operation.name }}</span>
+                                <span
+                                    class="text-xs px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60 text-indigo-400 font-mono font-bold">
+                                    Qiyinlik: {{ item.art_op.difficulty_display }}
+                                </span>
+                            </div>
                             <div class="text-xs text-cyan-400 font-mono">Kod: {{ item.art_op.operation.code }}</div>
-                        </td>
-                        <td class="py-4 px-4 text-right">
-                            <span class="font-bold text-emerald-400 digital-font text-base">{{
-                                item.art_op.price_per_unit|floatformat:0 }}</span>
-                            <span class="text-[10px] text-slate-500 block">so'm</span>
                         </td>
                         <td class="py-4 px-4 text-center">
                             <input type="number" name="split_{{ item.art_op.id }}" id="split-input-{{ item.art_op.id }}"

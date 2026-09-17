@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from accounts.models import User, Worker, WorkerPayout
+from accounts.models import User, Worker, WorkerPayout, DailyWorkerClosing
 from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
 
 
@@ -201,4 +201,578 @@ class SuperAdminPanelTest(TestCase):
         mod2_item = self.order.items.get(article__code='MOD-2')
         self.assertEqual(mod2_item.quantity, 500)
         self.assertEqual(mod2_item.unit_total_rate, Decimal("900.00"))
+
+    def test_superadmin_order_edit_and_model_management(self):
+        self.client.force_login(self.superadmin)
+        
+        # 1. Edit order client & status
+        edit_order_data = {
+            'client_name': 'Yangilangan Mijoz MCHJ',
+            'deadline': '2026-10-15',
+            'status': 'IN_PROGRESS'
+        }
+        res1 = self.client.post(reverse('superadmin_order_edit', args=[self.order.id]), edit_order_data)
+        self.assertEqual(res1.status_code, 302)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.client_name, 'Yangilangan Mijoz MCHJ')
+
+        # 2. Edit model quantity & name
+        edit_model_data = {
+            'model_name': 'Super Model Yangilandi',
+            'quantity': '250'
+        }
+        res2 = self.client.post(
+            reverse('superadmin_order_model_edit', args=[self.order.id, self.order_item.id]),
+            edit_model_data
+        )
+        self.assertEqual(res2.status_code, 302)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.quantity, 250)
+        self.assertEqual(self.order_item.article.name, 'Super Model Yangilandi')
+
+        # 3. Update operation price
+        update_op_data = {
+            'article_operation_id': self.art_op.id,
+            'price_per_unit': '1400.00',
+            'sequence': '1'
+        }
+        res3 = self.client.post(
+            reverse('superadmin_order_model_update_operation', args=[self.order.id, self.order_item.id]),
+            update_op_data
+        )
+        self.assertEqual(res3.status_code, 302)
+        self.art_op.refresh_from_db()
+        self.assertEqual(self.art_op.price_per_unit, Decimal("1400.00"))
+
+        # 4. Check KPI calculations
+        # Total cost = 250 * 1400 = 350,000 UZS
+        self.assertEqual(self.order.total_order_cost, Decimal("350000.00"))
+        self.assertEqual(self.order.average_unit_cost, Decimal("1400.00"))
+
+        # 5. Add new operation to model
+        new_op = Operation.objects.create(code="OP-EXTRA", name="Extra Tikish")
+        add_op_data = {
+            'operation_id': new_op.id,
+            'price_per_unit': '600.00',
+            'sequence': '2'
+        }
+        res4 = self.client.post(
+            reverse('superadmin_order_model_add_operation', args=[self.order.id, self.order_item.id]),
+            add_op_data
+        )
+        self.assertEqual(res4.status_code, 302)
+        self.assertEqual(self.order_item.article.article_operations.count(), 2)
+
+        # 6. Delete operation from model
+        new_ao = ArticleOperation.objects.get(article=self.order_item.article, operation=new_op)
+        res5 = self.client.post(
+            reverse('superadmin_order_model_delete_operation', args=[self.order.id, self.order_item.id, new_ao.id])
+        )
+        self.assertEqual(res5.status_code, 302)
+        self.assertEqual(self.order_item.article.article_operations.count(), 1)
+
+    def test_user_uid_qr_and_management(self):
+        self.client.force_login(self.superadmin)
+
+        # 1. Automatic 6-digit UID and QR code on user creation
+        new_user = User.objects.create_user(
+            username="test_worker_user",
+            first_name="Jasur",
+            last_name="Bekzodov",
+            password="pass12345Password!",
+            role=User.Role.MASTER
+        )
+        self.assertIsNotNone(new_user.uid)
+        self.assertEqual(len(new_user.uid), 6)
+        self.assertTrue(new_user.uid.isdigit())
+        self.assertTrue(bool(new_user.qr_code))
+
+        # 2. Create user via SuperAdmin UI POST
+        create_res = self.client.post(reverse('superadmin_users'), {
+            'action': 'create_user',
+            'username': 'noviy_master',
+            'first_name': 'Botir',
+            'last_name': 'Qodirov',
+            'password': 'StrongPass123!',
+            'role': User.Role.MASTER,
+            'phone_number': '+998901112233'
+        })
+        self.assertEqual(create_res.status_code, 302)
+        created_user = User.objects.get(username='noviy_master')
+        self.assertEqual(created_user.first_name, 'Botir')
+        self.assertEqual(created_user.last_name, 'Qodirov')
+        self.assertEqual(len(created_user.uid), 6)
+        self.assertTrue(bool(created_user.qr_code))
+
+        # 3. Change role via SuperAdmin UI
+        role_res = self.client.post(reverse('superadmin_users'), {
+            'action': 'change_role',
+            'user_id': created_user.id,
+            'role': User.Role.ADMIN
+        })
+        self.assertEqual(role_res.status_code, 302)
+        created_user.refresh_from_db()
+        self.assertEqual(created_user.role, User.Role.ADMIN)
+        self.assertTrue(created_user.is_staff)
+
+        # 4. Delete user via SuperAdmin UI
+        del_res = self.client.post(reverse('superadmin_users'), {
+            'action': 'delete_user',
+            'user_id': created_user.id
+        })
+        self.assertEqual(del_res.status_code, 302)
+        self.assertFalse(User.objects.filter(username='noviy_master').exists())
+
+    def test_worker_auto_creates_oddiy_user(self):
+        # When a new worker is created, an associated 'Oddiy User' (USER role) must be auto-created
+        worker = Worker.objects.create(
+            worker_id="W-888",
+            first_name="Madina",
+            last_name="Alimova",
+            phone_number="+998901234567"
+        )
+        self.assertIsNotNone(worker.user)
+        self.assertEqual(worker.user.role, User.Role.USER)
+        self.assertEqual(worker.user.first_name, "Madina")
+        self.assertEqual(worker.user.last_name, "Alimova")
+        self.assertEqual(len(worker.user.uid), 6)
+        self.assertTrue(bool(worker.user.qr_code))
+        self.assertTrue(worker.user.is_regular_user())
+        self.assertFalse(worker.user.is_staff)
+
+    def test_daily_closing_command_and_model(self):
+        from django.core.management import call_command
+        today = timezone.localdate()
+        # Run command for today
+        call_command('close_daily_payroll', f'--date={today.strftime("%Y-%m-%d")}')
+
+        closing = DailyWorkerClosing.objects.filter(worker=self.worker, date=today).first()
+        self.assertIsNotNone(closing)
+        self.assertEqual(closing.total_units, 100)
+        self.assertEqual(closing.total_amount, Decimal("100000.00"))
+        self.assertEqual(closing.ticket_count, 1)
+
+        # Idempotency check: running again updates the record without creating duplicate
+        call_command('close_daily_payroll', f'--date={today.strftime("%Y-%m-%d")}')
+        self.assertEqual(DailyWorkerClosing.objects.filter(worker=self.worker, date=today).count(), 1)
+
+    def test_tv_screen_daily_isolation(self):
+        from screens.views import get_screen_data
+        import datetime
+
+        today = timezone.localdate()
+        yesterday = today - datetime.timedelta(days=1)
+
+        # Create a ticket scanned yesterday
+        yesterday_dt = timezone.now() - datetime.timedelta(days=1)
+        Ticket.objects.create(
+            box=self.box,
+            article_operation=self.art_op,
+            quantity=50,
+            price_per_unit=Decimal("1000.00"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            screen_number=2,
+            scanned_at=yesterday_dt
+        )
+
+        # Screen 2 on today should show 0 units and 0 earnings because the scan was yesterday
+        today_data = get_screen_data(2, today)
+        self.assertEqual(today_data['grand_total_units'], 0)
+        self.assertEqual(today_data['grand_total_earnings'], 0)
+        self.assertEqual(len(today_data['workers']), 0)
+
+        # Screen 2 for yesterday should show 50 units and 50,000 UZS
+        yesterday_data = get_screen_data(2, yesterday)
+        self.assertEqual(yesterday_data['grand_total_units'], 50)
+        self.assertEqual(yesterday_data['grand_total_earnings'], 50000)
+        self.assertEqual(len(yesterday_data['workers']), 1)
+
+    def test_monthly_payroll_calculation_and_daily_breakdown(self):
+        self.client.force_login(self.superadmin)
+        today = timezone.localdate()
+
+        # Add advance payout for worker in current month
+        WorkerPayout.objects.create(
+            worker=self.worker,
+            amount=Decimal("30000.00"),
+            payout_type=WorkerPayout.PayoutType.ADVANCE,
+            payout_date=today,
+            created_by=self.superadmin
+        )
+
+        # Get payroll page for current month
+        res = self.client.get(reverse('superadmin_payroll'), {'year': today.year, 'month': today.month})
+        self.assertEqual(res.status_code, 200)
+
+        # Test daily breakdown AJAX endpoint
+        breakdown_url = reverse('superadmin_worker_daily_breakdown', kwargs={'worker_id': self.worker.id})
+        b_res = self.client.get(breakdown_url, {'year': today.year, 'month': today.month})
+        self.assertEqual(b_res.status_code, 200)
+        data = b_res.json()
+        self.assertEqual(data['worker_id'], self.worker.worker_id)
+        self.assertEqual(data['total_units'], 100)
+        self.assertEqual(data['total_earned'], 100000.0)
+        self.assertEqual(data['total_advance'], 30000.0)
+        self.assertEqual(data['net_payable'], 70000.0)
+
+    def test_search_scalability_payroll_and_orders(self):
+        self.client.force_login(self.superadmin)
+
+        # 1. Payroll search by Worker ID
+        res_pay_wid = self.client.get(reverse('superadmin_payroll'), {'q': self.worker.worker_id})
+        self.assertEqual(res_pay_wid.status_code, 200)
+        self.assertEqual(len(res_pay_wid.context['payroll_data']), 1)
+
+        # Payroll search with non-matching term
+        res_pay_none = self.client.get(reverse('superadmin_payroll'), {'q': 'NONEXISTENT'})
+        self.assertEqual(res_pay_none.status_code, 200)
+        self.assertEqual(len(res_pay_none.context['payroll_data']), 0)
+
+        # 2. SuperAdmin Orders search by order_number
+        res_ord_num = self.client.get(reverse('superadmin_orders_list'), {'q': self.order.order_number})
+        self.assertEqual(res_ord_num.status_code, 200)
+        self.assertIn(self.order, res_ord_num.context['orders'])
+
+        # SuperAdmin Orders search by box_code
+        res_ord_box = self.client.get(reverse('superadmin_orders_list'), {'q': self.box.box_code})
+        self.assertEqual(res_ord_box.status_code, 200)
+        self.assertIn(self.order, res_ord_box.context['orders'])
+
+        # 3. Production Orders search by box_code
+        res_prod_box = self.client.get(reverse('production:order_list'), {'q': self.box.box_code})
+        self.assertEqual(res_prod_box.status_code, 200)
+        self.assertIn(self.order, res_prod_box.context['orders'])
+
+    def test_master_restricted_to_terminal_only(self):
+        self.client.force_login(self.master)
+
+        # 1. Master can access terminal
+        res_term = self.client.get(reverse('production:terminal_home'))
+        self.assertEqual(res_term.status_code, 200)
+
+        # 2. Master accessing / (dashboard) is redirected to terminal
+        res_root = self.client.get('/')
+        self.assertEqual(res_root.status_code, 302)
+        self.assertIn('/terminal/', res_root.url)
+
+        # 3. Master accessing /orders/ is redirected to terminal
+        res_ord = self.client.get(reverse('production:order_list'))
+        self.assertEqual(res_ord.status_code, 302)
+        self.assertIn('/terminal/', res_ord.url)
+
+        # 4. Master accessing /superadmin/ is redirected to terminal
+        res_sa = self.client.get(reverse('superadmin_dashboard'))
+        self.assertEqual(res_sa.status_code, 302)
+        self.assertIn('/terminal/', res_sa.url)
+
+        # 5. Master making AJAX request to non-terminal returns 403 Forbidden
+        res_ajax = self.client.get(reverse('production:order_list'), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_ajax.status_code, 403)
+        self.assertEqual(res_ajax.json()['status'], 'FORBIDDEN')
+
+        # 6. Superadmin is NOT restricted
+        self.client.force_login(self.superadmin)
+        res_sa_ok = self.client.get(reverse('superadmin_dashboard'))
+        self.assertEqual(res_sa_ok.status_code, 200)
+        res_sa_ord = self.client.get(reverse('production:order_list'))
+        self.assertEqual(res_sa_ord.status_code, 200)
+        res_sa_term = self.client.get(reverse('production:terminal_home'))
+        self.assertEqual(res_sa_term.status_code, 200)
+
+    def test_master_login_and_logout(self):
+        # 1. Login with master credentials
+        res_login = self.client.post(reverse('accounts:login'), {
+            'username': 'master_test',
+            'password': 'testpassword123'
+        })
+        self.assertEqual(res_login.status_code, 302)
+        self.assertIn('/terminal/', res_login.url)
+
+        # 2. Logout
+        res_logout = self.client.get(reverse('accounts:logout'))
+        self.assertEqual(res_logout.status_code, 302)
+        self.assertIn('/login/', res_logout.url)
+
+    def test_delete_model_from_order_does_not_resurrect(self):
+        self.client.force_login(self.superadmin)
+        art = Article.objects.create(code="ART-DEL", name="Model to Delete")
+        ord_del = Order.objects.create(order_number="ORD-DEL-MOD", article=art, total_quantity=50)
+        item = OrderItem.objects.create(order=ord_del, article=art, quantity=50)
+
+        # Delete model from order
+        res = self.client.post(reverse('superadmin_order_model_delete', kwargs={'order_id': ord_del.id, 'item_id': item.id}))
+        self.assertEqual(res.status_code, 302)
+
+        ord_del.refresh_from_db()
+        self.assertEqual(ord_del.items.count(), 0)
+        self.assertIsNone(ord_del.article)
+        self.assertEqual(ord_del.total_quantity, 0)
+
+        # Visiting order detail page must NOT resurrect the deleted model
+        res_detail = self.client.get(reverse('superadmin_order_detail', kwargs={'order_id': ord_del.id}))
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertEqual(ord_del.items.count(), 0)
+        self.assertContains(res_detail, "Ushbu zakazda hali modellar mavjud emas")
+
+    def test_delete_entire_order(self):
+        self.client.force_login(self.superadmin)
+        ord_del = Order.objects.create(order_number="ORD-TOTAL-DELETE", total_quantity=50)
+        res = self.client.post(reverse('superadmin_order_delete', kwargs={'order_id': ord_del.id}))
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(Order.objects.filter(id=ord_del.id).exists())
+
+    def test_add_model_with_operations_and_prices(self):
+        self.client.force_login(self.superadmin)
+        ord_obj = Order.objects.create(order_number="ORD-ADD-MODEL-TEST", total_quantity=0)
+        op1 = Operation.objects.create(code="OP-NEW-1", name="Yeng tikish")
+        op2 = Operation.objects.create(code="OP-NEW-2", name="Yoqa tikish")
+
+        data = {
+            'model_name': 'Futbolka Test',
+            'model_code': 'FUT-TEST',
+            'quantity': '250',
+            'selected_operations': [str(op1.id), str(op2.id)],
+            f'price_{op1.id}': '1200',
+            f'price_{op2.id}': '1800',
+        }
+        res = self.client.post(reverse('superadmin_order_add_model', kwargs={'order_id': ord_obj.id}), data)
+        self.assertEqual(res.status_code, 302)
+
+        ord_obj.refresh_from_db()
+        self.assertEqual(ord_obj.items.count(), 1)
+        item = ord_obj.items.first()
+        self.assertEqual(item.article.code, 'FUT-TEST')
+        self.assertEqual(item.quantity, 250)
+
+        # Verify operations & per-unit prices
+        ao1 = ArticleOperation.objects.get(article=item.article, operation=op1)
+        self.assertEqual(ao1.price_per_unit, Decimal('1200.00'))
+        ao2 = ArticleOperation.objects.get(article=item.article, operation=op2)
+        self.assertEqual(ao2.price_per_unit, Decimal('1800.00'))
+
+    def test_custom_integer_operation_price_like_39(self):
+        self.client.force_login(self.superadmin)
+        ord_obj = Order.objects.create(order_number="ORD-PRICE-39", total_quantity=10)
+        art = Article.objects.create(code="ART-39", name="Model 39")
+        item = OrderItem.objects.create(order=ord_obj, article=art, quantity=10)
+        op = Operation.objects.create(code="OP-39", name="Maxsus operatsiya")
+        ao = ArticleOperation.objects.create(article=art, operation=op, price_per_unit=Decimal("10.00"), sequence=1)
+
+        # Update price to 39
+        res = self.client.post(
+            reverse('superadmin_order_model_update_operation', kwargs={'order_id': ord_obj.id, 'item_id': item.id}),
+            {
+                'article_operation_id': ao.id,
+                'price_per_unit': '39',
+                'sequence': '1'
+            }
+        )
+        self.assertEqual(res.status_code, 302)
+        ao.refresh_from_db()
+        self.assertEqual(ao.price_per_unit, Decimal('39.00'))
+
+    def test_superadmin_user_badge_print(self):
+        self.client.force_login(self.superadmin)
+        test_user = User.objects.create(
+            username='birka_user',
+            first_name='Jasur',
+            last_name='Nazarov',
+            role=User.Role.USER
+        )
+        url = reverse('superadmin_user_badge', kwargs={'user_id': test_user.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Jasur')
+        self.assertContains(res, 'Nazarov')
+        self.assertContains(res, f'UID: {test_user.uid}')
+        self.assertContains(res, f'USER:{test_user.uid}')
+        self.assertContains(res, 'TIKUVCHILIK FABRIKASI')
+
+    def test_superadmin_users_print_badges_batch(self):
+        self.client.force_login(self.superadmin)
+        u1 = User.objects.create(username='u_test_1', first_name='Azamat', last_name='Qodirov', role=User.Role.USER)
+        u2 = User.objects.create(username='u_test_2', first_name='Zafar', last_name='Bekov', role=User.Role.MASTER)
+
+        # 1. Barcha birkalar
+        res_all = self.client.get(reverse('superadmin_users_print_badges'))
+        self.assertEqual(res_all.status_code, 200)
+        self.assertContains(res_all, 'Azamat')
+        self.assertContains(res_all, 'Zafar')
+        self.assertContains(res_all, f'UID: {u1.uid}')
+        self.assertContains(res_all, f'UID: {u2.uid}')
+
+        # 2. Rol bo'yicha filtr (faqat USER)
+        res_user = self.client.get(reverse('superadmin_users_print_badges') + '?role=USER')
+        self.assertEqual(res_user.status_code, 200)
+        self.assertContains(res_user, 'Azamat')
+        self.assertNotContains(res_user, 'Zafar')
+
+        # 3. Qidiruv bo'yicha filtr
+        res_q = self.client.get(reverse('superadmin_users_print_badges') + '?q=Azamat')
+        self.assertEqual(res_q.status_code, 200)
+        self.assertContains(res_q, 'Azamat')
+        self.assertNotContains(res_q, 'Zafar')
+
+        # 4. PDF yuklab olish testi
+        res_pdf = self.client.get(reverse('superadmin_users_download_badges_pdf'))
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
+
+    def test_operation_difficulty_and_box_stickers(self):
+        self.client.force_login(self.superadmin)
+
+        # 1. Check Operation difficulty display
+        op1 = Operation.objects.create(code='OP-DIFF-1', name='Tugma qadash', default_difficulty=3.5)
+        op2 = Operation.objects.create(code='OP-DIFF-2', name='Yoqa tikish', default_difficulty=1.0)
+        self.assertEqual(op1.default_difficulty_display, '3.5')
+        self.assertEqual(op2.default_difficulty_display, '1')
+
+        # 2. Add model with custom difficulty to order
+        data = {
+            'model_code': 'DIFF-MOD-1',
+            'model_name': 'Ko\'ylak Diff',
+            'quantity': '200',
+            'selected_operations': [str(op1.id)],
+            f'price_{op1.id}': '1500',
+            f'diff_{op1.id}': '3.5',
+        }
+        res = self.client.post(reverse('superadmin_order_add_model', kwargs={'order_id': self.order.id}), data)
+        self.assertEqual(res.status_code, 302)
+
+        new_art = Article.objects.get(code='DIFF-MOD-1')
+        ao = ArticleOperation.objects.get(article=new_art, operation=op1)
+        self.assertEqual(ao.difficulty, 3.5)
+        self.assertEqual(ao.difficulty_display, '3.5')
+        self.assertEqual(ao.price_per_unit, Decimal('1500.00'))
+
+        # 3. Update operation difficulty via superadmin_order_model_update_operation
+        item = OrderItem.objects.get(order=self.order, article=new_art)
+        update_data = {
+            'article_operation_id': ao.id,
+            'price_per_unit': '1800',
+            'sequence': '2',
+            'difficulty': '4.2',
+        }
+        res_update = self.client.post(
+            reverse('superadmin_order_model_update_operation', kwargs={'order_id': self.order.id, 'item_id': item.id}),
+            update_data
+        )
+        self.assertEqual(res_update.status_code, 302)
+        ao.refresh_from_db()
+        self.assertEqual(ao.difficulty, 4.2)
+        self.assertEqual(ao.difficulty_display, '4.2')
+        self.assertEqual(ao.price_per_unit, Decimal('1800.00'))
+
+        # 4. Box sticker print displays difficulty
+        box_diff = Box.objects.create(order=self.order, article=new_art, box_number=2, quantity=50)
+        ticket_diff = Ticket.objects.create(
+            box=box_diff,
+            article_operation=ao,
+            quantity=50,
+            split_index=1,
+            total_splits=1,
+            price_per_unit=Decimal('1800.00')
+        )
+        res_print = self.client.get(reverse('production:box_print_stickers', kwargs={'box_id': box_diff.id}))
+        self.assertEqual(res_print.status_code, 200)
+        self.assertContains(res_print, 'Qiyinlik:')
+        self.assertContains(res_print, '4.2')
+
+    def test_update_article_daily_norm(self):
+        self.client.force_login(self.superadmin)
+        res = self.client.post(reverse('superadmin_pricing'), {
+            'action': 'update_article_norm',
+            'article_id': self.article.id,
+            'daily_norm': '2500'
+        })
+        self.assertEqual(res.status_code, 302)
+        self.article.refresh_from_db()
+        self.assertEqual(self.article.daily_norm, 2500)
+
+    def test_worker_norm_and_difficulty_kpi_dashboard(self):
+        self.client.force_login(self.superadmin)
+        self.ticket.delete()
+        self.article.daily_norm = 1000
+        self.article.save()
+
+        # Operatsiya 1: qiyinlik 4.0, 100 dona -> 400 ball
+        self.art_op.difficulty = 4.0
+        self.art_op.save()
+
+        Ticket.objects.create(
+            box=self.box,
+            article_operation=self.art_op,
+            worker=self.worker,
+            quantity=100,
+            status=Ticket.Status.SCANNED,
+            scanned_at=timezone.now(),
+            total_amount=Decimal('50000.00'),
+            screen_number=1
+        )
+
+        # Operatsiya 2: qiyinlik 0.5, 200 dona -> 100 ball
+        op2 = Operation.objects.create(code='OP-NORM-2', name='Op 0.5')
+        art_op2 = ArticleOperation.objects.create(
+            article=self.article,
+            operation=op2,
+            price_per_unit=Decimal('200.00'),
+            difficulty=0.5,
+            sequence=2
+        )
+        Ticket.objects.create(
+            box=self.box,
+            article_operation=art_op2,
+            worker=self.worker,
+            quantity=200,
+            status=Ticket.Status.SCANNED,
+            scanned_at=timezone.now(),
+            total_amount=Decimal('40000.00'),
+            screen_number=1
+        )
+
+        # Jami ball: 400 + 100 = 500 ball. Norma: 1000 ball. Foiz: 50.0%
+        res = self.client.get(reverse('superadmin_dashboard') + '?period=today')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Tikuvchilarning Norma Bajarilishi')
+        self.assertContains(res, '50.0%')
+        self.assertContains(res, '500.0')
+
+    def test_box_stickers_100x60_pdf_download(self):
+        self.client.force_login(self.superadmin)
+        # Ensure a ticket exists for self.box
+        Ticket.objects.get_or_create(
+            box=self.box,
+            article_operation=self.art_op,
+            defaults={'quantity': 50, 'status': Ticket.Status.PENDING}
+        )
+        url = reverse('production:box_download_stickers_pdf', kwargs={'box_id': self.box.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/pdf')
+        self.assertTrue(len(res.content) > 0)
+        self.assertIn(self.box.box_code, res['Content-Disposition'])
+        self.assertIn('STIKERLAR_100x60.pdf', res['Content-Disposition'])
+
+    def test_order_stickers_100x60_pdf_download(self):
+        self.client.force_login(self.superadmin)
+        Ticket.objects.get_or_create(
+            box=self.box,
+            article_operation=self.art_op,
+            defaults={'quantity': 50, 'status': Ticket.Status.PENDING}
+        )
+        url = reverse('production:order_download_all_stickers_pdf', kwargs={'order_id': self.order.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/pdf')
+        self.assertTrue(len(res.content) > 0)
+        self.assertIn(self.order.order_number, res['Content-Disposition'])
+        self.assertIn('BARCHA_STIKERLAR_100x60.pdf', res['Content-Disposition'])
+
+
+
+
+
+
+
 

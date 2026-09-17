@@ -15,16 +15,34 @@
 <div class="max-w-7xl mx-auto space-y-6">
 
     <!-- Top Action Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+    <div
+        class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
         <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-clipboard-list text-amber-400"></i> Ishlab Chiqarish Zakazlari Ro'yxati
             </h3>
-            <p class="text-xs text-slate-400 mt-1">Har bir zakaz ustiga bosib uning ichidagi modellar va narxlangan operatsiyalarini ko'rishingiz mumkin.</p>
+            <p class="text-xs text-slate-400 mt-1">Har bir zakaz ustiga bosib uning ichidagi modellar va narxlangan
+                operatsiyalarini ko'rishingiz mumkin.</p>
         </div>
 
-        <div>
-            <button onclick="openNewOrderModal()" class="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Search Bar -->
+            <form method="GET" class="relative flex items-center">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-500 text-xs pointer-events-none"></i>
+                <input type="text" id="order-search-input" name="q" value="{{ search_q }}"
+                    placeholder="Zakaz, model yoki quti..." oninput="liveFilterOrders(this.value)"
+                    class="pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 w-56 md:w-72 shadow-inner transition">
+                {% if search_q %}
+                <a href="{% url 'superadmin_orders_list' %}"
+                    class="absolute right-3 text-slate-500 hover:text-rose-400 text-xs" title="Filtrni tozalash">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </form>
+
+            <button onclick="openNewOrderModal()"
+                class="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
                 <i class="fa-solid fa-circle-plus text-sm"></i> Yangi Zakaz va Model Qo'shish
             </button>
         </div>
@@ -35,7 +53,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                    <tr
+                        class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
                         <th class="py-4 px-4">Zakaz Raqami</th>
                         <th class="py-4 px-4">Buyurtmachi</th>
                         <th class="py-4 px-4 text-center">Ichidagi Modellar</th>
@@ -48,32 +67,69 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800 text-slate-200">
                     {% for order in orders %}
-                    <tr class="hover:bg-slate-800/40 transition cursor-pointer" onclick="window.location='{% url 'superadmin_order_detail' order.id %}'">
+                    <tr class="order-row hover:bg-slate-800/40 transition cursor-pointer"
+                        data-search="{{ order.order_number|lower }} {{ order.client_name|default:''|lower }} {% for it in order.items.all %}{{ it.article.code|lower }} {{ it.article.name|lower }} {% endfor %} {% if order.article %}{{ order.article.code|lower }} {{ order.article.name|lower }} {% endif %} {% for b in order.boxes.all %}{{ b.box_code|lower }} {% endfor %}"
+                        onclick="window.location='{% url 'superadmin_order_detail' order.id %}'">
                         <td class="py-4 px-4 font-black text-white">
                             <div class="flex items-center gap-2 text-base text-amber-400 hover:underline">
                                 <i class="fa-solid fa-folder-open text-amber-500 text-sm"></i>
                                 <span>{{ order.order_number }}</span>
                             </div>
-                            <span class="text-[11px] text-slate-500 block font-normal mt-0.5">Yaratilgan: {{ order.created_at|date:"d.m.Y" }}</span>
+                            <span class="text-[11px] text-slate-500 block font-normal mt-0.5">Yaratilgan: {{
+                                order.created_at|date:"d.m.Y" }}</span>
                         </td>
                         <td class="py-4 px-4 font-semibold text-slate-300">
                             {{ order.client_name|default:"—" }}
                         </td>
-                        <td class="py-4 px-4 text-center">
-                            <span class="bg-slate-800 border border-slate-700 text-cyan-300 font-bold px-3 py-1 rounded-lg text-xs">
-                                <i class="fa-solid fa-shirt mr-1"></i> {{ order.models_count }} ta model
-                            </span>
+                        <td class="py-4 px-4">
+                            <div class="space-y-1">
+                                {% for it in order.items.all %}
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                        class="bg-cyan-950 text-cyan-300 border border-cyan-800/80 font-bold px-2 py-0.5 rounded text-xs font-mono uppercase">
+                                        {{ it.article.code }}
+                                    </span>
+                                    <span class="text-xs text-white font-medium truncate max-w-[150px]"
+                                        title="{{ it.article.name }}">
+                                        {{ it.article.name }}
+                                    </span>
+                                    <span class="text-[11px] text-amber-400 font-mono font-bold">
+                                        ({{ it.quantity }} ta)
+                                    </span>
+                                </div>
+                                {% empty %}
+                                {% if order.article %}
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                        class="bg-cyan-950 text-cyan-300 border border-cyan-800/80 font-bold px-2 py-0.5 rounded text-xs font-mono uppercase">
+                                        {{ order.article.code }}
+                                    </span>
+                                    <span class="text-xs text-white font-medium truncate max-w-[150px]">
+                                        {{ order.article.name }}
+                                    </span>
+                                    <span class="text-[11px] text-amber-400 font-mono font-bold">
+                                        ({{ order.total_quantity }} ta)
+                                    </span>
+                                </div>
+                                {% else %}
+                                <span class="text-slate-500 text-xs italic">Modellar yo'q</span>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
                         </td>
                         <td class="py-4 px-4 text-center font-black text-amber-400 digital-font text-lg">
-                            {{ order.all_models_quantity }} <small class="text-xs font-semibold text-slate-400">dona</small>
+                            {{ order.all_models_quantity }} <small
+                                class="text-xs font-semibold text-slate-400">dona</small>
                         </td>
                         <td class="py-4 px-4 text-center">
                             {% if order.status == 'COMPLETED' %}
-                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
+                            <span
+                                class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
                                 Yakunlandi
                             </span>
                             {% else %}
-                            <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
+                            <span
+                                class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
                                 Ishlab chiqarishda
                             </span>
                             {% endif %}
@@ -85,7 +141,8 @@
                                     <span>{{ order.progress_percentage }}%</span>
                                 </div>
                                 <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-1.5 rounded-full" style="width: {{ order.progress_percentage }}%;"></div>
+                                    <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-1.5 rounded-full"
+                                        style="width: {{ order.progress_percentage }}%;"></div>
                                 </div>
                             </div>
                         </td>
@@ -93,18 +150,38 @@
                             {{ order.deadline|date:"d.m.Y"|default:"—" }}
                         </td>
                         <td class="py-4 px-4 text-right" onclick="event.stopPropagation()">
-                            <a href="{% url 'superadmin_order_detail' order.id %}" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 transition inline-flex items-center gap-1.5">
-                                <span>Modellar</span> <i class="fa-solid fa-arrow-right text-xs"></i>
-                            </a>
+                            <div class="inline-flex items-center gap-1.5">
+                                <a href="{% url 'superadmin_order_detail' order.id %}"
+                                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 transition inline-flex items-center gap-1.5">
+                                    <span>Modellar</span> <i class="fa-solid fa-arrow-right text-xs"></i>
+                                </a>
+                                <form method="POST" action="{% url 'superadmin_order_delete' order.id %}"
+                                    onsubmit="return confirm('Haqiqatdan ham ushbu {{ order.order_number }} zakazini butunlay o\'chirmoqchimisiz?');"
+                                    class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="p-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 rounded-xl text-xs border border-rose-800/60 transition"
+                                        title="Zakazni o'chirish">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="8" class="py-12 text-center text-slate-500">
-                            Hozircha zakazlar mavjud emas. Yuqoridagi "+ Yangi Zakaz va Model Qo'shish" tugmasini bosing.
+                            Hozircha zakazlar mavjud emas. Yuqoridagi "+ Yangi Zakaz va Model Qo'shish" tugmasini
+                            bosing.
                         </td>
                     </tr>
                     {% endfor %}
+                    <tr id="orders-empty-filter" style="display: none;">
+                        <td colspan="8" class="py-12 text-center text-slate-500 text-xs">
+                            <i class="fa-solid fa-magnifying-glass text-2xl text-slate-600 mb-2 block"></i>
+                            Qidiruv bo'yicha birorta ham zakaz topilmadi.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -113,16 +190,19 @@
 </div>
 
 <!-- MODAL: Yangi Zakaz va Model Qo'shish (Ptichka bilan operatsiyalar va narxlar) -->
-<div id="new-order-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+<div id="new-order-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-3xl p-6 md:p-8 shadow-2xl my-8">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
             <div>
                 <h3 class="text-lg font-black text-white flex items-center gap-2">
                     <i class="fa-solid fa-boxes-stacked text-amber-500"></i> Yangi Zakaz va Model Qo'shish
                 </h3>
-                <p class="text-xs text-slate-400 mt-0.5">Zakaz ma'lumotlari, model, donasi va ptichka bilan operatsiya narxlarini kiriting</p>
+                <p class="text-xs text-slate-400 mt-0.5">Zakaz ma'lumotlari, model, donasi va ptichka bilan operatsiya
+                    narxlarini kiriting</p>
             </div>
-            <button onclick="document.getElementById('new-order-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-xl p-1">
+            <button onclick="document.getElementById('new-order-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white text-xl p-1">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -132,38 +212,77 @@
 
             <!-- 1. Zakaz Ma'lumotlari -->
             <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-                <span class="text-xs uppercase tracking-wider font-extrabold text-amber-400 block">1. Zakaz Asosiy Ma'lumotlari</span>
+                <span class="text-xs uppercase tracking-wider font-extrabold text-amber-400 block">1. Zakaz Asosiy
+                    Ma'lumotlari</span>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Zakaz Raqami *</label>
-                        <input type="text" name="order_number" required placeholder="Masalan: ORD-2026-002" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                        <input type="text" name="order_number" required placeholder="Masalan: ORD-2026-002"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Buyurtmachi / Mijoz</label>
-                        <input type="text" name="client_name" placeholder="Masalan: Samo Garments" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <input type="text" name="client_name" placeholder="Masalan: Samo Garments"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Topshirish Muddati</label>
-                        <input type="date" name="deadline" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <input type="date" name="deadline"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
             </div>
 
             <!-- 2. Model Ma'lumotlari va Soni -->
             <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-                <span class="text-xs uppercase tracking-wider font-extrabold text-cyan-400 block">2. Model va Donalar Soni</span>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs uppercase tracking-wider font-extrabold text-cyan-400 block">2. Model Tanlash
+                        yoki Yangi Kiritish</span>
+                    <span class="text-[11px] text-slate-500 font-mono">Bazada {{ all_articles|length }} ta artikul
+                        mavjud</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-amber-400 mb-1">
+                        <i class="fa-solid fa-shirt mr-1"></i> Bazadagi Mavjud Artikuldan Tanlash (yoki quyida yangisini
+                        yozing):
+                    </label>
+                    <select id="select-existing-article" onchange="onSelectExistingArticle(this.value)"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <option value="">-- Yangi Artikul Yozish (Katalogdan tanlamaslik) --</option>
+                        {% for art in all_articles %}
+                        <option value="{{ art.id }}">{{ art.code }} — {{ art.name }} ({{ art.article_operations.count }}
+                            ta operatsiya)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Model Nomi *</label>
-                        <input type="text" name="model_name" required placeholder="Masalan: Erkaklar Polo Futbolkasi" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                        <input type="text" name="model_name" id="new-order-model-name" required
+                            placeholder="Masalan: Erkaklar Polo Futbolkasi"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Model Kodi / Artikul *</label>
-                        <input type="text" name="model_code" required placeholder="Masalan: POLO-01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono uppercase">
+                        <input type="text" name="model_code" id="new-order-model-code" required
+                            placeholder="Masalan: POLO-01"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono uppercase">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Reja Donalar Soni *</label>
-                        <input type="number" id="order-qty-input" name="quantity" required min="1" placeholder="Masalan: 1000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-base text-amber-400 font-black digital-font focus:outline-none focus:border-amber-500" oninput="calculateLaborSummary()">
+                        <input type="number" id="order-qty-input" name="quantity" required min="1"
+                            placeholder="Masalan: 1000"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-base text-amber-400 font-black digital-font focus:outline-none focus:border-amber-500"
+                            oninput="calculateLaborSummary()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-400 mb-1"><i
+                                class="fa-solid fa-bullseye mr-1"></i> Model Normasi (ball) *</label>
+                        <input type="number" id="order-norm-input" name="norm" required min="1" value="1000"
+                            placeholder="1000"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-base text-amber-300 font-black digital-font focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
             </div>
@@ -172,48 +291,55 @@
             <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <div class="flex items-center justify-between">
                     <div>
-                        <span class="text-xs uppercase tracking-wider font-extrabold text-emerald-400 block">3. Operatsiyalarni Belgilang (Ptichka) va Narxlarini Kiriting</span>
-                        <p class="text-[11px] text-slate-400">Shu modelda bajarilishi kerak bo'lgan operatsiyalarni tanlang va dona narxini belgilang.</p>
+                        <span class="text-xs uppercase tracking-wider font-extrabold text-emerald-400 block">3.
+                            Operatsiyalarni Belgilang (Ptichka) va Narxlarini Kiriting</span>
+                        <p class="text-[11px] text-slate-400">Shu modelda bajarilishi kerak bo'lgan operatsiyalarni
+                            tanlang va dona narxini belgilang.</p>
                     </div>
                 </div>
 
                 <!-- Operations List with Checkbox & Price Input -->
                 <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {% for op in all_operations %}
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition">
+                    <div id="op-row-{{ op.id }}"
+                        class="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition">
                         <!-- Checkbox & Name -->
                         <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0 mr-3">
-                            <input 
-                                type="checkbox" 
-                                name="selected_operations" 
-                                value="{{ op.id }}" 
+                            <input type="checkbox" name="selected_operations" value="{{ op.id }}"
                                 id="op-check-{{ op.id }}"
-                                class="w-5 h-5 rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-amber-500/20 cursor-pointer"
-                                onchange="togglePriceInput({{ op.id }})"
-                            >
+                                class="w-5 h-5 rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500/20 cursor-pointer"
+                                onchange="togglePriceInput({{ op.id }})">
                             <div class="truncate">
                                 <span class="font-bold text-white text-sm block truncate">{{ op.name }}</span>
                                 <span class="text-[10px] text-cyan-400 font-mono">Kod: {{ op.code }}</span>
                             </div>
                         </label>
 
-                        <!-- Price Input -->
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <label class="text-[11px] text-slate-400 font-semibold">Dona narxi:</label>
-                            <div class="relative w-32">
-                                <input 
-                                    type="number" 
-                                    name="price_{{ op.id }}" 
-                                    id="op-price-{{ op.id }}" 
-                                    placeholder="0" 
-                                    step="10" 
-                                    min="0" 
-                                    disabled
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-right font-black text-emerald-400 digital-font focus:outline-none focus:border-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                                    oninput="calculateLaborSummary()"
-                                >
+                        <!-- Unchecked indicator badge -->
+                        <div id="op-badge-{{ op.id }}"
+                            class="text-xs text-slate-500 font-medium px-2.5 py-1 rounded-lg bg-slate-950/40 border border-slate-800/60">
+                            Tanlanmagan
+                        </div>
+
+                        <!-- Dynamic Price & Difficulty Input Box (appears when checked) -->
+                        <div id="op-price-box-{{ op.id }}"
+                            class="hidden flex items-center gap-3 flex-shrink-0 bg-emerald-950/40 border border-emerald-500/40 px-3 py-1.5 rounded-xl transition">
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-[11px] font-bold text-indigo-400">Qiyinlik:</label>
+                                <input type="number" name="diff_{{ op.id }}" id="op-diff-{{ op.id }}"
+                                    value="{{ op.default_difficulty_display }}" step="any" min="0" disabled
+                                    class="w-16 bg-slate-950 border border-indigo-500/50 rounded-lg px-2 py-1 text-xs text-center font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-400">
                             </div>
-                            <span class="text-xs text-slate-500 font-mono">so'm</span>
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-[11px] font-bold text-emerald-400">Dona:</label>
+                                <div class="relative w-24">
+                                    <input type="number" name="price_{{ op.id }}" id="op-price-{{ op.id }}"
+                                        placeholder="1000" step="1" min="0" disabled
+                                        class="w-full bg-slate-950 border border-emerald-500/50 rounded-lg px-2 py-1 text-xs text-right font-black text-emerald-400 digital-font focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                                        oninput="calculateLaborSummary()">
+                                </div>
+                                <span class="text-[11px] font-bold text-emerald-400">so'm</span>
+                            </div>
                         </div>
                     </div>
                     {% empty %}
@@ -225,31 +351,38 @@
             </div>
 
             <!-- LIVE SUMMARY BOX -->
-            <div class="bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+            <div
+                class="bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-6">
                     <div>
-                        <span class="text-[11px] text-slate-500 uppercase font-bold block">Tanlangan Operatsiyalar</span>
+                        <span class="text-[11px] text-slate-500 uppercase font-bold block">Tanlangan
+                            Operatsiyalar</span>
                         <span id="summary-op-count" class="text-lg font-black text-white digital-font">0 ta</span>
                     </div>
                     <div class="h-8 w-px bg-slate-800"></div>
                     <div>
-                        <span class="text-[11px] text-slate-500 uppercase font-bold block">1 Dona Kiyim Tikuv Narxi</span>
-                        <span id="summary-unit-rate" class="text-lg font-black text-emerald-400 digital-font">0 <small class="text-xs">so'm</small></span>
+                        <span class="text-[11px] text-slate-500 uppercase font-bold block">1 Dona Kiyim Tikuv
+                            Narxi</span>
+                        <span id="summary-unit-rate" class="text-lg font-black text-emerald-400 digital-font">0 <small
+                                class="text-xs">so'm</small></span>
                     </div>
                     <div class="h-8 w-px bg-slate-800"></div>
                     <div>
                         <span class="text-[11px] text-slate-500 uppercase font-bold block">Jami Ish Haqi Fondi</span>
-                        <span id="summary-total-fund" class="text-lg font-black text-amber-400 digital-font">0 <small class="text-xs">so'm</small></span>
+                        <span id="summary-total-fund" class="text-lg font-black text-amber-400 digital-font">0 <small
+                                class="text-xs">so'm</small></span>
                     </div>
                 </div>
             </div>
 
             <!-- Buttons -->
             <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('new-order-modal').classList.add('hidden')" class="px-5 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+                <button type="button" onclick="document.getElementById('new-order-modal').classList.add('hidden')"
+                    class="px-5 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
                     Bekor qilish
                 </button>
-                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 rounded-xl text-sm font-black shadow-xl transition flex items-center gap-2">
+                <button type="submit"
+                    class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 rounded-xl text-sm font-black shadow-xl transition flex items-center gap-2">
                     <i class="fa-solid fa-check"></i> Zakaz va Modelni Saqlash
                 </button>
             </div>
@@ -258,21 +391,98 @@
 </div>
 
 <script>
+    const articlesDb = JSON.parse('{{ articles_json|escapejs }}');
+
     function openNewOrderModal() {
         document.getElementById('new-order-modal').classList.remove('hidden');
     }
 
+    function onSelectExistingArticle(artId) {
+        if (!artId) {
+            return;
+        }
+        const art = articlesDb.find(a => a.id == artId);
+        if (!art) return;
+
+        document.getElementById('new-order-model-code').value = art.code;
+        document.getElementById('new-order-model-name').value = art.name;
+
+        // Reset all checkboxes & price inputs
+        const allCheckboxes = document.querySelectorAll('input[name="selected_operations"]');
+        allCheckboxes.forEach(cb => {
+            cb.checked = false;
+            const opId = cb.value;
+            const priceBox = document.getElementById(`op-price-box-${opId}`);
+            const badge = document.getElementById(`op-badge-${opId}`);
+            const priceInput = document.getElementById(`op-price-${opId}`);
+            const diffInput = document.getElementById(`op-diff-${opId}`);
+            const row = document.getElementById(`op-row-${opId}`);
+            if (priceBox) priceBox.classList.add('hidden');
+            if (badge) badge.classList.remove('hidden');
+            if (priceInput) {
+                priceInput.disabled = true;
+                priceInput.value = '';
+            }
+            if (diffInput) {
+                diffInput.disabled = true;
+            }
+            if (row) row.classList.remove('border-emerald-500/50', 'bg-emerald-950/20');
+        });
+
+        // Check and fill prices for this article's operations
+        if (art.operations && art.operations.length > 0) {
+            art.operations.forEach(op => {
+                const opId = op.op_id;
+                const cb = document.getElementById(`op-check-${opId}`);
+                const priceBox = document.getElementById(`op-price-box-${opId}`);
+                const badge = document.getElementById(`op-badge-${opId}`);
+                const priceInput = document.getElementById(`op-price-${opId}`);
+                const diffInput = document.getElementById(`op-diff-${opId}`);
+                const row = document.getElementById(`op-row-${opId}`);
+                if (cb && priceInput) {
+                    cb.checked = true;
+                    if (badge) badge.classList.add('hidden');
+                    if (priceBox) priceBox.classList.remove('hidden');
+                    priceInput.disabled = false;
+                    priceInput.value = op.price;
+                    if (diffInput) {
+                        diffInput.disabled = false;
+                        if (op.difficulty) diffInput.value = op.difficulty;
+                    }
+                    if (row) row.classList.add('border-emerald-500/50', 'bg-emerald-950/20');
+                }
+            });
+        }
+
+        calculateLaborSummary();
+    }
+
     function togglePriceInput(opId) {
         const checkbox = document.getElementById(`op-check-${opId}`);
+        const priceBox = document.getElementById(`op-price-box-${opId}`);
+        const badge = document.getElementById(`op-badge-${opId}`);
         const priceInput = document.getElementById(`op-price-${opId}`);
+        const diffInput = document.getElementById(`op-diff-${opId}`);
+        const row = document.getElementById(`op-row-${opId}`);
+
         if (checkbox.checked) {
+            if (badge) badge.classList.add('hidden');
+            if (priceBox) priceBox.classList.remove('hidden');
             priceInput.disabled = false;
+            if (diffInput) diffInput.disabled = false;
             if (!priceInput.value || priceInput.value === '0') {
                 priceInput.value = '1000'; // Standard default suggestion
             }
+            if (row) row.classList.add('border-emerald-500/50', 'bg-emerald-950/20');
             priceInput.focus();
+            priceInput.select();
         } else {
+            if (priceBox) priceBox.classList.add('hidden');
+            if (badge) badge.classList.remove('hidden');
             priceInput.disabled = true;
+            if (diffInput) diffInput.disabled = true;
+            priceInput.value = '';
+            if (row) row.classList.remove('border-emerald-500/50', 'bg-emerald-950/20');
         }
         calculateLaborSummary();
     }
@@ -297,6 +507,25 @@
         document.getElementById('summary-op-count').innerText = `${selectedCount} ta`;
         document.getElementById('summary-unit-rate').innerHTML = `${totalUnitRate.toLocaleString('ru-RU')} <small class="text-xs">so'm</small>`;
         document.getElementById('summary-total-fund').innerHTML = `${totalFund.toLocaleString('ru-RU')} <small class="text-xs">so'm</small>`;
+    }
+
+    function liveFilterOrders(q) {
+        const term = (q || '').trim().toLowerCase();
+        const rows = document.querySelectorAll('.order-row');
+        let visibleCount = 0;
+        rows.forEach(r => {
+            const text = r.getAttribute('data-search') || '';
+            if (!term || text.includes(term)) {
+                r.style.display = '';
+                visibleCount++;
+            } else {
+                r.style.display = 'none';
+            }
+        });
+        const emptyNotice = document.getElementById('orders-empty-filter');
+        if (emptyNotice) {
+            emptyNotice.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
     }
 </script>
 {% endblock %}

@@ -90,52 +90,84 @@
         {% for worker in workers %}
         <div class="badge-card shadow-sm">
             <!-- Badge Header -->
-            <div class="flex items-center justify-between border-b border-slate-200 pb-1.5">
+            <div class="flex items-center justify-between border-b border-slate-300 pb-1 pt-1">
                 <div class="flex items-center gap-1.5">
                     <div
-                        class="w-4 h-4 rounded bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">
+                        class="w-4 h-4 rounded bg-amber-500 text-slate-950 flex items-center justify-center text-[9px] font-black">
                         <i class="fa-solid fa-shirt"></i>
                     </div>
-                    <span class="text-[11px] font-black tracking-wider uppercase text-slate-800">Tikuvchilik
-                        Fabrikasi</span>
+                    <div>
+                        <span class="text-[10px] font-black tracking-wider uppercase text-slate-900 block leading-none">
+                            TERRY JAR TIKUVCHILIK FABRIKASI
+                        </span>
+                        <span
+                            class="text-[7px] font-bold tracking-widest uppercase text-slate-500 block leading-none mt-0.5">
+                            ISHLAB CHIQARISH KOMPLEKSI
+                        </span>
+                    </div>
                 </div>
                 <span
-                    class="text-[9px] bg-slate-100 text-slate-600 border border-slate-300 px-1.5 py-0.5 rounded font-bold uppercase">
-                    Xodim Nishoni
+                    class="text-[8.5px] bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded font-black uppercase">
+                    TIKUVCHI / XODIM
                 </span>
             </div>
 
-            <!-- Main Content: Name, ID, QR -->
-            <div class="flex items-center justify-between my-2 gap-3">
-                <div class="flex-1">
-                    <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Tikuvchi
-                        (Seamstress)</span>
-                    <h3 class="text-base font-black text-slate-950 leading-tight mb-2">
-                        {{ worker.full_name }}
+            <!-- Main Content: Name, UID, ID, QR -->
+            <div class="flex items-center justify-between my-auto gap-2">
+                <div class="flex-1 min-w-0 pr-1">
+                    <span class="text-[8px] text-slate-400 uppercase font-bold tracking-wider block mb-0.5">
+                        XODIM IDENTIFIKATORI
+                    </span>
+                    <h3 class="text-base font-black text-slate-950 leading-tight uppercase truncate">
+                        {{ worker.first_name }}
                     </h3>
+                    <h4 class="text-sm font-extrabold text-slate-800 leading-tight uppercase truncate mb-1.5">
+                        {{ worker.last_name }}
+                    </h4>
 
                     <div
-                        class="inline-block bg-slate-900 text-amber-400 px-2.5 py-1 rounded text-lg font-black digital-font tracking-wider">
-                        {{ worker.worker_id }}
+                        class="inline-flex items-center gap-1 bg-slate-950 text-amber-400 px-2.5 py-0.5 rounded-lg border border-slate-800 shadow-inner">
+                        <i class="fa-solid fa-id-badge text-[10px] text-amber-400/80"></i>
+                        <span class="digital-font text-base font-black tracking-widest">
+                            {% if worker.user and worker.user.uid %}
+                            UID: {{ worker.user.uid }}
+                            {% else %}
+                            {{ worker.worker_id }}
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="text-[8px] font-mono text-slate-500 mt-1">
+                        Kod: {{ worker.worker_id }}{% if worker.phone_number %} • {{ worker.phone_number }}{% endif %}
                     </div>
                 </div>
 
                 <!-- QR Code -->
-                <div
-                    class="w-24 h-24 flex-shrink-0 border border-slate-300 rounded-lg p-1 bg-white flex items-center justify-center">
-                    {% if worker.qr_code %}
-                    <img src="{{ worker.qr_code.url }}" alt="QR" class="w-full h-full object-contain">
-                    {% else %}
-                    <div class="text-[10px] text-slate-400">QR Kod</div>
-                    {% endif %}
+                <div class="flex-shrink-0 flex flex-col items-center">
+                    <div
+                        class="w-22 h-22 p-1 border-2 border-slate-900 rounded-xl bg-white flex items-center justify-center">
+                        {% if worker.user and worker.user.qr_code %}
+                        <img src="{{ worker.user.qr_code.url }}" alt="QR" class="w-20 h-20 object-contain">
+                        {% elif worker.qr_code %}
+                        <img src="{{ worker.qr_code.url }}" alt="QR" class="w-20 h-20 object-contain">
+                        {% else %}
+                        <div class="text-[9px] text-slate-400 font-bold">QR yo'q</div>
+                        {% endif %}
+                    </div>
+                    <span class="text-[7px] font-black text-slate-700 uppercase tracking-wider mt-1">
+                        ZEBRA DS22 / TERMINAL
+                    </span>
                 </div>
             </div>
 
             <!-- Badge Footer -->
             <div
-                class="border-t border-slate-200 pt-1 flex items-center justify-between text-[8px] text-slate-400 font-medium">
-                <span>Masterga ko'rsatish va topshirish uchun</span>
-                <span class="font-mono">ID: {{ worker.worker_id }}</span>
+                class="border-t border-slate-300 pt-1 flex items-center justify-between text-[7.5px] text-slate-500 font-semibold">
+                <span>Operatsiyalarni topshirish uchun</span>
+                <span class="font-mono font-bold text-slate-700">
+                    {% if worker.user and worker.user.uid %}USER:{{ worker.user.uid }}{% else %}WORKER:{{
+                    worker.worker_id }}{% endif %}
+                </span>
             </div>
         </div>
         {% endfor %}

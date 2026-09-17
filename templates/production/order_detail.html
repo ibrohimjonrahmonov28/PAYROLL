@@ -1,187 +1,412 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ order.order_number }} — Buyurtma Tafsilotlari{% endblock %}
+{% block title %}Buyurtma {{ order.order_number }} — Qutilar & Naryadlar (Admin){% endblock %}
 
 {% block page_header %}
 <div class="flex items-center gap-3">
     <a href="{% url 'production:order_list' %}"
-        class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+        class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center border border-slate-700 transition shadow-sm">
         <i class="fa-solid fa-arrow-left"></i>
     </a>
-    <h2 class="text-lg font-bold text-white">Buyurtma: {{ order.order_number }}</h2>
+    <div>
+        <div class="flex items-center gap-2.5">
+            <span class="text-xs uppercase font-extrabold text-amber-500 tracking-wider">Admin • Qutilar
+                Taqsimoti</span>
+        </div>
+        <h2 class="text-xl font-black text-white">Buyurtma: {{ order.order_number }}</h2>
+    </div>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Order Overview Card -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800">
-            <div>
-                <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-black text-white">{{ order.order_number }}</h1>
+    <!-- 1. ORDER OVERVIEW CARD -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div class="flex flex-wrap items-start justify-between gap-4 pb-6 border-b border-slate-800">
+            <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-3">
                     <span
-                        class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1 rounded-full uppercase">
+                        class="bg-amber-500 text-slate-950 font-black px-3.5 py-1 rounded-xl text-lg digital-font shadow-md">
+                        {{ order.order_number }}
+                    </span>
+                    <h1 class="text-2xl font-black text-white">
+                        {{ order.client_name|default:"Buyurtmachi ko'rsatilmagan" }}
+                    </h1>
+                    <span
+                        class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1 rounded-full uppercase">
                         {{ order.get_status_display }}
                     </span>
                 </div>
-                <p class="text-sm text-slate-400 mt-1">
-                    Model: <strong class="text-slate-200">{{ order.article.name }}</strong> (Artikul: <span
-                        class="font-mono text-cyan-400">{{ order.article.code }}</span>)
-                    {% if order.client_name %}• Buyurtmachi: <span class="text-slate-200">{{ order.client_name
-                        }}</span>{% endif %}
+                <p class="text-xs text-slate-400 flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-slate-500"></i> Yaratilgan: <strong class="text-slate-200">{{
+                        order.created_at|date:"d.m.Y H:i" }}</strong>
+                    {% if order.deadline %}
+                    <span>•</span>
+                    <i class="fa-regular fa-clock text-slate-500"></i> Muddat: <strong class="text-amber-400">{{
+                        order.deadline|date:"d.m.Y" }}</strong>
+                    {% endif %}
                 </p>
             </div>
 
-            <div class="flex items-center gap-3">
-                {% if order.boxes.exists %}
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="button" onclick="openCreateBoxModal()"
+                    class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-box-open text-sm"></i> + Yangi Quti Yaratish (100 talik)
+                </button>
+                {% if boxes.exists %}
                 <a href="{% url 'production:order_print_all_stickers' order.id %}" target="_blank"
-                    class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
-                    <i class="fa-solid fa-print"></i> Barcha Qutilar QR Stikerlarini Chop Etish
+                    class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-print"></i> Brauzerdan Chop Etish
                 </a>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Metrics Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Reja Miqdori</span>
-                <span class="text-xl font-black text-white digital-font">{{ order.total_quantity }} <small
-                        class="text-xs text-slate-400">dona</small></span>
-            </div>
-            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Qutilardagi miqdor</span>
-                <span class="text-xl font-black text-cyan-400 digital-font">{{ order.total_boxes_quantity }} <small
-                        class="text-xs text-slate-400">dona</small></span>
-            </div>
-            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Qutilar soni</span>
-                <span class="text-xl font-black text-amber-400 digital-font">{{ order.boxes.count }} <small
-                        class="text-xs text-slate-400">ta quti</small></span>
-            </div>
-            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Umumiy progress</span>
-                <span class="text-xl font-black text-emerald-400 digital-font">{{ order.progress_percentage }}% <small
-                        class="text-xs text-slate-400">({{ order.completed_tickets_count }}/{{ order.total_tickets_count
-                        }})</small></span>
+        <!-- Order Models Chips -->
+        <div>
+            <span class="text-xs uppercase font-extrabold text-slate-400 tracking-wider block mb-2.5">
+                <i class="fa-solid fa-shirt text-amber-400 mr-1.5"></i> Zakazdagi Modellar va Operatsiyalar:
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {% for item in order_items %}
+                <div
+                    class="bg-slate-950 p-4 rounded-2xl border border-slate-800/90 flex flex-col justify-between gap-3 shadow-inner hover:border-slate-700 transition">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <span
+                                class="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider block">{{
+                                item.article.code }}</span>
+                            <h4 class="text-sm font-black text-white truncate" title="{{ item.article.name }}">{{
+                                item.article.name }}</h4>
+                            <span class="text-[11px] text-slate-400 mt-0.5 block">
+                                {{ item.article.article_operations.count }} ta operatsiya
+                            </span>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-lg font-black text-amber-400 digital-font block">{{ item.quantity
+                                }}</span>
+                            <span class="text-[10px] text-slate-500 font-semibold block">reja (dona)</span>
+                        </div>
+                    </div>
+
+                    <!-- Qutilar statistikasi & Tezkor amallar -->
+                    <div class="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        <div class="text-[11px] text-slate-400">
+                            <i class="fa-solid fa-box text-amber-400 text-[10px]"></i>
+                            Qutilar: <strong class="text-amber-400 font-mono">{{ item.boxes_count }} ta</strong> ({{
+                            item.boxes_total_qty }} dona)
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button type="button" onclick="filterBoxesTable('{{ item.article.id }}')"
+                                class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-bold border border-slate-700 transition flex items-center gap-1"
+                                title="Jadvaldan faqat shu model qutilarini ko'rsatish">
+                                <i class="fa-solid fa-filter text-[10px]"></i> Qutilar
+                            </button>
+                            <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}?article_id={{ item.article.id }}"
+                                class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
+                                title="Faqat shu model PDF faylini saqlash ({{ item.article.code }}_BARCHA_QUTILAR)">
+                                <i class="fa-solid fa-file-pdf text-[10px]"></i> PDF
+                            </a>
+                            <a href="{% url 'production:order_print_all_stickers' order.id %}?article_id={{ item.article.id }}"
+                                target="_blank"
+                                class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-[11px] font-black transition flex items-center gap-1 shadow-sm"
+                                title="Faqat shu model QR stikerlarini chop etish">
+                                <i class="fa-solid fa-qrcode text-[10px]"></i> Chop Etish
+                            </a>
+                            <button type="button" onclick="openCreateBoxModalForArticle('{{ item.article.id }}')"
+                                class="p-1 px-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 rounded-lg text-[11px] font-bold transition"
+                                title="Ushbu model uchun yangi quti qo'shish">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                {% if order.article %}
+                <div
+                    class="bg-slate-950 p-4 rounded-2xl border border-slate-800/90 flex flex-col justify-between gap-3 shadow-inner hover:border-slate-700 transition">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <span
+                                class="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider block">{{
+                                order.article.code }}</span>
+                            <h4 class="text-sm font-black text-white truncate">{{ order.article.name }}</h4>
+                            <span class="text-[11px] text-slate-400 mt-0.5 block">
+                                {{ order.article.article_operations.count }} ta operatsiya
+                            </span>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-lg font-black text-amber-400 digital-font block">{{ order.total_quantity
+                                }}</span>
+                            <span class="text-[10px] text-slate-500 font-semibold block">reja (dona)</span>
+                        </div>
+                    </div>
+                    <div class="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        <div class="text-[11px] text-slate-400">
+                            <i class="fa-solid fa-box text-amber-400 text-[10px]"></i>
+                            Qutilar: <strong class="text-amber-400 font-mono">{{ boxes.count }} ta</strong> ({{
+                            order.total_boxes_quantity }} dona)
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}?article_id={{ order.article.id }}"
+                                class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
+                                title="Faqat shu model PDF faylini saqlash">
+                                <i class="fa-solid fa-file-pdf text-[10px]"></i> PDF
+                            </a>
+                            <a href="{% url 'production:order_print_all_stickers' order.id %}?article_id={{ order.article.id }}"
+                                target="_blank"
+                                class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-[11px] font-black transition flex items-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-qrcode text-[10px]"></i> Chop Etish
+                            </a>
+                            <button type="button" onclick="openCreateBoxModalForArticle('{{ order.article.id }}')"
+                                class="p-1 px-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 rounded-lg text-[11px] font-bold transition">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-span-full text-xs text-slate-500 py-2">Ushbu buyurtmada hali modellar belgilanmagan.
+                </div>
+                {% endif %}
+                {% endfor %}
             </div>
         </div>
-    </div>
 
-    <!-- Article Operations & Rates -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-        <h3 class="text-base font-bold text-white mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-list-check text-cyan-400"></i> Model Operatsiyalari va Dona-bay Narxlari
-        </h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {% for ao in article_operations %}
-            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
-                <div>
-                    <span class="text-xs font-mono text-slate-500">№{{ ao.sequence }} • {{ ao.operation.code }}</span>
-                    <h4 class="text-sm font-bold text-slate-200 truncate">{{ ao.operation.name }}</h4>
+        <!-- Metrics 4-Cards Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Jami Qutilar
+                    Soni</span>
+                <div class="mt-1">
+                    <span class="text-2xl font-black text-amber-400 digital-font">{{ boxes.count }}</span>
+                    <small class="text-xs font-bold text-slate-400">ta quti</small>
                 </div>
-                <div class="text-right">
-                    <span class="text-emerald-400 font-bold digital-font text-sm">{{ ao.price_per_unit|floatformat:0
+            </div>
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Qutilarga
+                    Bo'lingan</span>
+                <div class="mt-1">
+                    <span class="text-2xl font-black text-cyan-400 digital-font">{{ order.total_boxes_quantity }}</span>
+                    <small class="text-xs font-bold text-slate-400">dona</small>
+                </div>
+            </div>
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Jami QR
+                    Biletlar</span>
+                <div class="mt-1">
+                    <span class="text-2xl font-black text-white digital-font">{{ order.total_tickets_count }}</span>
+                    <small class="text-xs font-bold text-slate-400">ta stiker</small>
+                </div>
+            </div>
+            <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Sexda Tikilgan</span>
+                <div class="mt-1">
+                    <span class="text-2xl font-black text-emerald-400 digital-font">{{ order.completed_tickets_count
                         }}</span>
-                    <span class="text-[10px] text-slate-500 block">so'm/dona</span>
+                    <small class="text-xs font-bold text-slate-400">({{ order.progress_percentage }}%)</small>
                 </div>
             </div>
-            {% empty %}
-            <div class="col-span-full py-4 text-center text-slate-500 text-xs">
-                Ushbu modelga hali operatsiyalar biriktirilmagan. <a href="{% url 'production:articles_catalog' %}"
-                    class="text-amber-400 underline">Modellar & Narxlar</a> bo'limida biriktiring.
-            </div>
-            {% endfor %}
         </div>
     </div>
 
-    <!-- Box Bundles Section -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+    <!-- 2. BOXES TABLE (Admin Partiyalar va Qutilar) -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 md:p-6 shadow-xl space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
-                <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-box text-amber-400"></i> Ishlab Chiqarish Qutilari (Bundles)
+                <h3 class="text-lg font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-packing text-amber-400"></i>
+                    <span>Ishlab Chiqarish Qutilari (Naryadlar)</span>
+                    <span
+                        class="bg-slate-800 text-amber-400 text-xs px-2.5 py-0.5 rounded-full font-bold border border-slate-700">
+                        {{ boxes.count }} ta quti
+                    </span>
                 </h3>
-                <p class="text-xs text-slate-400">Qutilarga bo'lib, sexga yuboriladigan naryad partiyalari</p>
+                <p class="text-xs text-slate-400 mt-0.5">Admin umumiy zakaz hajmiga cheklanmasdan, qutilarga son
+                    bo'yicha (masalan 100 talik) ajratadi va stikerlarni chop etadi</p>
             </div>
 
-            <!-- Box creation trigger -->
-            <button onclick="document.getElementById('bundle-modal').classList.remove('hidden')"
-                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
-                <i class="fa-solid fa-layer-group"></i> Qutilarga Ajratish (Bundling)
+            <button type="button" onclick="openCreateBoxModal()"
+                class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Yangi Quti Qo'shish
             </button>
         </div>
 
-        <!-- Boxes Table -->
+        <!-- Model Filter Tabs for the table -->
+        {% if order_items.count > 1 or available_articles|length > 1 %}
+        <div class="flex flex-wrap items-center gap-2 pt-1 pb-1">
+            <span class="text-xs font-bold text-slate-400 mr-1"><i class="fa-solid fa-filter text-amber-400 mr-1"></i>
+                Model bo'yicha filter:</span>
+            <button type="button" onclick="filterBoxesTable('all')" id="btn-filter-all"
+                class="box-filter-tab active px-3 py-1.5 rounded-xl text-xs font-black transition bg-amber-500 text-slate-950 shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-layer-group text-[11px]"></i>
+                Barcha Qutilar ({{ boxes.count }})
+            </button>
+            {% for item in order_items %}
+            <button type="button" onclick="filterBoxesTable('{{ item.article.id }}')"
+                id="btn-filter-{{ item.article.id }}"
+                class="box-filter-tab px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 flex items-center gap-1.5">
+                <span class="font-mono text-cyan-400">{{ item.article.code }}</span>
+                <span>{{ item.article.name|truncatechars:18 }}</span>
+                <span
+                    class="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-slate-900 text-amber-400 font-bold border border-slate-800">
+                    {{ item.boxes_count }}
+                </span>
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Table -->
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr
                         class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
-                        <th class="py-3 px-4">Quti #</th>
-                        <th class="py-3 px-4 text-center">Miqdori</th>
-                        <th class="py-3 px-4 text-center">QR Stikerlar (Biletlar)</th>
-                        <th class="py-3 px-4 text-center">Holati</th>
-                        <th class="py-3 px-4 text-right">Amallar & Stikerlar</th>
+                        <th class="py-3.5 px-4">Quti #</th>
+                        <th class="py-3.5 px-4">Model (Artikul)</th>
+                        <th class="py-3.5 px-4 text-center">Donalar Soni</th>
+                        <th class="py-3.5 px-4 text-center">QR Stikerlar</th>
+                        <th class="py-3.5 px-4 text-center">Sexda Bajarilishi</th>
+                        <th class="py-3.5 px-4 text-right">Amallar & Chop Etish</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800 text-slate-300">
+                <tbody id="boxes-table-body" class="divide-y divide-slate-800 text-slate-200">
                     {% for box in boxes %}
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="py-3.5 px-4 font-black text-white">
-                            <span
-                                class="bg-slate-800 text-amber-400 px-2.5 py-1 rounded text-xs digital-font border border-slate-700">
-                                QUTI #{{ box.box_number }}
-                            </span>
+                    <tr class="box-row hover:bg-slate-800/40 transition"
+                        data-article-id="{{ box.target_article.id|default:0 }}">
+                        <!-- Quti # & ID -->
+                        <td class="py-4 px-4 font-black text-white">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs font-mono font-black inline-block shadow-sm">
+                                    Quti #{{ box.box_number }}
+                                </span>
+                                <span
+                                    class="bg-slate-800 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-xs font-mono font-black tracking-wider"
+                                    title="8 talik unikal Quti ID">
+                                    {{ box.box_code }}
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-500 block font-normal mt-1">{{
+                                box.created_at|date:"d.m.Y H:i" }}</span>
                         </td>
-                        <td class="py-3.5 px-4 text-center font-bold text-amber-400 digital-font text-base">
-                            {{ box.quantity }} dona
+
+                        <!-- Model / Artikul -->
+                        <td class="py-4 px-4">
+                            {% if box.target_article %}
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold px-2 py-0.5 rounded text-xs font-mono uppercase">
+                                    {{ box.target_article.code }}
+                                </span>
+                                <span class="font-bold text-white text-sm">{{ box.target_article.name }}</span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 block mt-0.5">{{
+                                box.target_article.article_operations.count }} ta operatsiya mavjud</span>
+                            {% else %}
+                            <span class="text-xs text-slate-500">Model belgilanmagan</span>
+                            {% endif %}
                         </td>
-                        <td class="py-3.5 px-4 text-center">
+
+                        <!-- Quti hajmi (soni) -->
+                        <td class="py-4 px-4 text-center font-bold text-amber-400 digital-font text-lg">
+                            {{ box.quantity }} <small class="text-xs font-normal text-slate-400">dona</small>
+                        </td>
+
+                        <!-- QR Stikerlar -->
+                        <td class="py-4 px-4 text-center">
                             {% if box.tickets.exists %}
                             <span
-                                class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-xs font-bold">
-                                {{ box.tickets.count }} ta QR stiker yaratilgan
+                                class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-qrcode text-[11px]"></i> {{ box.tickets.count }} ta QR stiker
+                                tayyor
                             </span>
                             {% else %}
                             <span
                                 class="bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-xs font-semibold">
-                                Stikerlar hali yaratilmagan
+                                Stikerlar yaratilmagan
                             </span>
                             {% endif %}
                         </td>
-                        <td class="py-3.5 px-4 text-center">
-                            {% if box.is_fully_scanned %}
-                            <span
-                                class="bg-emerald-500/20 text-emerald-400 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                                Bajarildi
-                            </span>
-                            {% else %}
-                            <span class="bg-slate-800 text-slate-400 text-[11px] font-medium px-2 py-0.5 rounded-full">
-                                Jarayonda
-                            </span>
-                            {% endif %}
+
+                        <!-- Progress -->
+                        <td class="py-4 px-4 text-center">
+                            <div class="w-32 mx-auto">
+                                <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                    <span class="font-mono text-cyan-400 font-bold">{{ box.scanned_tickets_count }}/{{
+                                        box.tickets_count }}</span>
+                                    <span class="font-bold text-white">{{ box.progress_percentage }}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                                        style="width: {{ box.progress_percentage }}%;"></div>
+                                </div>
+                            </div>
                         </td>
-                        <td class="py-3.5 px-4 text-right space-x-2">
-                            <a href="{% url 'production:box_split_wizard' box.id %}"
-                                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs font-bold border border-slate-700 transition">
-                                <i class="fa-solid fa-sliders"></i> Operatsiyalarni Bo'lish (Split)
-                            </a>
-                            {% if box.tickets.exists %}
-                            <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"
-                                class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-black shadow transition">
-                                <i class="fa-solid fa-print"></i> Chop Etish
-                            </a>
-                            {% endif %}
+
+                        <!-- Amallar -->
+                        <td class="py-4 px-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <!-- Print & PDF Stickers -->
+                                {% if box.tickets.exists %}
+                                <a href="{% url 'production:box_download_stickers_pdf' box.id %}"
+                                    class="px-2.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition flex items-center gap-1.5"
+                                    title="100x60 PDF saqlash: {{ box.target_article.code }}_QUTI_{{ box.box_number }}">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"
+                                    class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow transition flex items-center gap-1.5"
+                                    title="Printerga yuborish: {{ box.target_article.code }}_QUTI_{{ box.box_number }}">
+                                    <i class="fa-solid fa-print"></i> Chop Etish
+                                </a>
+                                {% endif %}
+
+                                <!-- Split Wizard -->
+                                <a href="{% url 'production:box_split_wizard' box.id %}"
+                                    class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-bold border border-slate-700 transition flex items-center gap-1.5"
+                                    title="Operatsiyalarni bo'lish (Split)">
+                                    <i class="fa-solid fa-sliders"></i> Bo'lish
+                                </a>
+
+                                <!-- Delete Box -->
+                                <form method="POST" action="{% url 'production:order_detail' order.id %}"
+                                    onsubmit="return confirm('Haqiqatdan ham QUTI #{{ box.box_number }} ni o\'chirmoqchimisiz? Undagi barcha biletlar bekor qilinadi.');"
+                                    class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_box">
+                                    <input type="hidden" name="box_id" value="{{ box.id }}">
+                                    <button type="submit"
+                                        class="p-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 rounded-xl text-xs border border-rose-800/60 transition"
+                                        title="Qutini o'chirish">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-slate-500 text-xs">
-                            Ushbu buyurtmada hali qutilar yaratilmagan. Yuqoridagi "Qutilarga Ajratish" tugmasi orqali
-                            qutilar hosil qiling.
+                        <td colspan="6" class="py-12 text-center text-slate-500">
+                            <div
+                                class="w-14 h-14 mx-auto rounded-2xl bg-slate-800 flex items-center justify-center text-2xl text-slate-600 mb-3">
+                                <i class="fa-solid fa-box-open"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-400">Ushbu buyurtmada hali qutilar yaratilmagan.</p>
+                            <p class="text-xs text-slate-500 mt-1">Yuqoridagi "+ Yangi Quti Yaratish (100 talik)"
+                                tugmasi orqali quti partiyalarini hosil qiling.</p>
+                        </td>
+                    </tr>
+                    <tr id="empty-filter-row" style="display: none;">
+                        <td colspan="6" class="py-10 text-center text-slate-500">
+                            <div
+                                class="w-12 h-12 mx-auto rounded-xl bg-slate-800 flex items-center justify-center text-xl text-slate-500 mb-2">
+                                <i class="fa-solid fa-filter"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-400">Ushbu model uchun hali qutilar yaratilmagan.</p>
+                            <p class="text-xs text-slate-500 mt-1">Yuqoridagi "+ Quti" tugmasi orqali yangi quti
+                                qo'shishingiz mumkin.</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -192,51 +417,179 @@
 
 </div>
 
-<!-- Modal: Box Bundling -->
-<div id="bundle-modal"
-    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-amber-500"></i> Qutilarga Ajratish (Bundling)
-            </h3>
-            <button onclick="document.getElementById('bundle-modal').classList.add('hidden')"
-                class="text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
+<!-- MODAL: Yangi Quti Yaratish (100 talik va h.k.) -->
+<div id="create-box-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div
+                    class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-white">Yangi Quti(lar) Yaratish</h3>
+                    <p class="text-xs text-slate-400">Partiya hajmini belgilang (masalan 100 talik)</p>
+                </div>
+            </div>
+            <button onclick="closeCreateBoxModal()" class="text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
             </button>
         </div>
 
-        <form method="POST" class="space-y-4">
+        <form method="POST" action="{% url 'production:order_detail' order.id %}" class="space-y-4">
             {% csrf_token %}
-            <input type="hidden" name="create_boxes" value="1">
+            <input type="hidden" name="action" value="create_boxes">
 
+            <!-- 1. Model tanlash -->
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nechta quti
-                    yaratilsin?</label>
-                <input type="number" name="box_count" required min="1" value="10"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
-                <span class="text-[11px] text-slate-500 mt-1 block">Masalan: 10 ta quti</span>
+                <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Qaysi Model Uchun? <span class="text-rose-400">*</span>
+                </label>
+                <select name="article_id" required
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition">
+                    {% for art in available_articles %}
+                    <option value="{{ art.id }}">{{ art.code }} — {{ art.name }} ({{ art.article_operations.count }} ta
+                        operatsiya)</option>
+                    {% endfor %}
+                </select>
             </div>
 
+            <!-- 2. Har bir qutidagi donalar soni (default 100) -->
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Har bir qutidagi
-                    mahsulot soni (dona)</label>
-                <input type="number" name="box_size" required min="1" value="100"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
-                <span class="text-[11px] text-slate-500 mt-1 block">Masalan: 100 dona</span>
+                <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Qutidagi Mahsulot Soni (Dona) <span class="text-rose-400">*</span>
+                </label>
+                <div class="relative">
+                    <input type="number" name="box_size" required min="1" value="100"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-lg font-black text-amber-400 digital-font focus:outline-none focus:border-amber-500 transition">
+                    <span class="absolute right-4 top-3 text-xs font-bold text-slate-500 uppercase">dona</span>
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="text-[11px] text-slate-500">Tezkor tanlash:</span>
+                    <button type="button" onclick="setBoxSize(50)"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">50</button>
+                    <button type="button" onclick="setBoxSize(100)"
+                        class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded text-xs font-mono font-bold">100</button>
+                    <button type="button" onclick="setBoxSize(150)"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">150</button>
+                    <button type="button" onclick="setBoxSize(200)"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">200</button>
+                </div>
+            </div>
+
+            <!-- 3. Nechta quti yaratish -->
+            <div>
+                <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Nechta Quti Yaratilsin? <span class="text-rose-400">*</span>
+                </label>
+                <div class="relative">
+                    <input type="number" name="box_count" required min="1" value="1"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-lg font-black text-white digital-font focus:outline-none focus:border-amber-500 transition">
+                    <span class="absolute right-4 top-3 text-xs font-bold text-slate-500 uppercase">ta quti</span>
+                </div>
+                <span class="text-[11px] text-slate-500 mt-1 block">Masalan: 1 ta 100 talik quti (yoki birdaniga 5 ta
+                    100 talik)</span>
+            </div>
+
+            <!-- Notice / Info badge -->
+            <div
+                class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-2.5">
+                <i class="fa-solid fa-circle-info text-amber-400 mt-0.5"></i>
+                <div>
+                    <strong>Avtomatik QR Biletlar:</strong> Quti yaratilishi bilanoq, uning modelidagi barcha
+                    operatsiyalar uchun QR stikerlar darhol tayyor bo'ladi va printerga chiqarish imkoni ochiladi.
+                </div>
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('bundle-modal').classList.add('hidden')"
-                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+                <button type="button" onclick="closeCreateBoxModal()"
+                    class="px-4 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
                     Bekor qilish
                 </button>
                 <button type="submit"
-                    class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">
-                    Qutilarni Yaratish
+                    class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> Qutilarni & QR Stikerlarni Yaratish
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    function openCreateBoxModal() {
+        var modal = document.getElementById('create-box-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function openCreateBoxModalForArticle(artId) {
+        var modal = document.getElementById('create-box-modal');
+        if (modal) {
+            var select = modal.querySelector('select[name="article_id"]');
+            if (select && artId) {
+                select.value = artId;
+            }
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeCreateBoxModal() {
+        vament.getElementById('create-box-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function setBoxSize(size) {
+        var input = document.querySelector('input[name="box_size"]');
+        if (input) {
+            input.value = size;
+        }
+    }
+
+    function filterBoxesTable(artId) {
+        var rows = document.querySelectorAll('.box-row');
+        var allBtns = document.querySelectorAll('.box-filter-tab');
+
+        allBtns.forEach(function (btn) {
+            btn.classList.remove('bg-amber-500', 'text-slate-950', 'font-black', 'shadow-sm');
+            btn.classList.add('bg-slate-800', 'text-slate-300', 'font-bold');
+        });
+
+        var activeBtn = document.getElementById('btn-filter-' + artId);
+        if (activeBtn) {
+            activeBtn.classList.remove('bg-slate-800', 'text-slate-300', 'font-bold');
+            activeBtn.classList.add('bg-amber-500', 'text-slate-950', 'font-black', 'shadow-sm');
+        }
+
+        var visibleCount = 0;
+        rows.forEach(function (row) {
+            if (artId === 'all' || row.getAttribute('data-article-id') === String(artId)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        var emptyRow = document.getElementById('empty-filter-row');
+        if (emptyRow) {
+            emptyRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
+
+        // Agar model kartasidan bosilgan bo'lsa, jadvalga yumshoq tushirish
+        var tableSection = document.getElementById('boxes-table-body');
+        if (tableSection && artId !== 'all') {
+            tableSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeCreateBoxModal();
+        }
+    });
+</script>
 {% endblock %}
