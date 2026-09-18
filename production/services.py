@@ -79,7 +79,7 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
 
 
 @transaction.atomic
-def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1) -> list[Box]:
+def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1, razmer: str = None) -> list[Box]:
     """
     Admin uchun quti(lar) yaratish va har bir quti uchun darhol QR biletlarni avtomatik generatsiya qilish.
     Admin umumiy zakaz hajmiga qaramasdan, kerakli model va dona soni (masalan 100 talik) bo'yicha qutilarni chiqaradi.
@@ -104,6 +104,7 @@ def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1
             article=article,
             box_number=next_number,
             quantity=quantity,
+            razmer=razmer,
             status=Box.Status.CREATED
         )
         # Har bir quti uchun barcha operatsiyalar bo'yicha darhol QR biletlar tayyor bo'ladi!
@@ -115,7 +116,7 @@ def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1
 
 
 @transaction.atomic
-def create_boxes_for_order(order: Order, box_sizes: list[int], article=None) -> list[Box]:
+def create_boxes_for_order(order: Order, box_sizes: list[int], article=None, razmer: str = None) -> list[Box]:
     """
     Buyurtmani qutilarga (boxes/bundles) ajratish va biletlarni generatsiya qilish.
     box_sizes: har bir qutining miqdori, masalan [100, 100, 100, ...]
@@ -135,6 +136,7 @@ def create_boxes_for_order(order: Order, box_sizes: list[int], article=None) -> 
             article=article,
             box_number=next_number,
             quantity=qty,
+            razmer=razmer,
             status=Box.Status.CREATED
         )
         generate_box_tickets(box)

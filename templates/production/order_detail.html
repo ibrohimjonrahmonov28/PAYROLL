@@ -310,9 +310,19 @@
                             {% endif %}
                         </td>
 
-                        <!-- Quti hajmi (soni) -->
-                        <td class="py-4 px-4 text-center font-bold text-amber-400 digital-font text-lg">
-                            {{ box.quantity }} <small class="text-xs font-normal text-slate-400">dona</small>
+                        <!-- Quti hajmi (soni) va Razmer -->
+                        <td class="py-4 px-4 text-center">
+                            <div class="font-bold text-amber-400 digital-font text-lg">
+                                {{ box.quantity }} <small class="text-xs font-normal text-slate-400">dona</small>
+                            </div>
+                            {% if box.razmer %}
+                            <div class="mt-1">
+                                <span
+                                    class="inline-flex items-center gap-1 bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                                    <i class="fa-solid fa-tag text-[9px] text-purple-400"></i> {{ box.razmer }}
+                                </span>
+                            </div>
+                            {% endif %}
                         </td>
 
                         <!-- QR Stikerlar -->
@@ -453,6 +463,36 @@
                         operatsiya)</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <!-- Razmer (O'lcham) -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                        Razmer (O'lcham)
+                    </label>
+                    <span class="text-[11px] text-slate-400">Ixtiyoriy (masalan: M, L, XL, 42, 4-5 yosh)</span>
+                </div>
+                <input type="text" name="razmer" id="modal-box-razmer" placeholder="Masalan: M, L, XL, 42, 4-5 yosh..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 transition placeholder:text-slate-600">
+                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span class="text-[11px] text-slate-500">Tezkor tanlash:</span>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value='S'"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">S</button>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value='M'"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">M</button>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value='L'"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">L</button>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value='XL'"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">XL</button>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value='2XL'"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">2XL</button>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value='3XL'"
+                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono">3XL</button>
+                    <button type="button" onclick="document.getElementById('modal-box-razmer').value=''"
+                        class="px-2 py-0.5 bg-slate-800/60 hover:bg-slate-700 text-slate-400 rounded text-xs font-mono"
+                        title="Tozalash"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
 
             <!-- 2. Har bir qutidagi donalar soni (default 100) -->

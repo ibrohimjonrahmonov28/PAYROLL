@@ -26,8 +26,10 @@
                 <h1 class="text-xl font-bold text-white">{{ box.order.order_number }}</h1>
             </div>
             <p class="text-sm text-slate-400 mt-1">
-                Model: <strong class="text-slate-200">{{ box.order.article.name }}</strong> ({{ box.order.article.code
+                Model: <strong class="text-slate-200">{{ box.target_article.name }}</strong> ({{ box.target_article.code
                 }}) • Quti hajmi: <strong class="text-amber-400 digital-font text-base">{{ box.quantity }} dona</strong>
+                {% if box.razmer %} • Razmer: <strong class="text-purple-400 font-bold">{{ box.razmer }}</strong>{%
+                endif %}
             </p>
         </div>
 
@@ -41,6 +43,23 @@
     <form method="POST" id="split-form"
         class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
         {% csrf_token %}
+
+        <!-- Razmer Sozlamasi -->
+        <div
+            class="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Quti Razmeri (O'lcham)
+                </label>
+                <input type="text" name="razmer" value="{{ box.razmer|default:'' }}"
+                    placeholder="Masalan: M, L, XL, 42, 4-5 yosh..."
+                    class="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-purple-500 font-bold min-w-[240px]">
+            </div>
+            <span class="text-xs text-slate-400 max-w-sm">
+                <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i>
+                Chevar apparatini ushbu razmerga moslaydi. Stikerlarda ham ushbu razmer chop etiladi.
+            </span>
+        </div>
 
         <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">

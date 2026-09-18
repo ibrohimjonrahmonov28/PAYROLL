@@ -188,6 +188,7 @@ def order_detail_view(request, order_id: int):
             box_count = int(request.POST.get('box_count', 1))
             box_size = int(request.POST.get('box_size', 100))
             article_id = request.POST.get('article_id')
+            razmer = request.POST.get('razmer', '').strip() or None
 
             article = None
             if article_id:
@@ -200,7 +201,7 @@ def order_detail_view(request, order_id: int):
                 messages.error(request, "Quti yaratish uchun avval zakazga model biriktirilgan bo'lishi kerak!")
                 return redirect('production:order_detail', order_id=order.id)
 
-            created = create_box_with_tickets(order=order, article=article, quantity=box_size, count=box_count)
+            created = create_box_with_tickets(order=order, article=article, quantity=box_size, count=box_count, razmer=razmer)
             messages.success(request, f"{len(created)} ta {box_size} talik quti va ularning barcha QR stikerlari muvaffaqiyatli yaratildi!")
             return redirect('production:order_detail', order_id=order.id)
 
@@ -246,6 +247,11 @@ def box_split_wizard_view(request, box_id: int):
     article_operations = article.article_operations.select_related('operation').order_by('sequence')
 
     if request.method == 'POST':
+        razmer_val = request.POST.get('razmer')
+        if razmer_val is not None:
+            box.razmer = razmer_val.strip() or None
+            box.save(update_fields=['razmer'])
+
         operation_splits = {}
         for art_op in article_operations:
             split_val = request.POST.get(f"split_{art_op.id}", "1")
@@ -266,6 +272,8 @@ def box_split_wizard_view(request, box_id: int):
         allocations = allocate_ticket_quantities(box.quantity, current_split)
         ops_with_preview.append({
             'ao': art_op,
+            'art_op': art_op,
+            'split': current_split,
             'current_split': current_split,
             'allocations': allocations
         })

@@ -231,4 +231,90 @@ class OrderPrintSeparationTest(TestCase):
         self.assertIn(f'ART-01_QUTI_1_{self.box1.box_code}_ORD-SEP-01.pdf', res_pdf['Content-Disposition'])
 
 
+class BoxRazmerFeatureTest(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        self.user = User.objects.create_superuser(username="admin_test", password="password123")
+        self.client.force_login(self.user)
+
+        self.article = Article.objects.create(code="ART-RZ", name="Razmerli Polo")
+        self.op = Operation.objects.create(code="OP-RZ", name="Asosiy tikish")
+        self.ao = ArticleOperation.objects.create(
+            article=self.article,
+            operation=self.op,
+            price_per_unit=Decimal("1200.00"),
+            sequence=1
+        )
+        self.order = Order.objects.create(
+            order_number="ORD-RZ-01",
+            article=self.article,
+            total_quantity=500
+        )
+
+    def test_create_box_with_razmer_service(self):
+        from production.services import create_box_with_tickets
+        boxes = create_box_with_tickets(
+            order=self.order,
+            article=self.article,
+            quantity=100,
+            count=1,
+            razmer="XL"
+        )
+        self.assertEqual(len(boxes), 1)
+        box = boxes[0]
+        self.assertEqual(box.razmer, "XL")
+        self.assertEqual(box.tickets.count(), 1)
+        ticket = box.tickets.first()
+        self.assertEqual(ticket.box.razmer, "XL")
+
+        # HTML print view contains RAZMER: XL
+        url_print = reverse('production:box_print_stickers', args=[box.id])
+        res_print = self.client.get(url_print)
+        self.assertEqual(res_print.status_code, 200)
+        self.assertContains(res_print, "RAZMER: XL")
+
+        # PDF download generation
+        url_pdf = reverse('production:box_download_stickers_pdf', args=[box.id])
+        res_pdf = self.client.get(url_pdf)
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
+
+    def test_order_detail_view_create_box_with_razmer(self):
+        url = reverse('production:order_detail', args=[self.order.id])
+        res = self.client.post(url, {
+            'action': 'create_boxes',
+            'article_id': self.article.id,
+            'box_size': '150',
+            'box_count': '2',
+            'razmer': '42'
+        })
+        self.assertEqual(res.status_code, 302)
+        created_boxes = self.order.boxes.filter(razmer="42")
+        self.assertEqual(created_boxes.count(), 2)
+        for b in created_boxes:
+            self.assertEqual(b.quantity, 150)
+            self.assertEqual(b.razmer, "42")
+
+    def test_box_split_wizard_updates_razmer(self):
+        from production.services import create_box_with_tickets
+        boxes = create_box_with_tickets(
+            order=self.order,
+            article=self.article,
+            quantity=100,
+            count=1,
+            razmer="M"
+        )
+        box = boxes[0]
+        url = reverse('production:box_split_wizard', args=[box.id])
+        res = self.client.post(url, {
+            'razmer': 'L',
+            f'split_{self.ao.id}': '2'
+        })
+        self.assertEqual(res.status_code, 302)
+        box.refresh_from_db()
+        self.assertEqual(box.razmer, "L")
+        self.assertEqual(box.tickets.count(), 2)
+
+
+
 

@@ -70,10 +70,21 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str, font_reg_path: 
 
     box_num = ticket.box.box_number if ticket.box else 0
     box_code = ticket.box.box_code if ticket.box else ""
+    razmer_val = ticket.box.razmer.strip() if ticket.box and ticket.box.razmer else ""
     box_text = f"QUTI #{box_num} [{box_code}]"
     bx_w = 340
-    draw.rounded_rectangle([W - 45 - bx_w, 32, W - 45, 32 + 42], radius=10, fill=(241, 245, 249), outline=(15, 23, 42), width=2)
-    draw.text((W - 45 - bx_w + 16, 40), box_text, fill=(15, 23, 42), font=font_badge)
+    box_rect_left = W - 45 - bx_w
+    draw.rounded_rectangle([box_rect_left, 32, W - 45, 32 + 42], radius=10, fill=(241, 245, 249), outline=(15, 23, 42), width=2)
+    draw.text((box_rect_left + 16, 40), box_text, fill=(15, 23, 42), font=font_badge)
+
+    # Razmer nishoni (Header o'ng qismida Quti yonida)
+    if razmer_val:
+        rz_text = f"RAZMER: {razmer_val}"
+        rz_bbox = draw.textbbox((0, 0), rz_text, font=font_badge)
+        rz_w = max(180, (rz_bbox[2] - rz_bbox[0]) + 32)
+        rz_left = box_rect_left - rz_w - 12
+        draw.rounded_rectangle([rz_left, 32, rz_left + rz_w, 32 + 42], radius=10, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
+        draw.text((rz_left + 16, 40), rz_text, fill=(88, 28, 135), font=font_badge)
 
     # Yuqori ajratuvchi chiziq
     draw.line([(45, 110), (W - 45, 110)], fill=(226, 232, 240), width=2)
@@ -128,13 +139,20 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str, font_reg_path: 
     draw.rounded_rectangle([info_x, qty_y, info_x + qty_w, qty_y + 90], radius=16, fill=(15, 23, 42), outline=(15, 23, 42), width=2)
     draw.text((info_x + 25, qty_y + 18), f"{ticket.quantity} DONA", fill=(251, 191, 36), font=font_qty)
 
-    # Qiyinlik va Bo'lak
+    # Qiyinlik, Tarkib va Razmer
     diff_val = ticket.article_operation.difficulty_display if ticket.article_operation else "1"
     split_val = f"Bo'lak {ticket.split_index}/{ticket.total_splits}" if ticket.total_splits > 1 else "To'liq partiya"
 
-    draw.text((info_x, 395), f"QIYINLIK DARAJASI: {diff_val}", fill=(15, 23, 42), font=font_badge)
-    draw.text((info_x, 440), f"TARKIBI: {split_val}", fill=(100, 116, 139), font=font_medium)
-    draw.text((info_x, 485), "Skanerlash uchun terminalga tuting", fill=(148, 163, 184), font=font_small)
+    cur_y = 385
+    if razmer_val:
+        draw.text((info_x, cur_y), f"RAZMER (O'LCHAM): {razmer_val}", fill=(88, 28, 135), font=font_badge)
+        cur_y += 40
+
+    draw.text((info_x, cur_y), f"QIYINLIK DARAJASI: {diff_val}", fill=(15, 23, 42), font=font_badge)
+    cur_y += 40
+    draw.text((info_x, cur_y), f"TARKIBI: {split_val}", fill=(100, 116, 139), font=font_medium)
+    cur_y += 42
+    draw.text((info_x, cur_y), "Skanerlash uchun terminalga tuting", fill=(148, 163, 184), font=font_small)
 
     # 5. Pastki qism (Footer)
     draw.line([(45, 620), (W - 45, 620)], fill=(226, 232, 240), width=2)

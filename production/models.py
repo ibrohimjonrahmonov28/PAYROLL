@@ -267,6 +267,12 @@ class Box(models.Model):
     )
     box_number = models.PositiveIntegerField(db_index=True, verbose_name="Quti raqami")
     quantity = models.PositiveIntegerField(verbose_name="Qutidagi donalar soni")
+    razmer = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name="Razmer (O'lcham)"
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATED, db_index=True, verbose_name="Holati")
     created_at = models.DateTimeField(auto_now_add=True)
 

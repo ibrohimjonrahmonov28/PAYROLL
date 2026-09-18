@@ -213,6 +213,12 @@
                 {{ box_item.box.box_code }}
             </span>
             <span class="text-xs text-amber-900 font-bold">• {{ box_item.box.quantity }} dona mahsulot</span>
+            {% if box_item.box.razmer %}
+            <span
+                class="text-xs font-bold px-2 py-0.5 bg-purple-100 border border-purple-300 text-purple-900 rounded-md">
+                Razmer: {{ box_item.box.razmer }}
+            </span>
+            {% endif %}
             <span class="text-xs text-slate-600">({{ box_item.tickets|length }} ta bilet)</span>
         </div>
         <a href="{% url 'production:box_print_stickers' box_item.box.id %}" target="_blank"
@@ -253,12 +259,20 @@
                         Zakaz: {{ ticket.box.order.order_number }}
                     </span>
                 </div>
-                <div class="text-right flex-shrink-0">
-                    <div
-                        class="font-mono font-black text-xs px-2 py-0.5 bg-amber-100 border-2 border-slate-950 text-slate-950 rounded tracking-wider leading-tight">
-                        QUTI #{{ ticket.box.box_number }}
+                <div class="text-right flex-shrink-0 flex flex-col items-end">
+                    <div class="flex items-center gap-1">
+                        {% if ticket.box.razmer %}
+                        <span
+                            class="font-black text-[11px] px-2 py-0.5 bg-purple-100 border-2 border-purple-900 text-purple-950 rounded tracking-tight leading-tight">
+                            RAZMER: {{ ticket.box.razmer }}
+                        </span>
+                        {% endif %}
+                        <div
+                            class="font-mono font-black text-xs px-2 py-0.5 bg-amber-100 border-2 border-slate-950 text-slate-950 rounded tracking-wider leading-tight">
+                            QUTI #{{ ticket.box.box_number }}
+                        </div>
                     </div>
-                    <span class="font-mono text-[9px] font-black text-slate-700 block text-center mt-0.5">
+                    <span class="font-mono text-[9px] font-black text-slate-700 block text-right mt-0.5">
                         [{{ ticket.box.box_code }}]
                     </span>
                 </div>
@@ -303,6 +317,13 @@
                             </span>
                         </div>
                     </div>
+
+                    {% if ticket.box.razmer %}
+                    <div class="flex items-center gap-1.5 bg-purple-50 border border-purple-300 rounded px-2 py-0.5">
+                        <span class="text-[8px] font-black uppercase text-purple-900">Razmer:</span>
+                        <span class="text-xs font-black text-purple-950 font-mono">{{ ticket.box.razmer }}</span>
+                    </div>
+                    {% endif %}
 
                     {% if ticket.total_splits > 1 %}
                     <div
