@@ -38,6 +38,9 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'https://tezol.shop',
+    'https://www.tezol.shop',
+    'https://*.tezol.shop',
     'https://*.jprq.live',
     'https://*.jprq.site',
     'https://*.ngrok-free.app',
@@ -49,6 +52,10 @@ if csrf_env:
         origin = origin.strip()
         if origin and origin not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(origin)
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 
 
 # Application definition
