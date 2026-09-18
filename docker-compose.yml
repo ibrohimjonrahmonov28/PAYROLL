@@ -30,7 +30,13 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       BOT_TOKEN: ${BOT_TOKEN:-}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://tezol.shop,https://www.tezol.shop}
     volumes:
+      - ./config:/app/config
+      - ./accounts:/app/accounts
+      - ./production:/app/production
+      - ./screens:/app/screens
+      - ./templates:/app/templates
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
