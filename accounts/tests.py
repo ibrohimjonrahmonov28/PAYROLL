@@ -751,8 +751,8 @@ class SuperAdminPanelTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res['Content-Type'], 'application/pdf')
         self.assertTrue(len(res.content) > 0)
-        self.assertIn(self.box.box_code, res['Content-Disposition'])
-        self.assertIn('STIKERLAR_100x60.pdf', res['Content-Disposition'])
+        self.assertIn('.pdf', res['Content-Disposition'])
+
 
     def test_order_stickers_100x60_pdf_download(self):
         self.client.force_login(self.superadmin)

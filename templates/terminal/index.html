@@ -787,8 +787,22 @@
         // 4. SCAN PROCESSING DISPATCHER
         // -------------------------------------------------------------
         function processIncomingScan(rawText) {
-            const text = rawText.trim();
+            let text = rawText.trim();
             if (!text) return;
+
+            // Skaner va klaviatura kiritishdagi prefixlarni tozalash va normallashtirish
+            if (/^(?:TICK[A-Z\.\s_]*:\s*)/i.test(text)) {
+                text = text.replace(/^(?:TICK[A-Z\.\s_]*:\s*)/i, 'TICKET:');
+            }
+            if (/^(?:BOX[A-Z\.\s_]*:\s*)/i.test(text)) {
+                text = text.replace(/^(?:BOX[A-Z\.\s_]*:\s*)/i, 'BOX:');
+            }
+            if (/^(?:USER[A-Z\.\s_]*:\s*)/i.test(text)) {
+                text = text.replace(/^(?:USER[A-Z\.\s_]*:\s*)/i, 'USER:');
+            }
+            if (/^(?:WORKER[A-Z\.\s_]*:\s*)/i.test(text)) {
+                text = text.replace(/^(?:WORKER[A-Z\.\s_]*:\s*)/i, 'WORKER:');
+            }
 
             if (text.startsWith('BOX:') || text.startsWith('box:')) {
                 openBoxLookupModal(text);
@@ -800,7 +814,7 @@
                 return;
             }
 
-            if (text.startsWith('TICKET:') || text.startsWith('TK-')) {
+            if (text.startsWith('TICKET:') || text.startsWith('TK-') || /-[A-Z0-9]{8}-[A-Z0-9]+$/i.test(text)) {
                 if (!currentWorker) {
                     showStatusBanner('error', "AVVAL XODIMNI SKANERLANG!", "Biletlarni kiritishdan oldin tikuvchining QR nishonini skanerlang.");
                     playErrorBuzz();

@@ -43,8 +43,7 @@ def extract_worker_code(text: str) -> str:
 
 def extract_box_code(text: str) -> str:
     text = (text or '').strip()
-    if text.startswith('BOX:'):
-        return text[len('BOX:'):].strip()
+    text = re.sub(r'^(?:BOX[A-Z\.\s_]*:\s*)+', '', text, flags=re.IGNORECASE).strip()
     if text.startswith('TICKET:'):
         text = text[len('TICKET:'):].strip()
     ticket_match = re.search(r'-([A-Z0-9]{8})(?:-[A-Z0-9]+)?$', text)
@@ -55,8 +54,8 @@ def extract_box_code(text: str) -> str:
 
 def extract_ticket_code(text: str) -> str:
     text = (text or '').strip()
-    if text.startswith('TICKET:'):
-        return text[len('TICKET:'):].strip()
+    # Har xil skaner va klaviatura drayveri buzilishlarini tozalash (masalan: TICK. T:, TICKET:, TICK:)
+    text = re.sub(r'^(?:TICK[A-Z\.\s_]*:\s*)+', '', text, flags=re.IGNORECASE).strip()
     return text
 
 
@@ -234,7 +233,7 @@ def terminal_scan_ticket_api(request):
 
     clean_code = extract_ticket_code(raw_code).strip()
 
-    # Biletni qidirish (Tezkor B-Tree Index orqali)
+    # 1. Biletni qidirish: Aniq moslik bo'yicha
     ticket = Ticket.objects.filter(
         models.Q(ticket_code=clean_code) | models.Q(ticket_code=clean_code.upper())
     ).select_related(
@@ -246,10 +245,52 @@ def terminal_scan_ticket_api(request):
             'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
         ).first()
 
+    # 2. Skaner orqali kelgan quti kodi va bilet xeshi bo'yicha qidirish
+    # Masalan: "TICK. T:TK- -13-Q0S13EZI-3B6412" yoki "TK- -13-Q0S13EZI-3B6412" -> "Q0S13EZI-3B6412"
+    if not ticket:
+        suffix_match = re.search(r'([A-Z0-9]{6,12}-[A-Z0-9]{4,10})$', clean_code.upper())
+        if suffix_match:
+            suffix = suffix_match.group(1)
+            ticket = Ticket.objects.filter(ticket_code__iendswith=suffix).select_related(
+                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
+            ).first()
+
+    # 3. Agar faqat oxirgi 6 xonali bilet xeshi bo'lsa (masalan: "-3B6412")
+    if not ticket:
+        hash_match = re.search(r'-([A-Z0-9]{6})$', clean_code.upper())
+        if hash_match:
+            ticket_hash = hash_match.group(1)
+            possible = Ticket.objects.filter(ticket_code__iendswith=f"-{ticket_hash}").select_related(
+                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
+            )
+            if possible.count() == 1:
+                ticket = possible.first()
+            elif possible.count() > 1:
+                num_match = re.search(r'-(\d+)-', clean_code)
+                if num_match:
+                    bx_num = int(num_match.group(1))
+                    filtered = possible.filter(box__box_number=bx_num).first()
+                    if filtered:
+                        ticket = filtered
+
+    # 4. Agar ID bo'yicha kiritilgan bo'lsa
     if not ticket and clean_code.isdigit():
         ticket = Ticket.objects.filter(id=int(clean_code)).select_related(
             'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
         ).first()
+
+    # 5. Agar foydalanuvchi adashib butun Quti QR kodini skanerlagan bo'lsa
+    if not ticket:
+        box_clean = extract_box_code(raw_code)
+        box_match = Box.objects.filter(
+            models.Q(box_code__iexact=box_clean) | models.Q(id=int(box_clean) if box_clean.isdigit() else -1)
+        ).first()
+        if box_match:
+            return JsonResponse({
+                'status': 'IS_BOX_CODE',
+                'message': f"⚠️ Bu QUTI kodi (#{box_match.box_number} [{box_match.box_code}])!\n\n"
+                           f"Ishbay haq hisoblanishi uchun quti stikeridagi kerakli OPERATSIYA BILETI QR kodini skanerlang."
+            })
 
     if not ticket:
         return JsonResponse({

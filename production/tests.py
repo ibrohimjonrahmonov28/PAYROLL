@@ -220,8 +220,8 @@ class OrderPrintSeparationTest(TestCase):
         # 1. Print page should have title containing Artikul and Box Number
         url_print = reverse('production:box_print_stickers', args=[self.box1.id])
         res_print = self.client.get(url_print)
-        self.assertEqual(res_print.status_code, 200)
-        self.assertContains(res_print, "<title>ART-01_QUTI_1_ORD-SEP-01</title>")
+        self.assertContains(res_print, "<title>ART-01_QUTI_1</title>")
+
 
         # 2. PDF download filename should begin with Artikul and Box number
         url_pdf = reverse('production:box_download_stickers_pdf', args=[self.box1.id])

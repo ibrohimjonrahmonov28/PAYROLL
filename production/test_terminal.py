@@ -138,13 +138,18 @@ class MasterWebTerminalTest(TestCase):
         self.assertEqual(data1['summary']['units'], 50)
         self.assertEqual(data1['summary']['amount'], 75000.0) # 50 * 1500
 
+        # 3b. Test mangled scanner input with "TICK. T:" and spaces in place of Cyrillic
+        hash_code = self.ticket2.ticket_code.split('-')[-1]
+        mangled_code = f"TICK. T:TK- -1-{self.box.box_code}-{hash_code}"
+        # Suffix matching should successfully resolve to ticket2!
+
         # 4. Duplicate scan in same session -> MUST BE REJECTED
         res_dup = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': self.ticket1.ticket_code})
         self.assertEqual(res_dup.status_code, 200)
         self.assertEqual(res_dup.json()['status'], 'DUPLICATE_IN_SESSION')
 
-        # 5. Scan ticket 2
-        res_scan2 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': self.ticket2.ticket_code})
+        # 5. Scan ticket 2 with mangled scanner input
+        res_scan2 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': mangled_code})
         self.assertEqual(res_scan2.status_code, 200)
         data2 = res_scan2.json()
         self.assertEqual(data2['status'], 'OK')
