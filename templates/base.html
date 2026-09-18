@@ -45,6 +45,12 @@
                 <span>Buyurtmalar & Qutilar</span>
             </a>
 
+            <a href="{% url 'production:statistics_pipeline' %}"
+                class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.url_name == 'statistics_pipeline' %}bg-blue-600 text-white font-black shadow-lg shadow-blue-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-diagram-project w-5 text-center text-blue-400 text-base"></i>
+                <span>Qutilar Statistikasi</span>
+            </a>
+
             {% if request.user.is_authenticated and request.user.role != 'ADMIN' %}
             <a href="{% url 'production:terminal_home' %}"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/30 transition shadow-sm">

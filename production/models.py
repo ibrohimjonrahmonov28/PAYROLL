@@ -11,23 +11,94 @@ from django.utils import timezone
 from accounts.models import Worker, User
 
 
-class Article(models.Model):
-    code = models.CharField(max_length=50, unique=True, verbose_name="Artikul kodi (Model)")
-    name = models.CharField(max_length=200, verbose_name="Model nomi")
-    description = models.TextField(blank=True, verbose_name="Tavsif")
-    daily_norm = models.PositiveIntegerField(default=1500, verbose_name="Kunlik norma (ball / shartli dona)")
+class Customer(models.Model):
+    name = models.CharField(max_length=200, unique=True, verbose_name="Zakazchi (Mijoz) nomi")
+    code = models.CharField(max_length=50, blank=True, verbose_name="Kodi / Qisqartmasi")
+    phone_number = models.CharField(max_length=50, blank=True, verbose_name="Telefon raqami")
+    address = models.CharField(max_length=255, blank=True, verbose_name="Manzili")
+    description = models.TextField(blank=True, verbose_name="Tavsif / Izoh")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Model / Artikul"
-        verbose_name_plural = "Modellar / Artikullar"
+        verbose_name = "Zakazchi (Mijoz)"
+        verbose_name_plural = "Zakazchilar (Mijozlar)"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class ProductModel(models.Model):
+    name = models.CharField(max_length=200, verbose_name="Model nomi")
+    code = models.CharField(max_length=50, unique=True, verbose_name="Model kodi")
+    description = models.TextField(blank=True, verbose_name="Tavsif")
+    daily_norm = models.PositiveIntegerField(default=1000, verbose_name="Kunlik norma (ball / dona)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Model"
+        verbose_name_plural = "Modellar"
+        ordering = ['code']
+
+    @property
+    def total_unit_rate(self):
+        return sum(mo.price_per_unit for mo in self.model_operations.all())
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class Article(models.Model):
+    model = models.ForeignKey(
+        ProductModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='articles',
+        verbose_name="Tegishli Model"
+    )
+    code = models.CharField(max_length=50, unique=True, verbose_name="Artikul kodi")
+    name = models.CharField(max_length=200, verbose_name="Artikul nomi / Rangi")
+    description = models.TextField(blank=True, verbose_name="Tavsif")
+    daily_norm = models.PositiveIntegerField(default=1000, verbose_name="Kunlik norma (ball / shartli dona)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Artikul"
+        verbose_name_plural = "Artikullar"
         ordering = ['code']
 
     @property
     def total_unit_rate(self):
         return sum(ao.price_per_unit for ao in self.article_operations.all())
 
+    def sync_operations_from_model(self):
+        """Modelga tegishli barcha operatsiyalarni ushbu artikulga nusxalash"""
+        if not self.model:
+            return
+        for m_op in self.model.model_operations.all():
+            ArticleOperation.objects.update_or_create(
+                article=self,
+                operation=m_op.operation,
+                defaults={
+                    'price_per_unit': m_op.price_per_unit,
+                    'sequence': m_op.sequence,
+                    'difficulty': m_op.difficulty,
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if self.model and (not self.daily_norm or self.daily_norm == 1000):
+            if self.model.daily_norm:
+                self.daily_norm = self.model.daily_norm
+        super().save(*args, **kwargs)
+        if is_new and self.model:
+            self.sync_operations_from_model()
+
     def __str__(self):
+        if self.model:
+            return f"[{self.model.name}] {self.code} - {self.name}"
         return f"{self.code} - {self.name}"
 
 
@@ -58,6 +129,40 @@ class Operation(models.Model):
         return f"{self.code} - {self.name}"
 
 
+class ProductModelOperation(models.Model):
+    model = models.ForeignKey(ProductModel, on_delete=models.CASCADE, related_name='model_operations', verbose_name="Model")
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE, related_name='operation_models', verbose_name="Operatsiya")
+    price_per_unit = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=Decimal('0.00'),
+        verbose_name="Dona narxi (UZS)"
+    )
+    sequence = models.PositiveIntegerField(default=1, verbose_name="Ketma-ketlik tartibi")
+    difficulty = models.FloatField(default=1.0, verbose_name="Qiyinlik darajasi / koeffitsienti")
+
+    class Meta:
+        verbose_name = "Model operatsiyasi va narxi"
+        verbose_name_plural = "Model operatsiyalari va narxlari"
+        unique_together = ('model', 'operation')
+        ordering = ['sequence', 'id']
+
+    @property
+    def difficulty_display(self):
+        if self.difficulty is None:
+            return "1"
+        try:
+            val = float(self.difficulty)
+            if val.is_integer():
+                return str(int(val))
+            return f"{val:g}"
+        except Exception:
+            return str(self.difficulty)
+
+    def __str__(self):
+        return f"{self.model.code} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS, Qiyinlik: {self.difficulty_display})"
+
+
 class ArticleOperation(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='article_operations')
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE, related_name='operation_articles')
@@ -71,8 +176,8 @@ class ArticleOperation(models.Model):
     difficulty = models.FloatField(default=1.0, verbose_name="Qiyinlik darajasi / koeffitsienti")
 
     class Meta:
-        verbose_name = "Model operatsiyasi va narxi"
-        verbose_name_plural = "Model operatsiyalari va narxlari"
+        verbose_name = "Artikul operatsiyasi va narxi"
+        verbose_name_plural = "Artikul operatsiyalari va narxlari"
         unique_together = ('article', 'operation')
         ordering = ['sequence', 'id']
 
@@ -100,6 +205,14 @@ class Order(models.Model):
         CANCELLED = 'CANCELLED', 'Bekor qilindi'
 
     order_number = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Buyurtma raqami")
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders',
+        verbose_name="Zakazchi (Mijoz)"
+    )
     article = models.ForeignKey(Article, on_delete=models.PROTECT, null=True, blank=True, related_name='orders', verbose_name="Asosiy Model (Artikul)")
     total_quantity = models.PositiveIntegerField(default=0, verbose_name="Jami reja miqdori (dona)")
     client_name = models.CharField(max_length=200, blank=True, verbose_name="Buyurtmachi")
@@ -111,6 +224,15 @@ class Order(models.Model):
         verbose_name = "Buyurtma"
         verbose_name_plural = "Buyurtmalar"
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.customer and not self.client_name:
+            self.client_name = self.customer.name
+        elif self.client_name and not self.customer:
+            cust = Customer.objects.filter(name__iexact=self.client_name.strip()).first()
+            if cust:
+                self.customer = cust
+        super().save(*args, **kwargs)
 
     @property
     def total_boxes_quantity(self):

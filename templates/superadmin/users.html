@@ -184,19 +184,29 @@
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2">
+                                        {% if u.worker_profile %}
+                                        <a href="{% url 'superadmin_worker_history' u.worker_profile.id %}"
+                                            class="text-white hover:text-emerald-400 text-base block font-bold transition flex items-center gap-1.5"
+                                            title="Kunlik norma va tarixlarni ko'rish">
+                                            <span>{{ u.get_full_name|default:u.username }}</span>
+                                            <i
+                                                class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 hover:text-emerald-400"></i>
+                                        </a>
+                                        {% else %}
                                         <strong class="text-white text-base block font-bold">
                                             {{ u.get_full_name|default:u.username }}
                                         </strong>
+                                        {% endif %}
                                         {% if u == request.user %}
                                         <span
                                             class="text-[10px] bg-slate-800 text-amber-400 border border-amber-400/30 px-1.5 py-0.2 rounded font-bold">Siz</span>
                                         {% endif %}
                                         {% if u.worker_profile %}
-                                        <span
-                                            class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-1.5 py-0.2 rounded font-mono font-bold"
-                                            title="Tikuvchi xodim ID: {{ u.worker_profile.worker_id }}">
+                                        <a href="{% url 'superadmin_worker_history' u.worker_profile.id %}"
+                                            class="text-[10px] bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-800/50 px-1.5 py-0.2 rounded font-mono font-bold transition"
+                                            title="Tikuvchi xodim ID: {{ u.worker_profile.worker_id }} (Tarixni ko'rish)">
                                             {{ u.worker_profile.worker_id }}
-                                        </span>
+                                        </a>
                                         {% endif %}
                                     </div>
                                     <span class="text-slate-400 font-mono text-xs">@{{ u.username }} {% if u.email %}•
@@ -301,6 +311,16 @@
 
                         <!-- Amallar -->
                         <td class="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
+                            {% if u.worker_profile %}
+                            <!-- Tarix & KPI -->
+                            <a href="{% url 'superadmin_worker_history' u.worker_profile.id %}"
+                                class="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5"
+                                title="Kunlik norma, foiz, bonus va operatsiyalar tarixi">
+                                <i class="fa-solid fa-chart-line"></i>
+                                <span class="hidden xl:inline">Tarix</span>
+                            </a>
+                            {% endif %}
+
                             <!-- Universal Birka (Beydjik / Nishon) -->
                             <button
                                 onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:''|escapejs }}', '{{ u.uid|default:'------'|escapejs }}', '{{ u.get_role_display|escapejs }}', '{{ u.role|escapejs }}', '{% if u.qr_code %}{{ u.qr_code.url }}{% endif %}', '{{ u.username|escapejs }}', '{% url 'superadmin_user_badge' u.id %}', '{{ u.worker_profile.worker_id|default:''|escapejs }}', '{{ u.phone_number|default:''|escapejs }}')"

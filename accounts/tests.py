@@ -770,6 +770,198 @@ class SuperAdminPanelTest(TestCase):
         self.assertIn('BARCHA_STIKERLAR_100x60.pdf', res['Content-Disposition'])
 
 
+class WorkerPerformanceHistoryAndBonusTest(TestCase):
+    def setUp(self):
+        from production.models import ProductModel, Operation, Article, ArticleOperation, Order, Box, Ticket
+        self.superadmin = User.objects.create_superuser(username="admin_perf", password="password123", role=User.Role.SUPER_ADMIN)
+        self.client.force_login(self.superadmin)
+
+        self.worker = Worker.objects.create(worker_id="W-PERF-01", first_name="Dilfuza", last_name="Rahimova")
+
+        # Model A: norm = 10,000
+        self.model_a = ProductModel.objects.create(code="PM-A", name="Model A (Katta Partiya)", daily_norm=10000)
+        self.art_a = Article.objects.create(code="ART-A", name="Artikul A", model=self.model_a)
+        self.op_a = Operation.objects.create(code="OP-A", name="Operatsiya A")
+        self.ao_a = ArticleOperation.objects.create(article=self.art_a, operation=self.op_a, price_per_unit=Decimal("100"), difficulty=1.0)
+
+        # Model B: norm = 500
+        self.model_b = ProductModel.objects.create(code="PM-B", name="Model B (Kichik Partiya)", daily_norm=500)
+        self.art_b = Article.objects.create(code="ART-B", name="Artikul B", model=self.model_b)
+        self.op_b = Operation.objects.create(code="OP-B", name="Operatsiya B")
+        self.ao_b = ArticleOperation.objects.create(article=self.art_b, operation=self.op_b, price_per_unit=Decimal("200"), difficulty=1.0)
+
+        self.order = Order.objects.create(order_number="ORD-PERF-01", article=self.art_a, total_quantity=10000)
+        self.box_a = Box.objects.create(order=self.order, article=self.art_a, box_number=1, quantity=1000)
+        self.box_b = Box.objects.create(order=self.order, article=self.art_b, box_number=2, quantity=500)
+
+    def test_multi_model_carryover_percentage_formula(self):
+        # User formula example:
+        # 1000 units on 10,000 norm model = 10%
+        # 400 units on 500 norm model = 80%
+        # Total = 10% + 80% = 90%
+        now = timezone.now()
+        Ticket.objects.create(
+            box=self.box_a,
+            article_operation=self.ao_a,
+            quantity=1000,
+            price_per_unit=Decimal("100"),
+            total_amount=Decimal("100000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+        Ticket.objects.create(
+            box=self.box_b,
+            article_operation=self.ao_b,
+            quantity=400,
+            price_per_unit=Decimal("200"),
+            total_amount=Decimal("80000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+
+        url = reverse('superadmin_worker_history', kwargs={'worker_id': self.worker.id}) + '?range=today'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        # Check percentage is 90.0%
+        self.assertContains(res, "90.0%")
+        # Bonus should be 0 (since 90.0% is not > 100.0%)
+        self.assertContains(res, "—")
+        self.assertNotContains(res, "+30 000 UZS")
+
+    def test_bonus_strictly_above_100_percent(self):
+        now = timezone.now()
+        # Exactly 100% on Model B (500 units on 500 norm):
+        t1 = Ticket.objects.create(
+            box=self.box_b,
+            article_operation=self.ao_b,
+            quantity=500,
+            price_per_unit=Decimal("200"),
+            total_amount=Decimal("100000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+        url = reverse('superadmin_worker_history', kwargs={'worker_id': self.worker.id}) + '?range=today'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "100.0%")
+        # User rule: 100% is NOT enough for bonus: "KUNLIK UMUMIY 100 FOIZDAN OSHSA 100 BOLSA HISOB EMAS AVTOMATIK YONIDA + 30000 BONUS QOSHISH KERAK"
+        self.assertNotContains(res, "+30 000 UZS")
+
+        # Now add 50 units on Model B (10% more -> total 110.0%):
+        Ticket.objects.create(
+            box=self.box_b,
+            article_operation=self.ao_b,
+            quantity=50,
+            price_per_unit=Decimal("200"),
+            total_amount=Decimal("10000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+        res2 = self.client.get(url)
+        self.assertEqual(res2.status_code, 200)
+        self.assertContains(res2, "110.0%")
+        # Strictly > 100%: bonus +30 000 UZS awarded!
+        self.assertContains(res2, "+30 000 UZS")
+
+
+class WorkerTicketsByDateApiTest(TestCase):
+    def setUp(self):
+        from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket
+        self.superadmin = User.objects.create_superuser(username="admin_api", password="password123", role=User.Role.SUPER_ADMIN)
+        self.client.force_login(self.superadmin)
+        self.worker = Worker.objects.create(worker_id="W-API-01", first_name="Feruza", last_name="M")
+
+        self.art = Article.objects.create(code="ART-API", name="API Model")
+        self.op = Operation.objects.create(code="OP-API", name="Yoqa tikish")
+        self.ao = ArticleOperation.objects.create(article=self.art, operation=self.op, price_per_unit=Decimal("500"))
+        self.order = Order.objects.create(order_number="ORD-API", article=self.art, total_quantity=100)
+        self.box = Box.objects.create(order=self.order, box_number=1, quantity=50)
+
+    def test_api_worker_tickets_by_date_success(self):
+        today = timezone.localdate()
+        t = Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao,
+            quantity=20,
+            price_per_unit=Decimal("500"),
+            total_amount=Decimal("10000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=timezone.now()
+        )
+        url = reverse('api_worker_tickets_by_date', kwargs={'worker_id': self.worker.id}) + f"?date={today.strftime('%Y-%m-%d')}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['count'], 1)
+        self.assertEqual(data['tickets'][0]['stiker_id'], t.stiker_id)
+        self.assertEqual(data['tickets'][0]['quantity'], 20)
+
+
+class SuperAdminPayrollBulkPayTest(TestCase):
+    def setUp(self):
+        from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket
+        self.superadmin = User.objects.create_superuser(username="admin_bulk", password="password123", role=User.Role.SUPER_ADMIN)
+        self.client.force_login(self.superadmin)
+
+        self.worker1 = Worker.objects.create(worker_id="W-BULK-1", first_name="Ali", last_name="Valiyev")
+        self.worker2 = Worker.objects.create(worker_id="W-BULK-2", first_name="Vali", last_name="Aliyev")
+
+        self.art = Article.objects.create(code="ART-BULK", name="Bulk Model")
+        self.op = Operation.objects.create(code="OP-BULK", name="Tikuv")
+        self.ao = ArticleOperation.objects.create(article=self.art, operation=self.op, price_per_unit=Decimal("1000"))
+        self.order = Order.objects.create(order_number="ORD-BULK", article=self.art, total_quantity=200)
+        self.box = Box.objects.create(order=self.order, box_number=1, quantity=100)
+
+        # Worker 1 has 50,000 UZS earned
+        Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao,
+            quantity=50,
+            price_per_unit=Decimal("1000"),
+            total_amount=Decimal("50000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker1,
+            scanned_at=timezone.now()
+        )
+        # Worker 2 has 30,000 UZS earned
+        Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao,
+            quantity=30,
+            price_per_unit=Decimal("1000"),
+            total_amount=Decimal("30000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker2,
+            scanned_at=timezone.now()
+        )
+
+    def test_bulk_payout_pays_selected_workers(self):
+        today = timezone.localdate()
+        url = reverse('superadmin_payroll_bulk_pay')
+        res = self.client.post(url, {
+            'selected_worker_ids': [self.worker1.id, self.worker2.id],
+            'selected_year': today.year,
+            'selected_month': today.month,
+        })
+        self.assertEqual(res.status_code, 302)
+
+        # Check WorkerPayout records created
+        p1 = WorkerPayout.objects.filter(worker=self.worker1, payout_type=WorkerPayout.PayoutType.SALARY).first()
+        self.assertIsNotNone(p1)
+        self.assertEqual(p1.amount, Decimal("50000.00"))
+
+        p2 = WorkerPayout.objects.filter(worker=self.worker2, payout_type=WorkerPayout.PayoutType.SALARY).first()
+        self.assertIsNotNone(p2)
+        self.assertEqual(p2.amount, Decimal("30000.00"))
+
+
+
 
 
 

@@ -53,6 +53,12 @@
                 <span>Zakazlar va Modellar</span>
             </a>
 
+            <a href="{% url 'production:statistics_pipeline' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'statistics_pipeline' %}bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-md shadow-blue-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-diagram-project w-5 text-center text-blue-400"></i>
+                <span>Qutilar Statistikasi</span>
+            </a>
+
             <a href="{% url 'superadmin_users' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'superadmin_users' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-users-gear w-5 text-center"></i>

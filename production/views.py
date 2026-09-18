@@ -5,7 +5,9 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
-from .models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
 from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets
 from accounts.models import Worker
 
@@ -514,3 +516,181 @@ def articles_catalog_view(request):
         'articles': articles,
         'operations': operations
     })
+
+
+@login_required
+def box_pipeline_statistics_view(request):
+    """
+    Qutilar vizual statistikasi sahifasi.
+    Ketma-ket operatsiya dumaloqlari (BLUE = Scanned, RED = Pending).
+    Har bir ko'k dumaloq ustiga bosilganda stiker, tikuvchi, master va vaqt tafsilotlari ko'rinadi.
+    """
+    q = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', 'ALL').strip().upper()
+    clean_q = q.lstrip('#').strip()
+
+    boxes_qs = Box.objects.select_related(
+        'order', 
+        'order__customer', 
+        'article', 
+        'article__model'
+    ).prefetch_related(
+        'tickets__article_operation__operation',
+        'tickets__worker__user',
+        'tickets__scanned_by'
+    ).order_by('-created_at', 'order', 'box_number')
+
+    highlighted_ticket_id = None
+    highlighted_box_id = None
+
+    if clean_q:
+        # Avvalo stiker kodi yoki ticket id bo'yicha qidiramiz
+        ticket_match = Ticket.objects.filter(
+            Q(stiker_code__iexact=clean_q) |
+            Q(ticket_code__iexact=clean_q) |
+            Q(id=int(clean_q) if clean_q.isdigit() else -1)
+        ).first()
+
+        if ticket_match:
+            boxes_qs = boxes_qs.filter(id=ticket_match.box_id)
+            highlighted_ticket_id = ticket_match.id
+            highlighted_box_id = ticket_match.box_id
+        else:
+            box_filter = (
+                Q(box_code__iexact=clean_q) |
+                Q(order__order_number__icontains=clean_q) |
+                Q(order__customer__name__icontains=clean_q) |
+                Q(order__client_name__icontains=clean_q) |
+                Q(article__code__icontains=clean_q) |
+                Q(article__name__icontains=clean_q) |
+                Q(article__model__name__icontains=clean_q)
+            )
+            if clean_q.isdigit():
+                box_filter |= Q(box_number=int(clean_q))
+            boxes_qs = boxes_qs.filter(box_filter)
+
+    if status_filter in [Box.Status.CREATED, Box.Status.IN_PROGRESS, Box.Status.COMPLETED]:
+        boxes_qs = boxes_qs.filter(status=status_filter)
+
+    paginator = Paginator(boxes_qs, 40)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    boxes_pipeline_data = []
+    current_tz = timezone.get_current_timezone()
+
+    for b in page_obj:
+        b_tickets = list(b.tickets.all().order_by('article_operation__sequence', 'split_index', 'id'))
+        tickets_info = []
+        scanned_cnt = 0
+
+        for t in b_tickets:
+            is_scanned = (t.status == Ticket.Status.SCANNED)
+            if is_scanned:
+                scanned_cnt += 1
+
+            is_hl = (t.id == highlighted_ticket_id or (clean_q and t.stiker_code and t.stiker_code.upper() == clean_q.upper()))
+
+            tickets_info.append({
+                'id': t.id,
+                'stiker_code': t.stiker_code or f"ID{t.id}",
+                'stiker_id': t.stiker_id,
+                'ticket_code': t.ticket_code,
+                'sequence': t.article_operation.sequence if t.article_operation else 1,
+                'op_name': t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "Operatsiya",
+                'op_code': t.article_operation.operation.code if (t.article_operation and t.article_operation.operation) else "",
+                'status': t.status,
+                'is_scanned': is_scanned,
+                'worker_name': t.worker.full_name if t.worker else "—",
+                'worker_id': t.worker.worker_id if t.worker else "",
+                'worker_uid': t.worker.user.uid if (t.worker and t.worker.user and t.worker.user.uid) else "",
+                'scanned_at_formatted': t.scanned_at.astimezone(current_tz).strftime("%d.%m.%Y %H:%M:%S") if t.scanned_at else "—",
+                'scanned_by_name': (t.scanned_by.get_full_name() or t.scanned_by.username) if t.scanned_by else "—",
+                'screen_number': t.screen_number or "—",
+                'quantity': t.quantity,
+                'total_amount': int(t.total_amount) if t.total_amount else 0,
+                'total_amount_formatted': f"{int(t.total_amount):,} UZS".replace(",", " ") if t.total_amount else "0 UZS",
+                'is_highlighted': is_hl,
+            })
+
+        total_cnt = len(b_tickets)
+        progress_pct = int((scanned_cnt / total_cnt) * 100) if total_cnt > 0 else 0
+
+        boxes_pipeline_data.append({
+            'box': b,
+            'tickets': tickets_info,
+            'total_tickets': total_cnt,
+            'scanned_tickets': scanned_cnt,
+            'progress_pct': progress_pct,
+            'target_article': b.target_article,
+        })
+
+    total_boxes_count = Box.objects.count()
+    in_progress_boxes_count = Box.objects.filter(status=Box.Status.IN_PROGRESS).count()
+    completed_boxes_count = Box.objects.filter(status=Box.Status.COMPLETED).count()
+
+    context = {
+        'boxes_data': boxes_pipeline_data,
+        'page_obj': page_obj,
+        'q': q,
+        'status_filter': status_filter,
+        'total_boxes_count': total_boxes_count,
+        'in_progress_boxes_count': in_progress_boxes_count,
+        'completed_boxes_count': completed_boxes_count,
+        'highlighted_ticket_id': highlighted_ticket_id,
+        'highlighted_box_id': highlighted_box_id,
+    }
+    return render(request, 'production/statistics_pipeline.html', context)
+
+
+@login_required
+def api_ticket_scan_detail(request, code_or_id):
+    clean_val = code_or_id.lstrip('#').strip()
+    current_tz = timezone.get_current_timezone()
+
+    ticket = Ticket.objects.filter(
+        Q(stiker_code__iexact=clean_val) |
+        Q(ticket_code__iexact=clean_val) |
+        Q(id=int(clean_val) if clean_val.isdigit() else -1)
+    ).select_related(
+        'box__order',
+        'box__article',
+        'article_operation__article',
+        'article_operation__operation',
+        'worker__user',
+        'scanned_by'
+    ).first()
+
+    if not ticket:
+        return JsonResponse({'success': False, 'error': 'Stiker topilmadi'}, status=404)
+
+    is_scanned = (ticket.status == Ticket.Status.SCANNED)
+
+    data = {
+        'success': True,
+        'id': ticket.id,
+        'stiker_id': ticket.stiker_id,
+        'stiker_code': ticket.stiker_code,
+        'ticket_code': ticket.ticket_code,
+        'box_number': ticket.box.box_number if ticket.box else "—",
+        'box_code': ticket.box.box_code if ticket.box else "—",
+        'order_number': ticket.box.order.order_number if (ticket.box and ticket.box.order) else "—",
+        'client_name': ticket.box.order.client_name if (ticket.box and ticket.box.order) else "—",
+        'article_name': ticket.article_operation.article.name if (ticket.article_operation and ticket.article_operation.article) else "—",
+        'article_code': ticket.article_operation.article.code if (ticket.article_operation and ticket.article_operation.article) else "—",
+        'operation_name': ticket.article_operation.operation.name if (ticket.article_operation and ticket.article_operation.operation) else "—",
+        'sequence': ticket.article_operation.sequence if ticket.article_operation else 1,
+        'status': ticket.status,
+        'is_scanned': is_scanned,
+        'worker_name': ticket.worker.full_name if ticket.worker else "—",
+        'worker_id': ticket.worker.worker_id if ticket.worker else "—",
+        'worker_uid': ticket.worker.user.uid if (ticket.worker and ticket.worker.user and ticket.worker.user.uid) else "—",
+        'scanned_at': ticket.scanned_at.astimezone(current_tz).strftime("%d.%m.%Y %H:%M:%S") if ticket.scanned_at else "—",
+        'scanned_by': (ticket.scanned_by.get_full_name() or ticket.scanned_by.username) if ticket.scanned_by else "—",
+        'screen_number': ticket.screen_number or "—",
+        'quantity': ticket.quantity,
+        'total_amount': int(ticket.total_amount) if ticket.total_amount else 0,
+        'total_amount_formatted': f"{int(ticket.total_amount):,} UZS".replace(",", " ") if ticket.total_amount else "0 UZS",
+    }
+    return JsonResponse(data)
+

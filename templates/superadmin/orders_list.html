@@ -79,12 +79,28 @@
                                 order.created_at|date:"d.m.Y" }}</span>
                         </td>
                         <td class="py-4 px-4 font-semibold text-slate-300">
-                            {{ order.client_name|default:"—" }}
+                            {% if order.customer %}
+                            <span class="text-white font-bold block">{{ order.customer.name }}</span>
+                            {% if order.customer.code %}
+                            <span class="text-[10px] text-cyan-400 font-mono">{{ order.customer.code }}</span>
+                            {% endif %}
+                            {% elif order.client_name %}
+                            <span class="text-white font-bold">{{ order.client_name }}</span>
+                            {% else %}
+                            <span class="text-slate-500">—</span>
+                            {% endif %}
                         </td>
                         <td class="py-4 px-4">
                             <div class="space-y-1">
                                 {% for it in order.items.all %}
                                 <div class="flex items-center gap-1.5 flex-wrap">
+                                    {% if it.article.model %}
+                                    <span
+                                        class="bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase"
+                                        title="Model: {{ it.article.model.name }}">
+                                        {{ it.article.model.name }}
+                                    </span>
+                                    {% endif %}
                                     <span
                                         class="bg-cyan-950 text-cyan-300 border border-cyan-800/80 font-bold px-2 py-0.5 rounded text-xs font-mono uppercase">
                                         {{ it.article.code }}
@@ -100,6 +116,13 @@
                                 {% empty %}
                                 {% if order.article %}
                                 <div class="flex items-center gap-1.5 flex-wrap">
+                                    {% if order.article.model %}
+                                    <span
+                                        class="bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase"
+                                        title="Model: {{ order.article.model.name }}">
+                                        {{ order.article.model.name }}
+                                    </span>
+                                    {% endif %}
                                     <span
                                         class="bg-cyan-950 text-cyan-300 border border-cyan-800/80 font-bold px-2 py-0.5 rounded text-xs font-mono uppercase">
                                         {{ order.article.code }}
@@ -221,9 +244,15 @@
                             class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1">Buyurtmachi / Mijoz</label>
-                        <input type="text" name="client_name" placeholder="Masalan: Samo Garments"
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Zakazchi (Mijoz) *</label>
+                        <input type="text" name="client_name" list="customers-datalist"
+                            placeholder="Masalan: DC Monetka yoki Terry Dreams" required
                             class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <datalist id="customers-datalist">
+                            {% for c in all_customers %}
+                            <option value="{{ c.name }}">{{ c.code|default:'' }}</option>
+                            {% endfor %}
+                        </datalist>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1">Topshirish Muddati</label>
@@ -238,23 +267,39 @@
                 <div class="flex items-center justify-between">
                     <span class="text-xs uppercase tracking-wider font-extrabold text-cyan-400 block">2. Model Tanlash
                         yoki Yangi Kiritish</span>
-                    <span class="text-[11px] text-slate-500 font-mono">Bazada {{ all_articles|length }} ta artikul
-                        mavjud</span>
+                    <span class="text-[11px] text-slate-500 font-mono">Bazada {{ all_articles|length }} ta artikul, {{
+                        all_product_models|length }} ta model mavjud</span>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-amber-400 mb-1">
-                        <i class="fa-solid fa-shirt mr-1"></i> Bazadagi Mavjud Artikuldan Tanlash (yoki quyida yangisini
-                        yozing):
-                    </label>
-                    <select id="select-existing-article" onchange="onSelectExistingArticle(this.value)"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
-                        <option value="">-- Yangi Artikul Yozish (Katalogdan tanlamaslik) --</option>
-                        {% for art in all_articles %}
-                        <option value="{{ art.id }}">{{ art.code }} — {{ art.name }} ({{ art.article_operations.count }}
-                            ta operatsiya)</option>
-                        {% endfor %}
-                    </select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1">
+                            <i class="fa-solid fa-layer-group mr-1 text-indigo-400"></i> Tegishli Model (Andoza):
+                        </label>
+                        <select name="product_model_id" id="select-product-model"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <option value="">-- Alohida Artikul (Modelga bog'lamaslik) --</option>
+                            {% for pm in all_product_models %}
+                            <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} (Norma: {{ pm.daily_norm }} dona)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-amber-400 mb-1">
+                            <i class="fa-solid fa-shirt mr-1"></i> Mavjud Artikuldan Tanlash:
+                        </label>
+                        <select id="select-existing-article" onchange="onSelectExistingArticle(this.value)"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <option value="">-- Yangi Artikul Yozish (Katalogdan tanlamaslik) --</option>
+                            {% for art in all_articles %}
+                            <option value="{{ art.id }}">{{ art.code }} — {{ art.name }} ({{
+                                art.article_operations.count }}
+                                ta operatsiya)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">

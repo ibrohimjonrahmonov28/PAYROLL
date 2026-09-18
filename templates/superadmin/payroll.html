@@ -155,6 +155,12 @@
                 <thead>
                     <tr
                         class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3 px-3 text-center w-10">
+                            <input type="checkbox" id="select-all-workers"
+                                onchange="toggleSelectAllWorkers(this.checked)"
+                                class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
+                                title="Barchasini belgilash">
+                        </th>
                         <th class="py-3 px-3 text-center w-12">№</th>
                         <th class="py-3 px-4">Xodim ID / UID</th>
                         <th class="py-3 px-4">Tikuvchi F.I.SH</th>
@@ -172,15 +178,24 @@
                     {% for row in payroll_data %}
                     <tr class="hover:bg-slate-800/40 transition payroll-worker-row"
                         data-search="{{ row.worker.worker_id }} {{ row.worker.user.uid|default:'' }} {{ row.worker.full_name }} {{ row.worker.phone_number|default:'' }}">
+                        <!-- Checkbox -->
+                        <td class="py-3 px-3 text-center">
+                            <input type="checkbox" value="{{ row.worker.id }}"
+                                data-payable="{{ row.net_payable_month }}" onchange="updateBulkPayoutBar()"
+                                class="worker-payroll-checkbox w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
+                                {% if row.net_payable_month <=0 %}disabled title="To'lanadigan maosh qoldig'i yo'q" {%
+                                endif %}>
+                        </td>
                         <td class="py-3 px-3 text-center text-slate-500 text-xs font-mono">
                             {{ forloop.counter }}
                         </td>
                         <td class="py-3 px-4">
                             <div class="flex items-center gap-1.5">
-                                <span
-                                    class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-2 py-0.5 rounded text-xs digital-font">
+                                <a href="{% url 'superadmin_worker_history' row.worker.id %}"
+                                    class="bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/60 font-black px-2 py-0.5 rounded text-xs digital-font transition"
+                                    title="Xodimning kunlik normasi va operatsiyalari tarixini ko'rish">
                                     {{ row.worker.worker_id }}
-                                </span>
+                                </a>
                                 {% if row.worker.user and row.worker.user.uid %}
                                 <span
                                     class="bg-slate-800 text-amber-300 border border-slate-700 font-mono px-1.5 py-0.5 rounded text-[11px]"
@@ -191,7 +206,13 @@
                             </div>
                         </td>
                         <td class="py-3 px-4 font-bold text-white text-base">
-                            {{ row.worker.full_name }}
+                            <a href="{% url 'superadmin_worker_history' row.worker.id %}"
+                                class="text-white hover:text-emerald-400 transition inline-flex items-center gap-1.5"
+                                title="Xodimning kunlik normasi, foizlari va bonuslarini ko'rish">
+                                <span>{{ row.worker.full_name }}</span>
+                                <i
+                                    class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 hover:text-emerald-400"></i>
+                            </a>
                             {% if row.worker.phone_number %}
                             <span class="block text-[11px] text-slate-500 font-normal font-mono">{{
                                 row.worker.phone_number }}</span>
@@ -244,6 +265,12 @@
                         </td>
                         <td class="py-3 px-4 text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <!-- Tarix & KPI button -->
+                                <a href="{% url 'superadmin_worker_history' row.worker.id %}"
+                                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-emerald-950 text-emerald-400 hover:text-emerald-300 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1"
+                                    title="Kunlik norma, foiz, bonus va barcha operatsiyalar tarixi">
+                                    <i class="fa-solid fa-chart-line"></i> Tarix
+                                </a>
                                 <!-- Kunbay ko'rish button -->
                                 <button onclick="openDailyBreakdownModal({{ row.worker.id }})"
                                     class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1"
@@ -506,10 +533,81 @@
     </div>
 </div>
 
+<!-- FLOATING ACTION BAR: GURUHLI OYLIK TO'LOV (BULK PAYOUT) -->
+<div id="bulk-payout-bar"
+    class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border-2 border-amber-500/70 rounded-3xl p-4 md:px-8 shadow-2xl shadow-amber-500/25 flex flex-wrap items-center justify-between gap-6 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+        <div
+            class="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-users-viewfinder"></i>
+        </div>
+        <div>
+            <span class="text-xs text-slate-400 block font-medium">Tanlangan ishchilar:</span>
+            <span class="text-sm font-black text-white"><span id="bulk-selected-count"
+                    class="digital-font text-amber-400">0</span> nafar xodim</span>
+        </div>
+    </div>
+    <div class="h-8 w-px bg-slate-800 hidden sm:block"></div>
+    <div>
+        <span class="text-xs text-slate-400 block font-medium">Jami to'lov:</span>
+        <span class="text-base font-black text-emerald-400 digital-font" id="bulk-selected-total">0 UZS</span>
+    </div>
+    <form method="POST" action="{% url 'superadmin_payroll_bulk_pay' %}" id="bulk-payout-form"
+        onsubmit="return confirm('Tanlangan barcha xodimlarga oylik maosh to\'lovi amalga oshirilsinmi va hisob yopilsinmi?');"
+        class="flex items-center gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="selected_year" value="{{ selected_year }}">
+        <input type="hidden" name="selected_month" value="{{ selected_month }}">
+        <div id="bulk-hidden-inputs"></div>
+        <button type="submit"
+            class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 text-slate-950 font-black rounded-2xl text-xs shadow-lg transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-circle-check text-sm"></i>
+            <span>Tanlanganlarga Maosh Berildi / To'lovni Yopish</span>
+        </button>
+    </form>
+</div>
+
 <!-- JAVASCRIPT LOGIC -->
 <script>
     const SELECTED_YEAR = {{ selected_year }};
     const SELECTED_MONTH = {{ selected_month }};
+
+    function toggleSelectAllWorkers(checked) {
+        const checkboxes = document.querySelectorAll('.worker-payroll-checkbox:not(:disabled)');
+        checkboxes.forEach(cb => cb.checked = checked);
+        updateBulkPayoutBar();
+    }
+
+    function updateBulkPayoutBar() {
+        const checkboxes = document.querySelectorAll('.worker-payroll-checkbox:checked');
+        const bar = document.getElementById('bulk-payout-bar');
+        const countSpan = document.getElementById('bulk-selected-count');
+        const totalSpan = document.getElementById('bulk-selected-total');
+        const hiddenInputs = document.getElementById('bulk-hidden-inputs');
+
+        let totalSum = 0;
+        hiddenInputs.innerHTML = '';
+
+        checkboxes.forEach(cb => {
+            const val = parseFloat(cb.getAttribute('data-payable') || 0);
+            if (val > 0) {
+                totalSum += val;
+            }
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'selected_worker_ids';
+            inp.value = cb.value;
+            hiddenInputs.appendChild(inp);
+        });
+
+        if (checkboxes.length > 0) {
+            bar.classList.remove('hidden');
+            countSpan.innerText = checkboxes.length;
+            totalSpan.innerText = Math.round(totalSum).toLocaleString('uz-UZ').replace(/,/g, ' ') + ' UZS';
+        } else {
+            bar.classList.add('hidden');
+        }
+    }
 
     function liveFilterPayroll(query) {
         const filter = query.toLowerCase().trim();

@@ -1,5 +1,23 @@
 from django.contrib import admin
-from .models import Article, Operation, ArticleOperation, Order, Box, Ticket
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket
+
+
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'phone_number', 'created_at']
+    search_fields = ['name', 'code', 'phone_number']
+
+
+class ProductModelOperationInline(admin.TabularInline):
+    model = ProductModelOperation
+    extra = 1
+
+
+@admin.register(ProductModel)
+class ProductModelAdmin(admin.ModelAdmin):
+    list_display = ['code', 'name', 'daily_norm', 'created_at']
+    search_fields = ['code', 'name']
+    inlines = [ProductModelOperationInline]
 
 
 class ArticleOperationInline(admin.TabularInline):
@@ -9,7 +27,8 @@ class ArticleOperationInline(admin.TabularInline):
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'created_at']
+    list_display = ['code', 'name', 'model', 'daily_norm', 'created_at']
+    list_filter = ['model']
     search_fields = ['code', 'name']
     inlines = [ArticleOperationInline]
 
@@ -20,11 +39,23 @@ class OperationAdmin(admin.ModelAdmin):
     search_fields = ['code', 'name']
 
 
+@admin.register(ProductModelOperation)
+class ProductModelOperationAdmin(admin.ModelAdmin):
+    list_display = ['model', 'operation', 'price_per_unit', 'sequence', 'difficulty']
+    list_filter = ['model', 'operation']
+    ordering = ['model', 'sequence']
+
+
 @admin.register(ArticleOperation)
 class ArticleOperationAdmin(admin.ModelAdmin):
-    list_display = ['article', 'operation', 'price_per_unit', 'sequence']
+    list_display = ['article', 'operation', 'price_per_unit', 'sequence', 'difficulty']
     list_filter = ['article', 'operation']
     ordering = ['article', 'sequence']
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
 
 
 class BoxInline(admin.TabularInline):
@@ -35,10 +66,10 @@ class BoxInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'article', 'total_quantity', 'client_name', 'status', 'created_at']
-    list_filter = ['status', 'article']
-    search_fields = ['order_number', 'client_name']
-    inlines = [BoxInline]
+    list_display = ['order_number', 'customer', 'client_name', 'article', 'total_quantity', 'status', 'created_at']
+    list_filter = ['status', 'customer', 'article']
+    search_fields = ['order_number', 'client_name', 'customer__name']
+    inlines = [OrderItemInline, BoxInline]
 
 
 @admin.register(Box)

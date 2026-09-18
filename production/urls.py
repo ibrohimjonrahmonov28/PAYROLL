@@ -14,6 +14,8 @@ urlpatterns = [
     path('boxes/<int:box_id>/print/', views.box_print_stickers_view, name='box_print_stickers'),
     path('boxes/<int:box_id>/pdf/', views.box_download_stickers_100x60_pdf, name='box_download_stickers_pdf'),
     path('articles/', views.articles_catalog_view, name='articles_catalog'),
+    path('statistics/', views.box_pipeline_statistics_view, name='statistics_pipeline'),
+    path('statistics/api/ticket/<str:code_or_id>/', views.api_ticket_scan_detail, name='api_ticket_scan_detail'),
 
     # Master Skanerlash Terminali (Zebra DS22)
     path('terminal/', terminal_views.terminal_home_view, name='terminal_home'),

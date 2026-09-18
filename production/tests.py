@@ -372,5 +372,113 @@ class BoxRazmerFeatureTest(TestCase):
         self.assertEqual(data_old['scanned_ticket']['id'], ticket_old.id)
 
 
+class CustomerAndProductModelTest(TestCase):
+    def test_customer_creation_and_order_sync(self):
+        from .models import Customer, Order, Article
+        customer = Customer.objects.create(name="DC Monetka", code="DCM", phone_number="+998901234567")
+        article = Article.objects.create(code="ART-CUST", name="Customer Article")
+        order = Order.objects.create(
+            order_number="ORD-CUST-01",
+            customer=customer,
+            article=article,
+            total_quantity=50
+        )
+        self.assertEqual(order.client_name, "DC Monetka")
+        self.assertEqual(order.customer.code, "DCM")
+
+    def test_product_model_and_article_operations_sync(self):
+        from .models import ProductModel, ProductModelOperation, Operation, Article
+        pm = ProductModel.objects.create(code="PM-DRESS", name="Ko'ylakcha", daily_norm=800)
+        op1 = Operation.objects.create(code="OP-D1", name="Yelka biriktirish")
+        op2 = Operation.objects.create(code="OP-D2", name="Etak tikish")
+        ProductModelOperation.objects.create(model=pm, operation=op1, price_per_unit=Decimal("1500.00"), sequence=1, difficulty=1.2)
+        ProductModelOperation.objects.create(model=pm, operation=op2, price_per_unit=Decimal("2000.00"), sequence=2, difficulty=1.0)
+
+        # Create article linked to product model
+        art = Article.objects.create(code="ART-D-RED", name="Qizil Ko'ylak", model=pm)
+        self.assertEqual(art.daily_norm, 800)
+        self.assertEqual(art.article_operations.count(), 2)
+
+        ao1 = art.article_operations.get(operation=op1)
+        self.assertEqual(ao1.price_per_unit, Decimal("1500.00"))
+        self.assertEqual(ao1.difficulty, 1.2)
+
+
+class BoxPipelineStatisticsTest(TestCase):
+    def setUp(self):
+        from accounts.models import User, Worker
+        from .models import Customer, ProductModel, Operation, Article, ArticleOperation, Order, Box, Ticket
+
+        self.user = User.objects.create_superuser(username="stat_admin", password="password123", role=User.Role.SUPER_ADMIN)
+        self.client.force_login(self.user)
+
+        self.worker = Worker.objects.create(worker_id="W-STAT", first_name="Nargiza", last_name="Karimova")
+        self.customer = Customer.objects.create(name="Terry Dreams", code="TD")
+        self.model = ProductModel.objects.create(code="PM-STAT", name="Sport Kiyim", daily_norm=1000)
+        self.op1 = Operation.objects.create(code="OP-S1", name="Bichish")
+        self.op2 = Operation.objects.create(code="OP-S2", name="Tikish")
+
+        self.article = Article.objects.create(code="ART-STAT-01", name="Ko'k Sport", model=self.model)
+        self.ao1 = ArticleOperation.objects.create(article=self.article, operation=self.op1, price_per_unit=Decimal("1000"), sequence=1)
+        self.ao2 = ArticleOperation.objects.create(article=self.article, operation=self.op2, price_per_unit=Decimal("2000"), sequence=2)
+
+        self.order = Order.objects.create(order_number="ORD-STAT-99", customer=self.customer, article=self.article, total_quantity=100)
+        self.box = Box.objects.create(order=self.order, article=self.article, box_number=1, quantity=50, razmer="XL")
+
+        # Ticket 1: Scanned by worker
+        self.t1 = Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao1,
+            quantity=50,
+            price_per_unit=Decimal("1000"),
+            total_amount=Decimal("50000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_by=self.user,
+            scanned_at=timezone.now(),
+            screen_number=2
+        )
+        # Ticket 2: Pending
+        self.t2 = Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao2,
+            quantity=50,
+            price_per_unit=Decimal("2000"),
+            total_amount=Decimal("100000"),
+            status=Ticket.Status.PENDING
+        )
+
+    def test_statistics_pipeline_view_renders_boxes_and_circles(self):
+        url = reverse('production:statistics_pipeline')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Qutilar Vizual Statistikasi")
+        self.assertContains(res, "ORD-STAT-99")
+        self.assertContains(res, "Terry Dreams")
+        self.assertContains(res, "XL")
+        # Ticket 1 is scanned (blue)
+        self.assertContains(res, self.t1.stiker_id)
+        # Ticket 2 is pending (red)
+        self.assertContains(res, self.t2.stiker_id)
+
+    def test_statistics_search_by_sticker_id(self):
+        url = reverse('production:statistics_pipeline') + f"?q={self.t1.stiker_code}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, self.t1.stiker_id)
+
+    def test_api_ticket_scan_detail(self):
+        url = reverse('production:api_ticket_scan_detail', kwargs={'code_or_id': self.t1.stiker_code})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['worker_name'], "Nargiza Karimova")
+        self.assertEqual(data['worker_id'], "W-STAT")
+        self.assertEqual(data['status'], "SCANNED")
+        self.assertEqual(data['screen_number'], 2)
+
+
+
 
 

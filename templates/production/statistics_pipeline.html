@@ -1,0 +1,488 @@
+{% extends 'base.html' %}
+
+{% block title %}Qutilar Vizual Statistikasi & Pipeline — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- HEADER & STATS -->
+    <div
+        class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+        <div class="flex items-center gap-4">
+            <div
+                class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-blue-500/20">
+                <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black text-white flex items-center gap-2.5">
+                    <span>Qutilar Vizual Statistikasi</span>
+                    <span
+                        class="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold uppercase tracking-wider">Pipeline</span>
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400 mt-0.5">
+                    Har bir qutining operatsiyalar ketma-ketligi:
+                    <span class="inline-flex items-center gap-1 text-blue-400 font-bold"><span
+                            class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Ko'k = Bajarilgan</span>,
+                    <span class="inline-flex items-center gap-1 text-rose-400 font-bold"><span
+                            class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Qizil = Kutilmoqda</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- KPI Pill Counters -->
+        <div class="flex items-center gap-2 overflow-x-auto">
+            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center flex-shrink-0">
+                <span class="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Jami Qutilar</span>
+                <span class="text-lg font-black text-white digital-font">{{ total_boxes_count }}</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center flex-shrink-0">
+                <span class="text-[10px] text-amber-400 uppercase font-black tracking-wider block">Jarayonda</span>
+                <span class="text-lg font-black text-amber-400 digital-font">{{ in_progress_boxes_count }}</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center flex-shrink-0">
+                <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block">Bajarildi</span>
+                <span class="text-lg font-black text-emerald-400 digital-font">{{ completed_boxes_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH & FILTER TOOLBAR -->
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Search Form -->
+        <form method="GET" action="{% url 'production:statistics_pipeline' %}"
+            class="w-full md:max-w-xl flex items-center gap-2">
+            <div class="relative flex-1">
+                <input type="text" name="q" value="{{ q }}"
+                    placeholder="Stiker ID (#8K2X9P7A), Quti ID (5N0Y8LOR), Zakaz yoki Artikul..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium transition">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-xs text-slate-500"></i>
+                {% if q %}
+                <a href="{% url 'production:statistics_pipeline' %}"
+                    class="absolute right-3 top-3 text-slate-400 hover:text-white" title="Tozalash">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </div>
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <button type="submit"
+                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl transition shadow-lg shadow-blue-600/20 flex items-center gap-2">
+                <i class="fa-solid fa-search"></i>
+                <span>Qidirish</span>
+            </button>
+        </form>
+
+        <!-- Status Filter Tabs -->
+        <div
+            class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
+            <a href="?status=ALL{% if q %}&q={{ q }}{% endif %}"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'ALL' %}bg-blue-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                Barchasi
+            </a>
+            <a href="?status=IN_PROGRESS{% if q %}&q={{ q }}{% endif %}"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'IN_PROGRESS' %}bg-amber-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                Jarayonda
+            </a>
+            <a href="?status=COMPLETED{% if q %}&q={{ q }}{% endif %}"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'COMPLETED' %}bg-emerald-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                Bajarilgan
+            </a>
+            <a href="?status=CREATED{% if q %}&q={{ q }}{% endif %}"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'CREATED' %}bg-slate-700 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                Yangi
+            </a>
+        </div>
+    </div>
+
+    <!-- BOXES PIPELINE LIST -->
+    <div class="space-y-4">
+        {% for item in boxes_data %}
+        <div
+            class="bg-slate-900 border {% if item.box.id == highlighted_box_id %}border-blue-500 ring-2 ring-blue-500/30 shadow-blue-500/20{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-5 shadow-xl transition">
+
+            <!-- Box Card Header -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div class="flex items-start sm:items-center gap-3.5">
+                    <!-- Box Code Badge -->
+                    <div
+                        class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
+                        <span class="text-sm font-black text-amber-400 digital-font">#{{ item.box.box_number }}</span>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-base font-black text-white">
+                                QUTI #{{ item.box.box_number }}
+                            </h3>
+                            <span
+                                class="px-2 py-0.5 rounded-md bg-slate-800 text-cyan-400 font-mono text-xs font-bold tracking-wider"
+                                title="Quti unikal kodi">
+                                [{{ item.box.box_code }}]
+                            </span>
+
+                            <!-- Status Badge -->
+                            {% if item.box.status == 'COMPLETED' %}
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                <i class="fa-solid fa-check mr-1"></i> Bajarildi
+                            </span>
+                            {% elif item.box.status == 'IN_PROGRESS' %}
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                <i class="fa-solid fa-spinner fa-spin mr-1"></i> Jarayonda
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                                Yaratildi
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
+                            <span><strong class="text-slate-300">Zakaz:</strong> {{ item.box.order.order_number
+                                }}</span>
+                            {% if item.box.order.client_name %}
+                            <span class="text-slate-500">•</span>
+                            <span><strong class="text-slate-300">Mijoz:</strong> {{ item.box.order.client_name }}</span>
+                            {% endif %}
+                            {% if item.target_article %}
+                            <span class="text-slate-500">•</span>
+                            <span><strong class="text-slate-300">Model:</strong> {{ item.target_article.name }} ({{
+                                item.target_article.code }})</span>
+                            {% endif %}
+                            {% if item.box.razmer %}
+                            <span class="text-slate-500">•</span>
+                            <span class="text-amber-400 font-bold">Razmer: {{ item.box.razmer }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side: Quantity & Progress -->
+                <div class="flex items-center gap-5 lg:text-right">
+                    <div>
+                        <span class="text-[10px] text-slate-500 uppercase font-black tracking-wider block">Miqdor</span>
+                        <span class="text-lg font-black text-white digital-font">{{ item.box.quantity }} <small
+                                class="text-xs text-slate-400 font-normal">dona</small></span>
+                    </div>
+
+                    <div class="w-36">
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="text-slate-400 font-medium">Bajarildi:</span>
+                            <span
+                                class="font-bold digital-font {% if item.progress_pct == 100 %}text-emerald-400{% else %}text-blue-400{% endif %}">
+                                {{ item.scanned_tickets }}/{{ item.total_tickets }} ({{ item.progress_pct }}%)
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                            <div class="h-full rounded-full transition-all duration-500 {% if item.progress_pct == 100 %}bg-emerald-500{% else %}bg-blue-500{% endif %}"
+                                style="width: {{ item.progress_pct }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operations Pipeline Circles -->
+            <div class="pt-5">
+                <div
+                    class="text-[11px] uppercase tracking-wider font-extrabold text-slate-500 mb-3 flex items-center justify-between">
+                    <span>Ketma-ket operatsiyalar chizig'i (Bosib tafsilotini ko'ring):</span>
+                    <span class="text-[10px] text-slate-500 font-mono">{{ item.tickets|length }} ta operatsiya</span>
+                </div>
+
+                <div class="relative flex items-center overflow-x-auto py-3 px-2">
+                    <div class="flex items-center min-w-max gap-4 sm:gap-6">
+                        {% for t in item.tickets %}
+                        <div class="flex items-center gap-4 sm:gap-6">
+                            <!-- Operation Circle Element -->
+                            <div class="flex flex-col items-center group cursor-pointer"
+                                onclick="openStickerModal({{ t.id }})" data-ticket-id="{{ t.id }}"
+                                data-stiker-code="{{ t.stiker_code }}" data-stiker-id="{{ t.stiker_id }}"
+                                data-op-name="{{ t.op_name }}" data-is-scanned="{{ t.is_scanned|yesno:'true,false' }}"
+                                data-worker-name="{{ t.worker_name }}" data-worker-id="{{ t.worker_id }}"
+                                data-worker-uid="{{ t.worker_uid }}" data-scanned-at="{{ t.scanned_at_formatted }}"
+                                data-master="{{ t.scanned_by_name }}" data-screen="{{ t.screen_number }}"
+                                data-qty="{{ t.quantity }}" data-amount="{{ t.total_amount_formatted }}"
+                                data-box-code="{{ item.box.box_code }}" data-box-num="{{ item.box.box_number }}"
+                                data-order-num="{{ item.box.order.order_number }}"
+                                data-article="{{ item.target_article.name|default:'' }}">
+
+                                <!-- The Circle Button -->
+                                <button type="button" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-black text-xs transition-all transform group-hover:scale-110 shadow-lg relative
+                                    {% if t.is_scanned %}
+                                        bg-blue-600 text-white shadow-blue-600/30 hover:bg-blue-500 ring-2 ring-blue-400/40
+                                    {% else %}
+                                        bg-rose-950/80 text-rose-400 border-2 border-rose-500/60 hover:border-rose-400 shadow-rose-950/30
+                                    {% endif %}
+                                    {% if t.is_highlighted %}
+                                        ring-4 ring-amber-400 animate-pulse scale-110
+                                    {% endif %}">
+
+                                    {% if t.is_scanned %}
+                                    <i class="fa-solid fa-check text-xs"></i>
+                                    {% else %}
+                                    <span class="digital-font">{{ t.sequence }}</span>
+                                    {% endif %}
+
+                                    <!-- Highlight marker if searched -->
+                                    {% if t.is_highlighted %}
+                                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full"></span>
+                                    {% endif %}
+                                </button>
+
+                                <!-- Label below circle -->
+                                <div class="mt-2 text-center max-w-[90px] sm:max-w-[110px]">
+                                    <span
+                                        class="block text-[11px] font-bold truncate {% if t.is_scanned %}text-blue-300{% else %}text-slate-400{% endif %}"
+                                        title="{{ t.op_name }}">
+                                        {{ t.op_name }}
+                                    </span>
+                                    <span
+                                        class="block text-[10px] font-mono {% if t.is_scanned %}text-slate-400{% else %}text-rose-400/70{% endif %}">
+                                        {{ t.stiker_id }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Connecting Arrow/Line between circles (if not last) -->
+                            {% if not forloop.last %}
+                            <div
+                                class="h-0.5 w-6 sm:w-8 -mt-6 {% if t.is_scanned %}bg-blue-500{% else %}bg-slate-800{% endif %}">
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center shadow-xl">
+            <div
+                class="w-16 h-16 rounded-2xl bg-slate-800 text-slate-500 flex items-center justify-center text-3xl mx-auto mb-4">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1">Birorta ham quti topilmadi</h3>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">
+                {% if q %}
+                "{{ q }}" bo'yicha hech narsa topilmadi. Qidiruv so'zini tekshirib qaytadan urinib ko'ring.
+                {% else %}
+                Hozircha tizimda ishlab chiqarish qutilari mavjud emas.
+                {% endif %}
+            </p>
+            {% if q %}
+            <a href="{% url 'production:statistics_pipeline' %}"
+                class="mt-4 inline-block px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+                Barcha qutilarni ko'rish
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- PAGINATION -->
+    {% if page_obj.has_other_pages %}
+    <div
+        class="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl text-xs text-slate-400">
+        <div>
+            Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} (Jami {{ page_obj.paginator.count }} ta
+            quti)
+        </div>
+        <div class="flex items-center gap-1.5">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
+                <i class="fa-solid fa-chevron-left mr-1"></i> Oldingi
+            </a>
+            {% endif %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
+                Keyingi <i class="fa-solid fa-chevron-right ml-1"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- MODAL: STIKER VA OPERATSIYA TAFSILOTLARI -->
+<div id="sticker-detail-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+        class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between pb-4 border-b border-slate-800 mb-6">
+            <div class="flex items-center gap-3">
+                <div id="modal-status-icon"
+                    class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg">
+                    <!-- Icon injected via JS -->
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 id="modal-op-name" class="text-lg font-black text-white">Operatsiya Nomi</h3>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Stiker ID: <span id="modal-stiker-id" class="font-mono font-bold text-cyan-400">#00000000</span>
+                    </p>
+                </div>
+            </div>
+            <button onclick="closeStickerModal()"
+                class="text-slate-400 hover:text-white text-lg p-1.5 rounded-xl hover:bg-slate-800 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Body Details -->
+        <div class="space-y-4">
+
+            <!-- Status Card -->
+            <div id="modal-status-banner"
+                class="p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between">
+                <!-- Status text injected via JS -->
+            </div>
+
+            <!-- Detail Grid -->
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1">Tikuvchi
+                        (Kim qildi?)</span>
+                    <span id="modal-worker" class="font-bold text-white text-sm block">—</span>
+                    <span id="modal-worker-sub" class="text-[11px] text-amber-400 font-mono block mt-0.5"></span>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1">Skanerlangan
+                        Vaqt</span>
+                    <span id="modal-time" class="font-bold text-cyan-300 text-sm digital-font block">—</span>
+                    <span class="text-[11px] text-slate-500 block mt-0.5">Zebra DS22 skaneri</span>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1">Qabul Qilgan
+                        Master</span>
+                    <span id="modal-master" class="font-bold text-slate-200 block">—</span>
+                    <span id="modal-screen" class="text-[11px] text-slate-500 block mt-0.5"></span>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                    <span class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1">Dona va
+                        Summa</span>
+                    <span id="modal-amount" class="font-black text-emerald-400 text-sm digital-font block">0 UZS</span>
+                    <span id="modal-qty" class="text-[11px] text-slate-400 block mt-0.5">0 dona</span>
+                </div>
+            </div>
+
+            <!-- Box & Order Info -->
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                <div class="flex items-center justify-between text-slate-400">
+                    <span>Quti:</span>
+                    <span id="modal-box-info" class="font-bold text-white font-mono">QUTI #0 [00000000]</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-400">
+                    <span>Zakaz raqami:</span>
+                    <span id="modal-order-num" class="font-bold text-white font-mono">—</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-400">
+                    <span>Model / Artikul:</span>
+                    <span id="modal-article" class="font-bold text-white">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-5 border-t border-slate-800 mt-6 flex justify-end">
+            <button type="button" onclick="closeStickerModal()"
+                class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+                Yopish
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openStickerModal(ticketId) {
+        const el = document.querySelector(`[data-ticket-id="${ticketId}"]`);
+        if (!el) return;
+
+        const isScanned = el.getAttribute('data-is-scanned') === 'true';
+        const stikerId = el.getAttribute('data-stiker-id');
+        const opName = el.getAttribute('data-op-name');
+        const workerName = el.getAttribute('data-worker-name');
+        const workerId = el.getAttribute('data-worker-id');
+        const workerUid = el.getAttribute('data-worker-uid');
+        const scannedAt = el.getAttribute('data-scanned-at');
+        const master = el.getAttribute('data-master');
+        const screen = el.getAttribute('data-screen');
+        const qty = el.getAttribute('data-qty');
+        const amount = el.getAttribute('data-amount');
+        const boxCode = el.getAttribute('data-box-code');
+        const boxNum = el.getAttribute('data-box-num');
+        const orderNum = el.getAttribute('data-order-num');
+        const article = el.getAttribute('data-article');
+
+        document.getElementById('modal-op-name').innerText = opName;
+        document.getElementById('modal-stiker-id').innerText = stikerId;
+        document.getElementById('modal-box-info').innerText = `QUTI #${boxNum} [${boxCode}]`;
+        document.getElementById('modal-order-num').innerText = orderNum;
+        document.getElementById('modal-article').innerText = article || "—";
+
+        const iconBox = document.getElementById('modal-status-icon');
+        const banner = document.getElementById('modal-status-banner');
+
+        if (isScanned) {
+            iconBox.className = "w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl shadow-lg shadow-blue-600/30";
+            iconBox.innerHTML = '<i class="fa-solid fa-check"></i>';
+
+            banner.className = "p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between bg-blue-500/10 border-blue-500/30 text-blue-400";
+            banner.innerHTML = `<span><i class="fa-solid fa-circle-check mr-1.5"></i> Ushbu operatsiya muvaffaqiyatli tikildi va skanerlandi</span><span class="font-mono text-[11px] bg-blue-500/20 px-2 py-0.5 rounded">BAJARILDI</span>`;
+
+            document.getElementById('modal-worker').innerText = workerName;
+            document.getElementById('modal-worker-sub').innerText = `${workerId ? workerId : ''} ${workerUid ? `[UID: ${workerUid}]` : ''}`.trim();
+            document.getElementById('modal-time').innerText = scannedAt;
+            document.getElementById('modal-master').innerText = master;
+            document.getElementById('modal-screen').innerText = screen && screen !== '—' ? `Monitor ekrani: #${screen}` : '';
+            document.getElementById('modal-amount').innerText = amount;
+            document.getElementById('modal-qty').innerText = `${qty} dona`;
+        } else {
+            iconBox.className = "w-12 h-12 rounded-2xl bg-rose-950 text-rose-400 border border-rose-500/40 flex items-center justify-center text-xl shadow-lg";
+            iconBox.innerHTML = '<i class="fa-solid fa-clock"></i>';
+
+            banner.className = "p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between bg-rose-500/10 border-rose-500/30 text-rose-400";
+            banner.innerHTML = `<span><i class="fa-solid fa-hourglass-half mr-1.5"></i> Ushbu operatsiya hali tikilmagan / skanerlanmagan</span><span class="font-mono text-[11px] bg-rose-500/20 px-2 py-0.5 rounded">KUTILMOQDA</span>`;
+
+            document.getElementById('modal-worker').innerText = "Hali biriktirilmagan";
+            document.getElementById('modal-worker-sub').innerText = "—";
+            document.getElementById('modal-time').innerText = "Kutilmoqda";
+            document.getElementById('modal-master').innerText = "—";
+            document.getElementById('modal-screen').innerText = "—";
+            document.getElementById('modal-amount').innerText = amount;
+            document.getElementById('modal-qty').innerText = `${qty} dona`;
+        }
+
+        document.getElementById('sticker-detail-modal').classList.remove('hidden');
+    }
+
+    function closeStickerModal() {
+        document.getElementById('sticker-detail-modal').classList.add('hidden');
+    }
+
+    // Modal tashqarisiga bosganda yopish
+    document.getElementById('sticker-detail-modal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeStickerModal();
+        }
+    });
+
+    // Agar search bo'yicha highlighted ticket bo'lsa, avtomatik modalni ochish
+    {% if highlighted_ticket_id %}
+    window.addEventListener('DOMContentLoaded', () => {
+        openStickerModal({{ highlighted_ticket_id }});
+    });
+    {% endif %}
+</script>
+{% endblock %}

@@ -11,8 +11,10 @@ from django.db.models import Sum, Count, Q, F, FloatField, ExpressionWrapper, Va
 from django.db.models.functions import Coalesce
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
+from django.conf import settings
+from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
-from production.models import Order, Ticket, Article, Operation, ArticleOperation, OrderItem
+from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem
 
 
 def superadmin_required(view_func):
@@ -1002,16 +1004,28 @@ def superadmin_orders_list(request):
     if request.method == 'POST':
         order_number = request.POST.get('order_number', '').strip()
         client_name = request.POST.get('client_name', '').strip()
+        customer_id = request.POST.get('customer_id')
         deadline = request.POST.get('deadline') or None
+
+        customer = None
+        if customer_id:
+            customer = Customer.objects.filter(id=customer_id).first()
+        if not customer and client_name:
+            customer, _ = Customer.objects.get_or_create(name=client_name)
+
+        product_model_id = request.POST.get('product_model_id')
+        product_model = None
+        if product_model_id:
+            product_model = ProductModel.objects.filter(id=product_model_id).first()
 
         model_name = request.POST.get('model_name', '').strip()
         model_code = request.POST.get('model_code', '').strip().upper()
         quantity_str = request.POST.get('quantity', '0').strip()
-        norm_str = request.POST.get('norm', '1000').strip()
+        norm_str = request.POST.get('norm', '').strip()
         try:
-            norm = max(1, int(norm_str))
+            norm = max(1, int(norm_str)) if norm_str else (product_model.daily_norm if product_model else 1000)
         except Exception:
-            norm = 1000
+            norm = product_model.daily_norm if product_model else 1000
 
         checked_operations = request.POST.getlist('selected_operations')
 
@@ -1025,11 +1039,16 @@ def superadmin_orders_list(request):
                 with transaction.atomic():
                     article, _ = Article.objects.get_or_create(
                         code=model_code,
-                        defaults={'name': model_name}
+                        defaults={'name': model_name, 'daily_norm': norm}
                     )
+                    if product_model and article.model != product_model:
+                        article.model = product_model
+                        article.save()
+
                     order = Order.objects.create(
                         order_number=order_number,
-                        client_name=client_name,
+                        customer=customer,
+                        client_name=customer.name if customer else client_name,
                         deadline=deadline,
                         article=article,
                         total_quantity=quantity,
@@ -1073,10 +1092,11 @@ def superadmin_orders_list(request):
         annotated_completed_tickets=Count('boxes__tickets', filter=Q(boxes__tickets__status=Ticket.Status.SCANNED), distinct=True),
         annotated_total_tickets=Count('boxes__tickets', distinct=True),
         annotated_total_boxes_qty=Sum('boxes__quantity', distinct=True)
-    ).select_related('article').prefetch_related('items__article__article_operations__operation', 'boxes').order_by('-created_at')
+    ).select_related('customer', 'article', 'article__model').prefetch_related('items__article__article_operations__operation', 'boxes').order_by('-created_at')
     if search_q:
         orders = orders.filter(
             Q(order_number__icontains=search_q) |
+            Q(customer__name__icontains=search_q) |
             Q(client_name__icontains=search_q) |
             Q(article__name__icontains=search_q) |
             Q(article__code__icontains=search_q) |
@@ -1084,7 +1104,9 @@ def superadmin_orders_list(request):
         ).distinct()
 
     all_operations = Operation.objects.all().order_by('code')
-    all_articles = Article.objects.all().prefetch_related('article_operations__operation').order_by('code')
+    all_articles = Article.objects.all().select_related('model').prefetch_related('article_operations__operation').order_by('code')
+    all_customers = Customer.objects.all().order_by('name')
+    all_product_models = ProductModel.objects.all().prefetch_related('model_operations__operation').order_by('code')
 
     # Serialize articles with operations for client-side auto-fill
     articles_data = []
@@ -1103,6 +1125,8 @@ def superadmin_orders_list(request):
             'id': art.id,
             'code': art.code,
             'name': art.name,
+            'model_id': art.model_id or '',
+            'norm': art.daily_norm or (art.model.daily_norm if art.model else 1000),
             'description': art.description or '',
             'operations': ops
         })
@@ -1111,6 +1135,8 @@ def superadmin_orders_list(request):
         'orders': orders,
         'all_operations': all_operations,
         'all_articles': all_articles,
+        'all_customers': all_customers,
+        'all_product_models': all_product_models,
         'articles_json': json.dumps(articles_data),
         'search_q': search_q,
     })
@@ -1171,10 +1197,19 @@ def superadmin_order_edit(request, order_id: int):
     order = get_object_or_404(Order, id=order_id)
     if request.method == 'POST':
         client_name = request.POST.get('client_name', '').strip()
+        customer_id = request.POST.get('customer_id')
         deadline = request.POST.get('deadline') or None
         status = request.POST.get('status', order.status)
         
-        order.client_name = client_name
+        if customer_id:
+            order.customer = Customer.objects.filter(id=customer_id).first()
+            if order.customer:
+                order.client_name = order.customer.name
+        elif client_name:
+            order.client_name = client_name
+            cust, _ = Customer.objects.get_or_create(name=client_name)
+            order.customer = cust
+
         order.deadline = deadline
         if status in dict(Order.Status.choices):
             order.status = status
@@ -1190,14 +1225,19 @@ def superadmin_order_add_model(request, order_id: int):
     """
     order = get_object_or_404(Order, id=order_id)
     if request.method == 'POST':
+        product_model_id = request.POST.get('product_model_id')
+        product_model = None
+        if product_model_id:
+            product_model = ProductModel.objects.filter(id=product_model_id).first()
+
         model_name = request.POST.get('model_name', '').strip()
         model_code = request.POST.get('model_code', '').strip().upper()
         quantity_str = request.POST.get('quantity', '0').strip()
-        norm_str = request.POST.get('norm', '1000').strip()
+        norm_str = request.POST.get('norm', '').strip()
         try:
-            norm = max(1, int(norm_str))
+            norm = max(1, int(norm_str)) if norm_str else (product_model.daily_norm if product_model else 1000)
         except Exception:
-            norm = 1000
+            norm = product_model.daily_norm if product_model else 1000
         checked_operations = request.POST.getlist('selected_operations')
 
         if not model_name or not model_code or not quantity_str:
@@ -1387,4 +1427,297 @@ def superadmin_order_model_delete_operation(request, order_id: int, item_id: int
         ao.delete()
         messages.success(request, f"'{op_name}' operatsiyasi modeldan olib tashlandi.")
     return redirect('superadmin_order_detail', order_id=order.id)
+
+
+@superadmin_required
+def superadmin_worker_history(request, worker_id: int):
+    """
+    Ishchining kunlik normasi, foizi, ishlab topgan sdelshina haqi, 
+    100% dan oshganda +30000 bonus va o'sha kuni qilgan barcha operatsiyalari (stikerlari).
+    """
+    worker = get_object_or_404(Worker, id=worker_id)
+    today = timezone.localdate()
+    current_tz = timezone.get_current_timezone()
+
+    date_range = request.GET.get('range', 'this_month')
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+
+    if date_range == 'today':
+        start_date = today
+        end_date = today
+    elif date_range == 'last_month':
+        first_day_this_month = today.replace(day=1)
+        last_day_prev_month = first_day_this_month - datetime.timedelta(days=1)
+        start_date = last_day_prev_month.replace(day=1)
+        end_date = last_day_prev_month
+    elif date_range == 'custom' and start_date_str and end_date_str:
+        try:
+            start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            start_date = today.replace(day=1)
+            end_date = today
+    else:  # 'this_month' (default)
+        start_date = today.replace(day=1)
+        end_date = today
+        date_range = 'this_month'
+
+    # Filter tickets
+    tickets = worker.tickets.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__date__gte=start_date,
+        scanned_at__date__lte=end_date
+    ).select_related(
+        'article_operation__article__model',
+        'article_operation__operation',
+        'box__order',
+        'scanned_by'
+    ).order_by('-scanned_at')
+
+    ticket_dates = sorted(
+        list(set(t.scanned_at.astimezone(current_tz).date() for t in tickets)),
+        reverse=True
+    )
+
+    daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 30000)
+
+    UZ_DAYS = {
+        0: 'Dushanba',
+        1: 'Seshanba',
+        2: 'Chorshanba',
+        3: 'Payshanba',
+        4: 'Juma',
+        5: 'Shanba',
+        6: 'Yakshanba'
+    }
+
+    daily_history = []
+    total_period_units = 0
+    total_period_piece_rate = Decimal('0.00')
+    total_period_bonus = Decimal('0.00')
+    days_with_bonus_count = 0
+
+    for d in ticket_dates:
+        d_tickets = [t for t in tickets if t.scanned_at.astimezone(current_tz).date() == d]
+        d_units = sum(t.quantity for t in d_tickets)
+        d_earned = sum(t.total_amount for t in d_tickets)
+
+        # Multi-model norma foizi: sum((points_model / norm_model) * 100)
+        model_stats = {}
+        for t in d_tickets:
+            ao = t.article_operation
+            art = ao.article if ao else None
+            pmodel = art.model if art else None
+            norm = (pmodel.daily_norm if pmodel else (art.daily_norm if art else 1000)) or 1000
+            diff = float(ao.difficulty) if (ao and ao.difficulty) else 1.0
+            pts = t.quantity * diff
+            model_key = pmodel.id if pmodel else (art.id if art else 0)
+            model_name = pmodel.name if pmodel else (art.name if art else "Noma'lum")
+
+            if model_key not in model_stats:
+                model_stats[model_key] = {
+                    'name': model_name,
+                    'norm': norm,
+                    'points': 0.0,
+                }
+            model_stats[model_key]['points'] += pts
+
+        total_day_pct = Decimal('0.0')
+        norms_list = []
+        for mk, mdata in model_stats.items():
+            if mdata['norm'] > 0:
+                pct = (Decimal(str(mdata['points'])) / Decimal(str(mdata['norm']))) * Decimal('100.0')
+                total_day_pct += pct
+                norms_list.append(f"{mdata['name']} ({mdata['norm']} dona)")
+
+        total_day_pct = round(total_day_pct, 1)
+
+        # Bonus sharti: qat'iy > 100.0% (100% bo'lsa hisob emas!)
+        has_bonus = total_day_pct > Decimal('100.0')
+        d_bonus = Decimal(str(daily_bonus_amount)) if has_bonus else Decimal('0.00')
+
+        if has_bonus:
+            days_with_bonus_count += 1
+            total_period_bonus += d_bonus
+
+        total_day_income = d_earned + d_bonus
+        total_period_units += d_units
+        total_period_piece_rate += d_earned
+
+        tickets_list = []
+        for t in d_tickets:
+            tickets_list.append({
+                'id': t.id,
+                'stiker_code': t.stiker_code or f"ID{t.id}",
+                'stiker_id': t.stiker_id,
+                'box_number': t.box.box_number if t.box else "—",
+                'box_code': t.box.box_code if t.box else "—",
+                'order_number': t.box.order.order_number if (t.box and t.box.order) else "—",
+                'article_name': t.article_operation.article.name if (t.article_operation and t.article_operation.article) else "—",
+                'operation_name': t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "—",
+                'quantity': t.quantity,
+                'total_amount': int(t.total_amount) if t.total_amount else 0,
+                'total_amount_formatted': f"{int(t.total_amount):,} UZS".replace(",", " ") if t.total_amount else "0 UZS",
+                'time': t.scanned_at.astimezone(current_tz).strftime("%H:%M:%S") if t.scanned_at else "—",
+                'master': (t.scanned_by.get_full_name() or t.scanned_by.username) if t.scanned_by else "—",
+            })
+
+        daily_history.append({
+            'date': d,
+            'date_str': d.strftime("%d.%m.%Y"),
+            'date_iso': d.strftime("%Y-%m-%d"),
+            'day_name': UZ_DAYS.get(d.weekday(), ''),
+            'units': d_units,
+            'ticket_count': len(d_tickets),
+            'norm_display': ", ".join(norms_list) if norms_list else "1 000 dona",
+            'percentage': float(total_day_pct),
+            'percentage_display': f"{total_day_pct:.1f}%",
+            'piece_rate': d_earned,
+            'piece_rate_formatted': f"{int(d_earned):,} UZS".replace(",", " "),
+            'has_bonus': has_bonus,
+            'bonus': d_bonus,
+            'bonus_formatted': f"+{int(d_bonus):,} UZS".replace(",", " ") if has_bonus else "—",
+            'total_income': total_day_income,
+            'total_income_formatted': f"{int(total_day_income):,} UZS".replace(",", " "),
+            'tickets': tickets_list,
+        })
+
+    grand_total_income = total_period_piece_rate + total_period_bonus
+
+    context = {
+        'worker': worker,
+        'date_range': date_range,
+        'start_date': start_date,
+        'end_date': end_date,
+        'start_date_str': start_date.strftime("%Y-%m-%d"),
+        'end_date_str': end_date.strftime("%Y-%m-%d"),
+        'daily_history': daily_history,
+        'days_worked_count': len(daily_history),
+        'total_period_units': total_period_units,
+        'total_period_piece_rate': total_period_piece_rate,
+        'total_period_bonus': total_period_bonus,
+        'days_with_bonus_count': days_with_bonus_count,
+        'grand_total_income': grand_total_income,
+        'daily_bonus_amount': daily_bonus_amount,
+    }
+    return render(request, 'superadmin/worker_history.html', context)
+
+
+@superadmin_required
+def api_worker_tickets_by_date(request, worker_id: int):
+    worker = get_object_or_404(Worker, id=worker_id)
+    date_str = request.GET.get('date')
+    if not date_str:
+        return JsonResponse({'success': False, 'error': 'Sana kiritilmadi'}, status=400)
+    try:
+        target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({'success': False, 'error': "Sana formati noto'g'ri (YYYY-MM-DD)"}, status=400)
+
+    current_tz = timezone.get_current_timezone()
+    tickets = worker.tickets.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__date=target_date
+    ).select_related(
+        'article_operation__article',
+        'article_operation__operation',
+        'box__order',
+        'scanned_by'
+    ).order_by('scanned_at')
+
+    items = []
+    for t in tickets:
+        items.append({
+            'id': t.id,
+            'stiker_code': t.stiker_code or f"ID{t.id}",
+            'stiker_id': t.stiker_id,
+            'ticket_code': t.ticket_code,
+            'box_number': t.box.box_number if t.box else "—",
+            'box_code': t.box.box_code if t.box else "—",
+            'order_number': t.box.order.order_number if (t.box and t.box.order) else "—",
+            'article_name': t.article_operation.article.name if (t.article_operation and t.article_operation.article) else "—",
+            'operation_name': t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "—",
+            'quantity': t.quantity,
+            'total_amount': int(t.total_amount) if t.total_amount else 0,
+            'total_amount_formatted': f"{int(t.total_amount):,} UZS".replace(",", " ") if t.total_amount else "0 UZS",
+            'time': t.scanned_at.astimezone(current_tz).strftime("%H:%M:%S") if t.scanned_at else "—",
+            'master': (t.scanned_by.get_full_name() or t.scanned_by.username) if t.scanned_by else "—",
+        })
+
+    return JsonResponse({
+        'success': True,
+        'worker_name': worker.full_name,
+        'date': date_str,
+        'total_units': sum(t.quantity for t in tickets),
+        'total_amount': float(sum(t.total_amount for t in tickets)),
+        'count': len(items),
+        'tickets': items
+    })
+
+
+@superadmin_required
+def superadmin_payroll_bulk_pay(request):
+    """
+    Buxgalteriya tabelidan tanlangan bir nechta xodimlarga oylik maoshni guruhlab to'lash (yopish).
+    """
+    if request.method != 'POST':
+        return redirect('superadmin_payroll')
+
+    worker_ids = request.POST.getlist('selected_worker_ids')
+    year = int(request.POST.get('selected_year', timezone.localdate().year))
+    month = int(request.POST.get('selected_month', timezone.localdate().month))
+    today = timezone.localdate()
+
+    if not worker_ids:
+        messages.warning(request, "Hech qanday xodim tanlanmadi!")
+        return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+
+    paid_count = 0
+    total_paid_sum = Decimal('0.00')
+
+    with transaction.atomic():
+        for wid in worker_ids:
+            try:
+                worker = Worker.objects.get(id=wid)
+            except Worker.DoesNotExist:
+                continue
+
+            month_gross = worker.tickets.filter(
+                status=Ticket.Status.SCANNED,
+                scanned_at__year=year,
+                scanned_at__month=month
+            ).aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+
+            payouts = worker.payouts.filter(
+                payout_date__year=year,
+                payout_date__month=month
+            )
+            advances = payouts.filter(payout_type=WorkerPayout.PayoutType.ADVANCE).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+            salaries_paid = payouts.filter(payout_type=WorkerPayout.PayoutType.SALARY).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+
+            net_payable = month_gross - advances - salaries_paid
+
+            if net_payable > Decimal('0.00'):
+                WorkerPayout.objects.create(
+                    worker=worker,
+                    amount=net_payable,
+                    payout_type=WorkerPayout.PayoutType.SALARY,
+                    payout_date=today,
+                    note=f"{year}-{month:02d} oylik maoshi to'liq yopildi",
+                    created_by=request.user
+                )
+                paid_count += 1
+                total_paid_sum += net_payable
+
+    if paid_count > 0:
+        messages.success(
+            request, 
+            f"Muvaffaqiyatli! {paid_count} nafar xodimga jami {int(total_paid_sum):,} UZS oylik to'landi va hisob yopildi.".replace(",", " ")
+        )
+    else:
+        messages.info(request, "Tanlangan xodimlarda to'lanishi kerak bo'lgan maosh qoldig'i yo'q.")
+
+    return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+
 
