@@ -80,8 +80,9 @@ class BoxTicketGenerationTest(TestCase):
         self.assertEqual([t.quantity for t in op2_tickets], [34, 33, 33])
         self.assertEqual(sum(t.quantity for t in op2_tickets), 100)
         
-        # QR code is generated
-        self.assertTrue(bool(tickets[0].qr_code_image))
+        # QR code is generated dynamically in memory
+        self.assertTrue(bool(tickets[0].qr_code_data_uri))
+        self.assertTrue(tickets[0].qr_code_data_uri.startswith("data:image/png;base64,"))
         self.assertTrue(tickets[0].ticket_code.startswith("TK-ORD-TEST-01-1-"))
 
     def test_create_box_when_gaps_exist(self):

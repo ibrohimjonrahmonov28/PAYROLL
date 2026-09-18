@@ -274,17 +274,13 @@
                     <!-- QR Code (Katta va oson skanerlanadigan) -->
                     <div
                         class="w-[124px] h-[124px] border-2 border-slate-950 rounded-lg p-1 bg-white flex items-center justify-center shadow-xs">
-                        {% if ticket.qr_code_image %}
-                        <img src="{{ ticket.qr_code_image.url }}" alt="QR" class="w-full h-full object-contain">
-                        {% else %}
-                        <div class="text-xs font-bold text-slate-400">QR</div>
-                        {% endif %}
+                        <img src="{{ ticket.qr_code_data_uri }}" alt="QR" class="w-full h-full object-contain">
                     </div>
                     <!-- STIKER ID: Kichikroq, ixcham badge -->
                     <div
                         class="mt-1 w-full flex items-center justify-between px-1.5 py-0.5 border-2 border-slate-950 bg-slate-950 text-white rounded shadow-xs">
-                        <span
-                            class="text-[6.5px] font-bold uppercase tracking-wider leading-none text-amber-400">STIKER ID:</span>
+                        <span class="text-[6.5px] font-bold uppercase tracking-wider leading-none text-amber-400">STIKER
+                            ID:</span>
                         <span class="font-mono font-black text-[10.5px] leading-none text-white tracking-wide">
                             {% if ticket.stiker_code %}
                             #{{ ticket.stiker_code }}
@@ -321,7 +317,8 @@
                         <div
                             class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
                             <span class="text-[7.5px] font-black uppercase text-slate-600">SONI:</span>
-                            <span class="text-sm font-black digital-font text-slate-950 leading-none">{{ ticket.quantity
+                            <span class="text-sm font-black digital-font text-slate-950 leading-none">{{
+                                ticket.quantity
                                 }}</span>
                             <span class="text-[7.5px] font-black text-slate-700 uppercase">dona</span>
                         </div>
@@ -340,7 +337,8 @@
                         <div
                             class="border-2 border-purple-900 rounded px-1.5 py-0.5 bg-purple-50 flex items-baseline gap-1">
                             <span class="text-[7.5px] font-black uppercase text-purple-900">RAZMER:</span>
-                            <span class="text-xs font-black text-purple-950 leading-none font-mono">{{ ticket.box.razmer
+                            <span class="text-xs font-black text-purple-950 leading-none font-mono">{{
+                                ticket.box.razmer
                                 }}</span>
                         </div>
                         {% endif %}

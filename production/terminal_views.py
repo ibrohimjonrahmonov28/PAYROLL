@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, time
 from decimal import Decimal
 import re
 from django.shortcuts import render
@@ -64,9 +65,12 @@ def terminal_home_view(request):
     Zebra DS22 Skaner uskunasi uchun ixtisoslashgan Master Skanerlash Terminali sahifasi.
     """
     today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
     
-    # Bugungi umumiy terminal statistikasi
-    today_scans = Ticket.objects.filter(status=Ticket.Status.SCANNED, scanned_at__date=today)
+    # Bugungi umumiy terminal statistikasi (Index-friendly datetime range)
+    today_scans = Ticket.objects.filter(status=Ticket.Status.SCANNED, scanned_at__range=(day_start, day_end))
     today_total_units = today_scans.aggregate(s=models.Sum('quantity'))['s'] or 0
     today_total_amount = today_scans.aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')
     today_active_workers = today_scans.values('worker').distinct().count()
@@ -179,9 +183,12 @@ def terminal_identify_worker_api(request):
     request.session['terminal_pending_tickets'] = []
     request.session.modified = True
 
-    # Bugungi ish ko'rsatkichlari
+    # Bugungi ish ko'rsatkichlari (Index-friendly datetime range)
     today = timezone.localdate()
-    today_tickets = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED, scanned_at__date=today)
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
+    today_tickets = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED, scanned_at__range=(day_start, day_end))
     today_units = today_tickets.aggregate(s=models.Sum('quantity'))['s'] or 0
     today_earned = today_tickets.aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')
 

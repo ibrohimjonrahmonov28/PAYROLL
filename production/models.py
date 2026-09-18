@@ -1,4 +1,5 @@
 import io
+import base64
 import uuid
 import secrets
 import string
@@ -404,6 +405,9 @@ class Ticket(models.Model):
         ]
 
     def generate_qr_code(self):
+        """
+        Ixtiyoriy: agar biron-bir joyda diskka rasm fayli talab qilinsa.
+        """
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -420,6 +424,34 @@ class Ticket(models.Model):
         filename = f"ticket_{self.ticket_code}.png"
         self.qr_code_image.save(filename, ContentFile(buffer.getvalue()), save=False)
 
+    @property
+    def qr_code_data_uri(self) -> str:
+        """
+        Xotirada (RAM) tezkor generatsiya qilinadigan Base64 QR-kod.
+        Diskka 0 bayt yozadi, Inode band qilmaydi, brauzerda bir zumda ochiladi.
+        Agar mavjud eski diskdagi fayl bo'lsa, o'shandan ham foydalana oladi (100% backward compatible).
+        """
+        if self.qr_code_image and hasattr(self.qr_code_image, 'url'):
+            try:
+                if self.qr_code_image.storage.exists(self.qr_code_image.name):
+                    return self.qr_code_image.url
+            except Exception:
+                pass
+
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=8,
+            border=1,
+        )
+        qr.add_data(f"TICKET:{self.ticket_code}")
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+        return f"data:image/png;base64,{b64}"
+
     def save(self, *args, **kwargs):
         if not self.ticket_code:
             random_part = uuid.uuid4().hex[:6].upper()
@@ -430,9 +462,6 @@ class Ticket(models.Model):
             self.price_per_unit = self.article_operation.price_per_unit
         self.total_amount = Decimal(self.quantity) * self.price_per_unit
         
-        if not self.qr_code_image:
-            self.generate_qr_code()
-            
         super().save(*args, **kwargs)
 
     @property

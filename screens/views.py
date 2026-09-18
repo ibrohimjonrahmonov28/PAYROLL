@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime, time
+import calendar
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
@@ -12,11 +13,15 @@ def get_screen_data(screen_number: int, target_date=None):
     if target_date is None:
         target_date = timezone.localdate()
 
-    # Bugun ushbu ekranga biriktirilgan va skanerlangan biletlar
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(target_date, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(target_date, time.max), tz)
+
+    # Bugun ushbu ekranga biriktirilgan va skanerlangan biletlar (Index-friendly datetime range)
     tickets = Ticket.objects.filter(
         screen_number=screen_number,
         status=Ticket.Status.SCANNED,
-        scanned_at__date=target_date,
+        scanned_at__range=(day_start, day_end),
         worker__isnull=False
     )
 
@@ -89,12 +94,15 @@ def get_screen_data(screen_number: int, target_date=None):
     )
 
     worker_ids = [stat['worker__id'] for stat in worker_stats]
-    # Joriy oy bo'yicha har bir xodimning jami hisoblangan oylik maoshi
+    # Joriy oy bo'yicha har bir xodimning jami hisoblangan oylik maoshi (Index-friendly datetime range)
+    _, last_day = calendar.monthrange(target_date.year, target_date.month)
+    month_start = timezone.make_aware(datetime.combine(date(target_date.year, target_date.month, 1), time.min), tz)
+    month_end = timezone.make_aware(datetime.combine(date(target_date.year, target_date.month, last_day), time.max), tz)
+
     month_stats = Ticket.objects.filter(
         worker_id__in=worker_ids,
         status=Ticket.Status.SCANNED,
-        scanned_at__year=target_date.year,
-        scanned_at__month=target_date.month
+        scanned_at__range=(month_start, month_end)
     ).values('worker_id').annotate(
         month_earnings=Sum('total_amount')
     )
