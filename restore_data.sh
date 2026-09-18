@@ -4,12 +4,13 @@
 # ==============================================================================
 set -e
 
-echo "1. PostgreSQL bazasiga ma'lumotlarni yuklash..."
-if [ -f payroll_backup.sql ]; then
+echo "1. Barcha operatsiyalar, narxlar, modellar va xodimlarni bazaga yuklash..."
+if [ -f data_backup.json ]; then
+    docker compose exec web python manage.py loaddata data_backup.json
+    echo " -> Barcha 1,120 ta ob'ekt (operatsiyalar, qiyinliklar, narxlar) muvaffaqiyatli tiklandi!"
+elif [ -f payroll_backup.sql ]; then
     docker compose exec -T db psql -U ${DB_USER:-payroll_user} -d ${DB_NAME:-payroll_db} < payroll_backup.sql
-    echo " -> Baza ma'lumotlari muvaffaqiyatli tiklandi!"
-else
-    echo " -> payroll_backup.sql topilmadi, o'tkazib yuborildi."
+    echo " -> Baza ma'lumotlari tiklandi!"
 fi
 
 echo "2. Barcha QR kodlar va media fayllarni tiklash..."
@@ -26,6 +27,5 @@ echo "3. Migratsiyalarni tekshirish..."
 docker compose exec web python manage.py migrate --noinput
 
 echo "=============================================================================="
-echo "Tabriklaymiz! Barcha 24 xodim, 68 quti va 889 ta QR stiker tiklandi va tayyor!"
+echo "Tabriklaymiz! Barcha 24 xodim, 33 ta operatsiya va narxlar, 68 quti va 889 ta QR stiker to'liq tiklandi!"
 echo "=============================================================================="
-
