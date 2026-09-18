@@ -203,8 +203,8 @@
                         <th class="py-4 px-6 text-center w-36">Bugun Tikilgan</th>
                         <th class="py-4 px-6 text-center min-w-[300px]">Model Bo'yicha Norma</th>
                         <th class="py-4 px-6 text-center min-w-[200px]">Umumiy Foiz</th>
-                        <th class="py-4 px-6 text-right w-44">Ish Haqi</th>
-                        <th class="py-4 px-6 text-center w-36">Oxirgi skan</th>
+                        <th class="py-4 px-6 text-right w-44">Bugungi Ish Haqi</th>
+                        <th class="py-4 px-6 text-right w-48">Oylik Maosh</th>
                     </tr>
                 </thead>
                 <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-xl">
@@ -264,15 +264,18 @@
                             </div>
                         </td>
 
-                        <!-- Ish haqi -->
+                        <!-- Bugungi Ish haqi -->
                         <td
                             class="py-4 px-6 text-right font-black text-xl md:text-2xl text-emerald-400 digital-font glow-emerald">
                             {{ w.total_earnings_formatted }} <span
                                 class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                         </td>
 
-                        <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
-                            {{ w.last_scan }}
+                        <!-- Oylik Maosh -->
+                        <td
+                            class="py-4 px-6 text-right font-black text-xl md:text-2xl text-cyan-300 digital-font">
+                            {{ w.month_earnings_formatted }} <span
+                                class="text-xs font-semibold text-cyan-500 font-sans">so'm</span>
                         </td>
                     </tr>
                     {% empty %}
@@ -418,8 +421,8 @@
                             <td class="py-4 px-6 text-right font-black text-xl md:text-2xl text-emerald-400 digital-font glow-emerald">
                                 ${w.total_earnings_formatted} <span class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                             </td>
-                            <td class="py-4 px-6 text-center text-slate-400 text-sm font-medium digital-font">
-                                ${w.last_scan}
+                            <td class="py-4 px-6 text-right font-black text-xl md:text-2xl text-cyan-300 digital-font">
+                                ${w.month_earnings_formatted} <span class="text-xs font-semibold text-cyan-500 font-sans">so'm</span>
                             </td>
                         </tr>`;
                     });

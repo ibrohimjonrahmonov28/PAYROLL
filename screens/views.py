@@ -88,6 +88,18 @@ def get_screen_data(screen_number: int, target_date=None):
         last_scan=Max('scanned_at')
     )
 
+    worker_ids = [stat['worker__id'] for stat in worker_stats]
+    # Joriy oy bo'yicha har bir xodimning jami hisoblangan oylik maoshi
+    month_stats = Ticket.objects.filter(
+        worker_id__in=worker_ids,
+        status=Ticket.Status.SCANNED,
+        scanned_at__year=target_date.year,
+        scanned_at__month=target_date.month
+    ).values('worker_id').annotate(
+        month_earnings=Sum('total_amount')
+    )
+    month_earnings_map = {item['worker_id']: (item['month_earnings'] or 0) for item in month_stats}
+
     workers_list = []
     grand_total_earnings = 0
     grand_total_units = 0
@@ -99,6 +111,9 @@ def get_screen_data(screen_number: int, target_date=None):
         units = int(stat['total_units'] or 0)
         grand_total_earnings += earnings
         grand_total_units += units
+
+        month_earnings = int(month_earnings_map.get(w_id, earnings) or 0)
+        month_earnings_formatted = f"{month_earnings:,.0f}".replace(",", " ")
 
         last_scan_time = ""
         if stat['last_scan']:
@@ -131,6 +146,8 @@ def get_screen_data(screen_number: int, target_date=None):
             'models_str': ", ".join(m['label'] for m in models_display),
             'total_earnings': earnings,
             'total_earnings_formatted': f"{earnings:,.0f}".replace(",", " "),
+            'month_earnings': month_earnings,
+            'month_earnings_formatted': month_earnings_formatted,
             'ticket_count': stat['ticket_count'],
             'last_scan': last_scan_time,
         })
