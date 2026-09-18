@@ -451,6 +451,22 @@ class Box(models.Model):
             return False
         return not tickets.filter(status=Ticket.Status.PENDING).exists()
 
+    def update_status_from_tickets(self):
+        total = self.tickets.count()
+        if total == 0:
+            return self.status
+        scanned = self.tickets.filter(status=Ticket.Status.SCANNED).count()
+        if scanned == total:
+            new_status = self.Status.COMPLETED
+        elif scanned > 0:
+            new_status = self.Status.IN_PROGRESS
+        else:
+            new_status = self.Status.CREATED
+        if self.status != new_status:
+            self.status = new_status
+            self.save(update_fields=['status'])
+        return self.status
+
     def __str__(self):
         art_code = self.target_article.code if self.target_article else "N/A"
         return f"{self.order.order_number} - Quti #{self.box_number} [{self.box_code}] ({self.quantity} dona)"

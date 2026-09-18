@@ -475,6 +475,11 @@ def terminal_finalize_api(request):
             scanned_at=now
         )
 
+        # Tegishli qutilar holatini avtomatik yangilash (IN_PROGRESS yoki COMPLETED)
+        affected_box_ids = list(Ticket.objects.filter(id__in=pending_ids).values_list('box_id', flat=True).distinct())
+        for b_obj in Box.objects.filter(id__in=affected_box_ids):
+            b_obj.update_status_from_tickets()
+
         # Sessiyani tozalash
         request.session.pop('terminal_worker_id', None)
         request.session.pop('terminal_pending_tickets', None)

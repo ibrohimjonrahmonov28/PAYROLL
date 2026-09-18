@@ -4,21 +4,27 @@
 
 {% block superadmin_header %}
 <div class="flex items-center gap-3">
-    <a href="{% url 'superadmin_users' %}" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition" title="Ortga">
+    <a href="{% url 'superadmin_users' %}"
+        class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition"
+        title="Ortga">
         <i class="fa-solid fa-arrow-left"></i>
     </a>
-    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-md">
+    <div
+        class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-md">
         <i class="fa-solid fa-user-check"></i>
     </div>
     <div>
         <h2 class="text-lg font-black text-white leading-tight flex items-center gap-2">
             <span>{{ worker.full_name }}</span>
-            <span class="bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs px-2 py-0.5 rounded font-mono">{{ worker.worker_id }}</span>
+            <span class="bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs px-2 py-0.5 rounded font-mono">{{
+                worker.worker_id }}</span>
             {% if worker.user and worker.user.uid %}
-            <span class="bg-slate-800 text-amber-300 border border-slate-700 text-xs px-2 py-0.5 rounded font-mono">UID: {{ worker.user.uid }}</span>
+            <span class="bg-slate-800 text-amber-300 border border-slate-700 text-xs px-2 py-0.5 rounded font-mono">UID:
+                {{ worker.user.uid }}</span>
             {% endif %}
         </h2>
-        <p class="text-xs text-slate-400">Kunlik norma bajarilishi foizi, dona-bay ish haqi, kunlik bonus va operatsiyalar tafsiloti</p>
+        <p class="text-xs text-slate-400">Kunlik norma bajarilishi foizi, dona-bay ish haqi, kunlik bonus va
+            operatsiyalar tafsiloti</p>
     </div>
 </div>
 {% endblock %}
@@ -27,8 +33,9 @@
 <div class="max-w-7xl mx-auto space-y-6">
 
     <!-- DATE RANGE FILTER BAR -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4">
-        
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4">
+
         <!-- Preset Buttons -->
         <div class="flex items-center gap-2 w-full lg:w-auto overflow-x-auto">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Davr:</span>
@@ -47,7 +54,8 @@
         </div>
 
         <!-- Custom Date Range Form -->
-        <form method="GET" action="{% url 'superadmin_worker_history' worker.id %}" class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+        <form method="GET" action="{% url 'superadmin_worker_history' worker.id %}"
+            class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
             <input type="hidden" name="range" value="custom">
             <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
                 <span class="text-xs text-slate-500">Dan:</span>
@@ -59,14 +67,16 @@
                 <input type="date" name="end_date" value="{{ end_date_str }}" required
                     class="bg-transparent text-xs text-white focus:outline-none font-medium">
             </div>
-            <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition border border-slate-700 flex items-center gap-1.5">
+            <button type="submit"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition border border-slate-700 flex items-center gap-1.5">
                 <i class="fa-solid fa-filter text-amber-400"></i> Ko'rsatish
             </button>
         </form>
 
         <!-- Quick Links -->
         <div class="flex items-center gap-2">
-            <a href="{% url 'superadmin_payroll' %}" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition border border-slate-700">
+            <a href="{% url 'superadmin_payroll' %}"
+                class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition border border-slate-700">
                 <i class="fa-solid fa-calculator text-emerald-400 mr-1"></i> Buxgalteriya Tabeli
             </a>
         </div>
@@ -74,16 +84,18 @@
 
     <!-- SUMMARY KPI STAT CARDS (5 CARDS) -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        
+
         <!-- 1. Tikilgan Dona -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
             <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jami Tikilgan</span>
-                <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+                <div
+                    class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
                     <i class="fa-solid fa-shirt"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-indigo-400 digital-font">{{ total_period_units }} <small class="text-xs text-slate-400 font-normal">dona</small></div>
+            <div class="text-2xl font-black text-indigo-400 digital-font">{{ total_period_units }} <small
+                    class="text-xs text-slate-400 font-normal">dona</small></div>
             <div class="text-[11px] text-slate-500 mt-1">{{ days_worked_count }} ish kunida</div>
         </div>
 
@@ -91,11 +103,14 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
             <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dona-bay Haqi</span>
-                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+                <div
+                    class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
                     <i class="fa-solid fa-hand-holding-dollar"></i>
                 </div>
             </div>
-            <div class="text-xl font-black text-emerald-400 digital-font">{{ total_period_piece_rate|floatformat:0 }} <small class="text-xs text-slate-400 font-normal">UZS</small></div>
+            <div class="text-xl font-black text-emerald-400 digital-font">{{ total_period_piece_rate|floatformat:0 }}
+                <small class="text-xs text-slate-400 font-normal">UZS</small>
+            </div>
             <div class="text-[11px] text-slate-500 mt-1">Sdelshina biletlari</div>
         </div>
 
@@ -107,19 +122,23 @@
                     <i class="fa-solid fa-fire"></i>
                 </div>
             </div>
-            <div class="text-xl font-black text-amber-400 digital-font">{{ total_period_bonus|floatformat:0 }} <small class="text-xs text-amber-400/70 font-normal">UZS</small></div>
+            <div class="text-xl font-black text-amber-400 digital-font">{{ total_period_bonus|floatformat:0 }} <small
+                    class="text-xs text-amber-400/70 font-normal">UZS</small></div>
             <div class="text-[11px] text-slate-500 mt-1">{{ days_with_bonus_count }} kun 100%+ normaga</div>
         </div>
 
         <!-- 4. Jami Daromad -->
-        <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 shadow-lg bg-gradient-to-b from-emerald-950/20 to-slate-900">
+        <div
+            class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 shadow-lg bg-gradient-to-b from-emerald-950/20 to-slate-900">
             <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Jami Daromad</span>
-                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+                <div
+                    class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
                     <i class="fa-solid fa-sack-dollar"></i>
                 </div>
             </div>
-            <div class="text-xl font-black text-white digital-font">{{ grand_total_income|floatformat:0 }} <small class="text-xs text-slate-400 font-normal">UZS</small></div>
+            <div class="text-xl font-black text-white digital-font">{{ grand_total_income|floatformat:0 }} <small
+                    class="text-xs text-slate-400 font-normal">UZS</small></div>
             <div class="text-[11px] text-emerald-400/80 mt-1">Dona-bay + Bonus</div>
         </div>
 
@@ -131,7 +150,8 @@
                     <i class="fa-solid fa-gift"></i>
                 </div>
             </div>
-            <div class="text-xl font-black text-cyan-400 digital-font">+{{ daily_bonus_amount|floatformat:0 }} <small class="text-xs text-cyan-400/70 font-normal">UZS</small></div>
+            <div class="text-xl font-black text-cyan-400 digital-font">+{{ daily_bonus_amount|floatformat:0 }} <small
+                    class="text-xs text-cyan-400/70 font-normal">UZS</small></div>
             <div class="text-[11px] text-slate-500 mt-1">>100% norma uchun</div>
         </div>
 
@@ -152,7 +172,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                    <tr
+                        class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
                         <th class="py-3 px-3 text-center w-12">№</th>
                         <th class="py-3 px-4">Sana va Kun</th>
                         <th class="py-3 px-3 text-center">Tikilgan Dona</th>
@@ -170,7 +191,7 @@
                         <td class="py-3 px-3 text-center text-slate-500 text-xs font-mono">
                             {{ forloop.counter }}
                         </td>
-                        
+
                         <!-- Sana -->
                         <td class="py-3 px-4">
                             <span class="font-bold text-white block">{{ day.date_str }}</span>
@@ -190,12 +211,14 @@
                         <!-- Normadagi Foiz (%) -->
                         <td class="py-3 px-4">
                             <div class="flex items-center justify-between text-xs mb-1">
-                                <span class="font-black digital-font text-sm
+                                <span
+                                    class="font-black digital-font text-sm
                                     {% if day.percentage > 100 %}text-emerald-400{% elif day.percentage >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %}">
                                     {{ day.percentage_display }}
                                 </span>
                                 {% if day.percentage > 100 %}
-                                <span class="text-[10px] font-black text-amber-400 bg-amber-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                <span
+                                    class="text-[10px] font-black text-amber-400 bg-amber-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5">
                                     <i class="fa-solid fa-fire text-xs"></i> 100%+
                                 </span>
                                 {% endif %}
@@ -204,7 +227,8 @@
                             <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
                                 <div class="h-full rounded-full transition-all duration-500
                                     {% if day.percentage > 100 %}bg-gradient-to-r from-emerald-500 to-amber-400{% elif day.percentage >= 80 %}bg-cyan-500{% else %}bg-amber-500{% endif %}"
-                                    style="width: {% if day.percentage > 100 %}100{% else %}{{ day.percentage }}{% endif %}%"></div>
+                                    style="width: {% if day.percentage > 100 %}100{% else %}{{ day.percentage }}{% endif %}%">
+                                </div>
                             </div>
                         </td>
 
@@ -216,7 +240,8 @@
                         <!-- Bonus -->
                         <td class="py-3 px-4 text-center">
                             {% if day.has_bonus %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 digital-font shadow-sm shadow-amber-500/10">
+                            <span
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 digital-font shadow-sm shadow-amber-500/10">
                                 <i class="fa-solid fa-plus text-[10px]"></i>{{ day.bonus_formatted }}
                             </span>
                             {% else %}
@@ -231,7 +256,8 @@
 
                         <!-- Operatsiyalar Tugmasi -->
                         <td class="py-3 px-4 text-center">
-                            <button type="button" onclick="openDayTicketsModal('{{ day.date_iso }}', '{{ day.date_str }} ({{ day.day_name }})', {{ day.units }}, '{{ day.total_income_formatted }}')"
+                            <button type="button"
+                                onclick="openDayTicketsModal('{{ day.date_iso }}', '{{ day.date_str }} ({{ day.day_name }})', {{ day.units }}, '{{ day.total_income_formatted }}')"
                                 class="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 font-bold text-xs rounded-xl border border-blue-500/30 transition inline-flex items-center gap-1.5 shadow-sm">
                                 <i class="fa-solid fa-list-check text-xs"></i>
                                 <span>Operatsiyalar ({{ day.ticket_count }})</span>
@@ -254,9 +280,11 @@
 </div>
 
 <!-- MODAL: KUNLIK OPERATSIYALAR TAFSILOTI -->
-<div id="day-tickets-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
-        
+<div id="day-tickets-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+        class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+
         <!-- Header -->
         <div class="flex items-start justify-between pb-4 border-b border-slate-800 mb-4 flex-shrink-0">
             <div>
@@ -265,16 +293,19 @@
                     <span>Skanerlangan Operatsiyalar Ro'yxati</span>
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
-                    Xodim: <strong class="text-white">{{ worker.full_name }}</strong> | Sana: <span id="modal-day-title" class="font-bold text-amber-400"></span>
+                    Xodim: <strong class="text-white">{{ worker.full_name }}</strong> | Sana: <span id="modal-day-title"
+                        class="font-bold text-amber-400"></span>
                 </p>
             </div>
-            <button onclick="closeDayTicketsModal()" class="text-slate-400 hover:text-white text-lg p-1.5 rounded-xl hover:bg-slate-800 transition">
+            <button onclick="closeDayTicketsModal()"
+                class="text-slate-400 hover:text-white text-lg p-1.5 rounded-xl hover:bg-slate-800 transition">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
         <!-- Summary row -->
-        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-2xl p-3.5 mb-4 text-xs flex-shrink-0">
+        <div
+            class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-2xl p-3.5 mb-4 text-xs flex-shrink-0">
             <div>
                 <span class="text-slate-400">Jami biletlar:</span>
                 <span id="modal-tickets-count" class="font-bold text-white digital-font ml-1">0 ta</span>
@@ -312,7 +343,8 @@
         </div>
 
         <!-- Footer -->
-        <div class="pt-4 border-t border-slate-800 mt-4 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
+        <div
+            class="pt-4 border-t border-slate-800 mt-4 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
             <span>Har bir bilet skanerlanganda vaqti va masteri qayd etilgan.</span>
             <button type="button" onclick="closeDayTicketsModal()"
                 class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
@@ -368,7 +400,7 @@
         document.getElementById('day-tickets-modal').classList.add('hidden');
     }
 
-    document.getElementById('day-tickets-modal').addEventListener('click', function(e) {
+    document.getElementById('day-tickets-modal').addEventListener('click', function (e) {
         if (e.target === this) {
             closeDayTicketsModal();
         }

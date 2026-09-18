@@ -121,12 +121,12 @@
                             </span>
 
                             <!-- Status Badge -->
-                            {% if item.box.status == 'COMPLETED' %}
+                            {% if item.box.status == 'COMPLETED' or item.progress_pct == 100 %}
                             <span
                                 class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                                 <i class="fa-solid fa-check mr-1"></i> Bajarildi
                             </span>
-                            {% elif item.box.status == 'IN_PROGRESS' %}
+                            {% elif item.box.status == 'IN_PROGRESS' or item.scanned_tickets > 0 %}
                             <span
                                 class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                                 <i class="fa-solid fa-spinner fa-spin mr-1"></i> Jarayonda

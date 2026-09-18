@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
@@ -529,7 +529,10 @@ def box_pipeline_statistics_view(request):
     status_filter = request.GET.get('status', 'ALL').strip().upper()
     clean_q = q.lstrip('#').strip()
 
-    boxes_qs = Box.objects.select_related(
+    boxes_qs = Box.objects.annotate(
+        annotated_total_tickets=Count('tickets', distinct=True),
+        annotated_scanned_tickets=Count('tickets', filter=Q(tickets__status=Ticket.Status.SCANNED), distinct=True)
+    ).select_related(
         'order', 
         'order__customer', 
         'article', 
@@ -569,8 +572,30 @@ def box_pipeline_statistics_view(request):
                 box_filter |= Q(box_number=int(clean_q))
             boxes_qs = boxes_qs.filter(box_filter)
 
-    if status_filter in [Box.Status.CREATED, Box.Status.IN_PROGRESS, Box.Status.COMPLETED]:
-        boxes_qs = boxes_qs.filter(status=status_filter)
+    if status_filter == Box.Status.COMPLETED:
+        boxes_qs = boxes_qs.filter(
+            Q(status=Box.Status.COMPLETED) | Q(annotated_total_tickets__gt=0, annotated_scanned_tickets=F('annotated_total_tickets'))
+        )
+    elif status_filter == Box.Status.IN_PROGRESS:
+        boxes_qs = boxes_qs.filter(
+            Q(status=Box.Status.IN_PROGRESS) | Q(annotated_scanned_tickets__gt=0, annotated_scanned_tickets__lt=F('annotated_total_tickets'))
+        )
+    elif status_filter == Box.Status.CREATED:
+        boxes_qs = boxes_qs.filter(
+            Q(status=Box.Status.CREATED, annotated_scanned_tickets=0) | Q(annotated_scanned_tickets=0)
+        )
+
+    all_boxes = Box.objects.annotate(
+        total_tix=Count('tickets', distinct=True),
+        scanned_tix=Count('tickets', filter=Q(tickets__status=Ticket.Status.SCANNED), distinct=True)
+    )
+    total_boxes_count = all_boxes.count()
+    completed_boxes_count = all_boxes.filter(
+        Q(status=Box.Status.COMPLETED) | Q(total_tix__gt=0, scanned_tix=F('total_tix'))
+    ).distinct().count()
+    in_progress_boxes_count = all_boxes.filter(
+        Q(status=Box.Status.IN_PROGRESS) | Q(scanned_tix__gt=0, scanned_tix__lt=F('total_tix'))
+    ).distinct().count()
 
     paginator = Paginator(boxes_qs, 40)
     page_number = request.GET.get('page', 1)
@@ -613,7 +638,7 @@ def box_pipeline_statistics_view(request):
                 'is_highlighted': is_hl,
             })
 
-        total_cnt = len(b_tickets)
+        total_cnt = getattr(b, 'annotated_total_tickets', len(b_tickets)) or len(b_tickets)
         progress_pct = int((scanned_cnt / total_cnt) * 100) if total_cnt > 0 else 0
 
         boxes_pipeline_data.append({
@@ -624,10 +649,6 @@ def box_pipeline_statistics_view(request):
             'progress_pct': progress_pct,
             'target_article': b.target_article,
         })
-
-    total_boxes_count = Box.objects.count()
-    in_progress_boxes_count = Box.objects.filter(status=Box.Status.IN_PROGRESS).count()
-    completed_boxes_count = Box.objects.filter(status=Box.Status.COMPLETED).count()
 
     context = {
         'boxes_data': boxes_pipeline_data,

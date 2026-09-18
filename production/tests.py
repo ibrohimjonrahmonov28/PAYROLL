@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.test import TestCase
+from django.utils import timezone
 from .models import Article, Operation, ArticleOperation, Order, Box, Ticket
 from .services import allocate_ticket_quantities, generate_box_tickets
 
