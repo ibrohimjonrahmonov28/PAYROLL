@@ -273,11 +273,13 @@ def terminal_scan_ticket_api(request):
                     if filtered:
                         ticket = filtered
 
-    # 4. Agar ID bo'yicha kiritilgan bo'lsa
-    if not ticket and clean_code.isdigit():
-        ticket = Ticket.objects.filter(id=int(clean_code)).select_related(
-            'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-        ).first()
+    # 4. Agar ID bo'yicha kiritilgan bo'lsa (masalan: 1042, #1042, ST-1042)
+    if not ticket:
+        clean_id = re.sub(r'^[#STstTKtk\-_]+', '', clean_code).strip()
+        if clean_id.isdigit():
+            ticket = Ticket.objects.filter(id=int(clean_id)).select_related(
+                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
+            ).first()
 
     # 5. Agar foydalanuvchi adashib butun Quti QR kodini skanerlagan bo'lsa
     if not ticket:

@@ -416,5 +416,16 @@ class Ticket(models.Model):
             
         super().save(*args, **kwargs)
 
+    @property
+    def short_hash(self):
+        if self.ticket_code:
+            parts = self.ticket_code.split('-')
+            return parts[-1] if parts else ""
+        return ""
+
+    @property
+    def stiker_id(self):
+        return f"#{self.id}" if self.id else "#"
+
     def __str__(self):
         return f"{self.ticket_code} ({self.article_operation.operation.name}: {self.quantity} dona)"

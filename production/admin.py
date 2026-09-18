@@ -51,5 +51,5 @@ class BoxAdmin(admin.ModelAdmin):
 class TicketAdmin(admin.ModelAdmin):
     list_display = ['ticket_code', 'box', 'article_operation', 'quantity', 'price_per_unit', 'total_amount', 'status', 'worker', 'screen_number', 'scanned_at']
     list_filter = ['status', 'screen_number', 'scanned_at']
-    search_fields = ['ticket_code', 'worker__worker_id', 'worker__first_name', 'worker__last_name']
+    search_fields = ['id', 'ticket_code', 'box__box_code', 'box__box_number', 'worker__worker_id', 'worker__first_name', 'worker__last_name']
     readonly_fields = ['ticket_code', 'qr_code_image', 'total_amount']
