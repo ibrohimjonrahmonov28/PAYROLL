@@ -49,7 +49,8 @@ class BoxAdmin(admin.ModelAdmin):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ['ticket_code', 'box', 'article_operation', 'quantity', 'price_per_unit', 'total_amount', 'status', 'worker', 'screen_number', 'scanned_at']
+    list_display = ['stiker_id', 'ticket_code', 'box', 'article_operation', 'quantity', 'price_per_unit', 'total_amount', 'status', 'worker', 'screen_number', 'scanned_at']
     list_filter = ['status', 'screen_number', 'scanned_at']
-    search_fields = ['id', 'ticket_code', 'box__box_code', 'box__box_number', 'worker__worker_id', 'worker__first_name', 'worker__last_name']
-    readonly_fields = ['ticket_code', 'qr_code_image', 'total_amount']
+    search_fields = ['=stiker_code', '=id', 'ticket_code', '=box__box_code', '=box__box_number', 'worker__worker_id', 'worker__first_name', 'worker__last_name']
+    readonly_fields = ['stiker_code', 'ticket_code', 'qr_code_image', 'total_amount']
+    list_per_page = 50

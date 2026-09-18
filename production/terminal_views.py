@@ -273,9 +273,17 @@ def terminal_scan_ticket_api(request):
                     if filtered:
                         ticket = filtered
 
-    # 4. Agar ID bo'yicha kiritilgan bo'lsa (masalan: 1042, #1042, ST-1042)
+    # 4. Agar 8 xonali unikal Stiker kodi bo'yicha kiritilgan bo'lsa (masalan: K7B9P2X4, #K7B9P2X4, ST-K7B9P2X4)
     if not ticket:
-        clean_id = re.sub(r'^[#STstTKtk\-_]+', '', clean_code).strip()
+        clean_stiker = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', clean_code).strip().upper()
+        if len(clean_stiker) == 8:
+            ticket = Ticket.objects.filter(stiker_code=clean_stiker).select_related(
+                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
+            ).first()
+
+    # 5. Agar raqamli ID bo'yicha kiritilgan bo'lsa (masalan: 1042, #1042, ST-1042)
+    if not ticket:
+        clean_id = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', clean_code).strip().replace(' ', '').replace(',', '')
         if clean_id.isdigit():
             ticket = Ticket.objects.filter(id=int(clean_id)).select_related(
                 'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'

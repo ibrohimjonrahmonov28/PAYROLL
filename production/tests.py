@@ -315,6 +315,61 @@ class BoxRazmerFeatureTest(TestCase):
         self.assertEqual(box.razmer, "L")
         self.assertEqual(box.tickets.count(), 2)
 
+    def test_stiker_code_alphanumeric_and_legacy_compatibility(self):
+        from production.services import create_box_with_tickets
+        # 1. Yangi biletlar 8 xonali unikal harf/raqam aralashgan stiker kodi oladi
+        boxes = create_box_with_tickets(
+            order=self.order,
+            article=self.article,
+            quantity=50,
+            count=1,
+            razmer="S"
+        )
+        box = boxes[0]
+        ticket_new = box.tickets.first()
+        self.assertIsNotNone(ticket_new.stiker_code)
+        self.assertEqual(len(ticket_new.stiker_code), 8)
+        self.assertTrue(ticket_new.stiker_code.isalnum())
+        self.assertEqual(ticket_new.stiker_id, f"#{ticket_new.stiker_code}")
+
+        # 2. Eskilari odatiy qoladi: stiker_code yo'q bo'lsa #id qaytadi
+        ticket_old = Ticket.objects.create(
+            box=box,
+            article_operation=self.ao,
+            quantity=25,
+            price_per_unit=Decimal("1200.00")
+        )
+        Ticket.objects.filter(id=ticket_old.id).update(stiker_code=None)
+        ticket_old.refresh_from_db()
+        self.assertIsNone(ticket_old.stiker_code)
+        self.assertEqual(ticket_old.stiker_id, f"#{ticket_old.id}")
+
+        # 3. Terminalda 8 xonali stiker kodi orqali topish
+        from accounts.models import Worker
+        worker = Worker.objects.create(worker_id="W-STIKER-TEST", first_name="Nodira", last_name="Aliyeva")
+        self.client.force_login(self.user)
+        session = self.client.session
+        session['terminal_worker_id'] = worker.id
+        session.save()
+
+        url_scan = reverse('production:terminal_scan_ticket')
+        res_new = self.client.post(url_scan, {
+            'code': ticket_new.stiker_code,
+        })
+        self.assertEqual(res_new.status_code, 200)
+        data_new = res_new.json()
+        self.assertEqual(data_new['status'], 'OK')
+        self.assertEqual(data_new['scanned_ticket']['id'], ticket_new.id)
+
+        # 4. Terminalda eski odatiy #id orqali topish
+        res_old = self.client.post(url_scan, {
+            'code': f"#{ticket_old.id}",
+        })
+        self.assertEqual(res_old.status_code, 200)
+        data_old = res_old.json()
+        self.assertEqual(data_old['status'], 'OK')
+        self.assertEqual(data_old['scanned_ticket']['id'], ticket_old.id)
+
 
 
 

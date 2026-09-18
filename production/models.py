@@ -243,6 +243,15 @@ def generate_unique_box_code():
             return code
 
 
+def generate_unique_stiker_code():
+    """Yangi stikerlar uchun 8 xonali unikal harf va raqamlardan iborat kod"""
+    alphabet = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(secrets.choice(alphabet) for _ in range(8))
+        if not Ticket.objects.filter(stiker_code=code).exists() and not Box.objects.filter(box_code=code).exists():
+            return code
+
+
 class Box(models.Model):
     class Status(models.TextChoices):
         CREATED = 'CREATED', 'Yaratildi'
@@ -373,7 +382,15 @@ class Ticket(models.Model):
         verbose_name="Monitor ekrani (1-10)"
     )
     scanned_at = models.DateTimeField(null=True, blank=True, db_index=True, verbose_name="Skanerlangan vaqt")
-    qr_code_image = models.ImageField(upload_to='qr_codes/tickets/', blank=True, null=True)
+    stiker_code = models.CharField(
+        max_length=8, 
+        unique=True, 
+        null=True, 
+        blank=True, 
+        db_index=True, 
+        verbose_name="Stiker Unikal ID (8 talik)"
+    )
+    qr_code_image = models.ImageField(upload_to='qr_codes/tickets/%Y/%m/', blank=True, null=True)
 
     class Meta:
         verbose_name = "Operatsiya QR Bilti"
@@ -407,6 +424,8 @@ class Ticket(models.Model):
         if not self.ticket_code:
             random_part = uuid.uuid4().hex[:6].upper()
             self.ticket_code = f"TK-{self.box.order.order_number}-{self.box.box_number}-{self.box.box_code}-{random_part}"
+        if not self.stiker_code and not self.pk:
+            self.stiker_code = generate_unique_stiker_code()
         if not self.price_per_unit:
             self.price_per_unit = self.article_operation.price_per_unit
         self.total_amount = Decimal(self.quantity) * self.price_per_unit
@@ -425,6 +444,8 @@ class Ticket(models.Model):
 
     @property
     def stiker_id(self):
+        if self.stiker_code:
+            return f"#{self.stiker_code}"
         return f"#{self.id}" if self.id else "#"
 
     def __str__(self):

@@ -276,7 +276,13 @@
                     <!-- STIKER ID: Chizmadagi unikal bilet id qutisi -->
                     <div class="mt-1 w-full text-center border-2 border-slate-950 bg-slate-950 text-white rounded px-1 py-0.5 shadow-xs">
                         <span class="text-[7px] font-bold block uppercase tracking-wider leading-none text-amber-400">STIKER ID</span>
-                        <span class="font-mono font-black text-xs leading-none text-white tracking-wide">#{{ ticket.id }}</span>
+                        <span class="font-mono font-black text-xs leading-none text-white tracking-wide">
+                            {% if ticket.stiker_code %}
+                            #{{ ticket.stiker_code }}
+                            {% else %}
+                            #{{ ticket.id }}
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
 
@@ -337,7 +343,7 @@
             <div class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7.5px] text-slate-600 font-bold uppercase tracking-wider">
                 <span class="font-extrabold text-slate-900">TERRY JAR</span>
                 <span>Zakaz: {{ ticket.box.order.order_number }}</span>
-                <span class="font-mono text-[7.5px] text-slate-500 tracking-tight">{{ ticket.short_hash }}</span>
+                <span class="font-mono text-[7.5px] text-slate-500 tracking-tight">{% if ticket.stiker_code %}{{ ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
             </div>
         </div>
         {% endfor %}
@@ -345,8 +351,7 @@
     {% endfor %}
     {% empty %}
     <div class="text-center py-16 text-slate-500 no-print">
-        <div
-            class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
             <i class="fa-solid fa-qrcode"></i>
         </div>
         <p class="text-base font-black text-slate-700">QR Stikerlar topilmadi</p>
