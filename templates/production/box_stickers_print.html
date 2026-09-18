@@ -242,20 +242,26 @@
     <!-- Stickers Grid for this Box -->
     <div class="sticker-grid max-w-5xl mx-auto flex flex-wrap gap-4 justify-center mb-6">
         {% for ticket in box_item.tickets %}
-        <div class="sticker-card rounded-xl shadow-sm border-2 border-slate-950 p-2 flex flex-col justify-between bg-white text-slate-950">
+        <div
+            class="sticker-card rounded-xl shadow-sm border-2 border-slate-950 p-2 flex flex-col justify-between bg-white text-slate-950">
             <!-- 1. TOP HEADER: OPERATSIYA NOMI (chapda) | QUTI ID (o'ngda) -->
             <div class="flex items-stretch justify-between border-b-2 border-slate-950 pb-1 gap-2">
                 <!-- Operatsiya Nomi (Katta va qalin) -->
                 <div class="min-w-0 flex-1 flex flex-col justify-center">
-                    <span class="text-[7.5px] font-black uppercase text-slate-500 tracking-wider leading-none">OPERATSIYA NOMI:</span>
-                    <div class="text-xs font-black text-slate-950 uppercase truncate leading-tight mt-0.5" title="{{ ticket.article_operation.operation.name }}">
+                    <span
+                        class="text-[7.5px] font-black uppercase text-slate-500 tracking-wider leading-none">OPERATSIYA
+                        NOMI:</span>
+                    <div class="text-xs font-black text-slate-950 uppercase truncate leading-tight mt-0.5"
+                        title="{{ ticket.article_operation.operation.name }}">
                         {{ ticket.article_operation.operation.name }}
                     </div>
                 </div>
                 <!-- Quti ID (O'ng burchak) -->
                 <div class="border-l-2 border-slate-950 pl-2 flex flex-col justify-center items-end flex-shrink-0">
-                    <span class="text-[7.5px] font-black uppercase text-slate-500 tracking-wider leading-none">QUTI ID:</span>
-                    <div class="font-mono font-black text-[11px] px-2 py-0.5 bg-amber-100 border border-slate-950 text-slate-950 rounded mt-0.5 leading-tight">
+                    <span class="text-[7.5px] font-black uppercase text-slate-500 tracking-wider leading-none">QUTI
+                        ID:</span>
+                    <div
+                        class="font-mono font-black text-[11px] px-2 py-0.5 bg-amber-100 border border-slate-950 text-slate-950 rounded mt-0.5 leading-tight">
                         QUTI #{{ ticket.box.box_number }} [{{ ticket.box.box_code }}]
                     </div>
                 </div>
@@ -263,20 +269,23 @@
 
             <!-- 2. ASOSIY QISM (BODY): CHAPDA QR KOD + STIKER ID | O'NGDA MODEL + ARTIKUL + DONA / QIYINLIK / RAZMER -->
             <div class="flex items-center justify-between gap-3 my-1">
-                <!-- CHAP USTUN: QR Code (Unikal) + STIKER ID (Unikal) -->
-                <div class="flex flex-col items-center justify-center flex-shrink-0 w-28">
-                    <!-- QR Code (Unical) -->
-                    <div class="w-24 h-24 border-2 border-slate-950 rounded-lg p-1 bg-white flex items-center justify-center shadow-xs">
+                <!-- CHAP USTUN: QR Code (Katta) + STIKER ID (Ixcham) -->
+                <div class="flex flex-col items-center justify-center flex-shrink-0 w-[124px]">
+                    <!-- QR Code (Katta va oson skanerlanadigan) -->
+                    <div
+                        class="w-[124px] h-[124px] border-2 border-slate-950 rounded-lg p-1 bg-white flex items-center justify-center shadow-xs">
                         {% if ticket.qr_code_image %}
                         <img src="{{ ticket.qr_code_image.url }}" alt="QR" class="w-full h-full object-contain">
                         {% else %}
                         <div class="text-xs font-bold text-slate-400">QR</div>
                         {% endif %}
                     </div>
-                    <!-- STIKER ID: Chizmadagi unikal bilet id qutisi -->
-                    <div class="mt-1 w-full text-center border-2 border-slate-950 bg-slate-950 text-white rounded px-1 py-0.5 shadow-xs">
-                        <span class="text-[7px] font-bold block uppercase tracking-wider leading-none text-amber-400">STIKER ID</span>
-                        <span class="font-mono font-black text-xs leading-none text-white tracking-wide">
+                    <!-- STIKER ID: Kichikroq, ixcham badge -->
+                    <div
+                        class="mt-1 w-full flex items-center justify-between px-1.5 py-0.5 border-2 border-slate-950 bg-slate-950 text-white rounded shadow-xs">
+                        <span
+                            class="text-[6.5px] font-bold uppercase tracking-wider leading-none text-amber-400">STIKER ID:</span>
+                        <span class="font-mono font-black text-[10.5px] leading-none text-white tracking-wide">
                             {% if ticket.stiker_code %}
                             #{{ ticket.stiker_code }}
                             {% else %}
@@ -290,7 +299,8 @@
                 <div class="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5 space-y-1 text-left">
                     <!-- Model name -->
                     <div class="border-b border-slate-200 pb-0.5">
-                        <span class="text-[7.5px] font-bold uppercase text-slate-500 block leading-none">MODEL NOMI:</span>
+                        <span class="text-[7.5px] font-bold uppercase text-slate-500 block leading-none">MODEL
+                            NOMI:</span>
                         <strong class="text-xs font-black text-slate-950 uppercase truncate block leading-tight mt-0.5"
                             title="{{ ticket.article_operation.article.name|default:ticket.box.target_article.name }}">
                             {{ ticket.article_operation.article.name|default:ticket.box.target_article.name }}
@@ -308,14 +318,17 @@
                     <!-- Son va Qiyinlik (va Razmer) kataklari -->
                     <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
                         <!-- Son katagi -->
-                        <div class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
+                        <div
+                            class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
                             <span class="text-[7.5px] font-black uppercase text-slate-600">SONI:</span>
-                            <span class="text-sm font-black digital-font text-slate-950 leading-none">{{ ticket.quantity }}</span>
+                            <span class="text-sm font-black digital-font text-slate-950 leading-none">{{ ticket.quantity
+                                }}</span>
                             <span class="text-[7.5px] font-black text-slate-700 uppercase">dona</span>
                         </div>
 
                         <!-- Qiyinlik katagi -->
-                        <div class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
+                        <div
+                            class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
                             <span class="text-[7.5px] font-black uppercase text-slate-600">Qiyinlik:</span>
                             <span class="text-xs font-black font-mono text-slate-950 leading-none">
                                 {{ ticket.article_operation.difficulty_display }}
@@ -324,14 +337,17 @@
 
                         <!-- Razmer katagi (agar mavjud bo'lsa) -->
                         {% if ticket.box.razmer %}
-                        <div class="border-2 border-purple-900 rounded px-1.5 py-0.5 bg-purple-50 flex items-baseline gap-1">
+                        <div
+                            class="border-2 border-purple-900 rounded px-1.5 py-0.5 bg-purple-50 flex items-baseline gap-1">
                             <span class="text-[7.5px] font-black uppercase text-purple-900">RAZMER:</span>
-                            <span class="text-xs font-black text-purple-950 leading-none font-mono">{{ ticket.box.razmer }}</span>
+                            <span class="text-xs font-black text-purple-950 leading-none font-mono">{{ ticket.box.razmer
+                                }}</span>
                         </div>
                         {% endif %}
 
                         {% if ticket.total_splits > 1 %}
-                        <div class="border border-indigo-300 rounded px-1 py-0.5 bg-indigo-50 text-[8px] font-bold text-indigo-900">
+                        <div
+                            class="border border-indigo-300 rounded px-1 py-0.5 bg-indigo-50 text-[8px] font-bold text-indigo-900">
                             Bo'lak: {{ ticket.split_index }}/{{ ticket.total_splits }}
                         </div>
                         {% endif %}
@@ -340,10 +356,12 @@
             </div>
 
             <!-- 3. FOOTER: TERRY JAR & Zakaz raqami & Kod -->
-            <div class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7.5px] text-slate-600 font-bold uppercase tracking-wider">
+            <div
+                class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7.5px] text-slate-600 font-bold uppercase tracking-wider">
                 <span class="font-extrabold text-slate-900">TERRY JAR</span>
                 <span>Zakaz: {{ ticket.box.order.order_number }}</span>
-                <span class="font-mono text-[7.5px] text-slate-500 tracking-tight">{% if ticket.stiker_code %}{{ ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
+                <span class="font-mono text-[7.5px] text-slate-500 tracking-tight">{% if ticket.stiker_code %}{{
+                    ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
             </div>
         </div>
         {% endfor %}
@@ -351,7 +369,8 @@
     {% endfor %}
     {% empty %}
     <div class="text-center py-16 text-slate-500 no-print">
-        <div class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
+        <div
+            class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
             <i class="fa-solid fa-qrcode"></i>
         </div>
         <p class="text-base font-black text-slate-700">QR Stikerlar topilmadi</p>

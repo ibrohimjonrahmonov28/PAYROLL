@@ -99,10 +99,11 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
     box_badge_text = f"QUTI #{box_num} [{box_code}]"
     draw.text((header_split_x + 40, 68), box_badge_text, fill=(15, 23, 42), font=font_badge)
 
-    # 3. ASOSIY QISM CHAPDA: QR CODE + STIKER ID (Chizma bo'yicha)
-    qr_x = 42
-    qr_size = 350
-    qr_y = 142
+    # 3. KATTA QR KOD VA KICHIKROQ STIKER ID (User talabi)
+    qr_x = 40
+    qr_y = 135
+    qr_size = 415  # Oldingi 350 o'rniga KATTA 415 px
+
     draw.rounded_rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], radius=16, fill='white', outline=(15, 23, 42), width=3)
 
     # QR kod tasvirini olish (mavjud bo'lsa ochadi, bo'lmasa xotirada tezkor yaratadi)
@@ -124,17 +125,17 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
 
-    qr_inner = 318
+    qr_inner = 385  # Oldingi 318 o'rniga KATTA 385 px
     qr_res = qr_img.resize((qr_inner, qr_inner), Image.Resampling.LANCZOS)
     draw_qr_x = qr_x + (qr_size - qr_inner) // 2
     draw_qr_y = qr_y + (qr_size - qr_inner) // 2
     img.paste(qr_res, (draw_qr_x, draw_qr_y))
 
-    # STIKER ID Katagi (QR kodning ostida, chizma bo'yicha to'q fonda)
-    stiker_y = 506
-    stiker_h = 115
-    draw.rounded_rectangle([qr_x, stiker_y, qr_x + qr_size, stiker_y + stiker_h], radius=12, fill=(15, 23, 42), outline=(15, 23, 42), width=2)
-    draw.text((qr_x + 16, stiker_y + 12), "STIKER ID (UNIKAL):", fill=(251, 191, 36), font=font_code)
+    # STIKER ID Katagi: Kichikroq, ixcham (64 px)
+    stiker_y = qr_y + qr_size + 12  # 562 px
+    stiker_h = 64
+    draw.rounded_rectangle([qr_x, stiker_y, qr_x + qr_size, stiker_y + stiker_h], radius=10, fill=(15, 23, 42), outline=(15, 23, 42), width=2)
+    draw.text((qr_x + 14, stiker_y + 8), "STIKER ID (UNIKAL):", fill=(251, 191, 36), font=font_code)
 
     # Yangilarida 8 xonali unikal stiker_code, eskilari uchun esa odatiy #id
     if getattr(ticket, 'stiker_code', None):
@@ -143,11 +144,11 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
         short_hash = ticket.short_hash
         stiker_text = f"#{ticket.id} [{short_hash}]" if short_hash else f"#{ticket.id}"
 
-    font_id = get_fitted_font(draw, stiker_text, qr_size - 32, font_bold_path, initial_size=36, min_size=20)
-    draw.text((qr_x + 16, stiker_y + 48), stiker_text, fill='white', font=font_id)
+    font_id = get_fitted_font(draw, stiker_text, qr_size - 28, font_bold_path, initial_size=30, min_size=18)
+    draw.text((qr_x + 14, stiker_y + 28), stiker_text, fill='white', font=font_id)
 
     # 4. ASOSIY QISM O'NGDA: MODEL NAME, ARTIKUL, ZAKAZ, KATAKLAR
-    right_x = 425
+    right_x = 485
     right_w = W - 40 - right_x
 
     art_name = ""
@@ -177,51 +178,55 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
     if ticket.total_splits > 1:
         draw.text((right_x, 355), f"BO'LAK (SPLIT): {ticket.split_index} / {ticket.total_splits}", fill=(79, 70, 229), font=font_medium)
 
-    # Pastki Kataklar (Soni, Qiyinlik, Razmer)
-    boxes_y = 506
-    box_h = 115
+    # Pastki Kataklar (Soni, Qiyinlik, Razmer) - STIKER ID bilan bir xil chiziqda pastda
+    boxes_y = stiker_y
+    box_h = stiker_h
     diff_val = ticket.article_operation.difficulty_display if ticket.article_operation else "1"
     razmer_val = ticket.box.razmer.strip() if ticket.box and ticket.box.razmer else ""
 
+    font_box_val = ImageFont.truetype(font_bold_path, 30) if font_bold_path else ImageFont.load_default()
+
     if razmer_val:
-        b1_w = 216
+        b_gap = 12
+        b_w = (right_w - b_gap * 2) // 3
         # 1. Son katagi
-        draw.rounded_rectangle([right_x, boxes_y, right_x + b1_w, boxes_y + box_h], radius=12, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((right_x + 14, boxes_y + 14), "SONI:", fill=(100, 116, 139), font=font_small)
-        draw.text((right_x + 14, boxes_y + 46), f"{ticket.quantity}", fill=(15, 23, 42), font=font_qty)
-        draw.text((right_x + 130, boxes_y + 68), "dona", fill=(100, 116, 139), font=font_small)
+        draw.rounded_rectangle([right_x, boxes_y, right_x + b_w, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+        draw.text((right_x + 10, boxes_y + 8), "SONI:", fill=(100, 116, 139), font=font_code)
+        draw.text((right_x + 10, boxes_y + 26), f"{ticket.quantity}", fill=(15, 23, 42), font=font_box_val)
+        draw.text((right_x + 95, boxes_y + 36), "dona", fill=(100, 116, 139), font=font_code)
 
         # 2. Qiyinlik katagi
-        b2_x = right_x + b1_w + 12
-        draw.rounded_rectangle([b2_x, boxes_y, b2_x + b1_w, boxes_y + box_h], radius=12, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((b2_x + 14, boxes_y + 14), "QIYINLIK:", fill=(100, 116, 139), font=font_small)
-        draw.text((b2_x + 14, boxes_y + 46), f"{diff_val}", fill=(15, 23, 42), font=font_qty)
+        b2_x = right_x + b_w + b_gap
+        draw.rounded_rectangle([b2_x, boxes_y, b2_x + b_w, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+        draw.text((b2_x + 10, boxes_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
+        draw.text((b2_x + 10, boxes_y + 26), f"{diff_val}", fill=(15, 23, 42), font=font_box_val)
 
         # 3. Razmer katagi
-        rz_x = b2_x + b1_w + 12
-        draw.rounded_rectangle([rz_x, boxes_y, W - 40, boxes_y + box_h], radius=12, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
-        draw.text((rz_x + 14, boxes_y + 14), "RAZMER:", fill=(107, 33, 168), font=font_small)
-        font_rz = get_fitted_font(draw, razmer_val, W - 40 - rz_x - 28, font_bold_path, initial_size=42, min_size=24)
-        draw.text((rz_x + 14, boxes_y + 46), razmer_val, fill=(88, 28, 135), font=font_rz)
+        rz_x = b2_x + b_w + b_gap
+        draw.rounded_rectangle([rz_x, boxes_y, W - 40, boxes_y + box_h], radius=10, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
+        draw.text((rz_x + 10, boxes_y + 8), "RAZMER:", fill=(107, 33, 168), font=font_code)
+        font_rz = get_fitted_font(draw, razmer_val, W - 40 - rz_x - 20, font_bold_path, initial_size=30, min_size=18)
+        draw.text((rz_x + 10, boxes_y + 26), razmer_val, fill=(88, 28, 135), font=font_rz)
     else:
-        half_w = (right_w - 16) // 2
+        b_gap = 16
+        half_w = (right_w - b_gap) // 2
         # 1. Son katagi
-        draw.rounded_rectangle([right_x, boxes_y, right_x + half_w, boxes_y + box_h], radius=12, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((right_x + 16, boxes_y + 14), "SONI:", fill=(100, 116, 139), font=font_small)
-        draw.text((right_x + 16, boxes_y + 46), f"{ticket.quantity}", fill=(15, 23, 42), font=font_qty)
-        draw.text((right_x + 180, boxes_y + 68), "dona", fill=(100, 116, 139), font=font_small)
+        draw.rounded_rectangle([right_x, boxes_y, right_x + half_w, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+        draw.text((right_x + 14, boxes_y + 8), "SONI:", fill=(100, 116, 139), font=font_code)
+        draw.text((right_x + 14, boxes_y + 26), f"{ticket.quantity}", fill=(15, 23, 42), font=font_box_val)
+        draw.text((right_x + 130, boxes_y + 36), "dona", fill=(100, 116, 139), font=font_code)
 
         # 2. Qiyinlik katagi
-        q_x = right_x + half_w + 16
-        draw.rounded_rectangle([q_x, boxes_y, W - 40, boxes_y + box_h], radius=12, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((q_x + 16, boxes_y + 14), "QIYINLIK:", fill=(100, 116, 139), font=font_small)
-        draw.text((q_x + 16, boxes_y + 46), f"{diff_val}", fill=(15, 23, 42), font=font_qty)
+        q_x = right_x + half_w + b_gap
+        draw.rounded_rectangle([q_x, boxes_y, W - 40, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+        draw.text((q_x + 14, boxes_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
+        draw.text((q_x + 14, boxes_y + 26), f"{diff_val}", fill=(15, 23, 42), font=font_box_val)
 
     # 5. PASTKI QISM (Footer)
-    draw.line([(35, 638), (W - 35, 638)], fill=(226, 232, 240), width=2)
-    draw.text((42, 654), "TERRY JAR • OPERATSIYA QR BILETI • 100x60 MM", fill=(148, 163, 184), font=font_code)
-    short_code = ticket.short_hash or ticket.ticket_code[-12:]
-    draw.text((W - 320, 654), f"KOD: {short_code}", fill=(100, 116, 139), font=font_code)
+    draw.line([(35, 642), (W - 35, 642)], fill=(226, 232, 240), width=2)
+    draw.text((42, 656), "TERRY JAR • OPERATSIYA QR BILETI • 100x60 MM", fill=(148, 163, 184), font=font_code)
+    short_code = getattr(ticket, 'stiker_code', None) or ticket.short_hash or ticket.ticket_code[-12:]
+    draw.text((W - 320, 656), f"KOD: {short_code}", fill=(100, 116, 139), font=font_code)
 
     return img
 
