@@ -202,7 +202,7 @@
                         <th class="py-4 px-6 min-w-[200px]">Tikuvchi F.I.SH</th>
                         <th class="py-4 px-6 text-center w-36">Bugun Tikilgan</th>
                         <th class="py-4 px-6 text-center min-w-[300px]">Model Bo'yicha Norma</th>
-                        <th class="py-4 px-6 text-center min-w-[200px]">Umumiy Foiz</th>
+                        <th class="py-4 px-6 text-center min-w-[180px]">Bajarilishi</th>
                         <th class="py-4 px-6 text-right w-44">Bugungi Ish Haqi</th>
                         <th class="py-4 px-6 text-right w-48">Oylik Maosh</th>
                     </tr>
@@ -249,17 +249,11 @@
                             {% endif %}
                         </td>
 
-                        <!-- Umumiy foiz -->
+                        <!-- Bajarilishi (Progress Bar) -->
                         <td class="py-4 px-6 text-center">
-                            <div class="flex items-center justify-center gap-2 mb-1">
-                                <span
-                                    class="text-xl md:text-2xl font-black digital-font {% if w.is_above_norm %}text-emerald-400 glow-emerald{% elif w.total_percentage >= 70 %}text-amber-400{% else %}text-rose-400{% endif %}">
-                                    {{ w.total_percentage }}%
-                                </span>
-                            </div>
                             <div
-                                class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto">
-                                <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400{% else %}bg-gradient-to-r from-rose-500 to-red-400{% endif %}"
+                                class="w-full bg-slate-950 rounded-full h-3.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto p-0.5 shadow-inner">
+                                <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
                                     style="width: {{ w.progress_width }}%;"></div>
                             </div>
                         </td>
@@ -375,14 +369,11 @@
                             modelsHtml = `<span class="text-slate-500 italic text-sm">—</span>`;
                         }
 
-                        let pctColor = 'text-rose-400';
-                        let barGradient = 'bg-gradient-to-r from-rose-500 to-red-400';
+                        let barGradient = 'bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]';
                         if (w.is_above_norm) {
-                            pctColor = 'text-emerald-400 glow-emerald';
-                            barGradient = 'bg-gradient-to-r from-emerald-500 to-teal-400';
+                            barGradient = 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]';
                         } else if (w.total_percentage >= 70) {
-                            pctColor = 'text-amber-400';
-                            barGradient = 'bg-gradient-to-r from-amber-500 to-yellow-400';
+                            barGradient = 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]';
                         }
 
                         html += `
@@ -407,12 +398,7 @@
                                 ${modelsHtml}
                             </td>
                             <td class="py-4 px-6 text-center">
-                                <div class="flex items-center justify-center gap-2 mb-1">
-                                    <span class="text-xl md:text-2xl font-black digital-font ${pctColor}">
-                                        ${w.total_percentage}%
-                                    </span>
-                                </div>
-                                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto">
+                                <div class="w-full bg-slate-950 rounded-full h-3.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto p-0.5 shadow-inner">
                                     <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
                                         style="width: ${w.progress_width}%;"></div>
                                 </div>
