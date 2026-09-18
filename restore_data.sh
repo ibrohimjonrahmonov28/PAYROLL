@@ -6,7 +6,9 @@ set -e
 
 echo "1. Barcha operatsiyalar, narxlar, modellar va xodimlarni bazaga yuklash..."
 if [ -f data_backup.json ]; then
-    docker compose exec web python manage.py loaddata data_backup.json
+    docker compose cp data_backup.json web:/app/
+    docker compose exec web python manage.py loaddata /app/data_backup.json
+    docker compose exec web rm -f /app/data_backup.json
     echo " -> Barcha 1,120 ta ob'ekt (operatsiyalar, qiyinliklar, narxlar) muvaffaqiyatli tiklandi!"
 elif [ -f payroll_backup.sql ]; then
     docker compose exec -T db psql -U ${DB_USER:-payroll_user} -d ${DB_NAME:-payroll_db} < payroll_backup.sql
