@@ -44,6 +44,11 @@ class ProductModel(models.Model):
     def total_unit_rate(self):
         return sum(mo.price_per_unit for mo in self.model_operations.all())
 
+    def sync_operations_to_articles(self):
+        """Modeldagi barcha operatsiyalarni unga tegishli barcha artikullarga sinxronlash"""
+        for art in self.articles.all():
+            art.sync_operations_from_model()
+
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -107,11 +112,12 @@ class Operation(models.Model):
     name = models.CharField(max_length=200, verbose_name="Operatsiya nomi")
     description = models.TextField(blank=True, verbose_name="Tavsif")
     default_difficulty = models.FloatField(default=1.0, verbose_name="Standart qiyinlik koeffitsienti")
+    order_number = models.PositiveIntegerField(default=1, verbose_name="Standart tartib raqami")
 
     class Meta:
         verbose_name = "Operatsiya"
         verbose_name_plural = "Operatsiyalar katalogi"
-        ordering = ['code']
+        ordering = ['order_number', 'code']
 
     @property
     def default_difficulty_display(self):

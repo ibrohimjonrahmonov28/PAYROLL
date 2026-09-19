@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Q, Count
 
-from .models import ProductModel, Article, DailyModelProgress
+from .models import ProductModel, ProductModelOperation, Article, ArticleOperation, Operation, DailyModelProgress
 from .norma_services import (
     calculate_daily_model_progress,
     sync_all_models_for_date,
@@ -268,4 +268,163 @@ def norma_sync(request):
     sync_all_models_for_date(target_date)
     messages.success(request, f"{target_date.strftime('%d.%m.%Y')} sanasi uchun barcha modellar normasi qayta hisoblandi!")
     return redirect(f"/norma/?date={target_date.strftime('%Y-%m-%d')}")
+
+
+@norma_access_required
+def norma_model_operations(request, model_id: int):
+    """Model operatsiyalari va ularning ketma-ketlik tartib raqamlarini (1, 2, 3...) boshqarish"""
+    pm = get_object_or_404(ProductModel.objects.prefetch_related('articles'), id=model_id)
+    operations = pm.model_operations.select_related('operation').order_by('sequence', 'id')
+    all_operations = Operation.objects.all().order_by('order_number', 'name')
+
+    return render(request, 'norma/model_operations.html', {
+        'model': pm,
+        'operations': operations,
+        'all_operations': all_operations,
+        'next_sequence': (operations.last().sequence + 1) if operations.exists() else 1,
+    })
+
+
+@norma_access_required
+def norma_model_add_operation(request, model_id: int):
+    """Modelga yangi operatsiyani tartib raqami bilan biriktirish"""
+    pm = get_object_or_404(ProductModel, id=model_id)
+    if request.method == 'POST':
+        operation_id = request.POST.get('operation_id')
+        new_op_name = request.POST.get('new_operation_name', '').strip()
+        new_op_code = request.POST.get('new_operation_code', '').strip()
+        sequence_val = request.POST.get('sequence', '').strip()
+        price_val = request.POST.get('price_per_unit', '0').strip()
+        diff_val = request.POST.get('difficulty', '1.0').strip()
+
+        op = None
+        if new_op_name:
+            if not new_op_code:
+                import re
+                new_op_code = re.sub(r'[^A-Za-z0-9]', '', new_op_name.upper())[:20]
+                base_code = new_op_code or "OP"
+                counter = 1
+                while Operation.objects.filter(code=new_op_code).exists():
+                    new_op_code = f"{base_code}_{counter}"
+                    counter += 1
+            op, _ = Operation.objects.get_or_create(
+                code=new_op_code,
+                defaults={'name': new_op_name, 'default_difficulty': float(diff_val) if diff_val else 1.0}
+            )
+        elif operation_id:
+            op = get_object_or_404(Operation, id=operation_id)
+
+        if not op:
+            messages.error(request, "Operatsiya tanlanmadi yoki nomi kiritilmadi!")
+            return redirect('norma_model_operations', model_id=pm.id)
+
+        try:
+            seq = int(sequence_val) if sequence_val else (pm.model_operations.count() + 1)
+            price = Decimal(price_val) if price_val else Decimal('0.00')
+            diff = float(diff_val) if diff_val else getattr(op, 'default_difficulty', 1.0)
+
+            with transaction.atomic():
+                ProductModelOperation.objects.update_or_create(
+                    model=pm,
+                    operation=op,
+                    defaults={
+                        'sequence': seq,
+                        'price_per_unit': price,
+                        'difficulty': diff,
+                    }
+                )
+                pm.sync_operations_to_articles()
+
+            messages.success(request, f"'{op.name}' operatsiyasi #{seq} tartib raqami bilan biriktirildi!")
+        except Exception as e:
+            messages.error(request, f"Xatolik yuz berdi: {str(e)}")
+
+    return redirect('norma_model_operations', model_id=pm.id)
+
+
+@norma_access_required
+def norma_model_update_operations(request, model_id: int):
+    """Model operatsiyalarining tartib raqamlari va narxlarini ommaviy yangilash"""
+    pm = get_object_or_404(ProductModel, id=model_id)
+    if request.method == 'POST':
+        mo_ids = request.POST.getlist('mo_id')
+        with transaction.atomic():
+            for mo_id in mo_ids:
+                seq_val = request.POST.get(f'sequence_{mo_id}')
+                price_val = request.POST.get(f'price_{mo_id}')
+                diff_val = request.POST.get(f'difficulty_{mo_id}')
+
+                mo = ProductModelOperation.objects.filter(id=mo_id, model=pm).first()
+                if mo:
+                    if seq_val is not None and seq_val.isdigit():
+                        mo.sequence = int(seq_val)
+                    if price_val:
+                        try:
+                            mo.price_per_unit = Decimal(price_val)
+                        except Exception:
+                            pass
+                    if diff_val:
+                        try:
+                            mo.difficulty = float(diff_val)
+                        except Exception:
+                            pass
+                    mo.save()
+
+            pm.sync_operations_to_articles()
+
+        messages.success(request, f"'{pm.name}' modelining operatsiyalar tartib raqamlari va ma'lumotlari muvaffaqiyatli saqlandi!")
+    return redirect('norma_model_operations', model_id=pm.id)
+
+
+@norma_access_required
+def norma_model_delete_operation(request, model_id: int, mo_id: int):
+    """Modeldan operatsiyani olib tashlash"""
+    pm = get_object_or_404(ProductModel, id=model_id)
+    if request.method == 'POST':
+        mo = get_object_or_404(ProductModelOperation, id=mo_id, model=pm)
+        op_name = mo.operation.name
+        with transaction.atomic():
+            ArticleOperation.objects.filter(article__model=pm, operation=mo.operation).delete()
+            mo.delete()
+        messages.success(request, f"'{op_name}' operatsiyasi modeldan olib tashlandi.")
+    return redirect('norma_model_operations', model_id=pm.id)
+
+
+@norma_access_required
+def norma_operations_catalog(request):
+    """Barcha mavjud operatsiyalar katalogi"""
+    if request.method == 'POST':
+        code = request.POST.get('code', '').strip().upper()
+        name = request.POST.get('name', '').strip()
+        order_number_str = request.POST.get('order_number', '1').strip()
+        difficulty_str = request.POST.get('default_difficulty', '1.0').strip()
+        description = request.POST.get('description', '').strip()
+
+        try:
+            order_number = int(order_number_str) if order_number_str else 1
+            difficulty = float(difficulty_str) if difficulty_str else 1.0
+        except ValueError:
+            order_number = 1
+            difficulty = 1.0
+
+        if not code or not name:
+            messages.error(request, "Operatsiya kodi va nomi to'ldirilishi shart!")
+        elif Operation.objects.filter(code=code).exists():
+            messages.error(request, f"'{code}' kodli operatsiya allaqachon mavjud!")
+        else:
+            Operation.objects.create(
+                code=code,
+                name=name,
+                order_number=order_number,
+                default_difficulty=difficulty,
+                description=description
+            )
+            messages.success(request, f"'{name}' operatsiyasi (#{order_number}) katalogga qo'shildi!")
+        return redirect('norma_operations_catalog')
+
+    operations = Operation.objects.all().order_by('order_number', 'name')
+    return render(request, 'norma/operations_catalog.html', {
+        'operations': operations,
+        'next_order_number': (operations.last().order_number + 1) if operations.exists() else 1,
+    })
 

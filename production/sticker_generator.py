@@ -78,16 +78,20 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
     header_h = 120
     draw.line([(18, header_h), (W - 18, header_h)], fill=(15, 23, 42), width=3)
 
-    # OPERATSIYA NOMI
+    # OPERATSIYA NOMI VA TARTIB RAQAMI
     op_name = ""
+    seq_num = None
     if ticket.article_operation and ticket.article_operation.operation:
         op_name = ticket.article_operation.operation.name
+        seq_num = ticket.article_operation.sequence
     else:
         op_name = "Operatsiya"
 
+    op_display = f"№{seq_num}. {op_name.upper()}" if seq_num else op_name.upper()
+
     draw.text((42, 24), "OPERATSIYA NOMI:", fill=(100, 116, 139), font=font_small)
-    font_op = get_fitted_font(draw, op_name.upper(), W - 84, font_bold_path, initial_size=44, min_size=24)
-    draw.text((42, 52), op_name.upper(), fill=(15, 23, 42), font=font_op)
+    font_op = get_fitted_font(draw, op_display, W - 84, font_bold_path, initial_size=44, min_size=24)
+    draw.text((42, 52), op_display, fill=(15, 23, 42), font=font_op)
 
     # 3. KATTA QR KOD VA KICHIKROQ STIKER ID (User talabi)
     qr_x = 40

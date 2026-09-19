@@ -55,8 +55,12 @@
                             <i class="fa-solid fa-chart-pie text-xs"></i> Jonli Monitoring
                         </a>
                         <a href="{% url 'norma_models_list' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name in 'norma_models_list norma_model_edit' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name in 'norma_models_list norma_model_edit norma_model_operations' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
                             <i class="fa-solid fa-layer-group text-xs"></i> Modellar & Normalar
+                        </a>
+                        <a href="{% url 'norma_operations_catalog' %}"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_operations_catalog' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            <i class="fa-solid fa-list-ol text-xs"></i> Operatsiyalar
                         </a>
                         <a href="{% url 'norma_workers' %}"
                             class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_workers' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">

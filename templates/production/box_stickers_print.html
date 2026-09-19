@@ -244,13 +244,23 @@
         {% for ticket in box_item.tickets %}
         <div
             class="sticker-card rounded-xl shadow-sm border-2 border-slate-950 p-2 flex flex-col justify-between bg-white text-slate-950">
-            <!-- 1. TOP HEADER: OPERATSIYA NOMI (Butun qatorni egallaydi, katta va qalin) -->
+            <!-- 1. TOP HEADER: OPERATSIYA NOMI VA TARTIB RAQAMI (Butun qatorni egallaydi, katta va qalin) -->
             <div class="border-b-2 border-slate-950 pb-1 flex flex-col justify-center">
-                <span class="text-[6.5px] font-black uppercase text-slate-400 tracking-wider leading-none">OPERATSIYA
-                    NOMI:</span>
+                <div class="flex items-center justify-between">
+                    <span
+                        class="text-[6.5px] font-black uppercase text-slate-400 tracking-wider leading-none">OPERATSIYA
+                        NOMI:</span>
+                    {% if ticket.article_operation and ticket.article_operation.sequence %}
+                    <span
+                        class="text-[8.5px] font-black text-slate-950 bg-slate-200 px-1 rounded font-mono leading-none">
+                        TARTIB: №{{ ticket.article_operation.sequence }}
+                    </span>
+                    {% endif %}
+                </div>
                 <div class="text-[13.5px] font-black text-slate-950 uppercase truncate leading-tight mt-0.5 tracking-tight"
                     title="{{ ticket.article_operation.operation.name }}">
-                    {{ ticket.article_operation.operation.name }}
+                    {% if ticket.article_operation and ticket.article_operation.sequence %}№{{
+                    ticket.article_operation.sequence }}. {% endif %}{{ ticket.article_operation.operation.name }}
                 </div>
             </div>
 
@@ -385,7 +395,7 @@
             window.addEventListener('beforeprint', function () {
                 document.title = targetTitle;
             });
-    })();
+        })();
     </script>
 </body>
 

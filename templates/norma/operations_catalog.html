@@ -1,0 +1,168 @@
+{% extends 'norma/base_norma.html' %}
+
+{% block title %}Operatsiyalar Katalogi — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-ol text-indigo-400"></i>
+                Umumiy Operatsiyalar Katalogi
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Fabrikadagi barcha tikuv operatsiyalari ro'yxati va ularning standart tartib raqamlari.
+            </p>
+        </div>
+
+        <button onclick="document.getElementById('createOpModal').classList.remove('hidden')"
+            class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/25 transition flex items-center gap-2 self-start sm:self-auto">
+            <i class="fa-solid fa-plus"></i> Yangi Operatsiya Yaratish
+        </button>
+    </div>
+
+    <!-- Operations Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-scissors text-indigo-400"></i>
+                Barcha Operatsiyalar ({{ operations|length }} ta)
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr
+                        class="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-bold uppercase tracking-wider">
+                        <th class="py-3.5 px-4 text-center w-24">Standart №</th>
+                        <th class="py-3.5 px-4 w-36">Operatsiya Kodi</th>
+                        <th class="py-3.5 px-4">Operatsiya Nomi</th>
+                        <th class="py-3.5 px-4 text-center w-32">Standart Qiyinlik</th>
+                        <th class="py-3.5 px-4 text-center w-40">Modellarda Ishlatilishi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 font-semibold">
+                    {% for op in operations %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4 text-center">
+                            <span
+                                class="px-2.5 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-800/60 font-black text-xs font-mono digital-font">
+                                №{{ op.order_number }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span
+                                class="font-mono text-xs text-indigo-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 font-bold">
+                                {{ op.code }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <strong class="text-sm font-bold text-white block">{{ op.name }}</strong>
+                            {% if op.description %}
+                            <span class="text-[11px] text-slate-400 block">{{ op.description }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span
+                                class="font-mono text-cyan-300 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                                {{ op.default_difficulty_display }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span class="text-slate-400 font-mono text-xs">
+                                {{ op.operation_models.count }} ta modelda
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-16 text-center text-slate-500">
+                            <i class="fa-solid fa-scissors text-4xl mb-3 block text-slate-700"></i>
+                            <span class="text-base font-bold block text-slate-300">Operatsiyalar ro'yxati bo'sh</span>
+                            <p class="text-xs text-slate-500 mt-1">"Yangi Operatsiya Yaratish" tugmasini bosing.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL: Yangi Operatsiya Yaratish -->
+<div id="createOpModal"
+    class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-indigo-400"></i>
+                Yangi Operatsiya Yaratish
+            </h3>
+            <button onclick="document.getElementById('createOpModal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Standart Tartib Raqami (№):
+                </label>
+                <input type="number" name="order_number" value="{{ next_order_number }}" min="1" required
+                    class="w-full bg-slate-950 border border-amber-500/60 rounded-xl px-3.5 py-2 text-sm text-amber-300 font-mono font-black digital-font focus:outline-none focus:border-amber-400">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Operatsiya Nomi:
+                </label>
+                <input type="text" name="name" required placeholder="Masalan: Yoqa tikish"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-bold focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Operatsiya Kodi:
+                </label>
+                <input type="text" name="code" required placeholder="Masalan: OP_YOQA"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono uppercase focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Standart Qiyinlik Koeffitsienti:
+                </label>
+                <input type="number" step="0.1" name="default_difficulty" value="1.0" min="0.1" required
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-cyan-300 font-mono font-bold digital-font focus:outline-none focus:border-cyan-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Tavsif (ixtiyoriy):
+                </label>
+                <textarea name="description" rows="2"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button type="button" onclick="document.getElementById('createOpModal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/25 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Saqlash
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

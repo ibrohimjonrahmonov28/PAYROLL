@@ -748,6 +748,98 @@ class NormaModuleTests(TestCase):
         self.assertTrue(p2.is_completed)
 
 
+class ModelOperationsAndSequenceTest(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser('admin_norma', 'admin_norma@test.com', 'password123')
+        self.client.force_login(self.admin)
+
+        self.model = ProductModel.objects.create(
+            code="MOD-SEQ-01",
+            name="Test Model Sequence",
+            daily_norm=1000
+        )
+        self.article = Article.objects.create(
+            code="ART-SEQ-01",
+            name="Test Article Sequence",
+            model=self.model
+        )
+        self.op1 = Operation.objects.create(code="OP-SEQ-1", name="Yoqa tikish", order_number=1)
+        self.op2 = Operation.objects.create(code="OP-SEQ-2", name="Yeng ulash", order_number=2)
+
+    def test_model_operations_management_and_sync(self):
+        from django.urls import reverse
+        from production.models import ProductModelOperation, ArticleOperation
+
+        # Modelga 1-operatsiyani biriktirish
+        res_add1 = self.client.post(reverse('norma_model_add_operation', kwargs={'model_id': self.model.id}), {
+            'operation_id': self.op1.id,
+            'sequence': 1,
+            'price_per_unit': '500',
+            'difficulty': '1.0'
+        })
+        self.assertEqual(res_add1.status_code, 302)
+
+        # Modelga 2-operatsiyani biriktirish
+        res_add2 = self.client.post(reverse('norma_model_add_operation', kwargs={'model_id': self.model.id}), {
+            'operation_id': self.op2.id,
+            'sequence': 2,
+            'price_per_unit': '800',
+            'difficulty': '1.2'
+        })
+        self.assertEqual(res_add2.status_code, 302)
+
+        # Tekshirish: ProductModelOperation 2 ta yaratildi
+        self.assertEqual(self.model.model_operations.count(), 2)
+        mo1 = self.model.model_operations.get(operation=self.op1)
+        mo2 = self.model.model_operations.get(operation=self.op2)
+        self.assertEqual(mo1.sequence, 1)
+        self.assertEqual(mo2.sequence, 2)
+
+        # Tekshirish: ArticleOperation larga ham sinxronlandi
+        self.assertEqual(self.article.article_operations.count(), 2)
+        ao1 = self.article.article_operations.get(operation=self.op1)
+        ao2 = self.article.article_operations.get(operation=self.op2)
+        self.assertEqual(ao1.sequence, 1)
+        self.assertEqual(ao2.sequence, 2)
+
+        # Quti va biletlar yaratilganda tartib bo'yicha chiqishi
+        order = Order.objects.create(order_number="ORD-SEQ-101", article=self.article, total_quantity=100)
+        box = Box.objects.create(order=order, article=self.article, box_number=1, quantity=100)
+        tickets = generate_box_tickets(box)
+        self.assertEqual(len(tickets), 2)
+        self.assertEqual(tickets[0].article_operation.sequence, 1)
+        self.assertEqual(tickets[1].article_operation.sequence, 2)
+
+        # Stiker generatorida tartib raqami ko'rinishi
+        from production.sticker_generator import render_single_box_ticket_100x60
+        img = render_single_box_ticket_100x60(tickets[0])
+        self.assertIsNotNone(img)
+
+        # Bulk update orqali tartibni o'zgartirish (masalan 2 va 1 ga almashtirish)
+        res_bulk = self.client.post(reverse('norma_model_update_operations', kwargs={'model_id': self.model.id}), {
+            'mo_id': [mo1.id, mo2.id],
+            f'sequence_{mo1.id}': 2,
+            f'price_{mo1.id}': '600',
+            f'difficulty_{mo1.id}': '1.1',
+            f'sequence_{mo2.id}': 1,
+            f'price_{mo2.id}': '900',
+            f'difficulty_{mo2.id}': '1.3',
+        })
+        self.assertEqual(res_bulk.status_code, 302)
+
+        mo1.refresh_from_db()
+        mo2.refresh_from_db()
+        self.assertEqual(mo1.sequence, 2)
+        self.assertEqual(mo2.sequence, 1)
+
+        # ArticleOperation larga ham o'tganini tekshirish
+        ao1.refresh_from_db()
+        ao2.refresh_from_db()
+        self.assertEqual(ao1.sequence, 2)
+        self.assertEqual(ao2.sequence, 1)
+
+
+
 
 
 

@@ -139,15 +139,25 @@
                             </div>
                         </td>
                         <td class="py-4 px-4 text-center">
-                            <span class="text-slate-300 font-mono font-bold">
-                                {{ pm.model_operations.count }} ta
-                            </span>
+                            <a href="{% url 'norma_model_operations' pm.id %}"
+                                class="px-2.5 py-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-800/80 text-indigo-300 font-mono font-bold transition inline-flex items-center gap-1.5"
+                                title="Operatsiyalar va tartib raqamlarini boshqarish">
+                                <i class="fa-solid fa-list-ol text-[10px]"></i>
+                                {{ pm.model_operations.count }} ta operatsiya
+                            </a>
                         </td>
                         <td class="py-4 px-4 text-right">
-                            <a href="{% url 'norma_model_edit' pm.id %}"
-                                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg font-bold transition inline-flex items-center gap-1.5">
-                                <i class="fa-solid fa-pen-to-square text-[11px]"></i> Tahrirlash
-                            </a>
+                            <div class="inline-flex items-center gap-2">
+                                <a href="{% url 'norma_model_operations' pm.id %}"
+                                    class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition inline-flex items-center gap-1.5 text-xs shadow-sm"
+                                    title="Operatsiyalar va tartib raqamlari">
+                                    <i class="fa-solid fa-list-ol text-[11px]"></i> Operatsiyalar
+                                </a>
+                                <a href="{% url 'norma_model_edit' pm.id %}"
+                                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg font-bold transition inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square text-[11px]"></i> Tahrirlash
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
