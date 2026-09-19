@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max, Count
 from django.utils import timezone
-from .models import Order, OrderItem, Box, CuttingBatchItem, ArticleOperation
+from .models import Order, OrderItem, Box, CuttingBatchItem, ArticleOperation, Article
 
 
 def sticker_required(view_func):
@@ -110,13 +110,93 @@ def sticker_order_boxes(request, order_id: int):
             articles_without_ops.append(it.article)
 
     unprinted_boxes = [b for b in boxes if not b.is_printed]
+    available_source_articles = Article.objects.filter(article_operations__isnull=False).distinct()
+    boxes_without_tickets = [b for b in boxes if b.tickets.count() == 0]
 
     return render(request, 'stickers/order_boxes.html', {
         'order': order,
         'boxes': boxes,
         'unprinted_boxes_count': len(unprinted_boxes),
+        'boxes_without_tickets_count': len(boxes_without_tickets),
         'articles_without_ops': articles_without_ops,
+        'available_source_articles': available_source_articles,
     })
+
+
+@sticker_required
+def sticker_regenerate_tickets(request, order_id: int):
+    """
+    Operatsiyalar kiritilgandan so'ng, stikeri yo'q qutilar uchun barcha QR biletlarni generatsiya qilish:
+    """
+    order = get_object_or_404(Order, id=order_id)
+    boxes = order.boxes.all()
+    created_tickets_count = 0
+
+    from .services import generate_box_tickets
+
+    with transaction.atomic():
+        for box in boxes:
+            if box.tickets.count() == 0:
+                tickets = generate_box_tickets(box)
+                created_tickets_count += len(tickets)
+
+    if created_tickets_count > 0:
+        messages.success(request, f"Muvaffaqiyatli! Jami {created_tickets_count} ta QR stiker generatsiya qilindi va chop etishga tayyor!")
+    else:
+        has_ops = any(it.article and it.article.article_operations.exists() for it in order.items.all())
+        if not has_ops:
+            messages.error(request, "Stikerlar generatsiya qilinmadi, chunki ushbu modelga hali operatsiyalar biriktirilmagan! Avval operatsiyalarni qo'shing yoki boshqa modeldan nusxalang.")
+        else:
+            messages.info(request, "Barcha qutilarda allaqachon stikerlar mavjud.")
+
+    return redirect('sticker_order_boxes', order_id=order.id)
+
+
+@sticker_required
+def sticker_copy_operations_and_generate(request, order_id: int):
+    """
+    Boshqa modeldan (masalan TKDL090 yoki Mayka) operatsiyalarni nusxalab olish va qutilarga darhol stikerlarni yaratish (POST)
+    """
+    if request.method != 'POST':
+        return redirect('sticker_order_boxes', order_id=order_id)
+
+    order = get_object_or_404(Order, id=order_id)
+    source_article_id = request.POST.get('source_article_id')
+    source_art = get_object_or_404(Article, id=source_article_id)
+
+    from .models import ArticleOperation
+    from .services import generate_box_tickets
+
+    copied_total = 0
+    with transaction.atomic():
+        for item in order.items.all():
+            target_art = item.article
+            if target_art and target_art.article_operations.count() == 0:
+                for src_ao in source_art.article_operations.all():
+                    _, created = ArticleOperation.objects.get_or_create(
+                        article=target_art,
+                        operation=src_ao.operation,
+                        defaults={
+                            'price_per_unit': src_ao.price_per_unit,
+                            'sequence': src_ao.sequence,
+                            'difficulty': src_ao.difficulty,
+                        }
+                    )
+                    if created:
+                        copied_total += 1
+
+        # Qutilarga darhol stikerlarni yaratish
+        tickets_total = 0
+        for box in order.boxes.all():
+            if box.tickets.count() == 0:
+                tickets = generate_box_tickets(box)
+                tickets_total += len(tickets)
+
+    messages.success(
+        request,
+        f"'{source_art.code}' modelidan {copied_total} ta operatsiya muvaffaqiyatli biriktirildi va {tickets_total} ta QR stiker darhol generatsiya qilindi!"
+    )
+    return redirect('sticker_order_boxes', order_id=order.id)
 
 
 @sticker_required

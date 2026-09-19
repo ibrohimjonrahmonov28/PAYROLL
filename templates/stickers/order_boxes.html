@@ -48,9 +48,29 @@
                 </span>
                 {% endfor %}
             </div>
-            <p class="text-slate-400 mt-2">
-                Stikerlar to'liq chiqishi uchun Superadmin panelida ushbu modelga operatsiyalarni qo'shing.
-            </p>
+
+            {% if available_source_articles %}
+            <!-- Tezkor Operatsiyalarni Biriktirish Formasi -->
+            <form method="POST" action="{% url 'sticker_copy_operations_and_generate' order.id %}"
+                class="flex items-center gap-2 mt-3 flex-wrap bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                {% csrf_token %}
+                <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Boshqa modeldan operatsiyalarni
+                    nusxalash:
+                </span>
+                <select name="source_article_id"
+                    class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none">
+                    {% for src_art in available_source_articles %}
+                    <option value="{{ src_art.id }}">{{ src_art.code }} — {{ src_art.name }} ({{
+                        src_art.article_operations.count }} ta operatsiya)</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                    class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-copy"></i> Operatsiyalarni Biriktirish va Stikerlarni Yaratish
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -65,10 +85,21 @@
             <p class="text-xs text-slate-400 mt-0.5">
                 Jami: <strong class="text-white">{{ boxes|length }} ta quti</strong> •
                 Chop etilmagan: <strong class="text-amber-400">{{ unprinted_boxes_count }} ta</strong>
+                {% if boxes_without_tickets_count > 0 %}
+                • <strong class="text-rose-400">{{ boxes_without_tickets_count }} ta qutida stiker yo'q</strong>
+                {% endif %}
             </p>
         </div>
 
         <div class="flex items-center gap-2.5 flex-wrap">
+            {% if boxes_without_tickets_count > 0 %}
+            <a href="{% url 'sticker_regenerate_tickets' order.id %}"
+                class="px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-rotate"></i> Stikerlarni Generatsiya Qilish ({{ boxes_without_tickets_count }} ta
+                quti)
+            </a>
+            {% endif %}
+
             <a href="{% url 'production:order_print_all_stickers' order.id %}" target="_blank"
                 class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
                 <i class="fa-solid fa-print"></i> Barcha Stikerlarni Chop Etish (100x60)
