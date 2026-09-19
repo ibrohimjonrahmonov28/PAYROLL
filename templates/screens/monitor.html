@@ -192,53 +192,47 @@
     <!-- MAIN LEADERBOARD TABLE -->
     <main
         class="flex-1 min-h-0 bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative">
-        <div id="table-scroll-container" class="overflow-y-auto overflow-x-auto flex-1 relative scroll-smooth">
-            <table class="w-full text-left border-collapse">
+        <div id="table-scroll-container" class="overflow-y-auto overflow-x-hidden flex-1 relative scroll-smooth">
+            <table class="w-full table-fixed text-left border-collapse">
                 <thead
                     class="sticky top-0 z-20 bg-[#070d18] border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold shadow-lg">
                     <tr>
-                        <th class="py-4 px-4 text-center w-16">№</th>
-                        <th class="py-4 px-6 w-32">Xodim ID</th>
-                        <th class="py-4 px-6 min-w-[200px]">Tikuvchi F.I.SH</th>
-                        <th class="py-4 px-6 text-center w-36">Bugun Tikilgan</th>
-                        <th class="py-4 px-6 text-center min-w-[300px]">Model Bo'yicha Norma</th>
-                        <th class="py-4 px-6 text-center min-w-[180px]">Bajarilishi</th>
-                        <th class="py-4 px-6 text-right w-44">Bugungi Ish Haqi</th>
-                        <th class="py-4 px-6 text-right w-48">Oylik Maosh</th>
+                        <th class="py-3 px-2 text-center w-14">№</th>
+                        <th class="py-3 px-4 w-[26%]">Tikuvchi F.I.SH</th>
+                        <th class="py-3 px-3 text-center w-[13%]">Bugun Tikilgan</th>
+                        <th class="py-3 px-4 text-center w-[24%]">Model Bo'yicha Norma</th>
+                        <th class="py-3 px-3 text-center w-[11%]">Bajarilishi</th>
+                        <th class="py-3 px-4 text-right w-[13%]">Bugungi Ish Haqi</th>
+                        <th class="py-3 px-4 text-right w-[13%]">Oylik Maosh</th>
                     </tr>
                 </thead>
-                <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-xl">
+                <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-lg">
                     {% for w in workers %}
                     <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="py-4 px-4 text-center">
+                        <td class="py-3 px-2 text-center">
                             <span
                                 class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
                                 {{ forloop.counter }}
                             </span>
                         </td>
-                        <td class="py-4 px-6">
-                            <span
-                                class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-lg text-lg tracking-wide digital-font">
-                                {{ w.worker_id }}
-                            </span>
-                        </td>
-                        <td class="py-4 px-6 font-bold text-white tracking-wide text-xl md:text-2xl">
+                        <td class="py-3 px-4 font-bold text-white tracking-wide text-lg md:text-xl truncate">
                             {{ w.full_name }}
                         </td>
-                        <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
+                        <td
+                            class="py-3 px-3 text-center font-bold text-amber-400 text-lg md:text-xl digital-font whitespace-nowrap">
                             {{ w.total_units }} <small class="text-xs text-slate-400 font-sans">dona</small>
                         </td>
 
                         <!-- Model bo'yicha norma: 50/1500, agar 2 model bo'lsa 500/1000 -->
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-3 px-4 text-center">
                             {% if w.models %}
-                            <div class="flex flex-wrap items-center justify-center gap-2">
+                            <div class="flex flex-wrap items-center justify-center gap-1.5">
                                 {% for m in w.models %}
                                 <div
-                                    class="bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl inline-flex items-center gap-2 shadow-sm">
+                                    class="bg-slate-950/90 border border-slate-800 px-2.5 py-1 rounded-xl inline-flex items-center gap-1.5 shadow-sm">
                                     <span class="text-xs text-cyan-400 font-mono font-bold">{{ m.model_code }}:</span>
-                                    <span class="text-lg font-black text-amber-300 digital-font">{{ m.ratio_str
-                                        }}</span>
+                                    <span class="text-base md:text-lg font-black text-amber-300 digital-font">{{
+                                        m.ratio_str }}</span>
                                     <span class="text-xs font-bold text-slate-400 digital-font">({{ m.percentage
                                         }}%)</span>
                                 </div>
@@ -250,9 +244,9 @@
                         </td>
 
                         <!-- Bajarilishi (Progress Bar) -->
-                        <td class="py-4 px-6 text-center">
+                        <td class="py-3 px-3 text-center">
                             <div
-                                class="w-full bg-slate-950 rounded-full h-3.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto p-0.5 shadow-inner">
+                                class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 max-w-[140px] mx-auto p-0.5 shadow-inner">
                                 <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
                                     style="width: {{ w.progress_width }}%;"></div>
                             </div>
@@ -260,20 +254,21 @@
 
                         <!-- Bugungi Ish haqi -->
                         <td
-                            class="py-4 px-6 text-right font-black text-xl md:text-2xl text-emerald-400 digital-font glow-emerald">
+                            class="py-3 px-4 text-right font-black text-lg md:text-xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
                             {{ w.total_earnings_formatted }} <span
                                 class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                         </td>
 
                         <!-- Oylik Maosh -->
-                        <td class="py-4 px-6 text-right font-black text-xl md:text-2xl text-cyan-300 digital-font">
+                        <td
+                            class="py-3 px-4 text-right font-black text-lg md:text-xl text-cyan-300 digital-font whitespace-nowrap">
                             {{ w.month_earnings_formatted }} <span
                                 class="text-xs font-semibold text-cyan-500 font-sans">so'm</span>
                         </td>
                     </tr>
                     {% empty %}
                     <tr id="empty-row">
-                        <td colspan="8" class="py-20 text-center text-slate-500">
+                        <td colspan="7" class="py-20 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar
                                 biriktirilmadi</span>
@@ -340,7 +335,7 @@
                 if (!data.workers || data.workers.length === 0) {
                     tbody.innerHTML = `
                     <tr id="empty-row">
-                        <td colspan="8" class="py-20 text-center text-slate-500">
+                        <td colspan="7" class="py-20 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar biriktirilmadi</span>
                             <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
@@ -357,11 +352,11 @@
 
                         let modelsHtml = '';
                         if (w.models && w.models.length > 0) {
-                            modelsHtml = `<div class="flex flex-wrap items-center justify-center gap-2">` +
+                            modelsHtml = `<div class="flex flex-wrap items-center justify-center gap-1.5">` +
                                 w.models.map(m => `
-                                    <div class="bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl inline-flex items-center gap-2 shadow-sm">
+                                    <div class="bg-slate-950/90 border border-slate-800 px-2.5 py-1 rounded-xl inline-flex items-center gap-1.5 shadow-sm">
                                         <span class="text-xs text-cyan-400 font-mono font-bold">${m.model_code}:</span>
-                                        <span class="text-lg font-black text-amber-300 digital-font">${m.ratio_str}</span>
+                                        <span class="text-base md:text-lg font-black text-amber-300 digital-font">${m.ratio_str}</span>
                                         <span class="text-xs font-bold text-slate-400 digital-font">(${m.percentage}%)</span>
                                     </div>
                                 `).join('') + `</div>`;
@@ -378,35 +373,30 @@
 
                         html += `
                         <tr class="hover:bg-slate-800/50 transition-colors">
-                            <td class="py-4 px-4 text-center">
+                            <td class="py-3 px-2 text-center">
                                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm ${rankClass}">
                                     ${rank}
                                 </span>
                             </td>
-                            <td class="py-4 px-6">
-                                <span class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-lg text-lg tracking-wide digital-font">
-                                    ${w.worker_id}
-                                </span>
-                            </td>
-                            <td class="py-4 px-6 font-bold text-white tracking-wide text-xl md:text-2xl">
+                            <td class="py-3 px-4 font-bold text-white tracking-wide text-lg md:text-xl truncate">
                                 ${w.full_name}
                             </td>
-                            <td class="py-4 px-6 text-center font-bold text-amber-400 text-xl digital-font">
+                            <td class="py-3 px-3 text-center font-bold text-amber-400 text-lg md:text-xl digital-font whitespace-nowrap">
                                 ${w.total_units} <small class="text-xs text-slate-400 font-sans">dona</small>
                             </td>
-                            <td class="py-4 px-6 text-center">
+                            <td class="py-3 px-4 text-center">
                                 ${modelsHtml}
                             </td>
-                            <td class="py-4 px-6 text-center">
-                                <div class="w-full bg-slate-950 rounded-full h-3.5 overflow-hidden border border-slate-800 max-w-[180px] mx-auto p-0.5 shadow-inner">
+                            <td class="py-3 px-3 text-center">
+                                <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 max-w-[140px] mx-auto p-0.5 shadow-inner">
                                     <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
                                         style="width: ${w.progress_width}%;"></div>
                                 </div>
                             </td>
-                            <td class="py-4 px-6 text-right font-black text-xl md:text-2xl text-emerald-400 digital-font glow-emerald">
+                            <td class="py-3 px-4 text-right font-black text-lg md:text-xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
                                 ${w.total_earnings_formatted} <span class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                             </td>
-                            <td class="py-4 px-6 text-right font-black text-xl md:text-2xl text-cyan-300 digital-font">
+                            <td class="py-3 px-4 text-right font-black text-lg md:text-xl text-cyan-300 digital-font whitespace-nowrap">
                                 ${w.month_earnings_formatted} <span class="text-xs font-semibold text-cyan-500 font-sans">so'm</span>
                             </td>
                         </tr>`;
