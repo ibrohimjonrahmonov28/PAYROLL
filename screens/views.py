@@ -36,7 +36,7 @@ def get_screen_data(screen_number: int, target_date=None):
         output_field=FloatField()
     )
 
-    # Har bir (worker, order, article) bo'yicha guruhlash
+    # Har bir model bo'yicha guruhlash
     model_stats = tickets.values(
         'worker__id',
         'box__order_id',
@@ -45,40 +45,75 @@ def get_screen_data(screen_number: int, target_date=None):
         'article_operation__article__code',
         'article_operation__article__name',
         'article_operation__article__daily_norm',
+        'article_operation__article__model_id',
+        'article_operation__article__model__code',
+        'article_operation__article__model__name',
+        'article_operation__article__model__daily_norm',
     ).annotate(
         units=Sum('quantity'),
         earned_points=Sum(points_expr),
     )
 
-    worker_models_map = {}
+    worker_models_dict = {}
     for item in model_stats:
         w_id = item['worker__id']
         ord_id = item['box__order_id']
         art_id = item['article_operation__article_id']
+        pmodel_id = item['article_operation__article__model_id']
 
-        norm = order_item_norms.get((ord_id, art_id))
-        if not norm:
-            norm = item['article_operation__article__daily_norm'] or 1000
+        if pmodel_id:
+            m_key = f"m_{pmodel_id}"
+            m_code = item['article_operation__article__model__code'] or item['article_operation__article__code']
+            m_name = item['article_operation__article__model__name'] or item['article_operation__article__name']
+            norm = item['article_operation__article__model__daily_norm'] or item['article_operation__article__daily_norm'] or 1000
+        else:
+            m_key = f"art_{art_id}"
+            m_code = item['article_operation__article__code']
+            m_name = item['article_operation__article__name']
+            norm = order_item_norms.get((ord_id, art_id)) or item['article_operation__article__daily_norm'] or 1000
 
         pts = round(item['earned_points'] or 0.0, 1)
         units = item['units'] or 0
-        pct = round((pts / norm) * 100, 1) if norm > 0 else 0.0
+        ord_num = item['box__order__order_number']
 
-        pts_display = int(pts) if pts.is_integer() else pts
+        if w_id not in worker_models_dict:
+            worker_models_dict[w_id] = {}
 
-        if w_id not in worker_models_map:
-            worker_models_map[w_id] = []
+        if m_key not in worker_models_dict[w_id]:
+            worker_models_dict[w_id][m_key] = {
+                'model_code': m_code,
+                'model_name': m_name,
+                'norm': norm,
+                'units': 0,
+                'points': 0.0,
+                'orders': set(),
+            }
 
-        worker_models_map[w_id].append({
-            'model_code': item['article_operation__article__code'],
-            'model_name': item['article_operation__article__name'],
-            'order_number': item['box__order__order_number'],
-            'units': units,
-            'points': pts_display,
-            'norm': norm,
-            'ratio_str': f"{pts_display}/{norm}",
-            'percentage': pct,
-        })
+        worker_models_dict[w_id][m_key]['units'] += units
+        worker_models_dict[w_id][m_key]['points'] += pts
+        if ord_num:
+            worker_models_dict[w_id][m_key]['orders'].add(ord_num)
+
+    worker_models_map = {}
+    for w_id, m_dict in worker_models_dict.items():
+        worker_models_map[w_id] = []
+        for m_key, m_info in m_dict.items():
+            norm = m_info['norm']
+            pts = round(m_info['points'], 1)
+            pts_display = int(pts) if pts.is_integer() else pts
+            pct = round((pts / norm) * 100, 1) if norm > 0 else 0.0
+            orders_str = ", ".join(sorted(m_info['orders']))
+
+            worker_models_map[w_id].append({
+                'model_code': m_info['model_code'],
+                'model_name': m_info['model_name'],
+                'order_number': orders_str,
+                'units': m_info['units'],
+                'points': pts_display,
+                'norm': norm,
+                'ratio_str': f"{pts_display}/{norm}",
+                'percentage': pct,
+            })
 
     # Har bir xodim bo'yicha umumiy agregatsiya
     worker_stats = tickets.values(

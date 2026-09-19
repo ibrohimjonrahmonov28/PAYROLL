@@ -122,7 +122,7 @@ def superadmin_dashboard(request):
         for oi in OrderItem.objects.values('order_id', 'article_id', 'norm')
     }
 
-    # Biletlarni (worker_id, order_id, article_id) bo'yicha guruhlash
+    # Biletlarni modellar bo'yicha guruhlash
     worker_model_qs = filtered_tickets.values(
         'worker_id',
         'box__order_id',
@@ -131,42 +131,78 @@ def superadmin_dashboard(request):
         'article_operation__article__code',
         'article_operation__article__name',
         'article_operation__article__daily_norm',
+        'article_operation__article__model_id',
+        'article_operation__article__model__code',
+        'article_operation__article__model__name',
+        'article_operation__article__model__daily_norm',
     ).annotate(
         units=Sum('quantity'),
         earned_points=Sum(points_expr),
         earned_amount=Sum('total_amount'),
     )
 
-    worker_models_map = {}
+    worker_models_dict = {}
     for item in worker_model_qs:
         w_id = item['worker_id']
         ord_id = item['box__order_id']
         art_id = item['article_operation__article_id']
+        pmodel_id = item['article_operation__article__model_id']
 
-        # Ushbu zakazdagi ushbu model normasi:
-        model_norm = order_item_norms.get((ord_id, art_id))
-        if not model_norm:
-            model_norm = item['article_operation__article__daily_norm'] or 1000
+        if pmodel_id:
+            m_key = f"m_{pmodel_id}"
+            m_code = item['article_operation__article__model__code'] or item['article_operation__article__code']
+            m_name = item['article_operation__article__model__name'] or item['article_operation__article__name']
+            norm = item['article_operation__article__model__daily_norm'] or item['article_operation__article__daily_norm'] or 1000
+        else:
+            m_key = f"art_{art_id}"
+            m_code = item['article_operation__article__code']
+            m_name = item['article_operation__article__name']
+            norm = order_item_norms.get((ord_id, art_id)) or item['article_operation__article__daily_norm'] or 1000
 
         pts = round(item['earned_points'] or 0.0, 1)
         units = item['units'] or 0
         earned_money = item['earned_amount'] or Decimal('0.00')
+        ord_num = item['box__order__order_number']
 
-        pct = round((pts / model_norm) * 100, 1) if model_norm > 0 else 0.0
+        if w_id not in worker_models_dict:
+            worker_models_dict[w_id] = {}
 
-        if w_id not in worker_models_map:
-            worker_models_map[w_id] = []
+        if m_key not in worker_models_dict[w_id]:
+            worker_models_dict[w_id][m_key] = {
+                'model_code': m_code,
+                'model_name': m_name,
+                'norm': norm,
+                'units': 0,
+                'points': 0.0,
+                'earned_amount': Decimal('0.00'),
+                'orders': set(),
+            }
 
-        worker_models_map[w_id].append({
-            'order_number': item['box__order__order_number'],
-            'model_code': item['article_operation__article__code'],
-            'model_name': item['article_operation__article__name'],
-            'units': units,
-            'points': pts,
-            'norm': model_norm,
-            'percentage': pct,
-            'earned_amount': earned_money,
-        })
+        worker_models_dict[w_id][m_key]['units'] += units
+        worker_models_dict[w_id][m_key]['points'] += pts
+        worker_models_dict[w_id][m_key]['earned_amount'] += earned_money
+        if ord_num:
+            worker_models_dict[w_id][m_key]['orders'].add(ord_num)
+
+    worker_models_map = {}
+    for w_id, m_dict in worker_models_dict.items():
+        worker_models_map[w_id] = []
+        for m_key, m_info in m_dict.items():
+            norm = m_info['norm']
+            pts = round(m_info['points'], 1)
+            pct = round((pts / norm) * 100, 1) if norm > 0 else 0.0
+            orders_str = ", ".join(sorted(m_info['orders']))
+
+            worker_models_map[w_id].append({
+                'order_number': orders_str,
+                'model_code': m_info['model_code'],
+                'model_name': m_info['model_name'],
+                'units': m_info['units'],
+                'points': pts,
+                'norm': norm,
+                'percentage': pct,
+                'earned_amount': m_info['earned_amount'],
+            })
 
     all_workers = list(Worker.objects.filter(is_active=True).select_related('user').order_by('worker_id'))
 
@@ -964,6 +1000,9 @@ def superadmin_pricing(request):
                 try:
                     article.daily_norm = max(1, int(norm_val))
                     article.save(update_fields=['daily_norm'])
+                    if article.model:
+                        article.model.daily_norm = article.daily_norm
+                        article.model.save(update_fields=['daily_norm'])
                     messages.success(request, f"'{article.code}' modeli uchun kunlik norma {article.daily_norm} ball qilib belgilandi.")
                 except (ValueError, TypeError):
                     messages.error(request, "Norma butun musbat son bo'lishi kerak.")
@@ -1509,10 +1548,10 @@ def superadmin_worker_history(request, worker_id: int):
             ao = t.article_operation
             art = ao.article if ao else None
             pmodel = art.model if art else None
-            norm = (pmodel.daily_norm if pmodel else (art.daily_norm if art else 1000)) or 1000
+            norm = (pmodel.daily_norm if (pmodel and pmodel.daily_norm) else (art.daily_norm if (art and art.daily_norm) else 1000)) or 1000
             diff = float(ao.difficulty) if (ao and ao.difficulty) else 1.0
             pts = t.quantity * diff
-            model_key = pmodel.id if pmodel else (art.id if art else 0)
+            model_key = f"m_{pmodel.id}" if pmodel else (f"art_{art.id}" if art else "0")
             model_name = pmodel.name if pmodel else (art.name if art else "Noma'lum")
 
             if model_key not in model_stats:
@@ -1554,6 +1593,7 @@ def superadmin_worker_history(request, worker_id: int):
                 'box_number': t.box.box_number if t.box else "—",
                 'box_code': t.box.box_code if t.box else "—",
                 'order_number': t.box.order.order_number if (t.box and t.box.order) else "—",
+                'model_name': t.article_operation.article.model.name if (t.article_operation and t.article_operation.article and t.article_operation.article.model) else (t.article_operation.article.name if (t.article_operation and t.article_operation.article) else "—"),
                 'article_name': t.article_operation.article.name if (t.article_operation and t.article_operation.article) else "—",
                 'operation_name': t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "—",
                 'quantity': t.quantity,
@@ -1620,7 +1660,7 @@ def api_worker_tickets_by_date(request, worker_id: int):
         status=Ticket.Status.SCANNED,
         scanned_at__date=target_date
     ).select_related(
-        'article_operation__article',
+        'article_operation__article__model',
         'article_operation__operation',
         'box__order',
         'scanned_by'
@@ -1636,6 +1676,7 @@ def api_worker_tickets_by_date(request, worker_id: int):
             'box_number': t.box.box_number if t.box else "—",
             'box_code': t.box.box_code if t.box else "—",
             'order_number': t.box.order.order_number if (t.box and t.box.order) else "—",
+            'model_name': t.article_operation.article.model.name if (t.article_operation and t.article_operation.article and t.article_operation.article.model) else (t.article_operation.article.name if (t.article_operation and t.article_operation.article) else "—"),
             'article_name': t.article_operation.article.name if (t.article_operation and t.article_operation.article) else "—",
             'operation_name': t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "—",
             'quantity': t.quantity,

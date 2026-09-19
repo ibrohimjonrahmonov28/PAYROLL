@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from accounts.models import User, Worker, WorkerPayout, DailyWorkerClosing
-from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
+from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, ProductModel
 
 
 class SuperAdminPanelTest(TestCase):
@@ -867,6 +867,77 @@ class WorkerPerformanceHistoryAndBonusTest(TestCase):
         # Strictly > 100%: bonus +30 000 UZS awarded!
         self.assertContains(res2, "+30 000 UZS")
 
+    def test_multiple_articles_linked_to_one_model_daily_norm_isolation(self):
+        from datetime import timedelta
+        from screens.views import get_screen_data
+
+        # 1. Create Model with daily_norm = 1500
+        polo_model = ProductModel.objects.create(code="PM-POLO", name="Polo Futbolka", daily_norm=1500)
+        # 4 articles belonging to the same model
+        art1 = Article.objects.create(code="POLO-BLK", name="Polo Qora", model=polo_model)
+        art2 = Article.objects.create(code="POLO-WHT", name="Polo Oq", model=polo_model)
+        art3 = Article.objects.create(code="POLO-BLU", name="Polo Ko'k", model=polo_model)
+        art4 = Article.objects.create(code="POLO-RED", name="Polo Qizil", model=polo_model)
+
+        # Another model with daily_norm = 1000
+        shorts_model = ProductModel.objects.create(code="PM-SHORTS", name="Shortik", daily_norm=1000)
+        art_shorts = Article.objects.create(code="SHORTS-01", name="Shortik Qora", model=shorts_model)
+
+        op = Operation.objects.create(code="OP-SEW", name="Tikish")
+        ao1 = ArticleOperation.objects.create(article=art1, operation=op, price_per_unit=Decimal("100"), difficulty=1.0)
+        ao2 = ArticleOperation.objects.create(article=art2, operation=op, price_per_unit=Decimal("100"), difficulty=1.0)
+        ao3 = ArticleOperation.objects.create(article=art3, operation=op, price_per_unit=Decimal("100"), difficulty=1.0)
+        ao4 = ArticleOperation.objects.create(article=art4, operation=op, price_per_unit=Decimal("100"), difficulty=1.0)
+        ao_shorts = ArticleOperation.objects.create(article=art_shorts, operation=op, price_per_unit=Decimal("150"), difficulty=1.0)
+
+        order = Order.objects.create(order_number="ORD-MULTI-120K", article=art1, total_quantity=120000)
+        b1 = Box.objects.create(order=order, article=art1, box_number=101, quantity=400)
+        b2 = Box.objects.create(order=order, article=art2, box_number=102, quantity=400)
+        b3 = Box.objects.create(order=order, article=art3, box_number=103, quantity=400)
+        b4 = Box.objects.create(order=order, article=art4, box_number=104, quantity=300)
+        b_shorts = Box.objects.create(order=order, article=art_shorts, box_number=105, quantity=500)
+
+        now = timezone.now()
+        yesterday = now - timedelta(days=1)
+
+        # Day 1 (yesterday): 3 articles of POLO sewn: 400 + 400 + 400 = 1200 points. Norm = 1500. Day 1 = 80.0%
+        Ticket.objects.create(box=b1, article_operation=ao1, quantity=400, price_per_unit=Decimal("100"), total_amount=Decimal("40000"), status=Ticket.Status.SCANNED, worker=self.worker, scanned_at=yesterday)
+        Ticket.objects.create(box=b2, article_operation=ao2, quantity=400, price_per_unit=Decimal("100"), total_amount=Decimal("40000"), status=Ticket.Status.SCANNED, worker=self.worker, scanned_at=yesterday)
+        Ticket.objects.create(box=b3, article_operation=ao3, quantity=400, price_per_unit=Decimal("100"), total_amount=Decimal("40000"), status=Ticket.Status.SCANNED, worker=self.worker, scanned_at=yesterday)
+
+        # Day 2 (today): 4th article of POLO sewn: 300 points (20.0%). And SHORTS: 500 points (50.0%). Day 2 = 70.0%
+        Ticket.objects.create(box=b4, article_operation=ao4, quantity=300, price_per_unit=Decimal("100"), total_amount=Decimal("30000"), status=Ticket.Status.SCANNED, worker=self.worker, scanned_at=now, screen_number=1)
+        Ticket.objects.create(box=b_shorts, article_operation=ao_shorts, quantity=500, price_per_unit=Decimal("150"), total_amount=Decimal("75000"), status=Ticket.Status.SCANNED, worker=self.worker, scanned_at=now, screen_number=1)
+
+        # 2. Check superadmin_worker_history
+        url = reverse('superadmin_worker_history', kwargs={'worker_id': self.worker.id}) + '?range=7days'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        # Yesterday shows 80.0%
+        self.assertContains(res, "80.0%")
+        # Today shows 70.0%
+        self.assertContains(res, "70.0%")
+
+        # 3. Check TV Screen data for screen 1 (today)
+        screen_data = get_screen_data(screen_number=1, target_date=timezone.localdate())
+        worker_screen = next(w for w in screen_data['workers'] if w['worker_id'] == self.worker.worker_id)
+        self.assertEqual(worker_screen['total_percentage'], 70.0)
+        self.assertEqual(worker_screen['total_points'], 800)
+        self.assertEqual(len(worker_screen['models']), 2)
+        polo_screen_m = next(m for m in worker_screen['models'] if m['model_code'] == 'PM-POLO')
+        self.assertEqual(polo_screen_m['ratio_str'], '300/1500')
+        self.assertEqual(polo_screen_m['percentage'], 20.0)
+
+        shorts_screen_m = next(m for m in worker_screen['models'] if m['model_code'] == 'PM-SHORTS')
+        self.assertEqual(shorts_screen_m['ratio_str'], '500/1000')
+        self.assertEqual(shorts_screen_m['percentage'], 50.0)
+
+        # 4. Check superadmin_dashboard
+        dash_url = reverse('superadmin_dashboard') + '?period=today'
+        dash_res = self.client.get(dash_url)
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, "70.0%")
+
 
 class WorkerTicketsByDateApiTest(TestCase):
     def setUp(self):
@@ -901,6 +972,7 @@ class WorkerTicketsByDateApiTest(TestCase):
         self.assertEqual(data['count'], 1)
         self.assertEqual(data['tickets'][0]['stiker_id'], t.stiker_id)
         self.assertEqual(data['tickets'][0]['quantity'], 20)
+        self.assertIn('model_name', data['tickets'][0])
 
 
 class SuperAdminPayrollBulkPayTest(TestCase):
