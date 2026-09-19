@@ -1,0 +1,514 @@
+{% extends 'cutting/base_cutting.html' %}
+
+{% block title %}Kesim: {{ order.order_number }} — Kesim Bo'limi{% endblock %}
+
+{% block cutting_header %}
+<div class="flex items-center gap-3">
+    <a href="{% url 'cutting_dashboard' %}"
+        class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <h2 class="text-base font-black text-white flex items-center gap-2">
+            <span>Zakaz:</span>
+            <span class="text-rose-400 font-mono">{{ order.order_number }}</span>
+            <span
+                class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {% if overall_order_pct >= 100 %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% elif overall_order_pct > 0 %}bg-rose-500/20 text-rose-400 border border-rose-500/30{% else %}bg-slate-800 text-slate-400 border border-slate-700{% endif %}">
+                {% if overall_order_pct >= 100 %}To'liq Kesildi{% elif overall_order_pct > 0 %}Kesilmoqda ({{
+                overall_order_pct }}%){% else %}Kesim Kutilmoqda{% endif %}
+            </span>
+        </h2>
+        <p class="text-[11px] text-slate-400">
+            Mijoz: <strong class="text-white">{{ order.customer.name|default:order.client_name }}</strong>
+            {% if order.deadline %} • Topshirish muddati: <strong class="text-amber-400">{{ order.deadline|date:"d.m.Y"
+                }}</strong>{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jami Reja</span>
+                <span class="text-2xl font-black text-amber-400 digital-font mt-1 block">
+                    {{ total_planned_order|default:order.total_quantity }}
+                    <small class="text-xs font-semibold text-slate-400">dona</small>
+                </span>
+                <span class="text-[11px] text-slate-500 mt-0.5 block">Menejer kiritgan reja</span>
+            </div>
+            <div
+                class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jami Kesilgan</span>
+                <span class="text-2xl font-black text-emerald-400 digital-font mt-1 block">
+                    {{ total_cut_order }}
+                    <small class="text-xs font-semibold text-slate-400">dona</small>
+                </span>
+                <span class="text-[11px] text-slate-500 mt-0.5 block">Barcha partiyalar yig'indisi</span>
+            </div>
+            <div
+                class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-scissors"></i>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Kesilish
+                    Jarayoni</span>
+                <span class="text-2xl font-black text-rose-400 digital-font mt-1 block">
+                    {{ overall_order_pct }}%
+                </span>
+                <span class="text-[11px] text-slate-500 mt-0.5 block">Rejaga nisbatan foiz</span>
+            </div>
+            <div
+                class="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Qoldiq /
+                    Ortiqcha</span>
+                <span
+                    class="text-2xl font-black digital-font mt-1 block {% if total_planned_order > total_cut_order %}text-amber-400{% else %}text-emerald-400{% endif %}">
+                    {% if total_planned_order > total_cut_order %}
+                    -{{ total_planned_order|add:"-"|add:total_cut_order }}
+                    {% else %}
+                    +{{ total_cut_order|add:"-"|add:total_planned_order }}
+                    {% endif %}
+                    <small class="text-xs font-semibold text-slate-400">dona</small>
+                </span>
+                <span class="text-[11px] text-slate-500 mt-0.5 block">
+                    {% if total_planned_order > total_cut_order %}Hali kesilishi kerak{% else %}Rejadan ortiqcha
+                    kesildi{% endif %}
+                </span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Articles, Sizes & Batches Breakdown -->
+    <div class="space-y-6">
+        {% for item_data in items_data %}
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+            <!-- Article Header -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span
+                            class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg">
+                            {{ item_data.item.article.code }}
+                        </span>
+                        {% if item_data.item.article.model %}
+                        <span
+                            class="bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold px-2 py-0.5 rounded text-xs">
+                            Model: {{ item_data.item.article.model.name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h3 class="text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
+                </div>
+
+                <!-- Add Batch Action Button -->
+                <button type="button"
+                    onclick="openAddBatchModal('{{ item_data.item.id }}', '{{ item_data.item.article.code }}', '{{ item_data.next_batch_name }}')"
+                    class="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-sm"></i> + Yangi Partiya ({{ item_data.next_batch_name }})
+                </button>
+            </div>
+
+            <!-- Sizes Breakdown Table -->
+            <div>
+                <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-ruler-combined text-rose-400"></i> Razmerlar Bo'yicha Reja va Kesim Natijasi:
+                </h4>
+
+                <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr
+                                class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                                <th class="py-3 px-4">Razmer</th>
+                                <th class="py-3 px-4 text-center">Menejer Rejasi</th>
+                                <th class="py-3 px-4 text-center">Jami Kesilgan</th>
+                                <th class="py-3 px-4 text-center">Kesilish Foizi</th>
+                                <th class="py-3 px-4 text-center">Farq (Qoldiq/Ortiqcha)</th>
+                                <th class="py-3 px-4 text-center">Stiker Chiqarilgan</th>
+                                <th class="py-3 px-4 text-center">Stikersiz Qoldiq</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 bg-slate-900/60">
+                            {% for s in item_data.sizes %}
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="py-3 px-4 font-black text-white text-sm">
+                                    <span
+                                        class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 font-mono text-cyan-400">
+                                        {{ s.size.size_name }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center font-bold text-amber-400 digital-font text-sm">
+                                    {{ s.planned }} dona
+                                </td>
+                                <td class="py-3 px-4 text-center font-black text-emerald-400 digital-font text-sm">
+                                    {{ s.cut }} dona
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <div class="w-28 mx-auto">
+                                        <span
+                                            class="font-black text-xs {% if s.percentage >= 100 %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                            {{ s.percentage }}%
+                                        </span>
+                                        <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden mt-0.5">
+                                            <div class="h-full rounded-full {% if s.percentage >= 100 %}bg-emerald-500{% else %}bg-rose-500{% endif %}"
+                                                style="width: {% if s.percentage > 100 %}100{% else %}{{ s.percentage|floatformat:0 }}{% endif %}%;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-center font-mono">
+                                    {% if s.remaining > 0 %}
+                                    <span class="text-rose-400 font-bold">-{{ s.remaining }} dona</span>
+                                    {% elif s.excess > 0 %}
+                                    <span class="text-emerald-400 font-bold">+{{ s.excess }} dona</span>
+                                    {% else %}
+                                    <span class="text-cyan-400 font-bold">✓ 100%</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-4 text-center font-mono text-purple-300 font-bold">
+                                    {{ s.boxes_created }} dona
+                                </td>
+                                <td class="py-3 px-4 text-center font-mono font-black">
+                                    {% if s.remaining_to_box > 0 %}
+                                    <span class="text-amber-400 font-bold">{{ s.remaining_to_box }} dona</span>
+                                    {% else %}
+                                    <span class="text-slate-600">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-6 text-center text-slate-500">Ushbu artikul uchun razmerlar
+                                    kiritilmagan.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cutting Batches (Kesim 1, Kesim 2...) -->
+            <div>
+                <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-purple-400"></i> Kesim Partiyalari va Stiker Chiqarish:
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for b in item_data.batches %}
+                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <div>
+                                <span class="font-black text-white text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-scissors text-rose-500"></i> {{ b.name }}
+                                </span>
+                                <span class="text-[11px] text-slate-400 mt-0.5 block">
+                                    {{ b.created_at|date:"d.m.Y H:i" }} {% if b.cutter_name %}• Bichuvchi: <strong>{{
+                                        b.cutter_name }}</strong>{% endif %}
+                                </span>
+                            </div>
+                            <span
+                                class="text-base font-black text-emerald-400 digital-font px-3 py-1 bg-slate-900 rounded-xl border border-slate-800">
+                                {{ b.total_quantity }} dona
+                            </span>
+                        </div>
+
+                        <!-- Razmerlar ro'yxati va har bir razmerdan quti/stiker chiqarish -->
+                        <div class="space-y-2">
+                            {% for b_it in b.items %}
+                            <div
+                                class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between gap-3">
+                                <div>
+                                    <span
+                                        class="font-black text-white font-mono text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-700 text-cyan-400">
+                                        {{ b_it.size_name }}
+                                    </span>
+                                    <span class="text-xs text-slate-300 ml-2 font-bold">{{ b_it.quantity }} dona
+                                        kesildi</span>
+                                    <span class="text-[10px] text-slate-500 block mt-0.5">
+                                        Quti qilingan: <strong class="text-purple-300">{{ b_it.boxes_created_qty
+                                            }}</strong> dona / Qoldiq: <strong class="text-amber-300">{{
+                                            b_it.remaining_to_box }}</strong> dona
+                                    </span>
+                                </div>
+
+                                <div>
+                                    {% if b_it.remaining_to_box > 0 %}
+                                    <button type="button"
+                                        onclick="openSplitModal('{{ b.batch.id }}', '{{ b_it.item.id }}', '{{ b_it.size_name }}', '{{ b_it.remaining_to_box }}')"
+                                        class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-lg text-xs shadow transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-boxes-packing text-xs"></i> Qutilarga Bo'lish & Stiker
+                                    </button>
+                                    {% else %}
+                                    <span class="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                                        <i class="fa-solid fa-check"></i> Stiker Chiqarildi
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Zakazdagi barcha qutilarni chop etish tugmasi -->
+                        <div class="pt-2 border-t border-slate-800 flex items-center justify-end gap-2">
+                            <a href="{% url 'production:order_print_all_stickers' order.id %}?article_id={{ item_data.item.article.id }}"
+                                target="_blank"
+                                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-lg text-xs transition inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-print"></i> Stikerlarni Chop Etish (100x60)
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div
+                        class="col-span-2 py-8 text-center text-slate-500 text-xs bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                        <i class="fa-solid fa-scissors text-2xl text-slate-600 mb-2 block"></i>
+                        Hozircha kesim partiyalari kiritilmagan. Yuqoridagi "+ Yangi Partiya ({{
+                        item_data.next_batch_name }})" tugmasini bosing.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- MODAL: Yangi Kesim Partiyasi Kiritish -->
+<div id="add-batch-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl my-8 space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-scissors text-rose-500"></i> <span id="modal-batch-title">Yangi Kesim</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Artikul: <strong id="modal-art-code"
+                        class="text-amber-400"></strong></p>
+            </div>
+            <button onclick="closeAddBatchModal()" class="text-slate-400 hover:text-white text-xl p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="add-batch-form" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Bichuvchi Ismi (ixtiyoriy)</label>
+                    <input type="text" name="cutter_name" placeholder="Masalan: Jamshid"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Izoh (ixtiyoriy)</label>
+                    <input type="text" name="notes" placeholder="Rulon #12, qoldiqsiz"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500">
+                </div>
+            </div>
+
+            <!-- Razmerlar bo'yicha kesilgan sonlar -->
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
+                <span class="text-xs uppercase font-extrabold text-cyan-400 tracking-wider block">
+                    Ushbu partiyada kesilgan kiyimlar:
+                </span>
+                <div id="modal-sizes-inputs" class="space-y-2">
+                    <!-- Dinamik ravishda to'ldiriladi -->
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="closeAddBatchModal()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                    Bekor Qilish
+                </button>
+                <button type="submit"
+                    class="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition">
+                    Saqlash (Kesimni Kiritish)
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: Kesimni Qutilarga Bo'lish & Stiker Chiqarish -->
+<div id="split-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl my-8 space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-packing text-amber-500"></i> Qutilarga Bo'lish & QR Stiker
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Razmer: <strong id="split-modal-size" class="text-cyan-400 font-mono"></strong> •
+                    Kesilgan: <strong id="split-modal-qty" class="text-emerald-400 digital-font"></strong> dona
+                </p>
+            </div>
+            <button onclick="closeSplitModal()" class="text-slate-400 hover:text-white text-xl p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="split-modal-form" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="batch_item_id" id="split-batch-item-id">
+
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <span class="text-xs uppercase font-extrabold text-amber-400 tracking-wider block">
+                    Qutilarga bo'lish usulini tanlang:
+                </span>
+
+                <!-- 1. Teng bo'laklarga bo'lish -->
+                <label
+                    class="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="split_mode" value="equal_splits" checked onchange="toggleSplitOptions()"
+                        class="mt-1 text-amber-500 focus:ring-amber-500">
+                    <div class="flex-1">
+                        <span class="text-xs font-bold text-white block">Teng bo'laklarga (2 ga, 3 ga...) bo'lish</span>
+                        <span class="text-[11px] text-slate-400 block mt-0.5">Masalan: 300 donani 2 ga (150+150) yoki 3
+                            ga (100+100+100)</span>
+                        <div id="equal-splits-box" class="mt-2 flex items-center gap-2">
+                            <span class="text-xs text-slate-400">Nechta qutiga bo'linsin?</span>
+                            <select name="splits_count"
+                                class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none">
+                                <option value="2">2 ta qutiga</option>
+                                <option value="3" selected>3 ta qutiga</option>
+                                <option value="4">4 ta qutiga</option>
+                                <option value="5">5 ta qutiga</option>
+                                <option value="6">6 ta qutiga</option>
+                            </select>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- 2. Standart sig'im bo'yicha -->
+                <label
+                    class="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="split_mode" value="box_capacity" onchange="toggleSplitOptions()"
+                        class="mt-1 text-amber-500 focus:ring-amber-500">
+                    <div class="flex-1">
+                        <span class="text-xs font-bold text-white block">Har bir quti sig'imi bo'yicha (masalan 100
+                            talik)</span>
+                        <div id="capacity-box" class="mt-2 hidden flex items-center gap-2">
+                            <span class="text-xs text-slate-400">1 ta quti:</span>
+                            <input type="number" name="box_capacity" value="100" min="1"
+                                class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-bold text-center">
+                            <span class="text-xs text-slate-400">dona</span>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- 3. To'liq bitta quti -->
+                <label
+                    class="flex items-start gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="split_mode" value="single_box" onchange="toggleSplitOptions()"
+                        class="mt-1 text-amber-500 focus:ring-amber-500">
+                    <div class="flex-1">
+                        <span class="text-xs font-bold text-white block">Barchasini bitta quti qilish</span>
+                        <span class="text-[11px] text-slate-400 block mt-0.5">To'liq miqdor bitta qutiga
+                            joylanadi</span>
+                    </div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="closeSplitModal()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                    Bekor Qilish
+                </button>
+                <button type="submit"
+                    class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-barcode"></i> Qutilar va QR Stikerlarni Chiqarish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Yangi Kesim Partiyasi Modali
+    function openAddBatchModal(itemId, artCode, batchName) {
+        document.getElementById('modal-batch-title').innerText = batchName;
+        document.getElementById('modal-art-code').innerText = artCode;
+        document.getElementById('add-batch-form').action = `{% url 'cutting_dashboard' %}orders/{{ order.id }}/items/${itemId}/add-batch/`;
+
+        // Ushbu artikul razmerlarini topish
+        const sizesContainer = document.getElementById('modal-sizes-inputs');
+        sizesContainer.innerHTML = '';
+
+        // Ushbu item dagi razmerlarni jadvaldan o'qish
+        {% for item_data in items_data %}
+        if ('{{ item_data.item.id }}' === itemId) {
+            {% for s in item_data.sizes %}
+            sizesContainer.innerHTML += `
+                <div class="flex items-center justify-between gap-3 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <span class="font-bold text-white text-xs font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-700 text-cyan-400">
+                        {{ s.size.size_name }}
+                    </span>
+                    <span class="text-[11px] text-slate-400">Reja: <strong class="text-amber-400">{{ s.planned }}</strong> ta</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-400 font-medium">Kesildi:</span>
+                        <input type="number" name="size_qty_{{ s.size.id }}" min="0" placeholder="0"
+                            class="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-right font-black text-emerald-300 digital-font focus:outline-none focus:border-rose-500">
+                        <span class="text-xs text-slate-500">ta</span>
+                    </div>
+                </div>
+            `;
+            {% endfor %}
+        }
+        {% endfor %}
+
+        document.getElementById('add-batch-modal').classList.remove('hidden');
+    }
+
+    function closeAddBatchModal() {
+        document.getElementById('add-batch-modal').classList.add('hidden');
+    }
+
+    // Qutilarga Bo'lish Modali
+    function openSplitModal(batchId, batchItemId, sizeName, availableQty) {
+        document.getElementById('split-modal-size').innerText = sizeName;
+        document.getElementById('split-modal-qty').innerText = parseInt(availableQty).toLocaleString();
+        document.getElementById('split-batch-item-id').value = batchItemId;
+        document.getElementById('split-modal-form').action = `{% url 'cutting_dashboard' %}batches/${batchId}/split-boxes/`;
+
+        document.getElementById('split-modal').classList.remove('hidden');
+    }
+
+    function closeSplitModal() {
+        document.getElementById('split-modal').classList.add('hidden');
+    }
+
+    function toggleSplitOptions() {
+        const mode = document.querySelector('input[name="split_mode"]:checked').value;
+        document.getElementById('equal-splits-box').style.display = (mode === 'equal_splits') ? 'flex' : 'none';
+        document.getElementById('capacity-box').style.display = (mode === 'box_capacity') ? 'flex' : 'none';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'managers/base_manager.html' %}
+
+{% block title %}Buyurtmalar Boshqaruvi — Menejer Portali{% endblock %}
+
+{% block manager_header %}
+<div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+        <i class="fa-solid fa-clipboard-list"></i>
+    </div>
+    <div>
+        <h2 class="text-base font-black text-white">Buyurtmalar va Razmerlar Rejasi</h2>
+        <p class="text-[11px] text-slate-400">Yangi zakazlarni kiritish, kiyim razmerlarini belgilash va kesim
+            jarayonini kuzatish</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Action Bar -->
+    <div
+        class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+        <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked text-cyan-400"></i> Barcha Buyurtmalar Ro'yxati
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Har bir zakaz ustiga bosib qaysi razmerdan nechta rejalashtirilgani
+                va qancha kesilganini ko'rishingiz mumkin.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <form method="GET" class="relative flex items-center">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-500 text-xs pointer-events-none"></i>
+                <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz, mijoz yoki model..."
+                    class="pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-56 md:w-72 shadow-inner transition">
+                {% if search_q %}
+                <a href="{% url 'manager_dashboard' %}"
+                    class="absolute right-3 text-slate-500 hover:text-rose-400 text-xs" title="Tozalash">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </form>
+
+            <a href="{% url 'manager_order_create' %}"
+                class="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-circle-plus text-sm"></i> + Yangi Zakaz Yaratish
+            </a>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr
+                        class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-4 px-4">Zakaz Raqami</th>
+                        <th class="py-4 px-4">Buyurtmachi</th>
+                        <th class="py-4 px-4">Modellar & Artikullar</th>
+                        <th class="py-4 px-4 text-center">Razmerlar</th>
+                        <th class="py-4 px-4 text-center">Reja Soni</th>
+                        <th class="py-4 px-4 text-center">Kesilgan Soni</th>
+                        <th class="py-4 px-4 text-center">Kesilish Jarayoni</th>
+                        <th class="py-4 px-4">Muddat</th>
+                        <th class="py-4 px-4 text-right">Amal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-200">
+                    {% for row in orders_data %}
+                    <tr class="hover:bg-slate-800/40 transition cursor-pointer"
+                        onclick="window.location='{% url 'manager_order_detail' row.order.id %}'">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-2 text-base font-black text-cyan-400 hover:underline">
+                                <i class="fa-solid fa-folder-open text-cyan-500 text-sm"></i>
+                                <span>{{ row.order.order_number }}</span>
+                            </div>
+                            <span class="text-[11px] text-slate-500 block font-normal mt-0.5">
+                                {{ row.order.created_at|date:"d.m.Y" }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 font-semibold text-slate-300">
+                            {% if row.order.customer %}
+                            <span class="text-white font-bold block">{{ row.order.customer.name }}</span>
+                            {% if row.order.customer.code %}
+                            <span class="text-[10px] text-cyan-400 font-mono">{{ row.order.customer.code }}</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-white font-bold">{{ row.order.client_name|default:"—" }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="space-y-1">
+                                {% for it in row.order.items.all %}
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    {% if it.article.model %}
+                                    <span
+                                        class="bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">
+                                        {{ it.article.model.code }}
+                                    </span>
+                                    {% endif %}
+                                    <span class="text-xs text-white font-semibold">{{ it.article.name }}</span>
+                                </div>
+                                {% empty %}
+                                <span class="text-slate-500 text-xs">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span
+                                class="px-2 py-0.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs font-mono text-purple-300 font-bold">
+                                {{ row.sizes_str }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="text-base font-black text-amber-400 digital-font">
+                                {{ row.total_planned|default:row.order.total_quantity }}
+                            </span>
+                            <span class="text-[10px] text-slate-500 block font-semibold">dona</span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="text-base font-black text-emerald-400 digital-font">
+                                {{ row.total_cut }}
+                            </span>
+                            <span class="text-[10px] text-slate-500 block font-semibold">dona</span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <div class="w-32 mx-auto">
+                                <div class="flex justify-between text-[10px] text-slate-400 mb-1 font-mono">
+                                    <span>{{ row.total_cut }}/{{ row.total_planned }}</span>
+                                    <span
+                                        class="font-bold {% if row.is_cut_complete %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                        {{ row.overall_cut_percentage }}%
+                                    </span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
+                                    <div class="h-full rounded-full transition-all duration-500 {% if row.is_cut_complete %}bg-gradient-to-r from-emerald-500 to-teal-400{% else %}bg-gradient-to-r from-cyan-500 to-blue-500{% endif %}"
+                                        style="width: {{ row.overall_cut_percentage|floatformat:0 }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-slate-400 text-xs font-mono">
+                            {{ row.order.deadline|date:"d.m.Y"|default:"—" }}
+                        </td>
+                        <td class="py-4 px-4 text-right" onclick="event.stopPropagation()">
+                            <a href="{% url 'manager_order_detail' row.order.id %}"
+                                class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs rounded-xl border border-slate-700 transition inline-flex items-center gap-1.5">
+                                <span>Razmerlar</span> <i class="fa-solid fa-arrow-right text-xs"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-12 text-center text-slate-500">
+                            Hozircha buyurtmalar mavjud emas. Yuqoridagi "+ Yangi Zakaz Yaratish" tugmasini bosing.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

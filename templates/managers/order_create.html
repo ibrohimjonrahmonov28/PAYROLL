@@ -1,0 +1,403 @@
+{% extends 'managers/base_manager.html' %}
+
+{% block title %}Yangi Zakaz Yaratish — Menejer Portali{% endblock %}
+
+{% block manager_header %}
+<div class="flex items-center gap-3">
+    <a href="{% url 'manager_dashboard' %}"
+        class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <h2 class="text-base font-black text-white">Yangi Zakaz va Razmerlar Rejasi</h2>
+        <p class="text-[11px] text-slate-400">Buyurtma ma'lumotlari, model, artikullar va har bir razmer bo'yicha reja
+            sonini kiriting</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <form method="POST" action="{% url 'manager_order_create' %}" class="space-y-6" id="order-create-form">
+        {% csrf_token %}
+
+        <!-- 1. Zakaz Asosiy Ma'lumotlari -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 class="text-sm font-extrabold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice"></i> 1. Buyurtma Asosiy Ma'lumotlari
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Zakaz Raqami *</label>
+                    <input type="text" name="order_number" required placeholder="Masalan: ORD-2026-001"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono shadow-inner">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Zakazchi (Mijoz / Brend) *</label>
+                    <input type="text" name="client_name" list="customers-list" required
+                        placeholder="Masalan: DC Monetka yoki Terry Dreams"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 shadow-inner">
+                    <datalist id="customers-list">
+                        {% for cust in customers %}
+                        <option value="{{ cust.name }}">{{ cust.code }}</option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Topshirish Muddati (Deadline)</label>
+                    <input type="date" name="deadline"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono shadow-inner">
+                </div>
+            </div>
+
+            <!-- Asosiy Model -->
+            <div class="pt-3 border-t border-slate-800/80">
+                <label class="block text-xs font-bold text-slate-300 mb-1">Asosiy Model (Tegishli Model)</label>
+                <select name="product_model_id" id="product_model_select" onchange="onModelSelect(this)"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 shadow-inner">
+                    <option value="">— Modelni tanlang (ixtiyoriy) —</option>
+                    {% for pm in product_models %}
+                    <option value="{{ pm.id }}" data-code="{{ pm.code }}" data-name="{{ pm.name }}"
+                        data-norm="{{ pm.daily_norm }}">
+                        [{{ pm.code }}] {{ pm.name }} (Kunlik norma: {{ pm.daily_norm }} dona)
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="text-[11px] text-slate-500 mt-1">Ushbu modelga biriktirilgan barcha artikullar kunlik umumiy
+                    normani bo'lishib hisoblaydi.</p>
+            </div>
+        </div>
+
+        <!-- 2. Artikullar va Razmerlar Rejasi -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-tags"></i> 2. Artikullar (Ranglar) va Kiyim Razmerlari Rejasi
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Har bir artikul uchun kerakli razmerlar (S, M, L, XL...) va
+                        har bir razmerning rejalashtirilgan sonini kiriting</p>
+                </div>
+                <button type="button" onclick="addArticleBlock()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> + Yana Artikul Qo'shish
+                </button>
+            </div>
+
+            <!-- Articles Container -->
+            <div id="articles-container" class="space-y-4">
+                <!-- 1-Artikul Dastlabki Bloki -->
+                <div class="article-block bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4"
+                    data-art-index="0">
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center art-num">1</span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Artikul / Rang
+                                Ma'lumotlari</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-400">Artikul Jami:</span>
+                            <span
+                                class="art-total-display font-black text-base text-amber-400 digital-font ml-1">0</span>
+                            <span class="text-xs text-slate-500 font-semibold">dona</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Kodi *</label>
+                            <input type="text" name="article_code[]" required placeholder="Masalan: POLO-QORA"
+                                class="art-code-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Nomi / Rangi
+                                *</label>
+                            <input type="text" name="article_name[]" required
+                                placeholder="Masalan: Erkaklar Polo (Qora)"
+                                class="art-name-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+
+                    <!-- Razmerlar To'plami -->
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span
+                                class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-ruler-combined"></i> Razmerlar va Reja Donalari:
+                            </span>
+
+                            <!-- Tezkor Shablonlar -->
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-[10px] text-slate-500 font-semibold">Tezkor shablon:</span>
+                                <button type="button" onclick="applyPreset(this, ['S', 'M', 'L', 'XL', '2XL'])"
+                                    class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">
+                                    S—2XL
+                                </button>
+                                <button type="button" onclick="applyPreset(this, ['38', '40', '42', '44', '46', '48'])"
+                                    class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">
+                                    38—48
+                                </button>
+                                <button type="button" onclick="applyPreset(this, ['28', '30', '32', '34', '36'])"
+                                    class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">
+                                    28—36
+                                </button>
+                                <button type="button" onclick="addSizeRow(this)"
+                                    class="px-2.5 py-0.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 font-bold rounded text-[10px] border border-cyan-500/40 transition">
+                                    + Razmer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Razmerlar Qatorlari -->
+                        <div class="sizes-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-1">
+                            <!-- Default sizes -->
+                            <div
+                                class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                                <input type="text" name="size_name_0[]" value="S" placeholder="Razmer"
+                                    class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                <input type="number" name="size_qty_0[]" min="0" placeholder="0"
+                                    oninput="recalcOrderTotals()"
+                                    class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                            </div>
+                            <div
+                                class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                                <input type="text" name="size_name_0[]" value="M" placeholder="Razmer"
+                                    class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                <input type="number" name="size_qty_0[]" min="0" placeholder="0"
+                                    oninput="recalcOrderTotals()"
+                                    class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                            </div>
+                            <div
+                                class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                                <input type="text" name="size_name_0[]" value="L" placeholder="Razmer"
+                                    class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                <input type="number" name="size_qty_0[]" min="0" placeholder="0"
+                                    oninput="recalcOrderTotals()"
+                                    class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                            </div>
+                            <div
+                                class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                                <input type="text" name="size_name_0[]" value="XL" placeholder="Razmer"
+                                    class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                <input type="number" name="size_qty_0[]" min="0" placeholder="0"
+                                    oninput="recalcOrderTotals()"
+                                    class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                            </div>
+                            <div
+                                class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                                <input type="text" name="size_name_0[]" value="2XL" placeholder="Razmer"
+                                    class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                <input type="number" name="size_qty_0[]" min="0" placeholder="0"
+                                    oninput="recalcOrderTotals()"
+                                    class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Bottom Summary & Submit Bar -->
+        <div
+            class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-wrap items-center justify-between gap-4 sticky bottom-4 z-20">
+            <div>
+                <span class="text-xs uppercase font-bold text-slate-400 tracking-wider block">Buyurtma Jami
+                    Rejasi:</span>
+                <span id="grand-total-qty" class="text-3xl font-black text-amber-400 digital-font">0</span>
+                <span class="text-sm font-semibold text-slate-400">dona kiyim</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{% url 'manager_dashboard' %}"
+                    class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                    Bekor Qilish
+                </a>
+                <button type="submit"
+                    class="px-7 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black rounded-xl text-sm shadow-xl transition flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-base"></i> Zakazni Saqlash & Kesimga Uzatish
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let articleCounter = 1;
+
+    function onModelSelect(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.value) return;
+        const code = opt.getAttribute('data-code');
+        const name = opt.getAttribute('data-name');
+
+        // Agar birinchi artikul kodi bo'sh bo'lsa, avtomatik to'ldirish
+        const firstCodeInput = document.querySelector('.art-code-input');
+        const firstNameInput = document.querySelector('.art-name-input');
+        if (firstCodeInput && !firstCodeInput.value) {
+            firstCodeInput.value = code;
+        }
+        if (firstNameInput && !firstNameInput.value) {
+            firstNameInput.value = name;
+        }
+    }
+
+    function applyPreset(btn, sizes) {
+        const block = btn.closest('.article-block');
+        const artIndex = block.getAttribute('data-art-index');
+        const container = block.querySelector('.sizes-container');
+        container.innerHTML = '';
+
+        sizes.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2';
+            div.innerHTML = `
+                <input type="text" name="size_name_${artIndex}[]" value="${s}" placeholder="Razmer"
+                    class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                <input type="number" name="size_qty_${artIndex}[]" min="0" placeholder="0" oninput="recalcOrderTotals()"
+                    class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                <button type="button" onclick="this.parentElement.remove(); recalcOrderTotals();" class="text-slate-600 hover:text-rose-400 text-xs px-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+        recalcOrderTotals();
+    }
+
+    function addSizeRow(btn) {
+        const block = btn.closest('.article-block');
+        const artIndex = block.getAttribute('data-art-index');
+        const container = block.querySelector('.sizes-container');
+
+        const div = document.createElement('div');
+        div.className = 'size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2';
+        div.innerHTML = `
+            <input type="text" name="size_name_${artIndex}[]" value="" placeholder="Razmer"
+                class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+            <input type="number" name="size_qty_${artIndex}[]" min="0" placeholder="0" oninput="recalcOrderTotals()"
+                class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+            <button type="button" onclick="this.parentElement.remove(); recalcOrderTotals();" class="text-slate-600 hover:text-rose-400 text-xs px-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
+    function addArticleBlock() {
+        const idx = articleCounter++;
+        const container = document.getElementById('articles-container');
+
+        const div = document.createElement('div');
+        div.className = 'article-block bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4';
+        div.setAttribute('data-art-index', idx);
+
+        div.innerHTML = `
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center art-num">${idx + 1}</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Artikul / Rang Ma'lumotlari</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div>
+                        <span class="text-xs text-slate-400">Artikul Jami:</span>
+                        <span class="art-total-display font-black text-base text-amber-400 digital-font ml-1">0</span>
+                        <span class="text-xs text-slate-500 font-semibold">dona</span>
+                    </div>
+                    <button type="button" onclick="this.closest('.article-block').remove(); recalcOrderTotals();"
+                        class="text-slate-500 hover:text-rose-400 text-sm p-1" title="Artikulni o'chirish">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Kodi *</label>
+                    <input type="text" name="article_code[]" required placeholder="Masalan: POLO-OQ"
+                        class="art-code-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Nomi / Rangi *</label>
+                    <input type="text" name="article_name[]" required placeholder="Masalan: Erkaklar Polo (Oq)"
+                        class="art-name-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-ruler-combined"></i> Razmerlar va Reja Donalari:
+                    </span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[10px] text-slate-500 font-semibold">Tezkor shablon:</span>
+                        <button type="button" onclick="applyPreset(this, ['S', 'M', 'L', 'XL', '2XL'])"
+                            class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">S—2XL</button>
+                        <button type="button" onclick="applyPreset(this, ['38', '40', '42', '44', '46', '48'])"
+                            class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">38—48</button>
+                        <button type="button" onclick="applyPreset(this, ['28', '30', '32', '34', '36'])"
+                            class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">28—36</button>
+                        <button type="button" onclick="addSizeRow(this)"
+                            class="px-2.5 py-0.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 font-bold rounded text-[10px] border border-cyan-500/40 transition">+ Razmer</button>
+                    </div>
+                </div>
+
+                <div class="sizes-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-1">
+                    <div class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                        <input type="text" name="size_name_${idx}[]" value="S" placeholder="Razmer"
+                            class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                        <input type="number" name="size_qty_${idx}[]" min="0" placeholder="0" oninput="recalcOrderTotals()"
+                            class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                    </div>
+                    <div class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                        <input type="text" name="size_name_${idx}[]" value="M" placeholder="Razmer"
+                            class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                        <input type="number" name="size_qty_${idx}[]" min="0" placeholder="0" oninput="recalcOrderTotals()"
+                            class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                    </div>
+                    <div class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                        <input type="text" name="size_name_${idx}[]" value="L" placeholder="Razmer"
+                            class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                        <input type="number" name="size_qty_${idx}[]" min="0" placeholder="0" oninput="recalcOrderTotals()"
+                            class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                    </div>
+                    <div class="size-item bg-slate-900 border border-slate-800 p-2 rounded-xl flex items-center gap-2">
+                        <input type="text" name="size_name_${idx}[]" value="XL" placeholder="Razmer"
+                            class="w-12 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                        <input type="number" name="size_qty_${idx}[]" min="0" placeholder="0" oninput="recalcOrderTotals()"
+                            class="size-qty-input w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-black text-amber-300 digital-font focus:outline-none">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(div);
+        recalcOrderTotals();
+    }
+
+    function recalcOrderTotals() {
+        let grandTotal = 0;
+        document.querySelectorAll('.article-block').forEach(block => {
+            let artTotal = 0;
+            block.querySelectorAll('.size-qty-input').forEach(input => {
+                const val = parseInt(input.value, 10);
+                if (!isNaN(val) && val > 0) {
+                    artTotal += val;
+                }
+            });
+            const disp = block.querySelector('.art-total-display');
+            if (disp) disp.innerText = artTotal.toLocaleString();
+            grandTotal += artTotal;
+        });
+        document.getElementById('grand-total-qty').innerText = grandTotal.toLocaleString();
+    }
+
+    // Dastlabki hisoblash
+    recalcOrderTotals();
+</script>
+{% endblock %}

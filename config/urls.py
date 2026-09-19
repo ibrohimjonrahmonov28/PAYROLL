@@ -26,6 +26,8 @@ urlpatterns = [
     path('logout/', logout_view, name='root_logout'),
     path('', include('production.urls')),
     path('superadmin/', include('accounts.superadmin_urls')),
+    path('managers/', include('production.manager_urls')),
+    path('cutting/', include('production.cutting_urls')),
     path('accounts/', include('accounts.urls')),
     path('screens/', include('screens.urls')),
 ]

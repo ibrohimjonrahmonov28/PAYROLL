@@ -21,6 +21,8 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
         ADMIN = 'ADMIN', 'Admin'
+        MANAGER = 'MANAGER', 'Menejer'
+        CUTTER = 'CUTTER', 'Kesimchi (Bichuv)'
         MASTER = 'MASTER', 'Master'
         USER = 'USER', 'Oddiy User'
 
@@ -72,6 +74,12 @@ class User(AbstractUser):
 
     def is_admin_user(self):
         return self.is_superadmin() or self.role == self.Role.ADMIN
+
+    def is_manager(self):
+        return self.is_superadmin() or self.role == self.Role.MANAGER
+
+    def is_cutter(self):
+        return self.is_superadmin() or self.role == self.Role.CUTTER
 
     def is_master(self):
         return self.role == self.Role.MASTER or self.is_superuser

@@ -354,8 +354,160 @@ class OrderItem(models.Model):
             })
         return result
 
+    @property
+    def total_planned_quantity(self):
+        if self.sizes.exists():
+            return sum(s.planned_quantity for s in self.sizes.all())
+        return self.quantity
+
+    @property
+    def total_cut_quantity(self):
+        if self.sizes.exists():
+            return sum(s.total_cut_quantity for s in self.sizes.all())
+        return sum(b.total_quantity for b in self.cutting_batches.all())
+
+    @property
+    def overall_cut_percentage(self):
+        planned = self.total_planned_quantity
+        if planned > 0:
+            return round((self.total_cut_quantity / planned) * 100, 1)
+        return 0.0
+
+    @property
+    def remaining_to_cut_quantity(self):
+        return max(0, self.total_planned_quantity - self.total_cut_quantity)
+
     def __str__(self):
         return f"{self.order.order_number} -> {self.article.code} ({self.quantity} dona)"
+
+
+class OrderItemSize(models.Model):
+    order_item = models.ForeignKey(
+        OrderItem,
+        on_delete=models.CASCADE,
+        related_name='sizes',
+        verbose_name="Zakaz Modeli"
+    )
+    size_name = models.CharField(max_length=50, verbose_name="Razmer (O'lcham)", help_text="Masalan: S, M, L, XL, 38, 40...")
+    planned_quantity = models.PositiveIntegerField(default=0, verbose_name="Zakaz Reja Soni")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Model Razmeri"
+        verbose_name_plural = "Model Razmerlari"
+        unique_together = ('order_item', 'size_name')
+        ordering = ['id']
+
+    @property
+    def total_cut_quantity(self):
+        """Barcha kesim partiyalarida ushbu razmerdan kesilgan jami dona"""
+        return sum(item.quantity for item in self.cutting_items.all())
+
+    @property
+    def cut_percentage(self):
+        """Kesilish foizi (Rejaga nisbatan)"""
+        if self.planned_quantity and self.planned_quantity > 0:
+            return round((self.total_cut_quantity / self.planned_quantity) * 100, 1)
+        return 0.0
+
+    @property
+    def remaining_to_cut_quantity(self):
+        """Hali kesilishi kerak bo'lgan qoldiq reja"""
+        return max(0, self.planned_quantity - self.total_cut_quantity)
+
+    @property
+    def excess_cut_quantity(self):
+        """Rejadan ortiqcha kesilgan dona"""
+        return max(0, self.total_cut_quantity - self.planned_quantity)
+
+    @property
+    def boxes_created_qty(self):
+        """Ushbu razmer bo'yicha yaratilgan qutilardagi jami dona"""
+        return sum(b.quantity for b in self.order_item.order.boxes.filter(
+            article=self.order_item.article,
+            razmer__iexact=self.size_name
+        ))
+
+    @property
+    def remaining_to_box_qty(self):
+        """Hali quti qilinmagan kesim qoldig'i"""
+        return max(0, self.total_cut_quantity - self.boxes_created_qty)
+
+    def __str__(self):
+        return f"{self.order_item.article.code} [{self.size_name}]: {self.planned_quantity} ta (Kesildi: {self.total_cut_quantity})"
+
+
+class CuttingBatch(models.Model):
+    order_item = models.ForeignKey(
+        OrderItem,
+        on_delete=models.CASCADE,
+        related_name='cutting_batches',
+        verbose_name="Zakaz Modeli"
+    )
+    batch_number = models.PositiveIntegerField(verbose_name="Kesim Raqami")
+    name = models.CharField(max_length=100, blank=True, verbose_name="Kesim Nomi")
+    cutter_name = models.CharField(max_length=100, blank=True, verbose_name="Bichuvchi")
+    notes = models.TextField(blank=True, verbose_name="Izoh")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Kesilgan vaqti")
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_cutting_batches',
+        verbose_name="Kirituvchi"
+    )
+
+    class Meta:
+        verbose_name = "Kesim Partiyasi"
+        verbose_name_plural = "Kesim Partiyalari"
+        unique_together = ('order_item', 'batch_number')
+        ordering = ['batch_number']
+
+    def save(self, *args, **kwargs):
+        if not self.batch_number:
+            max_b = CuttingBatch.objects.filter(order_item=self.order_item).aggregate(m=models.Max('batch_number'))['m'] or 0
+            self.batch_number = max_b + 1
+        if not self.name:
+            self.name = f"Kesim {self.batch_number}"
+        super().save(*args, **kwargs)
+
+    @property
+    def total_quantity(self):
+        return sum(it.quantity for it in self.items.all())
+
+    def __str__(self):
+        return f"{self.order_item.order.order_number} -> {self.order_item.article.code} | {self.name} ({self.total_quantity} dona)"
+
+
+class CuttingBatchItem(models.Model):
+    batch = models.ForeignKey(
+        CuttingBatch,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name="Kesim Partiyasi"
+    )
+    order_item_size = models.ForeignKey(
+        OrderItemSize,
+        on_delete=models.CASCADE,
+        related_name='cutting_items',
+        verbose_name="Razmer"
+    )
+    quantity = models.PositiveIntegerField(default=0, verbose_name="Kesilgan Soni")
+    boxes_created_qty = models.PositiveIntegerField(default=0, verbose_name="Quti Qilingan Soni")
+
+    class Meta:
+        verbose_name = "Kesim Razmer Bandi"
+        verbose_name_plural = "Kesim Razmer Bandlari"
+        unique_together = ('batch', 'order_item_size')
+
+    @property
+    def remaining_to_box(self):
+        return max(0, self.quantity - self.boxes_created_qty)
+
+    def __str__(self):
+        return f"{self.batch.name} - {self.order_item_size.size_name}: {self.quantity} dona"
 
 
 def generate_unique_box_code():

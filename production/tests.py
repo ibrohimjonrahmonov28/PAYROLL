@@ -1,8 +1,12 @@
 from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
-from .models import Article, Operation, ArticleOperation, Order, Box, Ticket
+from .models import (
+    Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket,
+    Customer, ProductModel, OrderItemSize, CuttingBatch, CuttingBatchItem
+)
 from .services import allocate_ticket_quantities, generate_box_tickets
+from accounts.models import User
 
 
 class AllocationAlgorithmTest(TestCase):
@@ -478,6 +482,162 @@ class BoxPipelineStatisticsTest(TestCase):
         self.assertEqual(data['worker_id'], "W-STAT")
         self.assertEqual(data['status'], "SCANNED")
         self.assertEqual(data['screen_number'], 2)
+
+
+class ManagerAndCuttingWorkflowTest(TestCase):
+    def setUp(self):
+        self.superadmin = User.objects.create_superuser(
+            username="superadmin_test",
+            password="password123",
+            role=User.Role.SUPER_ADMIN
+        )
+        self.manager = User.objects.create_user(
+            username="manager_user",
+            password="password123",
+            role=User.Role.MANAGER
+        )
+        self.cutter = User.objects.create_user(
+            username="cutter_user",
+            password="password123",
+            role=User.Role.CUTTER
+        )
+        self.model = ProductModel.objects.create(
+            name="Polo futbolka",
+            daily_norm=1500
+        )
+        self.customer = Customer.objects.create(
+            name="TEX STYLE LLC"
+        )
+        self.op = Operation.objects.create(code="OP-SEW", name="Tikish")
+
+    def test_manager_order_create_with_sizes(self):
+        self.client.login(username="manager_user", password="password123")
+        url = reverse('manager_order_create')
+        data = {
+            'order_number': 'ORD-MGR-101',
+            'client_name': 'TEX STYLE LLC',
+            'customer_id': self.customer.id,
+            'product_model_id': self.model.id,
+            'article_code[]': ['ART-POLO-01'],
+            'article_name[]': ['Polo Classic Navy'],
+            'size_name_0[]': ['S', 'M', 'L'],
+            'size_qty_0[]': ['100', '250', '150'],
+        }
+        res = self.client.post(url, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        order = Order.objects.get(order_number='ORD-MGR-101')
+        self.assertEqual(order.total_quantity, 500)
+        item = order.items.first()
+        self.assertEqual(item.article.code, 'ART-POLO-01')
+        self.assertEqual(item.article.model, self.model)
+        self.assertEqual(item.sizes.count(), 3)
+        s_s = item.sizes.get(size_name='S')
+        s_m = item.sizes.get(size_name='M')
+        s_l = item.sizes.get(size_name='L')
+        self.assertEqual(s_s.planned_quantity, 100)
+        self.assertEqual(s_m.planned_quantity, 250)
+        self.assertEqual(s_l.planned_quantity, 150)
+        self.assertEqual(item.total_planned_quantity, 500)
+        self.assertEqual(item.total_cut_quantity, 0)
+        self.assertEqual(item.overall_cut_percentage, 0.0)
+
+        # Verify manager order detail page displays sizes and 0%
+        detail_url = reverse('manager_order_detail', kwargs={'order_id': order.id})
+        res_detail = self.client.get(detail_url)
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertContains(res_detail, "ORD-MGR-101")
+        self.assertContains(res_detail, "ART-POLO-01")
+        self.assertContains(res_detail, "Polo futbolka")
+
+    def test_cutting_add_batches_and_progress_tracking(self):
+        # Setup order with S: 100, M: 200
+        order = Order.objects.create(order_number="ORD-CUT-01", customer=self.customer, client_name=self.customer.name)
+        art = Article.objects.create(code="ART-CUT-01", name="Shirt", model=self.model)
+        ArticleOperation.objects.create(article=art, operation=self.op, price_per_unit=Decimal("1000"), sequence=1)
+        item = OrderItem.objects.create(order=order, article=art, quantity=300)
+        size_s = OrderItemSize.objects.create(order_item=item, size_name="S", planned_quantity=100)
+        size_m = OrderItemSize.objects.create(order_item=item, size_name="M", planned_quantity=200)
+
+        self.client.login(username="cutter_user", password="password123")
+
+        # 1. Kesimchi enters Kesim 1 (S: 50, M: 100)
+        add_url = reverse('cutting_add_batch', kwargs={'order_id': order.id, 'order_item_id': item.id})
+        res1 = self.client.post(add_url, {
+            'cutter_name': 'Ali Cutter',
+            'notes': 'Part 1 started',
+            f'size_qty_{size_s.id}': '50',
+            f'size_qty_{size_m.id}': '100',
+        }, follow=True)
+        self.assertEqual(res1.status_code, 200)
+
+        b1 = CuttingBatch.objects.get(order_item=item, batch_number=1)
+        self.assertEqual(b1.name, "Kesim 1")
+        self.assertEqual(b1.total_quantity, 150)
+        size_s.refresh_from_db()
+        size_m.refresh_from_db()
+        self.assertEqual(size_s.total_cut_quantity, 50)
+        self.assertEqual(size_s.cut_percentage, 50.0)
+        self.assertEqual(size_m.total_cut_quantity, 100)
+        self.assertEqual(size_m.cut_percentage, 50.0)
+        self.assertEqual(item.overall_cut_percentage, 50.0)
+
+        # 2. Kesimchi enters Kesim 2 (M: 100) -> M reaches 100% (200 / 200)
+        res2 = self.client.post(add_url, {
+            'cutter_name': 'Ali Cutter',
+            'notes': 'Part 2 finished M',
+            f'size_qty_{size_s.id}': '0',
+            f'size_qty_{size_m.id}': '100',
+        }, follow=True)
+        self.assertEqual(res2.status_code, 200)
+
+        b2 = CuttingBatch.objects.get(order_item=item, batch_number=2)
+        self.assertEqual(b2.name, "Kesim 2")
+        size_m.refresh_from_db()
+        self.assertEqual(size_m.total_cut_quantity, 200)
+        self.assertEqual(size_m.cut_percentage, 100.0)
+        self.assertEqual(size_m.remaining_to_cut_quantity, 0)
+
+        # 3. Split Kesim 2 (M: 100) into 2 boxes of 50 each
+        b2_item_m = b2.items.get(order_item_size=size_m)
+        split_url = reverse('cutting_split_and_create_boxes', kwargs={'batch_id': b2.id})
+        res3 = self.client.post(split_url, {
+            'batch_item_id': b2_item_m.id,
+            'split_mode': 'equal_splits',
+            'splits_count': '2'
+        }, follow=True)
+        self.assertEqual(res3.status_code, 200)
+
+        b2_item_m.refresh_from_db()
+        self.assertEqual(b2_item_m.boxes_created_qty, 100)
+        self.assertEqual(b2_item_m.remaining_to_box, 0)
+
+        boxes = Box.objects.filter(order=order, razmer='M')
+        self.assertEqual(boxes.count(), 2)
+        for b in boxes:
+            self.assertEqual(b.quantity, 50)
+            self.assertEqual(b.razmer, 'M')
+            self.assertEqual(b.tickets.count(), 1)
+            t = b.tickets.first()
+            self.assertEqual(t.box.razmer, 'M')
+
+    def test_permissions_manager_and_cutter(self):
+        # Regular user cannot access manager or cutting
+        user = User.objects.create_user(username="normal_user", password="password123", role=User.Role.USER)
+        self.client.login(username="normal_user", password="password123")
+
+        res = self.client.get(reverse('manager_dashboard'))
+        self.assertEqual(res.status_code, 302)
+
+        res = self.client.get(reverse('cutting_dashboard'))
+        self.assertEqual(res.status_code, 302)
+
+        # Superadmin can access both
+        self.client.login(username="superadmin_test", password="password123")
+        res_mgr = self.client.get(reverse('manager_dashboard'))
+        self.assertEqual(res_mgr.status_code, 200)
+        res_cut = self.client.get(reverse('cutting_dashboard'))
+        self.assertEqual(res_cut.status_code, 200)
 
 
 

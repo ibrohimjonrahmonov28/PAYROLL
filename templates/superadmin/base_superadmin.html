@@ -48,9 +48,21 @@
             </a>
 
             <a href="{% url 'superadmin_orders_list' %}"
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'order' in request.resolver_match.url_name %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'order' in request.resolver_match.url_name and 'manager' not in request.resolver_match.url_name and 'cutting' not in request.resolver_match.url_name %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
                 <span>Zakazlar va Modellar</span>
+            </a>
+
+            <a href="{% url 'manager_dashboard' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'manager' in request.resolver_match.url_name %}bg-cyan-500 text-slate-950 font-bold shadow-md{% else %}text-cyan-400 hover:bg-slate-800 hover:text-cyan-300{% endif %}">
+                <i class="fa-solid fa-briefcase w-5 text-center"></i>
+                <span>Menejerlar (Zakaz & Razmer)</span>
+            </a>
+
+            <a href="{% url 'cutting_dashboard' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'cutting' in request.resolver_match.url_name %}bg-rose-600 text-white font-bold shadow-md{% else %}text-rose-400 hover:bg-slate-800 hover:text-rose-300{% endif %}">
+                <i class="fa-solid fa-scissors w-5 text-center"></i>
+                <span>Kesim Bo'limi (Bichuv)</span>
             </a>
 
             <a href="{% url 'production:statistics_pipeline' %}"

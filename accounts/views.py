@@ -12,6 +12,10 @@ def login_view(request):
     if request.user.is_authenticated:
         if getattr(request.user, 'role', None) == User.Role.MASTER:
             return redirect('production:terminal_home')
+        if getattr(request.user, 'role', None) == User.Role.MANAGER:
+            return redirect('manager_dashboard')
+        if getattr(request.user, 'role', None) == User.Role.CUTTER:
+            return redirect('cutting_dashboard')
         if request.user.is_superadmin():
             return redirect('superadmin_dashboard')
         return redirect('production:order_list')
@@ -36,6 +40,10 @@ def login_view(request):
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)
                 
+                if user.role == User.Role.MANAGER:
+                    return redirect('manager_dashboard')
+                if user.role == User.Role.CUTTER:
+                    return redirect('cutting_dashboard')
                 if user.is_superadmin():
                     return redirect('superadmin_dashboard')
                 return redirect('production:order_list')

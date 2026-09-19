@@ -1,0 +1,9 @@
+from django.urls import path
+from . import manager_views
+
+urlpatterns = [
+    path('', manager_views.manager_dashboard, name='manager_dashboard'),
+    path('orders/new/', manager_views.manager_order_create, name='manager_order_create'),
+    path('orders/<int:order_id>/', manager_views.manager_order_detail, name='manager_order_detail'),
+]
+

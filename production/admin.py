@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem
 
 
 @admin.register(Customer)
@@ -85,3 +85,34 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ['=stiker_code', '=id', 'ticket_code', '=box__box_code', '=box__box_number', 'worker__worker_id', 'worker__first_name', 'worker__last_name']
     readonly_fields = ['stiker_code', 'ticket_code', 'qr_code_image', 'total_amount']
     list_per_page = 50
+
+
+class OrderItemSizeInline(admin.TabularInline):
+    model = OrderItemSize
+    extra = 1
+
+
+@admin.register(OrderItemSize)
+class OrderItemSizeAdmin(admin.ModelAdmin):
+    list_display = ['order_item', 'size_name', 'planned_quantity', 'total_cut_quantity', 'cut_percentage', 'created_at']
+    list_filter = ['order_item__order']
+    search_fields = ['size_name', 'order_item__order__order_number', 'order_item__article__code']
+
+
+class CuttingBatchItemInline(admin.TabularInline):
+    model = CuttingBatchItem
+    extra = 1
+
+
+@admin.register(CuttingBatch)
+class CuttingBatchAdmin(admin.ModelAdmin):
+    list_display = ['name', 'order_item', 'batch_number', 'cutter_name', 'total_quantity', 'created_at']
+    list_filter = ['order_item__order']
+    inlines = [CuttingBatchItemInline]
+    search_fields = ['name', 'cutter_name', 'order_item__order__order_number']
+
+
+@admin.register(CuttingBatchItem)
+class CuttingBatchItemAdmin(admin.ModelAdmin):
+    list_display = ['batch', 'order_item_size', 'quantity', 'boxes_created_qty', 'remaining_to_box']
+    list_filter = ['batch__order_item__order']
