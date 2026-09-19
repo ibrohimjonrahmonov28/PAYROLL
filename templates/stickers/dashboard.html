@@ -1,0 +1,190 @@
+{% extends 'stickers/base_stickers.html' %}
+
+{% block title %}Stiker Chiqarish Bo'limi Boshqaruvi — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Chop Etilmagan
+                    Qutilar</span>
+                <span class="text-3xl font-black text-amber-400 digital-font mt-1 block">
+                    {{ total_unprinted_boxes }}
+                    <small class="text-xs font-semibold text-slate-400">ta quti</small>
+                </span>
+                <span class="text-xs text-slate-500 mt-1 block">Printerga yuborilishi kerak</span>
+            </div>
+            <div
+                class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-print"></i>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Tikuvga Berilgan</span>
+                <span class="text-3xl font-black text-emerald-400 digital-font mt-1 block">
+                    {{ total_printed_boxes }}
+                    <small class="text-xs font-semibold text-slate-400">ta quti</small>
+                </span>
+                <span class="text-xs text-slate-500 mt-1 block">Chop etilgan va jo'natilgan</span>
+            </div>
+            <div
+                class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Stikerli
+                    Buyurtmalar</span>
+                <span class="text-3xl font-black text-purple-400 digital-font mt-1 block">
+                    {{ orders_data|length }}
+                    <small class="text-xs font-semibold text-slate-400">ta</small>
+                </span>
+                <span class="text-xs text-slate-500 mt-1 block">Qutilari mavjud zakazlar</span>
+            </div>
+            <div
+                class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-boxes-packing"></i>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Stiker O'lchami</span>
+                <span class="text-2xl font-black text-white digital-font mt-1 block">100 x 60 mm</span>
+                <span class="text-xs text-slate-500 mt-1 block">Termal printer QR stikeri</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-slate-800 text-slate-300 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-qrcode"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-2">
+            <a href="?status=unprinted{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if filter_status == 'unprinted' %}bg-amber-500 text-slate-950 shadow{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i> Chop Etilmaganlar
+            </a>
+            <a href="?status=all{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if filter_status == 'all' %}bg-amber-500 text-slate-950 shadow{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+                <i class="fa-solid fa-layer-group"></i> Barcha Qutilar
+            </a>
+            <a href="?status=printed{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if filter_status == 'printed' %}bg-amber-500 text-slate-950 shadow{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+                <i class="fa-solid fa-circle-check"></i> Tikuvga Berilganlar
+            </a>
+        </div>
+
+        <!-- Search Form -->
+        <form method="GET" class="flex items-center gap-2">
+            <input type="hidden" name="status" value="{{ filter_status }}">
+            <div class="relative">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz yoki quti kodi..."
+                    class="w-64 bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+            </div>
+            <button type="submit"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs transition shadow">
+                Qidirish
+            </button>
+            {% if search_q %}
+            <a href="?status={{ filter_status }}" class="p-2 text-slate-400 hover:text-white text-xs">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked text-purple-400"></i> Stiker Chiqarish Uchun Qutilar Ro'yxati
+            </h3>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr
+                        class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3.5 px-4">Zakaz Raqami</th>
+                        <th class="py-3.5 px-4">Buyurtmachi</th>
+                        <th class="py-3.5 px-4 text-center">Jami Qutilar</th>
+                        <th class="py-3.5 px-4 text-center">Kiyimlar Soni</th>
+                        <th class="py-3.5 px-4 text-center">Chop Etish Holati</th>
+                        <th class="py-3.5 px-4 text-center">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 bg-slate-900/60">
+                    {% for item in orders_data %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="py-4 px-4 font-mono font-black text-white text-sm">
+                            <a href="{% url 'sticker_order_boxes' item.order.id %}"
+                                class="hover:text-amber-400 transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-box text-xs text-slate-500"></i>
+                                {{ item.order.order_number }}
+                            </a>
+                        </td>
+                        <td class="py-4 px-4 font-bold text-slate-300">
+                            {{ item.order.customer.name|default:item.order.client_name }}
+                        </td>
+                        <td class="py-4 px-4 text-center font-black digital-font text-sm text-purple-400">
+                            {{ item.total_boxes }} ta quti
+                        </td>
+                        <td class="py-4 px-4 text-center font-black digital-font text-sm text-cyan-400">
+                            {{ item.total_qty }} dona
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if item.unprinted_count > 0 %}
+                            <span
+                                class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                                <i class="fa-solid fa-print mr-1"></i> {{ item.unprinted_count }} ta chop etilmagan
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Barchasi chop etilgan
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="{% url 'sticker_order_boxes' item.order.id %}"
+                                    class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs transition shadow flex items-center gap-1.5">
+                                    <i class="fa-solid fa-qrcode"></i> Qutilarni Ochish
+                                </a>
+                                <a href="{% url 'production:order_print_all_stickers' item.order.id %}" target="_blank"
+                                    class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition shadow flex items-center gap-1.5"
+                                    title="Barcha stikerlarni chop etish">
+                                    <i class="fa-solid fa-print"></i> Chop Etish
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-inbox text-3xl mb-2 block text-slate-600"></i>
+                            Stiker chiqarish uchun qutilar topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

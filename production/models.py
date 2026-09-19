@@ -412,6 +412,15 @@ class OrderItemSize(models.Model):
         return 0.0
 
     @property
+    def total_real_quantity(self):
+        """Meto tasdiqlagan haqiqiy donalar soni"""
+        return sum(
+            it.real_quantity for it in self.cutting_items.filter(
+                real_quantity__isnull=False
+            )
+        )
+
+    @property
     def remaining_to_cut_quantity(self):
         """Hali kesilishi kerak bo'lgan qoldiq reja"""
         return max(0, self.planned_quantity - self.total_cut_quantity)
@@ -432,7 +441,8 @@ class OrderItemSize(models.Model):
     @property
     def remaining_to_box_qty(self):
         """Hali quti qilinmagan kesim qoldig'i"""
-        return max(0, self.total_cut_quantity - self.boxes_created_qty)
+        base_qty = self.total_real_quantity if self.total_real_quantity > 0 else self.total_cut_quantity
+        return max(0, base_qty - self.boxes_created_qty)
 
     def __str__(self):
         return f"{self.order_item.article.code} [{self.size_name}]: {self.planned_quantity} ta (Kesildi: {self.total_cut_quantity})"
@@ -448,6 +458,8 @@ class CuttingBatch(models.Model):
     batch_number = models.PositiveIntegerField(verbose_name="Kesim Raqami")
     name = models.CharField(max_length=100, blank=True, verbose_name="Kesim Nomi")
     cutter_name = models.CharField(max_length=100, blank=True, verbose_name="Bichuvchi")
+    fabric_weight_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Mato Og'irligi (kg)")
+    fabric_batch_code = models.CharField(max_length=100, blank=True, verbose_name="Mato Partiyasi / Rulon")
     notes = models.TextField(blank=True, verbose_name="Izoh")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Kesilgan vaqti")
     created_by = models.ForeignKey(
@@ -477,11 +489,24 @@ class CuttingBatch(models.Model):
     def total_quantity(self):
         return sum(it.quantity for it in self.items.all())
 
+    @property
+    def total_real_quantity(self):
+        return sum(it.effective_quantity for it in self.items.all())
+
+    @property
+    def is_all_meto_confirmed(self):
+        return self.items.exists() and all(it.status == CuttingBatchItem.Status.METO_CONFIRMED for it in self.items.all())
+
     def __str__(self):
         return f"{self.order_item.order.order_number} -> {self.order_item.article.code} | {self.name} ({self.total_quantity} dona)"
 
 
 class CuttingBatchItem(models.Model):
+    class Status(models.TextChoices):
+        CUT_ENTERED = 'CUT_ENTERED', 'Kesim kiritildi (Meto kutilmoqda)'
+        METO_CONFIRMED = 'METO_CONFIRMED', 'Meto tasdiqladi (Stikerlar yaratildi)'
+        STICKERS_PRINTED = 'STICKERS_PRINTED', 'Stikerlar chop etildi (Tikuvga berildi)'
+
     batch = models.ForeignKey(
         CuttingBatch,
         on_delete=models.CASCADE,
@@ -494,7 +519,31 @@ class CuttingBatchItem(models.Model):
         related_name='cutting_items',
         verbose_name="Razmer"
     )
-    quantity = models.PositiveIntegerField(default=0, verbose_name="Kesilgan Soni")
+    quantity = models.PositiveIntegerField(default=0, verbose_name="Kesilgan Soni (Kesimchi)")
+    
+    # Meto (Nomerovka) ma'lumotlari
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.CUT_ENTERED,
+        db_index=True,
+        verbose_name="Holati"
+    )
+    real_quantity = models.PositiveIntegerField(null=True, blank=True, verbose_name="Aniq Son (Meto)")
+    meto_number_start = models.CharField(max_length=50, blank=True, verbose_name="Meto Boshlanishi")
+    meto_number_end = models.CharField(max_length=50, blank=True, verbose_name="Meto Tugashi")
+    meto_worker_name = models.CharField(max_length=100, blank=True, verbose_name="Metochi")
+    meto_notes = models.TextField(blank=True, verbose_name="Meto Izohi (Braklar)")
+    meto_completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Meto Tugatilgan Vaqt")
+    meto_completed_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='completed_meto_items',
+        verbose_name="Metochi"
+    )
+
     boxes_created_qty = models.PositiveIntegerField(default=0, verbose_name="Quti Qilingan Soni")
 
     class Meta:
@@ -503,11 +552,20 @@ class CuttingBatchItem(models.Model):
         unique_together = ('batch', 'order_item_size')
 
     @property
+    def effective_quantity(self):
+        return self.real_quantity if self.real_quantity is not None else self.quantity
+
+    @property
+    def can_edit_cut(self):
+        """Meto tasdiqlamaguncha kesimchi sonni tahrirlashi mumkin"""
+        return self.status == self.Status.CUT_ENTERED and self.real_quantity is None
+
+    @property
     def remaining_to_box(self):
-        return max(0, self.quantity - self.boxes_created_qty)
+        return max(0, self.effective_quantity - self.boxes_created_qty)
 
     def __str__(self):
-        return f"{self.batch.name} - {self.order_item_size.size_name}: {self.quantity} dona"
+        return f"{self.batch.name} - {self.order_item_size.size_name}: Kesim {self.quantity} ta (Meto: {self.effective_quantity})"
 
 
 def generate_unique_box_code():
@@ -542,6 +600,14 @@ class Box(models.Model):
         related_name='boxes', 
         verbose_name="Model (Artikul)"
     )
+    cutting_batch_item = models.ForeignKey(
+        CuttingBatchItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='boxes',
+        verbose_name="Kesim Partiyasi Bandi"
+    )
     box_code = models.CharField(
         max_length=8, 
         unique=True, 
@@ -557,6 +623,13 @@ class Box(models.Model):
         null=True, 
         verbose_name="Razmer (O'lcham)"
     )
+    meto_range = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Meto Raqamlari"
+    )
+    is_printed = models.BooleanField(default=False, verbose_name="Chop etilgan")
+    printed_at = models.DateTimeField(null=True, blank=True, verbose_name="Chop etilgan vaqt")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATED, db_index=True, verbose_name="Holati")
     created_at = models.DateTimeField(auto_now_add=True)
 

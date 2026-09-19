@@ -44,6 +44,10 @@ def login_view(request):
                     return redirect('manager_dashboard')
                 if user.role == User.Role.CUTTER:
                     return redirect('cutting_dashboard')
+                if user.role == User.Role.METO:
+                    return redirect('meto_dashboard')
+                if user.role == User.Role.STICKER:
+                    return redirect('sticker_dashboard')
                 if user.is_superadmin():
                     return redirect('superadmin_dashboard')
                 return redirect('production:order_list')

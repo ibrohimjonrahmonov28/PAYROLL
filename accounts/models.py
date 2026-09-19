@@ -23,6 +23,8 @@ class User(AbstractUser):
         ADMIN = 'ADMIN', 'Admin'
         MANAGER = 'MANAGER', 'Menejer'
         CUTTER = 'CUTTER', 'Kesimchi (Bichuv)'
+        METO = 'METO', 'Metochi (Nomerovka)'
+        STICKER = 'STICKER', 'Stiker Chiqaruvchi'
         MASTER = 'MASTER', 'Master'
         USER = 'USER', 'Oddiy User'
 
@@ -80,6 +82,12 @@ class User(AbstractUser):
 
     def is_cutter(self):
         return self.is_superadmin() or self.role == self.Role.CUTTER
+
+    def is_meto(self):
+        return self.is_superadmin() or self.role == self.Role.METO
+
+    def is_sticker(self):
+        return self.is_superadmin() or self.role == self.Role.STICKER
 
     def is_master(self):
         return self.role == self.Role.MASTER or self.is_superuser

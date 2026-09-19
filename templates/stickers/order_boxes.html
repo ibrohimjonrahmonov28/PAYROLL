@@ -1,0 +1,203 @@
+{% extends 'stickers/base_stickers.html' %}
+
+{% block title %}Stikerlar: {{ order.order_number }} — TERRY JAR{% endblock %}
+
+{% block sticker_header %}
+<div class="flex items-center gap-3">
+    <a href="{% url 'sticker_dashboard' %}"
+        class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <h2 class="text-base font-black text-white flex items-center gap-2">
+            <span>Zakaz:</span>
+            <span class="text-amber-400 font-mono">{{ order.order_number }}</span>
+            <span
+                class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                {{ boxes|length }} ta quti
+            </span>
+        </h2>
+        <p class="text-[11px] text-slate-400">
+            Mijoz: <strong class="text-white">{{ order.customer.name|default:order.client_name }}</strong>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Warning if article has 0 operations -->
+    {% if articles_without_ops %}
+    <div class="bg-rose-500/10 border border-rose-500/30 rounded-3xl p-5 shadow-lg flex items-start gap-4">
+        <div
+            class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg shrink-0 mt-0.5">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="flex-1 text-xs">
+            <h4 class="text-sm font-black text-rose-300">Diqqat: Ayrim modellarda hali operatsiyalar mavjud emas!</h4>
+            <p class="text-slate-300 mt-1">
+                Quyidagi modellarga operatsiyalar (narxlar) biriktirilmagan, shuning uchun ularning qutilariga QR
+                stikerlar yaratilmagan:
+            </p>
+            <div class="flex flex-wrap gap-2 mt-2">
+                {% for art in articles_without_ops %}
+                <span
+                    class="px-2.5 py-1 rounded-lg bg-slate-900 border border-rose-500/40 font-mono font-bold text-rose-300 text-xs">
+                    {{ art.code }} — {{ art.name }} (0 ta operatsiya)
+                </span>
+                {% endfor %}
+            </div>
+            <p class="text-slate-400 mt-2">
+                Stikerlar to'liq chiqishi uchun Superadmin panelida ushbu modelga operatsiyalarni qo'shing.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Bar -->
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-boxes-packing text-amber-400"></i> Ishlab Chiqarish Qutilari (Naryadlar)
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">
+                Jami: <strong class="text-white">{{ boxes|length }} ta quti</strong> •
+                Chop etilmagan: <strong class="text-amber-400">{{ unprinted_boxes_count }} ta</strong>
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <a href="{% url 'production:order_print_all_stickers' order.id %}" target="_blank"
+                class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> Barcha Stikerlarni Chop Etish (100x60)
+            </a>
+
+            {% if unprinted_boxes_count > 0 %}
+            <form method="POST" action="{% url 'sticker_mark_all_printed' order.id %}">
+                {% csrf_token %}
+                <button type="submit"
+                    class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i> Barchasini Tikuvga Berildi Deb Belgilash
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Boxes Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr
+                        class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3.5 px-4">Quti #</th>
+                        <th class="py-3.5 px-4">Model (Artikul)</th>
+                        <th class="py-3.5 px-4 text-center">Razmer</th>
+                        <th class="py-3.5 px-4 text-center">Donalar Soni</th>
+                        <th class="py-3.5 px-4 text-center">Meto Oralig'i</th>
+                        <th class="py-3.5 px-4 text-center">QR Stikerlar</th>
+                        <th class="py-3.5 px-4 text-center">Holati</th>
+                        <th class="py-3.5 px-4 text-center">Chop Etish & Tikuv</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 bg-slate-900/60">
+                    {% for box in boxes %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="py-4 px-4 font-mono">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="px-2.5 py-1 rounded-lg bg-slate-950 border border-amber-500/30 text-amber-300 font-bold">
+                                    Quti #{{ box.box_number }}
+                                </span>
+                                <span class="text-slate-500 font-mono text-[11px]">{{ box.box_code }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="font-mono text-cyan-400 font-bold block">{{ box.article.code }}</span>
+                            <span class="text-slate-300 text-[11px] block">{{ box.article.name }}</span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if box.razmer %}
+                            <span
+                                class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 font-mono font-black text-cyan-400 text-xs">
+                                {{ box.razmer }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-center font-black digital-font text-emerald-400 text-sm">
+                            {{ box.quantity }} dona
+                        </td>
+                        <td class="py-4 px-4 text-center font-mono text-slate-300">
+                            {{ box.meto_range|default:"—" }}
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if box.tickets.count > 0 %}
+                            <span
+                                class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                                {{ box.tickets.count }} ta QR stiker
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                                0 ta (operatsiya yo'q)
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if box.is_printed %}
+                            <span
+                                class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                                <i class="fa-solid fa-shirt mr-1"></i> Tikuvga berilgan
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                                <i class="fa-solid fa-clock mr-1"></i> Chop etilmagan
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"
+                                    class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg text-xs transition flex items-center gap-1"
+                                    title="Termal printerda chop etish (100x60mm)">
+                                    <i class="fa-solid fa-print"></i> Chop Etish
+                                </a>
+                                <a href="{% url 'production:box_download_stickers_pdf' box.id %}"
+                                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold rounded-lg text-xs transition flex items-center gap-1"
+                                    title="PDF yuklab olish">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                {% if not box.is_printed %}
+                                <form method="POST" action="{% url 'sticker_mark_box_printed' box.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg text-xs transition flex items-center gap-1"
+                                        title="Tikuvga berildi deb belgilash">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500">
+                            Ushbu buyurtmada hali qutilar yaratilmagan. Meto bo'limi tasdiqlashi bilan bu yerda
+                            avtomatik paydo bo'ladi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

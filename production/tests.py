@@ -559,12 +559,17 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         size_s = OrderItemSize.objects.create(order_item=item, size_name="S", planned_quantity=100)
         size_m = OrderItemSize.objects.create(order_item=item, size_name="M", planned_quantity=200)
 
+        meto_user = User.objects.create_user(username="meto_worker", password="password123", role=User.Role.METO)
+        sticker_user = User.objects.create_user(username="sticker_worker", password="password123", role=User.Role.STICKER)
+
         self.client.login(username="cutter_user", password="password123")
 
-        # 1. Kesimchi enters Kesim 1 (S: 50, M: 100)
+        # 1. Kesimchi enters Kesim 1 (S: 50, M: 100) with fabric info
         add_url = reverse('cutting_add_batch', kwargs={'order_id': order.id, 'order_item_id': item.id})
         res1 = self.client.post(add_url, {
             'cutter_name': 'Ali Cutter',
+            'fabric_weight_kg': '200.50',
+            'fabric_batch_code': 'DC-1001/TKDL102',
             'notes': 'Part 1 started',
             f'size_qty_{size_s.id}': '50',
             f'size_qty_{size_m.id}': '100',
@@ -573,71 +578,105 @@ class ManagerAndCuttingWorkflowTest(TestCase):
 
         b1 = CuttingBatch.objects.get(order_item=item, batch_number=1)
         self.assertEqual(b1.name, "Kesim 1")
+        self.assertEqual(b1.fabric_weight_kg, Decimal("200.50"))
+        self.assertEqual(b1.fabric_batch_code, 'DC-1001/TKDL102')
         self.assertEqual(b1.total_quantity, 150)
         size_s.refresh_from_db()
         size_m.refresh_from_db()
         self.assertEqual(size_s.total_cut_quantity, 50)
-        self.assertEqual(size_s.cut_percentage, 50.0)
         self.assertEqual(size_m.total_cut_quantity, 100)
-        self.assertEqual(size_m.cut_percentage, 50.0)
-        self.assertEqual(item.overall_cut_percentage, 50.0)
 
-        # 2. Kesimchi enters Kesim 2 (M: 100) -> M reaches 100% (200 / 200)
-        res2 = self.client.post(add_url, {
+        # 2. Kesimchi edits batch before Meto confirms (M changed to 95)
+        edit_url = reverse('cutting_edit_batch', kwargs={'order_id': order.id, 'batch_id': b1.id})
+        b1_item_s = b1.items.get(order_item_size=size_s)
+        b1_item_m = b1.items.get(order_item_size=size_m)
+        res_edit = self.client.post(edit_url, {
             'cutter_name': 'Ali Cutter',
-            'notes': 'Part 2 finished M',
-            f'size_qty_{size_s.id}': '0',
-            f'size_qty_{size_m.id}': '100',
+            'fabric_weight_kg': '200.50',
+            'fabric_batch_code': 'DC-1001/TKDL102',
+            'notes': 'Corrected count',
+            f'size_qty_{b1_item_s.id}': '50',
+            f'size_qty_{b1_item_m.id}': '95',
         }, follow=True)
-        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res_edit.status_code, 200)
+        b1_item_m.refresh_from_db()
+        self.assertEqual(b1_item_m.quantity, 95)
 
-        b2 = CuttingBatch.objects.get(order_item=item, batch_number=2)
-        self.assertEqual(b2.name, "Kesim 2")
-        size_m.refresh_from_db()
-        self.assertEqual(size_m.total_cut_quantity, 200)
-        self.assertEqual(size_m.cut_percentage, 100.0)
-        self.assertEqual(size_m.remaining_to_cut_quantity, 0)
+        # 3. Metochi logs in, checks order detail and confirms M (with 5 brak -> real: 90, split into 2 boxes)
+        self.client.login(username="meto_worker", password="password123")
+        meto_detail_url = reverse('meto_order_detail', kwargs={'order_id': order.id})
+        res_meto_detail = self.client.get(meto_detail_url)
+        self.assertEqual(res_meto_detail.status_code, 200)
+        self.assertContains(res_meto_detail, "DC-1001/TKDL102")
 
-        # 3. Split Kesim 2 (M: 100) into 2 boxes of 50 each
-        b2_item_m = b2.items.get(order_item_size=size_m)
-        split_url = reverse('cutting_split_and_create_boxes', kwargs={'batch_id': b2.id})
-        res3 = self.client.post(split_url, {
-            'batch_item_id': b2_item_m.id,
-            'split_mode': 'equal_splits',
-            'splits_count': '2'
+        confirm_url = reverse('meto_confirm_item', kwargs={'item_id': b1_item_m.id})
+        res_confirm = self.client.post(confirm_url, {
+            'real_quantity': '90',
+            'meto_number_start': '1',
+            'meto_number_end': '90',
+            'meto_worker_name': 'Dilshod Meto',
+            'meto_notes': '5 dona brak olindi',
+            'split_mode': 'split_2',
         }, follow=True)
-        self.assertEqual(res3.status_code, 200)
+        self.assertEqual(res_confirm.status_code, 200)
 
-        b2_item_m.refresh_from_db()
-        self.assertEqual(b2_item_m.boxes_created_qty, 100)
-        self.assertEqual(b2_item_m.remaining_to_box, 0)
+        b1_item_m.refresh_from_db()
+        self.assertEqual(b1_item_m.status, CuttingBatchItem.Status.METO_CONFIRMED)
+        self.assertEqual(b1_item_m.real_quantity, 90)
+        self.assertEqual(b1_item_m.meto_number_start, '1')
+        self.assertEqual(b1_item_m.meto_number_end, '90')
 
-        boxes = Box.objects.filter(order=order, razmer='M')
+        # Check 2 boxes automatically created with 45 units each
+        boxes = Box.objects.filter(cutting_batch_item=b1_item_m)
         self.assertEqual(boxes.count(), 2)
         for b in boxes:
-            self.assertEqual(b.quantity, 50)
+            self.assertEqual(b.quantity, 45)
             self.assertEqual(b.razmer, 'M')
+            self.assertEqual(b.meto_range, '#1-#90')
             self.assertEqual(b.tickets.count(), 1)
-            t = b.tickets.first()
-            self.assertEqual(t.box.razmer, 'M')
+            self.assertEqual(b.tickets.first().box.razmer, 'M')
+
+        # 4. Kesimchi tries to edit after Meto confirmed -> blocked!
+        self.client.login(username="cutter_user", password="password123")
+        res_edit_blocked = self.client.post(edit_url, {
+            'cutter_name': 'Ali Cutter',
+            f'size_qty_{b1_item_m.id}': '110',
+        }, follow=True)
+        self.assertEqual(res_edit_blocked.status_code, 200)
+        b1_item_m.refresh_from_db()
+        self.assertEqual(b1_item_m.quantity, 95)  # unchanged
+
+        # 5. Sticker department views boxes and marks box 1 as printed (sewing dispatch)
+        self.client.login(username="sticker_worker", password="password123")
+        sticker_url = reverse('sticker_order_boxes', kwargs={'order_id': order.id})
+        res_stk = self.client.get(sticker_url)
+        self.assertEqual(res_stk.status_code, 200)
+        self.assertContains(res_stk, "#1-#90")
+
+        box_1 = boxes.first()
+        mark_url = reverse('sticker_mark_box_printed', kwargs={'box_id': box_1.id})
+        res_mark = self.client.post(mark_url, follow=True)
+        self.assertEqual(res_mark.status_code, 200)
+        box_1.refresh_from_db()
+        self.assertTrue(box_1.is_printed)
+        b1_item_m.refresh_from_db()
+        self.assertEqual(b1_item_m.status, CuttingBatchItem.Status.STICKERS_PRINTED)
 
     def test_permissions_manager_and_cutter(self):
-        # Regular user cannot access manager or cutting
         user = User.objects.create_user(username="normal_user", password="password123", role=User.Role.USER)
         self.client.login(username="normal_user", password="password123")
 
-        res = self.client.get(reverse('manager_dashboard'))
-        self.assertEqual(res.status_code, 302)
+        self.assertEqual(self.client.get(reverse('manager_dashboard')).status_code, 302)
+        self.assertEqual(self.client.get(reverse('cutting_dashboard')).status_code, 302)
+        self.assertEqual(self.client.get(reverse('meto_dashboard')).status_code, 302)
+        self.assertEqual(self.client.get(reverse('sticker_dashboard')).status_code, 302)
 
-        res = self.client.get(reverse('cutting_dashboard'))
-        self.assertEqual(res.status_code, 302)
-
-        # Superadmin can access both
+        # Superadmin can access all
         self.client.login(username="superadmin_test", password="password123")
-        res_mgr = self.client.get(reverse('manager_dashboard'))
-        self.assertEqual(res_mgr.status_code, 200)
-        res_cut = self.client.get(reverse('cutting_dashboard'))
-        self.assertEqual(res_cut.status_code, 200)
+        self.assertEqual(self.client.get(reverse('manager_dashboard')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('cutting_dashboard')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('meto_dashboard')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('sticker_dashboard')).status_code, 200)
 
 
 

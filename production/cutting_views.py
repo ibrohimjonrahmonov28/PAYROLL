@@ -5,7 +5,6 @@ from django.db import transaction
 from django.db.models import Q, Max
 from django.http import JsonResponse
 from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box
-from .services import allocate_ticket_quantities, create_boxes_for_order
 
 
 def cutter_required(view_func):
@@ -82,8 +81,8 @@ def cutting_order_detail(request, order_id: int):
     """
     Ushbu Zakaz Bo'yicha Kesim Oynasi:
     - Har bir artikul va uning razmerlari
-    - Yangi Kesim Partiyasi kiritish (Kesim 1, Kesim 2...)
-    - Oldingi kesimlar tarixi va ularni qutilarga bo'lib stiker chiqarish
+    - Yangi Kesim Partiyasi kiritish (Mato kg, Kesim 1, Kesim 2...)
+    - Oldingi kesimlar tarixi va Meto holati
     """
     order = get_object_or_404(
         Order.objects.select_related('customer', 'article').prefetch_related(
@@ -110,6 +109,7 @@ def cutting_order_detail(request, order_id: int):
                 'excess': s.excess_cut_quantity,
                 'boxes_created': s.boxes_created_qty,
                 'remaining_to_box': s.remaining_to_box_qty,
+                'total_real': s.total_real_quantity,
             })
             total_planned_order += s.planned_quantity
             total_cut_order += s.total_cut_quantity
@@ -122,13 +122,21 @@ def cutting_order_detail(request, order_id: int):
         batches_data = []
         for batch in item.cutting_batches.all().order_by('-batch_number'):
             batch_items = []
+            can_edit_this_batch = True
             for b_it in batch.items.all():
+                if not b_it.can_edit_cut:
+                    can_edit_this_batch = False
                 batch_items.append({
                     'item': b_it,
                     'size_name': b_it.order_item_size.size_name,
                     'quantity': b_it.quantity,
-                    'boxes_created_qty': b_it.boxes_created_qty,
-                    'remaining_to_box': b_it.remaining_to_box,
+                    'status': b_it.status,
+                    'status_display': b_it.get_status_display(),
+                    'real_quantity': b_it.real_quantity,
+                    'meto_number_start': b_it.meto_number_start,
+                    'meto_number_end': b_it.meto_number_end,
+                    'meto_worker_name': b_it.meto_worker_name,
+                    'can_edit': b_it.can_edit_cut,
                 })
 
             batches_data.append({
@@ -136,10 +144,14 @@ def cutting_order_detail(request, order_id: int):
                 'name': batch.name,
                 'batch_number': batch.batch_number,
                 'cutter_name': batch.cutter_name,
+                'fabric_weight_kg': batch.fabric_weight_kg,
+                'fabric_batch_code': batch.fabric_batch_code,
                 'notes': batch.notes,
                 'created_at': batch.created_at,
                 'total_quantity': batch.total_quantity,
+                'total_real_quantity': batch.total_real_quantity,
                 'items': batch_items,
+                'can_edit': can_edit_this_batch,
             })
 
         items_data.append({
@@ -168,8 +180,9 @@ def cutting_order_detail(request, order_id: int):
 def cutting_add_batch(request, order_id: int, order_item_id: int):
     """
     Yangi Kesim Partiyasi Kiritish (POST):
-    - Masalan Kesim 1 yoki Kesim 2
-    - Tanlangan artikulning har bir razmeridan kesilgan sonlar yoziladi
+    - Tayyor mato omboridan mato partiyasi (kg va rulon/kod)
+    - Kesilgan razmerlar soni
+    - "KESIM SONNI KIRITADI HOLOS" -> Saqlangach, partiya Meto bo'limiga o'tadi
     """
     if request.method != 'POST':
         return redirect('cutting_order_detail', order_id=order_id)
@@ -178,7 +191,16 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
     order_item = get_object_or_404(OrderItem, id=order_item_id, order=order)
 
     cutter_name = request.POST.get('cutter_name', '').strip()
+    fabric_weight_str = request.POST.get('fabric_weight_kg', '').strip()
+    fabric_batch_code = request.POST.get('fabric_batch_code', '').strip()
     notes = request.POST.get('notes', '').strip()
+
+    fabric_weight = None
+    if fabric_weight_str:
+        try:
+            fabric_weight = Decimal(fabric_weight_str.replace(',', '.'))
+        except Exception:
+            fabric_weight = None
 
     # Avtomatik keyingi kesim raqami
     max_b = order_item.cutting_batches.aggregate(m=Max('batch_number'))['m'] or 0
@@ -209,6 +231,8 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
             batch_number=next_batch_num,
             name=batch_name,
             cutter_name=cutter_name,
+            fabric_weight_kg=fabric_weight,
+            fabric_batch_code=fabric_batch_code,
             notes=notes,
             created_by=request.user
         )
@@ -217,89 +241,72 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
             CuttingBatchItem.objects.create(
                 batch=batch,
                 order_item_size=size_obj,
-                quantity=qty
+                quantity=qty,
+                status=CuttingBatchItem.Status.CUT_ENTERED
             )
 
     messages.success(
         request,
-        f"'{order_item.article.code}' uchun '{batch.name}' muvaffaqiyatli kiritildi! Jami kesildi: {total_batch_qty} dona."
+        f"'{order_item.article.code}' uchun '{batch.name}' muvaffaqiyatli kiritildi! Jami bichildi: {total_batch_qty} dona. Meto bo'limiga uzatildi."
     )
     return redirect('cutting_order_detail', order_id=order_id)
 
 
 @cutter_required
-def cutting_split_and_create_boxes(request, batch_id: int):
+def cutting_edit_batch(request, order_id: int, batch_id: int):
     """
-    Kesim Partiyasidan Qutilarga Bo'lish va QR Stikerlar Generatsiya Qilish (POST):
+    Kesim Partiyasini Tahrirlash:
     - Foydalanuvchi talabi:
-      "agar kesim soni kop bolsa uni 2 ga 3 ga bolib olsak boladi bu orqali ham zakazni ham modelni ham stikerni ham umumiy jarayonni ham nazorat qila olamiz"
+      "SONNI OZGARTISH FUNKSIYASI BOR FAQAT BUNI HAM VAQTI BILAN HANDLE QILISH KERAK BOLADI"
+    - Meto tasdiqlamaguncha kesimchi o'zgartira oladi. Meto tasdiqlagan bo'lsa, bloklanadi!
     """
-    if request.method != 'POST':
-        return redirect('cutting_dashboard')
+    order = get_object_or_404(Order, id=order_id)
+    batch = get_object_or_404(CuttingBatch, id=batch_id, order_item__order=order)
 
-    batch = get_object_or_404(
-        CuttingBatch.objects.select_related('order_item__order', 'order_item__article'),
-        id=batch_id
-    )
-    order = batch.order_item.order
-    article = batch.order_item.article
+    # Bloklash tekshiruvi
+    for item in batch.items.all():
+        if not item.can_edit_cut:
+            messages.error(
+                request,
+                f"'{batch.name}' partiyasi Meto bo'limi tomonidan qabul qilingan yoki tasdiqlangan! Sonni o'zgartirish taqiqlanadi."
+            )
+            return redirect('cutting_order_detail', order_id=order.id)
 
-    batch_item_id = request.POST.get('batch_item_id')
-    split_mode = request.POST.get('split_mode', 'equal_splits')  # equal_splits, box_capacity, single_box
-    splits_count_str = request.POST.get('splits_count', '2').strip()
-    box_capacity_str = request.POST.get('box_capacity', '100').strip()
+    if request.method == 'POST':
+        cutter_name = request.POST.get('cutter_name', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        fabric_weight_str = request.POST.get('fabric_weight_kg', '').strip()
+        fabric_batch_code = request.POST.get('fabric_batch_code', '').strip()
 
-    batch_item = get_object_or_404(CuttingBatchItem, id=batch_item_id, batch=batch)
-    size_name = batch_item.order_item_size.size_name
-    available_qty = batch_item.remaining_to_box
+        fabric_weight = None
+        if fabric_weight_str:
+            try:
+                fabric_weight = Decimal(fabric_weight_str.replace(',', '.'))
+            except Exception:
+                pass
 
-    if available_qty <= 0:
-        messages.warning(request, f"'{size_name}' razmeridagi barcha kesimlar uchun allaqachon qutilar yaratilgan!")
+        total_new_qty = 0
+        with transaction.atomic():
+            batch.cutter_name = cutter_name
+            batch.notes = notes
+            if fabric_weight is not None:
+                batch.fabric_weight_kg = fabric_weight
+            if fabric_batch_code:
+                batch.fabric_batch_code = fabric_batch_code
+            batch.save()
+
+            for item in batch.items.all():
+                qty_str = request.POST.get(f'size_qty_{item.id}', str(item.quantity)).strip()
+                try:
+                    qty = max(0, int(qty_str))
+                except (ValueError, TypeError):
+                    qty = item.quantity
+
+                item.quantity = qty
+                item.save(update_fields=['quantity'])
+                total_new_qty += qty
+
+        messages.success(request, f"'{batch.name}' partiyasi sonlari muvaffaqiyatli yangilandi! Jami: {total_new_qty} dona.")
         return redirect('cutting_order_detail', order_id=order.id)
 
-    box_sizes = []
-
-    if split_mode == 'single_box':
-        box_sizes = [available_qty]
-    elif split_mode == 'box_capacity':
-        try:
-            capacity = max(1, int(box_capacity_str))
-        except (ValueError, TypeError):
-            capacity = 100
-        # Masalan available_qty = 310, capacity = 100 -> [100, 100, 100, 10]
-        full_boxes = available_qty // capacity
-        rem = available_qty % capacity
-        box_sizes = [capacity] * full_boxes
-        if rem > 0:
-            box_sizes.append(rem)
-    else:
-        # Default: equal_splits (2 ga, 3 ga, N ga bo'lish)
-        try:
-            n_splits = max(1, int(splits_count_str))
-        except (ValueError, TypeError):
-            n_splits = 2
-        # SRS butun sonli taqsimoti
-        box_sizes = allocate_ticket_quantities(available_qty, n_splits)
-
-    if not box_sizes:
-        box_sizes = [available_qty]
-
-    created_boxes = []
-    with transaction.atomic():
-        created_boxes = create_boxes_for_order(
-            order=order,
-            box_sizes=box_sizes,
-            article=article,
-            razmer=size_name
-        )
-        # Partiya bandidagi quti qilingan sonni yangilash
-        total_created = sum(box_sizes)
-        batch_item.boxes_created_qty += total_created
-        batch_item.save(update_fields=['boxes_created_qty'])
-
-    messages.success(
-        request,
-        f"Razmer [{size_name}]: Jami {total_created} dona kesim {len(created_boxes)} ta qutiga bo'lindi va QR stikerlari tayyorlandi!"
-    )
     return redirect('cutting_order_detail', order_id=order.id)
-

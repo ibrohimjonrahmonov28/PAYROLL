@@ -106,13 +106,18 @@ class CuttingBatchItemInline(admin.TabularInline):
 
 @admin.register(CuttingBatch)
 class CuttingBatchAdmin(admin.ModelAdmin):
-    list_display = ['name', 'order_item', 'batch_number', 'cutter_name', 'total_quantity', 'created_at']
+    list_display = ['name', 'order_item', 'batch_number', 'cutter_name', 'fabric_weight_kg', 'fabric_batch_code', 'total_quantity', 'created_at']
     list_filter = ['order_item__order']
     inlines = [CuttingBatchItemInline]
-    search_fields = ['name', 'cutter_name', 'order_item__order__order_number']
+    search_fields = ['name', 'cutter_name', 'fabric_batch_code', 'order_item__order__order_number']
 
 
 @admin.register(CuttingBatchItem)
 class CuttingBatchItemAdmin(admin.ModelAdmin):
-    list_display = ['batch', 'order_item_size', 'quantity', 'boxes_created_qty', 'remaining_to_box']
-    list_filter = ['batch__order_item__order']
+    list_display = [
+        'batch', 'order_item_size', 'quantity', 'status', 'real_quantity', 
+        'meto_number_start', 'meto_number_end', 'meto_worker_name', 
+        'boxes_created_qty', 'remaining_to_box'
+    ]
+    list_filter = ['status', 'batch__order_item__order']
+    search_fields = ['meto_worker_name', 'meto_number_start', 'meto_number_end']

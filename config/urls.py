@@ -28,6 +28,8 @@ urlpatterns = [
     path('superadmin/', include('accounts.superadmin_urls')),
     path('managers/', include('production.manager_urls')),
     path('cutting/', include('production.cutting_urls')),
+    path('meto/', include('production.meto_urls')),
+    path('stickers/', include('production.sticker_urls')),
     path('accounts/', include('accounts.urls')),
     path('screens/', include('screens.urls')),
 ]

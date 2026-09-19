@@ -1,0 +1,156 @@
+from decimal import Decimal
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Q, Max, Count
+from django.utils import timezone
+from .models import Order, OrderItem, Box, CuttingBatchItem, ArticleOperation
+
+
+def sticker_required(view_func):
+    """Stiker chiqaruvchi yoki Superadmin/Admin uchun ruxsat tekshiruvi"""
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('root_login')
+        if not (getattr(request.user, 'is_sticker', lambda: False)() or request.user.is_superadmin() or request.user.is_admin_user()):
+            messages.error(request, "Ushbu bo'limga faqat Stiker chiqaruvchi xodimlar va adminlar kira oladi!")
+            return redirect('production:order_list')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@sticker_required
+def sticker_dashboard(request):
+    """
+    Stiker Chiqarish Bo'limi Boshqaruv Paneli:
+    - Meto tomonidan tasdiqlanib, avtomatik stikerlari generatsiya bo'lgan buyurtmalar
+    - Chop etilishi kutilayotgan qutilar va stikerlar
+    """
+    search_q = request.GET.get('q', '').strip()
+    filter_status = request.GET.get('status', 'unprinted')  # unprinted, printed, all
+
+    orders_qs = Order.objects.filter(
+        boxes__isnull=False
+    ).select_related('customer', 'article').prefetch_related(
+        'boxes__article',
+        'boxes__tickets',
+        'boxes__cutting_batch_item'
+    ).distinct().order_by('-created_at')
+
+    if search_q:
+        orders_qs = orders_qs.filter(
+            Q(order_number__icontains=search_q) |
+            Q(client_name__icontains=search_q) |
+            Q(customer__name__icontains=search_q) |
+            Q(article__name__icontains=search_q) |
+            Q(article__code__icontains=search_q) |
+            Q(boxes__box_code__icontains=search_q)
+        ).distinct()
+
+    orders_data = []
+    total_unprinted_boxes = 0
+    total_printed_boxes = 0
+
+    for ord_obj in orders_qs:
+        all_boxes = ord_obj.boxes.all()
+        unprinted = [b for b in all_boxes if not b.is_printed]
+        printed = [b for b in all_boxes if b.is_printed]
+
+        total_unprinted_boxes += len(unprinted)
+        total_printed_boxes += len(printed)
+
+        if filter_status == 'unprinted' and len(unprinted) == 0:
+            continue
+        if filter_status == 'printed' and len(printed) == 0:
+            continue
+
+        orders_data.append({
+            'order': ord_obj,
+            'total_boxes': len(all_boxes),
+            'unprinted_count': len(unprinted),
+            'printed_count': len(printed),
+            'total_qty': sum(b.quantity for b in all_boxes),
+            'has_unprinted': len(unprinted) > 0,
+        })
+
+    return render(request, 'stickers/dashboard.html', {
+        'orders_data': orders_data,
+        'search_q': search_q,
+        'filter_status': filter_status,
+        'total_unprinted_boxes': total_unprinted_boxes,
+        'total_printed_boxes': total_printed_boxes,
+    })
+
+
+@sticker_required
+def sticker_order_boxes(request, order_id: int):
+    """
+    Buyurtma Qutilari va QR Stikerlarni Chop Etish Oynasi:
+    - Barcha generatsiya qilingan qutilar
+    - Razmer, dona, Meto raqamlari oralig'i
+    - 100x60mm chop etish, PDF yuklab olish
+    - 'Tikuvga Berildi' (Chop etildi deb belgilash)
+    """
+    order = get_object_or_404(
+        Order.objects.select_related('customer', 'article').prefetch_related(
+            'items__article__article_operations',
+            'boxes__article',
+            'boxes__tickets',
+            'boxes__cutting_batch_item'
+        ),
+        id=order_id
+    )
+
+    boxes = order.boxes.all().select_related('article', 'cutting_batch_item').prefetch_related('tickets').order_by('box_number')
+
+    # Operatsiyalar borligini tekshirish
+    articles_without_ops = []
+    for it in order.items.all():
+        if it.article and it.article.article_operations.count() == 0:
+            articles_without_ops.append(it.article)
+
+    unprinted_boxes = [b for b in boxes if not b.is_printed]
+
+    return render(request, 'stickers/order_boxes.html', {
+        'order': order,
+        'boxes': boxes,
+        'unprinted_boxes_count': len(unprinted_boxes),
+        'articles_without_ops': articles_without_ops,
+    })
+
+
+@sticker_required
+def sticker_mark_box_printed(request, box_id: int):
+    """Bitta qutini chop etilgan deb belgilash va Tikuvga uzatish"""
+    box = get_object_or_404(Box, id=box_id)
+    box.is_printed = True
+    box.printed_at = timezone.now()
+    box.save(update_fields=['is_printed', 'printed_at'])
+
+    if box.cutting_batch_item:
+        box.cutting_batch_item.status = CuttingBatchItem.Status.STICKERS_PRINTED
+        box.cutting_batch_item.save(update_fields=['status'])
+
+    messages.success(request, f"Quti #{box.box_number} [{box.box_code}] stikerlari chop etildi va Tikuvga berildi deb belgilandi!")
+    return redirect('sticker_order_boxes', order_id=box.order.id)
+
+
+@sticker_required
+def sticker_mark_all_printed(request, order_id: int):
+    """Buyurtmaning barcha qutilarini chop etilgan deb belgilash"""
+    order = get_object_or_404(Order, id=order_id)
+    now = timezone.now()
+    boxes = order.boxes.filter(is_printed=False)
+    count = boxes.count()
+
+    with transaction.atomic():
+        for b in boxes:
+            b.is_printed = True
+            b.printed_at = now
+            b.save(update_fields=['is_printed', 'printed_at'])
+            if b.cutting_batch_item:
+                b.cutting_batch_item.status = CuttingBatchItem.Status.STICKERS_PRINTED
+                b.cutting_batch_item.save(update_fields=['status'])
+
+    messages.success(request, f"Jami {count} ta quti stikerlari muvaffaqiyatli chop etildi va Tikuvga berildi deb belgilandi!")
+    return redirect('sticker_order_boxes', order_id=order.id)

@@ -65,6 +65,18 @@
                 <span>Kesim Bo'limi (Bichuv)</span>
             </a>
 
+            <a href="{% url 'meto_dashboard' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'meto' in request.resolver_match.url_name %}bg-cyan-600 text-white font-bold shadow-md{% else %}text-cyan-400 hover:bg-slate-800 hover:text-cyan-300{% endif %}">
+                <i class="fa-solid fa-tags w-5 text-center"></i>
+                <span>Meto (Nomerovka)</span>
+            </a>
+
+            <a href="{% url 'sticker_dashboard' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'sticker' in request.resolver_match.url_name %}bg-purple-600 text-white font-bold shadow-md{% else %}text-purple-400 hover:bg-slate-800 hover:text-purple-300{% endif %}">
+                <i class="fa-solid fa-barcode w-5 text-center"></i>
+                <span>Stiker Chiqarish Bo'limi</span>
+            </a>
+
             <a href="{% url 'production:statistics_pipeline' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'statistics_pipeline' %}bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-md shadow-blue-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-diagram-project w-5 text-center text-blue-400"></i>

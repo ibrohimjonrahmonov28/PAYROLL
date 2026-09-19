@@ -247,6 +247,7 @@ def manager_order_detail(request, order_id: int):
                 'size': s,
                 'planned': s.planned_quantity,
                 'cut': s.total_cut_quantity,
+                'real': s.total_real_quantity,
                 'percentage': s.cut_percentage,
                 'remaining': s.remaining_to_cut_quantity,
                 'excess': s.excess_cut_quantity,

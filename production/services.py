@@ -116,7 +116,14 @@ def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1
 
 
 @transaction.atomic
-def create_boxes_for_order(order: Order, box_sizes: list[int], article=None, razmer: str = None) -> list[Box]:
+def create_boxes_for_order(
+    order: Order, 
+    box_sizes: list[int], 
+    article=None, 
+    razmer: str = None,
+    cutting_batch_item=None,
+    meto_range: str = ''
+) -> list[Box]:
     """
     Buyurtmani qutilarga (boxes/bundles) ajratish va biletlarni generatsiya qilish.
     box_sizes: har bir qutining miqdori, masalan [100, 100, 100, ...]
@@ -134,9 +141,11 @@ def create_boxes_for_order(order: Order, box_sizes: list[int], article=None, raz
         box = Box.objects.create(
             order=order,
             article=article,
+            cutting_batch_item=cutting_batch_item,
             box_number=next_number,
             quantity=qty,
             razmer=razmer,
+            meto_range=meto_range,
             status=Box.Status.CREATED
         )
         generate_box_tickets(box)
@@ -144,4 +153,51 @@ def create_boxes_for_order(order: Order, box_sizes: list[int], article=None, raz
         next_number += 1
 
     return created_boxes
+
+
+@transaction.atomic
+def auto_generate_boxes_for_batch_item(
+    batch_item,
+    split_count: int = 1,
+    box_capacity: int = None
+) -> list[Box]:
+    """
+    Meto ishni tugatishi bilanoq avtomatik stikerlar va qutilarni generatsiya qilish:
+    - Foydalanuvchi talabi:
+      "U TUGATGANDA AVTOMATIK STIKERLAR GENERATISYA BOLADI VA STIKER CHIQARADIGAN ODAM OZI CHIQARADI VA TIKUVGA BERADI"
+    """
+    order = batch_item.batch.order_item.order
+    article = batch_item.batch.order_item.article
+    size_name = batch_item.order_item_size.size_name
+    available_qty = batch_item.remaining_to_box
+    if available_qty <= 0:
+        return []
+
+    if box_capacity and box_capacity > 0:
+        full_boxes = available_qty // box_capacity
+        rem = available_qty % box_capacity
+        box_sizes = [box_capacity] * full_boxes
+        if rem > 0:
+            box_sizes.append(rem)
+    elif split_count and split_count > 1:
+        box_sizes = allocate_ticket_quantities(available_qty, split_count)
+    else:
+        box_sizes = [available_qty]
+
+    meto_range = ""
+    if batch_item.meto_number_start or batch_item.meto_number_end:
+        meto_range = f"#{batch_item.meto_number_start or '1'}-#{batch_item.meto_number_end or batch_item.effective_quantity}"
+
+    boxes = create_boxes_for_order(
+        order=order,
+        box_sizes=box_sizes,
+        article=article,
+        razmer=size_name,
+        cutting_batch_item=batch_item,
+        meto_range=meto_range
+    )
+    batch_item.boxes_created_qty += sum(box_sizes)
+    batch_item.status = batch_item.Status.METO_CONFIRMED
+    batch_item.save(update_fields=['boxes_created_qty', 'status'])
+    return boxes
 

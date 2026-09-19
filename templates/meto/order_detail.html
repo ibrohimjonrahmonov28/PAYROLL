@@ -1,0 +1,253 @@
+{% extends 'meto/base_meto.html' %}
+
+{% block title %}Meto: {{ order.order_number }} — TERRY JAR{% endblock %}
+
+{% block meto_header %}
+<div class="flex items-center gap-3">
+    <a href="{% url 'meto_dashboard' %}"
+        class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <h2 class="text-base font-black text-white flex items-center gap-2">
+            <span>Zakaz:</span>
+            <span class="text-cyan-400 font-mono">{{ order.order_number }}</span>
+        </h2>
+        <p class="text-[11px] text-slate-400">
+            Mijoz: <strong class="text-white">{{ order.customer.name|default:order.client_name }}</strong>
+            {% if order.deadline %} • Topshirish muddati: <strong class="text-amber-400">{{ order.deadline|date:"d.m.Y"
+                }}</strong>{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Articles and Batches -->
+    {% for item_data in items_data %}
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <!-- Article Header -->
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span
+                        class="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg">
+                        {{ item_data.item.article.code }}
+                    </span>
+                    {% if item_data.item.article.model %}
+                    <span
+                        class="bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold px-2 py-0.5 rounded text-xs">
+                        Model: {{ item_data.item.article.model.name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
+            </div>
+
+            <div class="flex items-center gap-3">
+                {% if item_data.operations_count == 0 %}
+                <span
+                    class="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 0 ta operatsiya mavjud (Stikerlar uchun operatsiya
+                    qo'shish kerak)
+                </span>
+                {% else %}
+                <span
+                    class="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i> {{ item_data.operations_count }} ta operatsiya mavjud
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Batches List -->
+        <div class="space-y-6">
+            {% for b in item_data.batches %}
+            <div class="bg-slate-950 p-5 rounded-3xl border border-slate-800 space-y-4 shadow-inner">
+                <!-- Batch Header -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <span class="font-black text-white text-base flex items-center gap-2">
+                            <i class="fa-solid fa-scissors text-rose-400"></i> {{ b.name }}
+                        </span>
+                        {% if b.cutter_name %}
+                        <span
+                            class="text-xs bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-300">
+                            Bichuvchi: <strong class="text-white">{{ b.cutter_name }}</strong>
+                        </span>
+                        {% endif %}
+                        {% if b.fabric_weight_kg %}
+                        <span
+                            class="text-xs bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-amber-300 font-mono">
+                            <i class="fa-solid fa-weight-hanging text-amber-400 mr-1"></i> {{ b.fabric_weight_kg }} kg
+                            {% if b.fabric_batch_code %}({{ b.fabric_batch_code }}){% endif %}
+                        </span>
+                        {% endif %}
+                        <span class="text-[11px] text-slate-500">
+                            {{ b.created_at|date:"d.m.Y H:i" }}
+                        </span>
+                    </div>
+
+                    <div>
+                        {% if b.has_pending %}
+                        <span
+                            class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left text-xs animate-spin"></i> Meto Kutilmoqda
+                        </span>
+                        {% else %}
+                        <span
+                            class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-xs"></i> Meto Yakunlangan (Stikerlar yaratildi)
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sizes inside this batch -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for b_it in b.items %}
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 font-mono font-black text-cyan-400 text-sm">
+                                    {{ b_it.size_name }}
+                                </span>
+                                <span class="text-xs text-slate-300">
+                                    Kesimchi kiritgan: <strong class="text-amber-400 font-mono">{{ b_it.quantity }}
+                                        dona</strong>
+                                </span>
+                            </div>
+
+                            {% if b_it.is_confirmed %}
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                ✓ Tasdiqlangan
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Kutilmoqda
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if not b_it.is_confirmed %}
+                        <!-- FORM: Meto Nomerovka va Aniq Son Kiritish -->
+                        <form method="POST" action="{% url 'meto_confirm_item' b_it.item.id %}" class="space-y-3">
+                            {% csrf_token %}
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Meto Boshi
+                                        (#)</label>
+                                    <input type="text" name="meto_number_start" value="1" placeholder="1"
+                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Meto Oxiri
+                                        (#)</label>
+                                    <input type="text" name="meto_number_end" value="{{ b_it.quantity }}"
+                                        placeholder="{{ b_it.quantity }}"
+                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-emerald-400 mb-1">Aniq Yig'ilgan Son
+                                        (dona)</label>
+                                    <input type="number" name="real_quantity" value="{{ b_it.quantity }}" min="1"
+                                        required
+                                        class="w-full bg-slate-950 border border-emerald-600 rounded-xl px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-black text-sm focus:outline-none focus:border-emerald-400">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Qutilarga
+                                        Bo'lish</label>
+                                    <select name="split_mode"
+                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white font-bold focus:outline-none">
+                                        <option value="single" selected>1 ta quti (to'liq)</option>
+                                        <option value="split_2">2 ta qutiga teng</option>
+                                        <option value="split_3">3 ta qutiga teng</option>
+                                        <option value="capacity_50">50 talik qutilar</option>
+                                        <option value="capacity_100">100 talik qutilar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Metochi Ismi</label>
+                                    <input type="text" name="meto_worker_name"
+                                        placeholder="{{ user.get_full_name|default:user.username }}"
+                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Izoh /
+                                        Braklar</label>
+                                    <input type="text" name="meto_notes" placeholder="Masalan: 2 ta brak ajratildi"
+                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                                </div>
+                            </div>
+
+                            <button type="submit"
+                                class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-barcode"></i> Tugatish va Stikerlarni Yaratish
+                            </button>
+                        </form>
+                        {% else %}
+                        <!-- Tasdiqlangan Natija Ma'lumotlari -->
+                        <div class="space-y-2 text-xs">
+                            <div
+                                class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-slate-400">Tasdiqlangan Aniq Son:</span>
+                                <span class="font-black text-emerald-400 font-mono text-sm">{{ b_it.real_quantity }}
+                                    dona</span>
+                            </div>
+                            <div
+                                class="flex items-center justify-between bg-slate-950 p-2 rounded-xl border border-slate-800 text-[11px]">
+                                <span class="text-slate-400">Meto Oralig'i:</span>
+                                <span class="font-mono text-cyan-300 font-bold">#{{ b_it.meto_number_start }} — #{{
+                                    b_it.meto_number_end }}</span>
+                            </div>
+                            {% if b_it.meto_worker_name %}
+                            <div class="text-[11px] text-slate-400">
+                                Metochi: <strong class="text-white">{{ b_it.meto_worker_name }}</strong>
+                            </div>
+                            {% endif %}
+                            {% if b_it.meto_notes %}
+                            <div class="text-[11px] text-amber-300 italic">
+                                Izoh: {{ b_it.meto_notes }}
+                            </div>
+                            {% endif %}
+
+                            <!-- Generatsiya bo'lgan qutilar -->
+                            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+                                <span class="text-purple-300 font-bold flex items-center gap-1.5 text-[11px]">
+                                    <i class="fa-solid fa-boxes-packing"></i> {{ b_it.boxes_count }} ta quti yaratilgan
+                                </span>
+                                <a href="{% url 'sticker_order_boxes' order.id %}"
+                                    class="px-2.5 py-1 bg-purple-950 hover:bg-purple-900 border border-purple-700 text-purple-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-print"></i> Stikerlarni Ko'rish
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="py-8 text-center text-slate-500 text-xs bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                Ushbu artikul uchun hali kesim partiyalari kiritilmagan.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}
