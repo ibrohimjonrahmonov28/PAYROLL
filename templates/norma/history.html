@@ -1,0 +1,130 @@
+{% extends 'norma/base_norma.html' %}
+
+{% block title %}Norma Arxivi va Tarixi — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Filter Form -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
+                Norma Arxivi va Tarixi
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Kunlar kesimida modellarning bajarilish ko'rsatkichlari, qoldiqlar va umumiy foizlar.
+            </p>
+        </div>
+
+        <form method="GET" class="flex items-center gap-3 flex-wrap pt-2">
+            <div class="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                <span class="text-[11px] font-bold text-slate-400">Dan:</span>
+                <input type="date" name="date_from" value="{{ date_from }}"
+                    class="bg-transparent text-white text-xs font-mono font-bold focus:outline-none">
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                <span class="text-[11px] font-bold text-slate-400">Gacha:</span>
+                <input type="date" name="date_to" value="{{ date_to }}"
+                    class="bg-transparent text-white text-xs font-mono font-bold focus:outline-none">
+            </div>
+
+            <select name="model_id"
+                class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none">
+                <option value="">Barcha Modellar</option>
+                {% for pm in all_models %}
+                <option value="{{ pm.id }}" {% if selected_model_id == pm.id|stringformat:"s" %}selected{% endif %}>
+                    {{ pm.code }} — {{ pm.name }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-filter"></i> Filtrlash
+            </button>
+        </form>
+    </div>
+
+    <!-- History Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-table-list text-indigo-400"></i>
+                Natijalar ({{ history_records|length }} ta yozuv)
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-bold uppercase tracking-wider">
+                        <th class="py-3.5 px-4">Sana</th>
+                        <th class="py-3.5 px-4">Model</th>
+                        <th class="py-3.5 px-4 text-center">Kunlik Norma</th>
+                        <th class="py-3.5 px-4 text-center">Tikilgan</th>
+                        <th class="py-3.5 px-4 text-center">Sof Foiz</th>
+                        <th class="py-3.5 px-4 text-center">O'tgan Qoldiq</th>
+                        <th class="py-3.5 px-4 text-center">Jami Foiz</th>
+                        <th class="py-3.5 px-4 text-center">Holat</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 font-semibold">
+                    {% for rec in history_records %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
+                            {{ rec.date|date:"d.m.Y" }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <strong class="text-white block">{{ rec.product_model.name }}</strong>
+                            <span class="font-mono text-[10px] text-slate-400">{{ rec.product_model.code }}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-slate-300">
+                            {{ rec.daily_norm }} <small class="text-[10px] text-slate-500">dona</small>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-black text-sm text-white">
+                            {{ rec.completed_units }} <small class="text-[10px] text-slate-500 font-normal">dona</small>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-slate-300">
+                            {{ rec.completion_percentage }}%
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono text-indigo-400">
+                            {% if rec.carried_over_percentage > 0 %}
+                            +{{ rec.carried_over_percentage }}%
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs {% if rec.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
+                                {{ rec.total_percentage }}%
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if rec.is_completed %}
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-black uppercase">
+                                Bajarildi
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black uppercase">
+                                Bajarilmadi
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-inbox text-3xl mb-2 text-slate-600 block"></i>
+                            Tanlangan davr uchun yozuvlar topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -677,6 +677,75 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertEqual(self.client.get(reverse('cutting_dashboard')).status_code, 200)
         self.assertEqual(self.client.get(reverse('meto_dashboard')).status_code, 200)
         self.assertEqual(self.client.get(reverse('sticker_dashboard')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('norma_dashboard')).status_code, 200)
+
+
+class NormaModuleTests(TestCase):
+    def setUp(self):
+        from accounts.models import User, Worker
+        from production.models import ProductModel, Article, Operation, ArticleOperation, Order, Box, Ticket
+        self.user = User.objects.create_superuser(username="super_norma", password="password123")
+        self.client.force_login(self.user)
+
+        self.model = ProductModel.objects.create(code="MOD-TEST-01", name="Test Model", daily_norm=1500)
+        self.article = Article.objects.create(code="ART-TEST-01", name="Test Article", model=self.model, daily_norm=1500)
+        self.op = Operation.objects.create(code="OP-TEST-01", name="Tikish")
+        self.ao = ArticleOperation.objects.create(article=self.article, operation=self.op, price_per_unit=Decimal("500.00"), sequence=1)
+        self.order = Order.objects.create(order_number="ORD-TEST-NORM", article=self.article, total_quantity=3000)
+        self.box = Box.objects.create(order=self.order, article=self.article, box_number=1, quantity=1200)
+
+        self.worker_user = User.objects.create_user(username="sewer_norma", password="password123", role=User.Role.USER, first_name="Norma", last_name="Tikuvchi")
+        self.worker = Worker.objects.create(user=self.worker_user, worker_id="W-NORM-01")
+
+    def test_norma_dashboard_and_models_list(self):
+        res_dash = self.client.get(reverse('norma_dashboard'))
+        self.assertEqual(res_dash.status_code, 200)
+        self.assertContains(res_dash, "Jonli Norma Monitoringi")
+
+        res_models = self.client.get(reverse('norma_models_list'))
+        self.assertEqual(res_models.status_code, 200)
+        self.assertContains(res_models, "MOD-TEST-01")
+
+    def test_calculate_daily_model_progress_and_carryover(self):
+        from production.norma_services import calculate_daily_model_progress
+        import datetime
+
+        day1 = datetime.date(2026, 9, 1)
+        day2 = datetime.date(2026, 9, 2)
+
+        # Day 1: 1200 dona tikildi (1200 / 1500 = 80%)
+        t1 = Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao,
+            quantity=1200,
+            status=Ticket.Status.SCANNED,
+            scanned_by=self.worker_user,
+            scanned_at=datetime.datetime(2026, 9, 1, 14, 0, tzinfo=datetime.timezone.utc)
+        )
+
+        p1 = calculate_daily_model_progress(self.model, day1)
+        self.assertEqual(p1.completed_units, 1200)
+        self.assertEqual(p1.completion_percentage, Decimal('80.00'))
+        self.assertEqual(p1.carried_over_percentage, Decimal('0.00'))
+        self.assertEqual(p1.total_percentage, Decimal('80.00'))
+        self.assertFalse(p1.is_completed)
+
+        # Day 2: 1500 dona tikildi (100% + 20% qoldiq = 120%)
+        t2 = Ticket.objects.create(
+            box=self.box,
+            article_operation=self.ao,
+            quantity=1500,
+            status=Ticket.Status.SCANNED,
+            scanned_by=self.worker_user,
+            scanned_at=datetime.datetime(2026, 9, 2, 14, 0, tzinfo=datetime.timezone.utc)
+        )
+
+        p2 = calculate_daily_model_progress(self.model, day2)
+        self.assertEqual(p2.completed_units, 1500)
+        self.assertEqual(p2.completion_percentage, Decimal('100.00'))
+        self.assertEqual(p2.carried_over_percentage, Decimal('20.00'))
+        self.assertEqual(p2.total_percentage, Decimal('120.00'))
+        self.assertTrue(p2.is_completed)
 
 
 

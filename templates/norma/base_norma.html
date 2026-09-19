@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="uz" class="h-full bg-slate-950 text-slate-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Norma Boshqaruv Markazi (Miya) — TERRY JAR{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .digital-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+
+<body class="h-full flex flex-col bg-slate-950 text-slate-100">
+
+    <!-- Norma Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand & Logo -->
+                <div class="flex items-center gap-6">
+                    <a href="{% url 'norma_dashboard' %}" class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-500/25">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-black tracking-wider text-white uppercase block leading-none">
+                                TERRY JAR
+                            </span>
+                            <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mt-0.5">
+                                Norma Markazi (Miya)
+                            </span>
+                        </div>
+                    </a>
+
+                    <!-- Navigation Links -->
+                    <nav class="hidden md:flex items-center gap-1.5">
+                        <a href="{% url 'norma_dashboard' %}"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_dashboard' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            <i class="fa-solid fa-chart-pie text-xs"></i> Jonli Monitoring
+                        </a>
+                        <a href="{% url 'norma_models_list' %}"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name in 'norma_models_list norma_model_edit' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            <i class="fa-solid fa-layer-group text-xs"></i> Modellar & Normalar
+                        </a>
+                        <a href="{% url 'norma_workers' %}"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_workers' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            <i class="fa-solid fa-users text-xs"></i> Xodimlar Kesimi
+                        </a>
+                        <a href="{% url 'norma_history' %}"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_history' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            <i class="fa-solid fa-clock-rotate-left text-xs"></i> Tarix & Hisobotlar
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Right Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="{% url 'norma_sync' %}" title="Kunlik hisobni qayta sinxronlash"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate text-indigo-400"></i>
+                        <span class="hidden sm:inline">Sinxronlash</span>
+                    </a>
+
+                    {% if user.is_superadmin or user.is_admin_user %}
+                    <a href="{% url 'superadmin_dashboard' %}"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                        <span class="hidden sm:inline">Admin</span>
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'root_logout' %}"
+                        class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                        title="Tizimdan chiqish">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div
+                class="p-4 rounded-xl text-sm font-semibold flex items-center justify-between {% if message.tags == 'error' %}bg-rose-950/80 text-rose-200 border border-rose-800{% elif message.tags == 'success' %}bg-emerald-950/80 text-emerald-200 border border-emerald-800{% elif message.tags == 'warning' %}bg-amber-950/80 text-amber-200 border border-amber-800{% else %}bg-slate-900 text-slate-200 border border-slate-700{% endif %}">
+                <div class="flex items-center gap-2">
+                    <i
+                        class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% elif message.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+
+</html>

@@ -1,0 +1,131 @@
+{% extends 'norma/base_norma.html' %}
+
+{% block title %}Xodimlar Kesimida Norma — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Date Bar -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-users text-indigo-400"></i>
+                Xodimlar Kesimida Kunlik Norma
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                {{ target_date|date:"d-F, Y" }} sanasida tikuvchilarning modellar bo'yicha ulushi, foizlari va bonuslari.
+            </p>
+        </div>
+
+        <form method="GET" class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start md:self-auto">
+            <i class="fa-regular fa-calendar text-slate-400 ml-2"></i>
+            <input type="date" name="date" value="{{ target_date|date:'Y-m-d' }}" onchange="this.form.submit()"
+                class="bg-transparent text-white text-xs font-bold font-mono focus:outline-none pr-2">
+        </form>
+    </div>
+
+    <!-- KPI Summary -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-user-group"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Faol Tikuvchilar</span>
+                <span class="text-2xl font-black text-white digital-font">{{ total_workers }}</span>
+                <span class="text-xs text-slate-500 font-bold ml-1">nafar</span>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-award"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">100%+ Bonusga Yetganlar</span>
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ bonus_workers_count }}</span>
+                <span class="text-xs text-slate-500 font-bold ml-1">nafar (+30,000 UZS)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workers Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-ol text-indigo-400"></i>
+                Xodimlar Ro'yxati ({{ workers_data|length }} nafar)
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-bold uppercase tracking-wider">
+                        <th class="py-3.5 px-4">Xodim</th>
+                        <th class="py-3.5 px-4 text-center">Tikilgan Dona</th>
+                        <th class="py-3.5 px-4">Tikilgan Modellar</th>
+                        <th class="py-3.5 px-4 text-center">Norma Foizi</th>
+                        <th class="py-3.5 px-4 text-right">Ishlab Topgan Haqi</th>
+                        <th class="py-3.5 px-4 text-center">Bonus (+30,000)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 font-semibold">
+                    {% for w in workers_data %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center font-mono font-bold text-xs text-slate-300">
+                                    {{ w.worker.worker_id }}
+                                </div>
+                                <div>
+                                    <strong class="text-white block">{{ w.worker.full_name }}</strong>
+                                    <span class="text-[10px] text-slate-500 font-mono">UID: {{ w.worker.user.uid|default:w.worker.worker_id }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-center font-mono font-black text-sm text-white">
+                            {{ w.total_units }} <small class="text-[10px] text-slate-500 font-normal">dona</small>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex flex-wrap gap-1.5 max-w-sm">
+                                {% for mid, m in w.models.items %}
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-300">
+                                    {{ m.name }}: <strong class="text-indigo-400">{{ m.units }} dona</strong> ({{ m.percentage }}%)
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="px-3 py-1 rounded-xl font-mono font-black text-xs {% if w.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
+                                {{ w.total_percentage }}%
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-right font-mono font-black text-sm text-slate-200">
+                            {{ w.total_earned|floatformat:0 }} <small class="text-[10px] text-slate-500 font-normal">UZS</small>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if w.has_bonus %}
+                            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black flex items-center justify-center gap-1 w-max mx-auto">
+                                <i class="fa-solid fa-award"></i> Beriladi
+                            </span>
+                            {% else %}
+                            <span class="text-slate-500 text-[11px]">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-600 block"></i>
+                            Ushbu sanada faoliyat yuritgan tikuvchilar topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

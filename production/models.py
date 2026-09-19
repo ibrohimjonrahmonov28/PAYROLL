@@ -842,3 +842,56 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"{self.ticket_code} ({self.article_operation.operation.name}: {self.quantity} dona)"
+
+
+class DailyModelProgress(models.Model):
+    """
+    Model Kunlik Norma Natijasi:
+    - Har bir model (ProductModel) uchun har kuni rejalashtirilgan kunlik norma (masalan 1500 dona).
+    - O'sha kuni tikilgan jami dona va foizi (masalan 80%).
+    - Oldingi kundan qolgan qoldiq foiz / dona (masalan 20%).
+    - Jami hisoblangan foiz.
+    """
+    product_model = models.ForeignKey(
+        ProductModel,
+        on_delete=models.CASCADE,
+        related_name='daily_progress',
+        verbose_name="Model"
+    )
+    date = models.DateField(db_index=True, verbose_name="Sana")
+    daily_norm = models.PositiveIntegerField(verbose_name="Kunlik norma (dona)")
+    completed_units = models.PositiveIntegerField(default=0, verbose_name="Bugun tikilgan dona")
+    completion_percentage = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Bajarilish foizi (%)"
+    )
+    carried_over_units = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Oldingi kundan o'tgan qoldiq dona"
+    )
+    carried_over_percentage = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Qoldiq foizi (%)"
+    )
+    total_percentage = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Jami hisoblangan foiz (%)"
+    )
+    is_completed = models.BooleanField(default=False, verbose_name="Norma bajarildimi?")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Model Kunlik Norma Natijasi"
+        verbose_name_plural = "Modellar Kunlik Norma Natijalari"
+        unique_together = ('product_model', 'date')
+        ordering = ['-date', 'product_model']
+
+    def __str__(self):
+        return f"{self.date} | {self.product_model.code} - {self.completed_units}/{self.daily_norm} ({self.total_percentage}%)"

@@ -1,0 +1,225 @@
+{% extends 'norma/base_norma.html' %}
+
+{% block title %}Modellar va Normalar — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-indigo-400"></i>
+                Modellar va Normalar Boshqaruvi
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Har bir model uchun kunlik normani belgilash va unga tegishli barcha artikullarni biriktirish.
+            </p>
+        </div>
+
+        <button onclick="document.getElementById('createModelModal').classList.remove('hidden')"
+            class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/25 transition flex items-center gap-2 self-start sm:self-auto">
+            <i class="fa-solid fa-plus"></i> Yangi Model Yaratish
+        </button>
+    </div>
+
+    <!-- Unassigned Articles Section -->
+    {% if unassigned_articles %}
+    <div class="bg-slate-900 border-2 border-amber-500/40 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-link-slash"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-black text-white">
+                        Modelga biriktirilmagan erkin artikullar ({{ unassigned_articles|length }} ta)
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Ushbu artikullar alohida bo'lib turibdi. Ularni mavjud modelga biriktiring yoki yangi model yarating.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{% if models %}{% url 'norma_assign_articles' models.0.id %}{% endif %}" id="batchAssignForm"
+            class="space-y-3 pt-2">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {% for art in unassigned_articles %}
+                <label class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                    <input type="checkbox" name="article_ids" value="{{ art.id }}" class="rounded text-indigo-600 focus:ring-indigo-500">
+                    <div class="min-w-0">
+                        <strong class="font-mono text-xs text-white block truncate">{{ art.code }}</strong>
+                        <span class="text-[11px] text-slate-400 block truncate">{{ art.name }}</span>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+
+            {% if models %}
+            <div class="flex items-center gap-3 pt-2 flex-wrap">
+                <span class="text-xs font-bold text-slate-400">Tanlangan artikullarni modelga biriktirish:</span>
+                <select id="targetModelSelect" onchange="document.getElementById('batchAssignForm').action = '/norma/models/' + this.value + '/assign-articles/'"
+                    class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none">
+                    {% for pm in models %}
+                    <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} (Norma: {{ pm.daily_norm }})</option>
+                    {% endfor %}
+                </select>
+                <button type="submit"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Biriktirish
+                </button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Models List Table / Cards -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-cubes text-indigo-400"></i>
+                Barcha Modellar ({{ models|length }} ta)
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-bold uppercase tracking-wider">
+                        <th class="py-3.5 px-4">Model Kodi & Nomi</th>
+                        <th class="py-3.5 px-4 text-center">Kunlik Norma</th>
+                        <th class="py-3.5 px-4">Bog'langan Artikullar</th>
+                        <th class="py-3.5 px-4 text-center">Operatsiyalar</th>
+                        <th class="py-3.5 px-4 text-right">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 font-semibold">
+                    {% for pm in models %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-mono font-black text-xs">
+                                    {{ pm.code|slice:":4" }}
+                                </div>
+                                <div>
+                                    <strong class="text-sm font-black text-white block">{{ pm.name }}</strong>
+                                    <span class="text-[11px] font-mono text-slate-400">{{ pm.code }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="px-3 py-1 rounded-xl bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-mono font-black text-sm digital-font">
+                                {{ pm.daily_norm }} <small class="text-[10px] text-indigo-400 font-normal">dona/kun</small>
+                            </span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex flex-wrap gap-1.5 max-w-md">
+                                {% for art in pm.articles.all %}
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 flex items-center gap-1">
+                                    <i class="fa-solid fa-shirt text-[9px] text-indigo-400"></i>
+                                    {{ art.code }}
+                                </span>
+                                {% empty %}
+                                <span class="text-xs text-slate-500 italic">Hali artikul biriktirilmagan</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="text-slate-300 font-mono font-bold">
+                                {{ pm.model_operations.count }} ta
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-right">
+                            <a href="{% url 'norma_model_edit' pm.id %}"
+                                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg font-bold transition inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-pen-to-square text-[11px]"></i> Tahrirlash
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-layer-group text-3xl mb-2 text-slate-600 block"></i>
+                            Hozircha birorta model yaratilmagan. Yuqoridagi "Yangi Model Yaratish" tugmasini bosing.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Yangi Model Yaratish -->
+<div id="createModelModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-plus text-indigo-400"></i> Yangi Model Yaratish
+            </h3>
+            <button onclick="document.getElementById('createModelModal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'norma_model_create' %}" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model Kodi (Unikal):</label>
+                <input type="text" name="code" required placeholder="Masalan: MOD-FTB-01"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model Nomi:</label>
+                <input type="text" name="name" required placeholder="Masalan: Futbolka Erkaklar"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-bold focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Kunlik Norma (dona / ball):</label>
+                <input type="number" name="daily_norm" value="1500" required min="1"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono font-black digital-font focus:outline-none focus:border-indigo-500">
+                <p class="text-[11px] text-slate-500 mt-1">Ushbu model tikilayotganda kunlik norma hisoblanadi (masalan 1500 dona).</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tavsif (ixtiyoriy):</label>
+                <textarea name="description" rows="2" placeholder="Model haqida qisqacha ma'lumot..."
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            {% if unassigned_articles %}
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Ushbu modelga darhol artikullarni biriktirish:</label>
+                <div class="max-h-40 overflow-y-auto space-y-1 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                    {% for art in unassigned_articles %}
+                    <label class="flex items-center gap-2 p-1.5 hover:bg-slate-900 rounded cursor-pointer text-xs">
+                        <input type="checkbox" name="article_ids" value="{{ art.id }}" class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span class="font-mono text-white font-bold">{{ art.code }}</span>
+                        <span class="text-slate-400 truncate">— {{ art.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
+                <button type="button" onclick="document.getElementById('createModelModal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Yaratish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends 'norma/base_norma.html' %}
+
+{% block title %}Jonli Norma Monitoringi — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Header & Date Filter Bar -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono text-xs font-black uppercase tracking-wider border border-indigo-500/30">
+                    <i class="fa-solid fa-brain mr-1"></i> Boshqaruv Miyasi
+                </span>
+                <span class="text-xs text-slate-400 font-bold">
+                    {{ target_date|date:"d-F, Y" }}
+                </span>
+            </div>
+            <h1 class="text-2xl font-black text-white mt-1 flex items-center gap-2">
+                Jonli Norma Monitoringi
+            </h1>
+            <p class="text-xs text-slate-400 mt-0.5">
+                Modellarning kunlik normasi, tikilish sur'ati, qoldiqlar va xodimlar hisoboti.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <form method="GET" class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                <i class="fa-regular fa-calendar text-slate-400 ml-2"></i>
+                <input type="date" name="date" value="{{ target_date|date:'Y-m-d' }}" onchange="this.form.submit()"
+                    class="bg-transparent text-white text-xs font-bold font-mono focus:outline-none pr-2">
+            </form>
+
+            <a href="{% url 'norma_models_list' %}"
+                class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/25 transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Yangi Model / Norma Qo'shish
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert: Unassigned Articles -->
+    {% if unassigned_count > 0 %}
+    <div class="bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h2 class="text-sm font-black text-amber-300">
+                    {{ unassigned_count }} ta artikul hali birorta modelga biriktirilmagan!
+                </h2>
+                <p class="text-xs text-amber-200/80 mt-0.5">
+                    Norma aniq hisoblanishi uchun har bir artikulni tegishli modelga biriktiring.
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'norma_models_list' %}"
+            class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition shadow flex items-center gap-1.5 flex-shrink-0">
+            <i class="fa-solid fa-link"></i> Artikullarni Biriktirish
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Top KPI Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Jami Modellar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Faol Modellar</span>
+                <span class="text-2xl font-black text-white digital-font">{{ models_count }}</span>
+                <span class="text-xs text-slate-500 font-bold ml-1">ta model</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Kunlik Norma (Target) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Reja (Kunlik Norma)</span>
+                <span class="text-2xl font-black text-white digital-font">{{ total_target_norm }}</span>
+                <span class="text-xs text-slate-500 font-bold ml-1">dona</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Bugun Tikildi -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Bugun Tikildi</span>
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ total_completed_units }}</span>
+                <span class="text-xs text-slate-500 font-bold ml-1">dona</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Umumiy Foiz -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl {% if overall_percentage >= 100 %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-amber-500/10 text-amber-400 border-amber-500/20{% endif %} border flex items-center justify-center text-xl">
+                <i class="fa-solid fa-percent"></i>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Bajarilish Foizi</span>
+                <span class="text-2xl font-black digital-font {% if overall_percentage >= 100 %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                    {{ overall_percentage }}%
+                </span>
+                <span class="text-xs text-slate-500 font-bold ml-1">umumiy</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Models Live Progress Grid -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-indigo-400"></i>
+                Modellar Bo'yicha Jonli Bajarilish
+            </h2>
+            <span class="text-xs text-slate-400 font-bold">
+                Jami {{ models_data|length }} ta model
+            </span>
+        </div>
+
+        {% if models_data %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {% for item in models_data %}
+            <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between transition group relative overflow-hidden">
+                <!-- Top Accent Line -->
+                <div class="absolute top-0 left-0 right-0 h-1 {% if item.progress.total_percentage >= 100 %}bg-emerald-500{% else %}bg-indigo-500{% endif %}"></div>
+
+                <div>
+                    <!-- Header -->
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <span class="px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono text-[11px] font-black tracking-wider uppercase border border-slate-700">
+                                {{ item.model.code }}
+                            </span>
+                            <h3 class="text-base font-black text-white mt-1.5 group-hover:text-indigo-400 transition">
+                                {{ item.model.name }}
+                            </h3>
+                            {% if item.model.description %}
+                            <p class="text-xs text-slate-400 line-clamp-1 mt-0.5">{{ item.model.description }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Foiz Badge -->
+                        <div class="text-right">
+                            <span class="text-xl font-black digital-font block {% if item.progress.total_percentage >= 100 %}text-emerald-400{% elif item.progress.total_percentage >= 50 %}text-amber-400{% else %}text-slate-300{% endif %}">
+                                {{ item.progress.total_percentage }}%
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider {% if item.progress.is_completed %}text-emerald-400{% else %}text-slate-500{% endif %}">
+                                {% if item.progress.is_completed %}Bajarildi{% else %}Jarayonda{% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mt-4">
+                        <div class="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 {% if item.progress.total_percentage >= 100 %}bg-gradient-to-r from-emerald-500 to-teal-400{% else %}bg-gradient-to-r from-indigo-500 to-violet-500{% endif %}"
+                                style="width: {% if item.progress.total_percentage > 100 %}100{% else %}{{ item.progress.total_percentage }}{% endif %}%;">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 mt-1.5 font-bold">
+                            <span>Tikildi: <strong class="text-white">{{ item.progress.completed_units }}</strong> / {{ item.progress.daily_norm }} dona</span>
+                            {% if item.remaining_units > 0 %}
+                            <span class="text-amber-400/90">{{ item.remaining_units }} dona qoldi</span>
+                            {% else %}
+                            <span class="text-emerald-400">+{{ item.progress.completed_units|add:"-"|add:item.progress.daily_norm }} dona ortiq</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Carry-over Info (Qoldiq foiz) -->
+                    {% if item.progress.carried_over_percentage > 0 %}
+                    <div class="mt-3 px-3 py-2 bg-indigo-950/40 border border-indigo-800/50 rounded-xl flex items-center justify-between text-xs">
+                        <span class="text-indigo-300 font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Oldingi kundan qoldiq:
+                        </span>
+                        <strong class="text-indigo-200 font-mono">+{{ item.progress.carried_over_percentage }}% ({{ item.progress.carried_over_units }} dona)</strong>
+                    </div>
+                    {% endif %}
+
+                    <!-- Articles List in Model -->
+                    <div class="mt-4 pt-3 border-t border-slate-800">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                            Bog'langan artikullar ({{ item.articles_count }} ta):
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                            {% for art in item.articles %}
+                            <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300">
+                                {{ art.code }}
+                            </span>
+                            {% empty %}
+                            <span class="text-xs text-slate-500 italic">Artikul biriktirilmagan</span>
+                            {% endfor %}
+                            {% if item.articles_count > 5 %}
+                            <span class="text-xs text-slate-500 font-bold self-center">+{{ item.articles_count|add:"-5" }} ta</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <span class="text-slate-400 font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-slate-500"></i>
+                        {{ item.active_workers_count }} nafar tikuvchi
+                    </span>
+                    <a href="{% url 'norma_model_edit' item.model.id %}"
+                        class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg font-bold transition flex items-center gap-1">
+                        <i class="fa-solid fa-pen-to-square text-[10px]"></i> Tahrirlash
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto text-2xl mb-3">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <h3 class="text-lg font-black text-white">Hozircha birorta Model mavjud emas</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                Ishlab chiqarish normasini hisoblash uchun avval modellar yarating va ularga artikullarni biriktiring.
+            </p>
+            <a href="{% url 'norma_models_list' %}"
+                class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow-lg transition">
+                <i class="fa-solid fa-plus"></i> Yangi Model Yaratish
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Workers Performance Preview -->
+    {% if workers_data %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users text-indigo-400"></i>
+                    Bugungi Tikuvchilar Natijasi
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Har bir xodimning bugungi normani bajarish foizi va bonus holati
+                </p>
+            </div>
+            <a href="{% url 'norma_workers' %}{% if target_date %}?date={{ target_date|date:'Y-m-d' }}{% endif %}"
+                class="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                Barchasini ko'rish <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                        <th class="py-3 px-3">Xodim</th>
+                        <th class="py-3 px-3 text-center">Tikilgan Dona</th>
+                        <th class="py-3 px-3 text-left">Tikilgan Modellar</th>
+                        <th class="py-3 px-3 text-center">Norma Foizi</th>
+                        <th class="py-3 px-3 text-center">Bonus Holati</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 font-semibold">
+                    {% for w in workers_data %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-slate-300 font-mono text-xs">
+                                    {{ w.worker.worker_id }}
+                                </div>
+                                <div>
+                                    <span class="text-white font-black block">{{ w.worker.full_name }}</span>
+                                    <span class="text-[10px] text-slate-500 font-mono">UID: {{ w.worker.user.uid|default:w.worker.worker_id }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 text-center font-mono font-black text-sm text-white">
+                            {{ w.total_units }} <span class="text-[10px] text-slate-500 font-normal">dona</span>
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for mid, m in w.models.items %}
+                                <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-slate-300">
+                                    {{ m.name }}: <strong class="text-indigo-400">{{ m.units }} dona</strong> ({{ m.percentage }}%)
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs {% if w.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
+                                {{ w.total_percentage }}%
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if w.has_bonus %}
+                            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black flex items-center justify-center gap-1 w-max mx-auto">
+                                <i class="fa-solid fa-award"></i> +30,000 UZS Bonus
+                            </span>
+                            {% else %}
+                            <span class="text-slate-500 text-[11px]">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
