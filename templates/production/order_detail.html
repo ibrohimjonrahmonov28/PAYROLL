@@ -323,6 +323,15 @@
                                 </span>
                             </div>
                             {% endif %}
+                            {% if box.pastal_number %}
+                            <div class="mt-1">
+                                <span
+                                    class="inline-flex items-center gap-1 bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[11px] font-bold px-2 py-0.5 rounded-md font-mono">
+                                    <i class="fa-solid fa-layer-group text-[9px] text-sky-400"></i> Pastal: {{
+                                    box.pastal_number }}
+                                </span>
+                            </div>
+                            {% endif %}
                         </td>
 
                         <!-- QR Stikerlar -->
@@ -493,6 +502,18 @@
                         class="px-2 py-0.5 bg-slate-800/60 hover:bg-slate-700 text-slate-400 rounded text-xs font-mono"
                         title="Tozalash"><i class="fa-solid fa-xmark"></i></button>
                 </div>
+            </div>
+
+            <!-- Pastal Raqami (Pastal Code) -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                        Pastal Raqami (Pastal Code)
+                    </label>
+                    <span class="text-[11px] text-slate-400">Ixtiyoriy (masalan: 1, 2, 12, 1-A)</span>
+                </div>
+                <input type="text" name="pastal_number" placeholder="Masalan: 1, 2, 12..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition placeholder:text-slate-600">
             </div>
 
             <!-- 2. Har bir qutidagi donalar soni (default 100) -->

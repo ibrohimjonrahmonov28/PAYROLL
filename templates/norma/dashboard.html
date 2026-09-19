@@ -6,10 +6,12 @@
 <div class="space-y-6">
 
     <!-- Top Header & Date Filter Bar -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2.5">
-                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono text-xs font-black uppercase tracking-wider border border-indigo-500/30">
+                <span
+                    class="px-2.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono text-xs font-black uppercase tracking-wider border border-indigo-500/30">
                     <i class="fa-solid fa-brain mr-1"></i> Boshqaruv Miyasi
                 </span>
                 <span class="text-xs text-slate-400 font-bold">
@@ -40,9 +42,11 @@
 
     <!-- Alert: Unassigned Articles -->
     {% if unassigned_count > 0 %}
-    <div class="bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+    <div
+        class="bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+            <div
+                class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div>
@@ -65,7 +69,8 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Card 1: Jami Modellar -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-xl">
+            <div
+                class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-layer-group"></i>
             </div>
             <div>
@@ -77,7 +82,8 @@
 
         <!-- Card 2: Kunlik Norma (Target) -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-xl">
+            <div
+                class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-bullseye"></i>
             </div>
             <div>
@@ -89,7 +95,8 @@
 
         <!-- Card 3: Bugun Tikildi -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl">
+            <div
+                class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
             <div>
@@ -101,12 +108,14 @@
 
         <!-- Card 4: Umumiy Foiz -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl {% if overall_percentage >= 100 %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-amber-500/10 text-amber-400 border-amber-500/20{% endif %} border flex items-center justify-center text-xl">
+            <div
+                class="w-12 h-12 rounded-xl {% if overall_percentage >= 100 %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-amber-500/10 text-amber-400 border-amber-500/20{% endif %} border flex items-center justify-center text-xl">
                 <i class="fa-solid fa-percent"></i>
             </div>
             <div>
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Bajarilish Foizi</span>
-                <span class="text-2xl font-black digital-font {% if overall_percentage >= 100 %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                <span
+                    class="text-2xl font-black digital-font {% if overall_percentage >= 100 %}text-emerald-400{% else %}text-amber-400{% endif %}">
                     {{ overall_percentage }}%
                 </span>
                 <span class="text-xs text-slate-500 font-bold ml-1">umumiy</span>
@@ -129,15 +138,19 @@
         {% if models_data %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {% for item in models_data %}
-            <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between transition group relative overflow-hidden">
+            <div
+                class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between transition group relative overflow-hidden">
                 <!-- Top Accent Line -->
-                <div class="absolute top-0 left-0 right-0 h-1 {% if item.progress.total_percentage >= 100 %}bg-emerald-500{% else %}bg-indigo-500{% endif %}"></div>
+                <div
+                    class="absolute top-0 left-0 right-0 h-1 {% if item.progress.total_percentage >= 100 %}bg-emerald-500{% else %}bg-indigo-500{% endif %}">
+                </div>
 
                 <div>
                     <!-- Header -->
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <span class="px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono text-[11px] font-black tracking-wider uppercase border border-slate-700">
+                            <span
+                                class="px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono text-[11px] font-black tracking-wider uppercase border border-slate-700">
                                 {{ item.model.code }}
                             </span>
                             <h3 class="text-base font-black text-white mt-1.5 group-hover:text-indigo-400 transition">
@@ -150,10 +163,12 @@
 
                         <!-- Foiz Badge -->
                         <div class="text-right">
-                            <span class="text-xl font-black digital-font block {% if item.progress.total_percentage >= 100 %}text-emerald-400{% elif item.progress.total_percentage >= 50 %}text-amber-400{% else %}text-slate-300{% endif %}">
+                            <span
+                                class="text-xl font-black digital-font block {% if item.progress.total_percentage >= 100 %}text-emerald-400{% elif item.progress.total_percentage >= 50 %}text-amber-400{% else %}text-slate-300{% endif %}">
                                 {{ item.progress.total_percentage }}%
                             </span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider {% if item.progress.is_completed %}text-emerald-400{% else %}text-slate-500{% endif %}">
+                            <span
+                                class="text-[10px] font-bold uppercase tracking-wider {% if item.progress.is_completed %}text-emerald-400{% else %}text-slate-500{% endif %}">
                                 {% if item.progress.is_completed %}Bajarildi{% else %}Jarayonda{% endif %}
                             </span>
                         </div>
@@ -167,22 +182,26 @@
                             </div>
                         </div>
                         <div class="flex items-center justify-between text-xs text-slate-400 mt-1.5 font-bold">
-                            <span>Tikildi: <strong class="text-white">{{ item.progress.completed_units }}</strong> / {{ item.progress.daily_norm }} dona</span>
+                            <span>Tikildi: <strong class="text-white">{{ item.progress.completed_units }}</strong> / {{
+                                item.progress.daily_norm }} dona</span>
                             {% if item.remaining_units > 0 %}
                             <span class="text-amber-400/90">{{ item.remaining_units }} dona qoldi</span>
                             {% else %}
-                            <span class="text-emerald-400">+{{ item.progress.completed_units|add:"-"|add:item.progress.daily_norm }} dona ortiq</span>
+                            <span class="text-emerald-400">+{{
+                                item.progress.completed_units|add:"-"|add:item.progress.daily_norm }} dona ortiq</span>
                             {% endif %}
                         </div>
                     </div>
 
                     <!-- Carry-over Info (Qoldiq foiz) -->
                     {% if item.progress.carried_over_percentage > 0 %}
-                    <div class="mt-3 px-3 py-2 bg-indigo-950/40 border border-indigo-800/50 rounded-xl flex items-center justify-between text-xs">
+                    <div
+                        class="mt-3 px-3 py-2 bg-indigo-950/40 border border-indigo-800/50 rounded-xl flex items-center justify-between text-xs">
                         <span class="text-indigo-300 font-bold flex items-center gap-1.5">
                             <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Oldingi kundan qoldiq:
                         </span>
-                        <strong class="text-indigo-200 font-mono">+{{ item.progress.carried_over_percentage }}% ({{ item.progress.carried_over_units }} dona)</strong>
+                        <strong class="text-indigo-200 font-mono">+{{ item.progress.carried_over_percentage }}% ({{
+                            item.progress.carried_over_units }} dona)</strong>
                     </div>
                     {% endif %}
 
@@ -193,14 +212,16 @@
                         </span>
                         <div class="flex flex-wrap gap-1.5">
                             {% for art in item.articles %}
-                            <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300">
+                            <span
+                                class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300">
                                 {{ art.code }}
                             </span>
                             {% empty %}
                             <span class="text-xs text-slate-500 italic">Artikul biriktirilmagan</span>
                             {% endfor %}
                             {% if item.articles_count > 5 %}
-                            <span class="text-xs text-slate-500 font-bold self-center">+{{ item.articles_count|add:"-5" }} ta</span>
+                            <span class="text-xs text-slate-500 font-bold self-center">+{{ item.articles_count|add:"-5"
+                                }} ta</span>
                             {% endif %}
                         </div>
                     </div>
@@ -222,7 +243,8 @@
         </div>
         {% else %}
         <div class="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl">
-            <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto text-2xl mb-3">
+            <div
+                class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto text-2xl mb-3">
                 <i class="fa-solid fa-layer-group"></i>
             </div>
             <h3 class="text-lg font-black text-white">Hozircha birorta Model mavjud emas</h3>
@@ -272,12 +294,14 @@
                     <tr class="hover:bg-slate-800/40 transition">
                         <td class="py-3 px-3">
                             <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-slate-300 font-mono text-xs">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-slate-300 font-mono text-xs">
                                     {{ w.worker.worker_id }}
                                 </div>
                                 <div>
                                     <span class="text-white font-black block">{{ w.worker.full_name }}</span>
-                                    <span class="text-[10px] text-slate-500 font-mono">UID: {{ w.worker.user.uid|default:w.worker.worker_id }}</span>
+                                    <span class="text-[10px] text-slate-500 font-mono">UID: {{
+                                        w.worker.user.uid|default:w.worker.worker_id }}</span>
                                 </div>
                             </div>
                         </td>
@@ -287,20 +311,24 @@
                         <td class="py-3 px-3">
                             <div class="flex flex-wrap gap-1.5">
                                 {% for mid, m in w.models.items %}
-                                <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-slate-300">
-                                    {{ m.name }}: <strong class="text-indigo-400">{{ m.units }} dona</strong> ({{ m.percentage }}%)
+                                <span
+                                    class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-slate-300">
+                                    {{ m.name }}: <strong class="text-indigo-400">{{ m.units }} dona</strong> ({{
+                                    m.percentage }}%)
                                 </span>
                                 {% endfor %}
                             </div>
                         </td>
                         <td class="py-3 px-3 text-center">
-                            <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs {% if w.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
+                            <span
+                                class="px-2.5 py-1 rounded-lg font-mono font-black text-xs {% if w.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
                                 {{ w.total_percentage }}%
                             </span>
                         </td>
                         <td class="py-3 px-3 text-center">
                             {% if w.has_bonus %}
-                            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black flex items-center justify-center gap-1 w-max mx-auto">
+                            <span
+                                class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black flex items-center justify-center gap-1 w-max mx-auto">
                                 <i class="fa-solid fa-award"></i> +30,000 UZS Bonus
                             </span>
                             {% else %}

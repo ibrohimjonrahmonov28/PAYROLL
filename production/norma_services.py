@@ -222,3 +222,4 @@ def get_workers_norma_breakdown(target_date: datetime.date = None) -> list:
 
     result.sort(key=lambda x: x['total_percentage'], reverse=True)
     return result
+

@@ -623,6 +623,12 @@ class Box(models.Model):
         null=True, 
         verbose_name="Razmer (O'lcham)"
     )
+    pastal_number = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name="Pastal raqami (Pastal Code)"
+    )
     meto_range = models.CharField(
         max_length=100,
         blank=True,
@@ -639,9 +645,15 @@ class Box(models.Model):
         unique_together = ('order', 'box_number')
         ordering = ['order', 'box_number']
 
+    @property
+    def pastal_code(self):
+        return self.pastal_number
+
     def save(self, *args, **kwargs):
         if not self.box_code:
             self.box_code = generate_unique_box_code()
+        if not self.pastal_number and self.cutting_batch_item and self.cutting_batch_item.batch:
+            self.pastal_number = str(self.cutting_batch_item.batch.batch_number)
         super().save(*args, **kwargs)
 
     @property

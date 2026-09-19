@@ -79,7 +79,7 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
 
 
 @transaction.atomic
-def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1, razmer: str = None) -> list[Box]:
+def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1, razmer: str = None, pastal_number: str = '') -> list[Box]:
     """
     Admin uchun quti(lar) yaratish va har bir quti uchun darhol QR biletlarni avtomatik generatsiya qilish.
     Admin umumiy zakaz hajmiga qaramasdan, kerakli model va dona soni (masalan 100 talik) bo'yicha qutilarni chiqaradi.
@@ -105,6 +105,7 @@ def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1
             box_number=next_number,
             quantity=quantity,
             razmer=razmer,
+            pastal_number=pastal_number,
             status=Box.Status.CREATED
         )
         # Har bir quti uchun barcha operatsiyalar bo'yicha darhol QR biletlar tayyor bo'ladi!
@@ -122,7 +123,8 @@ def create_boxes_for_order(
     article=None, 
     razmer: str = None,
     cutting_batch_item=None,
-    meto_range: str = ''
+    meto_range: str = '',
+    pastal_number: str = ''
 ) -> list[Box]:
     """
     Buyurtmani qutilarga (boxes/bundles) ajratish va biletlarni generatsiya qilish.
@@ -145,6 +147,7 @@ def create_boxes_for_order(
             box_number=next_number,
             quantity=qty,
             razmer=razmer,
+            pastal_number=pastal_number,
             meto_range=meto_range,
             status=Box.Status.CREATED
         )
@@ -159,7 +162,8 @@ def create_boxes_for_order(
 def auto_generate_boxes_for_batch_item(
     batch_item,
     split_count: int = 1,
-    box_capacity: int = None
+    box_capacity: int = None,
+    pastal_number: str = None
 ) -> list[Box]:
     """
     Meto ishni tugatishi bilanoq avtomatik stikerlar va qutilarni generatsiya qilish:
@@ -188,13 +192,17 @@ def auto_generate_boxes_for_batch_item(
     if batch_item.meto_number_start or batch_item.meto_number_end:
         meto_range = f"#{batch_item.meto_number_start or '1'}-#{batch_item.meto_number_end or batch_item.effective_quantity}"
 
+    if pastal_number is None and batch_item.batch:
+        pastal_number = str(batch_item.batch.batch_number)
+
     boxes = create_boxes_for_order(
         order=order,
         box_sizes=box_sizes,
         article=article,
         razmer=size_name,
         cutting_batch_item=batch_item,
-        meto_range=meto_range
+        meto_range=meto_range,
+        pastal_number=pastal_number or ''
     )
     batch_item.boxes_created_qty += sum(box_sizes)
     batch_item.status = batch_item.Status.METO_CONFIRMED

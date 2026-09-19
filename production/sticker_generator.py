@@ -171,44 +171,39 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
     box_h = stiker_h
     diff_val = ticket.article_operation.difficulty_display if ticket.article_operation else "1"
     razmer_val = ticket.box.razmer.strip() if ticket.box and ticket.box.razmer else ""
+    pastal_val = (ticket.box.pastal_number or "").strip() if ticket.box else ""
 
     font_box_val = ImageFont.truetype(font_bold_path, 30) if font_bold_path else ImageFont.load_default()
 
+    # Ro'yxatdagi kataklar: (label, value, suffix, is_purple)
+    badges = [
+        ('SONI:', f"{ticket.quantity}", 'dona', False),
+        ('QIYINLIK:', f"{diff_val}", '', False),
+    ]
     if razmer_val:
-        b_gap = 12
-        b_w = (right_w - b_gap * 2) // 3
-        # 1. Son katagi
-        draw.rounded_rectangle([right_x, boxes_y, right_x + b_w, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((right_x + 10, boxes_y + 8), "SONI:", fill=(100, 116, 139), font=font_code)
-        draw.text((right_x + 10, boxes_y + 26), f"{ticket.quantity}", fill=(15, 23, 42), font=font_box_val)
-        draw.text((right_x + 95, boxes_y + 36), "dona", fill=(100, 116, 139), font=font_code)
+        badges.append(('RAZMER:', razmer_val, '', True))
+    if pastal_val:
+        badges.append(('PASTAL CODE:', pastal_val, '', False))
 
-        # 2. Qiyinlik katagi
-        b2_x = right_x + b_w + b_gap
-        draw.rounded_rectangle([b2_x, boxes_y, b2_x + b_w, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((b2_x + 10, boxes_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
-        draw.text((b2_x + 10, boxes_y + 26), f"{diff_val}", fill=(15, 23, 42), font=font_box_val)
+    b_count = len(badges)
+    b_gap = 10 if b_count >= 4 else 12
+    b_w = (right_w - b_gap * (b_count - 1)) // b_count
 
-        # 3. Razmer katagi
-        rz_x = b2_x + b_w + b_gap
-        draw.rounded_rectangle([rz_x, boxes_y, W - 40, boxes_y + box_h], radius=10, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
-        draw.text((rz_x + 10, boxes_y + 8), "RAZMER:", fill=(107, 33, 168), font=font_code)
-        font_rz = get_fitted_font(draw, razmer_val, W - 40 - rz_x - 20, font_bold_path, initial_size=30, min_size=18)
-        draw.text((rz_x + 10, boxes_y + 26), razmer_val, fill=(88, 28, 135), font=font_rz)
-    else:
-        b_gap = 16
-        half_w = (right_w - b_gap) // 2
-        # 1. Son katagi
-        draw.rounded_rectangle([right_x, boxes_y, right_x + half_w, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((right_x + 14, boxes_y + 8), "SONI:", fill=(100, 116, 139), font=font_code)
-        draw.text((right_x + 14, boxes_y + 26), f"{ticket.quantity}", fill=(15, 23, 42), font=font_box_val)
-        draw.text((right_x + 130, boxes_y + 36), "dona", fill=(100, 116, 139), font=font_code)
-
-        # 2. Qiyinlik katagi
-        q_x = right_x + half_w + b_gap
-        draw.rounded_rectangle([q_x, boxes_y, W - 40, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((q_x + 14, boxes_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
-        draw.text((q_x + 14, boxes_y + 26), f"{diff_val}", fill=(15, 23, 42), font=font_box_val)
+    for i, (b_label, b_val, b_suf, is_purp) in enumerate(badges):
+        bx = right_x + i * (b_w + b_gap)
+        bw_cur = b_w if i < b_count - 1 else (W - 40 - bx)
+        if is_purp:
+            draw.rounded_rectangle([bx, boxes_y, bx + bw_cur, boxes_y + box_h], radius=10, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
+            draw.text((bx + 8, boxes_y + 8), b_label, fill=(107, 33, 168), font=font_code)
+            font_v = get_fitted_font(draw, b_val, bw_cur - 16, font_bold_path, initial_size=30, min_size=18)
+            draw.text((bx + 8, boxes_y + 26), b_val, fill=(88, 28, 135), font=font_v)
+        else:
+            draw.rounded_rectangle([bx, boxes_y, bx + bw_cur, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+            draw.text((bx + 8, boxes_y + 8), b_label, fill=(100, 116, 139), font=font_code)
+            font_v = get_fitted_font(draw, b_val, bw_cur - (42 if b_suf else 16), font_bold_path, initial_size=30, min_size=18)
+            draw.text((bx + 8, boxes_y + 26), b_val, fill=(15, 23, 42), font=font_v)
+            if b_suf:
+                draw.text((bx + bw_cur - 38, boxes_y + 36), b_suf, fill=(100, 116, 139), font=font_code)
 
     # 5. PASTKI QISM (Footer): TERRY JAR, QUTI ID (Zakaz o'rnida), va Kod
     draw.line([(35, 642), (W - 35, 642)], fill=(226, 232, 240), width=2)

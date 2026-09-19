@@ -191,6 +191,7 @@ def order_detail_view(request, order_id: int):
             box_size = int(request.POST.get('box_size', 100))
             article_id = request.POST.get('article_id')
             razmer = request.POST.get('razmer', '').strip() or None
+            pastal_number = request.POST.get('pastal_number', '').strip()
 
             article = None
             if article_id:
@@ -203,7 +204,14 @@ def order_detail_view(request, order_id: int):
                 messages.error(request, "Quti yaratish uchun avval zakazga model biriktirilgan bo'lishi kerak!")
                 return redirect('production:order_detail', order_id=order.id)
 
-            created = create_box_with_tickets(order=order, article=article, quantity=box_size, count=box_count, razmer=razmer)
+            created = create_box_with_tickets(
+                order=order,
+                article=article,
+                quantity=box_size,
+                count=box_count,
+                razmer=razmer,
+                pastal_number=pastal_number
+            )
             messages.success(request, f"{len(created)} ta {box_size} talik quti va ularning barcha QR stikerlari muvaffaqiyatli yaratildi!")
             return redirect('production:order_detail', order_id=order.id)
 

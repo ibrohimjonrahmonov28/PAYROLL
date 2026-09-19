@@ -268,3 +268,4 @@ def norma_sync(request):
     sync_all_models_for_date(target_date)
     messages.success(request, f"{target_date.strftime('%d.%m.%Y')} sanasi uchun barcha modellar normasi qayta hisoblandi!")
     return redirect(f"/norma/?date={target_date.strftime('%Y-%m-%d')}")
+

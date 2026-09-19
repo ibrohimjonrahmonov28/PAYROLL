@@ -11,3 +11,4 @@ urlpatterns = [
     path('workers/', norma_views.norma_workers, name='norma_workers'),
     path('sync/', norma_views.norma_sync, name='norma_sync'),
 ]
+

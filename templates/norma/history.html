@@ -34,7 +34,7 @@
                 class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none">
                 <option value="">Barcha Modellar</option>
                 {% for pm in all_models %}
-                <option value="{{ pm.id }}" {% if selected_model_id == pm.id|stringformat:"s" %}selected{% endif %}>
+                <option value="{{ pm.id }}" {% if selected_model_id==pm.id|stringformat:"s" %}selected{% endif %}>
                     {{ pm.code }} — {{ pm.name }}
                 </option>
                 {% endfor %}
@@ -59,7 +59,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead>
-                    <tr class="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-bold uppercase tracking-wider">
+                    <tr
+                        class="border-b border-slate-800 bg-slate-950/50 text-slate-400 font-bold uppercase tracking-wider">
                         <th class="py-3.5 px-4">Sana</th>
                         <th class="py-3.5 px-4">Model</th>
                         <th class="py-3.5 px-4 text-center">Kunlik Norma</th>
@@ -97,17 +98,20 @@
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 text-center">
-                            <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs {% if rec.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
+                            <span
+                                class="px-2.5 py-1 rounded-lg font-mono font-black text-xs {% if rec.total_percentage >= 100 %}bg-emerald-950/80 text-emerald-300 border border-emerald-800{% else %}bg-slate-950 text-slate-300 border border-slate-800{% endif %}">
                                 {{ rec.total_percentage }}%
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-center">
                             {% if rec.is_completed %}
-                            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-black uppercase">
+                            <span
+                                class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-black uppercase">
                                 Bajarildi
                             </span>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black uppercase">
+                            <span
+                                class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black uppercase">
                                 Bajarilmadi
                             </span>
                             {% endif %}

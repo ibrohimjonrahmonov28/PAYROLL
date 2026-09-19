@@ -138,12 +138,18 @@
                     {% for box in boxes %}
                     <tr class="hover:bg-slate-800/50 transition">
                         <td class="py-4 px-4 font-mono">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span
                                     class="px-2.5 py-1 rounded-lg bg-slate-950 border border-amber-500/30 text-amber-300 font-bold">
                                     Quti #{{ box.box_number }}
                                 </span>
                                 <span class="text-slate-500 font-mono text-[11px]">{{ box.box_code }}</span>
+                                {% if box.pastal_number %}
+                                <span
+                                    class="px-2 py-0.5 rounded-md bg-sky-950 border border-sky-800 text-sky-300 text-[10px] font-bold font-mono">
+                                    Pastal: {{ box.pastal_number }}
+                                </span>
+                                {% endif %}
                             </div>
                         </td>
                         <td class="py-4 px-4">

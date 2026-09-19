@@ -228,10 +228,12 @@ def meto_confirm_item(request, item_id: int):
         batch_item.save()
 
         # AVTOMATIK STIKERLAR VA QUTILARNI GENERATSIYA QILISH
+        pastal_number = request.POST.get('pastal_number', '').strip() or str(batch_item.batch.batch_number)
         boxes = auto_generate_boxes_for_batch_item(
             batch_item=batch_item,
             split_count=split_count,
-            box_capacity=box_capacity
+            box_capacity=box_capacity,
+            pastal_number=pastal_number
         )
 
     ops_count = ArticleOperation.objects.filter(article=article).count()
