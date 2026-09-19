@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Sum, Count, Q, F
+from django.db.models import Sum, Count, Q, F, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
@@ -529,18 +529,23 @@ def box_pipeline_statistics_view(request):
     status_filter = request.GET.get('status', 'ALL').strip().upper()
     clean_q = q.lstrip('#').strip()
 
+    ordered_tickets = Ticket.objects.select_related(
+        'article_operation__article',
+        'article_operation__operation',
+        'worker__user',
+        'scanned_by'
+    ).order_by('article_operation__sequence', 'split_index', 'id')
+
     boxes_qs = Box.objects.annotate(
         annotated_total_tickets=Count('tickets', distinct=True),
         annotated_scanned_tickets=Count('tickets', filter=Q(tickets__status=Ticket.Status.SCANNED), distinct=True)
     ).select_related(
-        'order', 
-        'order__customer', 
-        'article', 
+        'order__customer',
+        'order__article',
         'article__model'
     ).prefetch_related(
-        'tickets__article_operation__operation',
-        'tickets__worker__user',
-        'tickets__scanned_by'
+        'order__items__article',
+        Prefetch('tickets', queryset=ordered_tickets, to_attr='prefetched_tickets')
     ).order_by('-created_at', 'order', 'box_number')
 
     highlighted_ticket_id = None
@@ -585,19 +590,17 @@ def box_pipeline_statistics_view(request):
             Q(status=Box.Status.CREATED, annotated_scanned_tickets=0) | Q(annotated_scanned_tickets=0)
         )
 
-    all_boxes = Box.objects.annotate(
-        total_tix=Count('tickets', distinct=True),
-        scanned_tix=Count('tickets', filter=Q(tickets__status=Ticket.Status.SCANNED), distinct=True)
+    # Tezkor bitta agregatsiya so'rovi (1ms)
+    counts = Box.objects.aggregate(
+        total=Count('id'),
+        in_prog=Count('id', filter=Q(status=Box.Status.IN_PROGRESS)),
+        comp=Count('id', filter=Q(status=Box.Status.COMPLETED))
     )
-    total_boxes_count = all_boxes.count()
-    completed_boxes_count = all_boxes.filter(
-        Q(status=Box.Status.COMPLETED) | Q(total_tix__gt=0, scanned_tix=F('total_tix'))
-    ).distinct().count()
-    in_progress_boxes_count = all_boxes.filter(
-        Q(status=Box.Status.IN_PROGRESS) | Q(scanned_tix__gt=0, scanned_tix__lt=F('total_tix'))
-    ).distinct().count()
+    total_boxes_count = counts['total'] or 0
+    in_progress_boxes_count = counts['in_prog'] or 0
+    completed_boxes_count = counts['comp'] or 0
 
-    paginator = Paginator(boxes_qs, 40)
+    paginator = Paginator(boxes_qs, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
@@ -605,7 +608,10 @@ def box_pipeline_statistics_view(request):
     current_tz = timezone.get_current_timezone()
 
     for b in page_obj:
-        b_tickets = list(b.tickets.all().order_by('article_operation__sequence', 'split_index', 'id'))
+        b_tickets = getattr(b, 'prefetched_tickets', None)
+        if b_tickets is None:
+            b_tickets = list(b.tickets.all().order_by('article_operation__sequence', 'split_index', 'id'))
+
         tickets_info = []
         scanned_cnt = 0
 
