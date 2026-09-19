@@ -244,26 +244,13 @@
         {% for ticket in box_item.tickets %}
         <div
             class="sticker-card rounded-xl shadow-sm border-2 border-slate-950 p-2 flex flex-col justify-between bg-white text-slate-950">
-            <!-- 1. TOP HEADER: OPERATSIYA NOMI (chapda) | QUTI ID (o'ngda) -->
-            <div class="flex items-stretch justify-between border-b-2 border-slate-950 pb-1 gap-2">
-                <!-- Operatsiya Nomi (Katta va qalin) -->
-                <div class="min-w-0 flex-1 flex flex-col justify-center">
-                    <span
-                        class="text-[7.5px] font-black uppercase text-slate-500 tracking-wider leading-none">OPERATSIYA
-                        NOMI:</span>
-                    <div class="text-xs font-black text-slate-950 uppercase truncate leading-tight mt-0.5"
-                        title="{{ ticket.article_operation.operation.name }}">
-                        {{ ticket.article_operation.operation.name }}
-                    </div>
-                </div>
-                <!-- Quti ID (O'ng burchak) -->
-                <div class="border-l-2 border-slate-950 pl-2 flex flex-col justify-center items-end flex-shrink-0">
-                    <span class="text-[7.5px] font-black uppercase text-slate-500 tracking-wider leading-none">QUTI
-                        ID:</span>
-                    <div
-                        class="font-mono font-black text-[11px] px-2 py-0.5 bg-amber-100 border border-slate-950 text-slate-950 rounded mt-0.5 leading-tight">
-                        QUTI #{{ ticket.box.box_number }} [{{ ticket.box.box_code }}]
-                    </div>
+            <!-- 1. TOP HEADER: OPERATSIYA NOMI (Butun qatorni egallaydi, katta va qalin) -->
+            <div class="border-b-2 border-slate-950 pb-1 flex flex-col justify-center">
+                <span class="text-[6.5px] font-black uppercase text-slate-400 tracking-wider leading-none">OPERATSIYA
+                    NOMI:</span>
+                <div class="text-[13.5px] font-black text-slate-950 uppercase truncate leading-tight mt-0.5 tracking-tight"
+                    title="{{ ticket.article_operation.operation.name }}">
+                    {{ ticket.article_operation.operation.name }}
                 </div>
             </div>
 
@@ -353,12 +340,16 @@
                 </div>
             </div>
 
-            <!-- 3. FOOTER: TERRY JAR & Zakaz raqami & Kod -->
+            <!-- 3. FOOTER: TERRY JAR & QUTI ID (Zakaz o'rnida) & Kod -->
             <div
-                class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7.5px] text-slate-600 font-bold uppercase tracking-wider">
-                <span class="font-extrabold text-slate-900">TERRY JAR</span>
-                <span>Zakaz: {{ ticket.box.order.order_number }}</span>
-                <span class="font-mono text-[7.5px] text-slate-500 tracking-tight">{% if ticket.stiker_code %}{{
+                class="border-t border-slate-300 pt-1 flex items-center justify-between text-[8px] text-slate-600 font-bold uppercase tracking-wider">
+                <span class="font-extrabold text-slate-900 tracking-wider">TERRY JAR</span>
+                <span
+                    class="font-mono font-black text-[9px] text-slate-950 px-2 py-0.5 bg-amber-100 border border-slate-950 rounded leading-none">
+                    QUTI #{{ ticket.box.box_number }} [{{ ticket.box.box_code }}]
+                </span>
+                <span class="font-mono text-[8px] text-slate-700 tracking-tight font-black">{% if ticket.stiker_code
+                    %}#{{
                     ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
             </div>
         </div>

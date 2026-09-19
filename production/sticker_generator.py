@@ -74,30 +74,20 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
     # 1. Tashqi ramka (Outer border)
     draw.rounded_rectangle([18, 18, W - 18, H - 18], radius=20, fill='white', outline=(15, 23, 42), width=4)
 
-    # 2. YUQORI SARLAVHA: Chapda OPERATSIYA NOMI | O'ngda QUTI ID
+    # 2. YUQORI SARLAVHA: OPERATSIYA NOMI (Butun qator bo'ylab katta va qalin)
     header_h = 120
-    header_split_x = 760
     draw.line([(18, header_h), (W - 18, header_h)], fill=(15, 23, 42), width=3)
-    draw.line([(header_split_x, 18), (header_split_x, header_h)], fill=(15, 23, 42), width=3)
 
-    # Chap: OPERATSIYA NOMI
+    # OPERATSIYA NOMI
     op_name = ""
     if ticket.article_operation and ticket.article_operation.operation:
         op_name = ticket.article_operation.operation.name
     else:
         op_name = "Operatsiya"
 
-    draw.text((42, 26), "OPERATSIYA NOMI:", fill=(100, 116, 139), font=font_small)
-    font_op = get_fitted_font(draw, op_name.upper(), header_split_x - 70, font_bold_path, initial_size=38, min_size=24)
-    draw.text((42, 54), op_name.upper(), fill=(15, 23, 42), font=font_op)
-
-    # O'ng: QUTI ID
-    box_num = ticket.box.box_number if ticket.box else 0
-    box_code = ticket.box.box_code if ticket.box else ""
-    draw.text((header_split_x + 25, 26), "QUTI ID:", fill=(100, 116, 139), font=font_small)
-    draw.rounded_rectangle([header_split_x + 25, 52, W - 40, 106], radius=10, fill=(254, 243, 199), outline=(15, 23, 42), width=2)
-    box_badge_text = f"QUTI #{box_num} [{box_code}]"
-    draw.text((header_split_x + 40, 68), box_badge_text, fill=(15, 23, 42), font=font_badge)
+    draw.text((42, 24), "OPERATSIYA NOMI:", fill=(100, 116, 139), font=font_small)
+    font_op = get_fitted_font(draw, op_name.upper(), W - 84, font_bold_path, initial_size=44, min_size=24)
+    draw.text((42, 52), op_name.upper(), fill=(15, 23, 42), font=font_op)
 
     # 3. KATTA QR KOD VA KICHIKROQ STIKER ID (User talabi)
     qr_x = 40
@@ -172,11 +162,9 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
     draw.text((right_x, 256), art_code.upper()[:28], fill=(15, 23, 42), font=font_art)
     draw.line([(right_x, 302), (W - 40, 302)], fill=(203, 213, 225), width=2)
 
-    # Zakaz va Bo'lak
-    order_num = ticket.box.order.order_number if ticket.box and ticket.box.order else "ZAKAZ"
-    draw.text((right_x, 316), f"ZAKAZ: {order_num}", fill=(71, 85, 105), font=font_medium)
+    # Bo'lak (Split) agar mavjud bo'lsa
     if ticket.total_splits > 1:
-        draw.text((right_x, 355), f"BO'LAK (SPLIT): {ticket.split_index} / {ticket.total_splits}", fill=(79, 70, 229), font=font_medium)
+        draw.text((right_x, 320), f"BO'LAK (SPLIT): {ticket.split_index} / {ticket.total_splits}", fill=(79, 70, 229), font=font_medium)
 
     # Pastki Kataklar (Soni, Qiyinlik, Razmer) - STIKER ID bilan bir xil chiziqda pastda
     boxes_y = stiker_y
@@ -222,11 +210,22 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
         draw.text((q_x + 14, boxes_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
         draw.text((q_x + 14, boxes_y + 26), f"{diff_val}", fill=(15, 23, 42), font=font_box_val)
 
-    # 5. PASTKI QISM (Footer)
+    # 5. PASTKI QISM (Footer): TERRY JAR, QUTI ID (Zakaz o'rnida), va Kod
     draw.line([(35, 642), (W - 35, 642)], fill=(226, 232, 240), width=2)
-    draw.text((42, 656), "TERRY JAR • OPERATSIYA QR BILETI • 100x60 MM", fill=(148, 163, 184), font=font_code)
+    draw.text((42, 656), "TERRY JAR", fill=(15, 23, 42), font=font_badge)
+
+    # Quti ID badge markazda
+    box_num = ticket.box.box_number if ticket.box else 0
+    box_code = ticket.box.box_code if ticket.box else ""
+    box_badge_text = f"QUTI #{box_num} [{box_code}]"
+    box_badge_w = 340
+    box_badge_x = (W - box_badge_w) // 2
+    draw.rounded_rectangle([box_badge_x, 648, box_badge_x + box_badge_w, 694], radius=8, fill=(254, 243, 199), outline=(15, 23, 42), width=2)
+    font_badge_box = get_fitted_font(draw, box_badge_text, box_badge_w - 20, font_bold_path, initial_size=24, min_size=18)
+    draw.text((box_badge_x + 18, 658), box_badge_text, fill=(15, 23, 42), font=font_badge_box)
+
     short_code = getattr(ticket, 'stiker_code', None) or ticket.short_hash or ticket.ticket_code[-12:]
-    draw.text((W - 320, 656), f"KOD: {short_code}", fill=(100, 116, 139), font=font_code)
+    draw.text((W - 220, 656), f"#{short_code}", fill=(100, 116, 139), font=font_code)
 
     return img
 
