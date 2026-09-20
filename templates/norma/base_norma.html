@@ -104,10 +104,12 @@
     </header>
 
     <!-- Main Container -->
-    <main class="{% if request.resolver_match.url_name == 'norma_canvas' %}flex-1 w-full flex flex-col overflow-hidden p-0 max-w-none{% else %}flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6{% endif %}">
+    <main
+        class="{% if request.resolver_match.url_name == 'norma_canvas' %}flex-1 w-full flex flex-col overflow-hidden p-0 max-w-none{% else %}flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6{% endif %}">
         <!-- Messages -->
         {% if messages %}
-        <div class="{% if request.resolver_match.url_name == 'norma_canvas' %}fixed top-16 right-4 z-50 max-w-md{% else %}mb-6{% endif %} space-y-2">
+        <div
+            class="{% if request.resolver_match.url_name == 'norma_canvas' %}fixed top-16 right-4 z-50 max-w-md{% else %}mb-6{% endif %} space-y-2">
             {% for message in messages %}
             <div
                 class="p-4 rounded-xl text-sm font-semibold flex items-center justify-between shadow-lg {% if message.tags == 'error' %}bg-rose-950/90 text-rose-200 border border-rose-800{% elif message.tags == 'success' %}bg-emerald-950/90 text-emerald-200 border border-emerald-800{% elif message.tags == 'warning' %}bg-amber-950/90 text-amber-200 border border-amber-800{% else %}bg-slate-900/90 text-slate-200 border border-slate-700{% endif %}">
