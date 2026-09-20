@@ -839,6 +839,114 @@ class ModelOperationsAndSequenceTest(TestCase):
         self.assertEqual(ao2.sequence, 1)
 
 
+class NormaCanvasTest(TestCase):
+    def setUp(self):
+        User.objects.filter(username='admin_canvas_test').delete()
+        self.admin = User.objects.create_superuser('admin_canvas_test', 'admin_canvas_test@test.com', 'password123')
+        self.client.force_login(self.admin)
+
+        self.model = ProductModel.objects.create(
+            code="MOD-CANVAS-01",
+            name="Canvas Test Model",
+            daily_norm=0  # hali belgilanmagan
+        )
+        self.article = Article.objects.create(
+            code="ART-CANVAS-01",
+            name="Canvas Test Article",
+            model=self.model,
+            daily_norm=0
+        )
+        self.order = Order.objects.create(
+            order_number="ORD-CANVAS-100",
+            client_name="Canvas Client",
+            status=Order.Status.IN_PROGRESS,
+            total_quantity=200
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order,
+            article=self.article,
+            quantity=200,
+            norm=0
+        )
+
+    def test_canvas_view_renders_correctly(self):
+        from django.urls import reverse
+        res = self.client.get(reverse('norma_canvas'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "DB Sxema")
+        self.assertContains(res, "ORD-CANVAS-100")
+        self.assertContains(res, "ART-CANVAS-01")
+
+    def test_canvas_save_validation_rejects_missing_norm_or_operations(self):
+        import json
+        from django.urls import reverse
+
+        # 1. Normasiz so'rov
+        res_no_norm = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps({
+                'article_ids': [self.article.id],
+                'daily_norm': 0,
+                'operations': [{'name': 'Yoqa tikish', 'sequence': 1, 'price': 500, 'difficulty': 1.0}]
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_no_norm.status_code, 400)
+        self.assertFalse(res_no_norm.json()['success'])
+        self.assertIn("norma soni", res_no_norm.json()['error'].lower())
+
+        # 2. Operatsiyalarsiz so'rov
+        res_no_ops = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps({
+                'article_ids': [self.article.id],
+                'daily_norm': 1500,
+                'operations': []
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_no_ops.status_code, 400)
+        self.assertFalse(res_no_ops.json()['success'])
+        self.assertIn("operatsiya", res_no_ops.json()['error'].lower())
+
+    def test_canvas_save_success_updates_norm_operations_and_status(self):
+        import json
+        from django.urls import reverse
+
+        payload = {
+            'article_ids': [self.article.id],
+            'daily_norm': 1500,
+            'operations': [
+                {'name': 'Yoqa tikish', 'sequence': 1, 'price': 450, 'difficulty': 1.0},
+                {'name': 'Yeng ulash', 'sequence': 2, 'price': 600, 'difficulty': 1.2},
+            ]
+        }
+
+        res = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['daily_norm'], 1500)
+        self.assertEqual(data['operations_count'], 2)
+
+        # Bazadagi o'zgarishlarni tekshirish
+        self.article.refresh_from_db()
+        self.model.refresh_from_db()
+        self.order_item.refresh_from_db()
+
+        self.assertEqual(self.article.daily_norm, 1500)
+        self.assertEqual(self.model.daily_norm, 1500)
+        self.assertEqual(self.order_item.norm, 1500)
+
+        self.assertEqual(self.article.article_operations.count(), 2)
+        self.assertEqual(self.model.model_operations.count(), 2)
+
+
+
 
 
 

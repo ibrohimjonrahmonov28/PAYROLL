@@ -1,0 +1,736 @@
+{% extends 'norma/base_norma.html' %}
+
+{% block title %}Norma & Operatsiyalar Doskasi (DB Sxema) — TERRY JAR{% endblock %}
+
+{% block content %}
+<!-- FULLSCREEN DB DESIGN CANVAS CONTAINER -->
+<div
+    class="relative w-full h-[calc(100vh-8.5rem)] rounded-2xl overflow-hidden border border-slate-800 bg-[#070d18] shadow-2xl flex flex-col select-none">
+
+    <!-- CANVAS TOP CONTROL TOOLBAR -->
+    <div
+        class="z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap flex-shrink-0">
+        <!-- Left: Title & Live Stats -->
+        <div class="flex items-center gap-3">
+            <div
+                class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-indigo-600/30">
+                <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-black text-white flex items-center gap-2 leading-none">
+                    DB Sxema & Norma Doskasi
+                    <span
+                        class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full font-mono uppercase">
+                        Interaktiv Bog'lanish
+                    </span>
+                </h1>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                    Aktiv zakazlar: <strong class="text-white">{{ total_orders_count }} ta</strong> •
+                    Artikullar: <strong class="text-white">{{ total_articles_count }} ta</strong> •
+                    Tayyor (Yashil): <strong id="stat-ready-count" class="text-emerald-400">{{ ready_articles_count }}
+                        ta</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- Center: Search Filter -->
+        <div class="flex items-center gap-2 flex-1 max-w-xs">
+            <div class="relative w-full">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" id="canvas-search-input" placeholder="Zakaz yoki artikul qidirish..."
+                    oninput="filterCanvas(this.value)"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+            </div>
+        </div>
+
+        <!-- Right: Zoom & Navigation Controls -->
+        <div class="flex items-center gap-1.5">
+            <button onclick="zoomIn()"
+                class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center text-xs"
+                title="Yaqinlashtirish (Zoom In)">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+            <button onclick="zoomOut()"
+                class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center text-xs"
+                title="Uzoqlashtirish (Zoom Out)">
+                <i class="fa-solid fa-minus"></i>
+            </button>
+            <span id="zoom-level-badge"
+                class="px-2 py-1 bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-slate-400 rounded-lg">
+                100%
+            </span>
+            <button onclick="resetZoom()"
+                class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition"
+                title="100% ga qaytarish">
+                1:1
+            </button>
+            <button onclick="fitAll()"
+                class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-1"
+                title="Barcha kartochkalarni markazga keltirish">
+                <i class="fa-solid fa-expand text-[10px]"></i> Markaz
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE CANVAS VIEWPORT -->
+    <div id="canvas-viewport" class="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing">
+        <!-- Background Grid Pattern -->
+        <div class="absolute inset-0 pointer-events-none opacity-20"
+            style="background-image: radial-gradient(#6366f1 1.5px, transparent 1.5px); background-size: 28px 28px;">
+        </div>
+
+        <!-- Transformable Canvas World -->
+        <div id="canvas-world"
+            class="absolute left-0 top-0 transition-transform duration-75 origin-top-left p-12 min-w-max">
+            <!-- Grid of Orders (DB Entities) -->
+            <div id="orders-board" class="flex flex-wrap gap-8 items-start max-w-[3600px]">
+                {% for ord in orders_data %}
+                <div id="order-card-{{ ord.id }}"
+                    class="order-card w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-200 hover:border-slate-700 hover:shadow-indigo-950/20"
+                    data-order-number="{{ ord.order_number|lower }}" data-order-client="{{ ord.client_name|lower }}">
+
+                    <!-- Order Table Header (DB Entity Header) -->
+                    <div
+                        class="bg-gradient-to-r from-slate-950 to-slate-900 p-3.5 border-b border-slate-800 flex items-center justify-between">
+                        <div class="min-w-0">
+                            <span
+                                class="text-[10px] font-mono font-black uppercase text-indigo-400 block tracking-wider">
+                                BUYURTMA #{{ ord.order_number }}
+                            </span>
+                            <strong class="text-xs text-white font-bold block truncate" title="{{ ord.client_name }}">
+                                {{ ord.client_name }}
+                            </strong>
+                        </div>
+                        <span
+                            class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-mono font-bold text-slate-300">
+                            {{ ord.total_quantity }} dona
+                        </span>
+                    </div>
+
+                    <!-- Order Articles List -->
+                    <div class="p-3 space-y-2 bg-slate-900/60 flex-1">
+                        {% for art in ord.articles %}
+                        <div id="art-card-{{ art.id }}" onclick="toggleArticleSelection({{ art.id }}, event)"
+                            class="art-card p-2.5 rounded-xl border transition-all duration-200 cursor-pointer {% if art.is_ready %}bg-emerald-950/30 border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.15)]{% else %}bg-slate-950/80 border-slate-800 hover:border-slate-700{% endif %}"
+                            data-art-id="{{ art.id }}" data-art-code="{{ art.code }}" data-art-name="{{ art.name }}"
+                            data-art-norm="{{ art.daily_norm }}" data-art-ready="{{ art.is_ready|yesno:'true,false' }}"
+                            data-art-ops-count="{{ art.operations_count }}" data-art-rate="{{ art.unit_total_rate }}"
+                            data-model-id="{{ art.model_id|default:'' }}"
+                            data-model-code="{{ art.model_code|default:'' }}">
+
+                            <div class="flex items-start gap-2.5">
+                                <!-- Checkbox -->
+                                <input type="checkbox" id="check-art-{{ art.id }}" value="{{ art.id }}"
+                                    onclick="event.stopPropagation(); handleCheckboxChange({{ art.id }})"
+                                    class="mt-1 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
+
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <strong class="font-mono text-xs font-black text-white truncate">{{ art.code
+                                            }}</strong>
+                                        {% if art.model_code %}
+                                        <span
+                                            class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 truncate max-w-[110px]"
+                                            title="{{ art.model_name }}">
+                                            {{ art.model_code }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 block truncate mt-0.5">{{ art.name }}</span>
+
+                                    <!-- Status Pill -->
+                                    <div class="mt-2 flex items-center justify-between gap-1 text-[10px]">
+                                        {% if art.is_ready %}
+                                        <span
+                                            class="status-badge font-bold text-emerald-400 flex items-center gap-1 font-mono">
+                                            <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i>
+                                            Norma: {{ art.daily_norm }} | {{ art.operations_count }} op.
+                                        </span>
+                                        <span class="font-mono text-emerald-300 font-bold">
+                                            {{ art.unit_total_rate|floatformat:0 }} so'm
+                                        </span>
+                                        {% else %}
+                                        <span
+                                            class="status-badge font-bold text-amber-400 flex items-center gap-1 font-mono">
+                                            <i class="fa-solid fa-triangle-exclamation text-amber-400 text-[10px]"></i>
+                                            Kutilmoqda (Norma/Op. yo'q)
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        {% empty %}
+                        <div class="py-4 text-center text-slate-600 text-xs italic">
+                            Artikullar yo'q
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-16 text-center text-slate-500 mx-auto">
+                    <i class="fa-solid fa-boxes-packing text-5xl mb-3 block text-slate-700"></i>
+                    <strong class="text-lg block text-slate-300">Aktiv buyurtmalar topilmadi</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING ACTION DOCK (Slides up when 1+ articles selected) -->
+    <div id="floating-action-dock"
+        class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-xl border-2 border-indigo-500/80 rounded-2xl px-5 py-3 shadow-[0_10px_35px_rgba(99,102,241,0.3)] flex items-center gap-5 transition-all">
+        <div class="flex items-center gap-3">
+            <span
+                class="w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center font-mono"
+                id="selected-count-badge">
+                0
+            </span>
+            <div>
+                <strong class="text-xs font-black text-white block">ta artikul tanlandi</strong>
+                <span class="text-[10px] text-slate-400 font-mono" id="selected-codes-preview"></span>
+            </div>
+        </div>
+
+        <div class="h-8 w-px bg-slate-800"></div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="clearSelection()"
+                class="px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                Tozalash
+            </button>
+
+            <!-- BIG "+" BUTTON -->
+            <button onclick="openConfigModal()"
+                class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 animate-pulse">
+                <i class="fa-solid fa-plus text-sm"></i>
+                <span>Norma & Operatsiyalar kiritish</span>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- CONFIGURATION MODAL (Norma + Operatsiyalar kiritish) -->
+<div id="configModal"
+    class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 flex-shrink-0">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-indigo-400"></i>
+                    Tanlangan Artikullarga Norma va Operatsiyalarni Biriktirish
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Qat'iy qoida: <strong>Norma</strong> va kamida 1 ta <strong>Operatsiya</strong> kiritilmasa,
+                    saqlanmaydi!
+                </p>
+            </div>
+            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Selected Articles Chips -->
+        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex-shrink-0">
+            <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1.5">
+                Tanlangan artikullar:
+            </span>
+            <div id="modal-selected-tags" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto"></div>
+        </div>
+
+        <!-- Modal Body: Scrollable -->
+        <div class="overflow-y-auto space-y-6 flex-1 pr-1">
+
+            <!-- 1. KUNLIK NORMA SECTION -->
+            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <label
+                        class="block text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        1. Kunlik Norma Soni (dona / kun): <span class="text-rose-400">*</span>
+                    </label>
+                    <span class="text-[11px] text-slate-500 font-mono">Majburiy maydon</span>
+                </div>
+                <input type="number" id="input-daily-norm" placeholder="Masalan: 1500" min="1" required
+                    class="w-full bg-slate-900 border-2 border-amber-500/50 rounded-xl px-4 py-2.5 text-base text-amber-300 font-black font-mono digital-font focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
+                <p class="text-[11px] text-slate-400">
+                    Tikuvchilar ushbu modelni tikayotganda tizim hisoblaydigan kunlik reja miqdori (100% norma).
+                </p>
+            </div>
+
+            <!-- 2. OPERATSIYALAR SECTION -->
+            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <label
+                        class="block text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-ol text-indigo-400"></i>
+                        2. Operatsiyalar Ketma-ketligi: <span class="text-rose-400">*</span>
+                    </label>
+
+                    <!-- Quick Load from existing model -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] text-slate-400 font-bold">Modeldan nusxalash:</span>
+                        <select id="model-template-select" onchange="loadOperationsFromModelTemplate(this.value)"
+                            class="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
+                            <option value="">-- Mavjud modeldan olish --</option>
+                            {% for pm in all_models %}
+                            <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }}
+                                ta op.)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Operations Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr
+                                class="bg-slate-900/90 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                                <th class="py-2.5 px-3 w-20 text-center">Tartib №</th>
+                                <th class="py-2.5 px-3">Operatsiya Nomi</th>
+                                <th class="py-2.5 px-3 w-28 text-center">Qiyinlik</th>
+                                <th class="py-2.5 px-3 w-36">Dona Narxi</th>
+                                <th class="py-2.5 px-2 w-12 text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="operations-tbody" class="divide-y divide-slate-800/80 font-semibold bg-slate-900/40">
+                            <!-- Dynamic Rows Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Add Operation Row Button -->
+                <button type="button" onclick="addOperationRow()"
+                    class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-indigo-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-[10px]"></i> Yangi operatsiya qatori qo'shish
+                </button>
+            </div>
+
+            <!-- Error Banner in Modal -->
+            <div id="modal-error-banner"
+                class="hidden p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
+                <span id="modal-error-text"></span>
+            </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="border-t border-slate-800 pt-4 flex items-center justify-between flex-shrink-0">
+            <button type="button" onclick="closeConfigModal()"
+                class="px-4 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
+                Bekor qilish
+            </button>
+            <button type="button" id="btn-save-config" onclick="submitConfiguration()"
+                class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                <span>Saqlash va Tasdiqlash</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Datalist of Available Operations -->
+<datalist id="available-operations-list">
+    {% for op in all_operations %}
+    <option value="{{ op.name }}" data-code="{{ op.code }}" data-difficulty="{{ op.default_difficulty_display }}">
+        {% endfor %}
+</datalist>
+
+<!-- PASS DATA TO JS -->
+<script>
+    const MODELS_LOOKUP = {{ models_lookup_json| safe }};
+    const CSRF_TOKEN = '{{ csrf_token }}';
+
+    // State
+    let selectedArticleIds = new Set();
+    let selectedArticleData = {};
+
+    // Canvas Pan & Zoom Engine
+    let zoomLevel = 1.0;
+    let panX = 40;
+    let panY = 40;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    const viewport = document.getElementById('canvas-viewport');
+    const world = document.getElementById('canvas-world');
+
+    function applyTransform() {
+        world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+        document.getElementById('zoom-level-badge').innerText = `${Math.round(zoomLevel * 100)}%`;
+    }
+
+    // Pan Handlers
+    viewport.addEventListener('mousedown', (e) => {
+        // If clicking inside a card or button, don't pan canvas
+        if (e.target.closest('.art-card') || e.target.closest('button') || e.target.closest('input')) {
+            return;
+        }
+        isDragging = true;
+        dragStartX = e.clientX - panX;
+        dragStartY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = e.clientX - dragStartX;
+        panY = e.clientY - dragStartY;
+        applyTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    // Zoom Handlers
+    viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = 0.1;
+        if (e.deltaY < 0) {
+            zoomLevel = Math.min(2.0, zoomLevel + zoomFactor);
+        } else {
+            zoomLevel = Math.max(0.4, zoomLevel - zoomFactor);
+        }
+        applyTransform();
+    }, { passive: false });
+
+    function zoomIn() {
+        zoomLevel = Math.min(2.0, zoomLevel + 0.15);
+        applyTransform();
+    }
+
+    function zoomOut() {
+        zoomLevel = Math.max(0.4, zoomLevel - 0.15);
+        applyTransform();
+    }
+
+    function resetZoom() {
+        zoomLevel = 1.0;
+        panX = 40;
+        panY = 40;
+        applyTransform();
+    }
+
+    function fitAll() {
+        zoomLevel = 0.75;
+        panX = 30;
+        panY = 30;
+        applyTransform();
+    }
+
+    // Article Selection Logic
+    function handleCheckboxChange(artId) {
+        const chk = document.getElementById(`check-art-${artId}`);
+        const card = document.getElementById(`art-card-${artId}`);
+        if (chk.checked) {
+            selectedArticleIds.add(artId);
+            selectedArticleData[artId] = {
+                id: artId,
+                code: card.dataset.artCode,
+                name: card.dataset.artName,
+                norm: card.dataset.artNorm,
+                modelId: card.dataset.modelId,
+            };
+            card.classList.add('ring-2', 'ring-indigo-500');
+        } else {
+            selectedArticleIds.delete(artId);
+            delete selectedArticleData[artId];
+            card.classList.remove('ring-2', 'ring-indigo-500');
+        }
+        updateFloatingDock();
+    }
+
+    function toggleArticleSelection(artId, event) {
+        const chk = document.getElementById(`check-art-${artId}`);
+        if (!chk) return;
+        chk.checked = !chk.checked;
+        handleCheckboxChange(artId);
+    }
+
+    function clearSelection() {
+        selectedArticleIds.forEach(id => {
+            const chk = document.getElementById(`check-art-${id}`);
+            if (chk) chk.checked = false;
+            const card = document.getElementById(`art-card-${id}`);
+            if (card) card.classList.remove('ring-2', 'ring-indigo-500');
+        });
+        selectedArticleIds.clear();
+        selectedArticleData = {};
+        updateFloatingDock();
+    }
+
+    function updateFloatingDock() {
+        const dock = document.getElementById('floating-action-dock');
+        const countBadge = document.getElementById('selected-count-badge');
+        const previewText = document.getElementById('selected-codes-preview');
+
+        const count = selectedArticleIds.size;
+        countBadge.innerText = count;
+
+        if (count > 0) {
+            dock.classList.remove('hidden');
+            const codes = Object.values(selectedArticleData).map(d => d.code).slice(0, 4);
+            previewText.innerText = codes.join(', ') + (count > 4 ? ` +${count - 4}` : '');
+        } else {
+            dock.classList.add('hidden');
+        }
+    }
+
+    // Modal Logic
+    function openConfigModal() {
+        if (selectedArticleIds.size === 0) return;
+
+        // Populate chips
+        const tagsContainer = document.getElementById('modal-selected-tags');
+        tagsContainer.innerHTML = '';
+        let commonNorm = 0;
+        let commonModelId = null;
+
+        Object.values(selectedArticleData).forEach(item => {
+            const chip = document.createElement('span');
+            chip.className = "px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 text-xs font-mono font-bold";
+            chip.innerText = item.code;
+            tagsContainer.appendChild(chip);
+
+            if (item.norm && item.norm > 0) commonNorm = item.norm;
+            if (item.modelId) commonModelId = item.modelId;
+        });
+
+        // Set default norm if exists
+        const normInput = document.getElementById('input-daily-norm');
+        normInput.value = commonNorm > 0 ? commonNorm : (normInput.value || 1500);
+
+        // Pre-fill operations if model operations exist
+        const tbody = document.getElementById('operations-tbody');
+        tbody.innerHTML = '';
+
+        if (commonModelId && MODELS_LOOKUP[commonModelId] && MODELS_LOOKUP[commonModelId].operations.length > 0) {
+            loadOperationsFromModelTemplate(commonModelId);
+        } else {
+            // Add 3 initial empty rows
+            addOperationRow(1, 'Yoqa tikish', 1.0, 450);
+            addOperationRow(2, 'Yeng ulash', 1.0, 550);
+            addOperationRow(3, 'Etak qaytarish', 1.0, 350);
+        }
+
+        document.getElementById('modal-error-banner').classList.add('hidden');
+        document.getElementById('configModal').classList.remove('hidden');
+    }
+
+    function closeConfigModal() {
+        document.getElementById('configModal').classList.add('hidden');
+    }
+
+    function addOperationRow(seq = null, name = '', diff = 1.0, price = 0) {
+        const tbody = document.getElementById('operations-tbody');
+        const rowCount = tbody.children.length + 1;
+        const currentSeq = seq !== null ? seq : rowCount;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition";
+        tr.innerHTML = `
+            <td class="py-2 px-3 text-center">
+                <input type="number" class="op-seq w-12 bg-slate-950 border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1" value="${currentSeq}" min="1">
+            </td>
+            <td class="py-2 px-3">
+                <input type="text" list="available-operations-list" class="op-name w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-indigo-500" placeholder="Operatsiya nomi" value="${name}">
+            </td>
+            <td class="py-2 px-3 text-center">
+                <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-slate-950 border border-slate-700 rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1" value="${diff}">
+            </td>
+            <td class="py-2 px-3">
+                <div class="flex items-center gap-1">
+                    <input type="number" step="50" min="0" class="op-price w-24 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font" value="${price}">
+                    <span class="text-[10px] text-slate-500 font-sans">so'm</span>
+                </div>
+            </td>
+            <td class="py-2 px-2 text-center">
+                <button type="button" onclick="this.closest('tr').remove(); renumberOperations();" class="text-slate-500 hover:text-rose-400 p-1">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function renumberOperations() {
+        const rows = document.querySelectorAll('#operations-tbody tr');
+        rows.forEach((row, idx) => {
+            const seqInput = row.querySelector('.op-seq');
+            if (seqInput && !seqInput.dataset.custom) {
+                seqInput.value = idx + 1;
+            }
+        });
+    }
+
+    function loadOperationsFromModelTemplate(modelId) {
+        if (!modelId || !MODELS_LOOKUP[modelId]) return;
+        const modelData = MODELS_LOOKUP[modelId];
+
+        if (modelData.daily_norm && modelData.daily_norm > 0) {
+            document.getElementById('input-daily-norm').value = modelData.daily_norm;
+        }
+
+        const tbody = document.getElementById('operations-tbody');
+        tbody.innerHTML = '';
+        if (modelData.operations && modelData.operations.length > 0) {
+            modelData.operations.forEach(op => {
+                addOperationRow(op.sequence, op.name, op.difficulty, op.price);
+            });
+        }
+    }
+
+    // SUBMIT CONFIGURATION (Strict Validation)
+    async function submitConfiguration() {
+        const errorBanner = document.getElementById('modal-error-banner');
+        const errorText = document.getElementById('modal-error-text');
+        errorBanner.classList.add('hidden');
+
+        // 1. Validate Norma
+        const normVal = parseInt(document.getElementById('input-daily-norm').value);
+        if (!normVal || normVal <= 0) {
+            errorText.innerText = "Qat'iy qoida: Kunlik norma soni (dona/kun) kiritilishi shart (masalan: 1500)!";
+            errorBanner.classList.remove('hidden');
+            return;
+        }
+
+        // 2. Validate Operations
+        const rows = document.querySelectorAll('#operations-tbody tr');
+        if (rows.length === 0) {
+            errorText.innerText = "Qat'iy qoida: Kamida 1 ta operatsiya kiritilishi shart!";
+            errorBanner.classList.remove('hidden');
+            return;
+        }
+
+        const operations = [];
+        let hasEmptyName = false;
+        rows.forEach((row, idx) => {
+            const name = row.querySelector('.op-name').value.trim();
+            if (!name) hasEmptyName = true;
+            const seq = parseInt(row.querySelector('.op-seq').value) || (idx + 1);
+            const diff = parseFloat(row.querySelector('.op-diff').value) || 1.0;
+            const price = parseFloat(row.querySelector('.op-price').value) || 0.0;
+
+            operations.push({ sequence: seq, name: name, difficulty: diff, price: price });
+        });
+
+        if (hasEmptyName) {
+            errorText.innerText = "Barcha operatsiyalarning nomini to'ldiring!";
+            errorBanner.classList.remove('hidden');
+            return;
+        }
+
+        // Send AJAX Request
+        const btnSave = document.getElementById('btn-save-config');
+        btnSave.disabled = true;
+        btnSave.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...`;
+
+        try {
+            const response = await fetch("{% url 'norma_canvas_save' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": CSRF_TOKEN,
+                },
+                body: JSON.stringify({
+                    article_ids: Array.from(selectedArticleIds),
+                    daily_norm: normVal,
+                    operations: operations,
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                errorText.innerText = result.error || "Xatolik yuz berdi!";
+                errorBanner.classList.remove('hidden');
+                btnSave.disabled = false;
+                btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
+                return;
+            }
+
+            // SUCCESS: Update visual state of articles to VIBRANT GREEN
+            result.updated_article_ids.forEach(artId => {
+                const card = document.getElementById(`art-card-${artId}`);
+                if (card) {
+                    card.classList.remove('bg-slate-950/80', 'border-slate-800');
+                    card.classList.add('bg-emerald-950/30', 'border-emerald-500/80', 'shadow-[0_0_12px_rgba(16,185,129,0.15)]');
+
+                    // Update inner badge
+                    const statusElem = card.querySelector('.status-badge');
+                    if (statusElem) {
+                        statusElem.className = 'status-badge font-bold text-emerald-400 flex items-center gap-1 font-mono';
+                        statusElem.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> Norma: ${result.daily_norm} | ${result.operations_count} op.`;
+                    }
+                }
+            });
+
+            closeConfigModal();
+            clearSelection();
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
+
+            // Update stats
+            const readyElem = document.getElementById('stat-ready-count');
+            if (readyElem) {
+                const current = parseInt(readyElem.innerText) || 0;
+                readyElem.innerText = `${current + result.updated_article_ids.length} ta`;
+            }
+
+        } catch (err) {
+            console.error("Save error:", err);
+            errorText.innerText = "Server bilan bog'lanishda xatolik yuz berdi!";
+            errorBanner.classList.remove('hidden');
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
+        }
+    }
+
+    // Search filter
+    function filterCanvas(term) {
+        const cleanTerm = term.toLowerCase().trim();
+        const orderCards = document.querySelectorAll('.order-card');
+
+        orderCards.forEach(card => {
+            const ordNum = card.dataset.orderNumber || '';
+            const ordClient = card.dataset.orderClient || '';
+            const artCards = card.querySelectorAll('.art-card');
+
+            let hasMatchingArt = false;
+            artCards.forEach(ac => {
+                const code = (ac.dataset.artCode || '').toLowerCase();
+                const name = (ac.dataset.artName || '').toLowerCase();
+                if (!cleanTerm || code.includes(cleanTerm) || name.includes(cleanTerm)) {
+                    ac.classList.remove('opacity-25');
+                    hasMatchingArt = true;
+                } else {
+                    ac.classList.add('opacity-25');
+                }
+            });
+
+            if (!cleanTerm || ordNum.includes(cleanTerm) || ordClient.includes(cleanTerm) || hasMatchingArt) {
+                card.style.display = 'flex';
+                if (cleanTerm && hasMatchingArt) {
+                    card.classList.add('ring-2', 'ring-indigo-400');
+                } else {
+                    card.classList.remove('ring-2', 'ring-indigo-400');
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Initialize
+    applyTransform();
+</script>
+{% endblock %}

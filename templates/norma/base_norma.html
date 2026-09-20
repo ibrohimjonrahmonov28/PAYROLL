@@ -54,6 +54,10 @@
                             class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_dashboard' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
                             <i class="fa-solid fa-chart-pie text-xs"></i> Jonli Monitoring
                         </a>
+                        <a href="{% url 'norma_canvas' %}"
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_canvas' %}bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30 font-black{% else %}text-indigo-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            <i class="fa-solid fa-diagram-project text-xs"></i> Doska (DB Sxema)
+                        </a>
                         <a href="{% url 'norma_models_list' %}"
                             class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name in 'norma_models_list norma_model_edit norma_model_operations' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
                             <i class="fa-solid fa-layer-group text-xs"></i> Modellar & Normalar

@@ -3,6 +3,8 @@ from . import norma_views
 
 urlpatterns = [
     path('', norma_views.norma_dashboard, name='norma_dashboard'),
+    path('canvas/', norma_views.norma_canvas_view, name='norma_canvas'),
+    path('canvas/save/', norma_views.norma_canvas_save, name='norma_canvas_save'),
     path('models/', norma_views.norma_models_list, name='norma_models_list'),
     path('models/create/', norma_views.norma_model_create, name='norma_model_create'),
     path('models/<int:model_id>/edit/', norma_views.norma_model_edit, name='norma_model_edit'),
