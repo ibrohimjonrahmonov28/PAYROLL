@@ -7,23 +7,27 @@
 <div class="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-[#0c0f17] flex flex-col select-none">
 
     <!-- CANVAS TOP CONTROL TOOLBAR -->
-    <div class="z-30 bg-[#131722]/95 backdrop-blur-md border-b border-[#2a2e39] px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 shadow-lg">
+    <div
+        class="z-30 bg-[#131722]/95 backdrop-blur-md border-b border-[#2a2e39] px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 shadow-lg">
         <!-- Left: Title & Stats -->
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-indigo-600/30">
+            <div
+                class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-indigo-600/30">
                 <i class="fa-solid fa-database"></i>
             </div>
             <div>
                 <h1 class="text-sm font-black text-white flex items-center gap-2 leading-none">
                     DB Designer — Norma Sxemasi
-                    <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full font-mono uppercase">
+                    <span
+                        class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full font-mono uppercase">
                         app.dbdesign.io
                     </span>
                 </h1>
                 <p class="text-[11px] text-slate-400 mt-0.5">
-                    Aktiv zakazlar: <strong class="text-white">{{ total_orders_count }} ta</strong> • 
-                    Artikullar: <strong class="text-white">{{ total_articles_count }} ta</strong> • 
-                    Tayyor (Yashil): <strong id="stat-ready-count" class="text-emerald-400">{{ ready_articles_count }} ta</strong>
+                    Aktiv zakazlar: <strong class="text-white">{{ total_orders_count }} ta</strong> •
+                    Artikullar: <strong class="text-white">{{ total_articles_count }} ta</strong> •
+                    Tayyor (Yashil): <strong id="stat-ready-count" class="text-emerald-400">{{ ready_articles_count }}
+                        ta</strong>
                 </p>
             </div>
         </div>
@@ -47,7 +51,8 @@
 
             <!-- Search Filter -->
             <div class="relative">
-                <input type="text" id="canvas-search-input" onkeyup="filterCanvasSearch(this.value)" placeholder="Artikul, model, zakaz..."
+                <input type="text" id="canvas-search-input" onkeyup="filterCanvasSearch(this.value)"
+                    placeholder="Artikul, model, zakaz..."
                     class="bg-[#0c0f17] border border-[#2a2e39] rounded-xl pl-7 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-44">
                 <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-[10px]"></i>
             </div>
@@ -55,22 +60,33 @@
 
         <!-- Right: Zoom & Navigation Controls -->
         <div class="flex items-center gap-1.5">
-            <button onclick="zoomIn()" class="w-8 h-8 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] transition flex items-center justify-center text-xs" title="Yaqinlashtirish (Zoom In)">
+            <button onclick="zoomIn()"
+                class="w-8 h-8 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] transition flex items-center justify-center text-xs"
+                title="Yaqinlashtirish (Zoom In)">
                 <i class="fa-solid fa-plus"></i>
             </button>
-            <button onclick="zoomOut()" class="w-8 h-8 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] transition flex items-center justify-center text-xs" title="Uzoqlashtirish (Zoom Out)">
+            <button onclick="zoomOut()"
+                class="w-8 h-8 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] transition flex items-center justify-center text-xs"
+                title="Uzoqlashtirish (Zoom Out)">
                 <i class="fa-solid fa-minus"></i>
             </button>
-            <span id="zoom-level-badge" class="px-2 py-1 bg-[#0c0f17] border border-[#2a2e39] text-[11px] font-mono font-bold text-slate-400 rounded-lg">
+            <span id="zoom-level-badge"
+                class="px-2 py-1 bg-[#0c0f17] border border-[#2a2e39] text-[11px] font-mono font-bold text-slate-400 rounded-lg">
                 100%
             </span>
-            <button onclick="resetZoom()" class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition" title="100% ga qaytarish">
+            <button onclick="resetZoom()"
+                class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition"
+                title="100% ga qaytarish">
                 1:1
             </button>
-            <button onclick="fitAll()" class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition flex items-center gap-1" title="Markazga keltirish / Barchasi">
+            <button onclick="fitAll()"
+                class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition flex items-center gap-1"
+                title="Markazga keltirish / Barchasi">
                 <i class="fa-solid fa-expand text-[10px]"></i> Barchasi
             </button>
-            <button onclick="resetLayout()" class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition flex items-center gap-1" title="Barcha bloklarni boshlang'ich tartibiga qaytarish">
+            <button onclick="resetLayout()"
+                class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition flex items-center gap-1"
+                title="Barcha bloklarni boshlang'ich tartibiga qaytarish">
                 <i class="fa-solid fa-rotate-left text-[10px]"></i> Joylashuv
             </button>
         </div>
@@ -84,10 +100,12 @@
         </div>
 
         <!-- Transformable Canvas World -->
-        <div id="canvas-world" class="absolute left-0 top-0 transition-transform duration-75 origin-top-left p-12 min-w-[3600px] min-h-[2800px]">
-            
+        <div id="canvas-world"
+            class="absolute left-0 top-0 transition-transform duration-75 origin-top-left p-12 min-w-[3600px] min-h-[2800px]">
+
             <!-- SVG ORTHOGONAL CONNECTIONS LAYER (With Crow's Foot Forks matching app.dbdesign.io) -->
-            <svg id="connections-layer" class="absolute inset-0 pointer-events-none w-full h-full overflow-visible z-10">
+            <svg id="connections-layer"
+                class="absolute inset-0 pointer-events-none w-full h-full overflow-visible z-10">
                 <defs>
                     <linearGradient id="line-gradient-active" x1="0%" y1="0%" x2="100%" y2="0%">
                         <stop offset="0%" stop-color="#38bdf8" />
@@ -106,9 +124,12 @@
     </div>
 
     <!-- FLOATING ACTION DOCK (Bottom controls for selection & '+' button) -->
-    <div id="floating-action-dock" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-40 bg-[#161b26]/95 backdrop-blur-xl border-2 border-indigo-500/80 rounded-2xl px-5 py-3 shadow-[0_10px_35px_rgba(99,102,241,0.4)] flex items-center gap-5 transition-all">
+    <div id="floating-action-dock"
+        class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-40 bg-[#161b26]/95 backdrop-blur-xl border-2 border-indigo-500/80 rounded-2xl px-5 py-3 shadow-[0_10px_35px_rgba(99,102,241,0.4)] flex items-center gap-5 transition-all">
         <div class="flex items-center gap-3">
-            <span class="w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center font-mono" id="selected-count-badge">
+            <span
+                class="w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center font-mono"
+                id="selected-count-badge">
                 0
             </span>
             <div>
@@ -120,7 +141,8 @@
         <div class="h-8 w-px bg-slate-800"></div>
 
         <div class="flex items-center gap-2">
-            <button onclick="clearSelection()" class="px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <button onclick="clearSelection()"
+                class="px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
                 Tozalash
             </button>
 
@@ -136,9 +158,11 @@
 </div>
 
 <!-- CONFIGURATION MODAL (Norma + Operatsiyalar kiritish) -->
-<div id="configModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="bg-[#161b26] border border-[#2a2e39] rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
-        
+<div id="configModal"
+    class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div
+        class="bg-[#161b26] border border-[#2a2e39] rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+
         <!-- Modal Header -->
         <div class="flex items-center justify-between border-b border-[#2a2e39] pb-4 flex-shrink-0">
             <div>
@@ -147,7 +171,8 @@
                     Tanlangan Artikullarga Norma va Operatsiyalarni Biriktirish
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
-                    Qat'iy qoida: <strong>Norma</strong> va kamida 1 ta <strong>Operatsiya</strong> kiritilmasa, saqlanmaydi!
+                    Qat'iy qoida: <strong>Norma</strong> va kamida 1 ta <strong>Operatsiya</strong> kiritilmasa,
+                    saqlanmaydi!
                 </p>
             </div>
             <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1">
@@ -165,11 +190,12 @@
 
         <!-- Modal Body: Scrollable -->
         <div class="overflow-y-auto space-y-6 flex-1 pr-1">
-            
+
             <!-- 1. KUNLIK NORMA SECTION -->
             <div class="bg-[#0c0f17]/60 p-4 rounded-2xl border border-[#2a2e39] space-y-2">
                 <div class="flex items-center justify-between">
-                    <label class="block text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <label
+                        class="block text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                         <i class="fa-solid fa-bolt text-amber-400"></i>
                         1. Kunlik Norma Soni (dona / kun): <span class="text-rose-400">*</span>
                     </label>
@@ -185,7 +211,8 @@
             <!-- 2. OPERATSIYALAR SECTION -->
             <div class="bg-[#0c0f17]/60 p-4 rounded-2xl border border-[#2a2e39] space-y-3">
                 <div class="flex items-center justify-between flex-wrap gap-2">
-                    <label class="block text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                    <label
+                        class="block text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
                         <i class="fa-solid fa-list-ol text-indigo-400"></i>
                         2. Operatsiyalar Ketma-ketligi: <span class="text-rose-400">*</span>
                     </label>
@@ -197,7 +224,8 @@
                             class="bg-[#161b26] border border-[#2a2e39] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
                             <option value="">-- Mavjud modeldan olish --</option>
                             {% for pm in all_models %}
-                            <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }} ta op.)</option>
+                            <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }}
+                                ta op.)</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -207,7 +235,8 @@
                 <div class="overflow-x-auto rounded-xl border border-[#2a2e39]">
                     <table class="w-full text-left text-xs">
                         <thead>
-                            <tr class="bg-[#1e2433] text-slate-400 font-bold uppercase tracking-wider border-b border-[#2a2e39]">
+                            <tr
+                                class="bg-[#1e2433] text-slate-400 font-bold uppercase tracking-wider border-b border-[#2a2e39]">
                                 <th class="py-2.5 px-3 w-20 text-center">Tartib №</th>
                                 <th class="py-2.5 px-3">Operatsiya Nomi</th>
                                 <th class="py-2.5 px-3 w-28 text-center">Qiyinlik</th>
@@ -229,7 +258,8 @@
             </div>
 
             <!-- Error Banner in Modal -->
-            <div id="modal-error-banner" class="hidden p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs font-bold flex items-center gap-2">
+            <div id="modal-error-banner"
+                class="hidden p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs font-bold flex items-center gap-2">
                 <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
                 <span id="modal-error-text"></span>
             </div>
@@ -256,7 +286,7 @@
 <datalist id="available-operations-list">
     {% for op in all_operations %}
     <option value="{{ op.name }}" data-code="{{ op.code }}" data-difficulty="{{ op.default_difficulty_display }}">
-    {% endfor %}
+        {% endfor %}
 </datalist>
 
 <!-- STYLES FOR DB DESIGNER PORTS, TABLES AND LINES (app.dbdesign.io style) -->
@@ -265,10 +295,11 @@
         transition: box-shadow 0.15s ease, ring 0.15s ease;
         touch-action: none;
     }
+
     .db-table:hover {
         box-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
     }
-    
+
     /* Port handles inside ID row */
     .port-plus {
         position: absolute;
@@ -311,6 +342,7 @@
         stroke-linejoin: round;
         transition: stroke 0.15s ease, stroke-width 0.15s ease;
     }
+
     .wire-path.wire-active {
         stroke: #38bdf8;
         stroke-width: 2px;
@@ -320,8 +352,8 @@
 
 <!-- PASS DATA TO JS & DB DESIGNER ENGINE -->
 <script>
-    const ORDERS_DATA = {{ orders_data_json|safe }};
-    const MODELS_LOOKUP = {{ models_lookup_json|safe }};
+    const ORDERS_DATA = {{ orders_data_json| safe }};
+    const MODELS_LOOKUP = {{ models_lookup_json| safe }};
     const CSRF_TOKEN = '{{ csrf_token }}';
 
     // Active article per order (orderId -> articleId)
@@ -334,6 +366,18 @@
 
     let selectedArticleIds = new Set();
     let selectedArticleData = {};
+
+    // By default, all ready/configured articles are marked/checked!
+    ORDERS_DATA.forEach(ord => {
+        if (ord.articles) {
+            ord.articles.forEach(art => {
+                if (art.is_ready) {
+                    selectedArticleIds.add(art.id);
+                    selectedArticleData[art.id] = art;
+                }
+            });
+        }
+    });
 
     // Canvas Pan & Zoom
     let zoomLevel = 0.9;
@@ -676,7 +720,11 @@
                 order.articles.forEach((art, artIdx) => {
                     const artPos = positions[`art-node-${art.id}`] || { x: 440, y: 60 + orderIdx * 450 + artIdx * 125 };
                     const isReady = art.is_ready;
-                    const isChecked = selectedArticleIds.has(art.id);
+                    const isChecked = selectedArticleIds.has(art.id) || isReady;
+                    if (isReady) {
+                        selectedArticleIds.add(art.id);
+                        selectedArticleData[art.id] = art;
+                    }
                     const isActive = art.id === activeArtId;
 
                     const headerBg = isReady 
@@ -716,12 +764,14 @@
                                 <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
                                     <input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
                                         onchange="handleCheckboxChange(${art.id})"
-                                        class="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
+                                        class="w-4 h-4 rounded ${isReady ? 'text-emerald-500 focus:ring-emerald-400 bg-[#0c0f17] border-emerald-500 accent-emerald-500' : 'text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500'} cursor-pointer">
                                     <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                                         <i class="fa-solid fa-key text-[9px]"></i> ID (${art.id})
                                     </span>
                                 </label>
-                                <span class="text-slate-500">int</span>
+                                <span class="${isReady ? 'text-emerald-400 font-bold' : 'text-slate-500'} text-[10px] flex items-center gap-1">
+                                    ${isReady ? '<i class="fa-solid fa-circle-check text-[10px]"></i>' : ''}int
+                                </span>
 
                                 <!-- Right Port Handle '+' aligned with ID row -->
                                 <div id="port-art-out-${art.id}" class="port-plus">+</div>
