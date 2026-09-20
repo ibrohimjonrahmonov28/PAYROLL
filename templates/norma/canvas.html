@@ -1,187 +1,137 @@
 {% extends 'norma/base_norma.html' %}
 
-{% block title %}Norma & Operatsiyalar Doskasi (DB Sxema) — TERRY JAR{% endblock %}
+{% block title %}Norma & Operatsiyalar — DB Designer Sxemasi — TERRY JAR{% endblock %}
 
 {% block content %}
-<!-- FULLSCREEN DB DESIGN CANVAS CONTAINER (Light Dotted Grid matching user reference) -->
+<!-- FULLSCREEN DB DESIGNER CANVAS CONTAINER (Exact match to app.dbdesign.io) -->
 <div
-    class="relative w-full h-[calc(100vh-8.5rem)] rounded-2xl overflow-hidden border border-slate-300 bg-white shadow-2xl flex flex-col select-none">
+    class="relative w-full h-[calc(100vh-8.5rem)] rounded-2xl overflow-hidden border border-slate-800 bg-[#0c0f17] shadow-2xl flex flex-col select-none">
 
     <!-- CANVAS TOP CONTROL TOOLBAR -->
     <div
-        class="z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 shadow-sm">
-        <!-- Left: Title & Live Stats -->
+        class="z-30 bg-[#131722]/95 backdrop-blur-md border-b border-[#2a2e39] px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 shadow-lg">
+        <!-- Left: Title & Stats -->
         <div class="flex items-center gap-3">
             <div
                 class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-indigo-600/30">
-                <i class="fa-solid fa-diagram-project"></i>
+                <i class="fa-solid fa-database"></i>
             </div>
             <div>
-                <h1 class="text-sm font-black text-slate-900 flex items-center gap-2 leading-none">
-                    DB Sxema & Norma Doskasi
+                <h1 class="text-sm font-black text-white flex items-center gap-2 leading-none">
+                    DB Designer — Norma Sxemasi
                     <span
-                        class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
-                        Interaktiv Bog'lanish
+                        class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded-full font-mono uppercase">
+                        app.dbdesign.io
                     </span>
                 </h1>
-                <p class="text-[11px] text-slate-500 mt-0.5">
-                    Aktiv zakazlar: <strong class="text-slate-900">{{ total_orders_count }} ta</strong> •
-                    Artikullar: <strong class="text-slate-900">{{ total_articles_count }} ta</strong> •
-                    Tayyor (Yashil): <strong id="stat-ready-count" class="text-emerald-600">{{ ready_articles_count }}
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                    Aktiv zakazlar: <strong class="text-white">{{ total_orders_count }} ta</strong> •
+                    Artikullar: <strong class="text-white">{{ total_articles_count }} ta</strong> •
+                    Tayyor (Yashil): <strong id="stat-ready-count" class="text-emerald-400">{{ ready_articles_count }}
                         ta</strong>
                 </p>
             </div>
         </div>
 
-        <!-- Center: Search Filter -->
-        <div class="flex items-center gap-2 flex-1 max-w-xs">
-            <div class="relative w-full">
-                <i
-                    class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="canvas-search-input" placeholder="Zakaz yoki artikul qidirish..."
-                    oninput="filterCanvas(this.value)"
-                    class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+        <!-- Center: Order Switcher Dropdown & Search -->
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-folder-tree text-indigo-400"></i> Zakaz:
+                </label>
+                <select id="order-selector" onchange="handleOrderSelectorChange(this.value)"
+                    class="bg-[#0c0f17] border border-[#2a2e39] text-white font-bold text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                    <option value="all">-- Barcha Zakazlar (Hammasini ko'rish) --</option>
+                    {% for ord in orders_data %}
+                    <option value="{{ ord.id }}">
+                        #{{ ord.order_number }} — {{ ord.client_name }} ({{ ord.articles|length }} artikul)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Search Filter -->
+            <div class="relative">
+                <input type="text" id="canvas-search-input" onkeyup="filterCanvasSearch(this.value)"
+                    placeholder="Artikul, model, zakaz..."
+                    class="bg-[#0c0f17] border border-[#2a2e39] rounded-xl pl-7 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-44">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-[10px]"></i>
             </div>
         </div>
 
         <!-- Right: Zoom & Navigation Controls -->
         <div class="flex items-center gap-1.5">
             <button onclick="zoomIn()"
-                class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center justify-center text-xs"
+                class="w-8 h-8 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] transition flex items-center justify-center text-xs"
                 title="Yaqinlashtirish (Zoom In)">
                 <i class="fa-solid fa-plus"></i>
             </button>
             <button onclick="zoomOut()"
-                class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center justify-center text-xs"
+                class="w-8 h-8 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] transition flex items-center justify-center text-xs"
                 title="Uzoqlashtirish (Zoom Out)">
                 <i class="fa-solid fa-minus"></i>
             </button>
             <span id="zoom-level-badge"
-                class="px-2 py-1 bg-slate-100 border border-slate-300 text-[11px] font-mono font-bold text-slate-600 rounded-lg">
+                class="px-2 py-1 bg-[#0c0f17] border border-[#2a2e39] text-[11px] font-mono font-bold text-slate-400 rounded-lg">
                 100%
             </span>
             <button onclick="resetZoom()"
-                class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition"
+                class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition"
                 title="100% ga qaytarish">
                 1:1
             </button>
             <button onclick="fitAll()"
-                class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition flex items-center gap-1"
-                title="Barcha kartochkalarni markazga keltirish">
-                <i class="fa-solid fa-expand text-[10px]"></i> Markaz
+                class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-slate-200 border border-[#2a2e39] text-xs font-bold transition flex items-center gap-1"
+                title="Markazga keltirish / Barchasi">
+                <i class="fa-solid fa-expand text-[10px]"></i> Barchasi
             </button>
         </div>
     </div>
 
     <!-- MAIN INTERACTIVE CANVAS VIEWPORT -->
-    <div id="canvas-viewport" class="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing bg-white">
-        <!-- Background Grid Pattern (EXACT MATCH TO USER'S IMAGE: White with light blue dots) -->
+    <div id="canvas-viewport" class="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing bg-[#0c0f17]">
+        <!-- Background Dotted Grid Pattern (Exact match to app.dbdesign.io) -->
         <div class="absolute inset-0 pointer-events-none"
-            style="background-color: #ffffff; background-image: radial-gradient(#38bdf8 1.4px, transparent 1.4px); background-size: 24px 24px;">
+            style="background-color: #0c0f17; background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1.2px, transparent 1.2px); background-size: 20px 20px;">
         </div>
 
         <!-- Transformable Canvas World -->
         <div id="canvas-world"
-            class="absolute left-0 top-0 transition-transform duration-75 origin-top-left p-12 min-w-max">
-            <!-- Grid of Orders (DB Entities) -->
-            <div id="orders-board" class="flex flex-wrap gap-8 items-start max-w-[3600px]">
-                {% for ord in orders_data %}
-                <div id="order-card-{{ ord.id }}"
-                    class="order-card w-80 bg-white border-2 border-slate-300/80 rounded-2xl shadow-xl overflow-hidden flex flex-col transition-all duration-200 hover:border-indigo-400 hover:shadow-2xl"
-                    data-order-number="{{ ord.order_number|lower }}" data-order-client="{{ ord.client_name|lower }}">
+            class="absolute left-0 top-0 transition-transform duration-75 origin-top-left p-12 min-w-[3200px] min-h-[2400px]">
 
-                    <!-- Order Table Header (DB Entity Header) -->
-                    <div
-                        class="bg-slate-900 p-3.5 border-b border-slate-800 flex items-center justify-between text-white">
-                        <div class="min-w-0">
-                            <span
-                                class="text-[10px] font-mono font-black uppercase text-indigo-400 block tracking-wider">
-                                BUYURTMA #{{ ord.order_number }}
-                            </span>
-                            <strong class="text-xs text-white font-bold block truncate" title="{{ ord.client_name }}">
-                                {{ ord.client_name }}
-                            </strong>
-                        </div>
-                        <span
-                            class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-mono font-bold text-slate-300">
-                            {{ ord.total_quantity }} dona
-                        </span>
-                    </div>
+            <!-- SVG ORTHOGONAL CONNECTIONS LAYER (With Crow's Foot Forks matching app.dbdesign.io) -->
+            <svg id="connections-layer"
+                class="absolute inset-0 pointer-events-none w-full h-full overflow-visible z-10">
+                <defs>
+                    <linearGradient id="line-gradient-active" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#38bdf8" />
+                        <stop offset="100%" stop-color="#818cf8" />
+                    </linearGradient>
+                    <linearGradient id="line-gradient-ready" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#34d399" />
+                        <stop offset="100%" stop-color="#10b981" />
+                    </linearGradient>
+                    <filter id="wire-glow-ready" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#10b981" flood-opacity="0.4" />
+                    </filter>
+                    <filter id="wire-glow-active" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#38bdf8" flood-opacity="0.6" />
+                    </filter>
+                </defs>
+                <g id="wires-group"></g>
+            </svg>
 
-                    <!-- Order Articles List -->
-                    <div class="p-3 space-y-2 bg-slate-50/70 flex-1">
-                        {% for art in ord.articles %}
-                        <div id="art-card-{{ art.id }}" onclick="toggleArticleSelection({{ art.id }}, event)"
-                            class="art-card p-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer {% if art.is_ready %}bg-emerald-50/90 border-emerald-500 text-emerald-950 shadow-sm{% else %}bg-white border-slate-200 hover:border-slate-300 text-slate-800{% endif %}"
-                            data-art-id="{{ art.id }}" data-art-code="{{ art.code }}" data-art-name="{{ art.name }}"
-                            data-art-norm="{{ art.daily_norm }}" data-art-ready="{{ art.is_ready|yesno:'true,false' }}"
-                            data-art-ops-count="{{ art.operations_count }}" data-art-rate="{{ art.unit_total_rate }}"
-                            data-model-id="{{ art.model_id|default:'' }}"
-                            data-model-code="{{ art.model_code|default:'' }}">
-
-                            <div class="flex items-start gap-2.5">
-                                <!-- Checkbox -->
-                                <input type="checkbox" id="check-art-{{ art.id }}" value="{{ art.id }}"
-                                    onclick="event.stopPropagation(); handleCheckboxChange({{ art.id }})"
-                                    class="mt-1 rounded text-indigo-600 focus:ring-indigo-500 bg-white border-slate-400 cursor-pointer">
-
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center justify-between gap-1">
-                                        <strong class="font-mono text-xs font-black text-slate-900 truncate">{{ art.code
-                                            }}</strong>
-                                        {% if art.model_code %}
-                                        <span
-                                            class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 truncate max-w-[110px]"
-                                            title="{{ art.model_name }}">
-                                            {{ art.model_code }}
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                    <span class="text-[11px] text-slate-500 block truncate mt-0.5">{{ art.name }}</span>
-
-                                    <!-- Status Pill -->
-                                    <div class="mt-2 flex items-center justify-between gap-1 text-[10px]">
-                                        {% if art.is_ready %}
-                                        <span
-                                            class="status-badge font-bold text-emerald-700 flex items-center gap-1 font-mono">
-                                            <i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i>
-                                            Norma: {{ art.daily_norm }} | {{ art.operations_count }} op.
-                                        </span>
-                                        <span class="font-mono text-emerald-700 font-black">
-                                            {{ art.unit_total_rate|floatformat:0 }} so'm
-                                        </span>
-                                        {% else %}
-                                        <span
-                                            class="status-badge font-bold text-amber-600 flex items-center gap-1 font-mono">
-                                            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-[10px]"></i>
-                                            Kutilmoqda (Norma/Op. yo'q)
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                        {% empty %}
-                        <div class="py-4 text-center text-slate-400 text-xs italic">
-                            Artikullar yo'q
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% empty %}
-                <div class="p-16 text-center text-slate-500 mx-auto">
-                    <i class="fa-solid fa-boxes-packing text-5xl mb-3 block text-slate-700"></i>
-                    <strong class="text-lg block text-slate-300">Aktiv buyurtmalar topilmadi</strong>
-                </div>
-                {% endfor %}
+            <!-- DIAGRAM CLUSTERS CONTAINER (All Active Orders rendered) -->
+            <div id="diagram-clusters-container" class="relative z-20 space-y-16">
+                <!-- Dynamically rendered per Order -->
             </div>
+
         </div>
     </div>
 
-    <!-- FLOATING ACTION DOCK (Slides up when 1+ articles selected) -->
+    <!-- FLOATING ACTION DOCK (Bottom controls for selection & '+' button) -->
     <div id="floating-action-dock"
-        class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-xl border-2 border-indigo-500/80 rounded-2xl px-5 py-3 shadow-[0_10px_35px_rgba(99,102,241,0.3)] flex items-center gap-5 transition-all">
+        class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-40 bg-[#161b26]/95 backdrop-blur-xl border-2 border-indigo-500/80 rounded-2xl px-5 py-3 shadow-[0_10px_35px_rgba(99,102,241,0.4)] flex items-center gap-5 transition-all">
         <div class="flex items-center gap-3">
             <span
                 class="w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center font-mono"
@@ -217,10 +167,10 @@
 <div id="configModal"
     class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
     <div
-        class="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+        class="bg-[#161b26] border border-[#2a2e39] rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
 
         <!-- Modal Header -->
-        <div class="flex items-center justify-between border-b border-slate-800 pb-4 flex-shrink-0">
+        <div class="flex items-center justify-between border-b border-[#2a2e39] pb-4 flex-shrink-0">
             <div>
                 <h3 class="text-base font-black text-white flex items-center gap-2">
                     <i class="fa-solid fa-layer-group text-indigo-400"></i>
@@ -237,7 +187,7 @@
         </div>
 
         <!-- Selected Articles Chips -->
-        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex-shrink-0">
+        <div class="bg-[#0c0f17] p-3 rounded-2xl border border-[#2a2e39] flex-shrink-0">
             <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1.5">
                 Tanlangan artikullar:
             </span>
@@ -248,7 +198,7 @@
         <div class="overflow-y-auto space-y-6 flex-1 pr-1">
 
             <!-- 1. KUNLIK NORMA SECTION -->
-            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+            <div class="bg-[#0c0f17]/60 p-4 rounded-2xl border border-[#2a2e39] space-y-2">
                 <div class="flex items-center justify-between">
                     <label
                         class="block text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
@@ -258,14 +208,14 @@
                     <span class="text-[11px] text-slate-500 font-mono">Majburiy maydon</span>
                 </div>
                 <input type="number" id="input-daily-norm" placeholder="Masalan: 1500" min="1" required
-                    class="w-full bg-slate-900 border-2 border-amber-500/50 rounded-xl px-4 py-2.5 text-base text-amber-300 font-black font-mono digital-font focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
+                    class="w-full bg-[#161b26] border-2 border-amber-500/50 rounded-xl px-4 py-2.5 text-base text-amber-300 font-black font-mono digital-font focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
                 <p class="text-[11px] text-slate-400">
                     Tikuvchilar ushbu modelni tikayotganda tizim hisoblaydigan kunlik reja miqdori (100% norma).
                 </p>
             </div>
 
             <!-- 2. OPERATSIYALAR SECTION -->
-            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div class="bg-[#0c0f17]/60 p-4 rounded-2xl border border-[#2a2e39] space-y-3">
                 <div class="flex items-center justify-between flex-wrap gap-2">
                     <label
                         class="block text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
@@ -277,7 +227,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-[11px] text-slate-400 font-bold">Modeldan nusxalash:</span>
                         <select id="model-template-select" onchange="loadOperationsFromModelTemplate(this.value)"
-                            class="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
+                            class="bg-[#161b26] border border-[#2a2e39] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
                             <option value="">-- Mavjud modeldan olish --</option>
                             {% for pm in all_models %}
                             <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }}
@@ -288,11 +238,11 @@
                 </div>
 
                 <!-- Operations Table -->
-                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                <div class="overflow-x-auto rounded-xl border border-[#2a2e39]">
                     <table class="w-full text-left text-xs">
                         <thead>
                             <tr
-                                class="bg-slate-900/90 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                                class="bg-[#1e2433] text-slate-400 font-bold uppercase tracking-wider border-b border-[#2a2e39]">
                                 <th class="py-2.5 px-3 w-20 text-center">Tartib №</th>
                                 <th class="py-2.5 px-3">Operatsiya Nomi</th>
                                 <th class="py-2.5 px-3 w-28 text-center">Qiyinlik</th>
@@ -300,7 +250,7 @@
                                 <th class="py-2.5 px-2 w-12 text-center"></th>
                             </tr>
                         </thead>
-                        <tbody id="operations-tbody" class="divide-y divide-slate-800/80 font-semibold bg-slate-900/40">
+                        <tbody id="operations-tbody" class="divide-y divide-[#2a2e39] font-semibold bg-[#161b26]/50">
                             <!-- Dynamic Rows Injected by JS -->
                         </tbody>
                     </table>
@@ -308,7 +258,7 @@
 
                 <!-- Add Operation Row Button -->
                 <button type="button" onclick="addOperationRow()"
-                    class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-indigo-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
+                    class="px-3.5 py-2 rounded-xl bg-[#1e2433] hover:bg-slate-700 border border-[#2a2e39] text-indigo-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
                     <i class="fa-solid fa-plus text-[10px]"></i> Yangi operatsiya qatori qo'shish
                 </button>
             </div>
@@ -323,9 +273,9 @@
         </div>
 
         <!-- Modal Footer -->
-        <div class="border-t border-slate-800 pt-4 flex items-center justify-between flex-shrink-0">
+        <div class="border-t border-[#2a2e39] pt-4 flex items-center justify-between flex-shrink-0">
             <button type="button" onclick="closeConfigModal()"
-                class="px-4 py-2.5 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
+                class="px-4 py-2.5 border border-[#2a2e39] rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
                 Bekor qilish
             </button>
             <button type="button" id="btn-save-config" onclick="submitConfiguration()"
@@ -345,19 +295,93 @@
         {% endfor %}
 </datalist>
 
-<!-- PASS DATA TO JS -->
+<!-- STYLES FOR DB DESIGNER PORTS, TABLES AND LINES (app.dbdesign.io style) -->
+<style>
+    .db-table {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .db-table:hover {
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Port handles */
+    .port-plus {
+        position: absolute;
+        right: -7px;
+        top: 36px;
+        /* vertically aligned with ID row */
+        width: 14px;
+        height: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        background: #161b26;
+        border: 1px solid #334155;
+        border-radius: 3px;
+        z-index: 25;
+        pointer-events: none;
+    }
+
+    .port-target {
+        position: absolute;
+        left: 0px;
+        top: 36px;
+        /* vertically aligned with ID row */
+        width: 1px;
+        height: 1px;
+        z-index: 25;
+        pointer-events: none;
+    }
+
+    /* Orthogonal connection wires */
+    .wire-path {
+        stroke: #64748b;
+        stroke-width: 1.6px;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transition: stroke 0.2s ease, stroke-width 0.2s ease;
+    }
+
+    .wire-path.wire-active {
+        stroke: url(#line-gradient-active);
+        stroke-width: 2.2px;
+        filter: url(#wire-glow-active);
+    }
+
+    .wire-path.wire-ready {
+        stroke: #10b981;
+        stroke-width: 1.8px;
+        filter: url(#wire-glow-ready);
+    }
+</style>
+
+<!-- PASS DATA TO JS & DB DESIGNER ENGINE -->
 <script>
+    const ORDERS_DATA = {{ orders_data_json| safe }};
     const MODELS_LOOKUP = {{ models_lookup_json| safe }};
     const CSRF_TOKEN = '{{ csrf_token }}';
 
-    // State
+    // Active article per order (orderId -> articleId)
+    const activeArticleIds = {};
+    ORDERS_DATA.forEach(ord => {
+        if (ord.articles && ord.articles.length > 0) {
+            activeArticleIds[ord.id] = ord.articles[0].id;
+        }
+    });
+
     let selectedArticleIds = new Set();
     let selectedArticleData = {};
 
-    // Canvas Pan & Zoom Engine
-    let zoomLevel = 1.0;
+    // Canvas Pan & Zoom
+    let zoomLevel = 0.9;
     let panX = 40;
-    let panY = 40;
+    let panY = 30;
     let isDragging = false;
     let dragStartX = 0;
     let dragStartY = 0;
@@ -368,12 +392,11 @@
     function applyTransform() {
         world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
         document.getElementById('zoom-level-badge').innerText = `${Math.round(zoomLevel * 100)}%`;
+        drawAllConnections();
     }
 
-    // Pan Handlers
     viewport.addEventListener('mousedown', (e) => {
-        // If clicking inside a card or button, don't pan canvas
-        if (e.target.closest('.art-card') || e.target.closest('button') || e.target.closest('input')) {
+        if (e.target.closest('.db-table') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
             return;
         }
         isDragging = true;
@@ -392,14 +415,13 @@
         isDragging = false;
     });
 
-    // Zoom Handlers
     viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const zoomFactor = 0.1;
+        const zoomFactor = 0.08;
         if (e.deltaY < 0) {
             zoomLevel = Math.min(2.0, zoomLevel + zoomFactor);
         } else {
-            zoomLevel = Math.max(0.4, zoomLevel - zoomFactor);
+            zoomLevel = Math.max(0.3, zoomLevel - zoomFactor);
         }
         applyTransform();
     }, { passive: false });
@@ -408,61 +430,476 @@
         zoomLevel = Math.min(2.0, zoomLevel + 0.15);
         applyTransform();
     }
-
     function zoomOut() {
-        zoomLevel = Math.max(0.4, zoomLevel - 0.15);
+        zoomLevel = Math.max(0.3, zoomLevel - 0.15);
         applyTransform();
     }
-
     function resetZoom() {
         zoomLevel = 1.0;
         panX = 40;
-        panY = 40;
+        panY = 30;
         applyTransform();
     }
-
     function fitAll() {
-        zoomLevel = 0.75;
+        zoomLevel = 0.8;
         panX = 30;
         panY = 30;
         applyTransform();
     }
 
-    // Article Selection Logic
+    // Switch/Center on Order
+    function handleOrderSelectorChange(val) {
+        if (val === 'all') {
+            fitAll();
+            return;
+        }
+        const orderId = parseInt(val);
+        const cluster = document.getElementById(`order-cluster-${orderId}`);
+        if (cluster) {
+            const rect = cluster.getBoundingClientRect();
+            const viewRect = viewport.getBoundingClientRect();
+            panX = 50;
+            panY = viewRect.top - (cluster.offsetTop * zoomLevel) + 60;
+            zoomLevel = 0.95;
+            applyTransform();
+        }
+    }
+
+    // RENDER DIAGRAM FOR ALL ACTIVE ORDERS
+    function renderDiagrams() {
+        const container = document.getElementById('diagram-clusters-container');
+        container.innerHTML = '';
+
+        if (ORDERS_DATA.length === 0) {
+            container.innerHTML = `
+                <div class="py-20 text-center text-slate-500 font-mono">
+                    Aktiv zakazlar mavjud emas
+                </div>
+            `;
+            return;
+        }
+
+        ORDERS_DATA.forEach(order => {
+            const cluster = document.createElement('div');
+            cluster.id = `order-cluster-${order.id}`;
+            cluster.className = `order-cluster flex items-start gap-24 py-4`;
+            cluster.dataset.orderNumber = (order.order_number || '').toLowerCase();
+            cluster.dataset.clientName = (order.client_name || '').toLowerCase();
+
+            const activeArtId = activeArticleIds[order.id];
+            const activeArt = order.articles.find(a => a.id === activeArtId) || (order.articles.length > 0 ? order.articles[0] : null);
+
+            // COLUMN 1: ZAKAZ TABLE (Navy Blue Header #193961)
+            let col1Html = `
+                <div class="w-60 flex-shrink-0">
+                    <div id="order-node-${order.id}" class="db-table rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden relative">
+                        <!-- Header: Dark Blue (Zakaz) -->
+                        <div class="bg-[#193961] border-b border-[#2a4365] px-3 py-1.5 flex items-center justify-between text-white">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="w-3.5 h-3.5 text-cyan-300 opacity-80" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                                </svg>
+                                <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="Zakaz: #${order.order_number}">
+                                    ZAKAZ: #${order.order_number}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Rows -->
+                        <div class="p-2 space-y-1 text-[11px] font-mono">
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                    <i class="fa-solid fa-key text-[9px]"></i> ID
+                                </span>
+                                <span class="text-slate-500">int</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span>MIJOZ</span>
+                                <span class="text-slate-400 truncate max-w-[100px]" title="${order.client_name}">${order.client_name}</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span>JAMI_DONA</span>
+                                <span class="text-cyan-400 font-bold">${order.total_quantity}</span>
+                            </div>
+                        </div>
+
+                        <!-- Right Port Handle '+' -->
+                        <div id="port-order-out-${order.id}" class="port-plus">+</div>
+                    </div>
+                </div>
+            `;
+
+            // COLUMN 2: ARTIKUL | MODELNOM (Stacked tables)
+            let col2Html = `<div class="w-64 flex-shrink-0 flex flex-col gap-4">`;
+            if (order.articles.length > 0) {
+                order.articles.forEach(art => {
+                    const isReady = art.is_ready;
+                    const isChecked = selectedArticleIds.has(art.id);
+                    const isActive = art.id === activeArtId;
+
+                    // Teal #0d4a45 if ready, Purple #5b1e5a if pending
+                    const headerBg = isReady
+                        ? 'bg-[#0d4a45] border-[#134e4a] text-emerald-300'
+                        : 'bg-[#5b1e5a] border-[#701a75] text-fuchsia-300';
+
+                    col2Html += `
+                        <div id="art-node-${art.id}" onclick="setActiveArticle(${order.id}, ${art.id})"
+                            class="db-table rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden relative cursor-pointer ${isActive ? 'ring-2 ring-indigo-400' : ''}">
+                            
+                            <!-- Header: ARTIKUL | MODELNOM -->
+                            <div class="${headerBg} border-b px-3 py-1.5 flex items-center justify-between">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <svg class="w-3.5 h-3.5 opacity-80" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                                    </svg>
+                                    <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="${art.code} | ${art.model_name || 'MODEL'}">
+                                        ${art.code} | ${art.model_name || 'MODEL'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Left Target Port for Crow's Foot -->
+                            <div id="port-art-in-${art.id}" class="port-target"></div>
+
+                            <!-- Rows -->
+                            <div class="p-2 space-y-1 text-[11px] font-mono">
+                                <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                    <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
+                                        <input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
+                                            onchange="handleCheckboxChange(${art.id})"
+                                            class="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
+                                        <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                            <i class="fa-solid fa-key text-[9px]"></i> ID (${art.id})
+                                        </span>
+                                    </label>
+                                    <span class="text-slate-500">int</span>
+                                </div>
+                                <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                    <span>NORMA</span>
+                                    <span class="font-bold ${isReady ? 'text-emerald-400' : 'text-amber-400'}">${art.daily_norm || 0}</span>
+                                </div>
+                                <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                    <span>OPERATSIYALAR</span>
+                                    <span class="text-indigo-400 font-bold">${art.operations_count} ta</span>
+                                </div>
+                            </div>
+
+                            <!-- Right Port Handle '+' -->
+                            <div id="port-art-out-${art.id}" class="port-plus">+</div>
+                        </div>
+                    `;
+                });
+            } else {
+                col2Html += `
+                    <div class="p-4 rounded-md border border-dashed border-[#2a2e39] text-center text-slate-500 text-xs font-mono">
+                        Artikullar mavjud emas
+                    </div>
+                `;
+            }
+            col2Html += `</div>`;
+
+            // COLUMN 3: OPERATSIYALAR TABLE (#1e2433 charcoal)
+            let col3OpsRows = '';
+            if (activeArt && activeArt.operations && activeArt.operations.length > 0) {
+                activeArt.operations.forEach(op => {
+                    col3OpsRows += `
+                        <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                            <span class="truncate max-w-[150px]" title="${op.name}">
+                                <strong class="text-amber-400">№${op.sequence}.</strong> ${op.name}
+                            </span>
+                            <span class="text-emerald-400 font-bold text-[10px]">${Math.round(op.price)} so'm</span>
+                        </div>
+                    `;
+                });
+            } else {
+                col3OpsRows = `
+                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
+                        <span>OPERATSIYA1</span>
+                        <span class="text-slate-500">int</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
+                        <span>OPERATSIYA2</span>
+                        <span class="text-slate-500">int</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
+                        <span>OPERATSIYA3</span>
+                        <span class="text-slate-500">int</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
+                        <span>VAHOZAKO</span>
+                        <span class="text-slate-500">int</span>
+                    </div>
+                `;
+            }
+
+            let col3Html = `
+                <div class="w-64 flex-shrink-0">
+                    <div id="ops-node-${order.id}" class="db-table rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden relative">
+                        <!-- Header -->
+                        <div class="bg-[#1e2433] border-b border-slate-700 px-3 py-1.5 flex items-center justify-between text-white">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="w-3.5 h-3.5 text-indigo-400 opacity-80" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                                </svg>
+                                <span class="font-mono font-bold text-xs uppercase tracking-wider">
+                                    OPERATSIYALAR
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Left Target Port for Crow's Foot -->
+                        <div id="port-ops-in-${order.id}" class="port-target"></div>
+
+                        <!-- Rows -->
+                        <div class="p-2 space-y-1 text-[11px] font-mono max-h-[360px] overflow-y-auto">
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                    <i class="fa-solid fa-key text-[9px]"></i> ID
+                                </span>
+                                <span class="text-slate-500">int</span>
+                            </div>
+                            ${col3OpsRows}
+                        </div>
+
+                        <!-- Right Port Handle '+' -->
+                        <div id="port-ops-out-${order.id}" class="port-plus">+</div>
+                    </div>
+                </div>
+            `;
+
+            // COLUMN 4: NORMA TABLE (#1e2433 charcoal)
+            const dailyNormVal = (activeArt && activeArt.daily_norm) ? `${activeArt.daily_norm} dona` : '0';
+            let col4Html = `
+                <div class="w-56 flex-shrink-0">
+                    <div id="norma-node-${order.id}" class="db-table rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden relative">
+                        <!-- Header -->
+                        <div class="bg-[#1e2433] border-b border-slate-700 px-3 py-1.5 flex items-center justify-between text-white">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="w-3.5 h-3.5 text-amber-400 opacity-80" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                                </svg>
+                                <span class="font-mono font-bold text-xs uppercase tracking-wider">
+                                    NORMA
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Left Target Port for Crow's Foot -->
+                        <div id="port-norma-in-${order.id}" class="port-target"></div>
+
+                        <!-- Rows -->
+                        <div class="p-2 space-y-1 text-[11px] font-mono">
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                    <i class="fa-solid fa-key text-[9px]"></i> ID
+                                </span>
+                                <span class="text-slate-500">int</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span>NORMASONI</span>
+                                <span class="text-amber-400 font-bold digital-font text-xs">${dailyNormVal}</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <span>KUNLIK_REJA</span>
+                                <span class="text-emerald-400 font-bold font-mono">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            cluster.innerHTML = col1Html + col2Html + col3Html + col4Html;
+            container.appendChild(cluster);
+        });
+
+        setTimeout(drawAllConnections, 50);
+    }
+
+    function setActiveArticle(orderId, artId) {
+        activeArticleIds[orderId] = artId;
+        renderDiagrams();
+    }
+
+    // DRAW SVG ORTHOGONAL STEPPED CONNECTIONS WITH CROW'S FEET (Exact match to app.dbdesign.io)
+    function drawAllConnections() {
+        const wiresGroup = document.getElementById('wires-group');
+        if (!wiresGroup) return;
+        wiresGroup.innerHTML = '';
+
+        const worldRect = world.getBoundingClientRect();
+
+        ORDERS_DATA.forEach(order => {
+            const portOrderOut = document.getElementById(`port-order-out-${order.id}`);
+            if (!portOrderOut) return;
+
+            const pOrder = getPortCenter(portOrderOut, worldRect);
+            const artTargetPoints = [];
+            const readyArtSourcePoints = [];
+
+            order.articles.forEach(art => {
+                const portArtIn = document.getElementById(`port-art-in-${art.id}`);
+                const portArtOut = document.getElementById(`port-art-out-${art.id}`);
+                if (portArtIn) {
+                    artTargetPoints.push({
+                        art: art,
+                        point: getPortCenter(portArtIn, worldRect)
+                    });
+                }
+                if (art.is_ready && portArtOut) {
+                    readyArtSourcePoints.push({
+                        art: art,
+                        point: getPortCenter(portArtOut, worldRect)
+                    });
+                }
+            });
+
+            // 1. ZAKAZ -> ARTIKULLAR (Tree Branch with Rounded Corners)
+            if (artTargetPoints.length > 0) {
+                const branchX = pOrder.x + 35;
+                // Stem from Zakaz '+' to branchX
+                drawSvgPath(wiresGroup, `M ${pOrder.x} ${pOrder.y} L ${branchX} ${pOrder.y}`, 'wire-path');
+
+                artTargetPoints.forEach(target => {
+                    const tx = target.point.x;
+                    const ty = target.point.y;
+                    const isActive = target.art.id === activeArticleIds[order.id];
+                    const wireClass = isActive ? 'wire-path wire-active' : (target.art.is_ready ? 'wire-path wire-ready' : 'wire-path');
+
+                    let d = '';
+                    const r = 10;
+                    if (Math.abs(ty - pOrder.y) < 2) {
+                        d = `M ${branchX} ${pOrder.y} L ${tx} ${ty}`;
+                    } else if (ty > pOrder.y) {
+                        const effR = Math.min(r, (ty - pOrder.y) / 2);
+                        d = `M ${branchX} ${pOrder.y} L ${branchX} ${ty - effR} Q ${branchX} ${ty}, ${branchX + effR} ${ty} L ${tx} ${ty}`;
+                    } else {
+                        const effR = Math.min(r, (pOrder.y - ty) / 2);
+                        d = `M ${branchX} ${pOrder.y} L ${branchX} ${ty + effR} Q ${branchX} ${ty}, ${branchX + effR} ${ty} L ${tx} ${ty}`;
+                    }
+                    drawSvgPath(wiresGroup, d, wireClass);
+                    // Crow's foot at target '<'
+                    drawCrowsFoot(wiresGroup, tx, ty, wireClass);
+                });
+            }
+
+            // 2. READY ARTIKULLAR -> OPERATSIYALAR (Merge Tree with Rounded Corners)
+            const portOpsIn = document.getElementById(`port-ops-in-${order.id}`);
+            const portOpsOut = document.getElementById(`port-ops-out-${order.id}`);
+            const portNormaIn = document.getElementById(`port-norma-in-${order.id}`);
+
+            if (portOpsIn && readyArtSourcePoints.length > 0) {
+                const pOpsIn = getPortCenter(portOpsIn, worldRect);
+                const mergeX = pOpsIn.x - 35;
+
+                // Stem from mergeX to Operatsiyalar port
+                drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path wire-ready');
+                drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path wire-ready');
+
+                readyArtSourcePoints.forEach(src => {
+                    const sx = src.point.x;
+                    const sy = src.point.y;
+                    let d = '';
+                    const r = 10;
+                    if (Math.abs(sy - pOpsIn.y) < 2) {
+                        d = `M ${sx} ${sy} L ${mergeX} ${pOpsIn.y}`;
+                    } else if (sy < pOpsIn.y) {
+                        const effR = Math.min(r, (pOpsIn.y - sy) / 2);
+                        d = `M ${sx} ${sy} L ${mergeX - effR} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + effR} L ${mergeX} ${pOpsIn.y}`;
+                    } else {
+                        const effR = Math.min(r, (sy - pOpsIn.y) / 2);
+                        d = `M ${sx} ${sy} L ${mergeX - effR} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - effR} L ${mergeX} ${pOpsIn.y}`;
+                    }
+                    drawSvgPath(wiresGroup, d, 'wire-path wire-ready');
+                });
+            }
+
+            // 3. OPERATSIYALAR -> NORMA (Orthogonal Step with Rounded Corners)
+            if (portOpsOut && portNormaIn && readyArtSourcePoints.length > 0) {
+                const pOpsOut = getPortCenter(portOpsOut, worldRect);
+                const pNormaIn = getPortCenter(portNormaIn, worldRect);
+
+                drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path wire-ready');
+                drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path wire-ready');
+            }
+        });
+    }
+
+    function getPortCenter(portElem, worldRect) {
+        const rect = portElem.getBoundingClientRect();
+        return {
+            x: (rect.left + rect.width / 2 - worldRect.left) / zoomLevel,
+            y: (rect.top + rect.height / 2 - worldRect.top) / zoomLevel,
+        };
+    }
+
+    function drawSvgPath(svgGroup, d, className) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', className);
+        svgGroup.appendChild(path);
+    }
+
+    function drawCrowsFoot(svgGroup, x, y, className) {
+        const cf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const d = `M ${x - 9} ${y} L ${x} ${y - 5} M ${x - 9} ${y} L ${x} ${y} M ${x - 9} ${y} L ${x} ${y + 5}`;
+        cf.setAttribute('d', d);
+        cf.setAttribute('class', className);
+        cf.setAttribute('fill', 'none');
+        svgGroup.appendChild(cf);
+    }
+
+    function drawOrthogonalStep(svgGroup, x1, y1, x2, y2, className) {
+        const r = 10;
+        const midX = (x1 + x2) / 2;
+        let d = '';
+
+        if (Math.abs(y1 - y2) < 2) {
+            d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        } else if (y2 > y1) {
+            const effR = Math.min(r, Math.abs(midX - x1), (y2 - y1) / 2);
+            d = `M ${x1} ${y1} ` +
+                `L ${midX - effR} ${y1} ` +
+                `Q ${midX} ${y1}, ${midX} ${y1 + effR} ` +
+                `L ${midX} ${y2 - effR} ` +
+                `Q ${midX} ${y2}, ${midX + effR} ${y2} ` +
+                `L ${x2} ${y2}`;
+        } else {
+            const effR = Math.min(r, Math.abs(midX - x1), (y1 - y2) / 2);
+            d = `M ${x1} ${y1} ` +
+                `L ${midX - effR} ${y1} ` +
+                `Q ${midX} ${y1}, ${midX} ${y1 - effR} ` +
+                `L ${midX} ${y2 + effR} ` +
+                `Q ${midX} ${y2}, ${midX + effR} ${y2} ` +
+                `L ${x2} ${y2}`;
+        }
+        drawSvgPath(svgGroup, d, className);
+    }
+
+    // Checkbox Selection Logic
     function handleCheckboxChange(artId) {
         const chk = document.getElementById(`check-art-${artId}`);
-        const card = document.getElementById(`art-card-${artId}`);
+        let targetArt = null;
+        ORDERS_DATA.forEach(ord => {
+            const a = ord.articles.find(x => x.id === artId);
+            if (a) targetArt = a;
+        });
+
+        if (!targetArt) return;
+
         if (chk.checked) {
             selectedArticleIds.add(artId);
-            selectedArticleData[artId] = {
-                id: artId,
-                code: card.dataset.artCode,
-                name: card.dataset.artName,
-                norm: card.dataset.artNorm,
-                modelId: card.dataset.modelId,
-            };
-            card.classList.add('ring-2', 'ring-indigo-500');
+            selectedArticleData[artId] = targetArt;
         } else {
             selectedArticleIds.delete(artId);
             delete selectedArticleData[artId];
-            card.classList.remove('ring-2', 'ring-indigo-500');
         }
         updateFloatingDock();
-    }
-
-    function toggleArticleSelection(artId, event) {
-        const chk = document.getElementById(`check-art-${artId}`);
-        if (!chk) return;
-        chk.checked = !chk.checked;
-        handleCheckboxChange(artId);
     }
 
     function clearSelection() {
         selectedArticleIds.forEach(id => {
             const chk = document.getElementById(`check-art-${id}`);
             if (chk) chk.checked = false;
-            const card = document.getElementById(`art-card-${id}`);
-            if (card) card.classList.remove('ring-2', 'ring-indigo-500');
         });
         selectedArticleIds.clear();
         selectedArticleData = {};
@@ -490,7 +927,6 @@
     function openConfigModal() {
         if (selectedArticleIds.size === 0) return;
 
-        // Populate chips
         const tagsContainer = document.getElementById('modal-selected-tags');
         tagsContainer.innerHTML = '';
         let commonNorm = 0;
@@ -502,22 +938,19 @@
             chip.innerText = item.code;
             tagsContainer.appendChild(chip);
 
-            if (item.norm && item.norm > 0) commonNorm = item.norm;
-            if (item.modelId) commonModelId = item.modelId;
+            if (item.daily_norm && item.daily_norm > 0) commonNorm = item.daily_norm;
+            if (item.model_id) commonModelId = item.model_id;
         });
 
-        // Set default norm if exists
         const normInput = document.getElementById('input-daily-norm');
         normInput.value = commonNorm > 0 ? commonNorm : (normInput.value || 1500);
 
-        // Pre-fill operations if model operations exist
         const tbody = document.getElementById('operations-tbody');
         tbody.innerHTML = '';
 
         if (commonModelId && MODELS_LOOKUP[commonModelId] && MODELS_LOOKUP[commonModelId].operations.length > 0) {
             loadOperationsFromModelTemplate(commonModelId);
         } else {
-            // Add 3 initial empty rows
             addOperationRow(1, 'Yoqa tikish', 1.0, 450);
             addOperationRow(2, 'Yeng ulash', 1.0, 550);
             addOperationRow(3, 'Etak qaytarish', 1.0, 350);
@@ -537,20 +970,20 @@
         const currentSeq = seq !== null ? seq : rowCount;
 
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/40 transition";
+        tr.className = "hover:bg-[#1f2637] transition";
         tr.innerHTML = `
             <td class="py-2 px-3 text-center">
-                <input type="number" class="op-seq w-12 bg-slate-950 border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1" value="${currentSeq}" min="1">
+                <input type="number" class="op-seq w-12 bg-[#0c0f17] border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1" value="${currentSeq}" min="1">
             </td>
             <td class="py-2 px-3">
-                <input type="text" list="available-operations-list" class="op-name w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-indigo-500" placeholder="Operatsiya nomi" value="${name}">
+                <input type="text" list="available-operations-list" class="op-name w-full bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-indigo-500" placeholder="Operatsiya nomi" value="${name}">
             </td>
             <td class="py-2 px-3 text-center">
-                <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-slate-950 border border-slate-700 rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1" value="${diff}">
+                <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-[#0c0f17] border border-[#2a2e39] rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1" value="${diff}">
             </td>
             <td class="py-2 px-3">
                 <div class="flex items-center gap-1">
-                    <input type="number" step="50" min="0" class="op-price w-24 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font" value="${price}">
+                    <input type="number" step="50" min="0" class="op-price w-24 bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font" value="${price}">
                     <span class="text-[10px] text-slate-500 font-sans">so'm</span>
                 </div>
             </td>
@@ -658,32 +1091,32 @@
                 return;
             }
 
-            // SUCCESS: Update visual state of articles to VIBRANT GREEN (Light Theme)
+            // SUCCESS: Update in memory data and re-render
             result.updated_article_ids.forEach(artId => {
-                const card = document.getElementById(`art-card-${artId}`);
-                if (card) {
-                    card.classList.remove('bg-white', 'border-slate-200', 'bg-slate-950/80', 'border-slate-800');
-                    card.classList.add('bg-emerald-50/90', 'border-emerald-500', 'text-emerald-950', 'shadow-sm');
-
-                    // Update inner badge
-                    const statusElem = card.querySelector('.status-badge');
-                    if (statusElem) {
-                        statusElem.className = 'status-badge font-bold text-emerald-700 flex items-center gap-1 font-mono';
-                        statusElem.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i> Norma: ${result.daily_norm} | ${result.operations_count} op.`;
+                ORDERS_DATA.forEach(ord => {
+                    const art = ord.articles.find(a => a.id === artId);
+                    if (art) {
+                        art.is_ready = true;
+                        art.daily_norm = result.daily_norm;
+                        art.operations_count = result.operations_count;
+                        art.operations = operations;
                     }
-                }
+                });
             });
 
             closeConfigModal();
             clearSelection();
+            renderDiagrams();
+
             btnSave.disabled = false;
             btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
 
             // Update stats
             const readyElem = document.getElementById('stat-ready-count');
             if (readyElem) {
-                const current = parseInt(readyElem.innerText) || 0;
-                readyElem.innerText = `${current + result.updated_article_ids.length} ta`;
+                let readyCount = 0;
+                ORDERS_DATA.forEach(o => o.articles.forEach(a => { if (a.is_ready) readyCount++; }));
+                readyElem.innerText = `${readyCount} ta`;
             }
 
         } catch (err) {
@@ -695,42 +1128,38 @@
         }
     }
 
-    // Search filter
-    function filterCanvas(term) {
-        const cleanTerm = term.toLowerCase().trim();
-        const orderCards = document.querySelectorAll('.order-card');
+    // Filter Canvas Search
+    function filterCanvasSearch(term) {
+        const clean = term.toLowerCase().trim();
+        const clusters = document.querySelectorAll('.order-cluster');
 
-        orderCards.forEach(card => {
-            const ordNum = card.dataset.orderNumber || '';
-            const ordClient = card.dataset.orderClient || '';
-            const artCards = card.querySelectorAll('.art-card');
+        clusters.forEach(c => {
+            const num = c.dataset.orderNumber || '';
+            const client = c.dataset.clientName || '';
+            const artNodes = c.querySelectorAll('[id^="art-node-"]');
 
-            let hasMatchingArt = false;
-            artCards.forEach(ac => {
-                const code = (ac.dataset.artCode || '').toLowerCase();
-                const name = (ac.dataset.artName || '').toLowerCase();
-                if (!cleanTerm || code.includes(cleanTerm) || name.includes(cleanTerm)) {
-                    ac.classList.remove('opacity-25');
-                    hasMatchingArt = true;
+            let hasArt = false;
+            artNodes.forEach(an => {
+                const text = an.innerText.toLowerCase();
+                if (!clean || text.includes(clean)) {
+                    an.classList.remove('opacity-25');
+                    hasArt = true;
                 } else {
-                    ac.classList.add('opacity-25');
+                    an.classList.add('opacity-25');
                 }
             });
 
-            if (!cleanTerm || ordNum.includes(cleanTerm) || ordClient.includes(cleanTerm) || hasMatchingArt) {
-                card.style.display = 'flex';
-                if (cleanTerm && hasMatchingArt) {
-                    card.classList.add('ring-2', 'ring-indigo-400');
-                } else {
-                    card.classList.remove('ring-2', 'ring-indigo-400');
-                }
+            if (!clean || num.includes(clean) || client.includes(clean) || hasArt) {
+                c.style.display = 'flex';
             } else {
-                card.style.display = 'none';
+                c.style.display = 'none';
             }
         });
+        drawAllConnections();
     }
 
-    // Initialize
+    // Initialize Diagram & Transform
+    renderDiagrams();
     applyTransform();
 </script>
 {% endblock %}
