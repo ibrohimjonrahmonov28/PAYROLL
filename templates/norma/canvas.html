@@ -93,16 +93,6 @@
                         <stop offset="0%" stop-color="#38bdf8" />
                         <stop offset="100%" stop-color="#818cf8" />
                     </linearGradient>
-                    <linearGradient id="line-gradient-ready" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#34d399" />
-                        <stop offset="100%" stop-color="#10b981" />
-                    </linearGradient>
-                    <filter id="wire-glow-ready" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#10b981" flood-opacity="0.4"/>
-                    </filter>
-                    <filter id="wire-glow-active" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#38bdf8" flood-opacity="0.6"/>
-                    </filter>
                 </defs>
                 <g id="wires-group"></g>
             </svg>
@@ -279,11 +269,12 @@
         box-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
     }
     
-    /* Port handles */
+    /* Port handles inside ID row */
     .port-plus {
         position: absolute;
         right: -7px;
-        top: 36px; /* vertically aligned with ID row */
+        top: 50%;
+        transform: translateY(-50%);
         width: 14px;
         height: 14px;
         display: flex;
@@ -302,32 +293,28 @@
 
     .port-target {
         position: absolute;
-        left: 0px;
-        top: 36px; /* vertically aligned with ID row */
-        width: 1px;
-        height: 1px;
+        left: -1px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2px;
+        height: 2px;
         z-index: 25;
         pointer-events: none;
     }
 
-    /* Orthogonal connection wires */
+    /* Clean, crisp neutral ERD lines */
     .wire-path {
-        stroke: #64748b;
-        stroke-width: 1.6px;
+        stroke: #94a3b8;
+        stroke-width: 1.5px;
         fill: none;
         stroke-linecap: round;
         stroke-linejoin: round;
-        transition: stroke 0.2s ease, stroke-width 0.2s ease;
+        transition: stroke 0.15s ease, stroke-width 0.15s ease;
     }
     .wire-path.wire-active {
-        stroke: url(#line-gradient-active);
-        stroke-width: 2.2px;
-        filter: url(#wire-glow-active);
-    }
-    .wire-path.wire-ready {
-        stroke: #10b981;
-        stroke-width: 1.8px;
-        filter: url(#wire-glow-ready);
+        stroke: #38bdf8;
+        stroke-width: 2px;
+        filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.6));
     }
 </style>
 
@@ -500,33 +487,37 @@
         applyTransform();
     }
 
-    // Default & Saved Positions in localStorage
+    // Default & Saved Positions in localStorage (Clean symmetrical layout)
     function getDefaultPositions() {
         const positions = {};
         let currentY = 50;
 
-        ORDERS_DATA.forEach((order, orderIdx) => {
+        ORDERS_DATA.forEach((order) => {
             const orderId = order.id;
-            const artCount = order.articles ? order.articles.length : 0;
-            const orderHeight = Math.max(artCount * 125, 340);
+            const artCount = order.articles ? order.articles.length : 1;
+            const artSpacing = 125;
+            const totalArtSpan = Math.max(1, artCount - 1) * artSpacing;
+
+            // Vertically center Zakaz, Operatsiyalar and Norma relative to the articles
+            const orderCenterY = currentY + (totalArtSpan / 2);
 
             // 1. ZAKAZ table
-            positions[`order-node-${orderId}`] = { x: 80, y: currentY + 50 };
+            positions[`order-node-${orderId}`] = { x: 80, y: orderCenterY };
 
             // 2. ARTIKUL tables (stacked)
             if (order.articles) {
                 order.articles.forEach((art, artIdx) => {
-                    positions[`art-node-${art.id}`] = { x: 440, y: currentY + artIdx * 120 };
+                    positions[`art-node-${art.id}`] = { x: 440, y: currentY + artIdx * artSpacing };
                 });
             }
 
             // 3. OPERATSIYALAR table
-            positions[`ops-node-${orderId}`] = { x: 820, y: currentY + 40 };
+            positions[`ops-node-${orderId}`] = { x: 820, y: orderCenterY };
 
             // 4. NORMA table
-            positions[`norma-node-${orderId}`] = { x: 1200, y: currentY + 40 };
+            positions[`norma-node-${orderId}`] = { x: 1200, y: orderCenterY };
 
-            currentY += orderHeight + 110;
+            currentY += Math.max(totalArtSpan + 140, 260) + 90;
         });
 
         return positions;
@@ -659,11 +650,13 @@
 
                 <!-- Rows -->
                 <div class="p-2 space-y-1 text-[11px] font-mono">
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                    <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                         <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                             <i class="fa-solid fa-key text-[9px]"></i> ID
                         </span>
                         <span class="text-slate-500">int</span>
+                        <!-- Right Port Handle '+' aligned with ID row -->
+                        <div id="port-order-out-${orderId}" class="port-plus">+</div>
                     </div>
                     <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                         <span>MIJOZ</span>
@@ -674,9 +667,6 @@
                         <span class="text-cyan-400 font-bold">${order.total_quantity}</span>
                     </div>
                 </div>
-
-                <!-- Right Port Handle '+' -->
-                <div id="port-order-out-${orderId}" class="port-plus">+</div>
             `;
             attachDraggable(orderNode);
             container.appendChild(orderNode);
@@ -684,7 +674,7 @@
             // 2. ARTIKUL TABLES (stacked, Teal if ready, Purple if pending)
             if (order.articles) {
                 order.articles.forEach((art, artIdx) => {
-                    const artPos = positions[`art-node-${art.id}`] || { x: 440, y: 60 + orderIdx * 450 + artIdx * 120 };
+                    const artPos = positions[`art-node-${art.id}`] || { x: 440, y: 60 + orderIdx * 450 + artIdx * 125 };
                     const isReady = art.is_ready;
                     const isChecked = selectedArticleIds.has(art.id);
                     const isActive = art.id === activeArtId;
@@ -717,12 +707,12 @@
                             <span class="text-[9px] opacity-60 font-mono"><i class="fa-solid fa-up-down-left-right"></i></span>
                         </div>
 
-                        <!-- Left Target Port for Crow's Foot -->
-                        <div id="port-art-in-${art.id}" class="port-target"></div>
-
                         <!-- Rows -->
                         <div class="p-2 space-y-1 text-[11px] font-mono">
-                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                            <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                                <!-- Left Target Port for Crow's Foot aligned with ID row -->
+                                <div id="port-art-in-${art.id}" class="port-target"></div>
+
                                 <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
                                     <input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
                                         onchange="handleCheckboxChange(${art.id})"
@@ -732,6 +722,9 @@
                                     </span>
                                 </label>
                                 <span class="text-slate-500">int</span>
+
+                                <!-- Right Port Handle '+' aligned with ID row -->
+                                <div id="port-art-out-${art.id}" class="port-plus">+</div>
                             </div>
                             <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                                 <span>NORMA</span>
@@ -742,9 +735,6 @@
                                 <span class="text-indigo-400 font-bold">${art.operations_count} ta</span>
                             </div>
                         </div>
-
-                        <!-- Right Port Handle '+' -->
-                        <div id="port-art-out-${art.id}" class="port-plus">+</div>
                     `;
 
                     attachDraggable(artNode, () => {
@@ -809,22 +799,22 @@
                     <span class="text-[9px] text-indigo-300 font-mono opacity-60"><i class="fa-solid fa-up-down-left-right"></i></span>
                 </div>
 
-                <!-- Left Target Port for Crow's Foot -->
-                <div id="port-ops-in-${orderId}" class="port-target"></div>
-
                 <!-- Rows -->
                 <div class="p-2 space-y-1 text-[11px] font-mono max-h-[360px] overflow-y-auto">
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                    <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                        <!-- Left Target Port for Crow's Foot aligned with ID row -->
+                        <div id="port-ops-in-${orderId}" class="port-target"></div>
+
                         <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                             <i class="fa-solid fa-key text-[9px]"></i> ID
                         </span>
                         <span class="text-slate-500">int</span>
+
+                        <!-- Right Port Handle '+' aligned with ID row -->
+                        <div id="port-ops-out-${orderId}" class="port-plus">+</div>
                     </div>
                     ${col3OpsRows}
                 </div>
-
-                <!-- Right Port Handle '+' -->
-                <div id="port-ops-out-${orderId}" class="port-plus">+</div>
             `;
             attachDraggable(opsNode);
             container.appendChild(opsNode);
@@ -852,12 +842,12 @@
                     <span class="text-[9px] text-amber-300 font-mono opacity-60"><i class="fa-solid fa-up-down-left-right"></i></span>
                 </div>
 
-                <!-- Left Target Port for Crow's Foot -->
-                <div id="port-norma-in-${orderId}" class="port-target"></div>
-
                 <!-- Rows -->
                 <div class="p-2 space-y-1 text-[11px] font-mono">
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                    <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                        <!-- Left Target Port for Crow's Foot aligned with ID row -->
+                        <div id="port-norma-in-${orderId}" class="port-target"></div>
+
                         <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                             <i class="fa-solid fa-key text-[9px]"></i> ID
                         </span>
@@ -894,7 +884,8 @@
         const worldRect = world.getBoundingClientRect();
 
         ORDERS_DATA.forEach(order => {
-            const portOrderOut = document.getElementById(`port-order-out-${order.id}`);
+            const orderId = order.id;
+            const portOrderOut = document.getElementById(`port-order-out-${orderId}`);
             if (!portOrderOut) return;
 
             const pOrder = getPortCenter(portOrderOut, worldRect);
@@ -918,84 +909,111 @@
                 }
             });
 
-            // 1. ZAKAZ -> ARTIKULLAR (Tree Branch with Rounded Corners)
+            // 1. ZAKAZ -> ARTIKULLAR (Unified Tree)
             if (artTargetPoints.length > 0) {
+                const targets = artTargetPoints.map(t => t.point);
                 const branchX = pOrder.x + 35;
-                // Stem from Zakaz '+' to branchX
-                drawSvgPath(wiresGroup, `M ${pOrder.x} ${pOrder.y} L ${branchX} ${pOrder.y}`, 'wire-path');
+                const allInFront = targets.every(t => t.x >= branchX);
 
-                artTargetPoints.forEach(target => {
-                    const tx = target.point.x;
-                    const ty = target.point.y;
-                    const isActive = target.art.id === activeArticleIds[order.id];
-                    const wireClass = isActive ? 'wire-path wire-active' : (target.art.is_ready ? 'wire-path wire-ready' : 'wire-path');
-
-                    let d = '';
+                if (artTargetPoints.length === 1 || !allInFront) {
+                    artTargetPoints.forEach(t => {
+                        const isActive = t.art.id === activeArticleIds[orderId];
+                        const cls = isActive ? 'wire-path wire-active' : 'wire-path';
+                        drawOrthogonalStep(wiresGroup, pOrder.x, pOrder.y, t.point.x, t.point.y, cls);
+                        drawCrowsFoot(wiresGroup, t.point.x, t.point.y, cls);
+                    });
+                } else {
                     const r = 10;
-                    if (tx >= branchX) {
-                        if (Math.abs(ty - pOrder.y) < 2) {
-                            d = `M ${branchX} ${pOrder.y} L ${tx} ${ty}`;
-                        } else if (ty > pOrder.y) {
-                            const effR = Math.min(r, (ty - pOrder.y) / 2);
-                            d = `M ${branchX} ${pOrder.y} L ${branchX} ${ty - effR} Q ${branchX} ${ty}, ${branchX + effR} ${ty} L ${tx} ${ty}`;
-                        } else {
-                            const effR = Math.min(r, (pOrder.y - ty) / 2);
-                            d = `M ${branchX} ${pOrder.y} L ${branchX} ${ty + effR} Q ${branchX} ${ty}, ${branchX + effR} ${ty} L ${tx} ${ty}`;
-                        }
-                    } else {
-                        // Loop around if table dragged behind
-                        d = `M ${branchX} ${pOrder.y} L ${branchX} ${ty} L ${tx} ${ty}`;
+                    const ys = targets.map(t => t.y);
+                    const minY = Math.min(...ys);
+                    const maxY = Math.max(...ys);
+
+                    // Stem from Zakaz to branchX
+                    drawSvgPath(wiresGroup, `M ${pOrder.x} ${pOrder.y} L ${branchX} ${pOrder.y}`, 'wire-path');
+
+                    // Vertical trunk
+                    const trunkTop = minY < pOrder.y ? minY + r : pOrder.y;
+                    const trunkBot = maxY > pOrder.y ? maxY - r : pOrder.y;
+                    if (trunkBot > trunkTop) {
+                        drawSvgPath(wiresGroup, `M ${branchX} ${trunkTop} L ${branchX} ${trunkBot}`, 'wire-path');
                     }
 
-                    drawSvgPath(wiresGroup, d, wireClass);
-                    // Crow's foot at target '<'
-                    drawCrowsFoot(wiresGroup, tx, ty, wireClass);
-                });
+                    artTargetPoints.forEach(t => {
+                        const tx = t.point.x;
+                        const ty = t.point.y;
+                        const isActive = t.art.id === activeArticleIds[orderId];
+                        const cls = isActive ? 'wire-path wire-active' : 'wire-path';
+
+                        let d = '';
+                        if (ty === minY && ty < pOrder.y) {
+                            d = `M ${branchX} ${ty + r} Q ${branchX} ${ty}, ${branchX + r} ${ty} L ${tx} ${ty}`;
+                        } else if (ty === maxY && ty > pOrder.y) {
+                            d = `M ${branchX} ${ty - r} Q ${branchX} ${ty}, ${branchX + r} ${ty} L ${tx} ${ty}`;
+                        } else {
+                            d = `M ${branchX} ${ty} L ${tx} ${ty}`;
+                        }
+                        drawSvgPath(wiresGroup, d, cls);
+                        drawCrowsFoot(wiresGroup, tx, ty, cls);
+                    });
+                }
             }
 
-            // 2. READY ARTIKULLAR -> OPERATSIYALAR (Merge Tree with Rounded Corners)
-            const portOpsIn = document.getElementById(`port-ops-in-${order.id}`);
-            const portOpsOut = document.getElementById(`port-ops-out-${order.id}`);
-            const portNormaIn = document.getElementById(`port-norma-in-${order.id}`);
+            // 2. READY ARTIKULLAR -> OPERATSIYALAR (Unified Merge Tree)
+            const portOpsIn = document.getElementById(`port-ops-in-${orderId}`);
+            const portOpsOut = document.getElementById(`port-ops-out-${orderId}`);
+            const portNormaIn = document.getElementById(`port-norma-in-${orderId}`);
 
             if (portOpsIn && readyArtSourcePoints.length > 0) {
                 const pOpsIn = getPortCenter(portOpsIn, worldRect);
+                const sources = readyArtSourcePoints.map(s => s.point);
                 const mergeX = pOpsIn.x - 35;
+                const allBehind = sources.every(s => s.x <= mergeX);
 
-                // Stem from mergeX to Operatsiyalar port
-                drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path wire-ready');
-                drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path wire-ready');
-
-                readyArtSourcePoints.forEach(src => {
-                    const sx = src.point.x;
-                    const sy = src.point.y;
-                    let d = '';
+                if (readyArtSourcePoints.length === 1 || !allBehind) {
+                    readyArtSourcePoints.forEach(s => {
+                        drawOrthogonalStep(wiresGroup, s.point.x, s.point.y, pOpsIn.x, pOpsIn.y, 'wire-path');
+                    });
+                    drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+                } else {
                     const r = 10;
-                    if (mergeX >= sx) {
-                        if (Math.abs(sy - pOpsIn.y) < 2) {
-                            d = `M ${sx} ${sy} L ${mergeX} ${pOpsIn.y}`;
-                        } else if (sy < pOpsIn.y) {
-                            const effR = Math.min(r, (pOpsIn.y - sy) / 2);
-                            d = `M ${sx} ${sy} L ${mergeX - effR} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + effR} L ${mergeX} ${pOpsIn.y}`;
-                        } else {
-                            const effR = Math.min(r, (sy - pOpsIn.y) / 2);
-                            d = `M ${sx} ${sy} L ${mergeX - effR} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - effR} L ${mergeX} ${pOpsIn.y}`;
-                        }
-                    } else {
-                        // Loop around if table dragged behind
-                        d = `M ${sx} ${sy} L ${mergeX} ${sy} L ${mergeX} ${pOpsIn.y}`;
+                    const ys = sources.map(s => s.y);
+                    const minY = Math.min(...ys);
+                    const maxY = Math.max(...ys);
+
+                    // Stem from mergeX to Operatsiyalar
+                    drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
+                    drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+
+                    // Vertical trunk
+                    const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
+                    const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
+                    if (trunkBot > trunkTop) {
+                        drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
                     }
-                    drawSvgPath(wiresGroup, d, 'wire-path wire-ready');
-                });
+
+                    readyArtSourcePoints.forEach(s => {
+                        const sx = s.point.x;
+                        const sy = s.point.y;
+                        let d = '';
+                        if (sy === minY && sy < pOpsIn.y) {
+                            d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + r}`;
+                        } else if (sy === maxY && sy > pOpsIn.y) {
+                            d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - r}`;
+                        } else {
+                            d = `M ${sx} ${sy} L ${mergeX} ${sy}`;
+                        }
+                        drawSvgPath(wiresGroup, d, 'wire-path');
+                    });
+                }
             }
 
-            // 3. OPERATSIYALAR -> NORMA (Orthogonal Step with Rounded Corners)
+            // 3. OPERATSIYALAR -> NORMA (Clean orthogonal step)
             if (portOpsOut && portNormaIn && readyArtSourcePoints.length > 0) {
                 const pOpsOut = getPortCenter(portOpsOut, worldRect);
                 const pNormaIn = getPortCenter(portNormaIn, worldRect);
 
-                drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path wire-ready');
-                drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path wire-ready');
+                drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path');
+                drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path');
             }
         });
     }
@@ -1017,7 +1035,7 @@
 
     function drawCrowsFoot(svgGroup, x, y, className) {
         const cf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const d = `M ${x - 9} ${y} L ${x} ${y - 5} M ${x - 9} ${y} L ${x} ${y} M ${x - 9} ${y} L ${x} ${y + 5}`;
+        const d = `M ${x - 10} ${y} L ${x} ${y - 5} M ${x - 10} ${y} L ${x} ${y} M ${x - 10} ${y} L ${x} ${y + 5}`;
         cf.setAttribute('d', d);
         cf.setAttribute('class', className);
         cf.setAttribute('fill', 'none');
@@ -1028,11 +1046,11 @@
         const r = 10;
         let d = '';
 
-        if (x2 > x1) {
+        if (Math.abs(y1 - y2) < 2) {
+            d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        } else if (x2 > x1 + 20) {
             const midX = (x1 + x2) / 2;
-            if (Math.abs(y1 - y2) < 2) {
-                d = `M ${x1} ${y1} L ${x2} ${y2}`;
-            } else if (y2 > y1) {
+            if (y2 > y1) {
                 const effR = Math.min(r, Math.abs(midX - x1), (y2 - y1) / 2);
                 d = `M ${x1} ${y1} ` +
                     `L ${midX - effR} ${y1} ` +
@@ -1050,9 +1068,8 @@
                     `L ${x2} ${y2}`;
             }
         } else {
-            // Loop around if table moved behind
             const offset = 25;
-            d = `M ${x1} ${y1} L ${x1 + offset} ${y1} L ${x1 + offset} ${(y1+y2)/2} L ${x2 - offset} ${(y1+y2)/2} L ${x2 - offset} ${y2} L ${x2} ${y2}`;
+            d = `M ${x1} ${y1} L ${x1 + offset} ${y1} L ${x1 + offset} ${(y1 + y2) / 2} L ${x2 - offset} ${(y1 + y2) / 2} L ${x2 - offset} ${y2} L ${x2} ${y2}`;
         }
         drawSvgPath(svgGroup, d, className);
     }
