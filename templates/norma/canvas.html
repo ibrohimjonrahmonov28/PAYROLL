@@ -147,35 +147,170 @@
             </button>
 
             <!-- BIG "+" BUTTON -->
-            <button onclick="openConfigModal()"
+            <button onclick="openOperationsModal()"
                 class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 animate-pulse">
-                <i class="fa-solid fa-plus text-sm"></i>
-                <span>Norma & Operatsiyalar kiritish</span>
+                <i class="fa-solid fa-list-check text-sm"></i>
+                <span>Operatsiyalar & Norma kiritish</span>
             </button>
         </div>
     </div>
 
 </div>
 
-<!-- CONFIGURATION MODAL (Norma + Operatsiyalar kiritish) -->
-<div id="configModal"
+<!-- 1-BOSQICH: OPERATSIYALARNI TANLASH VA SOZLASH MODALI -->
+<div id="operationsModal"
     class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
     <div
-        class="bg-[#161b26] border border-[#2a2e39] rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+        class="bg-[#161b26] border border-[#2a2e39] rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-5 max-h-[92vh] flex flex-col">
 
         <!-- Modal Header -->
         <div class="flex items-center justify-between border-b border-[#2a2e39] pb-4 flex-shrink-0">
             <div>
                 <h3 class="text-base font-black text-white flex items-center gap-2">
-                    <i class="fa-solid fa-layer-group text-indigo-400"></i>
-                    Tanlangan Artikullarga Norma va Operatsiyalarni Biriktirish
+                    <i class="fa-solid fa-list-check text-indigo-400"></i>
+                    1-Bosqich: Operatsiyalar Ketma-ketligini Belgilash
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
-                    Qat'iy qoida: <strong>Norma</strong> va kamida 1 ta <strong>Operatsiya</strong> kiritilmasa,
-                    saqlanmaydi!
+                    Bazadagi operatsiyalar ro'yxatidan keraklilarini checkbox orqali tanlang, tartib raqam, qiyinlik va
+                    narxini belgilang.
                 </p>
             </div>
-            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1">
+            <button onclick="closeOperationsModal()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Selected Articles Chips -->
+        <div
+            class="bg-[#0c0f17] p-3 rounded-2xl border border-[#2a2e39] flex-shrink-0 flex items-center justify-between gap-4">
+            <div class="flex-1 min-w-0">
+                <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1">
+                    Tanlangan artikullar:
+                </span>
+                <div id="ops-selected-tags" class="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto"></div>
+            </div>
+            <!-- Quick Load from existing model -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-[11px] text-slate-400 font-bold">Modeldan olish:</span>
+                <select id="model-template-select" onchange="loadOperationsFromModelTemplate(this.value)"
+                    class="bg-[#161b26] border border-[#2a2e39] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
+                    <option value="">-- Mavjud modeldan --</option>
+                    {% for pm in all_models %}
+                    <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }} ta op.)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Toolbar: Search & Quick Selection -->
+        <div class="flex items-center justify-between gap-3 flex-shrink-0">
+            <div class="relative flex-1">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" id="op-search-filter" oninput="filterOperationsModal(this.value)"
+                    placeholder="Operatsiyalarni qidirish (nomi yoki kodi bo'yicha)..."
+                    class="w-full bg-[#0c0f17] border border-[#2a2e39] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="selectAllOperations(true)"
+                    class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-[11px] font-bold text-slate-300 transition">
+                    Hammasini tanlash
+                </button>
+                <button type="button" onclick="selectAllOperations(false)"
+                    class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-slate-700 text-[11px] font-bold text-slate-400 transition">
+                    Tozalash
+                </button>
+                <button type="button" onclick="renumberCheckedOperations(true)"
+                    class="px-2.5 py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 text-[11px] font-bold text-amber-300 border border-amber-500/30 transition flex items-center gap-1"
+                    title="Tanlangan operatsiyalarni 1, 2, 3... qilib qayta raqamlash">
+                    <i class="fa-solid fa-arrow-down-1-9 text-[10px]"></i> Qayta raqamlash
+                </button>
+            </div>
+        </div>
+
+        <!-- Operations Table: Scrollable -->
+        <div class="overflow-y-auto flex-1 rounded-2xl border border-[#2a2e39] bg-[#0c0f17]/40">
+            <table class="w-full text-left text-xs">
+                <thead
+                    class="sticky top-0 z-10 bg-[#1e2433] text-slate-400 font-bold uppercase tracking-wider border-b border-[#2a2e39]">
+                    <tr>
+                        <th class="py-2.5 px-3 w-12 text-center">
+                            <i class="fa-solid fa-check-double text-[11px]"></i>
+                        </th>
+                        <th class="py-2.5 px-3 w-20 text-center">Tartib №</th>
+                        <th class="py-2.5 px-3">Operatsiya Nomi & Kodi</th>
+                        <th class="py-2.5 px-3 w-28 text-center">Qiyinlik</th>
+                        <th class="py-2.5 px-3 w-36">Dona Narxi</th>
+                        <th class="py-2.5 px-2 w-10 text-center"></th>
+                    </tr>
+                </thead>
+                <tbody id="catalog-operations-tbody" class="divide-y divide-[#2a2e39] font-semibold">
+                    <!-- Dynamic Rows populated from ALL_CATALOG_OPERATIONS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add Custom Operation Row Button -->
+        <div class="flex items-center justify-between flex-shrink-0 pt-1">
+            <button type="button" onclick="addCustomOperationRow()"
+                class="px-3.5 py-2 rounded-xl bg-[#1e2433] hover:bg-slate-700 border border-[#2a2e39] text-indigo-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus text-[10px]"></i> Yangi maxsus operatsiya qo'shish
+            </button>
+            <div id="ops-selected-count-label" class="text-xs text-indigo-300 font-bold font-mono">
+                0 ta operatsiya tanlandi
+            </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="ops-modal-error-banner"
+            class="hidden p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs font-bold flex items-center gap-2 flex-shrink-0">
+            <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
+            <span id="ops-modal-error-text"></span>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="border-t border-[#2a2e39] pt-4 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="closeOperationsModal()"
+                    class="px-4 py-2.5 border border-[#2a2e39] rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
+                    Bekor qilish
+                </button>
+                <button type="button" id="btn-delete-ops-modal" onclick="deleteOperationsFromModal()"
+                    class="hidden px-3.5 py-2.5 border border-rose-800/60 bg-rose-950/40 hover:bg-rose-900/60 rounded-xl text-xs font-bold text-rose-300 transition flex items-center gap-1.5"
+                    title="Ushbu artikullarga tegishli barcha operatsiyalarni o'chirish">
+                    <i class="fa-solid fa-trash-can text-rose-400"></i>
+                    <span>Operatsiyalarni o'chirish</span>
+                </button>
+            </div>
+            <button type="button" id="btn-save-operations" onclick="submitOperations()"
+                class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:to-indigo-400 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+                <span>Saqlash va Norma belgilash</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- 2-BOSQICH: KUNLIK NORMANI BELGILASH MODALI -->
+<div id="normaModal"
+    class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div
+        class="bg-[#161b26] border-2 border-amber-500/60 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 flex flex-col">
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-[#2a2e39] pb-4 flex-shrink-0">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                    2-Bosqich: Kunlik Normani Belgilash
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Tikuvchilar ushbu modelni tikayotganda tizim hisoblaydigan kunlik reja miqdori (100% norma).
+                </p>
+            </div>
+            <button onclick="closeNormaModal()" class="text-slate-400 hover:text-white p-1">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
         </div>
@@ -183,99 +318,81 @@
         <!-- Selected Articles Chips -->
         <div class="bg-[#0c0f17] p-3 rounded-2xl border border-[#2a2e39] flex-shrink-0">
             <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1.5">
-                Tanlangan artikullar:
+                Bog'lanayotgan artikullar:
             </span>
-            <div id="modal-selected-tags" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto"></div>
+            <div id="norma-selected-tags" class="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto"></div>
         </div>
 
-        <!-- Modal Body: Scrollable -->
-        <div class="overflow-y-auto space-y-6 flex-1 pr-1">
-
-            <!-- 1. KUNLIK NORMA SECTION -->
-            <div class="bg-[#0c0f17]/60 p-4 rounded-2xl border border-[#2a2e39] space-y-2">
-                <div class="flex items-center justify-between">
-                    <label
-                        class="block text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-bolt text-amber-400"></i>
-                        1. Kunlik Norma Soni (dona / kun): <span class="text-rose-400">*</span>
-                    </label>
-                    <span class="text-[11px] text-slate-500 font-mono">Majburiy maydon</span>
+        <!-- Norma Input & Presets -->
+        <div class="bg-[#0c0f17]/80 p-5 rounded-2xl border border-amber-500/40 space-y-4">
+            <div>
+                <label
+                    class="block text-xs font-black uppercase tracking-wider text-amber-400 mb-2 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye text-amber-400"></i> Kunlik Norma Soni (dona / kun): <span
+                            class="text-rose-400">*</span>
+                    </span>
+                    <span class="text-[10px] text-amber-400/70 font-mono">Majburiy</span>
+                </label>
+                <div class="relative">
+                    <input type="number" id="input-norma-value" placeholder="Masalan: 1200" min="1" required
+                        class="w-full bg-[#161b26] border-2 border-amber-500 rounded-xl px-4 py-3 text-2xl text-amber-300 font-black font-mono digital-font focus:outline-none focus:ring-2 focus:ring-amber-400 text-center">
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-500/80">dona /
+                        kun</span>
                 </div>
-                <input type="number" id="input-daily-norm" placeholder="Masalan: 1500" min="1" required
-                    class="w-full bg-[#161b26] border-2 border-amber-500/50 rounded-xl px-4 py-2.5 text-base text-amber-300 font-black font-mono digital-font focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
-                <p class="text-[11px] text-slate-400">
-                    Tikuvchilar ushbu modelni tikayotganda tizim hisoblaydigan kunlik reja miqdori (100% norma).
-                </p>
             </div>
 
-            <!-- 2. OPERATSIYALAR SECTION -->
-            <div class="bg-[#0c0f17]/60 p-4 rounded-2xl border border-[#2a2e39] space-y-3">
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                    <label
-                        class="block text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-list-ol text-indigo-400"></i>
-                        2. Operatsiyalar Ketma-ketligi: <span class="text-rose-400">*</span>
-                    </label>
-
-                    <!-- Quick Load from existing model -->
-                    <div class="flex items-center gap-2">
-                        <span class="text-[11px] text-slate-400 font-bold">Modeldan nusxalash:</span>
-                        <select id="model-template-select" onchange="loadOperationsFromModelTemplate(this.value)"
-                            class="bg-[#161b26] border border-[#2a2e39] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
-                            <option value="">-- Mavjud modeldan olish --</option>
-                            {% for pm in all_models %}
-                            <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }}
-                                ta op.)</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+            <!-- Quick Presets -->
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 block mb-2">Tezkor tanlash:</span>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="setNormaPreset(500)"
+                        class="py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 hover:border-amber-500 border border-[#2a2e39] text-xs font-mono font-bold text-slate-300 hover:text-amber-300 transition">500
+                        dona</button>
+                    <button type="button" onclick="setNormaPreset(800)"
+                        class="py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 hover:border-amber-500 border border-[#2a2e39] text-xs font-mono font-bold text-slate-300 hover:text-amber-300 transition">800
+                        dona</button>
+                    <button type="button" onclick="setNormaPreset(1000)"
+                        class="py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 hover:border-amber-500 border border-[#2a2e39] text-xs font-mono font-bold text-slate-300 hover:text-amber-300 transition">1000
+                        dona</button>
+                    <button type="button" onclick="setNormaPreset(1200)"
+                        class="py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 hover:border-amber-500 border border-[#2a2e39] text-xs font-mono font-bold text-slate-300 hover:text-amber-300 transition">1200
+                        dona</button>
+                    <button type="button" onclick="setNormaPreset(1500)"
+                        class="py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 hover:border-amber-500 border border-[#2a2e39] text-xs font-mono font-bold text-slate-300 hover:text-amber-300 transition">1500
+                        dona</button>
+                    <button type="button" onclick="setNormaPreset(2000)"
+                        class="py-1.5 rounded-lg bg-[#1e2433] hover:bg-amber-500/20 hover:border-amber-500 border border-[#2a2e39] text-xs font-mono font-bold text-slate-300 hover:text-amber-300 transition">2000
+                        dona</button>
                 </div>
-
-                <!-- Operations Table -->
-                <div class="overflow-x-auto rounded-xl border border-[#2a2e39]">
-                    <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr
-                                class="bg-[#1e2433] text-slate-400 font-bold uppercase tracking-wider border-b border-[#2a2e39]">
-                                <th class="py-2.5 px-3 w-20 text-center">Tartib №</th>
-                                <th class="py-2.5 px-3">Operatsiya Nomi</th>
-                                <th class="py-2.5 px-3 w-28 text-center">Qiyinlik</th>
-                                <th class="py-2.5 px-3 w-36">Dona Narxi</th>
-                                <th class="py-2.5 px-2 w-12 text-center"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="operations-tbody" class="divide-y divide-[#2a2e39] font-semibold bg-[#161b26]/50">
-                            <!-- Dynamic Rows Injected by JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Add Operation Row Button -->
-                <button type="button" onclick="addOperationRow()"
-                    class="px-3.5 py-2 rounded-xl bg-[#1e2433] hover:bg-slate-700 border border-[#2a2e39] text-indigo-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-plus text-[10px]"></i> Yangi operatsiya qatori qo'shish
-                </button>
             </div>
+        </div>
 
-            <!-- Error Banner in Modal -->
-            <div id="modal-error-banner"
-                class="hidden p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs font-bold flex items-center gap-2">
-                <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
-                <span id="modal-error-text"></span>
-            </div>
-
+        <!-- Error Banner -->
+        <div id="norma-modal-error-banner"
+            class="hidden p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-200 text-xs font-bold flex items-center gap-2 flex-shrink-0">
+            <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
+            <span id="norma-modal-error-text"></span>
         </div>
 
         <!-- Modal Footer -->
         <div class="border-t border-[#2a2e39] pt-4 flex items-center justify-between flex-shrink-0">
-            <button type="button" onclick="closeConfigModal()"
-                class="px-4 py-2.5 border border-[#2a2e39] rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
-                Bekor qilish
-            </button>
-            <button type="button" id="btn-save-config" onclick="submitConfiguration()"
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="closeNormaModal()"
+                    class="px-4 py-2.5 border border-[#2a2e39] rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition">
+                    Keyinroq kiritish
+                </button>
+                <button type="button" id="btn-delete-norma-modal" onclick="deleteNormaFromModal()"
+                    class="hidden px-3.5 py-2.5 border border-rose-800/60 bg-rose-950/40 hover:bg-rose-900/60 rounded-xl text-xs font-bold text-rose-300 transition flex items-center gap-1.5"
+                    title="Ushbu artikullarga belgilangan kunlik normani o'chirish">
+                    <i class="fa-solid fa-trash-can text-rose-400"></i>
+                    <span>Normani o'chirish</span>
+                </button>
+            </div>
+            <button type="button" id="btn-save-norma" onclick="submitNorma()"
                 class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
                 <i class="fa-solid fa-check"></i>
-                <span>Saqlash va Tasdiqlash</span>
+                <span>Normani Tasdiqlash va Saqlash</span>
             </button>
         </div>
 
@@ -348,12 +465,27 @@
         stroke-width: 2px;
         filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.6));
     }
+
+    /* Pending Norma wire: Pulsing Amber Dashed Line */
+    .wire-path.wire-pending {
+        stroke: #f59e0b;
+        stroke-dasharray: 6 4;
+        stroke-width: 2px;
+        animation: dashPending 1.2s linear infinite;
+    }
+
+    @keyframes dashPending {
+        to {
+            stroke-dashoffset: -20;
+        }
+    }
 </style>
 
 <!-- PASS DATA TO JS & DB DESIGNER ENGINE -->
 <script>
     const ORDERS_DATA = {{ orders_data_json| safe }};
     const MODELS_LOOKUP = {{ models_lookup_json| safe }};
+    const ALL_CATALOG_OPERATIONS = {{ all_operations_json| safe }};
     const CSRF_TOKEN = '{{ csrf_token }}';
 
     // Active article per order (orderId -> articleId)
@@ -367,17 +499,8 @@
     let selectedArticleIds = new Set();
     let selectedArticleData = {};
 
-    // By default, all ready/configured articles are marked/checked!
-    ORDERS_DATA.forEach(ord => {
-        if (ord.articles) {
-            ord.articles.forEach(art => {
-                if (art.is_ready) {
-                    selectedArticleIds.add(art.id);
-                    selectedArticleData[art.id] = art;
-                }
-            });
-        }
-    });
+    // is_ready artikullarni avto-tanlamaymiz - foydalanuvchi o'zi tanlaydi yoki
+    // model guruhi tugmasi orqali tanlaydi. Tayyor artikullar yashil sarlavha bilan ko'rinadi.
 
     // Canvas Pan & Zoom
     let zoomLevel = 0.9;
@@ -531,6 +654,8 @@
         applyTransform();
     }
 
+    const STORAGE_KEY = 'norma_canvas_table_positions_v5';
+
     // Default & Saved Positions in localStorage (Clean symmetrical layout)
     function getDefaultPositions() {
         const positions = {};
@@ -538,43 +663,136 @@
 
         ORDERS_DATA.forEach((order) => {
             const orderId = order.id;
-            const artCount = order.articles ? order.articles.length : 1;
-            const artSpacing = 125;
-            const totalArtSpan = Math.max(1, artCount - 1) * artSpacing;
+            const articles = order.articles || [];
+            const artCount = articles.length;
+            const artSpacing = 135;
+            const totalArtSpan = Math.max(0, artCount - 1) * artSpacing;
 
-            // Vertically center Zakaz, Operatsiyalar and Norma relative to the articles
+            // Vertically center Zakaz relative to all articles
             const orderCenterY = currentY + (totalArtSpan / 2);
-
-            // 1. ZAKAZ table
             positions[`order-node-${orderId}`] = { x: 80, y: orderCenterY };
 
-            // 2. ARTIKUL tables (stacked)
-            if (order.articles) {
-                order.articles.forEach((art, artIdx) => {
+            // Position articles stacked vertically by model groups
+            const modelGroups = order.model_groups || [];
+            let artIdx = 0;
+
+            modelGroups.forEach((mg) => {
+                const mgArticles = mg.articles || [];
+                const mgStartArtIdx = artIdx;
+                const mgArtCount = mgArticles.length;
+                const mgSpan = Math.max(0, mgArtCount - 1) * artSpacing;
+
+                mgArticles.forEach((art) => {
                     positions[`art-node-${art.id}`] = { x: 440, y: currentY + artIdx * artSpacing };
+                    artIdx++;
+                });
+
+                // Position OPERATSIYALAR and NORMA if this model group has operations or is ready!
+                const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
+                if (hasOps) {
+                    const mgCenterY = currentY + mgStartArtIdx * artSpacing + (mgSpan / 2);
+                    const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                    positions[`ops-node-${orderId}-${mgKey}`] = { x: 820, y: mgCenterY };
+                    positions[`norma-node-${orderId}-${mgKey}`] = { x: 1200, y: mgCenterY };
+                }
+            });
+
+            if (modelGroups.length === 0 && articles.length > 0) {
+                articles.forEach((art, idx) => {
+                    positions[`art-node-${art.id}`] = { x: 440, y: currentY + idx * artSpacing };
                 });
             }
 
-            // 3. OPERATSIYALAR table
-            positions[`ops-node-${orderId}`] = { x: 820, y: orderCenterY };
-
-            // 4. NORMA table
-            positions[`norma-node-${orderId}`] = { x: 1200, y: orderCenterY };
-
-            currentY += Math.max(totalArtSpan + 140, 260) + 90;
+            const blockHeight = Math.max(totalArtSpan + 140, 280);
+            currentY += blockHeight + 140; // 140px clean vertical gap between different orders!
         });
 
         return positions;
     }
 
     function getSavedPositions() {
+        let saved = null;
         try {
-            const saved = localStorage.getItem('norma_canvas_table_positions');
-            if (saved) return JSON.parse(saved);
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) saved = JSON.parse(raw);
         } catch (e) {
             console.error('Failed to load table positions:', e);
         }
-        return getDefaultPositions();
+
+        const defaultPos = getDefaultPositions();
+        if (!saved) return defaultPos;
+
+        let maxY = 0;
+        Object.keys(saved).forEach(key => {
+            const p = saved[key];
+            if (p && typeof p.y === 'number') {
+                maxY = Math.max(maxY, p.y);
+            }
+        });
+
+        ORDERS_DATA.forEach((order) => {
+            const orderId = order.id;
+            const orderKey = `order-node-${orderId}`;
+            const articles = order.articles || [];
+            const artCount = articles.length;
+            const artSpacing = 135;
+            const totalArtSpan = Math.max(0, artCount - 1) * artSpacing;
+
+            if (!saved[orderKey]) {
+                const startY = maxY + 160;
+                const centerY = startY + (totalArtSpan / 2);
+                saved[orderKey] = { x: 80, y: centerY };
+
+                let aIdx = 0;
+                const mgs = order.model_groups || [];
+                mgs.forEach(mg => {
+                    const mgArts = mg.articles || [];
+                    const mgStartIdx = aIdx;
+                    const mgSpan = Math.max(0, mgArts.length - 1) * artSpacing;
+
+                    mgArts.forEach(art => {
+                        saved[`art-node-${art.id}`] = { x: 440, y: startY + aIdx * artSpacing };
+                        aIdx++;
+                    });
+
+                    const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
+                    if (hasOps) {
+                        const mgY = startY + mgStartIdx * artSpacing + (mgSpan / 2);
+                        const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        saved[`ops-node-${orderId}-${mgKey}`] = { x: 820, y: mgY };
+                        saved[`norma-node-${orderId}-${mgKey}`] = { x: 1200, y: mgY };
+                    }
+                });
+
+                if (mgs.length === 0) {
+                    articles.forEach((art, idx) => {
+                        saved[`art-node-${art.id}`] = { x: 440, y: startY + idx * artSpacing };
+                    });
+                }
+
+                maxY = startY + Math.max(totalArtSpan + 140, 280);
+            } else {
+                articles.forEach((art) => {
+                    const artKey = `art-node-${art.id}`;
+                    if (!saved[artKey] && defaultPos[artKey]) {
+                        saved[artKey] = { ...defaultPos[artKey] };
+                    }
+                });
+
+                (order.model_groups || []).forEach(mg => {
+                    const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
+                    if (hasOps) {
+                        const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const oKey = `ops-node-${orderId}-${mgKey}`;
+                        const nKey = `norma-node-${orderId}-${mgKey}`;
+                        if (!saved[oKey] && defaultPos[oKey]) saved[oKey] = { ...defaultPos[oKey] };
+                        if (!saved[nKey] && defaultPos[nKey]) saved[nKey] = { ...defaultPos[nKey] };
+                    }
+                });
+            }
+        });
+
+        return saved;
     }
 
     function savePositionsToStorage() {
@@ -586,14 +804,16 @@
             };
         });
         try {
-            localStorage.setItem('norma_canvas_table_positions', JSON.stringify(positions));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
         } catch (e) {
             console.error('Failed to save table positions:', e);
         }
     }
 
     function resetLayout() {
+        localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem('norma_canvas_table_positions');
+        localStorage.removeItem('norma_canvas_table_positions_v2');
         renderDiagrams();
         setTimeout(fitAll, 80);
     }
@@ -662,6 +882,7 @@
             return;
         }
 
+        const defaultPositions = getDefaultPositions();
         const positions = getSavedPositions();
 
         ORDERS_DATA.forEach((order, orderIdx) => {
@@ -670,7 +891,7 @@
             const activeArt = order.articles.find(a => a.id === activeArtId) || (order.articles.length > 0 ? order.articles[0] : null);
 
             // 1. ZAKAZ TABLE (#193961 navy blue)
-            const orderPos = positions[`order-node-${orderId}`] || { x: 80, y: 60 + orderIdx * 450 };
+            const orderPos = positions[`order-node-${orderId}`] || defaultPositions[`order-node-${orderId}`] || { x: 80, y: 60 + orderIdx * 500 };
             const orderNode = document.createElement('div');
             orderNode.id = `order-node-${orderId}`;
             orderNode.className = "db-table absolute z-20 w-60 rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none";
@@ -683,9 +904,9 @@
                 <div class="bg-[#193961] border-b border-[#2a4365] px-3 py-1.5 flex items-center justify-between text-white handle">
                     <div class="flex items-center gap-2 min-w-0">
                         <svg class="w-3.5 h-3.5 text-cyan-300 opacity-80" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                            <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1z7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
                         </svg>
-                        <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="Zakaz: #${order.order_number}">
+                       <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="Zakaz: #${order.order_number}">
                             ZAKAZ: #${order.order_number}
                         </span>
                     </div>
@@ -718,17 +939,13 @@
             // 2. ARTIKUL TABLES (stacked, Teal if ready, Purple if pending)
             if (order.articles) {
                 order.articles.forEach((art, artIdx) => {
-                    const artPos = positions[`art-node-${art.id}`] || { x: 440, y: 60 + orderIdx * 450 + artIdx * 125 };
+                    const artPos = positions[`art-node-${art.id}`] || defaultPositions[`art-node-${art.id}`] || { x: 440, y: orderPos.y + artIdx * 135 };
                     const isReady = art.is_ready;
-                    const isChecked = selectedArticleIds.has(art.id) || isReady;
-                    if (isReady) {
-                        selectedArticleIds.add(art.id);
-                        selectedArticleData[art.id] = art;
-                    }
+                    const isChecked = selectedArticleIds.has(art.id);
                     const isActive = art.id === activeArtId;
 
-                    const headerBg = isReady 
-                        ? 'bg-[#0d4a45] border-[#134e4a] text-emerald-300' 
+                    const headerBg = isReady
+                        ? 'bg-[#0d4a45] border-[#134e4a] text-emerald-300'
                         : 'bg-[#5b1e5a] border-[#701a75] text-fuchsia-300';
 
                     const artNode = document.createElement('div');
@@ -761,11 +978,13 @@
                                 <!-- Left Target Port for Crow's Foot aligned with ID row -->
                                 <div id="port-art-in-${art.id}" class="port-target"></div>
 
-                                <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
-                                    <input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
-                                        onchange="handleCheckboxChange(${art.id})"
-                                        class="w-4 h-4 rounded ${isReady ? 'text-emerald-500 focus:ring-emerald-400 bg-[#0c0f17] border-emerald-500 accent-emerald-500' : 'text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500'} cursor-pointer">
-                                    <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                <label class="flex items-center gap-2 ${isReady ? '' : 'cursor-pointer'}" onclick="event.stopPropagation()">
+                                    ${isReady
+                            ? `<span class="w-4 h-4 flex items-center justify-center rounded border border-emerald-500 bg-emerald-900/40 text-emerald-400 text-[10px] font-bold" title="Operatsiyalar bog'langan">✗</span>`
+                            : `<input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
+                                            onchange="handleCheckboxChange(${art.id})"
+                                            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer">`
+                        }                        <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                                         <i class="fa-solid fa-key text-[9px]"></i> ID (${art.id})
                                     </span>
                                 </label>
@@ -794,17 +1013,30 @@
                 });
             }
 
-            // 3. OPERATSIYALAR TABLE (#1e2433 charcoal)
-            const opsPos = positions[`ops-node-${orderId}`] || { x: 820, y: 60 + orderIdx * 450 + 40 };
-            const opsNode = document.createElement('div');
-            opsNode.id = `ops-node-${orderId}`;
-            opsNode.className = "db-table absolute z-20 w-64 rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none";
-            opsNode.style.left = `${opsPos.x}px`;
-            opsNode.style.top = `${opsPos.y}px`;
+            // 3 & 4. OPERATSIYALAR VA NORMA JADVALLARI (Operatsiyalari mavjud modellar uchun!)
+            const modelGroups = order.model_groups || [];
+            modelGroups.forEach((mg) => {
+                const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
+                if (!hasOps) {
+                    return;
+                }
 
-            let col3OpsRows = '';
-            if (activeArt && activeArt.operations && activeArt.operations.length > 0) {
-                activeArt.operations.forEach(op => {
+                const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                const opsNodeId = `ops-node-${orderId}-${mgKey}`;
+                const normaNodeId = `norma-node-${orderId}-${mgKey}`;
+
+                const opsPos = positions[opsNodeId] || defaultPositions[opsNodeId] || { x: 820, y: orderPos.y };
+                const normaPos = positions[normaNodeId] || defaultPositions[normaNodeId] || { x: 1200, y: orderPos.y };
+
+                // OPERATSIYALAR JADVALI
+                const opsNode = document.createElement('div');
+                opsNode.id = opsNodeId;
+                opsNode.className = "db-table absolute z-20 w-64 rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none hover:border-indigo-500/60";
+                opsNode.style.left = `${opsPos.x}px`;
+                opsNode.style.top = `${opsPos.y}px`;
+
+                let col3OpsRows = '';
+                (mg.operations || []).forEach(op => {
                     col3OpsRows += `
                         <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                             <span class="truncate max-w-[150px]" title="${op.name}">
@@ -814,107 +1046,130 @@
                         </div>
                     `;
                 });
-            } else {
-                col3OpsRows = `
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
-                        <span>OPERATSIYA1</span>
-                        <span class="text-slate-500">int</span>
+
+                const artCodesList = (mg.articles || []).map(a => a.code);
+                const artCodesPreview = artCodesList.slice(0, 2).join(', ') + (artCodesList.length > 2 ? '...' : '');
+
+                opsNode.innerHTML = `
+                    <!-- Header: OPERATSIYALAR: MODEL NOMI -->
+                    <div class="bg-[#1e2433] border-b border-slate-700 px-3 py-1.5 flex items-center justify-between text-white handle">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <svg class="w-3.5 h-3.5 text-indigo-400 opacity-80" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                            </svg>
+                            <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="OPERATSIYALAR: ${mg.model_name} (${artCodesList.join(', ')})">
+                                OP: ${mg.model_name} <span class="text-indigo-400 font-normal text-[10px]">(${artCodesPreview})</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button type="button" onclick="openOperationsModalForModel(${orderId}, '${mgKey}')" title="Operatsiyalarni tahrirlash" class="text-[10px] text-indigo-300 hover:text-white p-0.5 transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteOperationsForModel(${orderId}, '${mgKey}')" title="Operatsiyalarni o'chirish" class="text-[10px] text-rose-400 hover:text-rose-300 p-0.5 transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
-                        <span>OPERATSIYA2</span>
-                        <span class="text-slate-500">int</span>
-                    </div>
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
-                        <span>OPERATSIYA3</span>
-                        <span class="text-slate-500">int</span>
-                    </div>
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-400">
-                        <span>VAHOZAKO</span>
-                        <span class="text-slate-500">int</span>
+
+                    <!-- Rows -->
+                    <div class="p-2 space-y-1 text-[11px] font-mono max-h-[360px] overflow-y-auto">
+                        <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                            <!-- Left Target Port for Crow's Foot aligned with ID row -->
+                            <div id="port-ops-in-${orderId}-${mgKey}" class="port-target"></div>
+
+                            <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                <i class="fa-solid fa-key text-[9px]"></i> ID
+                            </span>
+                            <span class="text-slate-500">int</span>
+
+                            <!-- Right Port Handle '+' aligned with ID row -->
+                            <div id="port-ops-out-${orderId}-${mgKey}" class="port-plus">+</div>
+                        </div>
+                        ${col3OpsRows}
                     </div>
                 `;
-            }
+                attachDraggable(opsNode, () => {
+                    openOperationsModalForModel(orderId, mgKey);
+                });
+                container.appendChild(opsNode);
 
-            opsNode.innerHTML = `
-                <!-- Header -->
-                <div class="bg-[#1e2433] border-b border-slate-700 px-3 py-1.5 flex items-center justify-between text-white handle">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <svg class="w-3.5 h-3.5 text-indigo-400 opacity-80" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
-                        </svg>
-                        <span class="font-mono font-bold text-xs uppercase tracking-wider">
-                            OPERATSIYALAR
-                        </span>
+                // NORMA JADVALI (Agar norma hali kiritilmagan bo'lsa - Sariq miltillovchi kutilmoqda rejimida!)
+                const isNormaPending = !mg.daily_norm || mg.daily_norm <= 0;
+                const normaNode = document.createElement('div');
+                normaNode.id = normaNodeId;
+
+                const normaBorderCls = isNormaPending
+                    ? "border-2 border-amber-500 shadow-amber-500/20 ring-2 ring-amber-500/50 animate-pulse bg-[#16161c]"
+                    : "border border-[#2a2e39] bg-[#161b26] hover:border-emerald-500/60";
+
+                const normaHeaderCls = isNormaPending
+                    ? "bg-amber-950/80 border-b border-amber-700 text-amber-300"
+                    : "bg-[#1e2433] border-b border-slate-700 text-white";
+
+                normaNode.className = `db-table absolute z-20 w-56 rounded-md shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none ${normaBorderCls}`;
+                normaNode.style.left = `${normaPos.x}px`;
+                normaNode.style.top = `${normaPos.y}px`;
+
+                const normValDisplay = isNormaPending
+                    ? `<span class="text-amber-400 font-bold underline cursor-pointer hover:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Kiritilmagan</span>`
+                    : `<span class="text-emerald-400 font-bold digital-font text-xs">${mg.daily_norm} dona</span>`;
+
+                const normRejaDisplay = isNormaPending
+                    ? `<span class="text-amber-400/80 text-[10px] font-mono">Kutilmoqda...</span>`
+                    : `<span class="text-emerald-400 font-bold font-mono">100%</span>`;
+
+                const headerBadge = isNormaPending
+                    ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/50 px-1.5 py-0.5 rounded text-[8px] font-bold">⚠ KUTILMOQDA</span>`
+                    : `<span class="text-[9px] text-emerald-400 font-mono"><i class="fa-solid fa-circle-check"></i></span>`;
+
+                normaNode.innerHTML = `
+                    <!-- Header: NORMA: MODEL NOMI -->
+                    <div class="${normaHeaderCls} px-3 py-1.5 flex items-center justify-between handle">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <svg class="w-3.5 h-3.5 ${isNormaPending ? 'text-amber-400' : 'text-emerald-400'} opacity-80" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
+                            </svg>
+                            <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="NORMA: ${mg.model_name} (${artCodesList.join(', ')})">
+                                NORMA: ${mg.model_name} <span class="text-emerald-400 font-normal text-[10px]">(${artCodesPreview})</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button type="button" onclick="openNormaModalForModel(${orderId}, '${mgKey}')" title="Normani tahrirlash" class="text-[10px] text-slate-300 hover:text-white p-0.5 transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteNormaForModel(${orderId}, '${mgKey}')" title="Normani o'chirish" class="text-[10px] text-rose-400 hover:text-rose-300 p-0.5 transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                            ${headerBadge}
+                        </div>
                     </div>
-                    <span class="text-[9px] text-indigo-300 font-mono opacity-60"><i class="fa-solid fa-up-down-left-right"></i></span>
-                </div>
 
-                <!-- Rows -->
-                <div class="p-2 space-y-1 text-[11px] font-mono max-h-[360px] overflow-y-auto">
-                    <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                        <!-- Left Target Port for Crow's Foot aligned with ID row -->
-                        <div id="port-ops-in-${orderId}" class="port-target"></div>
+                    <!-- Rows -->
+                    <div class="p-2 space-y-1 text-[11px] font-mono">
+                        <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                            <!-- Left Target Port for Crow's Foot aligned with ID row -->
+                            <div id="port-norma-in-${orderId}-${mgKey}" class="port-target"></div>
 
-                        <span class="flex items-center gap-1.5 text-amber-300 font-bold">
-                            <i class="fa-solid fa-key text-[9px]"></i> ID
-                        </span>
-                        <span class="text-slate-500">int</span>
-
-                        <!-- Right Port Handle '+' aligned with ID row -->
-                        <div id="port-ops-out-${orderId}" class="port-plus">+</div>
+                            <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                <i class="fa-solid fa-key text-[9px]"></i> ID
+                            </span>
+                            <span class="text-slate-500">int</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                            <span>NORMASONI</span>
+                            ${normValDisplay}
+                        </div>
+                        <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
+                            <span>KUNLIK_REJA</span>
+                            ${normRejaDisplay}
+                        </div>
                     </div>
-                    ${col3OpsRows}
-                </div>
-            `;
-            attachDraggable(opsNode);
-            container.appendChild(opsNode);
-
-            // 4. NORMA TABLE (#1e2433 charcoal)
-            const normaPos = positions[`norma-node-${orderId}`] || { x: 1200, y: 60 + orderIdx * 450 + 40 };
-            const normaNode = document.createElement('div');
-            normaNode.id = `norma-node-${orderId}`;
-            normaNode.className = "db-table absolute z-20 w-56 rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none";
-            normaNode.style.left = `${normaPos.x}px`;
-            normaNode.style.top = `${normaPos.y}px`;
-
-            const dailyNormVal = (activeArt && activeArt.daily_norm) ? `${activeArt.daily_norm} dona` : '0';
-            normaNode.innerHTML = `
-                <!-- Header -->
-                <div class="bg-[#1e2433] border-b border-slate-700 px-3 py-1.5 flex items-center justify-between text-white handle">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <svg class="w-3.5 h-3.5 text-amber-400 opacity-80" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
-                        </svg>
-                        <span class="font-mono font-bold text-xs uppercase tracking-wider">
-                            NORMA
-                        </span>
-                    </div>
-                    <span class="text-[9px] text-amber-300 font-mono opacity-60"><i class="fa-solid fa-up-down-left-right"></i></span>
-                </div>
-
-                <!-- Rows -->
-                <div class="p-2 space-y-1 text-[11px] font-mono">
-                    <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                        <!-- Left Target Port for Crow's Foot aligned with ID row -->
-                        <div id="port-norma-in-${orderId}" class="port-target"></div>
-
-                        <span class="flex items-center gap-1.5 text-amber-300 font-bold">
-                            <i class="fa-solid fa-key text-[9px]"></i> ID
-                        </span>
-                        <span class="text-slate-500">int</span>
-                    </div>
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                        <span>NORMASONI</span>
-                        <span class="text-amber-400 font-bold digital-font text-xs">${dailyNormVal}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                        <span>KUNLIK_REJA</span>
-                        <span class="text-emerald-400 font-bold font-mono">100%</span>
-                    </div>
-                </div>
-            `;
-            attachDraggable(normaNode);
-            container.appendChild(normaNode);
+                `;
+                attachDraggable(normaNode, () => {
+                    openNormaModalForModel(orderId, mgKey);
+                });
+                container.appendChild(normaNode);
+            });
         });
 
         setTimeout(drawAllConnections, 50);
@@ -940,21 +1195,13 @@
 
             const pOrder = getPortCenter(portOrderOut, worldRect);
             const artTargetPoints = [];
-            const readyArtSourcePoints = [];
 
             order.articles.forEach(art => {
                 const portArtIn = document.getElementById(`port-art-in-${art.id}`);
-                const portArtOut = document.getElementById(`port-art-out-${art.id}`);
                 if (portArtIn) {
                     artTargetPoints.push({
                         art: art,
                         point: getPortCenter(portArtIn, worldRect)
-                    });
-                }
-                if (art.is_ready && portArtOut) {
-                    readyArtSourcePoints.push({
-                        art: art,
-                        point: getPortCenter(portArtOut, worldRect)
                     });
                 }
             });
@@ -1008,63 +1255,82 @@
                 }
             }
 
-            // 2. READY ARTIKULLAR -> OPERATSIYALAR (Unified Merge Tree)
-            const portOpsIn = document.getElementById(`port-ops-in-${orderId}`);
-            const portOpsOut = document.getElementById(`port-ops-out-${orderId}`);
-            const portNormaIn = document.getElementById(`port-norma-in-${orderId}`);
+            // 2. READY ARTIKULLAR -> OPERATSIYALAR & NORMA (Per Model Group)
+            const modelGroups = order.model_groups || [];
+            modelGroups.forEach((mg) => {
+                const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
+                if (!hasOps) return;
 
-            if (portOpsIn && readyArtSourcePoints.length > 0) {
-                const pOpsIn = getPortCenter(portOpsIn, worldRect);
-                const sources = readyArtSourcePoints.map(s => s.point);
-                const mergeX = pOpsIn.x - 35;
-                const allBehind = sources.every(s => s.x <= mergeX);
+                const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                const portOpsIn = document.getElementById(`port-ops-in-${orderId}-${mgKey}`);
+                const portOpsOut = document.getElementById(`port-ops-out-${orderId}-${mgKey}`);
+                const portNormaIn = document.getElementById(`port-norma-in-${orderId}-${mgKey}`);
 
-                if (readyArtSourcePoints.length === 1 || !allBehind) {
-                    readyArtSourcePoints.forEach(s => {
-                        drawOrthogonalStep(wiresGroup, s.point.x, s.point.y, pOpsIn.x, pOpsIn.y, 'wire-path');
-                    });
-                    drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
-                } else {
-                    const r = 10;
-                    const ys = sources.map(s => s.y);
-                    const minY = Math.min(...ys);
-                    const maxY = Math.max(...ys);
-
-                    // Stem from mergeX to Operatsiyalar
-                    drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
-                    drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
-
-                    // Vertical trunk
-                    const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
-                    const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
-                    if (trunkBot > trunkTop) {
-                        drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
+                const mgReadySources = [];
+                (mg.articles || []).forEach(art => {
+                    const portArtOut = document.getElementById(`port-art-out-${art.id}`);
+                    const artHasOps = (art.operations && art.operations.length > 0) || art.is_ready;
+                    if (artHasOps && portArtOut) {
+                        mgReadySources.push({
+                            art: art,
+                            point: getPortCenter(portArtOut, worldRect)
+                        });
                     }
+                });
 
-                    readyArtSourcePoints.forEach(s => {
-                        const sx = s.point.x;
-                        const sy = s.point.y;
-                        let d = '';
-                        if (sy === minY && sy < pOpsIn.y) {
-                            d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + r}`;
-                        } else if (sy === maxY && sy > pOpsIn.y) {
-                            d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - r}`;
-                        } else {
-                            d = `M ${sx} ${sy} L ${mergeX} ${sy}`;
+                if (portOpsIn && mgReadySources.length > 0) {
+                    const pOpsIn = getPortCenter(portOpsIn, worldRect);
+                    const sources = mgReadySources.map(s => s.point);
+                    const mergeX = pOpsIn.x - 35;
+                    const allBehind = sources.every(s => s.x <= mergeX);
+
+                    if (mgReadySources.length === 1 || !allBehind) {
+                        mgReadySources.forEach(s => {
+                            drawOrthogonalStep(wiresGroup, s.point.x, s.point.y, pOpsIn.x, pOpsIn.y, 'wire-path');
+                        });
+                        drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+                    } else {
+                        const r = 10;
+                        const ys = sources.map(s => s.y);
+                        const minY = Math.min(...ys);
+                        const maxY = Math.max(...ys);
+
+                        drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
+                        drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+
+                        const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
+                        const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
+                        if (trunkBot > trunkTop) {
+                            drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
                         }
-                        drawSvgPath(wiresGroup, d, 'wire-path');
-                    });
+
+                        mgReadySources.forEach(s => {
+                            const sx = s.point.x;
+                            const sy = s.point.y;
+                            let d = '';
+                            if (sy === minY && sy < pOpsIn.y) {
+                                d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + r}`;
+                            } else if (sy === maxY && sy > pOpsIn.y) {
+                                d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - r}`;
+                            } else {
+                                d = `M ${sx} ${sy} L ${mergeX} ${sy}`;
+                            }
+                            drawSvgPath(wiresGroup, d, 'wire-path');
+                        });
+                    }
                 }
-            }
 
-            // 3. OPERATSIYALAR -> NORMA (Clean orthogonal step)
-            if (portOpsOut && portNormaIn && readyArtSourcePoints.length > 0) {
-                const pOpsOut = getPortCenter(portOpsOut, worldRect);
-                const pNormaIn = getPortCenter(portNormaIn, worldRect);
+                // 3. OPERATSIYALAR -> NORMA (Clean direct connection with pending state)
+                const isNormaPending = !mg.daily_norm || mg.daily_norm <= 0;
+                if (portOpsOut && portNormaIn && mgReadySources.length > 0) {
+                    const pOpsOut = getPortCenter(portOpsOut, worldRect);
+                    const pNormaIn = getPortCenter(portNormaIn, worldRect);
 
-                drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path');
-                drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path');
-            }
+                    const wireCls = isNormaPending ? 'wire-path wire-pending' : 'wire-path';
+                    drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, wireCls);
+                    drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, wireCls);
+                }
+            });
         });
     }
 
@@ -1143,16 +1409,67 @@
             delete selectedArticleData[artId];
         }
         updateFloatingDock();
+        renderDiagrams();
+    }
+
+
+    // Artukullarni operatsiyalar va norma bo'yicha guruhlash (har bir alohida operatsiya/norma uchun alohida jadval)
+    function rebuildModelGroups(articles) {
+        const groupsDict = {};
+        (articles || []).forEach(art => {
+            const modelId = art.model_id || 'm';
+            const norm = art.daily_norm || 0;
+            const ops = art.operations || [];
+            let opsSig = 'no_ops';
+            if (ops.length > 0) {
+                opsSig = ops.map(o => `${o.code || ''}:${o.sequence || ''}:${o.price || 0}`).join('|');
+            }
+            const groupKey = `${modelId}_${opsSig}_${norm}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            if (!groupsDict[groupKey]) {
+                groupsDict[groupKey] = {
+                    key: groupKey,
+                    model_id: art.model_id,
+                    model_name: art.model_name || 'Model',
+                    model_code: art.model_code || '',
+                    daily_norm: art.daily_norm,
+                    operations: art.operations || [],
+                    operations_count: art.operations_count || 0,
+                    unit_total_rate: art.unit_total_rate || 0,
+                    is_ready: art.is_ready || false,
+                    is_in_sewing: art.is_in_sewing || false,
+                    articles: []
+                };
+            }
+            if (art.is_in_sewing) {
+                groupsDict[groupKey].is_in_sewing = true;
+            }
+            if (art.is_ready) {
+                groupsDict[groupKey].is_ready = true;
+            }
+            groupsDict[groupKey].articles.push(art);
+        });
+
+        const groups = Object.values(groupsDict);
+        groups.sort((a, b) => {
+            const mCmp = (a.model_name || '').localeCompare(b.model_name || '');
+            if (mCmp !== 0) return mCmp;
+            const aHas = (a.operations && a.operations.length > 0) ? 0 : 1;
+            const bHas = (b.operations && b.operations.length > 0) ? 0 : 1;
+            if (aHas !== bHas) return aHas - bHas;
+            return (a.key || '').localeCompare(b.key || '');
+        });
+        groups.forEach(g => {
+            g.articles.sort((x, y) => (x.code || '').localeCompare(y.code || ''));
+        });
+        return groups;
     }
 
     function clearSelection() {
-        selectedArticleIds.forEach(id => {
-            const chk = document.getElementById(`check-art-${id}`);
-            if (chk) chk.checked = false;
-        });
         selectedArticleIds.clear();
         selectedArticleData = {};
         updateFloatingDock();
+        renderDiagrams();
     }
 
     function updateFloatingDock() {
@@ -1172,14 +1489,25 @@
         }
     }
 
-    // Modal Logic
-    function openConfigModal() {
+    // 1-BOSQICH: OPERATSIYALARNI TANLASH VA SOZLASH MODALI
+    function openOperationsModal(preselectedIds = null) {
+        if (preselectedIds && Array.isArray(preselectedIds)) {
+            selectedArticleIds = new Set(preselectedIds);
+            selectedArticleData = {};
+            ORDERS_DATA.forEach(ord => {
+                ord.articles.forEach(a => {
+                    if (selectedArticleIds.has(a.id)) selectedArticleData[a.id] = a;
+                });
+            });
+            updateFloatingDock();
+        }
+
         if (selectedArticleIds.size === 0) return;
 
-        const tagsContainer = document.getElementById('modal-selected-tags');
+        const tagsContainer = document.getElementById('ops-selected-tags');
         tagsContainer.innerHTML = '';
-        let commonNorm = 0;
         let commonModelId = null;
+        let existingOpsMap = {};
 
         Object.values(selectedArticleData).forEach(item => {
             const chip = document.createElement('span');
@@ -1187,133 +1515,480 @@
             chip.innerText = item.code;
             tagsContainer.appendChild(chip);
 
-            if (item.daily_norm && item.daily_norm > 0) commonNorm = item.daily_norm;
             if (item.model_id) commonModelId = item.model_id;
+
+            if (item.operations && item.operations.length > 0) {
+                item.operations.forEach(op => {
+                    const key = (op.name || '').trim().toLowerCase();
+                    if (!existingOpsMap[key]) existingOpsMap[key] = op;
+                });
+            }
         });
 
-        const normInput = document.getElementById('input-daily-norm');
-        normInput.value = commonNorm > 0 ? commonNorm : (normInput.value || 1500);
-
-        const tbody = document.getElementById('operations-tbody');
-        tbody.innerHTML = '';
-
-        if (commonModelId && MODELS_LOOKUP[commonModelId] && MODELS_LOOKUP[commonModelId].operations.length > 0) {
-            loadOperationsFromModelTemplate(commonModelId);
-        } else {
-            addOperationRow(1, 'Yoqa tikish', 1.0, 450);
-            addOperationRow(2, 'Yeng ulash', 1.0, 550);
-            addOperationRow(3, 'Etak qaytarish', 1.0, 350);
+        // Model operatsiyalarini tekshirish
+        if (Object.keys(existingOpsMap).length === 0 && commonModelId && MODELS_LOOKUP[commonModelId] && MODELS_LOOKUP[commonModelId].operations.length > 0) {
+            MODELS_LOOKUP[commonModelId].operations.forEach(op => {
+                const key = (op.name || '').trim().toLowerCase();
+                if (!existingOpsMap[key]) existingOpsMap[key] = op;
+            });
         }
 
-        document.getElementById('modal-error-banner').classList.add('hidden');
-        document.getElementById('configModal').classList.remove('hidden');
+        // Search inputni tozalash
+        const searchInput = document.getElementById('op-search-filter');
+        if (searchInput) searchInput.value = '';
+
+        const tbody = document.getElementById('catalog-operations-tbody');
+        tbody.innerHTML = '';
+
+        let nextSeqCounter = 1;
+        const renderedOpsKeys = new Set();
+        const usedSeqs = new Set();
+
+        // 1. Bazadagi barcha operatsiyalar ro'yxatini render qilish
+        ALL_CATALOG_OPERATIONS.forEach(op => {
+            const key = (op.name || '').trim().toLowerCase();
+            renderedOpsKeys.add(key);
+
+            const isChecked = !!existingOpsMap[key];
+            const existingData = existingOpsMap[key] || {};
+            let seqVal = '';
+            if (isChecked) {
+                const s = parseInt(existingData.sequence);
+                if (s && s > 0 && !usedSeqs.has(s)) {
+                    seqVal = s;
+                    usedSeqs.add(seqVal);
+                } else {
+                    while (usedSeqs.has(nextSeqCounter)) nextSeqCounter++;
+                    seqVal = nextSeqCounter++;
+                    usedSeqs.add(seqVal);
+                }
+            }
+
+            const diffVal = isChecked ? (existingData.difficulty || op.difficulty || 1.0) : (op.difficulty || 1.0);
+            const priceVal = isChecked ? (parseFloat(existingData.price) > 0 ? existingData.price : 500) : 500;
+
+            const tr = document.createElement('tr');
+            tr.className = `op-row transition ${isChecked ? 'bg-indigo-950/25' : 'hover:bg-[#1f2637]'}`;
+            tr.dataset.opName = (op.name || '').toLowerCase();
+            tr.dataset.opCode = (op.code || '').toLowerCase();
+
+            tr.innerHTML = `
+                <td class="py-2.5 px-3 text-center">
+                    <input type="checkbox" class="op-row-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer"
+                        ${isChecked ? 'checked' : ''} onchange="toggleOpRow(this)">
+                </td>
+                <td class="py-2.5 px-3 text-center">
+                    <input type="number" class="op-seq w-12 bg-[#0c0f17] border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1"
+                        value="${seqVal}" min="1" ${isChecked ? '' : 'disabled'}>
+                </td>
+                <td class="py-2.5 px-3">
+                    <div class="font-bold text-white text-xs">${op.name}</div>
+                    <span class="text-[10px] text-slate-500 font-mono">${op.code}</span>
+                    <input type="hidden" class="op-name" value="${op.name}">
+                    <input type="hidden" class="op-code" value="${op.code}">
+                </td>
+                <td class="py-2.5 px-3 text-center">
+                    <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-[#0c0f17] border border-[#2a2e39] rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1"
+                        value="${diffVal}" ${isChecked ? '' : 'disabled'}>
+                </td>
+                <td class="py-2.5 px-3">
+                    <div class="flex items-center gap-1">
+                        <input type="number" step="50" min="1" class="op-price w-24 bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font"
+                            value="${priceVal}" ${isChecked ? '' : 'disabled'}>
+                        <span class="text-[10px] text-slate-500 font-sans">so'm</span>
+                    </div>
+                </td>
+                <td class="py-2.5 px-2 text-center">
+                    <button type="button" onclick="this.closest('tr').remove(); updateOpsSelectedCount();" class="text-slate-500 hover:text-rose-400 p-1" title="Qatorni o'chirish">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // 2. Agar katalogda bo'lmagan maxsus operatsiyalar mavjud bo'lsa, ularni ham qo'shish
+        Object.keys(existingOpsMap).forEach(key => {
+            if (!renderedOpsKeys.has(key)) {
+                const op = existingOpsMap[key];
+                let seqVal = '';
+                const s = parseInt(op.sequence);
+                if (s && s > 0 && !usedSeqs.has(s)) {
+                    seqVal = s;
+                    usedSeqs.add(seqVal);
+                } else {
+                    while (usedSeqs.has(nextSeqCounter)) nextSeqCounter++;
+                    seqVal = nextSeqCounter++;
+                    usedSeqs.add(seqVal);
+                }
+                const priceVal = parseFloat(op.price) > 0 ? op.price : 500;
+
+                const tr = document.createElement('tr');
+                tr.className = "op-row transition bg-indigo-950/25";
+                tr.dataset.opName = (op.name || '').toLowerCase();
+                tr.dataset.opCode = (op.code || '').toLowerCase();
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-center">
+                        <input type="checkbox" class="op-row-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer"
+                            checked onchange="toggleOpRow(this)">
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <input type="number" class="op-seq w-12 bg-[#0c0f17] border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1"
+                            value="${seqVal}" min="1">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" class="op-name w-full bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2 py-1 text-xs text-white font-bold"
+                            value="${op.name}">
+                        <input type="hidden" class="op-code" value="${op.code || ''}">
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-[#0c0f17] border border-[#2a2e39] rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1"
+                            value="${op.difficulty || 1.0}">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <div class="flex items-center gap-1">
+                            <input type="number" step="50" min="1" class="op-price w-24 bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font"
+                                value="${priceVal}">
+                            <span class="text-[10px] text-slate-500 font-sans">so'm</span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-2 text-center">
+                        <button type="button" onclick="this.closest('tr').remove(); updateOpsSelectedCount();" class="text-slate-500 hover:text-rose-400 p-1">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+
+        // Agar tanlangan artikullarda mavjud operatsiyalar bo'lsa, O'chirish tugmasini ko'rsatish
+        const deleteOpsBtn = document.getElementById('btn-delete-ops-modal');
+        if (deleteOpsBtn) {
+            const hasExisting = Object.keys(existingOpsMap).length > 0;
+            if (hasExisting) deleteOpsBtn.classList.remove('hidden');
+            else deleteOpsBtn.classList.add('hidden');
+        }
+
+        updateOpsSelectedCount();
+        document.getElementById('ops-modal-error-banner').classList.add('hidden');
+        document.getElementById('operationsModal').classList.remove('hidden');
     }
 
-    function closeConfigModal() {
-        document.getElementById('configModal').classList.add('hidden');
+    function closeOperationsModal() {
+        document.getElementById('operationsModal').classList.add('hidden');
     }
 
-    function addOperationRow(seq = null, name = '', diff = 1.0, price = 0) {
-        const tbody = document.getElementById('operations-tbody');
-        const rowCount = tbody.children.length + 1;
-        const currentSeq = seq !== null ? seq : rowCount;
+    function toggleOpRow(chk) {
+        const tr = chk.closest('tr');
+        const seqInput = tr.querySelector('.op-seq');
+        const diffInput = tr.querySelector('.op-diff');
+        const priceInput = tr.querySelector('.op-price');
+
+        if (chk.checked) {
+            seqInput.disabled = false;
+            diffInput.disabled = false;
+            priceInput.disabled = false;
+            tr.classList.add('bg-indigo-950/25');
+            tr.classList.remove('hover:bg-[#1f2637]');
+
+            // Narx 0 yoki bo'sh bo'lsa, kamida 500 qilib qo'yish
+            if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+                priceInput.value = 500;
+            }
+
+            // Agar tartib raqami bo'sh yoki 0 bo'lsa, mavjud bo'lmagan navbatdagi unikal raqam berish
+            const currentVal = parseInt(seqInput.value);
+            const used = new Set();
+            document.querySelectorAll('#catalog-operations-tbody .op-row-check:checked').forEach(c => {
+                if (c !== chk) {
+                    const s = parseInt(c.closest('tr').querySelector('.op-seq')?.value);
+                    if (s && s > 0) used.add(s);
+                }
+            });
+
+            if (!currentVal || currentVal <= 0 || used.has(currentVal)) {
+                let next = 1;
+                while (used.has(next)) next++;
+                seqInput.value = next;
+            }
+        } else {
+            seqInput.disabled = true;
+            diffInput.disabled = true;
+            priceInput.disabled = true;
+            seqInput.value = '';
+            tr.classList.remove('bg-indigo-950/25');
+            tr.classList.add('hover:bg-[#1f2637]');
+        }
+
+        updateOpsSelectedCount();
+    }
+
+    function renumberCheckedOperations(force = false) {
+        const checkedRows = Array.from(document.querySelectorAll('#catalog-operations-tbody tr')).filter(r => {
+            const chk = r.querySelector('.op-row-check');
+            return chk && chk.checked;
+        });
+
+        if (force) {
+            // Mavjud tartib raqamlari bo'yicha saralab, 1, 2, 3... qilib qayta raqamlash
+            checkedRows.sort((a, b) => {
+                const seqA = parseInt(a.querySelector('.op-seq')?.value) || 9999;
+                const seqB = parseInt(b.querySelector('.op-seq')?.value) || 9999;
+                return seqA - seqB;
+            });
+            checkedRows.forEach((row, idx) => {
+                const seqInput = row.querySelector('.op-seq');
+                if (seqInput) seqInput.value = idx + 1;
+            });
+        } else {
+            const used = new Set();
+            checkedRows.forEach(row => {
+                const seqInput = row.querySelector('.op-seq');
+                const val = parseInt(seqInput?.value);
+                if (val && val > 0 && !used.has(val)) {
+                    used.add(val);
+                } else if (seqInput) {
+                    let next = 1;
+                    while (used.has(next)) next++;
+                    seqInput.value = next;
+                    used.add(next);
+                }
+            });
+        }
+    }
+
+    function updateOpsSelectedCount() {
+        const count = document.querySelectorAll('#catalog-operations-tbody .op-row-check:checked').length;
+        const label = document.getElementById('ops-selected-count-label');
+        if (label) {
+            label.innerText = `${count} ta operatsiya tanlandi`;
+        }
+    }
+
+    function selectAllOperations(checked) {
+        const rows = document.querySelectorAll('#catalog-operations-tbody tr');
+        let currentSeq = 1;
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const chk = row.querySelector('.op-row-check');
+                if (chk) {
+                    chk.checked = checked;
+                    const seqInput = row.querySelector('.op-seq');
+                    const diffInput = row.querySelector('.op-diff');
+                    const priceInput = row.querySelector('.op-price');
+
+                    if (checked) {
+                        seqInput.disabled = false;
+                        diffInput.disabled = false;
+                        priceInput.disabled = false;
+                        seqInput.value = currentSeq++;
+                        if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+                            priceInput.value = 500;
+                        }
+                        row.classList.add('bg-indigo-950/25');
+                        row.classList.remove('hover:bg-[#1f2637]');
+                    } else {
+                        seqInput.disabled = true;
+                        diffInput.disabled = true;
+                        priceInput.disabled = true;
+                        seqInput.value = '';
+                        row.classList.remove('bg-indigo-950/25');
+                        row.classList.add('hover:bg-[#1f2637]');
+                    }
+                }
+            }
+        });
+        updateOpsSelectedCount();
+    }
+
+    function filterOperationsModal(term) {
+        const clean = term.toLowerCase().trim();
+        const rows = document.querySelectorAll('#catalog-operations-tbody tr');
+        rows.forEach(row => {
+            const name = (row.dataset.opName || '').toLowerCase();
+            const code = (row.dataset.opCode || '').toLowerCase();
+            if (!clean || name.includes(clean) || code.includes(clean)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function addCustomOperationRow() {
+        const tbody = document.getElementById('catalog-operations-tbody');
+        const used = new Set();
+        document.querySelectorAll('#catalog-operations-tbody .op-row-check:checked').forEach(c => {
+            const s = parseInt(c.closest('tr').querySelector('.op-seq')?.value);
+            if (s && s > 0) used.add(s);
+        });
+        let nextSeq = 1;
+        while (used.has(nextSeq)) nextSeq++;
 
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-[#1f2637] transition";
+        tr.className = "op-row transition bg-indigo-950/25";
         tr.innerHTML = `
-            <td class="py-2 px-3 text-center">
-                <input type="number" class="op-seq w-12 bg-[#0c0f17] border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1" value="${currentSeq}" min="1">
+            <td class="py-2.5 px-3 text-center">
+                <input type="checkbox" class="op-row-check w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer"
+                    checked onchange="toggleOpRow(this)">
             </td>
-            <td class="py-2 px-3">
-                <input type="text" list="available-operations-list" class="op-name w-full bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-indigo-500" placeholder="Operatsiya nomi" value="${name}">
+            <td class="py-2.5 px-3 text-center">
+                <input type="number" class="op-seq w-12 bg-[#0c0f17] border border-amber-500/60 rounded-lg text-center font-mono font-bold text-amber-300 text-xs py-1"
+                    value="${nextSeq}" min="1">
             </td>
-            <td class="py-2 px-3 text-center">
-                <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-[#0c0f17] border border-[#2a2e39] rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1" value="${diff}">
+            <td class="py-2.5 px-3">
+                <input type="text" list="available-operations-list" class="op-name w-full bg-[#0c0f17] border border-indigo-500/60 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-indigo-400"
+                    placeholder="Yangi operatsiya nomi...">
+                <input type="hidden" class="op-code" value="">
             </td>
-            <td class="py-2 px-3">
+            <td class="py-2.5 px-3 text-center">
+                <input type="number" step="0.1" min="0.1" class="op-diff w-16 bg-[#0c0f17] border border-[#2a2e39] rounded-lg text-center font-mono font-bold text-cyan-300 text-xs py-1"
+                    value="1.0">
+            </td>
+            <td class="py-2.5 px-3">
                 <div class="flex items-center gap-1">
-                    <input type="number" step="50" min="0" class="op-price w-24 bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font" value="${price}">
+                    <input type="number" step="50" min="1" class="op-price w-24 bg-[#0c0f17] border border-[#2a2e39] rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono font-bold digital-font"
+                        value="500">
                     <span class="text-[10px] text-slate-500 font-sans">so'm</span>
                 </div>
             </td>
-            <td class="py-2 px-2 text-center">
-                <button type="button" onclick="this.closest('tr').remove(); renumberOperations();" class="text-slate-500 hover:text-rose-400 p-1">
+            <td class="py-2.5 px-2 text-center">
+                <button type="button" onclick="this.closest('tr').remove(); updateOpsSelectedCount();" class="text-slate-500 hover:text-rose-400 p-1">
                     <i class="fa-solid fa-trash-can text-xs"></i>
                 </button>
             </td>
         `;
-        tbody.appendChild(tr);
-    }
-
-    function renumberOperations() {
-        const rows = document.querySelectorAll('#operations-tbody tr');
-        rows.forEach((row, idx) => {
-            const seqInput = row.querySelector('.op-seq');
-            if (seqInput && !seqInput.dataset.custom) {
-                seqInput.value = idx + 1;
-            }
-        });
+        tbody.prepend(tr);
+        updateOpsSelectedCount();
+        tr.querySelector('.op-name').focus();
     }
 
     function loadOperationsFromModelTemplate(modelId) {
         if (!modelId || !MODELS_LOOKUP[modelId]) return;
         const modelData = MODELS_LOOKUP[modelId];
 
-        if (modelData.daily_norm && modelData.daily_norm > 0) {
-            document.getElementById('input-daily-norm').value = modelData.daily_norm;
-        }
+        const targetOpsMap = {};
+        (modelData.operations || []).forEach(op => {
+            targetOpsMap[(op.name || '').trim().toLowerCase()] = op;
+        });
 
-        const tbody = document.getElementById('operations-tbody');
-        tbody.innerHTML = '';
-        if (modelData.operations && modelData.operations.length > 0) {
-            modelData.operations.forEach(op => {
-                addOperationRow(op.sequence, op.name, op.difficulty, op.price);
-            });
-        }
+        const rows = document.querySelectorAll('#catalog-operations-tbody tr');
+        rows.forEach(row => {
+            const opName = (row.dataset.opName || '').trim().toLowerCase();
+            const chk = row.querySelector('.op-row-check');
+            const seqInput = row.querySelector('.op-seq');
+            const diffInput = row.querySelector('.op-diff');
+            const priceInput = row.querySelector('.op-price');
+
+            if (targetOpsMap[opName]) {
+                const target = targetOpsMap[opName];
+                chk.checked = true;
+                seqInput.disabled = false;
+                diffInput.disabled = false;
+                priceInput.disabled = false;
+                seqInput.value = target.sequence || 1;
+                diffInput.value = target.difficulty || 1.0;
+                priceInput.value = (target.price && target.price > 0) ? target.price : 500;
+                row.classList.add('bg-indigo-950/25');
+                row.classList.remove('hover:bg-[#1f2637]');
+            } else {
+                chk.checked = false;
+                seqInput.disabled = true;
+                diffInput.disabled = true;
+                priceInput.disabled = true;
+                seqInput.value = '';
+                row.classList.remove('bg-indigo-950/25');
+                row.classList.add('hover:bg-[#1f2637]');
+            }
+        });
+
+        renumberCheckedOperations(true);
+        updateOpsSelectedCount();
     }
 
-    // SUBMIT CONFIGURATION (Strict Validation)
-    async function submitConfiguration() {
-        const errorBanner = document.getElementById('modal-error-banner');
-        const errorText = document.getElementById('modal-error-text');
+    // 1-BOSQICH SAQLASH: OPERATSIYALARNI SAQLASH VA DARHOL NORMA MODALINI OCHISH
+    async function submitOperations() {
+        const errorBanner = document.getElementById('ops-modal-error-banner');
+        const errorText = document.getElementById('ops-modal-error-text');
         errorBanner.classList.add('hidden');
 
-        // 1. Validate Norma
-        const normVal = parseInt(document.getElementById('input-daily-norm').value);
-        if (!normVal || normVal <= 0) {
-            errorText.innerText = "Qat'iy qoida: Kunlik norma soni (dona/kun) kiritilishi shart (masalan: 1500)!";
-            errorBanner.classList.remove('hidden');
-            return;
-        }
+        const rows = document.querySelectorAll('#catalog-operations-tbody tr');
+        const checkedRows = Array.from(rows).filter(r => {
+            const chk = r.querySelector('.op-row-check');
+            return chk && chk.checked;
+        });
 
-        // 2. Validate Operations
-        const rows = document.querySelectorAll('#operations-tbody tr');
-        if (rows.length === 0) {
-            errorText.innerText = "Qat'iy qoida: Kamida 1 ta operatsiya kiritilishi shart!";
+        if (checkedRows.length === 0) {
+            errorText.innerText = "Qat'iy qoida: Kamida 1 ta operatsiyani checkbox orqali tanlang!";
             errorBanner.classList.remove('hidden');
             return;
         }
 
         const operations = [];
-        let hasEmptyName = false;
-        rows.forEach((row, idx) => {
-            const name = row.querySelector('.op-name').value.trim();
-            if (!name) hasEmptyName = true;
-            const seq = parseInt(row.querySelector('.op-seq').value) || (idx + 1);
-            const diff = parseFloat(row.querySelector('.op-diff').value) || 1.0;
-            const price = parseFloat(row.querySelector('.op-price').value) || 0.0;
+        const seqSet = new Set();
 
-            operations.push({ sequence: seq, name: name, difficulty: diff, price: price });
-        });
+        for (let idx = 0; idx < checkedRows.length; idx++) {
+            const row = checkedRows[idx];
+            const nameInput = row.querySelector('.op-name');
+            const name = (nameInput ? nameInput.value : '').trim();
+            if (!name) {
+                errorText.innerText = "Tanlangan barcha operatsiyalarning nomini to'ldiring!";
+                errorBanner.classList.remove('hidden');
+                if (nameInput) nameInput.focus();
+                return;
+            }
 
-        if (hasEmptyName) {
-            errorText.innerText = "Barcha operatsiyalarning nomini to'ldiring!";
-            errorBanner.classList.remove('hidden');
-            return;
+            const codeInput = row.querySelector('.op-code');
+            const code = codeInput ? codeInput.value.trim() : '';
+
+            const seqInput = row.querySelector('.op-seq');
+            const seq = parseInt(seqInput?.value);
+            if (!seq || seq <= 0) {
+                errorText.innerText = `Qat'iy qoida: "${name}" operatsiyasiga musbat tartib raqam (1, 2, 3...) kiriting!`;
+                errorBanner.classList.remove('hidden');
+                if (seqInput) seqInput.focus();
+                return;
+            }
+
+            if (seqSet.has(seq)) {
+                errorText.innerText = `Qat'iy qoida: Tartib raqam ${seq} takrorlangan ("${name}")! Har bir operatsiya tartib raqami yagona (1 ta) bo'lishi shart.`;
+                errorBanner.classList.remove('hidden');
+                if (seqInput) seqInput.focus();
+                return;
+            }
+            seqSet.add(seq);
+
+            const diffInput = row.querySelector('.op-diff');
+            const diff = parseFloat(diffInput?.value) || 1.0;
+
+            const priceInput = row.querySelector('.op-price');
+            const price = parseFloat(priceInput?.value);
+            if (isNaN(price) || price <= 0) {
+                errorText.innerText = `Qat'iy qoida: "${name}" operatsiyasining dona narxi 0 dan katta bo'lishi shart!`;
+                errorBanner.classList.remove('hidden');
+                if (priceInput) {
+                    priceInput.focus();
+                    priceInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+                    setTimeout(() => priceInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50'), 3000);
+                }
+                return;
+            }
+
+            operations.push({
+                sequence: seq,
+                name: name,
+                code: code,
+                difficulty: diff,
+                price: price
+            });
         }
 
-        // Send AJAX Request
-        const btnSave = document.getElementById('btn-save-config');
+        // Tartib raqamlari bo'yicha saralash
+        operations.sort((a, b) => a.sequence - b.sequence);
+
+        const btnSave = document.getElementById('btn-save-operations');
         btnSave.disabled = true;
         btnSave.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...`;
 
@@ -1325,42 +2000,179 @@
                     "X-CSRFToken": CSRF_TOKEN,
                 },
                 body: JSON.stringify({
+                    action: 'save_operations',
                     article_ids: Array.from(selectedArticleIds),
-                    daily_norm: normVal,
                     operations: operations,
                 })
             });
 
-            const result = await response.json();
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = { success: false, error: `Server xatosi (Status ${response.status})` };
+            }
+
             if (!response.ok || !result.success) {
                 errorText.innerText = result.error || "Xatolik yuz berdi!";
                 errorBanner.classList.remove('hidden');
                 btnSave.disabled = false;
-                btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
+                btnSave.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
                 return;
             }
 
-            // SUCCESS: Update in memory data and re-render
-            result.updated_article_ids.forEach(artId => {
-                ORDERS_DATA.forEach(ord => {
-                    const art = ord.articles.find(a => a.id === artId);
-                    if (art) {
-                        art.is_ready = true;
-                        art.daily_norm = result.daily_norm;
+            // In-memory ma'lumotlarni yangilash
+            const targetArtIds = new Set(result.updated_article_ids);
+            ORDERS_DATA.forEach(ord => {
+                ord.articles.forEach(art => {
+                    if (targetArtIds.has(art.id)) {
+                        art.operations = result.operations;
                         art.operations_count = result.operations_count;
-                        art.operations = operations;
+                        art.unit_total_rate = result.unit_total_rate;
                     }
                 });
+                ord.model_groups = rebuildModelGroups(ord.articles);
             });
 
-            closeConfigModal();
+            closeOperationsModal();
+            renderDiagrams();
+
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+
+            // AVTOMATIK 2-BOSQICH: NORMA MODALINI OCHISH!
+            openNormaModal();
+
+        } catch (err) {
+            console.error("Save operations error:", err);
+            errorText.innerText = err.message || "Server bilan bog'lanishda xatolik yuz berdi!";
+            errorBanner.classList.remove('hidden');
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+        }
+    }
+
+    // 2-BOSQICH: KUNLIK NORMANI BELGILASH MODALI
+    function openNormaModal(preselectedIds = null) {
+        if (preselectedIds && Array.isArray(preselectedIds)) {
+            selectedArticleIds = new Set(preselectedIds);
+            selectedArticleData = {};
+            ORDERS_DATA.forEach(ord => {
+                ord.articles.forEach(a => {
+                    if (selectedArticleIds.has(a.id)) selectedArticleData[a.id] = a;
+                });
+            });
+            updateFloatingDock();
+        }
+
+        if (selectedArticleIds.size === 0) return;
+
+        const tagsContainer = document.getElementById('norma-selected-tags');
+        tagsContainer.innerHTML = '';
+        let existingNorm = 0;
+
+        Object.values(selectedArticleData).forEach(item => {
+            const chip = document.createElement('span');
+            chip.className = "px-2 py-0.5 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-800 text-xs font-mono font-bold";
+            chip.innerText = item.code;
+            tagsContainer.appendChild(chip);
+
+            if (item.daily_norm && item.daily_norm > 0) existingNorm = item.daily_norm;
+        });
+
+        const normInput = document.getElementById('input-norma-value');
+        normInput.value = existingNorm > 0 ? existingNorm : 1200;
+
+        // Agar mavjud norma bo'lsa, O'chirish tugmasini ko'rsatish
+        const deleteNormaBtn = document.getElementById('btn-delete-norma-modal');
+        if (deleteNormaBtn) {
+            if (existingNorm > 0) deleteNormaBtn.classList.remove('hidden');
+            else deleteNormaBtn.classList.add('hidden');
+        }
+
+        document.getElementById('norma-modal-error-banner').classList.add('hidden');
+        document.getElementById('normaModal').classList.remove('hidden');
+        setTimeout(() => normInput.focus(), 50);
+    }
+
+    function closeNormaModal() {
+        document.getElementById('normaModal').classList.add('hidden');
+    }
+
+    function setNormaPreset(val) {
+        const input = document.getElementById('input-norma-value');
+        input.value = val;
+        input.focus();
+    }
+
+    // 2-BOSQICH SAQLASH: KUNLIK NORMANI SAQLASH VA TASDIQLASH
+    async function submitNorma() {
+        const errorBanner = document.getElementById('norma-modal-error-banner');
+        const errorText = document.getElementById('norma-modal-error-text');
+        errorBanner.classList.add('hidden');
+
+        const normInput = document.getElementById('input-norma-value');
+        const normVal = parseInt(normInput.value);
+
+        if (!normVal || normVal <= 0) {
+            errorText.innerText = "Qat'iy qoida: Kunlik norma soni kiritilishi shart (masalan: 1200)!";
+            errorBanner.classList.remove('hidden');
+            return;
+        }
+
+        const btnSave = document.getElementById('btn-save-norma');
+        btnSave.disabled = true;
+        btnSave.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Tasdiqlanmoqda...`;
+
+        try {
+            const response = await fetch("{% url 'norma_canvas_save' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": CSRF_TOKEN,
+                },
+                body: JSON.stringify({
+                    action: 'save_norma',
+                    article_ids: Array.from(selectedArticleIds),
+                    daily_norm: normVal,
+                })
+            });
+
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = { success: false, error: `Server xatosi (Status ${response.status})` };
+            }
+
+            if (!response.ok || !result.success) {
+                errorText.innerText = result.error || "Xatolik yuz berdi!";
+                errorBanner.classList.remove('hidden');
+                btnSave.disabled = false;
+                btnSave.innerHTML = `<i class="fa-solid fa-check"></i> <span>Normani Tasdiqlash va Saqlash</span>`;
+                return;
+            }
+
+            // In-memory ma'lumotlarni yangilash: is_ready = true va daily_norm
+            const targetArtIds = new Set(result.updated_article_ids);
+            ORDERS_DATA.forEach(ord => {
+                ord.articles.forEach(art => {
+                    if (targetArtIds.has(art.id)) {
+                        art.daily_norm = result.daily_norm;
+                        art.is_ready = true;
+                    }
+                });
+                ord.model_groups = rebuildModelGroups(ord.articles);
+            });
+
+            closeNormaModal();
             clearSelection();
             renderDiagrams();
 
             btnSave.disabled = false;
-            btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
+            btnSave.innerHTML = `<i class="fa-solid fa-check"></i> <span>Normani Tasdiqlash va Saqlash</span>`;
 
-            // Update stats
+            // Stat sonini yangilash
             const readyElem = document.getElementById('stat-ready-count');
             if (readyElem) {
                 let readyCount = 0;
@@ -1369,12 +2181,245 @@
             }
 
         } catch (err) {
-            console.error("Save error:", err);
-            errorText.innerText = "Server bilan bog'lanishda xatolik yuz berdi!";
+            console.error("Save norma error:", err);
+            errorText.innerText = err.message || "Server bilan bog'lanishda xatolik yuz berdi!";
             errorBanner.classList.remove('hidden');
             btnSave.disabled = false;
-            btnSave.innerHTML = `<i class="fa-solid fa-check"></i> Saqlash va Tasdiqlash`;
+            btnSave.innerHTML = `<i class="fa-solid fa-check"></i> <span>Normani Tasdiqlash va Saqlash</span>`;
         }
+    }
+
+    // Canvasdagi Operatsiyalar va Norma jadvallari bosilganda to'g'ridan-to'g'ri o'sha model uchun modalni ochish
+    function openOperationsModalForModel(orderId, mgKey) {
+        const order = ORDERS_DATA.find(o => o.id === orderId);
+        if (!order) return;
+        const mg = (order.model_groups || []).find(g => {
+            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return key === mgKey;
+        });
+        if (!mg || !mg.articles) return;
+
+        // Faqat ushbu operatsiyalar bog'langan artikullar
+        const linkedArticles = mg.articles.filter(a => (a.operations && a.operations.length > 0) || a.is_ready);
+        const targetIds = linkedArticles.length > 0 ? linkedArticles.map(a => a.id) : mg.articles.map(a => a.id);
+        openOperationsModal(targetIds);
+    }
+
+    function openNormaModalForModel(orderId, mgKey) {
+        const order = ORDERS_DATA.find(o => o.id === orderId);
+        if (!order) return;
+        const mg = (order.model_groups || []).find(g => {
+            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return key === mgKey;
+        });
+        if (!mg || !mg.articles) return;
+
+        const linkedArticles = mg.articles.filter(a => (a.operations && a.operations.length > 0) || a.is_ready);
+        const targetIds = linkedArticles.length > 0 ? linkedArticles.map(a => a.id) : mg.articles.map(a => a.id);
+        openNormaModal(targetIds);
+    }
+
+    // OPERATSIYALAR VA NORMANI O'CHIRISH (AGAR TIKUVGA KIRMAGAN BO'LSA)
+    async function deleteOperationsForModel(orderId, mgKey) {
+        const order = ORDERS_DATA.find(o => o.id === orderId);
+        if (!order) return;
+        const mg = (order.model_groups || []).find(g => {
+            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return key === mgKey;
+        });
+        if (!mg || !mg.articles || mg.articles.length === 0) return;
+
+        const linkedArticles = mg.articles.filter(a => (a.operations && a.operations.length > 0) || a.is_ready);
+        const targetArticles = linkedArticles.length > 0 ? linkedArticles : mg.articles;
+
+        if (targetArticles.some(a => a.is_in_sewing)) {
+            alert(`"${mg.model_name}" operatsiyalari allaqachon tikuv jarayoniga kirgan (skanerlangan biletlar mavjud) va ularni o'chirib bo'lmaydi!`);
+            return;
+        }
+
+        if (!confirm(`"${mg.model_name}" modeliga tegishli barcha operatsiyalarni o'chirishni tasdiqlaysizmi?\n\n(Eslatma: Agar hali tikuvga kirmagan bo'lsa, operatsiyalar to'liq tozalanadi)`)) {
+            return;
+        }
+
+        const articleIds = targetArticles.map(a => a.id);
+        await executeDeleteOperations(articleIds);
+    }
+
+    async function deleteNormaForModel(orderId, mgKey) {
+        const order = ORDERS_DATA.find(o => o.id === orderId);
+        if (!order) return;
+        const mg = (order.model_groups || []).find(g => {
+            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return key === mgKey;
+        });
+        if (!mg || !mg.articles || mg.articles.length === 0) return;
+
+        const linkedArticles = mg.articles.filter(a => (a.operations && a.operations.length > 0) || a.is_ready);
+        const targetArticles = linkedArticles.length > 0 ? linkedArticles : mg.articles;
+
+        if (!confirm(`"${mg.model_name}" modelining kunlik normasini o'chirishni tasdiqlaysizmi?`)) {
+            return;
+        }
+
+        const articleIds = targetArticles.map(a => a.id);
+        await executeDeleteNorma(articleIds);
+    }
+
+    function deleteOperationsFromModal() {
+        if (selectedArticleIds.size === 0) return;
+        if (!confirm("Tanlangan barcha artikullarning operatsiyalarini o'chirishni tasdiqlaysizmi?")) return;
+        executeDeleteOperations(Array.from(selectedArticleIds));
+    }
+
+    function deleteNormaFromModal() {
+        if (selectedArticleIds.size === 0) return;
+        if (!confirm("Tanlangan barcha artikullarning kunlik normasini o'chirishni tasdiqlaysizmi?")) return;
+        executeDeleteNorma(Array.from(selectedArticleIds));
+    }
+
+    async function executeDeleteOperations(articleIds) {
+        try {
+            const response = await fetch("{% url 'norma_canvas_save' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": CSRF_TOKEN,
+                },
+                body: JSON.stringify({
+                    action: 'delete_operations',
+                    article_ids: articleIds,
+                })
+            });
+
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = { success: false, error: `Server xatosi (${response.status})` };
+            }
+
+            if (!response.ok || !result.success) {
+                alert(result.error || "Operatsiyalarni o'chirishda xatolik yuz berdi!");
+                return;
+            }
+
+            // In-memory data yangilash
+            const targetArtIds = new Set(result.updated_article_ids);
+            ORDERS_DATA.forEach(ord => {
+                ord.articles.forEach(art => {
+                    if (targetArtIds.has(art.id)) {
+                        art.operations = [];
+                        art.operations_count = 0;
+                        art.unit_total_rate = 0;
+                        art.daily_norm = 0;
+                        art.is_ready = false;
+                    }
+                });
+                ord.model_groups = rebuildModelGroups(ord.articles);
+            });
+
+            closeOperationsModal();
+            clearSelection();
+            renderDiagrams();
+            showToast("Operatsiyalar muvaffaqiyatli o'chirildi!", "success");
+
+            // Stat sonini yangilash
+            const readyElem = document.getElementById('stat-ready-count');
+            if (readyElem) {
+                let readyCount = 0;
+                ORDERS_DATA.forEach(o => o.articles.forEach(a => { if (a.is_ready) readyCount++; }));
+                readyElem.innerText = `${readyCount} ta`;
+            }
+
+        } catch (err) {
+            console.error("Delete operations error:", err);
+            alert(err.message || "Server bilan bog'lanishda xatolik yuz berdi!");
+        }
+    }
+
+    async function executeDeleteNorma(articleIds) {
+        try {
+            const response = await fetch("{% url 'norma_canvas_save' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": CSRF_TOKEN,
+                },
+                body: JSON.stringify({
+                    action: 'delete_norma',
+                    article_ids: articleIds,
+                })
+            });
+
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = { success: false, error: `Server xatosi (${response.status})` };
+            }
+
+            if (!response.ok || !result.success) {
+                alert(result.error || "Normani o'chirishda xatolik yuz berdi!");
+                return;
+            }
+
+            // In-memory data yangilash
+            const targetArtIds = new Set(result.updated_article_ids);
+            ORDERS_DATA.forEach(ord => {
+                ord.articles.forEach(art => {
+                    if (targetArtIds.has(art.id)) {
+                        art.daily_norm = 0;
+                        art.is_ready = false;
+                    }
+                });
+                ord.model_groups = rebuildModelGroups(ord.articles);
+            });
+
+            closeNormaModal();
+            clearSelection();
+            renderDiagrams();
+            showToast("Kunlik norma muvaffaqiyatli o'chirildi!", "success");
+
+            // Stat sonini yangilash
+            const readyElem = document.getElementById('stat-ready-count');
+            if (readyElem) {
+                let readyCount = 0;
+                ORDERS_DATA.forEach(o => o.articles.forEach(a => { if (a.is_ready) readyCount++; }));
+                readyElem.innerText = `${readyCount} ta`;
+            }
+
+        } catch (err) {
+            console.error("Delete norma error:", err);
+            alert(err.message || "Server bilan bog'lanishda xatolik yuz berdi!");
+        }
+    }
+
+    function showToast(message, type = 'success') {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = "fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none";
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        const isSuccess = type === 'success';
+        const bgClass = isSuccess ? 'bg-emerald-950/90 border-emerald-700 text-emerald-200' : 'bg-rose-950/90 border-rose-700 text-rose-200';
+        const iconClass = isSuccess ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-solid fa-circle-exclamation text-rose-400';
+
+        toast.className = `flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-2xl text-xs font-bold backdrop-blur-md transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto ${bgClass}`;
+        toast.innerHTML = `<i class="${iconClass}"></i> <span>${message}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.remove('translate-y-2', 'opacity-0');
+        }, 10);
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
     }
 
     // Filter Canvas Search

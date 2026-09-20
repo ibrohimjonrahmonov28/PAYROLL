@@ -945,9 +945,167 @@ class NormaCanvasTest(TestCase):
         self.assertEqual(self.article.article_operations.count(), 2)
         self.assertEqual(self.model.model_operations.count(), 2)
 
+    def test_canvas_2_step_save_operations_and_save_norma(self):
+        import json
+        from django.urls import reverse
 
+        # 1-BOSQICH: Faqat operatsiyalarni saqlash (kunlik normasiz)
+        ops_payload = {
+            'action': 'save_operations',
+            'article_ids': [self.article.id],
+            'operations': [
+                {'name': '1 TOMON YELKA', 'code': 'YELKA_1', 'sequence': 1, 'price': 300, 'difficulty': 1.0},
+                {'name': 'BEYKA', 'code': 'BEYKA', 'sequence': 2, 'price': 400, 'difficulty': 1.1},
+            ]
+        }
+        res_ops = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(ops_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res_ops.status_code, 200)
+        data_ops = res_ops.json()
+        self.assertTrue(data_ops['success'])
+        self.assertEqual(data_ops['operations_count'], 2)
+        self.assertEqual(data_ops['unit_total_rate'], 700.0)
 
+        self.article.refresh_from_db()
+        self.model.refresh_from_db()
+        self.assertEqual(self.article.article_operations.count(), 2)
+        self.assertEqual(self.model.model_operations.count(), 2)
 
+        # 2-BOSQICH: Kunlik normani saqlash va tasdiqlash
+        norma_payload = {
+            'action': 'save_norma',
+            'article_ids': [self.article.id],
+            'daily_norm': 1200,
+        }
+        res_norma = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(norma_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res_norma.status_code, 200)
+        data_norma = res_norma.json()
+        self.assertTrue(data_norma['success'])
+        self.assertEqual(data_norma['daily_norm'], 1200)
 
+        self.article.refresh_from_db()
+        self.model.refresh_from_db()
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.article.daily_norm, 1200)
+        self.assertEqual(self.model.daily_norm, 1200)
+        self.assertEqual(self.order_item.norm, 1200)
 
+    def test_delete_operations_when_not_in_sewing(self):
+        import json
+        from django.urls import reverse
+
+        # Avval operatsiyalarni yaratish
+        op = Operation.objects.create(code="OP-DEL-01", name="Delete Test Op")
+        ao = ArticleOperation.objects.create(article=self.article, operation=op, sequence=1, price_per_unit=Decimal('500.00'))
+        
+        # PENDING bilet yaratish (hali tikuvga kirmagan)
+        box = Box.objects.create(order=self.order, box_number=1, quantity=100)
+        ticket = Ticket.objects.create(
+            ticket_code="TK-TEST-DEL-01",
+            box=box,
+            article_operation=ao,
+            quantity=100,
+            price_per_unit=Decimal('500.00'),
+            total_amount=Decimal('50000.00'),
+            status=Ticket.Status.PENDING
+        )
+
+        # O'chirish so'rovi
+        del_payload = {
+            'action': 'delete_operations',
+            'article_ids': [self.article.id],
+        }
+        res = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(del_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['operations_count'], 0)
+
+        # Bazada o'chirilganligini tekshirish
+        self.assertEqual(ArticleOperation.objects.filter(article=self.article).count(), 0)
+        self.assertEqual(Ticket.objects.filter(id=ticket.id).count(), 0)
+
+    def test_delete_operations_blocked_when_in_sewing(self):
+        import json
+        from django.urls import reverse
+
+        # Operatsiya va SKANERLANGAN bilet (tikuvga kirgan)
+        op = Operation.objects.create(code="OP-SCAN-01", name="Scanned Op")
+        ao = ArticleOperation.objects.create(article=self.article, operation=op, sequence=1, price_per_unit=Decimal('500.00'))
+        
+        box = Box.objects.create(order=self.order, box_number=2, quantity=100)
+        Ticket.objects.create(
+            ticket_code="TK-TEST-SCAN-01",
+            box=box,
+            article_operation=ao,
+            quantity=100,
+            price_per_unit=Decimal('500.00'),
+            total_amount=Decimal('50000.00'),
+            status=Ticket.Status.SCANNED, # Tikuvda bajarilgan!
+            scanned_at=timezone.now()
+        )
+
+        # O'chirish so'rovi bloklanishi shart
+        del_payload = {
+            'action': 'delete_operations',
+            'article_ids': [self.article.id],
+        }
+        res = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(del_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertFalse(data['success'])
+        self.assertIn("tikuv jarayoniga kirgan", data['error'])
+
+        # Operatsiya bazada o'chmasdan saqlanib qolishi kerak
+        self.assertEqual(ArticleOperation.objects.filter(article=self.article).count(), 1)
+
+    def test_delete_norma(self):
+        import json
+        from django.urls import reverse
+
+        # Normani avval belgilash
+        self.article.daily_norm = 1000
+        self.article.save()
+        self.model.daily_norm = 1000
+        self.model.save()
+        self.order_item.norm = 1000
+        self.order_item.save()
+
+        # Normani o'chirish
+        del_payload = {
+            'action': 'delete_norma',
+            'article_ids': [self.article.id],
+        }
+        res = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(del_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['daily_norm'], 0)
+
+        # Bazada 0 bo'lganini tekshirish
+        self.article.refresh_from_db()
+        self.model.refresh_from_db()
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.article.daily_norm, 0)
+        self.assertEqual(self.model.daily_norm, 0)
+        self.assertEqual(self.order_item.norm, 0)
 

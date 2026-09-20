@@ -10,7 +10,7 @@ from django.db.models import Sum, Q, Count
 
 from .models import (
     ProductModel, ProductModelOperation, Article, ArticleOperation, Operation,
-    DailyModelProgress, Order, OrderItem
+    DailyModelProgress, Order, OrderItem, Ticket
 )
 from .norma_services import (
     calculate_daily_model_progress,
@@ -442,13 +442,29 @@ def norma_canvas_view(request):
     - Har bir zakaz ichida uning artikullari va modeli
     - Har bir artikulning statusi (Yashil: Norma + Operatsiya bor; Kulrang/Kutilmoqda: yo'q)
     """
-    orders = Order.objects.filter(
+    orders_qs = Order.objects.filter(
         status__in=[Order.Status.IN_PROGRESS, Order.Status.DRAFT]
     ).prefetch_related(
         'items__article__model__model_operations__operation',
         'items__article__article_operations__operation',
         'customer'
-    ).order_by('-created_at')
+    )
+    orders = list(orders_qs)
+
+    # Zakazlar tartibi: Mavjud zakazlar yuqorida (1001, Детский сарафан), yangi qo'shilgan zakazlar (1109 va boshqalar) pastda
+    def get_order_sort_key(o):
+        if o.order_number == '1001':
+            return (0, o.id)
+        if 'сарафан' in (o.order_number or '').lower():
+            return (1, o.id)
+        return (2, o.id)
+
+    orders.sort(key=get_order_sort_key)
+
+    # Tikuvga kirmaganligini (skanerlanmaganligini) aniqlash uchun barcha skanerlangan biletlar artikullarini olish:
+    scanned_article_ids = set(Ticket.objects.filter(
+        status=Ticket.Status.SCANNED
+    ).values_list('article_operation__article_id', flat=True))
 
     orders_data = []
     total_articles_count = 0
@@ -465,8 +481,6 @@ def norma_canvas_view(request):
             daily_norm = item.norm or (pmodel.daily_norm if pmodel else art.daily_norm) or 0
 
             art_ops = list(art.article_operations.all().order_by('sequence', 'id'))
-            if not art_ops and pmodel:
-                art_ops = list(pmodel.model_operations.all().order_by('sequence', 'id'))
 
             ops_data = []
             for ao in art_ops:
@@ -478,10 +492,13 @@ def norma_canvas_view(request):
                     'difficulty': ao.difficulty_display,
                 })
 
-            is_ready = bool(daily_norm > 0 and len(ops_data) > 0)
+            # is_ready faqat artikulning O'ZIGA operatsiya bog'langan bo'lsa True
+            is_ready = bool(daily_norm > 0 and len(art_ops) > 0)
             if is_ready:
                 ready_articles_count += 1
             total_articles_count += 1
+
+            is_in_sewing = art.id in scanned_article_ids
 
             articles_map[art.id] = {
                 'id': art.id,
@@ -495,6 +512,7 @@ def norma_canvas_view(request):
                 'operations': ops_data,
                 'unit_total_rate': sum(op['price'] for op in ops_data),
                 'is_ready': is_ready,
+                'is_in_sewing': is_in_sewing,
             }
 
         if order.article and order.article.id not in articles_map:
@@ -502,8 +520,6 @@ def norma_canvas_view(request):
             pmodel = art.model
             daily_norm = (pmodel.daily_norm if pmodel else art.daily_norm) or 0
             art_ops = list(art.article_operations.all().order_by('sequence', 'id'))
-            if not art_ops and pmodel:
-                art_ops = list(pmodel.model_operations.all().order_by('sequence', 'id'))
             ops_data = [{
                 'sequence': ao.sequence,
                 'name': ao.operation.name,
@@ -512,10 +528,13 @@ def norma_canvas_view(request):
                 'difficulty': ao.difficulty_display,
             } for ao in art_ops]
 
-            is_ready = bool(daily_norm > 0 and len(ops_data) > 0)
+            # is_ready faqat artikulning O'ZIGA operatsiya bog'langan bo'lsa True
+            is_ready = bool(daily_norm > 0 and len(art_ops) > 0)
             if is_ready:
                 ready_articles_count += 1
             total_articles_count += 1
+
+            is_in_sewing = art.id in scanned_article_ids
 
             articles_map[art.id] = {
                 'id': art.id,
@@ -523,13 +542,70 @@ def norma_canvas_view(request):
                 'name': art.name,
                 'model_id': pmodel.id if pmodel else None,
                 'model_code': pmodel.code if pmodel else None,
-                'model_name': pmodel.name if pmodel else None,
+                'model_name': pmodel.name if pmodel else 'Model',
                 'daily_norm': daily_norm,
                 'operations_count': len(ops_data),
                 'operations': ops_data,
                 'unit_total_rate': sum(op['price'] for op in ops_data),
                 'is_ready': is_ready,
+                'is_in_sewing': is_in_sewing,
             }
+
+        # 1. Modellar va operatsiyalar/norma bo'yicha guruhlash
+        # Foydalanuvchi bir xil modeldagi artikullarga turlicha operatsiya yoki norma belgilashi mumkin.
+        # Shuning uchun guruhlash: (model_id, operations_signature, daily_norm)
+        import hashlib
+        model_groups_dict = {}
+        for art_data in articles_map.values():
+            m_id = str(art_data['model_id'] or art_data['model_name'] or 'boshqa')
+            ops = art_data.get('operations') or []
+            daily_norm = art_data.get('daily_norm') or 0
+            if ops:
+                ops_sig = "|".join(f"{op.get('code')}:{op.get('sequence')}:{float(op.get('price', 0))}" for op in ops)
+                ops_hash = hashlib.md5(ops_sig.encode('utf-8')).hexdigest()[:8]
+                m_key = f"{m_id}_{ops_hash}_{daily_norm}"
+            else:
+                m_key = f"{m_id}_no_ops_{daily_norm}"
+
+            if m_key not in model_groups_dict:
+                model_groups_dict[m_key] = {
+                    'key': m_key,
+                    'model_id': art_data['model_id'],
+                    'model_name': art_data['model_name'] or 'Model',
+                    'model_code': art_data['model_code'] or '',
+                    'daily_norm': art_data['daily_norm'],
+                    'operations': art_data['operations'],
+                    'operations_count': art_data['operations_count'],
+                    'unit_total_rate': art_data['unit_total_rate'],
+                    'is_ready': art_data['is_ready'],
+                    'is_in_sewing': art_data['is_in_sewing'],
+                    'articles': [],
+                }
+            if not model_groups_dict[m_key]['is_ready'] and art_data['is_ready']:
+                model_groups_dict[m_key]['daily_norm'] = art_data['daily_norm']
+                model_groups_dict[m_key]['operations'] = art_data['operations']
+                model_groups_dict[m_key]['operations_count'] = art_data['operations_count']
+                model_groups_dict[m_key]['unit_total_rate'] = art_data['unit_total_rate']
+                model_groups_dict[m_key]['is_ready'] = True
+
+            if art_data['is_in_sewing']:
+                model_groups_dict[m_key]['is_in_sewing'] = True
+
+            model_groups_dict[m_key]['articles'].append(art_data)
+
+        model_groups = list(model_groups_dict.values())
+        # Modellar bo'yicha ketma-ket, bir model ichida operatsiyalari borlar oldin, so'ng yo'qlar
+        model_groups.sort(key=lambda mg: (
+            mg['model_name'],
+            0 if (mg['operations'] and len(mg['operations']) > 0) else 1,
+            mg['key']
+        ))
+        for mg in model_groups:
+            mg['articles'].sort(key=lambda a: a['code'])
+
+        flat_sorted_articles = []
+        for mg in model_groups:
+            flat_sorted_articles.extend(mg['articles'])
 
         orders_data.append({
             'id': order.id,
@@ -537,10 +613,19 @@ def norma_canvas_view(request):
             'client_name': order.client_name or (order.customer.name if order.customer else 'Buyurtma'),
             'total_quantity': order.all_models_quantity,
             'status': order.status,
-            'articles': list(articles_map.values()),
+            'articles': flat_sorted_articles,
+            'model_groups': model_groups,
         })
 
     all_operations = Operation.objects.all().order_by('order_number', 'name')
+    all_operations_data = [{
+        'id': op.id,
+        'code': op.code,
+        'name': op.name,
+        'difficulty': op.default_difficulty_display,
+        'sequence': op.order_number,
+    } for op in all_operations]
+
     all_models = ProductModel.objects.all().prefetch_related('model_operations__operation').order_by('code')
 
     models_lookup = {}
@@ -563,6 +648,7 @@ def norma_canvas_view(request):
         'orders_data': orders_data,
         'orders_data_json': json.dumps(orders_data),
         'all_operations': all_operations,
+        'all_operations_json': json.dumps(all_operations_data),
         'all_models': all_models,
         'models_lookup_json': json.dumps(models_lookup),
         'total_orders_count': len(orders_data),
@@ -574,8 +660,10 @@ def norma_canvas_view(request):
 @norma_access_required
 def norma_canvas_save(request):
     """
-    Tanlangan artikullarga Norma va Operatsiyalarni bir vaqtda qat'iy bog'lash (AJAX POST)
-    Qat'iy qoida: Norma > 0 VA kamida 1 ta operatsiya bo'lmasa, saqlash rad etiladi!
+    2 Bosqichli saqlash:
+    1. 'save_operations': Bazadagi katalogdan tanlangan operatsiyalarni bog'laydi.
+    2. 'save_norma': Kunlik normani saqlaydi va tasdiqlaydi.
+    3. 'save_all': Ham norma, ham operatsiyalarni bir vaqtda saqlaydi.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': "Faqat POST so'rov qabul qilinadi."}, status=405)
@@ -586,124 +674,337 @@ def norma_canvas_save(request):
         data = request.POST
 
     article_ids = data.get('article_ids', [])
+    action = data.get('action', 'save_all')
     daily_norm_raw = data.get('daily_norm')
     operations_list = data.get('operations', [])
 
     if not article_ids:
         return JsonResponse({'success': False, 'error': "Hech qanday artikul tanlanmadi!"}, status=400)
 
-    # 1. Qat'iy tekshiruv: Norma bo'lishi shart!
-    try:
-        daily_norm = int(daily_norm_raw)
-        if daily_norm <= 0:
-            raise ValueError()
-    except (TypeError, ValueError):
+    articles = Article.objects.filter(id__in=article_ids).select_related('model')
+    if not articles.exists():
+        return JsonResponse({'success': False, 'error': "Tanlangan artikullar topilmadi!"}, status=404)
+
+    # 1-BOSQICH: FAQAT OPERATSIYALARNI SAQLASH
+    if action == 'save_operations':
+        if not operations_list or len(operations_list) == 0:
+            return JsonResponse({'success': False, 'error': "Kamida 1 ta operatsiya tanlanishi shart!"}, status=400)
+
+        cleaned_operations = []
+        for idx, op_item in enumerate(operations_list, start=1):
+            name = str(op_item.get('name', '')).strip()
+            if not name:
+                return JsonResponse({'success': False, 'error': f"{idx}-operatsiyaning nomi kiritilishi shart!"}, status=400)
+
+            code = str(op_item.get('code', '')).strip().upper()
+            if not code:
+                import re
+                code = re.sub(r'[^A-Za-z0-9]', '', name.upper())[:20] or f"OP_{idx}"
+
+            try:
+                seq = int(op_item.get('sequence', idx))
+            except (TypeError, ValueError):
+                seq = idx
+
+            try:
+                price = Decimal(str(op_item.get('price', '0')).strip() or '0')
+            except Exception:
+                price = Decimal('0.00')
+
+            if price <= Decimal('0.00'):
+                return JsonResponse({'success': False, 'error': f"'{name}' operatsiyasining dona narxi 0 dan katta bo'lishi shart!"}, status=400)
+
+            try:
+                difficulty = float(op_item.get('difficulty', 1.0))
+            except (TypeError, ValueError):
+                difficulty = 1.0
+
+            cleaned_operations.append({
+                'sequence': seq,
+                'name': name,
+                'code': code,
+                'price': price,
+                'difficulty': difficulty,
+            })
+
+        # Tartib raqamlari takrorlanmasligini tekshirish
+        seq_list = [c_op['sequence'] for c_op in cleaned_operations]
+        if len(seq_list) != len(set(seq_list)):
+            return JsonResponse({'success': False, 'error': "Operatsiyalar tartib raqamlari takrorlanmas (har biri alohida) bo'lishi shart!"}, status=400)
+
+        with transaction.atomic():
+            op_objs = []
+            for c_op in cleaned_operations:
+                op_obj, _ = Operation.objects.get_or_create(
+                    name__iexact=c_op['name'],
+                    defaults={
+                        'code': c_op['code'],
+                        'name': c_op['name'],
+                        'default_difficulty': c_op['difficulty'],
+                        'order_number': c_op['sequence'],
+                    }
+                )
+                op_objs.append((op_obj, c_op))
+
+            keep_op_ids = [op_obj.id for op_obj, _ in op_objs]
+            models_to_sync = set()
+
+            for art in articles:
+                for op_obj, c_op in op_objs:
+                    ArticleOperation.objects.update_or_create(
+                        article=art,
+                        operation=op_obj,
+                        defaults={
+                            'sequence': c_op['sequence'],
+                            'price_per_unit': c_op['price'],
+                            'difficulty': c_op['difficulty'],
+                        }
+                    )
+                # Faqat biletlarga bog'lanmagan ortiqcha operatsiyalarni o'chirish
+                to_delete = art.article_operations.exclude(operation_id__in=keep_op_ids)
+                for ao in to_delete:
+                    if not ao.tickets.exists():
+                        ao.delete()
+
+                if art.model:
+                    models_to_sync.add(art.model)
+
+            for pm in models_to_sync:
+                for op_obj, c_op in op_objs:
+                    ProductModelOperation.objects.update_or_create(
+                        model=pm,
+                        operation=op_obj,
+                        defaults={
+                            'sequence': c_op['sequence'],
+                            'price_per_unit': c_op['price'],
+                            'difficulty': c_op['difficulty'],
+                        }
+                    )
+                pm.model_operations.exclude(operation_id__in=keep_op_ids).delete()
+
         return JsonResponse({
-            'success': False, 
-            'error': "Kunlik norma soni kiritilishi shart (masalan: 1500 dona)!"
-        }, status=400)
-
-    # 2. Qat'iy tekshiruv: Operatsiyalar kamida 1 ta bo'lishi shart!
-    if not operations_list or len(operations_list) == 0:
-        return JsonResponse({
-            'success': False, 
-            'error': "Kamida 1 ta operatsiya kiritilishi shart!"
-        }, status=400)
-
-    cleaned_operations = []
-    for idx, op_item in enumerate(operations_list, start=1):
-        name = str(op_item.get('name', '')).strip()
-        if not name:
-            return JsonResponse({
-                'success': False,
-                'error': f"{idx}-operatsiyaning nomi kiritilishi shart!"
-            }, status=400)
-
-        code = str(op_item.get('code', '')).strip().upper()
-        if not code:
-            import re
-            code = re.sub(r'[^A-Za-z0-9]', '', name.upper())[:20] or f"OP_{idx}"
-
-        try:
-            seq = int(op_item.get('sequence', idx))
-        except (TypeError, ValueError):
-            seq = idx
-
-        try:
-            price = Decimal(str(op_item.get('price', '0')).strip() or '0')
-        except Exception:
-            price = Decimal('0.00')
-
-        try:
-            difficulty = float(op_item.get('difficulty', 1.0))
-        except (TypeError, ValueError):
-            difficulty = 1.0
-
-        cleaned_operations.append({
-            'sequence': seq,
-            'name': name,
-            'code': code,
-            'price': price,
-            'difficulty': difficulty,
+            'success': True,
+            'action': 'save_operations',
+            'updated_article_ids': list(articles.values_list('id', flat=True)),
+            'operations_count': len(cleaned_operations),
+            'operations': [{
+                'sequence': o['sequence'],
+                'name': o['name'],
+                'code': o['code'],
+                'price': float(o['price']),
+                'difficulty': o['difficulty'],
+            } for o in cleaned_operations],
+            'unit_total_rate': float(sum(o['price'] for o in cleaned_operations)),
+            'message': "Operatsiyalar saqlandi! Endi kunlik normani belgilang.",
         })
 
-    with transaction.atomic():
-        articles = Article.objects.filter(id__in=article_ids).select_related('model')
+    # 2-BOSQICH: FAQAT KUNLIK NORMANI SAQLASH
+    elif action == 'save_norma':
+        try:
+            daily_norm = int(daily_norm_raw)
+            if daily_norm <= 0:
+                raise ValueError()
+        except (TypeError, ValueError):
+            return JsonResponse({'success': False, 'error': "Kunlik norma soni kiritilishi shart (masalan: 1000 dona)!"}, status=400)
 
-        op_objs = []
-        for c_op in cleaned_operations:
-            op_obj, _ = Operation.objects.get_or_create(
-                name__iexact=c_op['name'],
-                defaults={
-                    'code': c_op['code'],
-                    'name': c_op['name'],
-                    'default_difficulty': c_op['difficulty'],
-                    'order_number': c_op['sequence'],
-                }
-            )
-            op_objs.append((op_obj, c_op))
+        with transaction.atomic():
+            models_to_sync = set(art.model for art in articles if art.model)
+            for pm in models_to_sync:
+                pm.daily_norm = daily_norm
+                pm.save()
 
-        models_to_sync = set()
+            articles.update(daily_norm=daily_norm)
+            OrderItem.objects.filter(article__in=articles).update(norm=daily_norm)
 
-        for art in articles:
-            art.daily_norm = daily_norm
-            art.save()
+        return JsonResponse({
+            'success': True,
+            'action': 'save_norma',
+            'updated_article_ids': list(articles.values_list('id', flat=True)),
+            'daily_norm': daily_norm,
+            'message': "Kunlik norma muvaffaqiyatli saqlandi va bog'landi!",
+        })
 
-            OrderItem.objects.filter(article=art).update(norm=daily_norm)
+    # 3-BOSQICH: OPERATSIYALARNI O'CHIRISH (AGAR TIKUVGA KIRMAGAN BO'LSA)
+    elif action == 'delete_operations':
+        article_ops = ArticleOperation.objects.filter(article__in=articles)
 
-            if art.model:
-                art.model.daily_norm = daily_norm
-                art.model.save()
-                models_to_sync.add(art.model)
+        # Tikuvga kirmaganligini qat'iy tekshirish: agar skanerlangan biletlar bo'lsa, o'chirib bo'lmaydi
+        scanned_tickets = Ticket.objects.filter(
+            article_operation__in=article_ops,
+            status=Ticket.Status.SCANNED
+        )
+        if scanned_tickets.exists():
+            return JsonResponse({
+                'success': False,
+                'error': "Ushbu operatsiyalar allaqachon tikuv jarayoniga kirgan (skanerlangan biletlar mavjud) va ularni o'chirib bo'lmaydi!"
+            }, status=400)
 
-            art.article_operations.all().delete()
-            for op_obj, c_op in op_objs:
-                ArticleOperation.objects.create(
-                    article=art,
-                    operation=op_obj,
-                    sequence=c_op['sequence'],
-                    price_per_unit=c_op['price'],
-                    difficulty=c_op['difficulty'],
+        with transaction.atomic():
+            # Hali skanerlanmagan (PENDING) biletlar bo'lsa, ularni tozalash
+            Ticket.objects.filter(article_operation__in=article_ops).delete()
+
+            # Artikul operatsiyalarini o'chirish
+            article_ops.delete()
+
+            # Modellar bilan sinxronizatsiya: agar modelning boshqa artikullarida operatsiyalar qolmagan bo'lsa
+            models_to_check = set(art.model for art in articles if art.model)
+            for pm in models_to_check:
+                other_has_ops = ArticleOperation.objects.filter(
+                    article__model=pm
+                ).exclude(article__in=articles).exists()
+                if not other_has_ops:
+                    pm.model_operations.all().delete()
+
+        return JsonResponse({
+            'success': True,
+            'action': 'delete_operations',
+            'updated_article_ids': list(articles.values_list('id', flat=True)),
+            'operations': [],
+            'operations_count': 0,
+            'unit_total_rate': 0,
+            'message': "Operatsiyalar muvaffaqiyatli o'chirildi!",
+        })
+
+    # 4-BOSQICH: KUNLIK NORMANI O'CHIRISH
+    elif action == 'delete_norma':
+        with transaction.atomic():
+            models_to_sync = set(art.model for art in articles if art.model)
+            for pm in models_to_sync:
+                pm.daily_norm = 0
+                pm.save()
+
+            articles.update(daily_norm=0)
+            OrderItem.objects.filter(article__in=articles).update(norm=0)
+
+        return JsonResponse({
+            'success': True,
+            'action': 'delete_norma',
+            'updated_article_ids': list(articles.values_list('id', flat=True)),
+            'daily_norm': 0,
+            'message': "Kunlik norma muvaffaqiyatli o'chirildi!",
+        })
+
+    # 5-VARIANT: IKKALASINI BIR VAQTDA SAQLASH (FALLBACK)
+    else:
+        try:
+            daily_norm = int(daily_norm_raw)
+            if daily_norm <= 0:
+                raise ValueError()
+        except (TypeError, ValueError):
+            return JsonResponse({'success': False, 'error': "Kunlik norma soni kiritilishi shart!"}, status=400)
+
+        if not operations_list or len(operations_list) == 0:
+            return JsonResponse({'success': False, 'error': "Kamida 1 ta operatsiya kiritilishi shart!"}, status=400)
+
+        cleaned_operations = []
+        for idx, op_item in enumerate(operations_list, start=1):
+            name = str(op_item.get('name', '')).strip()
+            if not name:
+                return JsonResponse({'success': False, 'error': f"{idx}-operatsiyaning nomi kiritilishi shart!"}, status=400)
+            code = str(op_item.get('code', '')).strip().upper()
+            if not code:
+                import re
+                code = re.sub(r'[^A-Za-z0-9]', '', name.upper())[:20] or f"OP_{idx}"
+
+            try:
+                seq = int(op_item.get('sequence', idx))
+            except (TypeError, ValueError):
+                seq = idx
+
+            try:
+                price = Decimal(str(op_item.get('price', '0')).strip() or '0')
+            except Exception:
+                price = Decimal('0.00')
+
+            if price <= Decimal('0.00'):
+                return JsonResponse({'success': False, 'error': f"'{name}' operatsiyasining dona narxi 0 dan katta bo'lishi shart!"}, status=400)
+
+            try:
+                difficulty = float(op_item.get('difficulty', 1.0))
+            except (TypeError, ValueError):
+                difficulty = 1.0
+
+            cleaned_operations.append({
+                'sequence': seq,
+                'name': name,
+                'code': code,
+                'price': price,
+                'difficulty': difficulty,
+            })
+
+        # Tartib raqamlari takrorlanmasligini tekshirish
+        seq_list = [c_op['sequence'] for c_op in cleaned_operations]
+        if len(seq_list) != len(set(seq_list)):
+            return JsonResponse({'success': False, 'error': "Operatsiyalar tartib raqamlari takrorlanmas (har biri alohida) bo'lishi shart!"}, status=400)
+
+        with transaction.atomic():
+            op_objs = []
+            for c_op in cleaned_operations:
+                op_obj, _ = Operation.objects.get_or_create(
+                    name__iexact=c_op['name'],
+                    defaults={
+                        'code': c_op['code'],
+                        'name': c_op['name'],
+                        'default_difficulty': c_op['difficulty'],
+                        'order_number': c_op['sequence'],
+                    }
                 )
+                op_objs.append((op_obj, c_op))
 
-        for pm in models_to_sync:
-            pm.model_operations.all().delete()
-            for op_obj, c_op in op_objs:
-                ProductModelOperation.objects.create(
-                    model=pm,
-                    operation=op_obj,
-                    sequence=c_op['sequence'],
-                    price_per_unit=c_op['price'],
-                    difficulty=c_op['difficulty'],
-                )
-            pm.sync_operations_to_articles()
+            keep_op_ids = [op_obj.id for op_obj, _ in op_objs]
+            models_to_sync = set()
 
-    return JsonResponse({
-        'success': True,
-        'message': f"{len(articles)} ta artikulga kunlik norma ({daily_norm} dona) va {len(cleaned_operations)} ta operatsiya muvaffaqiyatli bog'landi!",
-        'updated_article_ids': list(article_ids),
-        'daily_norm': daily_norm,
-        'operations_count': len(cleaned_operations),
-    })
+            for art in articles:
+                art.daily_norm = daily_norm
+                art.save()
+                OrderItem.objects.filter(article=art).update(norm=daily_norm)
+                if art.model:
+                    art.model.daily_norm = daily_norm
+                    art.model.save()
+                    models_to_sync.add(art.model)
 
+                for op_obj, c_op in op_objs:
+                    ArticleOperation.objects.update_or_create(
+                        article=art,
+                        operation=op_obj,
+                        defaults={
+                            'sequence': c_op['sequence'],
+                            'price_per_unit': c_op['price'],
+                            'difficulty': c_op['difficulty'],
+                        }
+                    )
+                # Faqat biletlarga bog'lanmagan ortiqcha operatsiyalarni o'chirish
+                to_delete = art.article_operations.exclude(operation_id__in=keep_op_ids)
+                for ao in to_delete:
+                    if not ao.tickets.exists():
+                        ao.delete()
 
+            for pm in models_to_sync:
+                for op_obj, c_op in op_objs:
+                    ProductModelOperation.objects.update_or_create(
+                        model=pm,
+                        operation=op_obj,
+                        defaults={
+                            'sequence': c_op['sequence'],
+                            'price_per_unit': c_op['price'],
+                            'difficulty': c_op['difficulty'],
+                        }
+                    )
+                pm.model_operations.exclude(operation_id__in=keep_op_ids).delete()
+
+        return JsonResponse({
+            'success': True,
+            'action': 'save_all',
+            'updated_article_ids': list(articles.values_list('id', flat=True)),
+            'daily_norm': daily_norm,
+            'operations_count': len(cleaned_operations),
+            'operations': [{
+                'sequence': o['sequence'],
+                'name': o['name'],
+                'code': o['code'],
+                'price': float(o['price']),
+                'difficulty': o['difficulty'],
+            } for o in cleaned_operations],
+            'unit_total_rate': float(sum(o['price'] for o in cleaned_operations)),
+            'message': "Norma va operatsiyalar muvaffaqiyatli saqlandi!",
+        })

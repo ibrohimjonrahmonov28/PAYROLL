@@ -46,4 +46,5 @@ staticfiles/
 .vscode/
 *.swp
 *.swo
+.gemini/
 
