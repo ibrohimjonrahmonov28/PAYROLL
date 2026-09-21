@@ -148,7 +148,6 @@ def manager_order_create(request):
                             'name': art_name,
                             'daily_norm': norm_val,
                             'model': product_model,
-                            'image': article_image,
                         }
                     )
                     update_fields = []
@@ -159,8 +158,11 @@ def manager_order_create(request):
                         article.name = art_name
                         update_fields.append('name')
                     if article_image:
-                        article.image = article_image
-                        update_fields.append('image')
+                        try:
+                            article.image = article_image
+                            update_fields.append('image')
+                        except Exception:
+                            pass
                     if update_fields:
                         article.save(update_fields=update_fields)
 
