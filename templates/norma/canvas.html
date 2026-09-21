@@ -695,7 +695,7 @@
         applyTransform();
     }
 
-    const STORAGE_KEY = 'norma_canvas_table_positions_v5';
+    const STORAGE_KEY = 'norma_canvas_table_positions_v6';
 
     // Default & Saved Positions in localStorage (Clean symmetrical layout)
     function getDefaultPositions() {
@@ -724,7 +724,7 @@
                 const mgSpan = Math.max(0, mgArtCount - 1) * artSpacing;
 
                 mgArticles.forEach((art) => {
-                    positions[`art-node-${art.id}`] = { x: 440, y: currentY + artIdx * artSpacing };
+                    positions[`art-node-${orderId}-${art.id}`] = { x: 440, y: currentY + artIdx * artSpacing };
                     artIdx++;
                 });
 
@@ -740,7 +740,7 @@
 
             if (modelGroups.length === 0 && articles.length > 0) {
                 articles.forEach((art, idx) => {
-                    positions[`art-node-${art.id}`] = { x: 440, y: currentY + idx * artSpacing };
+                    positions[`art-node-${orderId}-${art.id}`] = { x: 440, y: currentY + idx * artSpacing };
                 });
             }
 
@@ -792,7 +792,7 @@
                     const mgSpan = Math.max(0, mgArts.length - 1) * artSpacing;
 
                     mgArts.forEach(art => {
-                        saved[`art-node-${art.id}`] = { x: 440, y: startY + aIdx * artSpacing };
+                        saved[`art-node-${orderId}-${art.id}`] = { x: 440, y: startY + aIdx * artSpacing };
                         aIdx++;
                     });
 
@@ -807,14 +807,14 @@
 
                 if (mgs.length === 0) {
                     articles.forEach((art, idx) => {
-                        saved[`art-node-${art.id}`] = { x: 440, y: startY + idx * artSpacing };
+                        saved[`art-node-${orderId}-${art.id}`] = { x: 440, y: startY + idx * artSpacing };
                     });
                 }
 
                 maxY = startY + Math.max(totalArtSpan + 140, 280);
             } else {
                 articles.forEach((art) => {
-                    const artKey = `art-node-${art.id}`;
+                    const artKey = `art-node-${orderId}-${art.id}`;
                     if (!saved[artKey] && defaultPos[artKey]) {
                         saved[artKey] = { ...defaultPos[artKey] };
                     }
@@ -980,7 +980,8 @@
             // 2. ARTIKUL TABLES (stacked, Teal if ready, Purple if pending)
             if (order.articles) {
                 order.articles.forEach((art, artIdx) => {
-                    const artPos = positions[`art-node-${art.id}`] || defaultPositions[`art-node-${art.id}`] || { x: 440, y: orderPos.y + artIdx * 135 };
+                    const nodeKey = `art-node-${orderId}-${art.id}`;
+                    const artPos = positions[nodeKey] || defaultPositions[nodeKey] || { x: 440, y: orderPos.y + artIdx * 135 };
                     const isReady = art.is_ready;
                     const isChecked = selectedArticleIds.has(art.id);
                     const isActive = art.id === activeArtId;
@@ -990,7 +991,7 @@
                         : 'bg-[#5b1e5a] border-[#701a75] text-fuchsia-300';
 
                     const artNode = document.createElement('div');
-                    artNode.id = `art-node-${art.id}`;
+                    artNode.id = nodeKey;
                     artNode.className = `db-table absolute z-20 w-64 rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none ${isActive ? 'ring-2 ring-indigo-400' : ''}`;
                     artNode.style.left = `${artPos.x}px`;
                     artNode.style.top = `${artPos.y}px`;
@@ -1017,22 +1018,22 @@
                         <div class="p-2 space-y-1 text-[11px] font-mono">
                             <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                                 <!-- Left Target Port for Crow's Foot aligned with ID row -->
-                                <div id="port-art-in-${art.id}" class="port-target"></div>
+                                <div id="port-art-in-${orderId}-${art.id}" class="port-target"></div>
 
                                 <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
-                                    <input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
-                                        onchange="handleCheckboxChange(${art.id})"
+                                    <input type="checkbox" id="check-art-${orderId}-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
+                                        onchange="handleCheckboxChange(${art.id}, this.checked)"
                                         class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer">
                                     <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                                         <i class="fa-solid fa-key text-[9px]"></i> ID (${art.id})
                                     </span>
                                 </label>
                                 <span class="${isReady ? 'text-emerald-400 font-bold' : 'text-slate-500'} text-[10px] flex items-center gap-1">
-                                    ${isReady ? '<i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> <span class="text-emerald-300 font-sans">Tayyor</span>' : 'int'}
+                                    ${isReady ? '<i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> <span class="text-emerald-300 font-sans">Tayyor</span>' : 'Kutilmoqda'}
                                 </span>
 
                                 <!-- Right Port Handle '+' aligned with ID row -->
-                                <div id="port-art-out-${art.id}" class="port-plus">+</div>
+                                <div id="port-art-out-${orderId}-${art.id}" class="port-plus">+</div>
                             </div>
                             ${art.operation_group_name ? `
                             <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold">
@@ -1097,7 +1098,7 @@
                 const mgArticles = mg.articles || [];
                 if (mgArticles.length > 0) {
                     const firstArtId = mgArticles[0].id;
-                    const artPos = positions[`art-node-${firstArtId}`] || defaultPositions[`art-node-${firstArtId}`];
+                    const artPos = positions[`art-node-${orderId}-${firstArtId}`] || defaultPositions[`art-node-${orderId}-${firstArtId}`];
                     if (artPos) mgY = artPos.y;
                 }
 
@@ -1276,7 +1277,7 @@
             const artTargetPoints = [];
 
             order.articles.forEach(art => {
-                const portArtIn = document.getElementById(`port-art-in-${art.id}`);
+                const portArtIn = document.getElementById(`port-art-in-${orderId}-${art.id}`);
                 if (portArtIn) {
                     artTargetPoints.push({
                         art: art,
@@ -1347,7 +1348,7 @@
 
                 const mgReadySources = [];
                 (mg.articles || []).forEach(art => {
-                    const portArtOut = document.getElementById(`port-art-out-${art.id}`);
+                    const portArtOut = document.getElementById(`port-art-out-${orderId}-${art.id}`);
                     const artHasOps = (art.operations && art.operations.length > 0) || art.is_ready;
                     if (artHasOps && portArtOut) {
                         mgReadySources.push({
@@ -1374,16 +1375,7 @@
                         const minY = Math.min(...ys);
                         const maxY = Math.max(...ys);
 
-                        drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
-                        drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
-
-                        const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
-                        const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
-                        if (trunkBot > trunkTop) {
-                            drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
-                        }
-
-                        mgReadySources.forEach(s => {
+                        sources.forEach(s => {
                             const sx = s.point.x;
                             const sy = s.point.y;
                             let d = '';
@@ -1396,21 +1388,29 @@
                             }
                             drawSvgPath(wiresGroup, d, 'wire-path');
                         });
+
+                        const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
+                        const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
+                        if (trunkBot > trunkTop) {
+                            drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
+                        }
+
+                        drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
+                        drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
                     }
                 }
 
-                // 3. OPERATSIYALAR -> NORMA (Clean direct connection with pending state)
-                const isNormaPending = !mg.daily_norm || mg.daily_norm <= 0;
-                if (portOpsOut && portNormaIn && mgReadySources.length > 0) {
+                // 3. OPERATSIYALAR -> NORMA (Sequential Connection)
+                if (portOpsOut && portNormaIn) {
                     const pOpsOut = getPortCenter(portOpsOut, worldRect);
                     const pNormaIn = getPortCenter(portNormaIn, worldRect);
-
-                    const wireCls = isNormaPending ? 'wire-path wire-pending' : 'wire-path';
-                    drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, wireCls);
-                    drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, wireCls);
+                    drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path');
+                    drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path');
                 }
             });
         });
+
+        drawDynamicWire();
     }
 
     function getPortCenter(portElem, worldRect) {
@@ -1437,14 +1437,17 @@
         svgGroup.appendChild(cf);
     }
 
-    function drawOrthogonalStep(svgGroup, x1, y1, x2, y2, className) {
-        const r = 10;
+    // DRAW ORTHOGONAL STEPPED LINE (app.dbdesign.io style)
+    function drawOrthogonalStep(svgGroup, x1, y1, x2, y2, className = 'wire-path') {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const r = 8;
         let d = '';
 
-        if (Math.abs(y1 - y2) < 2) {
+        if (Math.abs(dy) < 4) {
             d = `M ${x1} ${y1} L ${x2} ${y2}`;
-        } else if (x2 > x1 + 20) {
-            const midX = (x1 + x2) / 2;
+        } else if (dx > 20) {
+            const midX = x1 + (dx / 2);
             if (y2 > y1) {
                 const effR = Math.min(r, Math.abs(midX - x1), (y2 - y1) / 2);
                 d = `M ${x1} ${y1} ` +
@@ -1470,8 +1473,7 @@
     }
 
     // Checkbox Selection Logic
-    function handleCheckboxChange(artId) {
-        const chk = document.getElementById(`check-art-${artId}`);
+    function handleCheckboxChange(artId, isChecked) {
         let targetArt = null;
         ORDERS_DATA.forEach(ord => {
             const a = ord.articles.find(x => x.id === artId);
@@ -1480,7 +1482,7 @@
 
         if (!targetArt) return;
 
-        if (chk.checked) {
+        if (isChecked) {
             selectedArticleIds.add(artId);
             selectedArticleData[artId] = targetArt;
         } else {
