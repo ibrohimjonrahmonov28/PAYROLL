@@ -83,7 +83,9 @@ def cutting_order_detail(request, order_id: int):
     - Har bir artikul va uning razmerlari
     - Yangi Kesim Partiyasi kiritish (Mato kg, Kesim 1, Kesim 2...)
     - Oldingi kesimlar tarixi va Meto holati
+    - Artikul yoki Partiya raqami bo'yicha qidiruv
     """
+    search_q = request.GET.get('q', '').strip()
     order = get_object_or_404(
         Order.objects.select_related('customer', 'article').prefetch_related(
             'items__article__model',
@@ -94,6 +96,7 @@ def cutting_order_detail(request, order_id: int):
     )
 
     items_data = []
+    all_batches_flat = []
     total_planned_order = 0
     total_cut_order = 0
 
@@ -139,7 +142,7 @@ def cutting_order_detail(request, order_id: int):
                     'can_edit': b_it.can_edit_cut,
                 })
 
-            batches_data.append({
+            batch_info = {
                 'batch': batch,
                 'name': batch.name,
                 'batch_number': batch.batch_number,
@@ -154,6 +157,15 @@ def cutting_order_detail(request, order_id: int):
                 'total_real_quantity': batch.total_real_quantity,
                 'items': batch_items,
                 'can_edit': can_edit_this_batch,
+                'is_all_meto_confirmed': batch.is_all_meto_confirmed,
+            }
+            batches_data.append(batch_info)
+            all_batches_flat.append({
+                **batch_info,
+                'item_id': item.id,
+                'article_code': item.article.code,
+                'article_name': item.article.name,
+                'model_name': item.article.model.name if item.article.model else '',
             })
 
         items_data.append({
@@ -172,9 +184,11 @@ def cutting_order_detail(request, order_id: int):
     return render(request, 'cutting/order_detail.html', {
         'order': order,
         'items_data': items_data,
+        'all_batches_flat': all_batches_flat,
         'total_planned_order': total_planned_order,
         'total_cut_order': total_cut_order,
         'overall_order_pct': overall_order_pct,
+        'search_q': search_q,
     })
 
 

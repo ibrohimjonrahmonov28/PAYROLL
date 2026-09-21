@@ -101,10 +101,72 @@
         </div>
     </div>
 
-    <!-- Articles, Sizes & Batches Breakdown -->
-    <div class="space-y-6">
+    <!-- Search, Filter & View Controls -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- Search Input -->
+            <div class="relative flex-1">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="text" id="cutting-search-input" value="{{ search_q }}"
+                    placeholder="Artikul kodi, model nomi, partiya raqami (masalan: 9-26-190), pastal kodi (P-01) yoki bichuvchi bo'yicha qidirish..."
+                    class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner">
+                <button type="button" id="cutting-search-clear" onclick="clearCuttingSearch()"
+                    class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- View Switcher Tabs -->
+            <div
+                class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start md:self-auto shrink-0">
+                <button type="button" id="tab-btn-articles" onclick="switchViewMode('articles')"
+                    class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-rose-600 text-white shadow">
+                    <i class="fa-solid fa-layer-group"></i> Modellar bo'yicha
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-black/30 font-mono">{{ items_data|length
+                        }}</span>
+                </button>
+                <button type="button" id="tab-btn-batches" onclick="switchViewMode('batches')"
+                    class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-table-list"></i> Partiyalar Reestri
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300 font-mono">{{
+                        all_batches_flat|length }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Status / Match Count bar -->
+        <div id="search-status-bar"
+            class="hidden flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800/80">
+            <div>
+                Topildi: <strong id="matched-count" class="text-rose-400 font-bold">0</strong> ta natija
+                <span id="search-query-display" class="text-slate-500 ml-1 font-mono"></span>
+            </div>
+            <button type="button" onclick="clearCuttingSearch()" class="text-xs text-rose-400 hover:underline">
+                Filtrni tozalash
+            </button>
+        </div>
+    </div>
+
+    <!-- No Results Alert -->
+    <div id="no-search-results" class="hidden py-12 text-center bg-slate-900 border border-slate-800 rounded-3xl p-6">
+        <i class="fa-solid fa-filter-circle-xmark text-4xl text-slate-600 mb-3 block"></i>
+        <h4 class="text-sm font-bold text-white">Qidiruv bo'yicha natija topilmadi</h4>
+        <p class="text-xs text-slate-400 mt-1">Boshqa kalit so'z yoki raqam bilan qayta qidirib ko'ring.</p>
+        <button type="button" onclick="clearCuttingSearch()"
+            class="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+            Barcha ma'lumotlarni ko'rsatish
+        </button>
+    </div>
+
+    <!-- VIEW 1: Articles, Sizes & Batches Breakdown (Modellar bo'yicha) -->
+    <div id="articles-view-container" class="space-y-6">
         {% for item_data in items_data %}
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div id="article-card-{{ item_data.item.id }}"
+            class="article-card bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6 transition-all duration-300"
+            data-article-code="{{ item_data.item.article.code|lower }}"
+            data-article-name="{{ item_data.item.article.name|lower }}"
+            data-model-name="{{ item_data.item.article.model.name|default:''|lower }}">
             <!-- Article Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
                 <div>
@@ -211,7 +273,11 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for b in item_data.batches %}
-                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner">
+                    <div class="batch-card bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner transition-all duration-300"
+                        data-batch-name="{{ b.name|lower }}" data-partiya="{{ b.partiya_number|default:''|lower }}"
+                        data-pastal="{{ b.pastal_code|default:''|lower }}"
+                        data-cutter="{{ b.cutter_name|default:''|lower }}"
+                        data-fabric-batch="{{ b.fabric_batch_code|default:''|lower }}">
                         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -325,6 +391,139 @@
         {% endfor %}
     </div>
 
+    <!-- VIEW 2: Partiyalar Reestri (Batches Overview Table) -->
+    <div id="batches-registry-view"
+        class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-rose-500"></i> Partiyalar va Pastallar Reestri
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Ushbu zakazga tegishli barcha partiyalarning umumiy jadvali va
+                    qaysi modelga tegishliligi</p>
+            </div>
+            <span
+                class="text-xs font-mono font-bold text-slate-400 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
+                Jami: <strong class="text-emerald-400">{{ all_batches_flat|length }}</strong> ta partiya
+            </span>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-slate-800">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr
+                        class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3 px-4">Partiya #</th>
+                        <th class="py-3 px-4">Pastal</th>
+                        <th class="py-3 px-4">Model & Artikul</th>
+                        <th class="py-3 px-4">Kesim Nomi</th>
+                        <th class="py-3 px-4 text-center">Kiyim Soni</th>
+                        <th class="py-3 px-4">Mato (kg / Kod)</th>
+                        <th class="py-3 px-4">Bichuvchi</th>
+                        <th class="py-3 px-4">Meto Holati</th>
+                        <th class="py-3 px-4">Sana</th>
+                        <th class="py-3 px-4 text-center">Amal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 bg-slate-900/60" id="batches-registry-tbody">
+                    {% for b in all_batches_flat %}
+                    <tr class="batch-registry-row hover:bg-slate-800/50 transition"
+                        data-article-code="{{ b.article_code|lower }}" data-article-name="{{ b.article_name|lower }}"
+                        data-model-name="{{ b.model_name|lower }}"
+                        data-partiya="{{ b.partiya_number|default:''|lower }}"
+                        data-pastal="{{ b.pastal_code|default:''|lower }}"
+                        data-cutter="{{ b.cutter_name|default:''|lower }}" data-batch-name="{{ b.name|lower }}"
+                        data-fabric-batch="{{ b.fabric_batch_code|default:''|lower }}">
+                        <td class="py-3 px-4 font-mono font-bold">
+                            {% if b.partiya_number %}
+                            <span
+                                class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs">
+                                {{ b.partiya_number }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-600 font-normal">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 font-mono font-bold">
+                            {% if b.pastal_code %}
+                            <span
+                                class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs">
+                                {{ b.pastal_code }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-600 font-normal">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-mono font-bold text-amber-400 text-xs">{{ b.article_code }}</span>
+                                {% if b.model_name %}
+                                <span
+                                    class="text-[11px] text-indigo-300 bg-indigo-950/70 border border-indigo-800/80 px-1.5 py-0.2 rounded">
+                                    {{ b.model_name }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <span class="text-[11px] text-slate-400 block truncate max-w-[180px]"
+                                title="{{ b.article_name }}">
+                                {{ b.article_name }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-bold text-white">
+                            {{ b.name }}
+                        </td>
+                        <td class="py-3 px-4 text-center font-black text-emerald-400 digital-font text-sm">
+                            {{ b.total_quantity }} dona
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if b.fabric_weight_kg %}
+                            <span class="text-amber-400 font-bold font-mono">{{ b.fabric_weight_kg }} kg</span>
+                            {% endif %}
+                            {% if b.fabric_batch_code %}
+                            <span class="text-[10px] text-slate-500 block font-mono">({{ b.fabric_batch_code }})</span>
+                            {% endif %}
+                            {% if not b.fabric_weight_kg and not b.fabric_batch_code %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-300">
+                            {{ b.cutter_name|default:"—" }}
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if b.is_all_meto_confirmed %}
+                            <span
+                                class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-circle-check text-[10px]"></i> Tasdiqlangan
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-clock text-[10px]"></i> Jarayonda
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-slate-400 text-[11px] whitespace-nowrap">
+                            {{ b.created_at|date:"d.m.Y H:i" }}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button type="button" onclick="scrollToArticleSection('{{ b.item_id }}')"
+                                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-white border border-slate-700 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5"
+                                title="Ushbu model bo'limiga o'tish">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> O'tish
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="py-8 text-center text-slate-500 text-xs">
+                            Hozircha birorta ham partiya kiritilmagan.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- MODAL: Yangi Kesim Partiyasi Kiritish -->
@@ -506,6 +705,176 @@
 
 {% block extra_scripts %}
 <script>
+    let currentViewMode = 'articles';
+
+    function switchViewMode(mode) {
+        currentViewMode = mode;
+        const articlesView = document.getElementById('articles-view-container');
+        const batchesView = document.getElementById('batches-registry-view');
+        const tabArticles = document.getElementById('tab-btn-articles');
+        const tabBatches = document.getElementById('tab-btn-batches');
+
+        if (mode === 'articles') {
+            articlesView.classList.remove('hidden');
+            batchesView.classList.add('hidden');
+
+            tabArticles.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-rose-600 text-white shadow";
+            tabBatches.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+        } else {
+            articlesView.classList.add('hidden');
+            batchesView.classList.remove('hidden');
+
+            tabBatches.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-rose-600 text-white shadow";
+            tabArticles.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+        }
+
+        filterCuttingData();
+    }
+
+    function filterCuttingData() {
+        const searchInput = document.getElementById('cutting-search-input');
+        const clearBtn = document.getElementById('cutting-search-clear');
+        const statusBar = document.getElementById('search-status-bar');
+        const matchedCountEl = document.getElementById('matched-count');
+        const queryDisplayEl = document.getElementById('search-query-display');
+        const noResultsEl = document.getElementById('no-search-results');
+
+        const q = (searchInput.value || '').trim().toLowerCase();
+
+        // Clear button visibility
+        if (q) {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+
+        // Update URL param
+        const url = new URL(window.location);
+        if (q) {
+            url.searchParams.set('q', q);
+        } else {
+            url.searchParams.delete('q');
+        }
+        window.history.replaceState({}, '', url);
+
+        let totalArticleMatches = 0;
+        let totalBatchMatches = 0;
+
+        // 1. Filter Articles View
+        const articleCards = document.querySelectorAll('.article-card');
+        articleCards.forEach(card => {
+            const artCode = card.dataset.articleCode || '';
+            const artName = card.dataset.articleName || '';
+            const modelName = card.dataset.modelName || '';
+
+            const artMatches = artCode.includes(q) || artName.includes(q) || modelName.includes(q);
+
+            const batchCards = card.querySelectorAll('.batch-card');
+            let hasMatchingBatch = false;
+
+            batchCards.forEach(bCard => {
+                const bName = bCard.dataset.batchName || '';
+                const bPartiya = bCard.dataset.partiya || '';
+                const bPastal = bCard.dataset.pastal || '';
+                const bCutter = bCard.dataset.cutter || '';
+                const bFabric = bCard.dataset.fabricBatch || '';
+
+                const bMatches = bName.includes(q) || bPartiya.includes(q) || bPastal.includes(q) || bCutter.includes(q) || bFabric.includes(q);
+
+                if (!q) {
+                    bCard.classList.remove('hidden', 'ring-2', 'ring-rose-500', 'bg-rose-950/20');
+                } else if (bMatches) {
+                    hasMatchingBatch = true;
+                    bCard.classList.remove('hidden');
+                    bCard.classList.add('ring-2', 'ring-rose-500', 'bg-rose-950/20');
+                } else if (artMatches) {
+                    bCard.classList.remove('hidden', 'ring-2', 'ring-rose-500', 'bg-rose-950/20');
+                } else {
+                    bCard.classList.add('hidden');
+                    bCard.classList.remove('ring-2', 'ring-rose-500', 'bg-rose-950/20');
+                }
+            });
+
+            if (!q || artMatches || hasMatchingBatch) {
+                card.classList.remove('hidden');
+                totalArticleMatches++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        // 2. Filter Batches Registry View
+        const registryRows = document.querySelectorAll('.batch-registry-row');
+        registryRows.forEach(row => {
+            const artCode = row.dataset.articleCode || '';
+            const artName = row.dataset.articleName || '';
+            const modelName = row.dataset.modelName || '';
+            const bName = row.dataset.batchName || '';
+            const bPartiya = row.dataset.partiya || '';
+            const bPastal = row.dataset.pastal || '';
+            const bCutter = row.dataset.cutter || '';
+            const bFabric = row.dataset.fabricBatch || '';
+
+            const rowMatches = !q || artCode.includes(q) || artName.includes(q) || modelName.includes(q) ||
+                bName.includes(q) || bPartiya.includes(q) || bPastal.includes(q) ||
+                bCutter.includes(q) || bFabric.includes(q);
+
+            if (rowMatches) {
+                row.classList.remove('hidden');
+                if (q) totalBatchMatches++;
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+
+        // 3. Status Bar & No Results indicator
+        if (q) {
+            statusBar.classList.remove('hidden');
+            queryDisplayEl.innerText = `("${q}")`;
+
+            const currentMatches = currentViewMode === 'articles' ? totalArticleMatches : totalBatchMatches;
+            matchedCountEl.innerText = currentMatches;
+
+            if (currentMatches === 0) {
+                noResultsEl.classList.remove('hidden');
+            } else {
+                noResultsEl.classList.add('hidden');
+            }
+        } else {
+            statusBar.classList.add('hidden');
+            noResultsEl.classList.add('hidden');
+        }
+    }
+
+    function clearCuttingSearch() {
+        const input = document.getElementById('cutting-search-input');
+        input.value = '';
+        filterCuttingData();
+        input.focus();
+    }
+
+    function scrollToArticleSection(itemId) {
+        switchViewMode('articles');
+        const target = document.getElementById('article-card-' + itemId);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('ring-4', 'ring-rose-500');
+            setTimeout(() => {
+                target.classList.remove('ring-4', 'ring-rose-500');
+            }, 2500);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('cutting-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', filterCuttingData);
+            if (searchInput.value.trim()) {
+                filterCuttingData();
+            }
+        }
+    });
+
     function openAddBatchModal(itemId, artCode, batchName) {
         document.getElementById('modal-batch-title').innerText = batchName;
         document.getElementById('modal-art-code').innerText = artCode;
