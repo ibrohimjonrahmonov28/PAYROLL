@@ -29,7 +29,7 @@ def meto_dashboard(request):
     """
     search_q = request.GET.get('q', '').strip()
     orders_qs = Order.objects.filter(
-        status__in=[Order.Status.IN_PROGRESS, Order.Status.DRAFT]
+        status=Order.Status.IN_PROGRESS
     ).select_related('customer', 'article').prefetch_related(
         'items__article__model',
         'items__sizes',

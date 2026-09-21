@@ -31,12 +31,15 @@
 
         <div class="flex flex-wrap items-center gap-3">
             <form method="GET" class="relative flex items-center">
+                {% if status_filter %}
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                {% endif %}
                 <i
                     class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-500 text-xs pointer-events-none"></i>
                 <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz, mijoz yoki model..."
                     class="pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-56 md:w-72 shadow-inner transition">
                 {% if search_q %}
-                <a href="{% url 'manager_dashboard' %}"
+                <a href="{% url 'manager_dashboard' %}{% if status_filter %}?status={{ status_filter }}{% endif %}"
                     class="absolute right-3 text-slate-500 hover:text-rose-400 text-xs" title="Tozalash">
                     <i class="fa-solid fa-xmark"></i>
                 </a>
@@ -48,6 +51,58 @@
                 <i class="fa-solid fa-circle-plus text-sm"></i> + Yangi Zakaz Yaratish
             </a>
         </div>
+    </div>
+
+    <!-- Status Filter Tabs -->
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'manager_dashboard' %}{% if search_q %}?q={{ search_q }}{% endif %}"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if not status_filter %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+            <span>Barchasi</span>
+            <span
+                class="px-1.5 py-0.5 rounded-md text-[10px] font-black {% if not status_filter %}bg-slate-950/30 text-slate-950{% else %}bg-slate-800 text-slate-300{% endif %}">
+                {{ status_counts.all }}
+            </span>
+        </a>
+
+        <a href="{% url 'manager_dashboard' %}?status=IN_PROGRESS{% if search_q %}&q={{ search_q }}{% endif %}"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'IN_PROGRESS' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}bg-slate-900 border border-slate-800 text-cyan-400 hover:bg-slate-800{% endif %}">
+            <i class="fa-solid fa-spinner"></i>
+            <span>Jarayonda</span>
+            <span
+                class="px-1.5 py-0.5 rounded-md text-[10px] font-black {% if status_filter == 'IN_PROGRESS' %}bg-slate-950/30 text-slate-950{% else %}bg-cyan-950/60 text-cyan-300 border border-cyan-800/60{% endif %}">
+                {{ status_counts.in_progress }}
+            </span>
+        </a>
+
+        <a href="{% url 'manager_dashboard' %}?status=DRAFT{% if search_q %}&q={{ search_q }}{% endif %}"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'DRAFT' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}bg-slate-900 border border-slate-800 text-amber-400 hover:bg-slate-800{% endif %}">
+            <i class="fa-solid fa-file-pen"></i>
+            <span>Tayyorlanmoqda</span>
+            <span
+                class="px-1.5 py-0.5 rounded-md text-[10px] font-black {% if status_filter == 'DRAFT' %}bg-slate-950/30 text-slate-950{% else %}bg-amber-950/60 text-amber-300 border border-amber-800/60{% endif %}">
+                {{ status_counts.draft }}
+            </span>
+        </a>
+
+        <a href="{% url 'manager_dashboard' %}?status=COMPLETED{% if search_q %}&q={{ search_q }}{% endif %}"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'COMPLETED' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900 border border-slate-800 text-emerald-400 hover:bg-slate-800{% endif %}">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>Tugatildi</span>
+            <span
+                class="px-1.5 py-0.5 rounded-md text-[10px] font-black {% if status_filter == 'COMPLETED' %}bg-slate-950/30 text-slate-950{% else %}bg-emerald-950/60 text-emerald-300 border border-emerald-800/60{% endif %}">
+                {{ status_counts.completed }}
+            </span>
+        </a>
+
+        <a href="{% url 'manager_dashboard' %}?status=ARCHIVED{% if search_q %}&q={{ search_q }}{% endif %}"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'ARCHIVED' %}bg-purple-500 text-white shadow-lg shadow-purple-500/20{% else %}bg-slate-900 border border-slate-800 text-purple-400 hover:bg-slate-800{% endif %}">
+            <i class="fa-solid fa-box-archive"></i>
+            <span>Arxivlandi</span>
+            <span
+                class="px-1.5 py-0.5 rounded-md text-[10px] font-black {% if status_filter == 'ARCHIVED' %}bg-slate-950/30 text-white{% else %}bg-purple-950/60 text-purple-300 border border-purple-800/60{% endif %}">
+                {{ status_counts.archived }}
+            </span>
+        </a>
     </div>
 
     <!-- Orders Table -->
@@ -64,6 +119,7 @@
                         <th class="py-4 px-4 text-center">Reja Soni</th>
                         <th class="py-4 px-4 text-center">Kesilgan Soni</th>
                         <th class="py-4 px-4 text-center">Kesilish Jarayoni</th>
+                        <th class="py-4 px-4 text-center">Holati</th>
                         <th class="py-4 px-4">Muddat</th>
                         <th class="py-4 px-4 text-right">Amal</th>
                     </tr>
@@ -147,6 +203,34 @@
                                 </div>
                             </div>
                         </td>
+                        <td class="py-4 px-4 text-center">
+                            {% if row.order.status == 'COMPLETED' %}
+                            <span
+                                class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-check text-[10px]"></i> Tugatildi
+                            </span>
+                            {% elif row.order.status == 'ARCHIVED' %}
+                            <span
+                                class="px-2.5 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-box-archive text-[10px]"></i> Arxivlandi
+                            </span>
+                            {% elif row.order.status == 'DRAFT' %}
+                            <span
+                                class="px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-file-pen text-[10px]"></i> Tayyorlanmoqda
+                            </span>
+                            {% elif row.order.status == 'CANCELLED' %}
+                            <span
+                                class="px-2.5 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-ban text-[10px]"></i> Bekor qilindi
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-spinner text-[10px]"></i> Jarayonda
+                            </span>
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-4 text-slate-400 text-xs font-mono">
                             {{ row.order.deadline|date:"d.m.Y"|default:"—" }}
                         </td>
@@ -159,7 +243,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="py-12 text-center text-slate-500">
+                        <td colspan="10" class="py-12 text-center text-slate-500">
                             Hozircha buyurtmalar mavjud emas. Yuqoridagi "+ Yangi Zakaz Yaratish" tugmasini bosing.
                         </td>
                     </tr>

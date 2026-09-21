@@ -333,9 +333,10 @@ class ArticleOperation(models.Model):
 
 class Order(models.Model):
     class Status(models.TextChoices):
-        DRAFT = 'DRAFT', 'Qoralama'
-        IN_PROGRESS = 'IN_PROGRESS', 'Ishlab chiqarishda'
-        COMPLETED = 'COMPLETED', 'Yakunlandi'
+        DRAFT = 'DRAFT', 'Tayyorlanmoqda'
+        IN_PROGRESS = 'IN_PROGRESS', 'Jarayonda'
+        COMPLETED = 'COMPLETED', 'Tugatildi'
+        ARCHIVED = 'ARCHIVED', 'Arxivlandi'
         CANCELLED = 'CANCELLED', 'Bekor qilindi'
 
     order_number = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Buyurtma raqami")

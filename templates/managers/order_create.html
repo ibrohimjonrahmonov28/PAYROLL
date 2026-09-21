@@ -28,7 +28,7 @@
                 <i class="fa-solid fa-file-invoice"></i> 1. Buyurtma Asosiy Ma'lumotlari
             </h3>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-1">Zakaz Raqami *</label>
                     <input type="text" name="order_number" required placeholder="Masalan: ORD-2026-001"
@@ -45,6 +45,17 @@
                         <option value="{{ cust.name }}">{{ cust.code }}</option>
                         {% endfor %}
                     </datalist>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Zakaz Holati *</label>
+                    <select name="status"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 shadow-inner font-semibold">
+                        <option value="IN_PROGRESS" selected>Jarayonda</option>
+                        <option value="DRAFT">Tayyorlanmoqda</option>
+                        <option value="COMPLETED">Tugatildi</option>
+                        <option value="ARCHIVED">Arxivlandi</option>
+                    </select>
                 </div>
 
                 <div>

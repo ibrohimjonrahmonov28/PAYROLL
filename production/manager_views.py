@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
@@ -25,13 +26,30 @@ def manager_dashboard(request):
     Menejerlar Bosh Sahifasi:
     - Barcha faol buyurtmalar ro'yxati.
     - Har bir buyurtmada: Mijoz, Model, Reja soni, Kesilish foizi va holati.
+    - Status bo'yicha filtrlash (Barchasi, Jarayonda, Tayyorlanmoqda, Tugatildi, Arxivlandi).
     """
     search_q = request.GET.get('q', '').strip()
-    orders_qs = Order.objects.all().select_related('customer', 'article').prefetch_related(
+    status_filter = request.GET.get('status', '').strip()
+
+    orders_base = Order.objects.all()
+
+    # Hisoblagichlar (Status counts)
+    status_counts = {
+        'all': orders_base.count(),
+        'in_progress': orders_base.filter(status=Order.Status.IN_PROGRESS).count(),
+        'draft': orders_base.filter(status=Order.Status.DRAFT).count(),
+        'completed': orders_base.filter(status=Order.Status.COMPLETED).count(),
+        'archived': orders_base.filter(status=Order.Status.ARCHIVED).count(),
+    }
+
+    orders_qs = orders_base.select_related('customer', 'article').prefetch_related(
         'items__article__model',
         'items__sizes__cutting_items',
         'items__cutting_batches__items'
     ).order_by('-created_at')
+
+    if status_filter and status_filter in dict(Order.Status.choices):
+        orders_qs = orders_qs.filter(status=status_filter)
 
     if search_q:
         orders_qs = orders_qs.filter(
@@ -68,6 +86,9 @@ def manager_dashboard(request):
     return render(request, 'managers/dashboard.html', {
         'orders_data': orders_data,
         'search_q': search_q,
+        'status_filter': status_filter,
+        'status_counts': status_counts,
+        'status_choices': Order.Status.choices,
     })
 
 
@@ -76,7 +97,7 @@ def manager_order_create(request):
     """
     Menejer Yangi Zakaz Yaratish Sahifasi:
     - Zakazchi (Mijoz)
-    - Zakaz raqami va topshirish muddati
+    - Zakaz raqami, topshirish muddati va holati (status)
     - Model (ProductModel) tanlash
     - Artikul(lar) va har bir artikul uchun kiyim razmerlari (S, M, L, XL...) hamda ularning reja soni.
     - Menejer buni kiritib saqlashi bilan uning ishi tugaydi va buyurtma Kesim bo'limiga uzatiladi.
@@ -90,6 +111,9 @@ def manager_order_create(request):
         customer_id = request.POST.get('customer_id')
         deadline = request.POST.get('deadline') or None
         product_model_id = request.POST.get('product_model_id')
+        status = request.POST.get('status', Order.Status.IN_PROGRESS).strip()
+        if status not in dict(Order.Status.choices):
+            status = Order.Status.IN_PROGRESS
 
         # Artikul va Razmerlar ma'lumotlari
         article_codes = request.POST.getlist('article_code[]')
@@ -126,7 +150,7 @@ def manager_order_create(request):
                     customer=customer,
                     client_name=customer.name if customer else client_name,
                     deadline=deadline,
-                    status=Order.Status.IN_PROGRESS
+                    status=status
                 )
 
                 total_order_qty = 0
@@ -302,5 +326,47 @@ def manager_order_detail(request, order_id: int):
         'total_planned_order': total_planned_order,
         'total_cut_order': total_cut_order,
         'overall_order_pct': overall_order_pct,
+        'status_choices': Order.Status.choices,
     })
+
+
+@manager_required
+def manager_order_update_status(request, order_id: int):
+    """
+    Zakaz holatini o'zgartirish (Menejer yoki Superadmin):
+    - Tayyorlanmoqda (DRAFT)
+    - Jarayonda (IN_PROGRESS)
+    - Tugatildi (COMPLETED)
+    - Arxivlandi (ARCHIVED)
+    - Bekor qilindi (CANCELLED)
+    """
+    order = get_object_or_404(Order, id=order_id)
+    if request.method == 'POST':
+        new_status = request.POST.get('status', '').strip()
+        if new_status in dict(Order.Status.choices):
+            order.status = new_status
+            order.save(update_fields=['status'])
+            messages.success(request, f"'{order.order_number}' zakazi holati '{order.get_status_display()}' ga o'zgartirildi.")
+        else:
+            messages.error(request, "Noto'g'ri zakaz holati tanlandi!")
+
+    redirect_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('manager_order_detail', kwargs={'order_id': order.id})
+    return redirect(redirect_url)
+
+
+@manager_required
+def manager_order_delete(request, order_id: int):
+    """
+    Zakazni o'chirish (Menejer yoki Superadmin):
+    Eski, arxivlangan yoki keraksiz zakazlarni xavfsiz o'chirish.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    if request.method == 'POST':
+        order_num = order.order_number
+        order.delete()
+        messages.success(request, f"'{order_num}' zakazi butunlay o'chirildi.")
+        return redirect('manager_dashboard')
+    messages.error(request, "Noto'g'ri so'rov usuli.")
+    return redirect('manager_order_detail', order_id=order.id)
+
 

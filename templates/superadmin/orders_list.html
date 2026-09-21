@@ -148,12 +148,27 @@
                             {% if order.status == 'COMPLETED' %}
                             <span
                                 class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
-                                Yakunlandi
+                                Tugatildi
+                            </span>
+                            {% elif order.status == 'ARCHIVED' %}
+                            <span
+                                class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
+                                Arxivlandi
+                            </span>
+                            {% elif order.status == 'DRAFT' %}
+                            <span
+                                class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
+                                Tayyorlanmoqda
+                            </span>
+                            {% elif order.status == 'CANCELLED' %}
+                            <span
+                                class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
+                                Bekor qilindi
                             </span>
                             {% else %}
                             <span
-                                class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
-                                Ishlab chiqarishda
+                                class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold px-2.5 py-1 rounded-full">
+                                Jarayonda
                             </span>
                             {% endif %}
                         </td>

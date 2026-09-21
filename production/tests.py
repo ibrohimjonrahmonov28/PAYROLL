@@ -550,6 +550,65 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertContains(res_detail, "ART-POLO-01")
         self.assertContains(res_detail, "Polo futbolka")
 
+    def test_manager_order_status_lifecycle_and_filtering(self):
+        self.client.login(username="manager_user", password="password123")
+
+        # 1. Create order with DRAFT status
+        url_create = reverse('manager_order_create')
+        data = {
+            'order_number': 'ORD-STATUS-001',
+            'client_name': 'TEX STYLE LLC',
+            'customer_id': self.customer.id,
+            'status': Order.Status.DRAFT,
+            'article_code[]': ['ART-DRAFT-01'],
+            'article_name[]': ['Draft Article'],
+            'article_qty_0': '100',
+        }
+        res = self.client.post(url_create, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        order = Order.objects.get(order_number='ORD-STATUS-001')
+        self.assertEqual(order.status, Order.Status.DRAFT)
+        self.assertEqual(order.get_status_display(), 'Tayyorlanmoqda')
+
+        # 2. Update status to IN_PROGRESS
+        url_status = reverse('manager_order_update_status', kwargs={'order_id': order.id})
+        res_update = self.client.post(url_status, {'status': Order.Status.IN_PROGRESS}, follow=True)
+        self.assertEqual(res_update.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.IN_PROGRESS)
+        self.assertEqual(order.get_status_display(), 'Jarayonda')
+
+        # 3. Update status to COMPLETED
+        self.client.post(url_status, {'status': Order.Status.COMPLETED}, follow=True)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.COMPLETED)
+        self.assertEqual(order.get_status_display(), 'Tugatildi')
+
+        # 4. Update status to ARCHIVED
+        self.client.post(url_status, {'status': Order.Status.ARCHIVED}, follow=True)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.ARCHIVED)
+        self.assertEqual(order.get_status_display(), 'Arxivlandi')
+
+        # 5. Check Dashboard filtering by status
+        url_dash = reverse('manager_dashboard')
+        res_dash_all = self.client.get(url_dash)
+        self.assertContains(res_dash_all, 'ORD-STATUS-001')
+        self.assertContains(res_dash_all, 'Arxivlandi')
+
+        res_dash_archived = self.client.get(url_dash, {'status': 'ARCHIVED'})
+        self.assertContains(res_dash_archived, 'ORD-STATUS-001')
+
+        res_dash_in_progress = self.client.get(url_dash, {'status': 'IN_PROGRESS'})
+        self.assertNotContains(res_dash_in_progress, 'ORD-STATUS-001')
+
+        # 6. Delete order
+        url_delete = reverse('manager_order_delete', kwargs={'order_id': order.id})
+        res_delete = self.client.post(url_delete, follow=True)
+        self.assertEqual(res_delete.status_code, 200)
+        self.assertFalse(Order.objects.filter(id=order.id).exists())
+
     def test_cutting_add_batches_and_progress_tracking(self):
         # Setup order with S: 100, M: 200
         order = Order.objects.create(order_number="ORD-CUT-01", customer=self.customer, client_name=self.customer.name)

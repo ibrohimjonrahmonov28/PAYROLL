@@ -13,7 +13,7 @@
             <span>Zakaz:</span>
             <span class="text-amber-400 digital-font">{{ order.order_number }}</span>
             <span
-                class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {% if order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% endif %}">
+                class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {% if order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% elif order.status == 'ARCHIVED' %}bg-purple-500/20 text-purple-400 border border-purple-500/30{% elif order.status == 'DRAFT' %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% elif order.status == 'CANCELLED' %}bg-rose-500/20 text-rose-400 border border-rose-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
                 {{ order.get_status_display }}
             </span>
         </h2>
@@ -683,9 +683,10 @@
                 <label class="block text-xs font-bold text-slate-400 mb-1">Zakaz Holati</label>
                 <select name="status" id="edit-order-status"
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
-                    <option value="DRAFT">Qoralama</option>
-                    <option value="IN_PROGRESS">Ishlab chiqarishda</option>
-                    <option value="COMPLETED">Yakunlandi</option>
+                    <option value="DRAFT">Tayyorlanmoqda</option>
+                    <option value="IN_PROGRESS">Jarayonda</option>
+                    <option value="COMPLETED">Tugatildi</option>
+                    <option value="ARCHIVED">Arxivlandi</option>
                     <option value="CANCELLED">Bekor qilindi</option>
                 </select>
             </div>
