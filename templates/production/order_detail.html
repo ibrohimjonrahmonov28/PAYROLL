@@ -437,7 +437,7 @@
 </div>
 
 <!-- MODAL: Yangi Quti Yaratish (100 talik va h.k.) -->
-<div id="create-box-modal"
+<div id="create-box-modal" onclick="if(event.target === this) closeCreateBoxModal()"
     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5">
         <div class="flex items-center justify-between pb-4 border-b border-slate-800">
@@ -597,7 +597,7 @@
     }
 
     function closeCreateBoxModal() {
-        vament.getElementById('create-box-modal');
+        var modal = document.getElementById('create-box-modal');
         if (modal) {
             modal.classList.add('hidden');
         }
