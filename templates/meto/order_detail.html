@@ -157,24 +157,24 @@
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-emerald-400 mb-1">Aniq Yig'ilgan Son
-                                        (dona)</label>
-                                    <input type="number" name="real_quantity" value="{{ b_it.quantity }}" min="1"
-                                        required
+                                    <label class="block text-[11px] font-bold text-emerald-400 mb-1">Aniq Yig'ilgan Son (dona)</label>
+                                    <input type="number" name="real_quantity" id="real-qty-{{ b_it.id }}" value="{{ b_it.quantity }}" min="1" required
+                                        oninput="updateBoxSplitPreview({{ b_it.id }})"
                                         class="w-full bg-slate-950 border border-emerald-600 rounded-xl px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-black text-sm focus:outline-none focus:border-emerald-400">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Qutilarga
-                                        Bo'lish</label>
-                                    <select name="split_mode"
-                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white font-bold focus:outline-none">
-                                        <option value="single" selected>1 ta quti (to'liq)</option>
-                                        <option value="split_2">2 ta qutiga teng</option>
-                                        <option value="split_3">3 ta qutiga teng</option>
-                                        <option value="capacity_50">50 talik qutilar</option>
-                                        <option value="capacity_100">100 talik qutilar</option>
-                                    </select>
+                                    <label class="block text-[11px] font-bold text-amber-400 mb-1">Nechta Qutiga Bo'linsin?</label>
+                                    <input type="number" name="box_count" id="box-count-{{ b_it.id }}" value="1" min="1" required
+                                        placeholder="Masalan: 4"
+                                        oninput="updateBoxSplitPreview({{ b_it.id }})"
+                                        class="w-full bg-slate-950 border border-amber-500/60 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold text-sm focus:outline-none focus:border-amber-400">
                                 </div>
+                            </div>
+
+                            <!-- Real-time split preview -->
+                            <div id="split-preview-{{ b_it.id }}" class="text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-800/50 px-3 py-1.5 rounded-xl flex items-center justify-between">
+                                <span class="text-slate-400"><i class="fa-solid fa-boxes-packing text-cyan-400 mr-1"></i> Qutilar taqsimoti:</span>
+                                <span class="font-bold text-white preview-text">1 ta quti ({{ b_it.quantity }} dona)</span>
                             </div>
 
                             <div class="grid grid-cols-2 gap-2">
@@ -250,4 +250,45 @@
     {% endfor %}
 
 </div>
+
+<script>
+    function updateBoxSplitPreview(itemId) {
+        const qtyInput = document.getElementById(`real-qty-${itemId}`);
+        const countInput = document.getElementById(`box-count-${itemId}`);
+        const preview = document.getElementById(`split-preview-${itemId}`);
+        if (!qtyInput || !countInput || !preview) return;
+
+        const q = parseInt(qtyInput.value) || 0;
+        const n = parseInt(countInput.value) || 1;
+        const textElem = preview.querySelector('.preview-text');
+        if (!textElem) return;
+
+        if (q <= 0 || n <= 0) {
+            textElem.innerText = '-';
+            return;
+        }
+
+        const effectiveN = Math.min(n, q);
+        const base = Math.floor(q / effectiveN);
+        const rem = q % effectiveN;
+        const parts = [];
+        for (let i = 0; i < effectiveN; i++) {
+            parts.push(base + (i < rem ? 1 : 0));
+        }
+
+        if (effectiveN === 1) {
+            textElem.innerText = `1 ta quti (${q} dona)`;
+        } else if (parts.length <= 6) {
+            textElem.innerText = `${effectiveN} ta quti: [${parts.join(', ')} dona]`;
+        } else {
+            const minVal = Math.min(...parts);
+            const maxVal = Math.max(...parts);
+            if (minVal === maxVal) {
+                textElem.innerText = `${effectiveN} ta quti (har birida ${minVal} donadan)`;
+            } else {
+                textElem.innerText = `${effectiveN} ta quti (${maxVal} va ${minVal} donadan)`;
+            }
+        }
+    }
+</script>
 {% endblock %}

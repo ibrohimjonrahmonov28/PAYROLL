@@ -185,6 +185,7 @@ def meto_confirm_item(request, item_id: int):
     meto_end = request.POST.get('meto_number_end', '').strip()
     meto_worker = request.POST.get('meto_worker_name', '').strip()
     notes = request.POST.get('meto_notes', '').strip()
+    box_count_str = request.POST.get('box_count', '').strip()
     split_mode = request.POST.get('split_mode', 'single')  # single, split_2, split_3, capacity_50, capacity_100
 
     try:
@@ -199,7 +200,12 @@ def meto_confirm_item(request, item_id: int):
     # Qutilarga bo'lish konfiguratsiyasi
     split_count = 1
     box_capacity = None
-    if split_mode == 'split_2':
+    if box_count_str:
+        try:
+            split_count = max(1, min(int(box_count_str), real_qty))
+        except (ValueError, TypeError):
+            split_count = 1
+    elif split_mode == 'split_2':
         split_count = 2
     elif split_mode == 'split_3':
         split_count = 3
