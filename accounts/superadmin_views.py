@@ -1006,16 +1006,19 @@ def superadmin_send_telegram_report(request):
     chat_id = (request.POST.get('chat_id') or request.GET.get('chat_id') or '').strip() or None
     bot_token = (request.POST.get('bot_token') or request.GET.get('bot_token') or '').strip() or None
 
-    from production.telegram_reports import send_daily_excel_report
-    result = send_daily_excel_report(target_date=target_date, chat_id=chat_id, bot_token=bot_token)
+    try:
+        from production.telegram_reports import send_daily_excel_report
+        result = send_daily_excel_report(target_date=target_date, chat_id=chat_id, bot_token=bot_token)
 
-    if result.get('success'):
-        messages.success(request, f"✅ {result.get('message')}")
-    else:
-        messages.warning(request, f"⚠️ {result.get('message')}")
+        if result.get('success'):
+            messages.success(request, f"✅ {result.get('message')}")
+        else:
+            messages.warning(request, f"⚠️ {result.get('message')}")
+    except Exception as e:
+        messages.error(request, f"Xatolik: {str(e)}")
 
     referer = request.META.get('HTTP_REFERER')
-    if referer:
+    if referer and 'telegram-report' not in referer:
         return redirect(referer)
     return redirect('superadmin_payroll')
 
@@ -1034,8 +1037,12 @@ def superadmin_download_daily_excel(request):
     else:
         target_date = timezone.localdate()
 
-    from production.excel_reports import generate_daily_excel_report
-    excel_buffer = generate_daily_excel_report(target_date=target_date)
+    try:
+        from production.excel_reports import generate_daily_excel_report
+        excel_buffer = generate_daily_excel_report(target_date=target_date)
+    except Exception as e:
+        messages.error(request, f"Excel fayl yaratishda xatolik: {str(e)}")
+        return redirect('superadmin_payroll')
 
     filename = f"Kunlik_Hisobot_{target_date.strftime('%Y_%m_%d')}.xlsx"
     response = HttpResponse(

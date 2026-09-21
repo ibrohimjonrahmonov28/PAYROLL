@@ -4,9 +4,13 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db.models import Sum, Q
 
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
+try:
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
 
 from accounts.models import Worker
 from production.models import Ticket
@@ -18,6 +22,12 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     - 1-varaq: "Xodimlar Kunlik Hisoboti" (Xodim, bugungi donasi, bugungi puli, oyligi, balansi, urgan stikerlar ID lari)
     - 2-varaq: "Barcha Skanerlangan Stikerlar" (Har bir stiker ID si bo'yicha operatsiya, zakaz, narx va vaqt tafsiloti)
     """
+    if not HAS_OPENPYXL:
+        raise ImportError(
+            "Serverda 'openpyxl' kutubxonasi o'rnatilmagan. "
+            "Iltimos, serverda 'docker compose exec web pip install openpyxl' buyrug'ini bajaring."
+        )
+
     if target_date is None:
         target_date = timezone.localdate()
 
