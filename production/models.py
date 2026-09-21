@@ -62,6 +62,14 @@ class Article(models.Model):
         related_name='articles',
         verbose_name="Tegishli Model"
     )
+    operation_group = models.ForeignKey(
+        'OperationGroup',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='articles',
+        verbose_name="Operatsiyalar Guruhi (Shablon)"
+    )
     code = models.CharField(max_length=50, unique=True, verbose_name="Artikul kodi")
     name = models.CharField(max_length=200, verbose_name="Artikul nomi / Rangi")
     description = models.TextField(blank=True, verbose_name="Tavsif")
@@ -76,6 +84,26 @@ class Article(models.Model):
     @property
     def total_unit_rate(self):
         return sum(ao.price_per_unit for ao in self.article_operations.all())
+
+    def sync_operations_from_group(self):
+        """Guruhga tegishli barcha operatsiyalarni ushbu artikulga biriktirish / yangilash"""
+        if not self.operation_group:
+            return
+        for item in self.operation_group.items.select_related('operation').all():
+            ao = self.article_operations.filter(operation=item.operation).first()
+            if ao:
+                ao.price_per_unit = item.price_per_unit
+                ao.sequence = item.sequence
+                ao.difficulty = item.difficulty
+                ao.save()
+            else:
+                ArticleOperation.objects.create(
+                    article=self,
+                    operation=item.operation,
+                    price_per_unit=item.price_per_unit,
+                    sequence=item.sequence,
+                    difficulty=item.difficulty
+                )
 
     def sync_operations_from_model(self):
         """Modelga tegishli barcha operatsiyalarni ushbu artikulga nusxalash"""
@@ -100,6 +128,8 @@ class Article(models.Model):
         super().save(*args, **kwargs)
         if is_new and self.model:
             self.sync_operations_from_model()
+        if self.operation_group:
+            self.sync_operations_from_group()
 
     def __str__(self):
         if self.model:
@@ -169,6 +199,82 @@ class ProductModelOperation(models.Model):
         return f"{self.model.code} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS, Qiyinlik: {self.difficulty_display})"
 
 
+class OperationGroup(models.Model):
+    name = models.CharField(max_length=200, unique=True, verbose_name="Guruh nomi / Shablon nomi")
+    description = models.TextField(blank=True, verbose_name="Tavsif")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Operatsiyalar guruhi"
+        verbose_name_plural = "Operatsiyalar guruhlari"
+        ordering = ['name']
+
+    @property
+    def total_unit_rate(self):
+        return sum(item.price_per_unit for item in self.items.all())
+
+    def sync_to_articles(self):
+        """Ushbu guruhga ulangan barcha artikullarga operatsiyalarni sinxronlash"""
+        for art in self.articles.all():
+            art.sync_operations_from_group()
+
+    def __str__(self):
+        return self.name
+
+
+class OperationGroupItem(models.Model):
+    group = models.ForeignKey(OperationGroup, on_delete=models.CASCADE, related_name='items', verbose_name="Guruh")
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE, related_name='group_items', verbose_name="Operatsiya")
+    price_per_unit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Dona narxi (UZS)"
+    )
+    sequence = models.PositiveIntegerField(default=1, verbose_name="Ketma-ketlik tartibi")
+    difficulty = models.FloatField(default=1.0, verbose_name="Qiyinlik darajasi / koeffitsienti")
+
+    class Meta:
+        verbose_name = "Guruh operatsiyasi va narxi"
+        verbose_name_plural = "Guruh operatsiyalari va narxlari"
+        unique_together = ('group', 'operation')
+        ordering = ['sequence', 'id']
+
+    @property
+    def difficulty_display(self):
+        if self.difficulty is None:
+            return "1"
+        try:
+            val = float(self.difficulty)
+            return str(int(val)) if val.is_integer() else f"{val:g}"
+        except Exception:
+            return str(self.difficulty)
+
+    def save(self, *args, **kwargs):
+        is_existing = self.pk is not None
+        super().save(*args, **kwargs)
+        # Guruhdagi operatsiya narxi o'zgarsa, ushbu guruhga ulangan barcha artikullarda
+        # tegishli ArticleOperation narxi yangilanadi va barcha biletlar qayta hisoblanadi
+        for art in self.group.articles.all():
+            ao = ArticleOperation.objects.filter(article=art, operation=self.operation).first()
+            if ao:
+                ao.price_per_unit = self.price_per_unit
+                ao.sequence = self.sequence
+                ao.difficulty = self.difficulty
+                ao.save()
+            else:
+                ArticleOperation.objects.create(
+                    article=art,
+                    operation=self.operation,
+                    price_per_unit=self.price_per_unit,
+                    sequence=self.sequence,
+                    difficulty=self.difficulty
+                )
+
+    def __str__(self):
+        return f"{self.group.name} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS)"
+
+
 class ArticleOperation(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='article_operations')
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE, related_name='operation_articles')
@@ -198,6 +304,27 @@ class ArticleOperation(models.Model):
             return f"{val:g}"
         except Exception:
             return str(self.difficulty)
+
+    def sync_price_to_tickets(self):
+        """
+        Operatsiya narxi o'zgarganda ushbu operatsiyaning barcha biletlari
+        (shu jumladan o'tgan kunlarda skanerlangan biletlar) dona narxi
+        va umumiy summasini avtomatik yangilash.
+        """
+        from django.db.models import F
+        return self.tickets.update(
+            price_per_unit=self.price_per_unit,
+            total_amount=F('quantity') * self.price_per_unit
+        )
+
+    # Eskiroq kodlar bilan moslik uchun alias:
+    sync_price_to_unfrozen_tickets = sync_price_to_tickets
+
+    def save(self, *args, **kwargs):
+        is_existing = self.pk is not None
+        super().save(*args, **kwargs)
+        if is_existing:
+            self.sync_price_to_tickets()
 
     def __str__(self):
         return f"{self.article.code} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS, Qiyinlik: {self.difficulty_display})"
@@ -774,6 +901,26 @@ class Ticket(models.Model):
     )
     qr_code_image = models.ImageField(upload_to='qr_codes/tickets/%Y/%m/', blank=True, null=True)
 
+    # Oylikni muzlatish (Salary Freeze)
+    is_frozen = models.BooleanField(
+        default=False, 
+        db_index=True, 
+        verbose_name="Muzlatilgan (Qulflangan)"
+    )
+    frozen_at = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        verbose_name="Muzlatilgan vaqt"
+    )
+    frozen_payout = models.ForeignKey(
+        'accounts.WorkerPayout', 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name='frozen_tickets',
+        verbose_name="Bog'langan oylik to'lovi"
+    )
+
     class Meta:
         verbose_name = "Operatsiya QR Bilti"
         verbose_name_plural = "Operatsiya QR Biletlari"
@@ -783,6 +930,8 @@ class Ticket(models.Model):
             models.Index(fields=['screen_number', 'status', 'scanned_at'], name='tkt_screen_stat_idx'),
             models.Index(fields=['worker', 'status', 'scanned_at'], name='tkt_worker_stat_idx'),
             models.Index(fields=['box', 'status'], name='tkt_box_stat_idx'),
+            models.Index(fields=['is_frozen', 'status'], name='tkt_frozen_stat_idx'),
+            models.Index(fields=['worker', 'is_frozen'], name='tkt_worker_frozen_idx'),
         ]
 
     def generate_qr_code(self):

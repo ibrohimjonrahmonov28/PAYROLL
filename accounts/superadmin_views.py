@@ -14,7 +14,7 @@ from django.db import transaction
 from django.conf import settings
 from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
-from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem
+from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem
 
 
 def superadmin_required(view_func):
@@ -23,8 +23,8 @@ def superadmin_required(view_func):
     """
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            # Login sahifasiga yoki admin loginga yo'naltirish
-            return redirect('/admin/login/?next=' + request.path)
+            # Login sahifasiga yo'naltirish
+            return redirect(f'/login/?next={request.path}')
         if not (request.user.is_superuser or request.user.role == User.Role.SUPER_ADMIN):
             messages.error(request, "Ushbu sahifaga kirish uchun Super Admin huquqi talab qilinadi!")
             return redirect('production:dashboard')
@@ -610,7 +610,8 @@ def superadmin_payroll(request):
     ).values('worker_id').annotate(
         units=Sum('quantity'),
         gross=Sum('total_amount'),
-        days_worked=Count('scanned_at__date', distinct=True)
+        days_worked=Count('scanned_at__date', distinct=True),
+        total_tickets=Count('id'),
     )
     month_ticket_map = {item['worker_id']: item for item in month_ticket_qs}
 
@@ -639,6 +640,7 @@ def superadmin_payroll(request):
         month_units = t_stat.get('units') or 0
         month_gross = t_stat.get('gross') or Decimal('0.00')
         days_worked = t_stat.get('days_worked') or 0
+        total_tickets = t_stat.get('total_tickets') or 0
 
         p_stat = month_payout_map.get(w.id, {})
         advances = p_stat.get('advances') or Decimal('0.00')
@@ -687,6 +689,7 @@ def superadmin_payroll(request):
             'bonuses_paid': bonuses_paid,
             'net_payable_month': net_payable_month,
             'lifetime_balance': lifetime_balance,
+            'total_tickets': total_tickets,
             'status_text': status_text,
             'status_badge': status_badge,
         })
@@ -853,19 +856,23 @@ def superadmin_payout_create(request):
         note = request.POST.get('note', '').strip()
         month = request.POST.get('selected_month')
         year = request.POST.get('selected_year')
+        auto_freeze = request.POST.get('auto_freeze', '1') == '1'
 
         if not worker_id or not amount:
             messages.error(request, "Xodim va to'lov summasi kiritilishi shart!")
         else:
             worker = get_object_or_404(Worker, id=worker_id)
-            payout = WorkerPayout.objects.create(
-                worker=worker,
-                amount=Decimal(amount),
-                payout_type=payout_type,
-                payout_date=payout_date,
-                note=note,
-                created_by=request.user
-            )
+            with transaction.atomic():
+                payout = WorkerPayout.objects.create(
+                    worker=worker,
+                    amount=Decimal(amount),
+                    payout_type=payout_type,
+                    payout_date=payout_date,
+                    note=note,
+                    created_by=request.user
+                )
+
+
             messages.success(request, f"{worker.full_name} ga {int(payout.amount):,} UZS ({payout.get_payout_type_display()}) muvaffaqiyatli to'landi!")
 
         if month and year:
@@ -1055,9 +1062,145 @@ def superadmin_download_daily_excel(request):
 
 @superadmin_required
 def superadmin_pricing(request):
+    """
+    Operatsiyalar Guruhi (Shablonlar) va Narxlar Matritsasi:
+    - Guruhlar (shablonlar) ro'yxati (masalan: DC UZUN QOL KOYLAKCHA).
+    - Har bir guruh ichidagi operatsiyalar, ularning tartibi, qiyinligi va narxi.
+    - Guruhda narx o'zgarsa, unga ulangan barcha artikullar va barcha biletlar avtomatik yangilanadi.
+    - Yangi guruh yaratish (katalogdagi barcha operatsiyalar checkbox bilan chiqadi).
+    """
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'update_article_norm' or ('daily_norm' in request.POST and not request.POST.get('article_operation_id')):
+
+        # 1. YANGI GURUH (SHABLON) YARATISH
+        if action == 'create_group':
+            name = request.POST.get('name', '').strip()
+            description = request.POST.get('description', '').strip()
+            selected_ops = request.POST.getlist('selected_operations')
+
+            if not name:
+                messages.error(request, "Guruh nomini kiritish shart!")
+                return redirect('superadmin_pricing')
+
+            if OperationGroup.objects.filter(name__iexact=name).exists():
+                messages.error(request, f"'{name}' nomli guruh allaqachon mavjud!")
+                return redirect('superadmin_pricing')
+
+            group = OperationGroup.objects.create(name=name, description=description)
+
+            added_count = 0
+            for idx, op_id in enumerate(selected_ops, start=1):
+                try:
+                    op = Operation.objects.get(id=op_id)
+                    seq = int(request.POST.get(f'sequence_{op_id}', idx))
+                    price = Decimal(request.POST.get(f'price_{op_id}', '0').strip() or '0')
+                    diff = float(request.POST.get(f'difficulty_{op_id}', 1.0) or 1.0)
+
+                    OperationGroupItem.objects.create(
+                        group=group,
+                        operation=op,
+                        sequence=seq,
+                        price_per_unit=price,
+                        difficulty=diff
+                    )
+                    added_count += 1
+                except Exception:
+                    pass
+
+            messages.success(request, f"'{group.name}' operatsiyalar guruhi yaratildi ({added_count} ta operatsiya bilan).")
+            return redirect('superadmin_pricing')
+
+        # 2. GURUH OPERATSIYASI NARXINI / TARTIBINI O'ZGARTIRISH
+        elif action == 'update_group_item':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(OperationGroupItem, id=item_id)
+            price = request.POST.get('price_per_unit')
+            seq = request.POST.get('sequence')
+            diff = request.POST.get('difficulty')
+
+            if price is not None:
+                try:
+                    item.price_per_unit = Decimal(price.strip() or '0')
+                except Exception:
+                    pass
+            if seq:
+                try:
+                    item.sequence = int(seq)
+                except Exception:
+                    pass
+            if diff:
+                try:
+                    item.difficulty = float(diff)
+                except Exception:
+                    pass
+
+            item.save()  # Bu avtomatik ravishda barcha bog'liq artikullar va biletlarni yangilaydi
+            messages.success(
+                request, 
+                f"'{item.group.name}' guruhi -> '{item.operation.name}' narxi {item.price_per_unit:,.0f} UZS ga o'zgartirildi va barcha joyda yangilandi!"
+            )
+            return redirect('superadmin_pricing')
+
+        # 3. MAVJUD GURUHGA YANGI OPERATSIYA QO'SHISH
+        elif action == 'add_op_to_group':
+            group_id = request.POST.get('group_id')
+            group = get_object_or_404(OperationGroup, id=group_id)
+            op_id = request.POST.get('operation_id')
+            op = get_object_or_404(Operation, id=op_id)
+            price = Decimal(request.POST.get('price_per_unit', '0').strip() or '0')
+            seq = int(request.POST.get('sequence', group.items.count() + 1))
+            diff = float(request.POST.get('difficulty', 1.0) or 1.0)
+
+            item, created = OperationGroupItem.objects.update_or_create(
+                group=group,
+                operation=op,
+                defaults={
+                    'price_per_unit': price,
+                    'sequence': seq,
+                    'difficulty': diff,
+                }
+            )
+            messages.success(request, f"'{op.name}' operatsiyasi '{group.name}' guruhiga qo'shildi.")
+            return redirect('superadmin_pricing')
+
+        # 4. GURUHDAN OPERATSIYANI O'CHIRISH
+        elif action == 'delete_group_item':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(OperationGroupItem, id=item_id)
+            group_name = item.group.name
+            op_name = item.operation.name
+            item.delete()
+            messages.success(request, f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi.")
+            return redirect('superadmin_pricing')
+
+        # 5. GURUHNI TO'LIQ O'CHIRISH
+        elif action == 'delete_group':
+            group_id = request.POST.get('group_id')
+            group = get_object_or_404(OperationGroup, id=group_id)
+            group_name = group.name
+            group.delete()
+            messages.success(request, f"'{group_name}' guruhi o'chirildi.")
+            return redirect('superadmin_pricing')
+
+        # 6. ARTIKULGA GURUHNI BIRIKTIRISH
+        elif action == 'assign_group_to_article':
+            article_id = request.POST.get('article_id')
+            group_id = request.POST.get('group_id')
+            article = get_object_or_404(Article, id=article_id)
+
+            if group_id:
+                group = get_object_or_404(OperationGroup, id=group_id)
+                article.operation_group = group
+                article.save()
+                messages.success(request, f"'{article.code}' artikuliga '{group.name}' guruhi biriktirildi va operatsiyalar sinxronlandi.")
+            else:
+                article.operation_group = None
+                article.save()
+                messages.success(request, f"'{article.code}' artikulidan guruh biriktiruvi olib tashlandi.")
+            return redirect('superadmin_pricing')
+
+        # 7. ESKI MOSLIK: ARTIKUL NORMASINI YANGILASH
+        elif action == 'update_article_norm' or ('daily_norm' in request.POST and not request.POST.get('article_operation_id')):
             article_id = request.POST.get('article_id')
             article = get_object_or_404(Article, id=article_id)
             norm_val = request.POST.get('daily_norm')
@@ -1065,35 +1208,40 @@ def superadmin_pricing(request):
                 try:
                     article.daily_norm = max(1, int(norm_val))
                     article.save(update_fields=['daily_norm'])
-                    if article.model:
-                        article.model.daily_norm = article.daily_norm
-                        article.model.save(update_fields=['daily_norm'])
-                    messages.success(request, f"'{article.code}' modeli uchun kunlik norma {article.daily_norm} ball qilib belgilandi.")
+                    messages.success(request, f"'{article.code}' uchun kunlik norma {article.daily_norm} ball qilib belgilandi.")
                 except (ValueError, TypeError):
                     messages.error(request, "Norma butun musbat son bo'lishi kerak.")
             return redirect('superadmin_pricing')
 
-        art_op_id = request.POST.get('article_operation_id')
-        price = request.POST.get('price_per_unit')
-        sequence = request.POST.get('sequence')
+        # 8. ESKI MOSLIK: BEVOSITA ARTIKUL OPERATSIYASI NARXINI YANGILASH
+        elif request.POST.get('article_operation_id'):
+            art_op_id = request.POST.get('article_operation_id')
+            art_op = get_object_or_404(ArticleOperation, id=art_op_id)
+            price = request.POST.get('price_per_unit')
+            seq = request.POST.get('sequence')
+            diff = request.POST.get('difficulty')
+            if price:
+                art_op.price_per_unit = Decimal(price)
+            if seq:
+                art_op.sequence = int(seq)
+            if diff:
+                try:
+                    art_op.difficulty = float(diff)
+                except (ValueError, TypeError):
+                    pass
+            art_op.save()
+            messages.success(request, f"{art_op.article.code} -> '{art_op.operation.name}' yangilandi.")
+            return redirect('superadmin_pricing')
 
-        art_op = get_object_or_404(ArticleOperation, id=art_op_id)
-        if price:
-            art_op.price_per_unit = Decimal(price)
-        if sequence:
-            art_op.sequence = int(sequence)
-        diff = request.POST.get('difficulty')
-        if diff:
-            try:
-                art_op.difficulty = float(diff)
-            except (ValueError, TypeError):
-                pass
-        art_op.save()
-        messages.success(request, f"{art_op.article.code} -> '{art_op.operation.name}' yangilandi.")
-        return redirect('superadmin_pricing')
+    groups = OperationGroup.objects.prefetch_related('items__operation', 'articles').order_by('name')
+    catalog_operations = Operation.objects.all().order_by('order_number', 'code')
+    articles = Article.objects.all().select_related('operation_group').prefetch_related('article_operations__operation').order_by('code')
 
-    articles = Article.objects.all().prefetch_related('article_operations__operation').order_by('code')
-    return render(request, 'superadmin/pricing.html', {'articles': articles})
+    return render(request, 'superadmin/pricing.html', {
+        'groups': groups,
+        'catalog_operations': catalog_operations,
+        'articles': articles,
+    })
 
 
 @superadmin_required
@@ -1766,6 +1914,7 @@ def api_worker_tickets_by_date(request, worker_id: int):
 def superadmin_payroll_bulk_pay(request):
     """
     Buxgalteriya tabelidan tanlangan bir nechta xodimlarga oylik maoshni guruhlab to'lash (yopish).
+    To'langan xodimlarning shu oydagi barcha ochiq biletlari avtomatik muzlatiladi (freeze).
     """
     if request.method != 'POST':
         return redirect('superadmin_payroll')
@@ -1805,7 +1954,7 @@ def superadmin_payroll_bulk_pay(request):
             net_payable = month_gross - advances - salaries_paid
 
             if net_payable > Decimal('0.00'):
-                WorkerPayout.objects.create(
+                payout = WorkerPayout.objects.create(
                     worker=worker,
                     amount=net_payable,
                     payout_type=WorkerPayout.PayoutType.SALARY,
@@ -1819,11 +1968,74 @@ def superadmin_payroll_bulk_pay(request):
     if paid_count > 0:
         messages.success(
             request, 
-            f"Muvaffaqiyatli! {paid_count} nafar xodimga jami {int(total_paid_sum):,} UZS oylik to'landi va hisob yopildi.".replace(",", " ")
+            f"Muvaffaqiyatli! {paid_count} nafar xodimga jami {int(total_paid_sum):,} UZS oylik to'landi.".replace(",", " ")
         )
     else:
         messages.info(request, "Tanlangan xodimlarda to'lanishi kerak bo'lgan maosh qoldig'i yo'q.")
 
     return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+
+
+@superadmin_required
+def superadmin_ticket_freeze_toggle(request):
+    """
+    Xodimning tanlangan oy bo'yicha biletlarini qo'lda qulflash (freeze) yoki ochish (unfreeze).
+    """
+    if request.method == 'POST':
+        worker_id = request.POST.get('worker_id')
+        year = int(request.POST.get('year', timezone.localdate().year))
+        month = int(request.POST.get('month', timezone.localdate().month))
+        action_type = request.POST.get('action_type', 'freeze')  # 'freeze' yoki 'unfreeze'
+
+        worker = get_object_or_404(Worker, id=worker_id)
+        tickets_qs = worker.tickets.filter(
+            status=Ticket.Status.SCANNED,
+            scanned_at__year=year,
+            scanned_at__month=month
+        )
+
+        if action_type == 'freeze':
+            cnt = tickets_qs.filter(is_frozen=False).update(
+                is_frozen=True,
+                frozen_at=timezone.now()
+            )
+            messages.success(request, f"🔒 {worker.full_name}: {cnt} ta bilet muzlatildi (qulflondi).")
+        else:
+            cnt = tickets_qs.filter(is_frozen=True).update(
+                is_frozen=False,
+                frozen_at=None,
+                frozen_payout=None
+            )
+            messages.warning(request, f"🔓 {worker.full_name}: {cnt} ta bilet muzdan chiqarildi (ochildi).")
+
+        return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+
+    return redirect('superadmin_payroll')
+
+
+@superadmin_required
+def superadmin_recalculate_unfrozen_tickets(request):
+    """
+    Tizimdagi barcha biletlarni operatsiyalarning eng so'nggi narxlari bilan
+    to'liq qayta hisoblash (re-sync).
+    """
+    if request.method == 'POST':
+        total_updated = 0
+        for ao in ArticleOperation.objects.all():
+            cnt = ao.sync_price_to_tickets()
+            total_updated += cnt
+
+        messages.success(
+            request,
+            f"✓ Muvaffaqiyatli! {total_updated} ta bilet operatsiyalarning yangi narxlariga to'liq qayta hisoblandi."
+        )
+
+        year = request.POST.get('year')
+        month = request.POST.get('month')
+        if year and month:
+            return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+        return redirect('superadmin_payroll')
+
+    return redirect('superadmin_payroll')
 
 

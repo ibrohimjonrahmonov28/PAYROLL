@@ -56,6 +56,13 @@
                     class="bg-[#0c0f17] border border-[#2a2e39] rounded-xl pl-7 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-44">
                 <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-[10px]"></i>
             </div>
+
+            <!-- Narxlar Jadvali (Pricing) link -->
+            <a href="{% url 'superadmin_pricing' %}"
+                class="px-3 py-1.5 bg-[#1e2433] hover:bg-slate-700 text-amber-400 border border-[#2a2e39] rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                title="Operatsiyalar va narxlarni to'liq jadval ko'rinishida tahrirlash">
+                <i class="fa-solid fa-sliders text-amber-400"></i> Narxlar Jadvali
+            </a>
         </div>
 
         <!-- Right: Zoom & Navigation Controls -->
@@ -146,11 +153,16 @@
                 Tozalash
             </button>
 
-            <!-- BIG "+" BUTTON -->
+            <!-- Action buttons for selected articles -->
             <button onclick="openOperationsModal()"
-                class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 animate-pulse">
+                class="px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
                 <i class="fa-solid fa-list-check text-sm"></i>
-                <span>Operatsiyalar & Norma kiritish</span>
+                <span>Operatsiyalar & Narxlar</span>
+            </button>
+            <button onclick="openNormaModal()"
+                class="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black rounded-xl text-xs shadow-lg shadow-amber-600/30 transition flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-sm"></i>
+                <span>Kunlik Norma</span>
             </button>
         </div>
     </div>
@@ -168,11 +180,11 @@
             <div>
                 <h3 class="text-base font-black text-white flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-indigo-400"></i>
-                    1-Bosqich: Operatsiyalar Ketma-ketligini Belgilash
+                    Operatsiyalar & Narxlarni Belgilash (Tahrirlash)
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
-                    Bazadagi operatsiyalar ro'yxatidan keraklilarini checkbox orqali tanlang, tartib raqam, qiyinlik va
-                    narxini belgilang.
+                    Kerakli operatsiyalarni belgilang, dona narxini kiriting va saqlang. Narx o'zgarsa, barcha ochiq
+                    biletlar avtomatik yangilanadi.
                 </p>
             </div>
             <button onclick="closeOperationsModal()" class="text-slate-400 hover:text-white p-1">
@@ -189,17 +201,38 @@
                 </span>
                 <div id="ops-selected-tags" class="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto"></div>
             </div>
-            <!-- Quick Load from existing model -->
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="text-[11px] text-slate-400 font-bold">Modeldan olish:</span>
-                <select id="model-template-select" onchange="loadOperationsFromModelTemplate(this.value)"
-                    class="bg-[#161b26] border border-[#2a2e39] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
-                    <option value="">-- Mavjud modeldan --</option>
-                    {% for pm in all_models %}
-                    <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }} ({{ pm.model_operations.count }} ta op.)
-                    </option>
-                    {% endfor %}
-                </select>
+            <!-- Quick Load / Assign from Operatsiyalar Guruhi (Shablon) -->
+            <div class="flex items-center gap-3 flex-shrink-0 flex-wrap">
+                <div class="flex items-center gap-1.5 bg-[#0c0f17] border border-amber-500/40 rounded-xl px-2.5 py-1">
+                    <span class="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-layer-group text-xs"></i> Guruh (Shablon):
+                    </span>
+                    <select id="group-template-select" onchange="loadOperationsFromGroupTemplate(this.value)"
+                        class="bg-transparent text-xs text-amber-300 font-bold focus:outline-none cursor-pointer">
+                        <option value="" class="bg-[#161b26] text-white">-- Guruhdan tanlash --</option>
+                        {% for grp in all_operation_groups %}
+                        <option value="{{ grp.id }}" class="bg-[#161b26] text-amber-300">
+                            {{ grp.name }} ({{ grp.items.count }} ta op. — {{ grp.total_unit_rate|floatformat:0 }} so'm)
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <a href="{% url 'superadmin_pricing' %}" target="_blank"
+                        class="text-[10px] text-amber-400 hover:text-amber-300 underline ml-1"
+                        title="Yangi guruh yaratish">
+                        + Yangi
+                    </a>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] text-slate-400 font-bold">Modeldan:</span>
+                    <select id="model-template-select" onchange="loadOperationsFromModelTemplate(this.value)"
+                        class="bg-[#161b26] border border-[#2a2e39] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none">
+                        <option value="">-- Model --</option>
+                        {% for pm in all_models %}
+                        <option value="{{ pm.id }}">{{ pm.code }} — {{ pm.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -283,11 +316,18 @@
                     <span>Operatsiyalarni o'chirish</span>
                 </button>
             </div>
-            <button type="button" id="btn-save-operations" onclick="submitOperations()"
-                class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:to-indigo-400 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
-                <span>Saqlash va Norma belgilash</span>
-                <i class="fa-solid fa-arrow-right"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btn-save-operations-only" onclick="submitOperations(false)"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Faqat Narxlarni Saqlash</span>
+                </button>
+                <button type="button" id="btn-save-operations-and-norma" onclick="submitOperations(true)"
+                    class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:to-indigo-400 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+                    <span>Saqlash va Norma belgilash</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
         </div>
 
     </div>
@@ -485,6 +525,7 @@
 <script>
     const ORDERS_DATA = {{ orders_data_json| safe }};
     const MODELS_LOOKUP = {{ models_lookup_json| safe }};
+    const OPERATION_GROUPS_LOOKUP = {{ operation_groups_json| safe }};
     const ALL_CATALOG_OPERATIONS = {{ all_operations_json| safe }};
     const CSRF_TOKEN = '{{ csrf_token }}';
 
@@ -978,33 +1019,59 @@
                                 <!-- Left Target Port for Crow's Foot aligned with ID row -->
                                 <div id="port-art-in-${art.id}" class="port-target"></div>
 
-                                <label class="flex items-center gap-2 ${isReady ? '' : 'cursor-pointer'}" onclick="event.stopPropagation()">
-                                    ${isReady
-                            ? `<span class="w-4 h-4 flex items-center justify-center rounded border border-emerald-500 bg-emerald-900/40 text-emerald-400 text-[10px] font-bold" title="Operatsiyalar bog'langan">✗</span>`
-                            : `<input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
-                                            onchange="handleCheckboxChange(${art.id})"
-                                            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer">`
-                        }                        <span class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
+                                    <input type="checkbox" id="check-art-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
+                                        onchange="handleCheckboxChange(${art.id})"
+                                        class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer">
+                                    <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                                         <i class="fa-solid fa-key text-[9px]"></i> ID (${art.id})
                                     </span>
                                 </label>
                                 <span class="${isReady ? 'text-emerald-400 font-bold' : 'text-slate-500'} text-[10px] flex items-center gap-1">
-                                    ${isReady ? '<i class="fa-solid fa-circle-check text-[10px]"></i>' : ''}int
+                                    ${isReady ? '<i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> <span class="text-emerald-300 font-sans">Tayyor</span>' : 'int'}
                                 </span>
 
                                 <!-- Right Port Handle '+' aligned with ID row -->
                                 <div id="port-art-out-${art.id}" class="port-plus">+</div>
                             </div>
+                            ${art.operation_group_name ? `
+                            <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold">
+                                <span class="flex items-center gap-1"><i class="fa-solid fa-layer-group text-[9px]"></i> Guruh:</span>
+                                <span class="truncate max-w-[110px] font-mono" title="${art.operation_group_name}">${art.operation_group_name}</span>
+                            </div>
+                            ` : ''}
                             <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                                 <span>NORMA</span>
-                                <span class="font-bold ${isReady ? 'text-emerald-400' : 'text-amber-400'}">${art.daily_norm || 0}</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold ${isReady ? 'text-emerald-400' : 'text-amber-400'}">${art.daily_norm || 0}</span>
+                                    <button type="button" onclick="openNormaModal([${art.id}])" class="text-[10px] text-amber-400 hover:text-amber-300 p-0.5" title="Normani tahrirlash">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                                 <span>OPERATSIYALAR</span>
-                                <span class="text-indigo-400 font-bold">${art.operations_count} ta</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-indigo-400 font-bold">${art.operations_count} ta</span>
+                                    <span class="text-emerald-400 font-bold font-mono text-[10px]">${Math.round(art.unit_total_rate || 0)} so'm</span>
+                                </div>
+                            </div>
+                            <!-- Prominent Action Buttons -->
+                            <div class="pt-1.5 mt-1 border-t border-slate-800/80 flex items-center gap-1.5">
+                                <button type="button" onclick="openOperationsModal([${art.id}])" class="flex-1 py-1 px-2 bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-500/50 rounded-lg text-[11px] font-bold text-indigo-200 hover:text-white transition flex items-center justify-center gap-1" title="Operatsiyalar va dona narxlarini tahrirlash">
+                                    <i class="fa-solid fa-tag text-[10px]"></i> <span>Narxlar</span>
+                                </button>
+                                <button type="button" onclick="openNormaModal([${art.id}])" class="py-1 px-2 bg-amber-500/20 hover:bg-amber-500 border border-amber-500/40 rounded-lg text-[11px] font-bold text-amber-300 hover:text-slate-950 transition flex items-center justify-center gap-1" title="Kunlik normani belgilash">
+                                    <i class="fa-solid fa-bolt text-[10px]"></i> <span>Norma</span>
+                                </button>
                             </div>
                         </div>
                     `;
+
+                    artNode.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        openOperationsModal([art.id]);
+                    });
 
                     attachDraggable(artNode, () => {
                         setActiveArticle(orderId, art.id);
@@ -1025,8 +1092,17 @@
                 const opsNodeId = `ops-node-${orderId}-${mgKey}`;
                 const normaNodeId = `norma-node-${orderId}-${mgKey}`;
 
-                const opsPos = positions[opsNodeId] || defaultPositions[opsNodeId] || { x: 820, y: orderPos.y };
-                const normaPos = positions[normaNodeId] || defaultPositions[normaNodeId] || { x: 1200, y: orderPos.y };
+                // Position aligned with the model group's first article
+                let mgY = orderPos.y;
+                const mgArticles = mg.articles || [];
+                if (mgArticles.length > 0) {
+                    const firstArtId = mgArticles[0].id;
+                    const artPos = positions[`art-node-${firstArtId}`] || defaultPositions[`art-node-${firstArtId}`];
+                    if (artPos) mgY = artPos.y;
+                }
+
+                const opsPos = positions[opsNodeId] || defaultPositions[opsNodeId] || { x: 820, y: mgY };
+                const normaPos = positions[normaNodeId] || defaultPositions[normaNodeId] || { x: 1200, y: mgY };
 
                 // OPERATSIYALAR JADVALI
                 const opsNode = document.createElement('div');
@@ -1038,11 +1114,14 @@
                 let col3OpsRows = '';
                 (mg.operations || []).forEach(op => {
                     col3OpsRows += `
-                        <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                            <span class="truncate max-w-[150px]" title="${op.name}">
+                        <div onclick="openOperationsModalForModel(${orderId}, '${mgKey}')" class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-indigo-950/40 cursor-pointer text-slate-300 group transition" title="Narxni o'zgartirish uchun bosing">
+                            <span class="truncate max-w-[145px]" title="${op.name}">
                                 <strong class="text-amber-400">№${op.sequence}.</strong> ${op.name}
                             </span>
-                            <span class="text-emerald-400 font-bold text-[10px]">${Math.round(op.price)} so'm</span>
+                            <span class="text-emerald-400 font-bold text-[10px] group-hover:underline flex items-center gap-1">
+                                ${Math.round(op.price)} so'm
+                                <i class="fa-solid fa-pen text-[8px] text-slate-500 group-hover:text-emerald-300"></i>
+                            </span>
                         </div>
                     `;
                 });
@@ -1062,10 +1141,10 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 flex-shrink-0">
-                            <button type="button" onclick="openOperationsModalForModel(${orderId}, '${mgKey}')" title="Operatsiyalarni tahrirlash" class="text-[10px] text-indigo-300 hover:text-white p-0.5 transition">
-                                <i class="fa-solid fa-pen-to-square"></i>
+                            <button type="button" onclick="openOperationsModalForModel(${orderId}, '${mgKey}')" title="Operatsiyalarni tahrirlash" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow transition">
+                                <i class="fa-solid fa-pen-to-square"></i> <span>Tahrirlash</span>
                             </button>
-                            <button type="button" onclick="deleteOperationsForModel(${orderId}, '${mgKey}')" title="Operatsiyalarni o'chirish" class="text-[10px] text-rose-400 hover:text-rose-300 p-0.5 transition">
+                            <button type="button" onclick="deleteOperationsForModel(${orderId}, '${mgKey}')" title="Operatsiyalarni o'chirish" class="text-[10px] text-rose-400 hover:text-rose-300 p-1 transition">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
@@ -1134,10 +1213,10 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 flex-shrink-0">
-                            <button type="button" onclick="openNormaModalForModel(${orderId}, '${mgKey}')" title="Normani tahrirlash" class="text-[10px] text-slate-300 hover:text-white p-0.5 transition">
-                                <i class="fa-solid fa-pen-to-square"></i>
+                            <button type="button" onclick="openNormaModalForModel(${orderId}, '${mgKey}')" title="Normani tahrirlash" class="px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow transition">
+                                <i class="fa-solid fa-pen"></i> <span>Tahrirlash</span>
                             </button>
-                            <button type="button" onclick="deleteNormaForModel(${orderId}, '${mgKey}')" title="Normani o'chirish" class="text-[10px] text-rose-400 hover:text-rose-300 p-0.5 transition">
+                            <button type="button" onclick="deleteNormaForModel(${orderId}, '${mgKey}')" title="Normani o'chirish" class="text-[10px] text-rose-400 hover:text-rose-300 p-1 transition">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                             ${headerBadge}
@@ -1413,18 +1492,28 @@
     }
 
 
+    function simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash).toString(16).padStart(8, '0');
+    }
+
     // Artukullarni operatsiyalar va norma bo'yicha guruhlash (har bir alohida operatsiya/norma uchun alohida jadval)
     function rebuildModelGroups(articles) {
         const groupsDict = {};
         (articles || []).forEach(art => {
-            const modelId = art.model_id || 'm';
+            const modelId = art.model_id || 'boshqa';
             const norm = art.daily_norm || 0;
             const ops = art.operations || [];
-            let opsSig = 'no_ops';
+            let opsHash = 'no_ops';
             if (ops.length > 0) {
-                opsSig = ops.map(o => `${o.code || ''}:${o.sequence || ''}:${o.price || 0}`).join('|');
+                const opsSig = ops.map(o => `${o.code || ''}:${o.sequence || ''}:${parseFloat(o.price || 0)}`).join('|');
+                opsHash = simpleHash(opsSig);
             }
-            const groupKey = `${modelId}_${opsSig}_${norm}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const groupKey = `${modelId}_${opsHash}_${norm}`.replace(/[^a-zA-Z0-9_-]/g, '_');
 
             if (!groupsDict[groupKey]) {
                 groupsDict[groupKey] = {
@@ -1507,6 +1596,7 @@
         const tagsContainer = document.getElementById('ops-selected-tags');
         tagsContainer.innerHTML = '';
         let commonModelId = null;
+        let commonGroupId = null;
         let existingOpsMap = {};
 
         Object.values(selectedArticleData).forEach(item => {
@@ -1516,6 +1606,7 @@
             tagsContainer.appendChild(chip);
 
             if (item.model_id) commonModelId = item.model_id;
+            if (item.operation_group_id) commonGroupId = item.operation_group_id;
 
             if (item.operations && item.operations.length > 0) {
                 item.operations.forEach(op => {
@@ -1525,8 +1616,19 @@
             }
         });
 
+        // Guruh selectini moslash
+        const grpSelect = document.getElementById('group-template-select');
+        if (grpSelect) grpSelect.value = commonGroupId || '';
+
+        // Guruh operatsiyalarini tekshirish (agar artikulda hali operatsiyalar bo'lmasa)
+        if (Object.keys(existingOpsMap).length === 0 && commonGroupId && OPERATION_GROUPS_LOOKUP[commonGroupId] && OPERATION_GROUPS_LOOKUP[commonGroupId].operations.length > 0) {
+            OPERATION_GROUPS_LOOKUP[commonGroupId].operations.forEach(op => {
+                const key = (op.name || '').trim().toLowerCase();
+                if (!existingOpsMap[key]) existingOpsMap[key] = op;
+            });
+        }
         // Model operatsiyalarini tekshirish
-        if (Object.keys(existingOpsMap).length === 0 && commonModelId && MODELS_LOOKUP[commonModelId] && MODELS_LOOKUP[commonModelId].operations.length > 0) {
+        else if (Object.keys(existingOpsMap).length === 0 && commonModelId && MODELS_LOOKUP[commonModelId] && MODELS_LOOKUP[commonModelId].operations.length > 0) {
             MODELS_LOOKUP[commonModelId].operations.forEach(op => {
                 const key = (op.name || '').trim().toLowerCase();
                 if (!existingOpsMap[key]) existingOpsMap[key] = op;
@@ -1865,6 +1967,49 @@
         tr.querySelector('.op-name').focus();
     }
 
+    function loadOperationsFromGroupTemplate(groupId) {
+        if (!groupId || !OPERATION_GROUPS_LOOKUP[groupId]) return;
+        const grpData = OPERATION_GROUPS_LOOKUP[groupId];
+
+        const targetOpsMap = {};
+        (grpData.operations || []).forEach(op => {
+            targetOpsMap[(op.name || '').trim().toLowerCase()] = op;
+        });
+
+        const rows = document.querySelectorAll('#catalog-operations-tbody tr');
+        rows.forEach(row => {
+            const opName = (row.dataset.opName || '').trim().toLowerCase();
+            const chk = row.querySelector('.op-row-check');
+            const seqInput = row.querySelector('.op-seq');
+            const diffInput = row.querySelector('.op-diff');
+            const priceInput = row.querySelector('.op-price');
+
+            if (targetOpsMap[opName]) {
+                const target = targetOpsMap[opName];
+                chk.checked = true;
+                seqInput.disabled = false;
+                diffInput.disabled = false;
+                priceInput.disabled = false;
+                seqInput.value = target.sequence || 1;
+                diffInput.value = target.difficulty || 1.0;
+                priceInput.value = (target.price && target.price > 0) ? target.price : 500;
+                row.classList.add('bg-indigo-950/25');
+                row.classList.remove('hover:bg-[#1f2637]');
+            } else {
+                chk.checked = false;
+                seqInput.disabled = true;
+                diffInput.disabled = true;
+                priceInput.disabled = true;
+                seqInput.value = '';
+                row.classList.remove('bg-indigo-950/25');
+                row.classList.add('hover:bg-[#1f2637]');
+            }
+        });
+
+        renumberCheckedOperations(true);
+        updateOpsSelectedCount();
+    }
+
     function loadOperationsFromModelTemplate(modelId) {
         if (!modelId || !MODELS_LOOKUP[modelId]) return;
         const modelData = MODELS_LOOKUP[modelId];
@@ -1908,8 +2053,8 @@
         updateOpsSelectedCount();
     }
 
-    // 1-BOSQICH SAQLASH: OPERATSIYALARNI SAQLASH VA DARHOL NORMA MODALINI OCHISH
-    async function submitOperations() {
+    // 1-BOSQICH SAQLASH: OPERATSIYALARNI SAQLASH (proceedToNorma: true bo'lsa Norma modaliga o'tadi, false bo'lsa to'xtaydi)
+    async function submitOperations(proceedToNorma = false) {
         const errorBanner = document.getElementById('ops-modal-error-banner');
         const errorText = document.getElementById('ops-modal-error-text');
         errorBanner.classList.add('hidden');
@@ -1926,9 +2071,21 @@
             return;
         }
 
-        const operations = [];
-        const seqSet = new Set();
+        // Agar tartib raqamlari takrorlangan bo'lsa, avtomatik 1, 2, 3... qilib qayta tartiblash
+        const seqSetCheck = new Set();
+        let hasDuplicateSeqs = false;
+        checkedRows.forEach(r => {
+            const s = parseInt(r.querySelector('.op-seq')?.value);
+            if (!s || s <= 0 || seqSetCheck.has(s)) {
+                hasDuplicateSeqs = true;
+            }
+            if (s) seqSetCheck.add(s);
+        });
+        if (hasDuplicateSeqs) {
+            renumberCheckedOperations(true);
+        }
 
+        const operations = [];
         for (let idx = 0; idx < checkedRows.length; idx++) {
             const row = checkedRows[idx];
             const nameInput = row.querySelector('.op-name');
@@ -1944,21 +2101,7 @@
             const code = codeInput ? codeInput.value.trim() : '';
 
             const seqInput = row.querySelector('.op-seq');
-            const seq = parseInt(seqInput?.value);
-            if (!seq || seq <= 0) {
-                errorText.innerText = `Qat'iy qoida: "${name}" operatsiyasiga musbat tartib raqam (1, 2, 3...) kiriting!`;
-                errorBanner.classList.remove('hidden');
-                if (seqInput) seqInput.focus();
-                return;
-            }
-
-            if (seqSet.has(seq)) {
-                errorText.innerText = `Qat'iy qoida: Tartib raqam ${seq} takrorlangan ("${name}")! Har bir operatsiya tartib raqami yagona (1 ta) bo'lishi shart.`;
-                errorBanner.classList.remove('hidden');
-                if (seqInput) seqInput.focus();
-                return;
-            }
-            seqSet.add(seq);
+            const seq = parseInt(seqInput?.value) || (idx + 1);
 
             const diffInput = row.querySelector('.op-diff');
             const diff = parseFloat(diffInput?.value) || 1.0;
@@ -1988,9 +2131,16 @@
         // Tartib raqamlari bo'yicha saralash
         operations.sort((a, b) => a.sequence - b.sequence);
 
-        const btnSave = document.getElementById('btn-save-operations');
-        btnSave.disabled = true;
-        btnSave.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...`;
+        const btnSaveOnly = document.getElementById('btn-save-operations-only');
+        const btnSaveNorma = document.getElementById('btn-save-operations-and-norma');
+        if (btnSaveOnly) {
+            btnSaveOnly.disabled = true;
+            btnSaveOnly.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...`;
+        }
+        if (btnSaveNorma) {
+            btnSaveNorma.disabled = true;
+            btnSaveNorma.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...`;
+        }
 
         try {
             const response = await fetch("{% url 'norma_canvas_save' %}", {
@@ -2003,6 +2153,7 @@
                     action: 'save_operations',
                     article_ids: Array.from(selectedArticleIds),
                     operations: operations,
+                    group_id: document.getElementById('group-template-select')?.value || null,
                 })
             });
 
@@ -2016,8 +2167,14 @@
             if (!response.ok || !result.success) {
                 errorText.innerText = result.error || "Xatolik yuz berdi!";
                 errorBanner.classList.remove('hidden');
-                btnSave.disabled = false;
-                btnSave.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+                if (btnSaveOnly) {
+                    btnSaveOnly.disabled = false;
+                    btnSaveOnly.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Faqat Narxlarni Saqlash</span>`;
+                }
+                if (btnSaveNorma) {
+                    btnSaveNorma.disabled = false;
+                    btnSaveNorma.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+                }
                 return;
             }
 
@@ -2029,6 +2186,10 @@
                         art.operations = result.operations;
                         art.operations_count = result.operations_count;
                         art.unit_total_rate = result.unit_total_rate;
+                        if (result.group_id) {
+                            art.operation_group_id = result.group_id;
+                            art.operation_group_name = result.group_name;
+                        }
                     }
                 });
                 ord.model_groups = rebuildModelGroups(ord.articles);
@@ -2037,18 +2198,34 @@
             closeOperationsModal();
             renderDiagrams();
 
-            btnSave.disabled = false;
-            btnSave.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+            if (btnSaveOnly) {
+                btnSaveOnly.disabled = false;
+                btnSaveOnly.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Faqat Narxlarni Saqlash</span>`;
+            }
+            if (btnSaveNorma) {
+                btnSaveNorma.disabled = false;
+                btnSaveNorma.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+            }
 
-            // AVTOMATIK 2-BOSQICH: NORMA MODALINI OCHISH!
-            openNormaModal();
+            showToast(result.message || "Operatsiyalar va narxlar muvaffaqiyatli saqlandi!", "success");
+
+            // Agar foydalanuvchi norma ham belgilamoqchi bo'lsa:
+            if (proceedToNorma) {
+                openNormaModal();
+            }
 
         } catch (err) {
             console.error("Save operations error:", err);
             errorText.innerText = err.message || "Server bilan bog'lanishda xatolik yuz berdi!";
             errorBanner.classList.remove('hidden');
-            btnSave.disabled = false;
-            btnSave.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+            if (btnSaveOnly) {
+                btnSaveOnly.disabled = false;
+                btnSaveOnly.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Faqat Narxlarni Saqlash</span>`;
+            }
+            if (btnSaveNorma) {
+                btnSaveNorma.disabled = false;
+                btnSaveNorma.innerHTML = `<span>Saqlash va Norma belgilash</span> <i class="fa-solid fa-arrow-right"></i>`;
+            }
         }
     }
 

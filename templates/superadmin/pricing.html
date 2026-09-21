@@ -1,71 +1,105 @@
 {% extends 'superadmin/base_superadmin.html' %}
 
-{% block title %}Narxlar Matritsasi — SUPER ADMIN{% endblock %}
+{% block title %}Operatsiyalar Guruhi va Narxlar — SUPER ADMIN{% endblock %}
 
 {% block superadmin_header %}
 <div class="flex items-center gap-3">
     <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
-        <i class="fa-solid fa-sliders"></i>
+        <i class="fa-solid fa-layer-group"></i>
     </div>
-    <h2 class="text-lg font-black text-white">Operatsiyalar va Dona-bay Narxlar Matritsasi</h2>
+    <div>
+        <h2 class="text-lg font-black text-white">Operatsiyalar Guruhi (Shablonlar) va Narxlar</h2>
+        <p class="text-xs text-slate-400">Har bir model turi uchun bitta umumiy shablon-guruh. Narx o'zgarsa, barcha
+            joyda avtomatik yangilanadi.</p>
+    </div>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Top Info Bar -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center justify-between">
+    <!-- Top Action Bar -->
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-            <h3 class="text-base font-bold text-white">Model va Operatsiyalar Narxlari</h3>
-            <p class="text-xs text-slate-400">Har bir kiyim operatsiyasi uchun dona-bay narx (UZS). Ushbu narxlar
-                biletlar generatsiya qilinganda avtomatik biriktiriladi.</p>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-shapes text-amber-400"></i> Operatsiyalar Guruhi (Shablonlar)
+            </h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-2xl">
+                Har safar yangi model uchun noldan operatsiya terib o'tirmaysiz. Masalan:
+                <span class="text-amber-300 font-semibold font-mono">DC UZUN QOL KOYLAKCHA</span> guruhi qilinadi va
+                barcha mos modellarga biriktiriladi.
+                Guruhda biror narx o'zgarsa, unga ulangan barcha artikullar va barcha biletlar avtomatik yangilanadi.
+            </p>
         </div>
-        <a href="{% url 'production:articles_catalog' %}"
-            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-xs font-bold rounded-xl transition flex items-center gap-2">
-            <i class="fa-solid fa-plus"></i> Yangi Model / Operatsiya Yaratish
-        </a>
+        <div class="flex items-center gap-3 flex-shrink-0">
+            <button onclick="openCreateGroupModal()"
+                class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2">
+                <i class="fa-solid fa-plus text-sm"></i> Yangi Guruh (Shablon) Yaratish
+            </button>
+        </div>
     </div>
 
-    <!-- Models List -->
+    <!-- Groups List -->
     <div class="space-y-6">
-        {% for article in articles %}
+        {% for group in groups %}
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                <div class="flex items-center gap-3">
-                    <span
-                        class="bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-black px-3 py-1 rounded-xl text-sm font-mono">
-                        {{ article.code }}
-                    </span>
-                    <div>
-                        <h4 class="text-lg font-black text-white">{{ article.name }}</h4>
-                        {% if article.description %}
-                        <p class="text-xs text-slate-400">{{ article.description }}</p>
-                        {% endif %}
+
+            <!-- Group Header -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <span
+                            class="bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black px-3 py-1 rounded-xl text-sm font-mono flex items-center gap-1.5">
+                            <i class="fa-solid fa-folder-open text-xs"></i> {{ group.name }}
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-400 text-xs font-mono font-bold">
+                            {{ group.items.count }} ta operatsiya
+                        </span>
+                        <span
+                            class="px-2.5 py-0.5 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs font-bold font-mono">
+                            Jami: {{ group.total_unit_rate|floatformat:0 }} so'm
+                        </span>
+                    </div>
+                    {% if group.description %}
+                    <p class="text-xs text-slate-400">{{ group.description }}</p>
+                    {% endif %}
+
+                    <!-- Linked Articles -->
+                    <div class="flex items-center gap-2 pt-1 flex-wrap">
+                        <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Ulangan
+                            artikullar:</span>
+                        {% for art in group.articles.all %}
+                        <span
+                            class="px-2 py-0.5 bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 rounded text-[11px] font-mono font-bold">
+                            {{ art.code }}
+                        </span>
+                        {% empty %}
+                        <span class="text-xs text-slate-600 italic">Hozircha hech qaysi artikulga ulanmagan</span>
+                        {% endfor %}
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
+
+                <!-- Group Actions -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button onclick="openAddOpToGroupModal({{ group.id }}, '{{ group.name|escapejs }}')"
+                        class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Operatsiya qo'shish
+                    </button>
                     <form method="POST" action="{% url 'superadmin_pricing' %}"
-                        class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 p-2 rounded-xl">
+                        onsubmit="return confirm('Rostdan ham ushbu guruhni o\'chirmoqchimisiz?');" class="inline">
                         {% csrf_token %}
-                        <input type="hidden" name="action" value="update_article_norm">
-                        <input type="hidden" name="article_id" value="{{ article.id }}">
-                        <span
-                            class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-bullseye text-amber-400"></i> Kunlik Norma:
-                        </span>
-                        <input type="number" name="daily_norm" value="{{ article.daily_norm }}" min="1" step="1"
-                            class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-sm font-bold text-amber-300 text-center focus:outline-none focus:border-amber-500">
-                        <span class="text-xs text-slate-500 font-mono">ball</span>
+                        <input type="hidden" name="action" value="delete_group">
+                        <input type="hidden" name="group_id" value="{{ group.id }}">
                         <button type="submit"
-                            class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg transition shadow">
-                            Saqlash
+                            class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                            <i class="fa-solid fa-trash text-[10px]"></i> Guruhni o'chirish
                         </button>
                     </form>
                 </div>
             </div>
 
-            <!-- Operations Table -->
+            <!-- Operations Table for this Group -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
@@ -76,58 +110,230 @@
                             <th class="py-3 px-4">Operatsiya Nomi</th>
                             <th class="py-3 px-3 text-center">Qiyinlik</th>
                             <th class="py-3 px-6 text-right">Dona Narxi (UZS)</th>
-                            <th class="py-3 px-4 text-right w-36">Amal</th>
+                            <th class="py-3 px-4 text-right w-44">Amallar</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/60 text-slate-300">
-                        {% for ao in article.article_operations.all %}
-                        <tr class="hover:bg-slate-800/30">
-                            <td class="py-3.5 px-3 text-center font-mono text-slate-500 text-sm">{{ ao.sequence }}</td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-amber-400">{{ ao.operation.code }}</td>
-                            <td class="py-3.5 px-4 font-bold text-white text-base">{{ ao.operation.name }}</td>
-                            <td class="py-3.5 px-3 text-center">
+                        {% for item in group.items.all %}
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="py-3 px-3 text-center font-mono text-slate-500 text-sm font-bold">{{
+                                item.sequence }}</td>
+                            <td class="py-3 px-4 font-mono font-bold text-amber-400">{{ item.operation.code }}</td>
+                            <td class="py-3 px-4 font-bold text-white text-sm">{{ item.operation.name }}</td>
+                            <td class="py-3 px-3 text-center">
                                 <span
                                     class="px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60 text-indigo-400 font-mono font-bold text-xs">
-                                    {{ ao.difficulty_display }}
+                                    {{ item.difficulty_display }}
                                 </span>
                             </td>
-                            <td class="py-3.5 px-6 text-right font-black text-emerald-400 digital-font text-lg">
-                                {{ ao.price_per_unit|floatformat:0 }} <span
+                            <td class="py-3 px-6 text-right font-black text-emerald-400 digital-font text-base">
+                                {{ item.price_per_unit|floatformat:0 }} <span
                                     class="text-xs text-slate-500 font-normal">so'm</span>
                             </td>
-                            <td class="py-3.5 px-4 text-right">
-                                <button
-                                    onclick="openEditPriceModal({{ ao.id }}, '{{ article.code }}', '{{ ao.operation.name }}', {{ ao.price_per_unit }}, {{ ao.sequence }}, '{{ ao.difficulty_display }}')"
-                                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition">
-                                    <i class="fa-solid fa-pen mr-1"></i> Narxni O'zgartirish
-                                </button>
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button
+                                        onclick="openEditItemModal({{ item.id }}, '{{ group.name|escapejs }}', '{{ item.operation.name|escapejs }}', {{ item.price_per_unit }}, {{ item.sequence }}, '{{ item.difficulty_display }}')"
+                                        class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-pen text-[10px]"></i> Narxni o'zgartirish
+                                    </button>
+                                    <form method="POST" action="{% url 'superadmin_pricing' %}"
+                                        onsubmit="return confirm('Ushbu operatsiyani guruhdan olib tashlamoqchimisiz?');"
+                                        class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_group_item">
+                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                        <button type="submit"
+                                            class="p-1.5 text-slate-500 hover:text-rose-400 transition"
+                                            title="Olib tashlash">
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="py-6 text-center text-slate-500 italic">
-                                Operatsiyalar biriktirilmagan.
+                            <td colspan="6" class="py-8 text-center text-slate-500 italic">
+                                Bu guruhda hozircha operatsiyalar yo'q. Yuqoridagi "+ Operatsiya qo'shish" tugmasi
+                                orqali qo'shing.
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+        </div>
+        {% empty %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-4">
+            <div
+                class="w-16 h-16 rounded-full bg-amber-500/10 text-amber-400 mx-auto flex items-center justify-center text-2xl">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <h4 class="text-base font-bold text-white">Hozircha Operatsiyalar Guruhi (Shablon) mavjud emas</h4>
+                <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    Birinchi guruhni yarating (masalan: DC UZUN QOL KOYLAKCHA). Unga kerakli operatsiyalarni va
+                    narxlarni belgilang.
+                </p>
+            </div>
+            <button onclick="openCreateGroupModal()"
+                class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition inline-flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Birinchi Guruhni Yaratish
+            </button>
         </div>
         {% endfor %}
     </div>
 
+
+
 </div>
 
-<!-- Modal: Edit Price -->
-<div id="price-modal"
+<!-- Modal: Create New Group with All Operations Checkbox Table -->
+<div id="create-group-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+        class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl p-6 shadow-2xl max-h-[92vh] flex flex-col space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800 flex-shrink-0">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-amber-500"></i> Yangi Operatsiyalar Guruhi (Shablon) Yaratish
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Guruh nomini yozing, quyidan kerakli operatsiyalarni checkbox bilan tanlang, tartib va narxlarini
+                    belgilang.
+                </p>
+            </div>
+            <button onclick="closeCreateGroupModal()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_pricing' %}" class="flex flex-col flex-1 min-h-0 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_group">
+
+            <!-- Name and Description -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-shrink-0">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Guruh Nomi (Shablon) <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="text" name="name" required placeholder="Masalan: DC UZUN QOL KOYLAKCHA"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tavsif
+                        (Ixtiyoriy)</label>
+                    <input type="text" name="description" placeholder="Izoh yoki model haqida qisqacha..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <!-- Operations Search & Selection Toolbar -->
+            <div class="flex items-center justify-between gap-3 flex-shrink-0">
+                <div class="relative flex-1">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="text" id="create-op-search" oninput="filterCreateOps(this.value)"
+                        placeholder="Operatsiyalarni qidirish..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="toggleAllCreateOps(true)"
+                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
+                        Barchasini tanlash
+                    </button>
+                    <button type="button" onclick="toggleAllCreateOps(false)"
+                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400">
+                        Tozalash
+                    </button>
+                </div>
+            </div>
+
+            <!-- Operations Table -->
+            <div class="overflow-y-auto flex-1 rounded-2xl border border-slate-800 bg-slate-950/50">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead
+                        class="sticky top-0 bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800 z-10">
+                        <tr>
+                            <th class="py-2.5 px-3 w-10 text-center">
+                                <i class="fa-solid fa-check-double text-[11px]"></i>
+                            </th>
+                            <th class="py-2.5 px-3 w-20 text-center">Tartib №</th>
+                            <th class="py-2.5 px-3">Operatsiya Nomi</th>
+                            <th class="py-2.5 px-3 w-24 text-center">Qiyinlik</th>
+                            <th class="py-2.5 px-4 w-40 text-right">Dona Narxi (UZS)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="create-ops-tbody" class="divide-y divide-slate-800/60 font-semibold text-slate-300">
+                        {% for op in catalog_operations %}
+                        <tr class="create-op-row hover:bg-slate-800/40 transition">
+                            <td class="py-2.5 px-3 text-center">
+                                <input type="checkbox" name="selected_operations" value="{{ op.id }}"
+                                    id="chk-op-{{ op.id }}"
+                                    class="create-op-chk w-4 h-4 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0 cursor-pointer"
+                                    onchange="onOpCheckChanged({{ op.id }})">
+                            </td>
+                            <td class="py-2.5 px-3 text-center">
+                                <input type="number" name="sequence_{{ op.id }}" value="{{ forloop.counter }}" min="1"
+                                    class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center text-white font-mono focus:outline-none focus:border-amber-500">
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <label for="chk-op-{{ op.id }}" class="cursor-pointer block">
+                                    <span class="font-bold text-white text-sm op-name-text">{{ op.name }}</span>
+                                    <span class="text-xs text-amber-400/80 font-mono ml-1.5">({{ op.code }})</span>
+                                </label>
+                            </td>
+                            <td class="py-2.5 px-3 text-center">
+                                <input type="number" name="difficulty_{{ op.id }}"
+                                    value="{{ op.default_difficulty_display }}" step="any" min="0"
+                                    class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center text-indigo-400 font-mono focus:outline-none focus:border-indigo-500">
+                            </td>
+                            <td class="py-2.5 px-4 text-right">
+                                <input type="number" name="price_{{ op.id }}" value="0" min="0" step="1"
+                                    class="w-32 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-right text-emerald-400 font-black digital-font text-sm focus:outline-none focus:border-emerald-500">
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-6 text-center text-slate-500 italic">Katalogda operatsiyalar
+                                topilmadi.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-3 border-t border-slate-800 flex items-center justify-between flex-shrink-0">
+                <span id="selected-create-count" class="text-xs text-amber-400 font-bold font-mono">0 ta operatsiya
+                    tanlandi</span>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="closeCreateGroupModal()"
+                        class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+                        Bekor qilish
+                    </button>
+                    <button type="submit"
+                        class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 transition">
+                        Guruhni Saqlash
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Group Item Price -->
+<div id="edit-item-modal"
     class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-tag text-amber-500"></i> Narxni Tahrirlash
+                <i class="fa-solid fa-tag text-amber-500"></i> Narxni O'zgartirish
             </h3>
-            <button onclick="document.getElementById('price-modal').classList.add('hidden')"
+            <button onclick="document.getElementById('edit-item-modal').classList.add('hidden')"
                 class="text-slate-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
@@ -135,55 +341,173 @@
 
         <form method="POST" action="{% url 'superadmin_pricing' %}" class="space-y-4">
             {% csrf_token %}
-            <input type="hidden" name="article_operation_id" id="modal-ao-id">
+            <input type="hidden" name="action" value="update_group_item">
+            <input type="hidden" name="item_id" id="edit-modal-item-id">
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Model &
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Guruh &
                     Operatsiya</label>
-                <div id="modal-op-title"
+                <div id="edit-modal-title"
                     class="text-sm font-bold text-white bg-slate-950 p-3 rounded-xl border border-slate-800"></div>
+                <p class="text-[11px] text-amber-400/90 mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-info"></i> Bu narx o'zgarsa, ushbu guruhga ulangan barcha modellarda va
+                    barcha biletlarda yangilanadi.
+                </p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona Narxi
                         (UZS)</label>
-                    <input type="number" name="price_per_unit" id="modal-price-input" step="1" required min="0"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
+                    <input type="number" name="price_per_unit" id="edit-modal-price" step="1" required min="0"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Qiyinlik</label>
-                    <input type="number" name="difficulty" id="modal-diff-input" step="any" min="0" placeholder="1.0"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-indigo-400 font-mono font-bold focus:outline-none focus:border-indigo-500">
+                    <input type="number" name="difficulty" id="edit-modal-diff" step="any" min="0"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-indigo-400 font-mono font-bold text-sm focus:outline-none focus:border-indigo-500">
                 </div>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tartib
                     raqami</label>
-                <input type="number" name="sequence" id="modal-seq-input" required min="1"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
+                <input type="number" name="sequence" id="edit-modal-seq" required min="1"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white font-mono text-sm focus:outline-none focus:border-amber-500">
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('price-modal').classList.add('hidden')"
-                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Bekor
-                    qilish</button>
+                <button type="button" onclick="document.getElementById('edit-item-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+                    Bekor qilish
+                </button>
                 <button type="submit"
-                    class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md">Saqlash</button>
+                    class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black shadow-md">
+                    Saqlash & Hamma yerga qo'llash
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Operation to Existing Group -->
+<div id="add-op-modal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-amber-500"></i> Guruhga Operatsiya Qo'shish
+            </h3>
+            <button onclick="document.getElementById('add-op-modal').classList.add('hidden')"
+                class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_pricing' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_op_to_group">
+            <input type="hidden" name="group_id" id="add-op-group-id">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Guruh</label>
+                <div id="add-op-group-title"
+                    class="text-sm font-bold text-white bg-slate-950 p-2.5 rounded-xl border border-slate-800"></div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiyani
+                    tanlang</label>
+                <select name="operation_id" required
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    {% for op in catalog_operations %}
+                    <option value="{{ op.id }}">{{ op.name }} ({{ op.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dona Narxi
+                        (UZS)</label>
+                    <input type="number" name="price_per_unit" value="0" step="1" required min="0"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-emerald-400 font-black digital-font text-base focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tartib</label>
+                    <input type="number" name="sequence" value="1" required min="1"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white font-mono text-sm focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('add-op-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black shadow-md">
+                    Qo'shish
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    function openEditPriceModal(id, artCode, opName, price, seq, diff) {
-        document.getElementById('modal-ao-id').value = id;
-        document.getElementById('modal-op-title').innerText = `${artCode} -> ${opName}`;
-        document.getElementById('modal-price-input').value = price;
-        document.getElementById('modal-seq-input').value = seq;
-        document.getElementById('modal-diff-input').value = diff || '1';
-        document.getElementById('price-modal').classList.remove('hidden');
+    function openCreateGroupModal() {
+        document.getEId('create-group-modal').classList.remove('hidden');
+        updateCreateSelectedCount();
+    }
+
+    function closeCreateGroupModal() {
+        document.getElementById('create-group-modal').classList.add('hidden');
+    }
+
+    function openEditItemModal(id, groupName, opName, price, seq, diff) {
+        document.getElementById('edit-modal-item-id').value = id;
+        document.getElementById('edit-modal-title').innerText = `${groupName} -> ${opName}`;
+        document.getElementById('edit-modal-price').value = price;
+        document.getElementById('edit-modal-seq').value = seq;
+        document.getElementById('edit-modal-diff').value = diff || '1';
+        document.getElementById('edit-item-modal').classList.remove('hidden');
+    }
+
+    function openAddOpToGroupModal(groupId, groupName) {
+        document.getElementById('add-op-group-id').value = groupId;
+        document.getElementById('add-op-group-title').innerText = groupName;
+        document.getElementById('add-op-modal').classList.remove('hidden');
+    }
+
+    function onOpCheckChanged(opId) {
+        updateCreateSelectedCount();
+    }
+
+    function updateCreateSelectedCount() {
+        const count = document.querySelectorAll('.create-op-chk:checked').length;
+        const label = document.getElementById('selected-create-count');
+        if (label) {
+            label.innerText = `${count} ta operatsiya tanlandi`;
+        }
+    }
+
+    function toggleAllCreateOps(checked) {
+        document.querySelectorAll('.create-op-chk').forEach(chk => {
+            chk.checked = checked;
+        });
+        updateCreateSelectedCount();
+    }
+
+    function filterCreateOps(query) {
+        const q = (query || '').toLowerCase().trim();
+        document.querySelectorAll('.create-op-row').forEach(row => {
+            const text = row.querySelector('.op-name-text')?.innerText?.toLowerCase() || '';
+            if (!q || text.includes(q)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
     }
 </script>
 {% endblock %}

@@ -10,7 +10,7 @@ from django.db.models import Sum, Q, Count
 
 from .models import (
     ProductModel, ProductModelOperation, Article, ArticleOperation, Operation,
-    DailyModelProgress, Order, OrderItem, Ticket
+    DailyModelProgress, Order, OrderItem, Ticket, OperationGroup, OperationGroupItem
 )
 from .norma_services import (
     calculate_daily_model_progress,
@@ -447,6 +447,7 @@ def norma_canvas_view(request):
     ).prefetch_related(
         'items__article__model__model_operations__operation',
         'items__article__article_operations__operation',
+        'items__article__operation_group',
         'customer'
     )
     orders = list(orders_qs)
@@ -507,6 +508,8 @@ def norma_canvas_view(request):
                 'model_id': pmodel.id if pmodel else None,
                 'model_code': pmodel.code if pmodel else None,
                 'model_name': pmodel.name if pmodel else None,
+                'operation_group_id': art.operation_group_id,
+                'operation_group_name': art.operation_group.name if art.operation_group else None,
                 'daily_norm': daily_norm,
                 'operations_count': len(ops_data),
                 'operations': ops_data,
@@ -644,6 +647,23 @@ def norma_canvas_view(request):
             } for mo in pm.model_operations.all().order_by('sequence', 'id')]
         }
 
+    all_operation_groups = OperationGroup.objects.prefetch_related('items__operation').all().order_by('name')
+    operation_groups_lookup = {}
+    for grp in all_operation_groups:
+        operation_groups_lookup[grp.id] = {
+            'id': grp.id,
+            'name': grp.name,
+            'description': grp.description,
+            'total_rate': float(grp.total_unit_rate),
+            'operations': [{
+                'sequence': item.sequence,
+                'name': item.operation.name,
+                'code': item.operation.code,
+                'price': float(item.price_per_unit),
+                'difficulty': item.difficulty_display,
+            } for item in grp.items.all().order_by('sequence', 'id')]
+        }
+
     return render(request, 'norma/canvas.html', {
         'orders_data': orders_data,
         'orders_data_json': json.dumps(orders_data),
@@ -651,6 +671,8 @@ def norma_canvas_view(request):
         'all_operations_json': json.dumps(all_operations_data),
         'all_models': all_models,
         'models_lookup_json': json.dumps(models_lookup),
+        'all_operation_groups': all_operation_groups,
+        'operation_groups_json': json.dumps(operation_groups_lookup),
         'total_orders_count': len(orders_data),
         'total_articles_count': total_articles_count,
         'ready_articles_count': ready_articles_count,
@@ -681,9 +703,31 @@ def norma_canvas_save(request):
     if not article_ids:
         return JsonResponse({'success': False, 'error': "Hech qanday artikul tanlanmadi!"}, status=400)
 
-    articles = Article.objects.filter(id__in=article_ids).select_related('model')
+    articles = Article.objects.filter(id__in=article_ids).select_related('model', 'operation_group')
     if not articles.exists():
         return JsonResponse({'success': False, 'error': "Tanlangan artikullar topilmadi!"}, status=404)
+
+    # 0-BOSQICH: TAYYOR GURUHNI BIRIKTIRISH
+    if action == 'assign_group':
+        group_id = data.get('group_id')
+        with transaction.atomic():
+            if not group_id:
+                for art in articles:
+                    art.operation_group = None
+                    art.save(update_fields=['operation_group'])
+                return JsonResponse({'success': True, 'action': 'assign_group', 'message': "Guruh biriktiruvi olib tashlandi."})
+
+            group = get_object_or_404(OperationGroup, id=group_id)
+            for art in articles:
+                art.operation_group = group
+                art.save()  # syncs operations from group!
+        return JsonResponse({
+            'success': True,
+            'action': 'assign_group',
+            'group_id': group.id,
+            'group_name': group.name,
+            'message': f"'{group.name}' guruhi muvaffaqiyatli biriktirildi va operatsiyalar sinxronlandi."
+        })
 
     # 1-BOSQICH: FAQAT OPERATSIYALARNI SAQLASH
     if action == 'save_operations':
@@ -727,10 +771,11 @@ def norma_canvas_save(request):
                 'difficulty': difficulty,
             })
 
-        # Tartib raqamlari takrorlanmasligini tekshirish
+        # Tartib raqamlari takrorlanmasligini ta'minlash: agar takrorlangan bo'lsa, avtomatik 1, 2, 3... qilib tekislash
         seq_list = [c_op['sequence'] for c_op in cleaned_operations]
         if len(seq_list) != len(set(seq_list)):
-            return JsonResponse({'success': False, 'error': "Operatsiyalar tartib raqamlari takrorlanmas (har biri alohida) bo'lishi shart!"}, status=400)
+            for idx, c_op in enumerate(cleaned_operations, start=1):
+                c_op['sequence'] = idx
 
         with transaction.atomic():
             op_objs = []
@@ -782,6 +827,20 @@ def norma_canvas_save(request):
                     )
                 pm.model_operations.exclude(operation_id__in=keep_op_ids).delete()
 
+            assigned_group = None
+            if data.get('group_id'):
+                assigned_group = OperationGroup.objects.filter(id=data.get('group_id')).first()
+                if assigned_group:
+                    for art in articles:
+                        art.operation_group = assigned_group
+                        art.save(update_fields=['operation_group'])
+
+        # Nechta bilet narxi yangilanganini hisoblash
+        total_synced_tickets = Ticket.objects.filter(
+            article_operation__article__in=articles,
+            article_operation__operation_id__in=keep_op_ids
+        ).count()
+
         return JsonResponse({
             'success': True,
             'action': 'save_operations',
@@ -795,7 +854,10 @@ def norma_canvas_save(request):
                 'difficulty': o['difficulty'],
             } for o in cleaned_operations],
             'unit_total_rate': float(sum(o['price'] for o in cleaned_operations)),
-            'message': "Operatsiyalar saqlandi! Endi kunlik normani belgilang.",
+            'group_id': assigned_group.id if assigned_group else None,
+            'group_name': assigned_group.name if assigned_group else None,
+            'synced_tickets_count': total_synced_tickets,
+            'message': f"Operatsiyalar va narxlar saqlandi! {total_synced_tickets} ta bilet yangi narxga qayta hisoblandi.",
         })
 
     # 2-BOSQICH: FAQAT KUNLIK NORMANI SAQLASH
@@ -932,10 +994,11 @@ def norma_canvas_save(request):
                 'difficulty': difficulty,
             })
 
-        # Tartib raqamlari takrorlanmasligini tekshirish
+        # Tartib raqamlari takrorlanmasligini ta'minlash: agar takrorlangan bo'lsa, avtomatik 1, 2, 3... qilib tekislash
         seq_list = [c_op['sequence'] for c_op in cleaned_operations]
         if len(seq_list) != len(set(seq_list)):
-            return JsonResponse({'success': False, 'error': "Operatsiyalar tartib raqamlari takrorlanmas (har biri alohida) bo'lishi shart!"}, status=400)
+            for idx, c_op in enumerate(cleaned_operations, start=1):
+                c_op['sequence'] = idx
 
         with transaction.atomic():
             op_objs = []

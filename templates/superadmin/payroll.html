@@ -81,6 +81,26 @@
                 <i class="fa-solid fa-file-arrow-down text-base text-teal-400"></i> Kunlik Excel
             </a>
 
+            <!-- Narxlar Matritsasi (Pricing) link -->
+            <a href="{% url 'superadmin_pricing' %}"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
+                title="Operatsiyalar va dona narxlari matritsasini ko'rish va tahrirlash">
+                <i class="fa-solid fa-sliders text-base text-amber-400"></i> Narxlar Matritsasi
+            </a>
+
+            <!-- Narxlarni Yangilash / Recalculate Tickets -->
+            <form method="POST" action="{% url 'superadmin_recalculate_unfrozen_tickets' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <button type="submit"
+                    onclick="return confirm('Barcha biletlar operatsiyalarning eng so\'nggi narxlariga qayta hisoblansinmi? Oylik va kunlik summalar avtomatik yangilanadi.');"
+                    class="px-4 py-2 bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-600/40 text-indigo-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
+                    title="Barcha biletlarni operatsiyalarning eng yangi narxlari bo'yicha qayta hisoblash">
+                    <i class="fa-solid fa-arrows-rotate text-base text-indigo-400"></i> Narxlarni Qayta Hisoblash
+                </button>
+            </form>
+
             <!-- CSV / Excel Export -->
             <a href="{% url 'superadmin_payroll_export' %}?year={{ selected_year }}&month={{ selected_month }}"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm">
@@ -257,26 +277,28 @@
                             {{ row.lifetime_balance|floatformat:0 }}
                         </td>
                         <td class="py-3 px-3 text-center">
-                            {% if row.status_badge == 'emerald' %}
-                            <span
-                                class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                {{ row.status_text }}
-                            </span>
-                            {% elif row.status_badge == 'amber' %}
-                            <span
-                                class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                {{ row.status_text }}
-                            </span>
-                            {% elif row.status_badge == 'cyan' %}
-                            <span
-                                class="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                                {{ row.status_text }}
-                            </span>
-                            {% else %}
-                            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 text-slate-500">
-                                {{ row.status_text }}
-                            </span>
-                            {% endif %}
+                            <div class="flex flex-col items-center gap-1">
+                                {% if row.status_badge == 'emerald' %}
+                                <span
+                                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                    {{ row.status_text }}
+                                </span>
+                                {% elif row.status_badge == 'amber' %}
+                                <span
+                                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                    {{ row.status_text }}
+                                </span>
+                                {% elif row.status_badge == 'cyan' %}
+                                <span
+                                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                                    {{ row.status_text }}
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 text-slate-500">
+                                    {{ row.status_text }}
+                                </span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td class="py-3 px-4 text-right">
                             <div class="flex items-center justify-end gap-1.5">
@@ -534,6 +556,7 @@
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
 
+
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
                 <button type="button" onclick="document.getElementById('payout-modal').classList.add('hidden')"
                     class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
@@ -702,6 +725,7 @@
             document.getElementById('modal-amount-input').value = '';
             document.getElementById('modal-note-input').value = '';
         }
+
         document.getElementById('payout-modal').classList.remove('hidden');
     }
 

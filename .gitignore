@@ -39,6 +39,7 @@ db.sqlite3-journal
 media/
 staticfiles/
 *.pdf
+*.sql
 
 # IDEs & OS
 .DS_Store

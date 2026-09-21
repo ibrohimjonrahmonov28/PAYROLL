@@ -168,16 +168,17 @@ def get_workers_norma_breakdown(target_date: datetime.date = None) -> list:
     tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__date=target_date,
-        scanned_by__isnull=False
+        worker__isnull=False
     ).select_related(
-        'scanned_by',
+        'worker',
+        'worker__user',
         'article_operation__article__model',
         'article_operation__operation'
     )
 
     worker_map = {}
     for t in tickets:
-        w = t.scanned_by
+        w = t.worker
         if not w:
             continue
         if w.id not in worker_map:

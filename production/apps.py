@@ -15,7 +15,7 @@ class ProductionConfig(AppConfig):
 
         def _clean_tag(m):
             raw = m.group(1)
-            raw = re.sub(r'(?<=[^\s=><!])(==|!=|<=|>=|<|>)(?=[^\s=><!])', r' \1 ', raw)
+            raw = re.sub(r'\s*(==|!=|<=|>=|<|>)\s*', r' \1 ', raw)
             return "{% " + " ".join(raw.split()) + " %}"
 
         def patched_init(self, template_string, origin=None, name=None, engine=None):
