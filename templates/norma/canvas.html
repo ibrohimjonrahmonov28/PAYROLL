@@ -107,8 +107,7 @@
         </div>
 
         <!-- Transformable Canvas World -->
-        <div id="canvas-world"
-            class="absolute left-0 top-0 transition-transform duration-75 origin-top-left p-12 min-w-[3600px] min-h-[2800px]">
+        <div id="canvas-world" class="absolute left-0 top-0 origin-top-left p-12 min-w-[3600px] min-h-[2800px]">
 
             <!-- SVG ORTHOGONAL CONNECTIONS LAYER (With Crow's Foot Forks matching app.dbdesign.io) -->
             <svg id="connections-layer"
@@ -529,12 +528,29 @@
     const ALL_CATALOG_OPERATIONS = {{ all_operations_json| safe }};
     const CSRF_TOKEN = '{{ csrf_token }}';
 
+    // Model group safe unique DOM key generator (handles Cyrillic, special chars, and collisions)
+    function getModelGroupSafeKey(mg, mgIdx) {
+        if (!mg) return `mg_${mgIdx || 0}`;
+        if (mg._safeKey) return mg._safeKey;
+        const raw = String(mg.key || (mg.model_id ? 'm_' + mg.model_id : '') || mg.model_name || 'default');
+        let hash = 0;
+        for (let i = 0; i < raw.length; i++) {
+            hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+            hash |= 0;
+        }
+        const cleanPrefix = raw.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16);
+        return `mg_${cleanPrefix || 'grp'}_${Math.abs(hash)}_${mgIdx !== undefined ? mgIdx : 0}`;
+    }
+
     // Active article per order (orderId -> articleId)
     const activeArticleIds = {};
     ORDERS_DATA.forEach(ord => {
         if (ord.articles && ord.articles.length > 0) {
             activeArticleIds[ord.id] = ord.articles[0].id;
         }
+        (ord.model_groups || []).forEach((mg, mgIdx) => {
+            mg._safeKey = getModelGroupSafeKey(mg, mgIdx);
+        });
     });
 
     let selectedArticleIds = new Set();
@@ -563,10 +579,19 @@
     const viewport = document.getElementById('canvas-viewport');
     const world = document.getElementById('canvas-world');
 
+    let wiresRafId = null;
+    function scheduleDrawConnections() {
+        if (wiresRafId) return;
+        wiresRafId = requestAnimationFrame(() => {
+            wiresRafId = null;
+            drawAllConnections();
+        });
+    }
+
     function applyTransform() {
         world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
         document.getElementById('zoom-level-badge').innerText = `${Math.round(zoomLevel * 100)}%`;
-        drawAllConnections();
+        scheduleDrawConnections();
     }
 
     // Canvas viewport panning (only when not clicking on a table)
@@ -591,7 +616,7 @@
 
             draggedTableElem.style.left = `${initialTableX + dx}px`;
             draggedTableElem.style.top = `${initialTableY + dy}px`;
-            drawAllConnections();
+            scheduleDrawConnections();
             return;
         }
 
@@ -687,15 +712,55 @@
         const scaleX = (viewW - 80) / contentW;
         const scaleY = (viewH - 80) / contentH;
 
-        zoomLevel = Math.min(1.0, Math.max(0.3, Math.min(scaleX, scaleY)));
+        // Allow zooming out down to 0.15 for large factory boards with 20+ orders
+        zoomLevel = Math.min(1.0, Math.max(0.15, Math.min(scaleX, scaleY)));
 
         panX = (viewW - (minX + maxX) * zoomLevel) / 2;
-        panY = Math.max(30, (viewH - (minY + maxY) * zoomLevel) / 2);
+        if (contentH * zoomLevel < viewH) {
+            panY = (viewH - (minY + maxY) * zoomLevel) / 2;
+        } else {
+            panY = 40 - minY * zoomLevel;
+        }
 
         applyTransform();
     }
 
-    const STORAGE_KEY = 'norma_canvas_table_positions_v6';
+    // Dynamically expand SVG layer and canvas world to encompass all tables
+    function updateCanvasDimensions() {
+        const tables = document.querySelectorAll('.db-table');
+        let maxX = 3600;
+        let maxY = 2800;
+
+        tables.forEach(tbl => {
+            const x = (parseFloat(tbl.style.left) || 0) + (tbl.offsetWidth || 260);
+            const y = (parseFloat(tbl.style.top) || 0) + (tbl.offsetHeight || 200);
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+        });
+
+        const totalW = Math.ceil(maxX + 1000);
+        const totalH = Math.ceil(maxY + 1000);
+
+        world.style.width = `${totalW}px`;
+        world.style.height = `${totalH}px`;
+
+        const container = document.getElementById('diagram-clusters-container');
+        if (container) {
+            container.style.width = `${totalW}px`;
+            container.style.height = `${totalH}px`;
+        }
+
+        const connectionsLayer = document.getElementById('connections-layer');
+        if (connectionsLayer) {
+            connectionsLayer.style.width = `${totalW}px`;
+            connectionsLayer.style.height = `${totalH}px`;
+            connectionsLayer.setAttribute('width', totalW);
+            connectionsLayer.setAttribute('height', totalH);
+            connectionsLayer.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+        }
+    }
+
+    const STORAGE_KEY = 'norma_canvas_table_positions_v8';
 
     // Default & Saved Positions in localStorage (Clean symmetrical layout)
     function getDefaultPositions() {
@@ -717,7 +782,7 @@
             const modelGroups = order.model_groups || [];
             let artIdx = 0;
 
-            modelGroups.forEach((mg) => {
+            modelGroups.forEach((mg, mgIdx) => {
                 const mgArticles = mg.articles || [];
                 const mgStartArtIdx = artIdx;
                 const mgArtCount = mgArticles.length;
@@ -732,7 +797,7 @@
                 const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
                 if (hasOps) {
                     const mgCenterY = currentY + mgStartArtIdx * artSpacing + (mgSpan / 2);
-                    const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                    const mgKey = mg._safeKey || getModelGroupSafeKey(mg, mgIdx);
                     positions[`ops-node-${orderId}-${mgKey}`] = { x: 820, y: mgCenterY };
                     positions[`norma-node-${orderId}-${mgKey}`] = { x: 1200, y: mgCenterY };
                 }
@@ -786,7 +851,7 @@
 
                 let aIdx = 0;
                 const mgs = order.model_groups || [];
-                mgs.forEach(mg => {
+                mgs.forEach((mg, mgIdx) => {
                     const mgArts = mg.articles || [];
                     const mgStartIdx = aIdx;
                     const mgSpan = Math.max(0, mgArts.length - 1) * artSpacing;
@@ -799,7 +864,7 @@
                     const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
                     if (hasOps) {
                         const mgY = startY + mgStartIdx * artSpacing + (mgSpan / 2);
-                        const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const mgKey = mg._safeKey || getModelGroupSafeKey(mg, mgIdx);
                         saved[`ops-node-${orderId}-${mgKey}`] = { x: 820, y: mgY };
                         saved[`norma-node-${orderId}-${mgKey}`] = { x: 1200, y: mgY };
                     }
@@ -813,21 +878,26 @@
 
                 maxY = startY + Math.max(totalArtSpan + 140, 280);
             } else {
-                articles.forEach((art) => {
+                // If the order was saved, but some articles or model groups were not,
+                // position them relative to THIS order (never fling them to y=50!)
+                const baseOrderY = saved[orderKey].y || 50;
+                const baseOrderX = saved[orderKey].x || 80;
+
+                articles.forEach((art, idx) => {
                     const artKey = `art-node-${orderId}-${art.id}`;
-                    if (!saved[artKey] && defaultPos[artKey]) {
-                        saved[artKey] = { ...defaultPos[artKey] };
+                    if (!saved[artKey]) {
+                        saved[artKey] = { x: baseOrderX + 360, y: baseOrderY + (idx - Math.floor(artCount / 2)) * artSpacing };
                     }
                 });
 
-                (order.model_groups || []).forEach(mg => {
+                (order.model_groups || []).forEach((mg, mgIdx) => {
                     const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
                     if (hasOps) {
-                        const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const mgKey = mg._safeKey || getModelGroupSafeKey(mg, mgIdx);
                         const oKey = `ops-node-${orderId}-${mgKey}`;
                         const nKey = `norma-node-${orderId}-${mgKey}`;
-                        if (!saved[oKey] && defaultPos[oKey]) saved[oKey] = { ...defaultPos[oKey] };
-                        if (!saved[nKey] && defaultPos[nKey]) saved[nKey] = { ...defaultPos[nKey] };
+                        if (!saved[oKey]) saved[oKey] = { x: baseOrderX + 740, y: baseOrderY };
+                        if (!saved[nKey]) saved[nKey] = { x: baseOrderX + 1120, y: baseOrderY };
                     }
                 });
             }
@@ -985,6 +1055,7 @@
                     const isReady = art.is_ready;
                     const isChecked = selectedArticleIds.has(art.id);
                     const isActive = art.id === activeArtId;
+                    const isLinked = Boolean((art.operations && art.operations.length > 0) || art.is_ready || art.operation_group_id);
 
                     const headerBg = isReady
                         ? 'bg-[#0d4a45] border-[#134e4a] text-emerald-300'
@@ -1001,14 +1072,14 @@
                     artNode.dataset.modelName = (art.model_name || '').toLowerCase();
 
                     artNode.innerHTML = `
-                        <!-- Header: ARTIKUL | MODELNOM -->
+                        <!-- Header: ARTIKUL -->
                         <div class="${headerBg} border-b px-3 py-1.5 flex items-center justify-between handle">
                             <div class="flex items-center gap-2 min-w-0">
                                 <svg class="w-3.5 h-3.5 opacity-80" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm1 2v4h6V1H2a1 1 0 0 0-1 1zm7-3v4h7V2a1 1 0 0 0-1-1H8zm7 5H8v4h7V7zM7 7H1v4h6V7zm-6 5v2a1 1 0 0 0 1 1h5v-3H1zm7 3h6a1 1 0 0 0 1-1v-2H8v3z"/>
                                 </svg>
-                                <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="${art.code} | ${art.model_name || 'MODEL'}">
-                                    ${art.code} | ${art.model_name || 'MODEL'}
+                                <span class="font-mono font-bold text-xs uppercase tracking-wider truncate" title="${art.code}">
+                                    ${art.code}
                                 </span>
                             </div>
                             <span class="text-[9px] opacity-60 font-mono"><i class="fa-solid fa-up-down-left-right"></i></span>
@@ -1020,10 +1091,10 @@
                                 <!-- Left Target Port for Crow's Foot aligned with ID row -->
                                 <div id="port-art-in-${orderId}-${art.id}" class="port-target"></div>
 
-                                <label class="flex items-center gap-2 cursor-pointer" onclick="event.stopPropagation()">
-                                    <input type="checkbox" id="check-art-${orderId}-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''}
+                                <label class="flex items-center gap-2 ${isLinked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}" onclick="event.stopPropagation()" ${isLinked ? 'title="Operatsiyalar biriktirilgan. Operatsiyalar qutisi o\'chirilsa qayta tanlash mumkin."' : ''}>
+                                    <input type="checkbox" id="check-art-${orderId}-${art.id}" value="${art.id}" ${isChecked ? 'checked' : ''} ${isLinked ? 'disabled' : ''}
                                         onchange="handleCheckboxChange(${art.id}, this.checked)"
-                                        class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 cursor-pointer">
+                                        class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-[#0c0f17] border-slate-600 accent-indigo-500 ${isLinked ? 'cursor-not-allowed' : 'cursor-pointer'}">
                                     <span class="flex items-center gap-1.5 text-amber-300 font-bold">
                                         <i class="fa-solid fa-key text-[9px]"></i> ID (${art.id})
                                     </span>
@@ -1035,36 +1106,15 @@
                                 <!-- Right Port Handle '+' aligned with ID row -->
                                 <div id="port-art-out-${orderId}-${art.id}" class="port-plus">+</div>
                             </div>
-                            ${art.operation_group_name ? `
-                            <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold">
-                                <span class="flex items-center gap-1"><i class="fa-solid fa-layer-group text-[9px]"></i> Guruh:</span>
-                                <span class="truncate max-w-[110px] font-mono" title="${art.operation_group_name}">${art.operation_group_name}</span>
-                            </div>
-                            ` : ''}
+
                             <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                                <span>NORMA</span>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="font-bold ${isReady ? 'text-emerald-400' : 'text-amber-400'}">${art.daily_norm || 0}</span>
-                                    <button type="button" onclick="openNormaModal([${art.id}])" class="text-[10px] text-amber-400 hover:text-amber-300 p-0.5" title="Normani tahrirlash">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                </div>
+                                <span class="text-slate-400">MODEL</span>
+                                <span class="font-bold text-white truncate max-w-[130px]" title="${art.model_name || '—'}">${art.model_name || '—'}</span>
                             </div>
+
                             <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                                <span>OPERATSIYALAR</span>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-indigo-400 font-bold">${art.operations_count} ta</span>
-                                    <span class="text-emerald-400 font-bold font-mono text-[10px]">${Math.round(art.unit_total_rate || 0)} so'm</span>
-                                </div>
-                            </div>
-                            <!-- Prominent Action Buttons -->
-                            <div class="pt-1.5 mt-1 border-t border-slate-800/80 flex items-center gap-1.5">
-                                <button type="button" onclick="openOperationsModal([${art.id}])" class="flex-1 py-1 px-2 bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-500/50 rounded-lg text-[11px] font-bold text-indigo-200 hover:text-white transition flex items-center justify-center gap-1" title="Operatsiyalar va dona narxlarini tahrirlash">
-                                    <i class="fa-solid fa-tag text-[10px]"></i> <span>Narxlar</span>
-                                </button>
-                                <button type="button" onclick="openNormaModal([${art.id}])" class="py-1 px-2 bg-amber-500/20 hover:bg-amber-500 border border-amber-500/40 rounded-lg text-[11px] font-bold text-amber-300 hover:text-slate-950 transition flex items-center justify-center gap-1" title="Kunlik normani belgilash">
-                                    <i class="fa-solid fa-bolt text-[10px]"></i> <span>Norma</span>
-                                </button>
+                                <span class="text-slate-400">ISH SONI</span>
+                                <span class="font-bold text-emerald-400 font-mono">${(art.quantity || order.total_quantity || 0).toLocaleString()} dona</span>
                             </div>
                         </div>
                     `;
@@ -1083,13 +1133,13 @@
 
             // 3 & 4. OPERATSIYALAR VA NORMA JADVALLARI (Operatsiyalari mavjud modellar uchun!)
             const modelGroups = order.model_groups || [];
-            modelGroups.forEach((mg) => {
+            modelGroups.forEach((mg, mgIdx) => {
                 const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
                 if (!hasOps) {
                     return;
                 }
 
-                const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+                const mgKey = mg._safeKey || getModelGroupSafeKey(mg, mgIdx);
                 const opsNodeId = `ops-node-${orderId}-${mgKey}`;
                 const normaNodeId = `norma-node-${orderId}-${mgKey}`;
 
@@ -1252,7 +1302,9 @@
             });
         });
 
-        setTimeout(drawAllConnections, 50);
+        updateCanvasDimensions();
+        setTimeout(drawAllConnections, 60);
+        setTimeout(drawAllConnections, 250);
     }
 
     function setActiveArticle(orderId, artId) {
@@ -1267,161 +1319,169 @@
         wiresGroup.innerHTML = '';
 
         const worldRect = world.getBoundingClientRect();
+        if (!worldRect || worldRect.width === 0) return;
 
         ORDERS_DATA.forEach(order => {
-            const orderId = order.id;
-            const portOrderOut = document.getElementById(`port-order-out-${orderId}`);
-            if (!portOrderOut) return;
+            try {
+                const orderId = order.id;
+                const portOrderOut = document.getElementById(`port-order-out-${orderId}`);
+                if (!portOrderOut) return;
 
-            const pOrder = getPortCenter(portOrderOut, worldRect);
-            const artTargetPoints = [];
+                const pOrder = getPortCenter(portOrderOut, worldRect);
+                const artTargetPoints = [];
 
-            order.articles.forEach(art => {
-                const portArtIn = document.getElementById(`port-art-in-${orderId}-${art.id}`);
-                if (portArtIn) {
-                    artTargetPoints.push({
-                        art: art,
-                        point: getPortCenter(portArtIn, worldRect)
-                    });
-                }
-            });
-
-            // 1. ZAKAZ -> ARTIKULLAR (Unified Tree)
-            if (artTargetPoints.length > 0) {
-                const targets = artTargetPoints.map(t => t.point);
-                const branchX = pOrder.x + 35;
-                const allInFront = targets.every(t => t.x >= branchX);
-
-                if (artTargetPoints.length === 1 || !allInFront) {
-                    artTargetPoints.forEach(t => {
-                        const isActive = t.art.id === activeArticleIds[orderId];
-                        const cls = isActive ? 'wire-path wire-active' : 'wire-path';
-                        drawOrthogonalStep(wiresGroup, pOrder.x, pOrder.y, t.point.x, t.point.y, cls);
-                        drawCrowsFoot(wiresGroup, t.point.x, t.point.y, cls);
-                    });
-                } else {
-                    const r = 10;
-                    const ys = targets.map(t => t.y);
-                    const minY = Math.min(...ys);
-                    const maxY = Math.max(...ys);
-
-                    // Stem from Zakaz to branchX
-                    drawSvgPath(wiresGroup, `M ${pOrder.x} ${pOrder.y} L ${branchX} ${pOrder.y}`, 'wire-path');
-
-                    // Vertical trunk
-                    const trunkTop = minY < pOrder.y ? minY + r : pOrder.y;
-                    const trunkBot = maxY > pOrder.y ? maxY - r : pOrder.y;
-                    if (trunkBot > trunkTop) {
-                        drawSvgPath(wiresGroup, `M ${branchX} ${trunkTop} L ${branchX} ${trunkBot}`, 'wire-path');
-                    }
-
-                    artTargetPoints.forEach(t => {
-                        const tx = t.point.x;
-                        const ty = t.point.y;
-                        const isActive = t.art.id === activeArticleIds[orderId];
-                        const cls = isActive ? 'wire-path wire-active' : 'wire-path';
-
-                        let d = '';
-                        if (ty === minY && ty < pOrder.y) {
-                            d = `M ${branchX} ${ty + r} Q ${branchX} ${ty}, ${branchX + r} ${ty} L ${tx} ${ty}`;
-                        } else if (ty === maxY && ty > pOrder.y) {
-                            d = `M ${branchX} ${ty - r} Q ${branchX} ${ty}, ${branchX + r} ${ty} L ${tx} ${ty}`;
-                        } else {
-                            d = `M ${branchX} ${ty} L ${tx} ${ty}`;
-                        }
-                        drawSvgPath(wiresGroup, d, cls);
-                        drawCrowsFoot(wiresGroup, tx, ty, cls);
-                    });
-                }
-            }
-
-            // 2. READY ARTIKULLAR -> OPERATSIYALAR & NORMA (Per Model Group)
-            const modelGroups = order.model_groups || [];
-            modelGroups.forEach((mg) => {
-                const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
-                if (!hasOps) return;
-
-                const mgKey = String(mg.key || mg.model_id || mg.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-                const portOpsIn = document.getElementById(`port-ops-in-${orderId}-${mgKey}`);
-                const portOpsOut = document.getElementById(`port-ops-out-${orderId}-${mgKey}`);
-                const portNormaIn = document.getElementById(`port-norma-in-${orderId}-${mgKey}`);
-
-                const mgReadySources = [];
-                (mg.articles || []).forEach(art => {
-                    const portArtOut = document.getElementById(`port-art-out-${orderId}-${art.id}`);
-                    const artHasOps = (art.operations && art.operations.length > 0) || art.is_ready;
-                    if (artHasOps && portArtOut) {
-                        mgReadySources.push({
+                (order.articles || []).forEach(art => {
+                    const portArtIn = document.getElementById(`port-art-in-${orderId}-${art.id}`);
+                    if (portArtIn) {
+                        artTargetPoints.push({
                             art: art,
-                            point: getPortCenter(portArtOut, worldRect)
+                            point: getPortCenter(portArtIn, worldRect)
                         });
                     }
                 });
 
-                if (portOpsIn && mgReadySources.length > 0) {
-                    const pOpsIn = getPortCenter(portOpsIn, worldRect);
-                    const sources = mgReadySources.map(s => s.point);
-                    const mergeX = pOpsIn.x - 35;
-                    const allBehind = sources.every(s => s.x <= mergeX);
+                // 1. ZAKAZ -> ARTIKULLAR (Unified Tree)
+                if (artTargetPoints.length > 0) {
+                    const targets = artTargetPoints.map(t => t.point);
+                    const branchX = pOrder.x + 35;
+                    const allInFront = targets.every(t => t.x >= branchX);
 
-                    if (mgReadySources.length === 1 || !allBehind) {
-                        mgReadySources.forEach(s => {
-                            drawOrthogonalStep(wiresGroup, s.point.x, s.point.y, pOpsIn.x, pOpsIn.y, 'wire-path');
+                    if (artTargetPoints.length === 1 || !allInFront) {
+                        artTargetPoints.forEach(t => {
+                            const isActive = t.art.id === activeArticleIds[orderId];
+                            const cls = isActive ? 'wire-path wire-active' : 'wire-path';
+                            drawOrthogonalStep(wiresGroup, pOrder.x, pOrder.y, t.point.x, t.point.y, cls);
+                            drawCrowsFoot(wiresGroup, t.point.x, t.point.y, cls);
                         });
-                        drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
                     } else {
                         const r = 10;
-                        const ys = sources.map(s => s.y);
+                        const ys = targets.map(t => t.y);
                         const minY = Math.min(...ys);
                         const maxY = Math.max(...ys);
 
-                        sources.forEach(s => {
-                            const sx = s.point.x;
-                            const sy = s.point.y;
-                            let d = '';
-                            if (sy === minY && sy < pOpsIn.y) {
-                                d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + r}`;
-                            } else if (sy === maxY && sy > pOpsIn.y) {
-                                d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - r}`;
-                            } else {
-                                d = `M ${sx} ${sy} L ${mergeX} ${sy}`;
-                            }
-                            drawSvgPath(wiresGroup, d, 'wire-path');
-                        });
+                        // Stem from Zakaz to branchX
+                        drawSvgPath(wiresGroup, `M ${pOrder.x} ${pOrder.y} L ${branchX} ${pOrder.y}`, 'wire-path');
 
-                        const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
-                        const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
+                        // Vertical trunk
+                        const trunkTop = minY < pOrder.y ? minY + r : pOrder.y;
+                        const trunkBot = maxY > pOrder.y ? maxY - r : pOrder.y;
                         if (trunkBot > trunkTop) {
-                            drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
+                            drawSvgPath(wiresGroup, `M ${branchX} ${trunkTop} L ${branchX} ${trunkBot}`, 'wire-path');
                         }
 
-                        drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
-                        drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+                        artTargetPoints.forEach(t => {
+                            const tx = t.point.x;
+                            const ty = t.point.y;
+                            const isActive = t.art.id === activeArticleIds[orderId];
+                            const cls = isActive ? 'wire-path wire-active' : 'wire-path';
+
+                            let d = '';
+                            if (ty === minY && ty < pOrder.y) {
+                                d = `M ${branchX} ${ty + r} Q ${branchX} ${ty}, ${branchX + r} ${ty} L ${tx} ${ty}`;
+                            } else if (ty === maxY && ty > pOrder.y) {
+                                d = `M ${branchX} ${ty - r} Q ${branchX} ${ty}, ${branchX + r} ${ty} L ${tx} ${ty}`;
+                            } else {
+                                d = `M ${branchX} ${ty} L ${tx} ${ty}`;
+                            }
+                            drawSvgPath(wiresGroup, d, cls);
+                            drawCrowsFoot(wiresGroup, tx, ty, cls);
+                        });
                     }
                 }
 
-                // 3. OPERATSIYALAR -> NORMA (Sequential Connection)
-                if (portOpsOut && portNormaIn) {
-                    const pOpsOut = getPortCenter(portOpsOut, worldRect);
-                    const pNormaIn = getPortCenter(portNormaIn, worldRect);
-                    drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path');
-                    drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path');
-                }
-            });
-        });
+                // 2. READY ARTIKULLAR -> OPERATSIYALAR & NORMA (Per Model Group)
+                const modelGroups = order.model_groups || [];
+                modelGroups.forEach((mg, mgIdx) => {
+                    const hasOps = (mg.operations && mg.operations.length > 0) || mg.is_ready;
+                    if (!hasOps) return;
 
-        drawDynamicWire();
+                    const mgKey = mg._safeKey || getModelGroupSafeKey(mg, mgIdx);
+                    const portOpsIn = document.getElementById(`port-ops-in-${orderId}-${mgKey}`);
+                    const portOpsOut = document.getElementById(`port-ops-out-${orderId}-${mgKey}`);
+                    const portNormaIn = document.getElementById(`port-norma-in-${orderId}-${mgKey}`);
+
+                    const mgReadySources = [];
+                    (mg.articles || []).forEach(art => {
+                        const portArtOut = document.getElementById(`port-art-out-${orderId}-${art.id}`);
+                        const artHasOps = (art.operations && art.operations.length > 0) || art.is_ready;
+                        if (artHasOps && portArtOut) {
+                            mgReadySources.push({
+                                art: art,
+                                point: getPortCenter(portArtOut, worldRect)
+                            });
+                        }
+                    });
+
+                    if (portOpsIn && mgReadySources.length > 0) {
+                        const pOpsIn = getPortCenter(portOpsIn, worldRect);
+                        const sources = mgReadySources.map(s => s.point);
+                        const mergeX = pOpsIn.x - 35;
+                        const allBehind = sources.every(s => s.x <= mergeX);
+
+                        if (mgReadySources.length === 1 || !allBehind) {
+                            mgReadySources.forEach(s => {
+                                drawOrthogonalStep(wiresGroup, s.point.x, s.point.y, pOpsIn.x, pOpsIn.y, 'wire-path');
+                            });
+                            drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+                        } else {
+                            const r = 10;
+                            const ys = sources.map(s => s.y);
+                            const minY = Math.min(...ys);
+                            const maxY = Math.max(...ys);
+
+                            sources.forEach(s => {
+                                const sx = s.point.x;
+                                const sy = s.point.y;
+                                let d = '';
+                                if (sy === minY && sy < pOpsIn.y) {
+                                    d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + r}`;
+                                } else if (sy === maxY && sy > pOpsIn.y) {
+                                    d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - r}`;
+                                } else {
+                                    d = `M ${sx} ${sy} L ${mergeX} ${sy}`;
+                                }
+                                drawSvgPath(wiresGroup, d, 'wire-path');
+                            });
+
+                            const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
+                            const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
+                            if (trunkBot > trunkTop) {
+                                drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
+                            }
+
+                            drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
+                            drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+                        }
+                    }
+
+                    // 3. OPERATSIYALAR -> NORMA (Sequential Connection)
+                    if (portOpsOut && portNormaIn) {
+                        const pOpsOut = getPortCenter(portOpsOut, worldRect);
+                        const pNormaIn = getPortCenter(portNormaIn, worldRect);
+                        drawOrthogonalStep(wiresGroup, pOpsOut.x, pOpsOut.y, pNormaIn.x, pNormaIn.y, 'wire-path');
+                        drawCrowsFoot(wiresGroup, pNormaIn.x, pNormaIn.y, 'wire-path');
+                    }
+                });
+            } catch (err) {
+                console.error(`Error drawing connections for order ${order.id}:`, err);
+            }
+        });
     }
 
     function getPortCenter(portElem, worldRect) {
+        if (!portElem) return { x: 0, y: 0 };
         const rect = portElem.getBoundingClientRect();
+        const z = zoomLevel || 1;
+        const x = (rect.left + (rect.width || 0) / 2 - worldRect.left) / z;
+        const y = (rect.top + (rect.height || 0) / 2 - worldRect.top) / z;
         return {
-            x: (rect.left + rect.width / 2 - worldRect.left) / zoomLevel,
-            y: (rect.top + rect.height / 2 - worldRect.top) / zoomLevel,
+            x: isNaN(x) ? 0 : x,
+            y: isNaN(y) ? 0 : y,
         };
     }
 
     function drawSvgPath(svgGroup, d, className) {
+        if (!d || d.includes('NaN')) return;
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', d);
         path.setAttribute('class', className);
@@ -1429,6 +1489,7 @@
     }
 
     function drawCrowsFoot(svgGroup, x, y, className) {
+        if (isNaN(x) || isNaN(y)) return;
         const cf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const d = `M ${x - 10} ${y} L ${x} ${y - 5} M ${x - 10} ${y} L ${x} ${y} M ${x - 10} ${y} L ${x} ${y + 5}`;
         cf.setAttribute('d', d);
@@ -1439,6 +1500,7 @@
 
     // DRAW ORTHOGONAL STEPPED LINE (app.dbdesign.io style)
     function drawOrthogonalStep(svgGroup, x1, y1, x2, y2, className = 'wire-path') {
+        if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return;
         const dx = x2 - x1;
         const dy = y2 - y1;
         const r = 8;
@@ -1481,6 +1543,11 @@
         });
 
         if (!targetArt) return;
+
+        const isLinked = Boolean((targetArt.operations && targetArt.operations.length > 0) || targetArt.is_ready || targetArt.operation_group_id);
+        if (isLinked && isChecked) {
+            return;
+        }
 
         if (isChecked) {
             selectedArticleIds.add(artId);
@@ -1550,8 +1617,9 @@
             if (aHas !== bHas) return aHas - bHas;
             return (a.key || '').localeCompare(b.key || '');
         });
-        groups.forEach(g => {
+        groups.forEach((g, idx) => {
             g.articles.sort((x, y) => (x.code || '').localeCompare(y.code || ''));
+            g._safeKey = getModelGroupSafeKey(g, idx);
         });
         return groups;
     }
@@ -2198,6 +2266,9 @@
             });
 
             closeOperationsModal();
+            if (!proceedToNorma) {
+                clearSelection();
+            }
             renderDiagrams();
 
             if (btnSaveOnly) {
@@ -2372,9 +2443,10 @@
     function openOperationsModalForModel(orderId, mgKey) {
         const order = ORDERS_DATA.find(o => o.id === orderId);
         if (!order) return;
-        const mg = (order.model_groups || []).find(g => {
-            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-            return key === mgKey;
+        const mg = (order.model_groups || []).find((g, idx) => {
+            const safe = g._safeKey || getModelGroupSafeKey(g, idx);
+            const legacy = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return safe === mgKey || legacy === mgKey;
         });
         if (!mg || !mg.articles) return;
 
@@ -2387,9 +2459,10 @@
     function openNormaModalForModel(orderId, mgKey) {
         const order = ORDERS_DATA.find(o => o.id === orderId);
         if (!order) return;
-        const mg = (order.model_groups || []).find(g => {
-            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-            return key === mgKey;
+        const mg = (order.model_groups || []).find((g, idx) => {
+            const safe = g._safeKey || getModelGroupSafeKey(g, idx);
+            const legacy = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return safe === mgKey || legacy === mgKey;
         });
         if (!mg || !mg.articles) return;
 
@@ -2402,9 +2475,10 @@
     async function deleteOperationsForModel(orderId, mgKey) {
         const order = ORDERS_DATA.find(o => o.id === orderId);
         if (!order) return;
-        const mg = (order.model_groups || []).find(g => {
-            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-            return key === mgKey;
+        const mg = (order.model_groups || []).find((g, idx) => {
+            const safe = g._safeKey || getModelGroupSafeKey(g, idx);
+            const legacy = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return safe === mgKey || legacy === mgKey;
         });
         if (!mg || !mg.articles || mg.articles.length === 0) return;
 
@@ -2427,9 +2501,10 @@
     async function deleteNormaForModel(orderId, mgKey) {
         const order = ORDERS_DATA.find(o => o.id === orderId);
         if (!order) return;
-        const mg = (order.model_groups || []).find(g => {
-            const key = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-            return key === mgKey;
+        const mg = (order.model_groups || []).find((g, idx) => {
+            const safe = g._safeKey || getModelGroupSafeKey(g, idx);
+            const legacy = String(g.key || g.model_id || g.model_name || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+            return safe === mgKey || legacy === mgKey;
         });
         if (!mg || !mg.articles || mg.articles.length === 0) return;
 
@@ -2492,6 +2567,8 @@
                         art.unit_total_rate = 0;
                         art.daily_norm = 0;
                         art.is_ready = false;
+                        art.operation_group_id = null;
+                        art.operation_group_name = null;
                     }
                 });
                 ord.model_groups = rebuildModelGroups(ord.articles);
@@ -2614,7 +2691,7 @@
                 tbl.style.opacity = '0.25';
             }
         });
-        drawAllConnections();
+        scheduleDrawConnections();
     }
 
     // Initialize Diagram & Auto-fit entire canvas to screen on load
@@ -2623,6 +2700,7 @@
     setTimeout(fitAll, 300);
 
     window.addEventListener('resize', () => {
+        updateCanvasDimensions();
         fitAll();
     });
 </script>

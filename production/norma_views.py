@@ -511,6 +511,7 @@ def norma_canvas_view(request):
                 'operation_group_id': art.operation_group_id,
                 'operation_group_name': art.operation_group.name if art.operation_group else None,
                 'daily_norm': daily_norm,
+                'quantity': item.quantity or 0,
                 'operations_count': len(ops_data),
                 'operations': ops_data,
                 'unit_total_rate': sum(op['price'] for op in ops_data),
@@ -547,6 +548,7 @@ def norma_canvas_view(request):
                 'model_code': pmodel.code if pmodel else None,
                 'model_name': pmodel.name if pmodel else 'Model',
                 'daily_norm': daily_norm,
+                'quantity': order.total_quantity or 0,
                 'operations_count': len(ops_data),
                 'operations': ops_data,
                 'unit_total_rate': sum(op['price'] for op in ops_data),
@@ -907,6 +909,9 @@ def norma_canvas_save(request):
 
             # Artikul operatsiyalarini o'chirish
             article_ops.delete()
+
+            # Operatsiyalar guruhini ham uzish
+            articles.update(operation_group=None)
 
             # Modellar bilan sinxronizatsiya: agar modelning boshqa artikullarida operatsiyalar qolmagan bo'lsa
             models_to_check = set(art.model for art in articles if art.model)
