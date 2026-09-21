@@ -593,6 +593,8 @@ class CuttingBatch(models.Model):
     batch_number = models.PositiveIntegerField(verbose_name="Kesim Raqami")
     name = models.CharField(max_length=100, blank=True, verbose_name="Kesim Nomi")
     cutter_name = models.CharField(max_length=100, blank=True, verbose_name="Bichuvchi")
+    pastal_code = models.CharField(max_length=100, blank=True, verbose_name="Pastal Kodi")
+    partiya_number = models.CharField(max_length=100, blank=True, verbose_name="Partiya Raqami")
     fabric_weight_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Mato Og'irligi (kg)")
     fabric_batch_code = models.CharField(max_length=100, blank=True, verbose_name="Mato Partiyasi / Rulon")
     notes = models.TextField(blank=True, verbose_name="Izoh")
@@ -788,7 +790,7 @@ class Box(models.Model):
         if not self.box_code:
             self.box_code = generate_unique_box_code()
         if not self.pastal_number and self.cutting_batch_item and self.cutting_batch_item.batch:
-            self.pastal_number = str(self.cutting_batch_item.batch.batch_number)
+            self.pastal_number = self.cutting_batch_item.batch.pastal_code or str(self.cutting_batch_item.batch.batch_number)
         super().save(*args, **kwargs)
 
     @property

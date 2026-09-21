@@ -72,6 +72,18 @@
                         <span class="font-black text-white text-base flex items-center gap-2">
                             <i class="fa-solid fa-scissors text-rose-400"></i> {{ b.name }}
                         </span>
+                        {% if b.pastal_code %}
+                        <span
+                            class="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-mono font-bold">
+                            Pastal: {{ b.pastal_code }}
+                        </span>
+                        {% endif %}
+                        {% if b.partiya_number %}
+                        <span
+                            class="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-mono font-bold">
+                            Partiya: {{ b.partiya_number }}
+                        </span>
+                        {% endif %}
                         {% if b.cutter_name %}
                         <span
                             class="text-xs bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-300">

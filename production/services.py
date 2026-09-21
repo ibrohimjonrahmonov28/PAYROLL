@@ -193,7 +193,7 @@ def auto_generate_boxes_for_batch_item(
         meto_range = f"#{batch_item.meto_number_start or '1'}-#{batch_item.meto_number_end or batch_item.effective_quantity}"
 
     if pastal_number is None and batch_item.batch:
-        pastal_number = str(batch_item.batch.batch_number)
+        pastal_number = batch_item.batch.pastal_code or str(batch_item.batch.batch_number)
 
     boxes = create_boxes_for_order(
         order=order,

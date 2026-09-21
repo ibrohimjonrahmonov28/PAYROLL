@@ -144,6 +144,8 @@ def cutting_order_detail(request, order_id: int):
                 'name': batch.name,
                 'batch_number': batch.batch_number,
                 'cutter_name': batch.cutter_name,
+                'pastal_code': batch.pastal_code,
+                'partiya_number': batch.partiya_number,
                 'fabric_weight_kg': batch.fabric_weight_kg,
                 'fabric_batch_code': batch.fabric_batch_code,
                 'notes': batch.notes,
@@ -181,8 +183,11 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
     """
     Yangi Kesim Partiyasi Kiritish (POST):
     - Tayyor mato omboridan mato partiyasi (kg va rulon/kod)
+    - Pastal kodi (majburiy)
+    - Partiya raqami (masalan: 9-26-190, 10-10-2026)
+    - Bichuvchi ismi (avtomatik akkount egasi)
     - Kesilgan razmerlar soni
-    - "KESIM SONNI KIRITADI HOLOS" -> Saqlangach, partiya Meto bo'limiga o'tadi
+    - Saqlangach, partiya Meto bo'limiga o'tadi
     """
     if request.method != 'POST':
         return redirect('cutting_order_detail', order_id=order_id)
@@ -190,7 +195,13 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
     order = get_object_or_404(Order, id=order_id)
     order_item = get_object_or_404(OrderItem, id=order_item_id, order=order)
 
-    cutter_name = request.POST.get('cutter_name', '').strip()
+    pastal_code = request.POST.get('pastal_code', '').strip()
+    if not pastal_code:
+        messages.error(request, "Pastal kodi kiritilishi majburiy!")
+        return redirect('cutting_order_detail', order_id=order_id)
+
+    partiya_number = request.POST.get('partiya_number', '').strip()
+    cutter_name = request.POST.get('cutter_name', '').strip() or request.user.get_full_name() or request.user.username
     fabric_weight_str = request.POST.get('fabric_weight_kg', '').strip()
     fabric_batch_code = request.POST.get('fabric_batch_code', '').strip()
     notes = request.POST.get('notes', '').strip()
@@ -231,6 +242,8 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
             batch_number=next_batch_num,
             name=batch_name,
             cutter_name=cutter_name,
+            pastal_code=pastal_code,
+            partiya_number=partiya_number,
             fabric_weight_kg=fabric_weight,
             fabric_batch_code=fabric_batch_code,
             notes=notes,
@@ -247,7 +260,7 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
 
     messages.success(
         request,
-        f"'{order_item.article.code}' uchun '{batch.name}' muvaffaqiyatli kiritildi! Jami bichildi: {total_batch_qty} dona. Meto bo'limiga uzatildi."
+        f"'{order_item.article.code}' uchun '{batch.name}' (Pastal: {pastal_code}) muvaffaqiyatli kiritildi! Jami bichildi: {total_batch_qty} dona. Meto bo'limiga uzatildi."
     )
     return redirect('cutting_order_detail', order_id=order_id)
 
@@ -256,8 +269,6 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
 def cutting_edit_batch(request, order_id: int, batch_id: int):
     """
     Kesim Partiyasini Tahrirlash:
-    - Foydalanuvchi talabi:
-      "SONNI OZGARTISH FUNKSIYASI BOR FAQAT BUNI HAM VAQTI BILAN HANDLE QILISH KERAK BOLADI"
     - Meto tasdiqlamaguncha kesimchi o'zgartira oladi. Meto tasdiqlagan bo'lsa, bloklanadi!
     """
     order = get_object_or_404(Order, id=order_id)
@@ -273,7 +284,13 @@ def cutting_edit_batch(request, order_id: int, batch_id: int):
             return redirect('cutting_order_detail', order_id=order.id)
 
     if request.method == 'POST':
-        cutter_name = request.POST.get('cutter_name', '').strip()
+        pastal_code = request.POST.get('pastal_code', '').strip()
+        if not pastal_code:
+            messages.error(request, "Pastal kodi kiritilishi majburiy!")
+            return redirect('cutting_order_detail', order_id=order.id)
+
+        partiya_number = request.POST.get('partiya_number', '').strip()
+        cutter_name = request.POST.get('cutter_name', '').strip() or request.user.get_full_name() or request.user.username
         notes = request.POST.get('notes', '').strip()
         fabric_weight_str = request.POST.get('fabric_weight_kg', '').strip()
         fabric_batch_code = request.POST.get('fabric_batch_code', '').strip()
@@ -288,6 +305,8 @@ def cutting_edit_batch(request, order_id: int, batch_id: int):
         total_new_qty = 0
         with transaction.atomic():
             batch.cutter_name = cutter_name
+            batch.pastal_code = pastal_code
+            batch.partiya_number = partiya_number
             batch.notes = notes
             if fabric_weight is not None:
                 batch.fabric_weight_kg = fabric_weight

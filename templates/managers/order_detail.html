@@ -304,19 +304,33 @@
                     {% for b in item_data.batches %}
                     <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
                         <div class="flex items-center justify-between">
-                            <span class="font-black text-white text-sm flex items-center gap-1.5">
+                            <span class="font-black text-white text-sm flex items-center gap-1.5 flex-wrap">
                                 <i class="fa-solid fa-scissors text-rose-400"></i> {{ b.name }}
+                                {% if b.pastal_code %}
+                                <span
+                                    class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded text-[11px] font-mono font-bold">
+                                    Pastal: {{ b.pastal_code }}
+                                </span>
+                                {% endif %}
+                                {% if b.partiya_number %}
+                                <span
+                                    class="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded text-[11px] font-mono font-bold">
+                                    Partiya: {{ b.partiya_number }}
+                                </span>
+                                {% endif %}
                             </span>
                             <span
                                 class="text-xs font-black text-emerald-400 digital-font px-2 py-0.5 bg-slate-900 rounded-lg border border-slate-800">
                                 {{ b.total_quantity }} dona
                             </span>
                         </div>
-                        <p class="text-[11px] text-slate-400 flex items-center gap-2">
+                        <p class="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
                             <span><i class="fa-regular fa-calendar text-slate-500"></i> {{ b.created_at|date:"d.m.Y H:i"
                                 }}</span>
                             {% if b.cutter_name %}<span>• Bichuvchi: <strong>{{ b.cutter_name }}</strong></span>{% endif
                             %}
+                            {% if b.fabric_weight_kg %}<span>• Mato: <strong class="text-amber-400">{{
+                                    b.fabric_weight_kg }} kg</strong></span>{% endif %}
                         </p>
                         <!-- Razmerlar ro'yxati -->
                         <div class="pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">

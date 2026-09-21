@@ -137,6 +137,8 @@ def meto_order_detail(request, order_id: int):
                 'name': batch.name,
                 'batch_number': batch.batch_number,
                 'cutter_name': batch.cutter_name,
+                'pastal_code': batch.pastal_code,
+                'partiya_number': batch.partiya_number,
                 'fabric_weight_kg': batch.fabric_weight_kg,
                 'fabric_batch_code': batch.fabric_batch_code,
                 'notes': batch.notes,
@@ -234,7 +236,7 @@ def meto_confirm_item(request, item_id: int):
         batch_item.save()
 
         # AVTOMATIK STIKERLAR VA QUTILARNI GENERATSIYA QILISH
-        pastal_number = request.POST.get('pastal_number', '').strip() or str(batch_item.batch.batch_number)
+        pastal_number = request.POST.get('pastal_number', '').strip() or (batch_item.batch.pastal_code if batch_item.batch else '') or str(batch_item.batch.batch_number)
         boxes = auto_generate_boxes_for_batch_item(
             batch_item=batch_item,
             split_count=split_count,

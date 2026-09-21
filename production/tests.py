@@ -623,9 +623,20 @@ class ManagerAndCuttingWorkflowTest(TestCase):
 
         self.client.login(username="cutter_user", password="password123")
 
-        # 1. Kesimchi enters Kesim 1 (S: 50, M: 100) with fabric info
+        # 1. Kesimchi enters Kesim 1 (S: 50, M: 100) with pastal_code, partiya_number, and fabric info
         add_url = reverse('cutting_add_batch', kwargs={'order_id': order.id, 'order_item_id': item.id})
+        
+        # Test required pastal_code validation
+        res_no_pastal = self.client.post(add_url, {
+            'cutter_name': 'Ali Cutter',
+            f'size_qty_{size_s.id}': '50',
+        }, follow=True)
+        self.assertContains(res_no_pastal, "Pastal kodi kiritilishi majburiy!")
+        self.assertEqual(CuttingBatch.objects.filter(order_item=item).count(), 0)
+
         res1 = self.client.post(add_url, {
+            'pastal_code': 'P-01',
+            'partiya_number': '9-26-190',
             'cutter_name': 'Ali Cutter',
             'fabric_weight_kg': '200.50',
             'fabric_batch_code': 'DC-1001/TKDL102',
@@ -637,6 +648,8 @@ class ManagerAndCuttingWorkflowTest(TestCase):
 
         b1 = CuttingBatch.objects.get(order_item=item, batch_number=1)
         self.assertEqual(b1.name, "Kesim 1")
+        self.assertEqual(b1.pastal_code, "P-01")
+        self.assertEqual(b1.partiya_number, "9-26-190")
         self.assertEqual(b1.fabric_weight_kg, Decimal("200.50"))
         self.assertEqual(b1.fabric_batch_code, 'DC-1001/TKDL102')
         self.assertEqual(b1.total_quantity, 150)
@@ -650,6 +663,8 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         b1_item_s = b1.items.get(order_item_size=size_s)
         b1_item_m = b1.items.get(order_item_size=size_m)
         res_edit = self.client.post(edit_url, {
+            'pastal_code': 'P-01',
+            'partiya_number': '9-26-190',
             'cutter_name': 'Ali Cutter',
             'fabric_weight_kg': '200.50',
             'fabric_batch_code': 'DC-1001/TKDL102',
@@ -667,6 +682,8 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         res_meto_detail = self.client.get(meto_detail_url)
         self.assertEqual(res_meto_detail.status_code, 200)
         self.assertContains(res_meto_detail, "DC-1001/TKDL102")
+        self.assertContains(res_meto_detail, "P-01")
+        self.assertContains(res_meto_detail, "9-26-190")
 
         confirm_url = reverse('meto_confirm_item', kwargs={'item_id': b1_item_m.id})
         res_confirm = self.client.post(confirm_url, {
@@ -685,13 +702,14 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertEqual(b1_item_m.meto_number_start, '1')
         self.assertEqual(b1_item_m.meto_number_end, '90')
 
-        # Check 2 boxes automatically created with 45 units each
+        # Check 2 boxes automatically created with 45 units each and pastal_number == 'P-01'
         boxes = Box.objects.filter(cutting_batch_item=b1_item_m)
         self.assertEqual(boxes.count(), 2)
         for b in boxes:
             self.assertEqual(b.quantity, 45)
             self.assertEqual(b.razmer, 'M')
             self.assertEqual(b.meto_range, '#1-#90')
+            self.assertEqual(b.pastal_number, 'P-01')
             self.assertEqual(b.tickets.count(), 1)
             self.assertEqual(b.tickets.first().box.razmer, 'M')
 
