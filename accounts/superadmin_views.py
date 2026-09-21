@@ -989,6 +989,64 @@ def superadmin_payroll_export_csv(request):
 
 
 @superadmin_required
+def superadmin_send_telegram_report(request):
+    """
+    Superadmin panelidan turib xodimlar va stikerlar bo'yicha kunlik Excel hisobotini
+    Telegram guruhga qo'lda darhol yuborish.
+    """
+    date_str = request.POST.get('date') or request.GET.get('date')
+    if date_str:
+        try:
+            target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = timezone.localdate()
+    else:
+        target_date = timezone.localdate()
+
+    chat_id = (request.POST.get('chat_id') or request.GET.get('chat_id') or '').strip() or None
+    bot_token = (request.POST.get('bot_token') or request.GET.get('bot_token') or '').strip() or None
+
+    from production.telegram_reports import send_daily_excel_report
+    result = send_daily_excel_report(target_date=target_date, chat_id=chat_id, bot_token=bot_token)
+
+    if result.get('success'):
+        messages.success(request, f"✅ {result.get('message')}")
+    else:
+        messages.warning(request, f"⚠️ {result.get('message')}")
+
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('superadmin_payroll')
+
+
+@superadmin_required
+def superadmin_download_daily_excel(request):
+    """
+    Superadmin uchun kunlik xodimlar va stikerlar hisobotini brauzerda to'g'ridan-to'g'ri Excel (.xlsx) sifatida yuklab olish.
+    """
+    date_str = request.GET.get('date')
+    if date_str:
+        try:
+            target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = timezone.localdate()
+    else:
+        target_date = timezone.localdate()
+
+    from production.excel_reports import generate_daily_excel_report
+    excel_buffer = generate_daily_excel_report(target_date=target_date)
+
+    filename = f"Kunlik_Hisobot_{target_date.strftime('%Y_%m_%d')}.xlsx"
+    response = HttpResponse(
+        excel_buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@superadmin_required
 def superadmin_pricing(request):
     if request.method == 'POST':
         action = request.POST.get('action')

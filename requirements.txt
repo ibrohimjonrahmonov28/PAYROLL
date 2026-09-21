@@ -16,3 +16,4 @@ certifi==2026.7.22
 idna==3.19
 typing_extensions==4.16.0
 h11==0.16.0
+openpyxl>=3.1.2

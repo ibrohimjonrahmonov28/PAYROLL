@@ -33,12 +33,21 @@
                 Vaqt</a>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <span class="text-xs text-slate-400 font-mono">Bugungi sana: <strong class="text-slate-200">{{ today_str
                     }}</strong></span>
+            <button onclick="openTelegramTestModal()"
+                class="px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                <i class="fa-brands fa-telegram text-base"></i> Telegramga Test Hisobot
+            </button>
+            <a href="{% url 'superadmin_download_daily_excel' %}"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-teal-300 font-bold text-xs rounded-xl transition flex items-center gap-2"
+                title="Bugungi kunlik hisobotni Excel (.xlsx) formatida yuklab olish">
+                <i class="fa-solid fa-file-arrow-down text-teal-400"></i> Kunlik Excel
+            </a>
             <a href="{% url 'superadmin_payroll_export' %}"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2">
-                <i class="fa-solid fa-file-excel"></i> Ish Haqi Tabelini Yuklash (Excel/CSV)
+                <i class="fa-solid fa-file-excel"></i> Ish Haqi Tabeli (Excel/CSV)
             </a>
         </div>
     </div>
@@ -362,5 +371,80 @@
             badge.innerText = filter ? `Topildi: ${count} ta` : `Jami: ${rows.length} xodim`;
         }
     }
+
+    function openTelegramTestModal() {
+        var modal = document.getElementById('telegram-test-modal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeTelegramTestModal() {
+        var modal = document.getElementById('telegram-test-modal');
+        if (modal) modal.classList.add('hidden');
+    }
 </script>
+
+<!-- MODAL: Telegram Test Hisobot -->
+<div id="telegram-test-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+    onclick="if(event.target === this) closeTelegramTestModal()">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div
+                    class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-xl">
+                    <i class="fa-brands fa-telegram"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-white">Telegramga Test Hisobot</h3>
+                    <p class="text-[11px] text-slate-400">Kunlik Excel faylini Telegramga yuborish</p>
+                </div>
+            </div>
+            <button onclick="closeTelegramTestModal()" class="text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_send_telegram_report' %}" class="space-y-3.5">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Hisobot
+                    Sanasi</label>
+                <input type="date" name="date" value="{{ today_str }}"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Telegram Chat / Guruh ID
+                </label>
+                <input type="text" name="chat_id" placeholder="Masalan: -1001234567890 yoki 123456789"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
+                <span class="text-[10px] text-slate-500 mt-1 block">Bo'sh qoldirilsa, .env dagi TELEGRAM_REPORT_CHAT_ID
+                    olinadi.</span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Bot Token (Ixtiyoriy)
+                </label>
+                <input type="text" name="bot_token" placeholder="1234567890:AAH..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
+                <span class="text-[10px] text-slate-500 mt-1 block">Bo'sh qoldirilsa, .env dagi BOT_TOKEN
+                    olinadi.</span>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-2.5">
+                <button type="button" onclick="closeTelegramTestModal()"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-paper-plane"></i> Hozir Yuborish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

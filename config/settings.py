@@ -187,3 +187,7 @@ LOGOUT_REDIRECT_URL = '/login/'
 
 # Kunlik 100% dan oshganda avtomatik beriladigan bonus (UZS)
 DAILY_BONUS_AMOUNT = int(os.getenv('BONUS', '30000'))
+
+# Telegram Bot & Daily Excel Report Settings
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or os.getenv('BOT_TOKEN', '')
+TELEGRAM_REPORT_CHAT_ID = os.getenv('TELEGRAM_REPORT_CHAT_ID', '')

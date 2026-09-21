@@ -66,6 +66,21 @@
                 </button>
             </form>
 
+            <!-- Telegram Daily Excel Report Trigger -->
+            <a href="{% url 'superadmin_send_telegram_report' %}"
+                onclick="return confirm('Bugungi kunlik ish haqi va stikerlar hisoboti Telegram guruhga yuborilsinmi?');"
+                class="px-4 py-2 bg-sky-950/60 hover:bg-sky-900/60 border border-sky-600/40 text-sky-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
+                title="Bugungi kunlik xodimlar va stikerlar Excel hisobotini Telegram guruhga yuborish">
+                <i class="fa-brands fa-telegram text-base text-sky-400"></i> Telegramga Hisobot
+            </a>
+
+            <!-- Direct Download Daily Excel -->
+            <a href="{% url 'superadmin_download_daily_excel' %}"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-teal-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
+                title="Bugungi kunlik hisobotni Excel (.xlsx) formatida yuklab olish">
+                <i class="fa-solid fa-file-arrow-down text-base text-teal-400"></i> Kunlik Excel
+            </a>
+
             <!-- CSV / Excel Export -->
             <a href="{% url 'superadmin_payroll_export' %}?year={{ selected_year }}&month={{ selected_month }}"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm">
@@ -183,7 +198,8 @@
                             <input type="checkbox" value="{{ row.worker.id }}"
                                 data-payable="{{ row.net_payable_month }}" onchange="updateBulkPayoutBar()"
                                 class="worker-payroll-checkbox w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
-                                {% if row.net_payable_month <= 0 %}disabled title="To'lanadigan maosh qoldig'i yo'q"{% endif %}>
+                                {% if row.net_payable_month <=0 %}disabled title="To'lanadigan maosh qoldig'i yo'q" {%
+                                endif %}>
                         </td>
                         <td class="py-3 px-3 text-center text-slate-500 text-xs font-mono">
                             {{ forloop.counter }}
