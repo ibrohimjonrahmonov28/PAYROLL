@@ -77,6 +77,12 @@
                 <span>Stiker Chiqarish Bo'limi</span>
             </a>
 
+            <a href="{% url 'norma_dashboard' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'norma' in request.resolver_match.url_name %}bg-indigo-600 text-white font-bold shadow-md{% else %}text-indigo-400 hover:bg-slate-800 hover:text-indigo-300{% endif %}">
+                <i class="fa-solid fa-brain w-5 text-center"></i>
+                <span>Norma Markazi (Miya)</span>
+            </a>
+
             <a href="{% url 'production:statistics_pipeline' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'statistics_pipeline' %}bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-md shadow-blue-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-diagram-project w-5 text-center text-blue-400"></i>
