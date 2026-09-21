@@ -102,21 +102,27 @@
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
             <!-- Article Header -->
             <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span
-                            class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg">
-                            {{ item_data.item.article.code }}
-                        </span>
-                        {% if item_data.item.article.model %}
-                        <span
-                            class="bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold px-2 py-0.5 rounded text-xs">
-                            Model: {{ item_data.item.article.model.name }} (Norma: {{
-                            item_data.item.article.model.daily_norm }} dona)
-                        </span>
-                        {% endif %}
+                <div class="flex items-center gap-3.5">
+                    {% if item_data.item.article.image %}
+                    <img src="{{ item_data.item.article.image.url }}" alt="{{ item_data.item.article.name }}"
+                        class="w-14 h-14 object-cover rounded-xl border border-slate-700 shadow-md bg-slate-950">
+                    {% endif %}
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span
+                                class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg">
+                                {{ item_data.item.article.code }}
+                            </span>
+                            {% if item_data.item.article.model %}
+                            <span
+                                class="bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold px-2 py-0.5 rounded text-xs">
+                                Model: {{ item_data.item.article.model.name }} (Norma: {{
+                                item_data.item.article.model.daily_norm }} dona)
+                            </span>
+                            {% endif %}
+                        </div>
+                        <h3 class="text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
                     </div>
-                    <h3 class="text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
                 </div>
 
                 <div class="flex items-center gap-4 text-right">

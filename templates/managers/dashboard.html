@@ -92,16 +92,22 @@
                             {% endif %}
                         </td>
                         <td class="py-4 px-4">
-                            <div class="space-y-1">
+                            <div class="space-y-1.5">
                                 {% for it in row.order.items.all %}
-                                <div class="flex items-center gap-1.5 flex-wrap">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    {% if it.article.image %}
+                                    <img src="{{ it.article.image.url }}" alt="{{ it.article.name }}"
+                                        class="w-7 h-7 object-cover rounded border border-slate-700">
+                                    {% endif %}
                                     {% if it.article.model %}
                                     <span
                                         class="bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">
                                         {{ it.article.model.code }}
                                     </span>
                                     {% endif %}
-                                    <span class="text-xs text-white font-semibold">{{ it.article.name }}</span>
+                                    <span class="text-xs text-white font-semibold">{{ it.article.name }} <span
+                                            class="text-cyan-400 font-mono text-[11px]">({{ it.article.code
+                                            }})</span></span>
                                 </div>
                                 {% empty %}
                                 <span class="text-slate-500 text-xs">—</span>

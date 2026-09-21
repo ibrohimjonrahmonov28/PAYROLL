@@ -18,7 +18,8 @@
 
 {% block content %}
 <div class="max-w-5xl mx-auto">
-    <form method="POST" action="{% url 'manager_order_create' %}" class="space-y-6" id="order-create-form">
+    <form method="POST" action="{% url 'manager_order_create' %}" enctype="multipart/form-data" class="space-y-6"
+        id="order-create-form">
         {% csrf_token %}
 
         <!-- 1. Zakaz Asosiy Ma'lumotlari -->
@@ -76,14 +77,14 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-sm font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                        <i class="fa-solid fa-tags"></i> 2. Artikullar (Ranglar) va Kiyim Razmerlari Rejasi
+                        <i class="fa-solid fa-tags"></i> 2. Modellar (Artikullar) va Kiyim Razmerlari Rejasi
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Har bir artikul uchun kerakli razmerlar (S, M, L, XL...) va
+                    <p class="text-xs text-slate-400 mt-0.5">Har bir model uchun kerakli razmerlar (98, 104, S, M...) va
                         har bir razmerning rejalashtirilgan sonini kiriting</p>
                 </div>
                 <button type="button" onclick="addArticleBlock()"
                     class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-plus"></i> + Yana Artikul Qo'shish
+                    <i class="fa-solid fa-plus"></i> + Yana Model (Artikul) Qo'shish
                 </button>
             </div>
 
@@ -96,29 +97,40 @@
                         <div class="flex items-center gap-2">
                             <span
                                 class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center art-num">1</span>
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Artikul / Rang
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Model / Artikul
                                 Ma'lumotlari</span>
                         </div>
                         <div class="text-right">
-                            <span class="text-xs text-slate-400">Artikul Jami:</span>
+                            <span class="text-xs text-slate-400">Model Jami:</span>
                             <span
                                 class="art-total-display font-black text-base text-amber-400 digital-font ml-1">0</span>
                             <span class="text-xs text-slate-500 font-semibold">dona</span>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Kodi *</label>
-                            <input type="text" name="article_code[]" required placeholder="Masalan: POLO-QORA"
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Model Nomi *</label>
+                            <input type="text" name="article_name[]" required placeholder="Masalan: Футболка детская"
+                                class="art-name-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Model Kodi (Artikul)
+                                *</label>
+                            <input type="text" name="article_code[]" required placeholder="Masalan: Tkfm555"
                                 class="art-code-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Nomi / Rangi
-                                *</label>
-                            <input type="text" name="article_name[]" required
-                                placeholder="Masalan: Erkaklar Polo (Qora)"
-                                class="art-name-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Model Rasmi
+                                (Ixtiyoriy)</label>
+                            <input type="file" name="article_image_0" accept="image/*"
+                                onchange="previewArticleImage(this, 0)"
+                                class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-cyan-300 hover:file:bg-slate-700 cursor-pointer">
+                            <div id="art-img-preview-0" class="hidden mt-1.5 flex items-center gap-2">
+                                <img src="" alt="Preview"
+                                    class="h-10 w-10 object-cover rounded-lg border border-slate-700">
+                                <span class="text-[10px] text-emerald-400 font-bold">Rasm tanlandi</span>
+                            </div>
                         </div>
                     </div>
 
@@ -133,6 +145,11 @@
                             <!-- Tezkor Shablonlar -->
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="text-[10px] text-slate-500 font-semibold">Tezkor shablon:</span>
+                                <button type="button"
+                                    onclick="applyPreset(this, ['98', '104', '110', '116', '122', '128', '134', '140', '146'])"
+                                    class="px-2.5 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded text-[10px] font-mono border border-amber-500/40 transition font-bold">
+                                    98—146 (Bolalar)
+                                </button>
                                 <button type="button" onclick="applyPreset(this, ['S', 'M', 'L', 'XL', '2XL'])"
                                     class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">
                                     S—2XL
@@ -289,6 +306,22 @@
         container.appendChild(div);
     }
 
+    function previewArticleImage(input, index) {
+        const previewContainer = document.getElementById(`art-img-preview-${index}`);
+        if (!previewContainer) return;
+        const file = input.files && input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewContainer.querySelector('img').src = e.target.result;
+                previewContainer.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.classList.add('hidden');
+        }
+    }
+
     function addArticleBlock() {
         const idx = articleCounter++;
         const container = document.getElementById('articles-container');
@@ -301,31 +334,40 @@
             <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-2">
                     <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center art-num">${idx + 1}</span>
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Artikul / Rang Ma'lumotlari</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Model / Artikul Ma'lumotlari</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <div>
-                        <span class="text-xs text-slate-400">Artikul Jami:</span>
+                        <span class="text-xs text-slate-400">Model Jami:</span>
                         <span class="art-total-display font-black text-base text-amber-400 digital-font ml-1">0</span>
                         <span class="text-xs text-slate-500 font-semibold">dona</span>
                     </div>
                     <button type="button" onclick="this.closest('.article-block').remove(); recalcOrderTotals();"
-                        class="text-slate-500 hover:text-rose-400 text-sm p-1" title="Artikulni o'chirish">
+                        class="text-slate-500 hover:text-rose-400 text-sm p-1" title="Modelni o'chirish">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Kodi *</label>
-                    <input type="text" name="article_code[]" required placeholder="Masalan: POLO-OQ"
+                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Model Nomi *</label>
+                    <input type="text" name="article_name[]" required placeholder="Masalan: Футболка детская"
+                        class="art-name-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Model Kodi (Artikul) *</label>
+                    <input type="text" name="article_code[]" required placeholder="Masalan: Tkfm539"
                         class="art-code-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Artikul Nomi / Rangi *</label>
-                    <input type="text" name="article_name[]" required placeholder="Masalan: Erkaklar Polo (Oq)"
-                        class="art-name-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Model Rasmi (Ixtiyoriy)</label>
+                    <input type="file" name="article_image_${idx}" accept="image/*" onchange="previewArticleImage(this, ${idx})"
+                        class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-cyan-300 hover:file:bg-slate-700 cursor-pointer">
+                    <div id="art-img-preview-${idx}" class="hidden mt-1.5 flex items-center gap-2">
+                        <img src="" alt="Preview" class="h-10 w-10 object-cover rounded-lg border border-slate-700">
+                        <span class="text-[10px] text-emerald-400 font-bold">Rasm tanlandi</span>
+                    </div>
                 </div>
             </div>
 
@@ -336,6 +378,8 @@
                     </span>
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="text-[10px] text-slate-500 font-semibold">Tezkor shablon:</span>
+                        <button type="button" onclick="applyPreset(this, ['98', '104', '110', '116', '122', '128', '134', '140', '146'])"
+                            class="px-2.5 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded text-[10px] font-mono border border-amber-500/40 transition font-bold">98—146 (Bolalar)</button>
                         <button type="button" onclick="applyPreset(this, ['S', 'M', 'L', 'XL', '2XL'])"
                             class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-mono border border-slate-700 transition">S—2XL</button>
                         <button type="button" onclick="applyPreset(this, ['38', '40', '42', '44', '46', '48'])"

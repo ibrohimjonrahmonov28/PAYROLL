@@ -157,24 +157,30 @@
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-emerald-400 mb-1">Aniq Yig'ilgan Son (dona)</label>
-                                    <input type="number" name="real_quantity" id="real-qty-{{ b_it.id }}" value="{{ b_it.quantity }}" min="1" required
+                                    <label class="block text-[11px] font-bold text-emerald-400 mb-1">Aniq Yig'ilgan Son
+                                        (dona)</label>
+                                    <input type="number" name="real_quantity" id="real-qty-{{ b_it.id }}"
+                                        value="{{ b_it.quantity }}" min="1" required
                                         oninput="updateBoxSplitPreview({{ b_it.id }})"
                                         class="w-full bg-slate-950 border border-emerald-600 rounded-xl px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-black text-sm focus:outline-none focus:border-emerald-400">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-amber-400 mb-1">Nechta Qutiga Bo'linsin?</label>
-                                    <input type="number" name="box_count" id="box-count-{{ b_it.id }}" value="1" min="1" required
-                                        placeholder="Masalan: 4"
-                                        oninput="updateBoxSplitPreview({{ b_it.id }})"
+                                    <label class="block text-[11px] font-bold text-amber-400 mb-1">Nechta Qutiga
+                                        Bo'linsin?</label>
+                                    <input type="number" name="box_count" id="box-count-{{ b_it.id }}" value="1" min="1"
+                                        required placeholder="Masalan: 4" oninput="updateBoxSplitPreview({{ b_it.id }})"
                                         class="w-full bg-slate-950 border border-amber-500/60 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold text-sm focus:outline-none focus:border-amber-400">
                                 </div>
                             </div>
 
                             <!-- Real-time split preview -->
-                            <div id="split-preview-{{ b_it.id }}" class="text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-800/50 px-3 py-1.5 rounded-xl flex items-center justify-between">
-                                <span class="text-slate-400"><i class="fa-solid fa-boxes-packing text-cyan-400 mr-1"></i> Qutilar taqsimoti:</span>
-                                <span class="font-bold text-white preview-text">1 ta quti ({{ b_it.quantity }} dona)</span>
+                            <div id="split-preview-{{ b_it.id }}"
+                                class="text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-800/50 px-3 py-1.5 rounded-xl flex items-center justify-between">
+                                <span class="text-slate-400"><i
+                                        class="fa-solid fa-boxes-packing text-cyan-400 mr-1"></i> Qutilar
+                                    taqsimoti:</span>
+                                <span class="font-bold text-white preview-text">1 ta quti ({{ b_it.quantity }}
+                                    dona)</span>
                             </div>
 
                             <div class="grid grid-cols-2 gap-2">

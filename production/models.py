@@ -72,6 +72,7 @@ class Article(models.Model):
     )
     code = models.CharField(max_length=50, unique=True, verbose_name="Artikul kodi")
     name = models.CharField(max_length=200, verbose_name="Artikul nomi / Rangi")
+    image = models.ImageField(upload_to='articles/%Y/%m/', null=True, blank=True, verbose_name="Model rasmi")
     description = models.TextField(blank=True, verbose_name="Tavsif")
     daily_norm = models.PositiveIntegerField(default=1000, verbose_name="Kunlik norma (ball / shartli dona)")
     created_at = models.DateTimeField(auto_now_add=True)

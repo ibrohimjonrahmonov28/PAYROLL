@@ -140,13 +140,29 @@ def manager_order_create(request):
 
                     norm_val = product_model.daily_norm if (product_model and product_model.daily_norm) else 1000
 
-                    article, _ = Article.objects.get_or_create(
+                    article_image = request.FILES.get(f'article_image_{i}')
+
+                    article, created = Article.objects.get_or_create(
                         code=art_code,
-                        defaults={'name': art_name, 'daily_norm': norm_val, 'model': product_model}
+                        defaults={
+                            'name': art_name,
+                            'daily_norm': norm_val,
+                            'model': product_model,
+                            'image': article_image,
+                        }
                     )
+                    update_fields = []
                     if product_model and article.model != product_model:
                         article.model = product_model
-                        article.save()
+                        update_fields.append('model')
+                    if art_name and article.name != art_name:
+                        article.name = art_name
+                        update_fields.append('name')
+                    if article_image:
+                        article.image = article_image
+                        update_fields.append('image')
+                    if update_fields:
+                        article.save(update_fields=update_fields)
 
                     # Ushbu artikul uchun razmerlar
                     # Parametrlar: size_name_0[], size_qty_0[]
