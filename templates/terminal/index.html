@@ -191,7 +191,7 @@
     <!-- SCANNER CAPTURE BAR (ALWAYS AUTO-FOCUSED FOR ZEBRA DS22) -->
     <div class="bg-slate-900/90 border-b border-slate-800 px-4 md:px-6 py-3">
         <div class="max-w-5xl mx-auto flex items-center gap-3">
-            <div class="relative flex-1">
+            <form id="scanner-form" onsubmit="handleScannerFormSubmit(event)" class="relative flex-1">
                 <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                     <i class="fa-solid fa-qrcode text-emerald-400 text-lg"></i>
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -201,13 +201,13 @@
                     class="w-full pl-12 pr-28 py-3.5 bg-slate-950 border-2 border-emerald-500/60 rounded-2xl text-white text-base md:text-lg font-bold placeholder-slate-500 focus:outline-none scanner-active transition shadow-2xl">
 
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button type="button" onclick="handleManualScanSubmit()"
+                    <button type="submit"
                         class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs shadow-md transition flex items-center gap-1">
                         <span>Yuborish</span>
                         <i class="fa-solid fa-arrow-turn-down text-[10px] rotate-90"></i>
                     </button>
                 </div>
-            </div>
+            </form>
 
             <button onclick="resetScanningSession()"
                 class="px-4 py-3.5 bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 rounded-2xl text-xs font-bold transition flex items-center gap-2"
@@ -728,6 +728,8 @@
         // -------------------------------------------------------------
         // 3. HARDWARE SCANNER AUTO-FOCUS & AUTO-ENTER ROUTING
         // -------------------------------------------------------------
+        // 3. SCANNER CAPTURE & ENTER EVENT HANDLING (ZEBRA DS22 / BLUETOOTH)
+        // -------------------------------------------------------------
         const scanInput = document.getElementById('zebra-scan-input');
         let scanDebounceTimer = null;
         let isAutoEnterEnabled = localStorage.getItem('terminal_auto_enter') !== 'false'; // default: true
@@ -780,6 +782,119 @@
             setTimeout(keepScannerFocused, 100);
         });
 
+        // Har 2 soniyada fokus yo'qolmasligini ta'minlash (modal ochiq bo'lmasa)
+        setInterval(keepScannerFocused, 2000);
+
+        // Har qanday klaviatura / skaner Enter yoki yangi qator signallarini aniqlash
+        function isEnterKey(e) {
+            if (!e) return false;
+            const key = e.key;
+            const code = e.code;
+            const which = e.which || e.keyCode || e.charCode;
+            return (
+                key === 'Enter' ||
+                key === 'Return' ||
+                key === '\r' ||
+                key === '\n' ||
+                key === 'Linefeed' ||
+                key === 'Accept' ||
+                key === 'Done' ||
+                key === 'Tab' || // Ba'zi Zebra skanerlarida suffix Tab qilib sozlangan bo'lishi mumkin
+                code === 'Enter' ||
+                code === 'NumpadEnter' ||
+                code === 'Return' ||
+                which === 13 ||
+                which === 10 ||
+                which === 9
+            );
+        }
+
+        function submitScan() {
+            clearTimeout(scanDebounceTimer);
+            const val = scanInput.value.replace(/[\r\n\t]+/g, '').trim();
+            scanInput.value = '';
+            if (val) {
+                processIncomingScan(val);
+            }
+            scanInput.focus();
+        }
+
+        function handleScannerFormSubmit(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            submitScan();
+        }
+
+        function handleManualScanSubmit() {
+            submitScan();
+        }
+
+        // 1. INPUT EVENT (Zebra Bluetooth yoki klaviatura orqali kiritish)
+        scanInput.addEventListener('input', (e) => {
+            // Skaner yangi qator (\r, \n) yuborgan bo'lsa darhol submit qilish
+            if (
+                e.inputType === 'insertLineBreak' ||
+                (e.data && (e.data === '\n' || e.data === '\r')) ||
+                scanInput.value.includes('\n') ||
+                scanInput.value.includes('\r')
+            ) {
+                submitScan();
+                return;
+            }
+
+            // Avto-Enter taymeri (180ms debounce):
+            // Skanerlar belgilarni juda tez kiritadi. Belgilar kiritilib bo'lgach,
+            // 180ms yangi belgi kelmasa, avtomatik ravishda yuboriladi!
+            clearTimeout(scanDebounceTimer);
+            const val = scanInput.value.trim();
+            if (!val) return;
+
+            if (isAutoEnterEnabled) {
+                scanDebounceTimer = setTimeout(() => {
+                    const currentVal = scanInput.value.trim();
+                    if (currentVal) {
+                        submitScan();
+                    }
+                }, 180);
+            }
+        });
+
+        // 2. KEYDOWN, KEYPRESS, KEYUP, CHANGE EVENTLARI
+        scanInput.addEventListener('keydown', (e) => {
+            if (isEnterKey(e)) {
+                e.preventDefault();
+                e.stopPropagation();
+                submitScan();
+            }
+        });
+
+        scanInput.addEventListener('keypress', (e) => {
+            if (isEnterKey(e)) {
+                e.preventDefault();
+                e.stopPropagation();
+                submitScan();
+            }
+        });
+
+        scanInput.addEventListener('keyup', (e) => {
+            if (isEnterKey(e)) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (scanInput.value.trim()) {
+                    submitScan();
+                }
+            }
+        });
+
+        scanInput.addEventListener('change', (e) => {
+            if (scanInput.value.trim()) {
+                submitScan();
+            }
+        });
+
+        // 3. GLOBAL DOKUMENT TINGLOVCHISI
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeWorkerSearchModal();
@@ -794,70 +909,37 @@
                 finalizeBatch();
                 return;
             }
+
             const activeEl = document.activeElement;
             const isModalInput = activeEl && (
                 activeEl.id === 'modal-worker-search-input' ||
                 activeEl.id === 'box-lookup-input' ||
                 activeEl.id === 'worker-balance-input'
             );
+
             if (!isModalInput) {
-                const isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13 || e.code === 'Enter' || e.code === 'NumpadEnter';
-                if (isEnter && activeEl !== scanInput) {
-                    const val = scanInput.value.trim();
-                    if (val) {
+                // Agar Enter bosilgan bo'lsa va inputda ma'lumot bo'lsa
+                if (isEnterKey(e)) {
+                    if (scanInput.value.trim()) {
                         e.preventDefault();
-                        clearTimeout(scanDebounceTimer);
-                        scanInput.value = '';
-                        processIncomingScan(val);
+                        submitScan();
                         return;
                     }
                 }
+
+                // Agar fokus scanInput da bo'lmasa, birinchi belgini yo'qotmaslik uchun scanInput ga yo'naltirish
                 if (activeEl !== scanInput) {
-                    scanInput.focus();
+                    if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                        scanInput.focus();
+                        scanInput.value += e.key;
+                        e.preventDefault();
+                        scanInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        scanInput.focus();
+                    }
                 }
             }
         });
-
-        // Skaner orqali avto-enter (120ms debounce):
-        // Skanerlar harflarni 10-30ms ichida ketma-ket kiritadi.
-        // Oxirgi belgi kelganidan so'ng 120ms ichida yangi belgi kelmasa, avtomatik Enter (submit) bo'ladi!
-        scanInput.addEventListener('input', (e) => {
-            if (!isAutoEnterEnabled) return;
-            clearTimeout(scanDebounceTimer);
-            const val = scanInput.value.trim();
-            if (!val) return;
-
-            scanDebounceTimer = setTimeout(() => {
-                const currentVal = scanInput.value.trim();
-                if (currentVal) {
-                    scanInput.value = '';
-                    processIncomingScan(currentVal);
-                }
-            }, 120);
-        });
-
-        scanInput.addEventListener('keydown', (e) => {
-            const isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13 || e.code === 'Enter' || e.code === 'NumpadEnter';
-            if (isEnter) {
-                e.preventDefault();
-                clearTimeout(scanDebounceTimer);
-                const val = scanInput.value.trim();
-                scanInput.value = '';
-                if (val) {
-                    processIncomingScan(val);
-                }
-            }
-        });
-
-        function handleManualScanSubmit() {
-            clearTimeout(scanDebounceTimer);
-            const val = scanInput.value.trim();
-            scanInput.value = '';
-            if (val) {
-                processIncomingScan(val);
-            }
-            scanInput.focus();
-        }
 
         // -------------------------------------------------------------
         // 4. SCAN PROCESSING DISPATCHER
