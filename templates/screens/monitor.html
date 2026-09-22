@@ -74,67 +74,59 @@
     </style>
 </head>
 
-<body class="h-screen flex flex-col p-3 md:p-5 select-none overflow-hidden bg-[#070d18] text-[#f1f5f9]">
+<body class="h-screen flex flex-col p-2.5 md:p-3.5 select-none overflow-hidden bg-[#070d18] text-[#f1f5f9]">
 
     <!-- HEADER / STATUS BAR -->
-    <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-3 gap-3 flex-shrink-0">
-        <!-- Title & Monitor Badge -->
-        <div class="flex items-center gap-4">
+    <header class="flex items-center justify-between border-b border-slate-800/80 pb-2.5 mb-2.5 gap-3 flex-shrink-0">
+        <!-- Left: Patok Badge, Terry Jar, and Large Digital Clock -->
+        <div class="flex items-center gap-3 md:gap-5 shrink-0">
+            <!-- Patok Badge -->
             <div
-                class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-5 py-2 rounded-xl shadow-lg flex items-center gap-3">
+                class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-4 py-1.5 md:py-2 rounded-xl shadow-lg flex items-center gap-2.5 shrink-0">
                 <i class="fa-solid fa-tv"></i>
                 <span>{{ screen_number }}-PATOK</span>
             </div>
-            <div>
-                <h1 class="text-xl md:text-2xl font-black tracking-wide text-white flex items-center gap-2">
+
+            <!-- Terry Jar Title -->
+            <div class="shrink-0">
+                <h1 class="text-xl md:text-2xl font-black tracking-wide text-white leading-tight flex items-center gap-2">
                     TERRY JAR
                     <span
-                        class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold">
-                        Real-vaqt rejimida
+                        class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
+                        Online
                     </span>
                 </h1>
-                <p class="text-sm text-slate-400 font-medium">Dona-bay ish haqi va monitoring tizimi</p>
+                <p class="text-xs text-slate-400 font-medium">Dona-bay monitoring tizimi</p>
+            </div>
+
+            <!-- VAQT (Kattaroq, Terry Jar va Patok raqami qatorida) -->
+            <div class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-4 py-1.5 rounded-xl shrink-0">
+                <i class="fa-regular fa-clock text-amber-400 text-2xl md:text-3xl"></i>
+                <div>
+                    <div id="live-clock" class="text-3xl md:text-4xl lg:text-5xl font-black digital-font text-amber-400 leading-none tracking-wider">00:00:00</div>
+                    <div id="live-date" class="text-xs text-slate-400 font-semibold tracking-wide mt-0.5">{{ date_str }}</div>
+                </div>
             </div>
         </div>
 
-        <!-- Middle Summary Stats -->
-        <div class="flex items-center gap-6 bg-slate-900/90 border border-slate-800 px-6 py-2 rounded-xl">
-            <div class="text-center">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Faol Tikuvchilar</span>
-                <span id="stat-active-workers" class="text-2xl font-black text-cyan-400 digital-font">{{
-                    active_workers_count }}</span>
-            </div>
-            <div class="h-8 w-px bg-slate-800"></div>
-            <div class="text-center">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan
-                    (dona)</span>
-                <span id="stat-total-units" class="text-2xl font-black text-amber-400 digital-font">{{ grand_total_units
-                    }}</span>
-            </div>
-            <div class="h-8 w-px bg-slate-800"></div>
-            <div class="text-center">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block">O'rtacha KPI
-                    (Norma)</span>
-                <span id="stat-avg-kpi" class="text-2xl font-black text-emerald-400 digital-font glow-emerald">
-                    {{ avg_screen_kpi }}%
-                </span>
-            </div>
-        </div>
-
-        <!-- Clock, Refresh & Fullscreen -->
-        <div class="flex items-center gap-3">
-            <!-- Countdown Timer Indicator -->
-            <div
-                class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
-                <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
-                <span>Yangilanish: <strong id="timer-countdown"
-                        class="text-white digital-font text-sm">30</strong>s</span>
-            </div>
-
-            <!-- Digital Clock -->
-            <div class="bg-slate-900 border border-slate-800 px-4 py-1.5 rounded-xl text-right">
-                <div id="live-clock" class="text-2xl font-black digital-font text-amber-400 leading-none">00:00:00</div>
-                <div id="live-date" class="text-xs text-slate-400 font-medium">{{ date_str }}</div>
+        <!-- Right: Summary Stats & Actions -->
+        <div class="flex items-center gap-3 shrink-0">
+            <!-- Summary Stats Card -->
+            <div class="flex items-center gap-4 md:gap-6 bg-slate-900/90 border border-slate-800 px-5 py-1.5 rounded-xl">
+                <div class="text-center">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Faol Tikuvchilar</span>
+                    <span id="stat-active-workers" class="text-2xl md:text-3xl font-black text-cyan-400 digital-font">{{ active_workers_count }}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan (Dazmol)</span>
+                    <span id="stat-total-units" class="text-2xl md:text-3xl font-black text-amber-400 digital-font">{{ grand_total_units }}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">O'rtacha KPI</span>
+                    <span id="stat-avg-kpi" class="text-2xl md:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{ avg_screen_kpi }}%</span>
+                </div>
             </div>
 
             <!-- Auto-scroll indicator & toggle for TV -->
@@ -142,37 +134,25 @@
                 class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70"
                 title="64-lik TV: Avtomatik pastga tushish (Auto-scroll)">
                 <i id="scroll-icon" class="fa-solid fa-arrows-up-down animate-pulse"></i>
-                <span id="scroll-text" class="hidden md:inline">Avto-tushish: Faol</span>
+                <span id="scroll-text" class="hidden xl:inline">Avto-tushish: Faol</span>
             </button>
+
+            <!-- Countdown Timer Indicator -->
+            <div
+                class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs text-slate-400"
+                title="Keyingi yangilanish">
+                <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
+                <strong id="timer-countdown" class="text-white digital-font text-sm">30</strong>s
+            </div>
 
             <!-- Fullscreen Button -->
             <button onclick="toggleFullscreen()"
-                class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl transition"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl transition"
                 title="To'liq ekran (F11)">
                 <i class="fa-solid fa-expand text-lg"></i>
             </button>
         </div>
     </header>
-
-    <!-- SCREEN SWITCHER NAVIGATION (Quick TV access for 40 Patoks) -->
-    <nav class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 text-xs font-bold scrollbar-none flex-shrink-0">
-        <span class="text-slate-500 mr-1 uppercase tracking-wider flex items-center gap-1 shrink-0">
-            <i class="fa-solid fa-layer-group text-amber-400"></i> Patoklar (1-40):
-        </span>
-        <div class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
-            {% for sc in all_screens_list %}
-            <a href="{% url 'screens:screen_view' sc %}"
-                class="px-2.5 py-1 rounded-lg border transition text-center shrink-0 {% if screen_number == sc %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md scale-105{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700{% endif %}">
-                {{ sc }}
-            </a>
-            {% endfor %}
-        </div>
-
-        <a href="{% url 'screens:overview' %}"
-            class="ml-auto px-3.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 shrink-0">
-            <i class="fa-solid fa-table-cells text-amber-400"></i> Barcha 40 ta Patok
-        </a>
-    </nav>
 
     <!-- MAIN LEADERBOARD TABLE -->
     <main
@@ -194,29 +174,29 @@
                 <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-lg">
                     {% for w in workers %}
                     <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="py-3 px-2 text-center">
+                        <td class="py-2 px-2 text-center">
                             <span
-                                class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
+                                class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs md:text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
                                 {{ forloop.counter }}
                             </span>
                         </td>
-                        <td class="py-3 px-4 font-bold text-white tracking-wide text-lg md:text-xl truncate">
+                        <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
                             {{ w.full_name }}
                         </td>
                         <td
-                            class="py-3 px-3 text-center font-bold text-amber-400 text-lg md:text-xl digital-font whitespace-nowrap">
+                            class="py-2 px-2.5 text-center font-bold text-amber-400 text-base md:text-lg digital-font whitespace-nowrap">
                             {{ w.total_units }} <small class="text-xs text-slate-400 font-sans">dona</small>
                         </td>
 
                         <!-- Model bo'yicha norma: 50/1500, agar 2 model bo'lsa 500/1000 -->
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-2 px-3 text-center">
                             {% if w.models %}
                             <div class="flex flex-wrap items-center justify-center gap-1.5">
                                 {% for m in w.models %}
                                 <div
-                                    class="bg-slate-950/90 border border-slate-800 px-2.5 py-1 rounded-xl inline-flex items-center gap-1.5 shadow-sm">
+                                    class="bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
                                     <span class="text-xs text-cyan-400 font-mono font-bold">{{ m.model_code }}:</span>
-                                    <span class="text-base md:text-lg font-black text-amber-300 digital-font">{{
+                                    <span class="text-sm md:text-base font-black text-amber-300 digital-font">{{
                                         m.ratio_str }}</span>
                                     <span class="text-xs font-bold text-slate-400 digital-font">({{ m.percentage
                                         }}%)</span>
@@ -229,9 +209,9 @@
                         </td>
 
                         <!-- Bajarilishi (Progress Bar) -->
-                        <td class="py-3 px-3 text-center">
+                        <td class="py-2 px-2.5 text-center">
                             <div
-                                class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 max-w-[140px] mx-auto p-0.5 shadow-inner">
+                                class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[130px] mx-auto p-0.5 shadow-inner">
                                 <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
                                     style="width: {{ w.progress_width }}%;"></div>
                             </div>
@@ -239,14 +219,14 @@
 
                         <!-- Bugungi Ish haqi -->
                         <td
-                            class="py-3 px-4 text-right font-black text-lg md:text-xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
+                            class="py-2 px-3 text-right font-black text-base md:text-lg text-emerald-400 digital-font glow-emerald whitespace-nowrap">
                             {{ w.total_earnings_formatted }} <span
                                 class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                         </td>
 
                         <!-- Oylik Maosh -->
                         <td
-                            class="py-3 px-4 text-right font-black text-lg md:text-xl text-cyan-300 digital-font whitespace-nowrap">
+                            class="py-2 px-3 text-right font-black text-base md:text-lg text-cyan-300 digital-font whitespace-nowrap">
                             {{ w.month_earnings_formatted }} <span
                                 class="text-xs font-semibold text-cyan-500 font-sans">so'm</span>
                         </td>
@@ -358,30 +338,30 @@
 
                         html += `
                         <tr class="hover:bg-slate-800/50 transition-colors">
-                            <td class="py-3 px-2 text-center">
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm ${rankClass}">
+                            <td class="py-2 px-2 text-center">
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs md:text-sm ${rankClass}">
                                     ${rank}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 font-bold text-white tracking-wide text-lg md:text-xl truncate">
+                            <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
                                 ${w.full_name}
                             </td>
-                            <td class="py-3 px-3 text-center font-bold text-amber-400 text-lg md:text-xl digital-font whitespace-nowrap">
+                            <td class="py-2 px-2.5 text-center font-bold text-amber-400 text-base md:text-lg digital-font whitespace-nowrap">
                                 ${w.total_units} <small class="text-xs text-slate-400 font-sans">dona</small>
                             </td>
-                            <td class="py-3 px-4 text-center">
+                            <td class="py-2 px-3 text-center">
                                 ${modelsHtml}
                             </td>
-                            <td class="py-3 px-3 text-center">
-                                <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 max-w-[140px] mx-auto p-0.5 shadow-inner">
+                            <td class="py-2 px-2.5 text-center">
+                                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[130px] mx-auto p-0.5 shadow-inner">
                                     <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
                                         style="width: ${w.progress_width}%;"></div>
                                 </div>
                             </td>
-                            <td class="py-3 px-4 text-right font-black text-lg md:text-xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
+                            <td class="py-2 px-3 text-right font-black text-base md:text-lg text-emerald-400 digital-font glow-emerald whitespace-nowrap">
                                 ${w.total_earnings_formatted} <span class="text-xs font-semibold text-emerald-500 font-sans">so'm</span>
                             </td>
-                            <td class="py-3 px-4 text-right font-black text-lg md:text-xl text-cyan-300 digital-font whitespace-nowrap">
+                            <td class="py-2 px-3 text-right font-black text-base md:text-lg text-cyan-300 digital-font whitespace-nowrap">
                                 ${w.month_earnings_formatted} <span class="text-xs font-semibold text-cyan-500 font-sans">so'm</span>
                             </td>
                         </tr>`;

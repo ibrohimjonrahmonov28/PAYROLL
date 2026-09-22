@@ -1,5 +1,6 @@
 from decimal import Decimal
 import datetime
+from django.conf import settings
 from django.utils import timezone
 from django.db.models import Sum, Q, Count
 from .models import ProductModel, Article, Ticket, OrderItem, DailyModelProgress

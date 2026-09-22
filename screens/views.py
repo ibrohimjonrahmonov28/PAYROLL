@@ -3,9 +3,9 @@ import calendar
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
-from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, Value
+from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, Value, Q
 from django.db.models.functions import Coalesce
-from production.models import Ticket, OrderItem
+from production.models import Ticket, OrderItem, Operation
 from accounts.models import Worker
 
 
@@ -35,6 +35,16 @@ def get_screen_data(screen_number: int, target_date=None):
     # Ushbu ekranga oxirgi stikeri to'g'ri kelgan xodimlar
     screen_worker_ids = [w_id for w_id, s_num in worker_latest_screen.items() if s_num == screen_number]
 
+    # Bugun dazmoldan o'tgan mahsulotlar soni:
+    # Foydalanuvchi talabi: Bugun tikilgan dona operatsiyalardan bugun dazmoldan o'tgan sonlar yig'indisi bo'ladi
+    dazmol_qs = Ticket.objects.filter(
+        Q(screen_number=screen_number) | (Q(worker_id__in=screen_worker_ids) if screen_worker_ids else Q(pk__in=[])),
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(day_start, day_end),
+        article_operation__operation__name__icontains='DAZMOL'
+    ).distinct()
+    dazmol_units = dazmol_qs.aggregate(s=Sum('quantity'))['s'] or 0
+
     if not screen_worker_ids:
         return {
             'screen_number': screen_number,
@@ -42,7 +52,8 @@ def get_screen_data(screen_number: int, target_date=None):
             'workers': [],
             'grand_total_earnings': 0,
             'grand_total_earnings_formatted': "0",
-            'grand_total_units': 0,
+            'grand_total_units': dazmol_units,
+            'dazmol_units': dazmol_units,
             'avg_screen_kpi': 0.0,
             'active_workers_count': 0,
             'all_screens_list': list(range(1, MAX_SCREENS + 1)),
@@ -175,7 +186,7 @@ def get_screen_data(screen_number: int, target_date=None):
 
     workers_list = []
     grand_total_earnings = 0
-    grand_total_units = 0
+    total_scanned_units = 0
     total_pct_sum = 0
 
     for stat in worker_stats:
@@ -183,7 +194,7 @@ def get_screen_data(screen_number: int, target_date=None):
         earnings = int(stat['total_earnings'] or 0)
         units = int(stat['total_units'] or 0)
         grand_total_earnings += earnings
-        grand_total_units += units
+        total_scanned_units += units
 
         month_earnings = int(month_earnings_map.get(w_id, earnings) or 0)
         month_earnings_formatted = f"{month_earnings:,.0f}".replace(",", " ")
@@ -233,6 +244,9 @@ def get_screen_data(screen_number: int, target_date=None):
 
     avg_screen_kpi = round(total_pct_sum / len(workers_list), 1) if workers_list else 0.0
 
+    has_dazmol_op = Operation.objects.filter(name__icontains='DAZMOL').exists()
+    grand_total_units = dazmol_units if has_dazmol_op else total_scanned_units
+
     return {
         'screen_number': screen_number,
         'date_str': target_date.strftime("%d.%m.%Y"),
@@ -240,6 +254,7 @@ def get_screen_data(screen_number: int, target_date=None):
         'grand_total_earnings': grand_total_earnings,
         'grand_total_earnings_formatted': f"{grand_total_earnings:,.0f}".replace(",", " "),
         'grand_total_units': grand_total_units,
+        'dazmol_units': dazmol_units,
         'avg_screen_kpi': avg_screen_kpi,
         'active_workers_count': len(workers_list),
         'all_screens_list': list(range(1, MAX_SCREENS + 1)),
