@@ -117,19 +117,19 @@
                 <span>Zebra DS22 Ulangan</span>
             </div>
 
-            <!-- Screen selector -->
-            <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
-                <i class="fa-solid fa-tv text-cyan-400"></i>
-                <label for="active-screen-select" class="font-bold text-slate-400">Sex Ekrani:</label>
-                <select id="active-screen-select" onchange="onScreenChange(this.value)"
-                    class="bg-transparent text-cyan-300 font-black focus:outline-none cursor-pointer">
-                    {% for sc in screens_list %}
-                    <option value="{{ sc }}" class="bg-slate-900 text-white">Sex {{ sc }} Ekrani</option>
-                    {% endfor %}
-                </select>
+            <!-- Active Patok Selector & Switch Button -->
+            <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition rounded-xl px-3 py-1.5 text-xs shadow-inner">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold text-slate-400">Patok:</span>
+                <span id="active-patok-display" class="font-black text-amber-400 digital-font text-sm">1-Patok</span>
+                <button type="button" onclick="openPatokModal()"
+                    class="ml-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                    title="Boshqa patokni tanlash">
+                    <i class="fa-solid fa-layer-group text-[10px] text-amber-400"></i> Almashtirish
+                </button>
                 <a id="screen-monitor-link" href="/screens/1/" target="_blank"
-                    class="text-cyan-400 hover:text-cyan-300 text-xs ml-1" title="Ushbu ekranni yangi oynada ochish">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    class="text-slate-400 hover:text-cyan-300 text-xs ml-1 p-1 transition" title="Tanlangan patok televizorini ochish">
+                    <i class="fa-solid fa-tv"></i>
                 </a>
             </div>
 
@@ -475,7 +475,7 @@
                         <button id="finalize-btn" onclick="finalizeBatch()" disabled
                             class="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-slate-950 font-black rounded-xl text-sm shadow-xl transition flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed">
                             <i class="fa-solid fa-circle-check text-base"></i>
-                            <span id="finalize-btn-text">QABUL QILISH VA SEX EKRANIGA UZATISH</span>
+                            <span id="finalize-btn-text">1-PATOK EKRANIGA UZATISH (ENTER)</span>
                         </button>
                     </div>
                 </div>
@@ -516,6 +516,118 @@
             <div id="modal-worker-candidates" class="space-y-2 max-h-60 overflow-y-auto pt-2">
                 <!-- Dynamically filled -->
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: 40 TA PATOK (LINIYA) TANLASH (PLANSHETGA MOS 8x5 TO'R) -->
+    <div id="patok-select-modal"
+        class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+        <div
+            class="bg-slate-900 border border-slate-700 w-full max-w-5xl rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3.5 max-h-[98vh] flex flex-col">
+            
+            <!-- Modal Header -->
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg font-black">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                            <span>TIKUV PATOKINI (LINIYASINI) TANLANG</span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-black border border-amber-500/40">
+                                40 ta Patok
+                            </span>
+                        </h3>
+                        <p class="text-xs text-slate-400">
+                            Skanerlangan biletlar tanlangan patok monitoriga uzatiladi
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick search / number input -->
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <i class="fa-solid fa-hashtag absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="number" id="patok-quick-input" min="1" max="40"
+                            placeholder="Raqam: 1-40..."
+                            oninput="filterPatokCards(this.value)"
+                            onkeydown="if(event.key==='Enter') selectPatokByInput()"
+                            class="w-36 sm:w-44 pl-7 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                    <button type="button" onclick="closePatokModal()"
+                        class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition border border-slate-700">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 8x5 Grid of 40 Patoks (Planshetga mos) -->
+            <div class="flex-1 overflow-y-auto pr-1">
+                <div id="patoks-grid-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-8 gap-2 sm:gap-2.5">
+                    {% for p in patoks_data %}
+                    <button type="button" onclick="selectPatok({{ p.number }})"
+                        id="patok-card-{{ p.number }}"
+                        data-patok="{{ p.number }}"
+                        class="patok-card group relative p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 text-center flex flex-col items-center justify-between
+                        {% if p.is_active %}
+                        bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-900/50 shadow-lg shadow-emerald-950/40
+                        {% else %}
+                        bg-slate-950/80 border-slate-800 hover:border-amber-500/60 hover:bg-slate-850 hover:scale-[1.02]
+                        {% endif %}">
+                        
+                        <div class="w-full flex items-center justify-between text-[10px] text-slate-400 font-bold mb-1">
+                            <span class="text-slate-500">#{{ p.number }}</span>
+                            {% if p.is_active %}
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Faol"></span>
+                            {% else %}
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                            {% endif %}
+                        </div>
+
+                        <div class="my-0.5">
+                            <span class="text-xl sm:text-2xl font-black digital-font block leading-none
+                                {% if p.is_active %}text-emerald-400 group-hover:text-emerald-300{% else %}text-white group-hover:text-amber-400{% endif %}">
+                                {{ p.number }}
+                            </span>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider block mt-0.5
+                                {% if p.is_active %}text-emerald-300/80{% else %}text-slate-400{% endif %}">
+                                Patok
+                            </span>
+                        </div>
+
+                        <div class="mt-1 w-full">
+                            {% if p.is_active %}
+                            <span class="block px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold text-[9px] truncate">
+                                {{ p.workers_count }} ishchi ({{ p.units_count }})
+                            </span>
+                            {% else %}
+                            <span class="block px-1.5 py-0.5 rounded-md bg-slate-900 text-slate-500 text-[9px] truncate">
+                                Bo'sh
+                            </span>
+                            {% endif %}
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Footer info -->
+            <div class="border-t border-slate-800 pt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span>Bugun ish ketayotgan patok</span>
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                        <span>Hali stiker urilmagan patok</span>
+                    </span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                    Tanlash uchun patok ustiga bosing yoki raqamini yozib <b>Enter</b> bosing.
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1207,7 +1319,7 @@
                         const sm = data.summary;
                         showStatusBanner('success',
                             `✅ ${sm.total_amount_formatted} UZS QABUL QILINDI!`,
-                            `Tikuvchi: ${sm.worker_name} (${sm.worker_id})\nSex ${sm.screen_number} Ekrani yangilandi: ${sm.tickets_count} ta bilet, ${sm.total_units} dona kiyim.`
+                            `Tikuvchi: ${sm.worker_name} (${sm.worker_id})\n${sm.screen_number}-Patok Ekrani yangilandi: ${sm.tickets_count} ta bilet, ${sm.total_units} dona kiyim.`
                         );
 
                         prependRecentScanLog(sm.worker_name, sm.total_units, sm.total_amount_formatted);
@@ -1219,7 +1331,7 @@
                         playErrorBuzz();
                         showStatusBanner('error', "YAKUNLASHDA XATOLIK", data.message || "Biletlarni yozishda xatolik yuz berdi.");
                         finalizeBtn.disabled = false;
-                        document.getElementById('finalize-btn-text').innerText = "QABUL QILISH VA SEX EKRANIGA UZATISH";
+                        document.getElementById('finalize-btn-text').innerText = getFinalizeBtnText();
                     }
                 })
                 .catch(err => {
@@ -1227,7 +1339,7 @@
                     playErrorBuzz();
                     showStatusBanner('error', "XATOLIK", "Xatolik: " + (err.message || "Server bilan aloqa uzildi."));
                     finalizeBtn.disabled = false;
-                    document.getElementById('finalize-btn-text').innerText = "QABUL QILISH VA SEX EKRANIGA UZATISH";
+                    document.getElementById('finalize-btn-text').innerText = getFinalizeBtnText();
                 })
                 .finally(() => {
                     scanInput.focus();
@@ -1271,28 +1383,122 @@
                 hideStatusBanner();
             }
 
-            document.getElementById('finalize-btn-text').innerText = "QABUL QILISH VA SEX EKRANIGA UZATISH";
+            document.getElementById('finalize-btn-text').innerText = getFinalizeBtnText();
             scanInput.focus();
         }
 
         // -------------------------------------------------------------
-        // 8. SCREEN SELECTION & LOCALSTORAGE MEMORY
+        // 8. 40 TA PATOK (LINIYA) BOSHQARUVI & LOCALSTORAGE
         // -------------------------------------------------------------
-        function initScreenSelection() {
-            const select = document.getElementById('active-screen-select');
-            select.value = selectedScreenNumber;
-            updateScreenLinks(selectedScreenNumber);
+        function getFinalizeBtnText() {
+            return `${selectedScreenNumber}-PATOK EKRANIGA UZATISH (ENTER)`;
         }
 
-        function onScreenChange(val) {
-            selectedScreenNumber = parseInt(val, 10);
+        function openPatokModal() {
+            const modal = document.getElementById('patok-select-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            highlightActivePatokCard(selectedScreenNumber);
+            const input = document.getElementById('patok-quick-input');
+            if (input) {
+                input.value = '';
+                filterPatokCards('');
+                setTimeout(() => input.focus(), 150);
+            }
+        }
+
+        function closePatokModal() {
+            const modal = document.getElementById('patok-select-modal');
+            if (modal) modal.classList.add('hidden');
+            if (scanInput) scanInput.focus();
+        }
+
+        function selectPatok(num) {
+            num = parseInt(num, 10);
+            if (isNaN(num) || num < 1 || num > 40) num = 1;
+            selectedScreenNumber = num;
             localStorage.setItem('master_terminal_screen', selectedScreenNumber);
-            updateScreenLinks(selectedScreenNumber);
+            sessionStorage.setItem('patok_modal_shown', 'true');
+
+            updatePatokDisplay(selectedScreenNumber);
+            closePatokModal();
+
+            showStatusBanner('success',
+                `✅ ${selectedScreenNumber}-PATOK FAOL QILINDI`,
+                `Endi barcha skanerlangan biletlar ${selectedScreenNumber}-Patok monitoriga uzatiladi.`
+            );
         }
 
-        function updateScreenLinks(sc) {
-            document.getElementById('footer-screen-name').innerText = `Sex ${sc} Ekrani`;
-            document.getElementById('screen-monitor-link').href = `/screens/${sc}/`;
+        function selectPatokByInput() {
+            const input = document.getElementById('patok-quick-input');
+            if (!input) return;
+            const val = parseInt(input.value.trim(), 10);
+            if (!isNaN(val) && val >= 1 && val <= 40) {
+                selectPatok(val);
+            }
+        }
+
+        function filterPatokCards(query) {
+            query = (query || '').trim();
+            const cards = document.querySelectorAll('.patok-card');
+            cards.forEach(card => {
+                const num = card.getAttribute('data-patok');
+                if (!query || num.includes(query)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function highlightActivePatokCard(num) {
+            document.querySelectorAll('.patok-card').forEach(c => {
+                c.classList.remove('ring-4', 'ring-amber-400', 'scale-105');
+            });
+            const activeCard = document.getElementById(`patok-card-${num}`);
+            if (activeCard) {
+                activeCard.classList.add('ring-4', 'ring-amber-400', 'scale-105');
+            }
+        }
+
+        function updatePatokDisplay(sc) {
+            const displayEl = document.getElementById('active-patok-display');
+            if (displayEl) displayEl.innerText = `${sc}-Patok`;
+
+            const footerEl = document.getElementById('footer-screen-name');
+            if (footerEl) footerEl.innerText = `${sc}-Patok Ekrani`;
+
+            const monitorLink = document.getElementById('screen-monitor-link');
+            if (monitorLink) {
+                monitorLink.href = `/screens/${sc}/`;
+                monitorLink.title = `${sc}-Patok televizorini ochish`;
+            }
+
+            const finalizeText = document.getElementById('finalize-btn-text');
+            if (finalizeText) {
+                finalizeText.innerText = getFinalizeBtnText();
+            }
+        }
+
+        function initScreenSelection() {
+            // URL orqali ?screen=X yoki ?patok=X berilgan bo'lsa
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramScreen = urlParams.get('screen') || urlParams.get('patok');
+            if (paramScreen) {
+                const pNum = parseInt(paramScreen, 10);
+                if (!isNaN(pNum) && pNum >= 1 && pNum <= 40) {
+                    selectedScreenNumber = pNum;
+                    localStorage.setItem('master_terminal_screen', selectedScreenNumber);
+                    sessionStorage.setItem('patok_modal_shown', 'true');
+                }
+            }
+
+            updatePatokDisplay(selectedScreenNumber);
+
+            // Agar ushbu sessiyada hali patok tanlanmagan bo'lsa, avtomatik 40 ta patok modalini ochish!
+            if (!sessionStorage.getItem('patok_modal_shown')) {
+                openPatokModal();
+            }
         }
 
         // -------------------------------------------------------------

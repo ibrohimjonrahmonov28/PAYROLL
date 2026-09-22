@@ -9,6 +9,9 @@ from production.models import Ticket, OrderItem
 from accounts.models import Worker
 
 
+MAX_SCREENS = 40
+
+
 def get_screen_data(screen_number: int, target_date=None):
     if target_date is None:
         target_date = timezone.localdate()
@@ -17,12 +20,39 @@ def get_screen_data(screen_number: int, target_date=None):
     day_start = timezone.make_aware(datetime.combine(target_date, time.min), tz)
     day_end = timezone.make_aware(datetime.combine(target_date, time.max), tz)
 
-    # Bugun ushbu ekranga biriktirilgan va skanerlangan biletlar (Index-friendly datetime range)
-    tickets = Ticket.objects.filter(
-        screen_number=screen_number,
+    # Bugun faol bo'lgan barcha xodimlarning oxirgi skanerlangan patokini aniqlash:
+    # Qoidaga ko'ra: Xodim bir nechta patokda ishlashi mumkin, mobodo almashsa oxirgi stiker urilgan patokda ismi chiqadi
+    all_today_scans = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__range=(day_start, day_end),
         worker__isnull=False
+    ).values('worker_id', 'screen_number', 'scanned_at').order_by('scanned_at')
+
+    worker_latest_screen = {}
+    for scan in all_today_scans:
+        worker_latest_screen[scan['worker_id']] = scan['screen_number']
+
+    # Ushbu ekranga oxirgi stikeri to'g'ri kelgan xodimlar
+    screen_worker_ids = [w_id for w_id, s_num in worker_latest_screen.items() if s_num == screen_number]
+
+    if not screen_worker_ids:
+        return {
+            'screen_number': screen_number,
+            'date_str': target_date.strftime("%d.%m.%Y"),
+            'workers': [],
+            'grand_total_earnings': 0,
+            'grand_total_earnings_formatted': "0",
+            'grand_total_units': 0,
+            'avg_screen_kpi': 0.0,
+            'active_workers_count': 0,
+            'all_screens_list': list(range(1, MAX_SCREENS + 1)),
+        }
+
+    # Ushbu xodimlarning bugungi barcha skanerlangan biletlari
+    tickets = Ticket.objects.filter(
+        worker_id__in=screen_worker_ids,
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(day_start, day_end)
     )
 
     # OrderItem lardan har bir (order_id, article_id) ning normasini olish
@@ -212,11 +242,12 @@ def get_screen_data(screen_number: int, target_date=None):
         'grand_total_units': grand_total_units,
         'avg_screen_kpi': avg_screen_kpi,
         'active_workers_count': len(workers_list),
+        'all_screens_list': list(range(1, MAX_SCREENS + 1)),
     }
 
 
 def screen_view(request, screen_number: int):
-    if not 1 <= screen_number <= 10:
+    if not 1 <= screen_number <= MAX_SCREENS:
         screen_number = 1
 
     data = get_screen_data(screen_number)
@@ -224,22 +255,23 @@ def screen_view(request, screen_number: int):
 
 
 def screen_api_view(request, screen_number: int):
-    if not 1 <= screen_number <= 10:
-        return JsonResponse({'error': 'Invalid screen number'}, status=400)
+    if not 1 <= screen_number <= MAX_SCREENS:
+        return JsonResponse({'error': f'Invalid screen number (must be 1-{MAX_SCREENS})'}, status=400)
 
     data = get_screen_data(screen_number)
     return JsonResponse(data)
 
 
 def all_screens_overview(request):
-    """Barcha 10 ta ekranni umumiy kuzatish sahifasi"""
+    """Barcha 40 ta patok ekranini umumiy kuzatish sahifasi"""
     screens_summary = []
     today = timezone.localdate()
-    for s_num in range(1, 11):
+    for s_num in range(1, MAX_SCREENS + 1):
         data = get_screen_data(s_num, today)
         screens_summary.append(data)
 
     return render(request, 'screens/overview.html', {
         'screens': screens_summary,
-        'date_str': today.strftime("%d.%m.%Y")
+        'date_str': today.strftime("%d.%m.%Y"),
+        'max_screens': MAX_SCREENS,
     })

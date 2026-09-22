@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERRY JAR 1-10 EKRANLARINING UMUMIY MONITORINGI</title>
+    <title>TERRY JAR — 40 TA PATOKNING UMUMIY MONITORINGI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -22,74 +22,78 @@
     </style>
 </head>
 
-<body class="min-h-screen p-4 md:p-8 flex flex-col">
+<body class="min-h-screen p-3 md:p-6 flex flex-col">
     <!-- Header -->
-    <header class="flex items-center justify-between border-b border-slate-800 pb-5 mb-6">
+    <header class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-4 mb-5 gap-3">
         <div>
-            <h1 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+            <h1 class="text-xl md:text-2xl font-black text-white flex items-center gap-3">
                 <i class="fa-solid fa-table-cells text-amber-400"></i>
-                TERRY JAR SEXLARI — BARCHA 10 TA EKRAN
+                TERRY JAR — BARCHA 40 TA TIKUV PATOKI
             </h1>
-            <p class="text-slate-400 text-sm mt-1">Sana: {{ date_str }} | Barcha ekranlarning jonli monitoring holati
+            <p class="text-slate-400 text-xs mt-1">Sana: {{ date_str }} | Barcha 40 ta patokning jonli monitoring holati
             </p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{% url 'terminal_home' %}"
+                class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-barcode"></i> Skanerlash Terminali
+            </a>
             <a href="/"
-                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-sm font-semibold transition flex items-center gap-2 border border-slate-700">
-                <i class="fa-solid fa-gauge"></i> Asosiy Boshqaruv Panel
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-gauge"></i> Asosiy Panel
             </a>
         </div>
     </header>
 
-    <!-- 10 Screens Grid (2 rows of 5 or responsive) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 flex-1">
+    <!-- 40 Screens Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-3 flex-1">
         {% for s in screens %}
         <div
-            class="bg-slate-900/90 border {% if s.active_workers_count > 0 %}border-slate-700 hover:border-amber-500/60{% else %}border-slate-800/80 opacity-75{% endif %} rounded-2xl p-4 flex flex-col transition-all duration-200 shadow-lg">
+            class="bg-slate-900/90 border {% if s.active_workers_count > 0 %}border-emerald-500/50 hover:border-emerald-400 shadow-lg shadow-emerald-950/30{% else %}border-slate-800/80 opacity-75 hover:opacity-100{% endif %} rounded-2xl p-3 flex flex-col justify-between transition-all duration-200">
             <!-- Screen Card Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                <span class="text-lg font-black text-amber-400 flex items-center gap-2">
-                    <i class="fa-solid fa-tv"></i> EKRAN {{ s.screen_number }}
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span class="text-sm font-black text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-tv text-xs"></i> {{ s.screen_number }}-PATOK
                 </span>
                 <span
-                    class="text-xs px-2.5 py-0.5 rounded-full font-bold {% if s.active_workers_count > 0 %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800 text-slate-500{% endif %}">
+                    class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if s.active_workers_count > 0 %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800 text-slate-500{% endif %}">
                     {{ s.active_workers_count }} xodim
                 </span>
             </div>
 
             <!-- Stats -->
-            <div class="my-4 space-y-2">
+            <div class="my-2.5 space-y-1.5">
                 <div class="flex justify-between text-xs text-slate-400">
-                    <span>Tikilgan donalar:</span>
-                    <strong class="text-slate-200 digital-font text-sm">{{ s.grand_total_units }} dona</strong>
+                    <span class="text-[11px]">Tikilgan:</span>
+                    <strong class="text-slate-200 digital-font text-xs">{{ s.grand_total_units }} dona</strong>
                 </div>
                 <div class="flex justify-between text-xs text-slate-400">
-                    <span>O'rtacha KPI:</span>
-                    <strong class="text-emerald-400 digital-font text-sm font-bold">{{ s.avg_screen_kpi }}%</strong>
+                    <span class="text-[11px]">O'rtacha KPI:</span>
+                    <strong class="text-emerald-400 digital-font text-xs font-bold">{{ s.avg_screen_kpi }}%</strong>
                 </div>
             </div>
 
             <!-- Top Workers snippet -->
             <div
-                class="flex-1 overflow-y-auto max-h-48 border-t border-slate-800/80 pt-2 text-xs space-y-1.5 scrollbar-none">
-                {% for w in s.workers|slice:":5" %}
-                <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-800/50">
+                class="flex-1 overflow-y-auto max-h-32 border-t border-slate-800/80 pt-1.5 text-xs space-y-1 scrollbar-none">
+                {% for w in s.workers|slice:":3" %}
+                <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-slate-800/50 text-[11px]">
                     <span class="font-bold text-cyan-400 digital-font">{{ w.worker_id }}</span>
-                    <span class="text-slate-300 truncate max-w-[100px]">{{ w.full_name }}</span>
+                    <span class="text-slate-300 truncate max-w-[80px]">{{ w.full_name }}</span>
                     <span class="text-emerald-400 digital-font font-semibold">{{ w.total_percentage }}%</span>
                 </div>
                 {% empty %}
-                <div class="py-6 text-center text-slate-600 text-xs italic">
+                <div class="py-3 text-center text-slate-600 text-[10px] italic">
                     Faol xodimlar yo'q
                 </div>
                 {% endfor %}
             </div>
 
             <!-- Action Button -->
-            <div class="mt-4 pt-3 border-t border-slate-800">
+            <div class="mt-2.5 pt-2 border-t border-slate-800">
                 <a href="{% url 'screens:screen_view' s.screen_number %}" target="_blank"
-                    class="w-full py-2 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 font-bold rounded-xl text-center text-xs block transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ekranni Ochish (TV)
+                    class="w-full py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 font-bold rounded-xl text-center text-xs block transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Ekranni Ochish (TV)
                 </a>
             </div>
         </div>

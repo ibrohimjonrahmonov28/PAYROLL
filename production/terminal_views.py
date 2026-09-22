@@ -80,10 +80,35 @@ def terminal_home_view(request):
         'worker', 'article_operation__operation', 'box__order'
     ).order_by('-scanned_at')[:10]
 
-    screens_list = list(range(1, 11))
+    screens_list = list(range(1, 41))
+
+    # Bugungi 40 ta patok bo'yicha faollik ma'lumotlari
+    screen_stats = today_scans.values('screen_number').annotate(
+        worker_count=models.Count('worker', distinct=True),
+        units_count=models.Sum('quantity')
+    )
+    screen_stats_map = {
+        s['screen_number']: {
+            'workers': s['worker_count'] or 0,
+            'units': s['units_count'] or 0
+        }
+        for s in screen_stats if s['screen_number']
+    }
+
+    patoks_data = []
+    for sc in range(1, 41):
+        st = screen_stats_map.get(sc, {'workers': 0, 'units': 0})
+        patoks_data.append({
+            'number': sc,
+            'name': f"{sc}-Patok",
+            'workers_count': st['workers'],
+            'units_count': st['units'],
+            'is_active': (st['workers'] > 0 or st['units'] > 0)
+        })
 
     return render(request, 'terminal/index.html', {
         'screens_list': screens_list,
+        'patoks_data': patoks_data,
         'today_total_units': today_total_units,
         'today_total_amount': today_total_amount,
         'today_active_workers': today_active_workers,
@@ -434,7 +459,7 @@ def terminal_finalize_api(request):
     try:
         screen_raw = _get_request_param(request, 'screen_number', 'screen', default='1')
         screen_number = int(screen_raw)
-        if screen_number < 1 or screen_number > 10:
+        if screen_number < 1 or screen_number > 40:
             screen_number = 1
     except (ValueError, TypeError):
         screen_number = 1

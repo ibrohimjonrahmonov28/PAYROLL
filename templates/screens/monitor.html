@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONITOR {{ screen_number }} — TERRY JAR </title>
+    <title>{{ screen_number }}-PATOK EKRANI — TERRY JAR </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -83,7 +83,7 @@
             <div
                 class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-5 py-2 rounded-xl shadow-lg flex items-center gap-3">
                 <i class="fa-solid fa-tv"></i>
-                <span>EKRAN {{ screen_number }}</span>
+                <span>{{ screen_number }}-PATOK</span>
             </div>
             <div>
                 <h1 class="text-xl md:text-2xl font-black tracking-wide text-white flex items-center gap-2">
@@ -154,38 +154,23 @@
         </div>
     </header>
 
-    <!-- SCREEN SWITCHER NAVIGATION (Quick TV access) -->
+    <!-- SCREEN SWITCHER NAVIGATION (Quick TV access for 40 Patoks) -->
     <nav class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 text-xs font-bold scrollbar-none flex-shrink-0">
-        <span class="text-slate-500 mr-2 uppercase tracking-wider flex items-center gap-1">
-            <i class="fa-solid fa-display"></i> Ekranlar:
+        <span class="text-slate-500 mr-1 uppercase tracking-wider flex items-center gap-1 shrink-0">
+            <i class="fa-solid fa-layer-group text-amber-400"></i> Patoklar (1-40):
         </span>
-        {% for s in "12345678910"|make_list %}
-        {# handling string splits for 1..10 cleanly #}
-        {% endfor %}
-        <a href="{% url 'screens:screen_view' 1 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 1 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">1</a>
-        <a href="{% url 'screens:screen_view' 2 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 2 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">2</a>
-        <a href="{% url 'screens:screen_view' 3 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 3 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">3</a>
-        <a href="{% url 'screens:screen_view' 4 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 4 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">4</a>
-        <a href="{% url 'screens:screen_view' 5 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 5 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">5</a>
-        <a href="{% url 'screens:screen_view' 6 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 6 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">6</a>
-        <a href="{% url 'screens:screen_view' 7 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 7 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">7</a>
-        <a href="{% url 'screens:screen_view' 8 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 8 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">8</a>
-        <a href="{% url 'screens:screen_view' 9 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 9 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">9</a>
-        <a href="{% url 'screens:screen_view' 10 %}"
-            class="px-3.5 py-1.5 rounded-lg border transition {% if screen_number == 10 %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white{% endif %}">10</a>
+        <div class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+            {% for sc in all_screens_list %}
+            <a href="{% url 'screens:screen_view' sc %}"
+                class="px-2.5 py-1 rounded-lg border transition text-center shrink-0 {% if screen_number == sc %}bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md scale-105{% else %}bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700{% endif %}">
+                {{ sc }}
+            </a>
+            {% endfor %}
+        </div>
 
         <a href="{% url 'screens:overview' %}"
-            class="ml-auto px-4 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-table-cells"></i> Barcha Ekranlar Umumiy
+            class="ml-auto px-3.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 shrink-0">
+            <i class="fa-solid fa-table-cells text-amber-400"></i> Barcha 40 ta Patok
         </a>
     </nav>
 
