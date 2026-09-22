@@ -739,6 +739,97 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         b1_item_m.refresh_from_db()
         self.assertEqual(b1_item_m.status, CuttingBatchItem.Status.STICKERS_PRINTED)
 
+    def test_meto_lazy_load_reset_and_pastal_print(self):
+        # 1. Setup Order, Article, Operations, Batch
+        meto_user = User.objects.create_user(username="meto_test_user", password="password123", role=User.Role.METO)
+        self.client.login(username="meto_test_user", password="password123")
+        order = Order.objects.create(order_number="ORD-TEST-PASTAL", status=Order.Status.IN_PROGRESS)
+        art = Article.objects.create(code="ART-PST", name="Pastal Test Model")
+        op = Operation.objects.create(code="OP-PST", name="Pastal Tikish")
+        ArticleOperation.objects.create(article=art, operation=op, price_per_unit=Decimal("400.00"), sequence=1)
+        ord_item = OrderItem.objects.create(order=order, article=art, quantity=100)
+        size_m = OrderItemSize.objects.create(order_item=ord_item, size_name="L", planned_quantity=100)
+
+        batch = CuttingBatch.objects.create(
+            order_item=ord_item,
+            batch_number=99,
+            name="Kesim Pastal 99",
+            pastal_code="P-99",
+            partiya_number="12"
+        )
+        batch_item = CuttingBatchItem.objects.create(
+            batch=batch,
+            order_item_size=size_m,
+            quantity=100
+        )
+
+        # 2. Meto confirms into 4 boxes
+        confirm_url = reverse('meto_confirm_item', kwargs={'item_id': batch_item.id})
+        res_conf = self.client.post(confirm_url, {
+            'real_quantity': '100',
+            'box_count': '4',
+            'meto_number_start': '1',
+            'meto_number_end': '100',
+        }, follow=True)
+        self.assertEqual(res_conf.status_code, 200)
+
+        batch_item.refresh_from_db()
+        self.assertEqual(batch_item.status, CuttingBatchItem.Status.METO_CONFIRMED)
+        self.assertEqual(batch_item.boxes.count(), 4)
+
+        # 3. Test meto_order_detail and meto_batch_items (lazy load)
+        detail_url = reverse('meto_order_detail', kwargs={'order_id': order.id})
+        res_detail = self.client.get(detail_url)
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertContains(res_detail, "PC: P-99")
+
+        batch_items_url = reverse('meto_batch_items', kwargs={'batch_id': batch.id})
+        res_batch_items = self.client.get(batch_items_url)
+        self.assertEqual(res_batch_items.status_code, 200)
+        self.assertContains(res_batch_items, "4 ta quti yaratilgan")
+        self.assertIn("O'zgartirish", res_batch_items.content.decode('utf-8'))
+
+        # 4. User made a mistake in box count! Test reset before stickers are printed
+        reset_url = reverse('meto_reset_item', kwargs={'item_id': batch_item.id})
+        res_reset = self.client.post(reset_url, follow=True)
+        self.assertEqual(res_reset.status_code, 200)
+
+        batch_item.refresh_from_db()
+        self.assertEqual(batch_item.status, CuttingBatchItem.Status.CUT_ENTERED)
+        self.assertEqual(batch_item.boxes.count(), 0)  # Unprinted boxes deleted!
+
+        # 5. Re-confirm with 2 boxes
+        res_reconf = self.client.post(confirm_url, {
+            'real_quantity': '100',
+            'box_count': '2',
+            'meto_number_start': '1',
+            'meto_number_end': '100',
+        }, follow=True)
+        self.assertEqual(res_reconf.status_code, 200)
+        batch_item.refresh_from_db()
+        self.assertEqual(batch_item.boxes.count(), 2)
+
+        # 6. Test pastal-specific print and PDF
+        print_pastal_url = reverse('production:order_print_all_stickers', kwargs={'order_id': order.id}) + "?pastal=P-99"
+        res_print = self.client.get(print_pastal_url)
+        self.assertEqual(res_print.status_code, 200)
+        self.assertContains(res_print, "PASTAL: P-99")
+
+        pdf_pastal_url = reverse('production:order_download_all_stickers_pdf', kwargs={'order_id': order.id}) + "?pastal=P-99"
+        res_pdf = self.client.get(pdf_pastal_url)
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertIn("PASTAL_P-99", res_pdf['Content-Disposition'])
+
+        # 7. When printed, reset is blocked!
+        box_to_print = batch_item.boxes.first()
+        box_to_print.is_printed = True
+        box_to_print.save(update_fields=['is_printed'])
+
+        res_reset_blocked = self.client.post(reset_url, follow=True)
+        self.assertEqual(res_reset_blocked.status_code, 200)
+        self.assertContains(res_reset_blocked, "allaqachon chop etilgan")
+        self.assertEqual(batch_item.boxes.count(), 2)  # Not deleted!
+
     def test_permissions_manager_and_cutter(self):
         user = User.objects.create_user(username="normal_user", password="password123", role=User.Role.USER)
         self.client.login(username="normal_user", password="password123")

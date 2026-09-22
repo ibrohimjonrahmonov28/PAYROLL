@@ -89,51 +89,43 @@ def meto_dashboard(request):
 def meto_order_detail(request, order_id: int):
     """
     Meto Nomerovka va Tasdiqlash Oynasi:
-    - Tanlangan buyurtmaning barcha artikullari va kesim partiyalari
-    - Har bir razmer bandi uchun detallarni sanab meto raqamlari oralig'i (#1 - #198)
-    - Aniq haqiqiy sonni (real_quantity) kiritish va TUGATISH
-    - Tugatilgach, tizim avtomatik tarzda stikerlar va qutilarni yaratadi
+    - Tezkor va yengil yuklash: Barcha quti va biletlar oldindan yuklanmaydi.
+    - Pastallar (CuttingBatches) ro'yxati va ularning umumiy statistikasi bir zumda ko'rsatiladi.
+    - Pastal ochilganda uning razmerlari va qutilari bazadan yuklanadi (Lazy loading).
     """
     order = get_object_or_404(
-        Order.objects.select_related('customer', 'article').prefetch_related(
-            'items__article__model',
-            'items__article__article_operations',
-            'items__sizes',
-            'items__cutting_batches__items__order_item_size',
-            'items__cutting_batches__items__boxes'
-        ),
+        Order.objects.select_related('customer', 'article'),
         id=order_id
     )
 
-    items_data = []
+    open_batch_id = request.GET.get('open_batch')
+    try:
+        open_batch_id = int(open_batch_id) if open_batch_id else None
+    except (ValueError, TypeError):
+        open_batch_id = None
 
-    for item in order.items.all():
-        operations_count = ArticleOperation.objects.filter(article=item.article).count()
+    order_items = order.items.all().select_related('article__model').prefetch_related(
+        'article__article_operations',
+        'cutting_batches__items'
+    )
+
+    items_data = []
+    for item in order_items:
+        operations_count = item.article.article_operations.count() if item.article else 0
         batches_data = []
 
         for batch in item.cutting_batches.all().order_by('-batch_number'):
-            batch_items = []
-            for b_it in batch.items.all():
-                batch_items.append({
-                    'item': b_it,
-                    'size_name': b_it.order_item_size.size_name,
-                    'quantity': b_it.quantity,
-                    'status': b_it.status,
-                    'status_display': b_it.get_status_display(),
-                    'is_confirmed': b_it.status != CuttingBatchItem.Status.CUT_ENTERED,
-                    'real_quantity': b_it.real_quantity,
-                    'effective_quantity': b_it.effective_quantity,
-                    'meto_number_start': b_it.meto_number_start,
-                    'meto_number_end': b_it.meto_number_end,
-                    'meto_worker_name': b_it.meto_worker_name,
-                    'meto_notes': b_it.meto_notes,
-                    'meto_completed_at': b_it.meto_completed_at,
-                    'boxes_count': b_it.boxes.count(),
-                    'boxes': b_it.boxes.all(),
-                })
+            b_items = list(batch.items.all())
+            total_cut_qty = sum(bi.quantity for bi in b_items)
+            total_real_qty = sum(bi.effective_quantity for bi in b_items)
+            confirmed_items_count = sum(1 for bi in b_items if bi.status != CuttingBatchItem.Status.CUT_ENTERED)
+            total_items_count = len(b_items)
+            has_pending = confirmed_items_count < total_items_count
+            has_boxes = any(bi.boxes_created_qty > 0 for bi in b_items)
 
             batches_data.append({
                 'batch': batch,
+                'id': batch.id,
                 'name': batch.name,
                 'batch_number': batch.batch_number,
                 'cutter_name': batch.cutter_name,
@@ -143,8 +135,12 @@ def meto_order_detail(request, order_id: int):
                 'fabric_batch_code': batch.fabric_batch_code,
                 'notes': batch.notes,
                 'created_at': batch.created_at,
-                'items': batch_items,
-                'has_pending': any(not bi['is_confirmed'] for bi in batch_items),
+                'total_cut_qty': total_cut_qty,
+                'total_real_qty': total_real_qty,
+                'total_items_count': total_items_count,
+                'confirmed_items_count': confirmed_items_count,
+                'has_pending': has_pending,
+                'has_boxes': has_boxes,
             })
 
         items_data.append({
@@ -156,7 +152,102 @@ def meto_order_detail(request, order_id: int):
     return render(request, 'meto/order_detail.html', {
         'order': order,
         'items_data': items_data,
+        'open_batch_id': open_batch_id,
     })
+
+
+@meto_required
+def meto_batch_items_view(request, batch_id: int):
+    """
+    Pastal (CuttingBatch) ichidagi razmerlar va qutilar ma'lumotlarini bazadan yuklab berish (Lazy Loading):
+    """
+    batch = get_object_or_404(
+        CuttingBatch.objects.select_related(
+            'order_item__order',
+            'order_item__article'
+        ).prefetch_related(
+            'items__order_item_size',
+            'items__boxes__tickets'
+        ),
+        id=batch_id
+    )
+    order = batch.order_item.order
+    article = batch.order_item.article
+
+    batch_items_data = []
+    for b_it in batch.items.all().order_by('order_item_size__id'):
+        boxes = list(b_it.boxes.all())
+        has_printed = any(b.is_printed for b in boxes)
+        batch_items_data.append({
+            'item': b_it,
+            'id': b_it.id,
+            'size_name': b_it.order_item_size.size_name,
+            'quantity': b_it.quantity,
+            'status': b_it.status,
+            'status_display': b_it.get_status_display(),
+            'is_confirmed': b_it.status != CuttingBatchItem.Status.CUT_ENTERED,
+            'real_quantity': b_it.real_quantity or b_it.quantity,
+            'effective_quantity': b_it.effective_quantity,
+            'meto_number_start': b_it.meto_number_start or "1",
+            'meto_number_end': b_it.meto_number_end or str(b_it.quantity),
+            'meto_worker_name': b_it.meto_worker_name,
+            'meto_notes': b_it.meto_notes,
+            'meto_completed_at': b_it.meto_completed_at,
+            'boxes_count': len(boxes),
+            'boxes': boxes,
+            'can_reset': b_it.status != CuttingBatchItem.Status.CUT_ENTERED and not has_printed,
+            'has_printed': has_printed,
+        })
+
+    return render(request, 'meto/partials/batch_items.html', {
+        'batch': batch,
+        'order': order,
+        'article': article,
+        'batch_items': batch_items_data,
+    })
+
+
+@meto_required
+def meto_reset_item(request, item_id: int):
+    """
+    Stiker chiqarilgunga qadar adashib noto'g'ri bo'lingan qutilarni o'chirish va
+    Meto kiritish formasini qaytadan ochish (Re-split / Reset).
+    """
+    if request.method != 'POST':
+        return redirect('meto_dashboard')
+
+    batch_item = get_object_or_404(
+        CuttingBatchItem.objects.select_related(
+            'batch__order_item__order',
+            'order_item_size'
+        ),
+        id=item_id
+    )
+    order = batch_item.batch.order_item.order
+
+    # Stikerlar chop etilganligini tekshirish
+    if batch_item.boxes.filter(is_printed=True).exists():
+        messages.error(
+            request,
+            f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha stikerlar allaqachon chop etilgan (tikuvga berilgan)! "
+            f"Chop etilgan qutilarni o'zgartirib bo'lmaydi."
+        )
+        return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
+
+    with transaction.atomic():
+        # Chop etilmagan qutilarni va ularga biriktirilgan biletlarni o'chirish
+        deleted_count = batch_item.boxes.count()
+        batch_item.boxes.all().delete()
+        batch_item.boxes_created_qty = 0
+        batch_item.status = CuttingBatchItem.Status.CUT_ENTERED
+        batch_item.save(update_fields=['boxes_created_qty', 'status'])
+
+    messages.success(
+        request,
+        f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha {deleted_count} ta quti bekor qilindi. "
+        f"Endi soni va qutilar taqsimotini qaytadan to'g'rilab saqlashingiz mumkin!"
+    )
+    return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 
 
 @meto_required
@@ -197,7 +288,7 @@ def meto_confirm_item(request, item_id: int):
 
     if real_qty == 0:
         messages.warning(request, f"'{size_name}' razmeri bo'yicha aniq son 0 bo'lishi mumkin emas!")
-        return redirect('meto_order_detail', order_id=order.id)
+        return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 
     # Qutilarga bo'lish konfiguratsiyasi
     split_count = 1
@@ -259,4 +350,4 @@ def meto_confirm_item(request, item_id: int):
             f"{len(boxes)} ta quti va barcha QR stikerlar avtomatik generatsiya qilindi va Stiker bo'limiga uzatildi!"
         )
 
-    return redirect('meto_order_detail', order_id=order.id)
+    return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")

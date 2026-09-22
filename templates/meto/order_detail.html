@@ -25,7 +25,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Articles and Batches -->
+    <!-- Articles and Pastals -->
     {% for item_data in items_data %}
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
         <!-- Article Header -->
@@ -50,7 +50,7 @@
                 {% if item_data.operations_count == 0 %}
                 <span
                     class="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5">
-                    <i class="fa-solid fa-triangle-exclamation"></i> 0 ta operatsiya mavjud (Stikerlar uchun operatsiya
+                    <i class="fa-solid fa-triangle-exclamation"></i> 0 ta operatsiya (Stikerlar uchun operatsiya
                     qo'shish kerak)
                 </span>
                 {% else %}
@@ -62,200 +62,103 @@
             </div>
         </div>
 
-        <!-- Batches List -->
-        <div class="space-y-6">
+        <!-- Pastallar Ro'yxati (Accordion / Lazy Loading) -->
+        <div class="space-y-4">
             {% for b in item_data.batches %}
-            <div class="bg-slate-950 p-5 rounded-3xl border border-slate-800 space-y-4 shadow-inner">
-                <!-- Batch Header -->
-                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-sm transition hover:border-slate-700"
+                id="batch-card-{{ b.id }}">
+                <!-- Pastal Sarlavhasi (Header) -->
+                <div class="p-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer select-none"
+                    onclick="toggleBatch({{ b.id }})">
                     <div class="flex items-center gap-3 flex-wrap">
-                        <span class="font-black text-white text-base flex items-center gap-2">
+                        <span
+                            class="w-7 h-7 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 flex items-center justify-center text-xs transition-transform transform batch-arrow-{{ b.id }}">
+                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </span>
+
+                        <span class="font-black text-white text-sm flex items-center gap-2">
                             <i class="fa-solid fa-scissors text-rose-400"></i> {{ b.name }}
                         </span>
-                        {% if b.pastal_code %}
+
+                        <!-- PC (Pastal Kodi) -->
                         <span
-                            class="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-mono font-bold">
-                            Pastal: {{ b.pastal_code }}
+                            class="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-mono font-black">
+                            PC: {{ b.pastal_code|default:"—" }}
                         </span>
-                        {% endif %}
+
                         {% if b.partiya_number %}
                         <span
-                            class="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-mono font-bold">
+                            class="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-md text-xs font-mono font-bold">
                             Partiya: {{ b.partiya_number }}
                         </span>
                         {% endif %}
+
+                        <span class="text-xs text-slate-400">
+                            Jami: <strong class="text-white font-mono">{{ b.total_cut_qty }} dona</strong> ({{
+                            b.total_items_count }} ta razmer)
+                        </span>
+
                         {% if b.cutter_name %}
-                        <span
-                            class="text-xs bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-slate-300">
+                        <span class="text-xs bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
                             Bichuvchi: <strong class="text-white">{{ b.cutter_name }}</strong>
                         </span>
                         {% endif %}
-                        {% if b.fabric_weight_kg %}
+
+                        {% if b.fabric_weight_kg or b.fabric_batch_code %}
                         <span
-                            class="text-xs bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-amber-300 font-mono">
-                            <i class="fa-solid fa-weight-hanging text-amber-400 mr-1"></i> {{ b.fabric_weight_kg }} kg
+                            class="text-xs bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-amber-300 font-mono">
+                            <i class="fa-solid fa-weight-hanging text-amber-400 mr-1"></i>
+                            {% if b.fabric_weight_kg %}{{ b.fabric_weight_kg }} kg{% endif %}
                             {% if b.fabric_batch_code %}({{ b.fabric_batch_code }}){% endif %}
                         </span>
                         {% endif %}
-                        <span class="text-[11px] text-slate-500">
-                            {{ b.created_at|date:"d.m.Y H:i" }}
-                        </span>
                     </div>
 
-                    <div>
+                    <!-- O'ng Tomon: Holati va Bitta Pastalni Chop Etish Tugmalari -->
+                    <div class="flex items-center gap-2 flex-wrap" onclick="event.stopPropagation()">
+                        <!-- BITTA PASTALNI CHOP ETISH TUGMASI (User talabi) -->
+                        {% if b.has_boxes %}
+                        <a href="{% url 'production:order_print_all_stickers' order.id %}?batch_id={{ b.id }}&pastal={{ b.pastal_code }}"
+                            target="_blank"
+                            class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-md"
+                            title="Faqat ushbu pastal stikerlarini umumiy chop etish (65x45)">
+                            <i class="fa-solid fa-print"></i> Pastalni Chop Etish (65x45)
+                        </a>
+                        <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}?batch_id={{ b.id }}&pastal={{ b.pastal_code }}"
+                            class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                            title="Faqat ushbu pastal stikerlarini PDF yuklab olish">
+                            <i class="fa-solid fa-file-pdf"></i> PDF
+                        </a>
+                        {% endif %}
+
                         {% if b.has_pending %}
                         <span
                             class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-clock-rotate-left text-xs animate-spin"></i> Meto Kutilmoqda
+                            <i class="fa-solid fa-clock-rotate-left text-xs"></i> Meto Kutilmoqda ({{
+                            b.confirmed_items_count }}/{{ b.total_items_count }})
                         </span>
                         {% else %}
                         <span
                             class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-check text-xs"></i> Meto Yakunlangan (Stikerlar yaratildi)
+                            <i class="fa-solid fa-circle-check text-xs"></i> Meto Yakunlangan
                         </span>
                         {% endif %}
+
+                        <button type="button" onclick="toggleBatch({{ b.id }})"
+                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                            <span>Razmerlar</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] ml-1"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Sizes inside this batch -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {% for b_it in b.items %}
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                            <div class="flex items-center gap-2">
-                                <span
-                                    class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 font-mono font-black text-cyan-400 text-sm">
-                                    {{ b_it.size_name }}
-                                </span>
-                                <span class="text-xs text-slate-300">
-                                    Kesimchi kiritgan: <strong class="text-amber-400 font-mono">{{ b_it.quantity }}
-                                        dona</strong>
-                                </span>
-                            </div>
-
-                            {% if b_it.is_confirmed %}
-                            <span
-                                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                ✓ Tasdiqlangan
-                            </span>
-                            {% else %}
-                            <span
-                                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                Kutilmoqda
-                            </span>
-                            {% endif %}
-                        </div>
-
-                        {% if not b_it.is_confirmed %}
-                        <!-- FORM: Meto Nomerovka va Aniq Son Kiritish -->
-                        <form method="POST" action="{% url 'meto_confirm_item' b_it.item.id %}" class="space-y-3">
-                            {% csrf_token %}
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Meto Boshi
-                                        (#)</label>
-                                    <input type="text" name="meto_number_start" value="1" placeholder="1"
-                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Meto Oxiri
-                                        (#)</label>
-                                    <input type="text" name="meto_number_end" value="{{ b_it.quantity }}"
-                                        placeholder="{{ b_it.quantity }}"
-                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[11px] font-bold text-emerald-400 mb-1">Aniq Yig'ilgan Son
-                                        (dona)</label>
-                                    <input type="number" name="real_quantity" id="real-qty-{{ b_it.id }}"
-                                        value="{{ b_it.quantity }}" min="1" required
-                                        oninput="updateBoxSplitPreview({{ b_it.id }})"
-                                        class="w-full bg-slate-950 border border-emerald-600 rounded-xl px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-black text-sm focus:outline-none focus:border-emerald-400">
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-amber-400 mb-1">Nechta Qutiga
-                                        Bo'linsin?</label>
-                                    <input type="number" name="box_count" id="box-count-{{ b_it.id }}" value="1" min="1"
-                                        required placeholder="Masalan: 4" oninput="updateBoxSplitPreview({{ b_it.id }})"
-                                        class="w-full bg-slate-950 border border-amber-500/60 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold text-sm focus:outline-none focus:border-amber-400">
-                                </div>
-                            </div>
-
-                            <!-- Real-time split preview -->
-                            <div id="split-preview-{{ b_it.id }}"
-                                class="text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-800/50 px-3 py-1.5 rounded-xl flex items-center justify-between">
-                                <span class="text-slate-400"><i
-                                        class="fa-solid fa-boxes-packing text-cyan-400 mr-1"></i> Qutilar
-                                    taqsimoti:</span>
-                                <span class="font-bold text-white preview-text">1 ta quti ({{ b_it.quantity }}
-                                    dona)</span>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Metochi Ismi</label>
-                                    <input type="text" name="meto_worker_name"
-                                        placeholder="{{ user.get_full_name|default:user.username }}"
-                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-400 mb-1">Izoh /
-                                        Braklar</label>
-                                    <input type="text" name="meto_notes" placeholder="Masalan: 2 ta brak ajratildi"
-                                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none">
-                                </div>
-                            </div>
-
-                            <button type="submit"
-                                class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-barcode"></i> Tugatish va Stikerlarni Yaratish
-                            </button>
-                        </form>
-                        {% else %}
-                        <!-- Tasdiqlangan Natija Ma'lumotlari -->
-                        <div class="space-y-2 text-xs">
-                            <div
-                                class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                                <span class="text-slate-400">Tasdiqlangan Aniq Son:</span>
-                                <span class="font-black text-emerald-400 font-mono text-sm">{{ b_it.real_quantity }}
-                                    dona</span>
-                            </div>
-                            <div
-                                class="flex items-center justify-between bg-slate-950 p-2 rounded-xl border border-slate-800 text-[11px]">
-                                <span class="text-slate-400">Meto Oralig'i:</span>
-                                <span class="font-mono text-cyan-300 font-bold">#{{ b_it.meto_number_start }} — #{{
-                                    b_it.meto_number_end }}</span>
-                            </div>
-                            {% if b_it.meto_worker_name %}
-                            <div class="text-[11px] text-slate-400">
-                                Metochi: <strong class="text-white">{{ b_it.meto_worker_name }}</strong>
-                            </div>
-                            {% endif %}
-                            {% if b_it.meto_notes %}
-                            <div class="text-[11px] text-amber-300 italic">
-                                Izoh: {{ b_it.meto_notes }}
-                            </div>
-                            {% endif %}
-
-                            <!-- Generatsiya bo'lgan qutilar -->
-                            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
-                                <span class="text-purple-300 font-bold flex items-center gap-1.5 text-[11px]">
-                                    <i class="fa-solid fa-boxes-packing"></i> {{ b_it.boxes_count }} ta quti yaratilgan
-                                </span>
-                                <a href="{% url 'sticker_order_boxes' order.id %}"
-                                    class="px-2.5 py-1 bg-purple-950 hover:bg-purple-900 border border-purple-700 text-purple-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                    <i class="fa-solid fa-print"></i> Stikerlarni Ko'rish
-                                </a>
-                            </div>
-                        </div>
-                        {% endif %}
-
+                <!-- Pastal Kontenti (Lazy Loaded from DB) -->
+                <div id="batch-content-{{ b.id }}" class="batch-content hidden p-4 pt-0 border-t border-slate-800/60"
+                    data-batch-id="{{ b.id }}" data-loaded="false">
+                    <div class="py-6 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-spinner fa-spin text-cyan-400 text-base"></i>
+                        <span>Razmerlar bazadan yuklanmoqda...</span>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
             {% empty %}
@@ -270,6 +173,43 @@
 </div>
 
 <script>
+    // Lazy Loading: Pastal bosilganda bazadan razmerlarni yuklash
+    function toggleBatch(batchId) {
+        const content = document.getElementById(`batch-content-${batchId}`);
+        const card = document.getElementById(`batch-card-${batchId}`);
+        const arrow = document.querySelector(`.batch-arrow-${batchId}`);
+        if (!content) return;
+
+        const isHidden = content.classList.contains('hidden');
+
+        if (isHidden) {
+            content.classList.remove('hidden');
+            if (arrow) arrow.classList.add('rotate-90');
+            if (card) card.classList.add('border-cyan-500/40');
+
+            // Agar hali yuklanmagan bo'lsa, bazadan yuklash (Lazy Loading)
+            if (content.getAttribute('data-loaded') !== 'true') {
+                fetch(`/meto/batches/${batchId}/items/`)
+                    .then(res => {
+                        if (!res.ok) throw new Error('Yuklashda xatolik yuz berdi');
+                        return res.text();
+                    })
+                    .then(html => {
+                        content.innerHTML = html;
+                        content.setAttribute('data-loaded', 'true');
+                    })
+                    .catch(err => {
+                        content.innerHTML = `<div class="py-4 text-center text-rose-400 text-xs">${err.message}</div>`;
+                    });
+            }
+        } else {
+            content.classList.add('hidden');
+            if (arrow) arrow.classList.remove('rotate-90');
+            if (card) card.classList.remove('border-cyan-500/40');
+        }
+    }
+
+    // Real-time split preview
     function updateBoxSplitPreview(itemId) {
         const qtyInput = document.getElementById(`real-qty-${itemId}`);
         const countInput = document.getElementById(`box-count-${itemId}`);
@@ -308,5 +248,17 @@
             }
         }
     }
+
+    // Agar URLda open_batch ko'rsatilgan bo'lsa, avtomatik ochish
+    document.addEventListener('DOMContentLoaded', function() {
+        const openBatchId = {{ open_batch_id|default:"null" }};
+        if (openBatchId) {
+            toggleBatch(openBatchId);
+            const el = document.getElementById(`batch-card-${openBatchId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    });
 </script>
 {% endblock %}

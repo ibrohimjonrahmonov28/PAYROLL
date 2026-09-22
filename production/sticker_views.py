@@ -113,9 +113,32 @@ def sticker_order_boxes(request, order_id: int):
     available_source_articles = Article.objects.filter(article_operations__isnull=False).distinct()
     boxes_without_tickets = [b for b in boxes if b.tickets.count() == 0]
 
+    # Pastallar bo'yicha guruhlash (Bitta pastalni alohida chop etish imkoniyati)
+    pastals_dict = {}
+    for b in boxes:
+        p_code = (b.pastal_number or "").strip()
+        if not p_code and b.cutting_batch_item and b.cutting_batch_item.batch:
+            p_code = (b.cutting_batch_item.batch.pastal_code or "").strip()
+        p_key = p_code or "Noma'lum"
+        if p_key not in pastals_dict:
+            pastals_dict[p_key] = {
+                'pastal_code': p_key,
+                'boxes_count': 0,
+                'total_qty': 0,
+                'unprinted_count': 0,
+                'batch_id': b.cutting_batch_item.batch_id if b.cutting_batch_item else None,
+            }
+        pastals_dict[p_key]['boxes_count'] += 1
+        pastals_dict[p_key]['total_qty'] += b.quantity
+        if not b.is_printed:
+            pastals_dict[p_key]['unprinted_count'] += 1
+
+    pastals_list = list(pastals_dict.values())
+
     return render(request, 'stickers/order_boxes.html', {
         'order': order,
         'boxes': boxes,
+        'pastals_list': pastals_list,
         'unprinted_boxes_count': len(unprinted_boxes),
         'boxes_without_tickets_count': len(boxes_without_tickets),
         'articles_without_ops': articles_without_ops,

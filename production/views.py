@@ -332,6 +332,8 @@ def order_print_all_stickers_view(request, order_id: int):
     order = get_object_or_404(Order, id=order_id)
     article_id = request.GET.get('article_id')
     box_id = request.GET.get('box_id')
+    pastal_code = request.GET.get('pastal', '').strip()
+    batch_id = request.GET.get('batch_id', '').strip()
 
     selected_article = None
     if article_id:
@@ -339,6 +341,15 @@ def order_print_all_stickers_view(request, order_id: int):
             selected_article = Article.objects.filter(id=int(article_id)).first()
         except (ValueError, TypeError):
             selected_article = None
+
+    selected_pastal = pastal_code
+    if batch_id and not selected_pastal:
+        try:
+            b_obj = CuttingBatch.objects.filter(id=int(batch_id)).first()
+            if b_obj:
+                selected_pastal = b_obj.pastal_code or b_obj.name
+        except (ValueError, TypeError):
+            pass
 
     tickets_qs = Ticket.objects.filter(box__order=order)
     if selected_article:
@@ -348,6 +359,16 @@ def order_print_all_stickers_view(request, order_id: int):
     if box_id:
         try:
             tickets_qs = tickets_qs.filter(box_id=int(box_id))
+        except (ValueError, TypeError):
+            pass
+    if pastal_code:
+        tickets_qs = tickets_qs.filter(
+            Q(box__pastal_number=pastal_code) |
+            Q(box__cutting_batch_item__batch__pastal_code=pastal_code)
+        )
+    if batch_id:
+        try:
+            tickets_qs = tickets_qs.filter(box__cutting_batch_item__batch_id=int(batch_id))
         except (ValueError, TypeError):
             pass
 
@@ -403,13 +424,18 @@ def order_print_all_stickers_view(request, order_id: int):
     order_items = order.items.all().select_related('article')
     available_articles = [item.article for item in order_items] if order_items.exists() else ([order.article] if order.article else [])
 
+    box_display_title = f"BARCHA (Buyurtma {order.order_number})"
+    if selected_pastal:
+        box_display_title = f"Pastal: {selected_pastal} (Buyurtma {order.order_number})"
+
     return render(request, 'production/box_stickers_print.html', {
-        'box': {'box_number': f"BARCHA (Buyurtma {order.order_number})", 'order': order, 'quantity': order.all_models_quantity},
+        'box': {'box_number': box_display_title, 'order': order, 'quantity': order.all_models_quantity},
         'tickets': tickets,
         'order': order,
         'is_order_all': True,
         'articles_grouped_list': articles_grouped_list,
         'selected_article': selected_article,
+        'selected_pastal': selected_pastal,
         'available_articles': available_articles,
     })
 
@@ -434,23 +460,40 @@ def box_download_stickers_100x60_pdf(request, box_id: int):
 
 
 def order_download_all_stickers_100x60_pdf(request, order_id: int):
-    """Buyurtmadagi barcha qutilar yoki tanlangan model biletlarini 100x60 mm stiker PDF formatida yuklab olish"""
+    """Buyurtmadagi barcha qutilar, tanlangan model yoki tanlangan pastal biletlarini 65x45 mm stiker PDF formatida yuklab olish"""
     from .sticker_generator import generate_box_stickers_100x60_pdf
     order = get_object_or_404(Order, id=order_id)
     article_id = request.GET.get('article_id')
+    pastal_code = request.GET.get('pastal', '').strip()
+    batch_id = request.GET.get('batch_id', '').strip()
     tickets_qs = Ticket.objects.filter(box__order=order)
     clean_ord = "".join(c for c in order.order_number if c.isalnum() or c in ('-', '_')).strip() or f"ORDER_{order.id}"
 
-    if article_id:
+    if pastal_code or batch_id:
+        if pastal_code:
+            tickets_qs = tickets_qs.filter(
+                Q(box__pastal_number=pastal_code) |
+                Q(box__cutting_batch_item__batch__pastal_code=pastal_code)
+            )
+            clean_pastal = "".join(c for c in pastal_code if c.isalnum() or c in ('-', '_')).strip()
+        else:
+            clean_pastal = f"BATCH_{batch_id}"
+        if batch_id:
+            try:
+                tickets_qs = tickets_qs.filter(box__cutting_batch_item__batch_id=int(batch_id))
+            except (ValueError, TypeError):
+                pass
+        filename = f"PASTAL_{clean_pastal}_{clean_ord}_STIKERLAR_65x45.pdf"
+    elif article_id:
         try:
             art = Article.objects.get(id=int(article_id))
             tickets_qs = tickets_qs.filter(Q(box__article=art) | Q(article_operation__article=art))
             clean_art = "".join(c for c in art.code if c.isalnum() or c in ('-', '_')).strip() or "ARTIKUL"
-            filename = f"{clean_art}_BARCHA_QUTILAR_{clean_ord}_STIKERLAR_100x60.pdf"
+            filename = f"{clean_art}_BARCHA_QUTILAR_{clean_ord}_STIKERLAR_65x45.pdf"
         except (Article.DoesNotExist, ValueError):
-            filename = f"BUYURTMA_{clean_ord}_BARCHA_STIKERLAR_100x60.pdf"
+            filename = f"BUYURTMA_{clean_ord}_BARCHA_STIKERLAR_65x45.pdf"
     else:
-        filename = f"BUYURTMA_{clean_ord}_BARCHA_STIKERLAR_100x60.pdf"
+        filename = f"BUYURTMA_{clean_ord}_BARCHA_STIKERLAR_65x45.pdf"
 
     tickets = tickets_qs.select_related(
         'box', 'box__order', 'box__article', 'article_operation__operation', 'article_operation__article'
