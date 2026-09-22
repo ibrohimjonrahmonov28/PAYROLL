@@ -118,7 +118,8 @@
             </div>
 
             <!-- Active Patok Selector & Switch Button -->
-            <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition rounded-xl px-3 py-1.5 text-xs shadow-inner">
+            <div
+                class="flex items-center gap-2 bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition rounded-xl px-3 py-1.5 text-xs shadow-inner">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span class="font-bold text-slate-400">Patok:</span>
                 <span id="active-patok-display" class="font-black text-amber-400 digital-font text-sm">1-Patok</span>
@@ -128,7 +129,8 @@
                     <i class="fa-solid fa-layer-group text-[10px] text-amber-400"></i> Almashtirish
                 </button>
                 <a id="screen-monitor-link" href="/screens/1/" target="_blank"
-                    class="text-slate-400 hover:text-cyan-300 text-xs ml-1 p-1 transition" title="Tanlangan patok televizorini ochish">
+                    class="text-slate-400 hover:text-cyan-300 text-xs ml-1 p-1 transition"
+                    title="Tanlangan patok televizorini ochish">
                     <i class="fa-solid fa-tv"></i>
                 </a>
             </div>
@@ -524,17 +526,19 @@
         class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
         <div
             class="bg-slate-900 border border-slate-700 w-full max-w-5xl rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3.5 max-h-[98vh] flex flex-col">
-            
+
             <!-- Modal Header -->
             <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg font-black">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg font-black">
                         <i class="fa-solid fa-layer-group"></i>
                     </div>
                     <div>
                         <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
                             <span>TIKUV PATOKINI (LINIYASINI) TANLANG</span>
-                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-black border border-amber-500/40">
+                            <span
+                                class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-black border border-amber-500/40">
                                 40 ta Patok
                             </span>
                         </h3>
@@ -547,9 +551,9 @@
                 <!-- Quick search / number input -->
                 <div class="flex items-center gap-2">
                     <div class="relative">
-                        <i class="fa-solid fa-hashtag absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                        <input type="number" id="patok-quick-input" min="1" max="40"
-                            placeholder="Raqam: 1-40..."
+                        <i
+                            class="fa-solid fa-hashtag absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="number" id="patok-quick-input" min="1" max="40" placeholder="Raqam: 1-40..."
                             oninput="filterPatokCards(this.value)"
                             onkeydown="if(event.key==='Enter') selectPatokByInput()"
                             class="w-36 sm:w-44 pl-7 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-500">
@@ -565,16 +569,14 @@
             <div class="flex-1 overflow-y-auto pr-1">
                 <div id="patoks-grid-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-8 gap-2 sm:gap-2.5">
                     {% for p in patoks_data %}
-                    <button type="button" onclick="selectPatok({{ p.number }})"
-                        id="patok-card-{{ p.number }}"
-                        data-patok="{{ p.number }}"
-                        class="patok-card group relative p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 text-center flex flex-col items-center justify-between
+                    <button type="button" onclick="selectPatok({{ p.number }})" id="patok-card-{{ p.number }}"
+                        data-patok="{{ p.number }}" class="patok-card group relative p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 text-center flex flex-col items-center justify-between
                         {% if p.is_active %}
                         bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-900/50 shadow-lg shadow-emerald-950/40
                         {% else %}
                         bg-slate-950/80 border-slate-800 hover:border-amber-500/60 hover:bg-slate-850 hover:scale-[1.02]
                         {% endif %}">
-                        
+
                         <div class="w-full flex items-center justify-between text-[10px] text-slate-400 font-bold mb-1">
                             <span class="text-slate-500">#{{ p.number }}</span>
                             {% if p.is_active %}
@@ -585,7 +587,8 @@
                         </div>
 
                         <div class="my-0.5">
-                            <span class="text-xl sm:text-2xl font-black digital-font block leading-none
+                            <span
+                                class="text-xl sm:text-2xl font-black digital-font block leading-none
                                 {% if p.is_active %}text-emerald-400 group-hover:text-emerald-300{% else %}text-white group-hover:text-amber-400{% endif %}">
                                 {{ p.number }}
                             </span>
@@ -597,11 +600,13 @@
 
                         <div class="mt-1 w-full">
                             {% if p.is_active %}
-                            <span class="block px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold text-[9px] truncate">
+                            <span
+                                class="block px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold text-[9px] truncate">
                                 {{ p.workers_count }} ishchi ({{ p.units_count }})
                             </span>
                             {% else %}
-                            <span class="block px-1.5 py-0.5 rounded-md bg-slate-900 text-slate-500 text-[9px] truncate">
+                            <span
+                                class="block px-1.5 py-0.5 rounded-md bg-slate-900 text-slate-500 text-[9px] truncate">
                                 Bo'sh
                             </span>
                             {% endif %}
@@ -612,7 +617,8 @@
             </div>
 
             <!-- Footer info -->
-            <div class="border-t border-slate-800 pt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+            <div
+                class="border-t border-slate-800 pt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
                 <div class="flex items-center gap-4">
                     <span class="flex items-center gap-1.5">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>

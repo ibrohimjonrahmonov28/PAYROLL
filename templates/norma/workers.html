@@ -51,7 +51,8 @@
                     Yetganlar</span>
                 <span class="text-2xl font-black text-emerald-400 digital-font">{{ bonus_workers_count }}</span>
                 {% if daily_bonus_amount > 0 %}
-                <span class="text-xs text-slate-500 font-bold ml-1">nafar (+{{ daily_bonus_amount|floatformat:0 }} UZS)</span>
+                <span class="text-xs text-slate-500 font-bold ml-1">nafar (+{{ daily_bonus_amount|floatformat:0 }}
+                    UZS)</span>
                 {% else %}
                 <span class="text-xs text-slate-500 font-bold ml-1">nafar (Bonus: 0 UZS)</span>
                 {% endif %}
@@ -78,7 +79,8 @@
                         <th class="py-3.5 px-4">Tikilgan Modellar</th>
                         <th class="py-3.5 px-4 text-center">Norma Foizi</th>
                         <th class="py-3.5 px-4 text-right">Ishlab Topgan Haqi</th>
-                        <th class="py-3.5 px-4 text-center">Bonus {% if daily_bonus_amount > 0 %}(+{{ daily_bonus_amount|floatformat:0 }}){% else %}(0 UZS){% endif %}</th>
+                        <th class="py-3.5 px-4 text-center">Bonus {% if daily_bonus_amount > 0 %}(+{{
+                            daily_bonus_amount|floatformat:0 }}){% else %}(0 UZS){% endif %}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800 font-semibold">
