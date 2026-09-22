@@ -44,9 +44,11 @@
                     Buyurtmalar</span>
                 <span class="text-3xl font-black text-purple-400 digital-font mt-1 block">
                     {{ orders_data|length }}
+                    {{ total_orders_count }}
                     <small class="text-xs font-semibold text-slate-400">ta</small>
                 </span>
                 <span class="text-xs text-slate-500 mt-1 block">Qutilari mavjud zakazlar</span>
+                <span class="text-xs text-slate-500 mt-1 block">Qutilari mavjud jami zakazlar</span>
             </div>
             <div
                 class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xl">
@@ -58,6 +60,7 @@
             <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Stiker O'lchami</span>
                 <span class="text-2xl font-black text-white digital-font mt-1 block">100 x 60 mm</span>
+                <span class="text-2xl font-black text-white digital-font mt-1 block">65 x 45 mm</span>
                 <span class="text-xs text-slate-500 mt-1 block">Termal printer QR stikeri</span>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-slate-800 text-slate-300 flex items-center justify-center text-xl">
@@ -74,14 +77,17 @@
             <a href="?status=unprinted{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if filter_status == 'unprinted' %}bg-amber-500 text-slate-950 shadow{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
                 <i class="fa-solid fa-clock-rotate-left"></i> Chop Etilmaganlar
+                <i class="fa-solid fa-clock-rotate-left"></i> Chop Etilmaganlar ({{ unprinted_orders_count }})
             </a>
             <a href="?status=all{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if filter_status == 'all' %}bg-amber-500 text-slate-950 shadow{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
                 <i class="fa-solid fa-layer-group"></i> Barcha Qutilar
+                <i class="fa-solid fa-layer-group"></i> Barcha Zakazlar ({{ total_orders_count }})
             </a>
             <a href="?status=printed{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if filter_status == 'printed' %}bg-amber-500 text-slate-950 shadow{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
                 <i class="fa-solid fa-circle-check"></i> Tikuvga Berilganlar
+                <i class="fa-solid fa-circle-check"></i> Tikuvga Berilganlar ({{ printed_orders_count }})
             </a>
         </div>
 

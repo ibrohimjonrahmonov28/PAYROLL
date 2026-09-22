@@ -50,14 +50,24 @@ def sticker_dashboard(request):
     orders_data = []
     total_unprinted_boxes = 0
     total_printed_boxes = 0
+    unprinted_orders_count = 0
+    printed_orders_count = 0
+    all_orders_list = list(orders_qs)
+    total_orders_count = len(all_orders_list)
 
     for ord_obj in orders_qs:
+    for ord_obj in all_orders_list:
         all_boxes = ord_obj.boxes.all()
         unprinted = [b for b in all_boxes if not b.is_printed]
         printed = [b for b in all_boxes if b.is_printed]
 
         total_unprinted_boxes += len(unprinted)
         total_printed_boxes += len(printed)
+
+        if len(unprinted) > 0:
+            unprinted_orders_count += 1
+        if len(printed) == len(all_boxes) and len(all_boxes) > 0:
+            printed_orders_count += 1
 
         if filter_status == 'unprinted' and len(unprinted) == 0:
             continue
@@ -79,6 +89,9 @@ def sticker_dashboard(request):
         'filter_status': filter_status,
         'total_unprinted_boxes': total_unprinted_boxes,
         'total_printed_boxes': total_printed_boxes,
+        'total_orders_count': total_orders_count,
+        'unprinted_orders_count': unprinted_orders_count,
+        'printed_orders_count': printed_orders_count,
     })
 
 

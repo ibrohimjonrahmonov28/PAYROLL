@@ -8,6 +8,7 @@ from django.db.models import Sum, Count, Q, F, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch
 from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets
 from accounts.models import Worker
 
