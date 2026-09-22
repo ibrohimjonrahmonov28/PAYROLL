@@ -23,12 +23,12 @@ def send_daily_excel_report(target_date: datetime.date = None, chat_id: str = No
     if bot_token is not None:
         token = bot_token
     else:
-        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '')
+        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '') or '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg'
 
     if chat_id is not None:
         target_chat_id = chat_id
     else:
-        target_chat_id = getattr(settings, 'TELEGRAM_REPORT_CHAT_ID', '') or os.getenv('TELEGRAM_REPORT_CHAT_ID', '')
+        target_chat_id = getattr(settings, 'TELEGRAM_REPORT_CHAT_ID', '') or os.getenv('TELEGRAM_REPORT_CHAT_ID', '') or '-1004374345556'
 
     if not token:
         return {
@@ -120,12 +120,12 @@ def send_full_db_backup(chat_id: str = None, bot_token: str = None) -> dict:
     if bot_token is not None:
         token = bot_token
     else:
-        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '')
+        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '') or '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg'
 
     if chat_id is not None:
         target_chat_id = chat_id
     else:
-        target_chat_id = getattr(settings, 'TELEGRAM_REPORT_CHAT_ID', '') or os.getenv('TELEGRAM_REPORT_CHAT_ID', '')
+        target_chat_id = getattr(settings, 'TELEGRAM_REPORT_CHAT_ID', '') or os.getenv('TELEGRAM_REPORT_CHAT_ID', '') or '-1004374345556'
 
     if not token:
         return {
@@ -256,12 +256,12 @@ def send_month_to_date_telegram_report(chat_id: str = None, bot_token: str = Non
     if bot_token is not None:
         token = bot_token
     else:
-        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '')
+        token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '') or '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg'
 
     if chat_id is not None:
         target_chat_id = chat_id
     else:
-        target_chat_id = getattr(settings, 'TELEGRAM_REPORT_CHAT_ID', '') or os.getenv('TELEGRAM_REPORT_CHAT_ID', '')
+        target_chat_id = getattr(settings, 'TELEGRAM_REPORT_CHAT_ID', '') or os.getenv('TELEGRAM_REPORT_CHAT_ID', '') or '-1004374345556'
 
     if not token:
         return {
