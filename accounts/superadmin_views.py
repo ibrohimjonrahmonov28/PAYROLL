@@ -1059,24 +1059,16 @@ def superadmin_payroll_export_csv(request):
 @superadmin_required
 def superadmin_send_telegram_report(request):
     """
-    Superadmin panelidan turib xodimlar va stikerlar bo'yicha kunlik Excel hisobotini
-    Telegram guruhga qo'lda darhol yuborish.
+    Superadmin panelidan turib xodimlar va stikerlar bo'yicha joriy oy boshidan hozirgacha
+    bo'lgan to'liq oylik Excel hisoboti va To'liq baza zaxira nusxasini (DB Backup)
+    Telegram guruhga yuborish.
     """
-    date_str = request.POST.get('date') or request.GET.get('date')
-    if date_str:
-        try:
-            target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            target_date = timezone.localdate()
-    else:
-        target_date = timezone.localdate()
-
     chat_id = (request.POST.get('chat_id') or request.GET.get('chat_id') or '').strip() or None
     bot_token = (request.POST.get('bot_token') or request.GET.get('bot_token') or '').strip() or None
 
     try:
-        from production.telegram_reports import send_daily_excel_report
-        result = send_daily_excel_report(target_date=target_date, chat_id=chat_id, bot_token=bot_token)
+        from production.telegram_reports import send_month_to_date_telegram_report
+        result = send_month_to_date_telegram_report(chat_id=chat_id, bot_token=bot_token)
 
         if result.get('success'):
             messages.success(request, f"✅ {result.get('message')}")

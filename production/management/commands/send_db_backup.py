@@ -32,3 +32,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"✅ {result.get('message')}"))
         else:
             self.stderr.write(self.style.WARNING(f"⚠️ {result.get('message')}"))
+

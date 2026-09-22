@@ -66,12 +66,12 @@
                 </button>
             </form>
 
-            <!-- Telegram Daily Excel Report Trigger -->
+            <!-- Telegram Month-to-date & DB Backup Trigger -->
             <a href="{% url 'superadmin_send_telegram_report' %}"
-                onclick="return confirm('Bugungi kunlik ish haqi va stikerlar hisoboti Telegram guruhga yuborilsinmi?');"
+                onclick="return confirm('Joriy oy boshidan hozirgacha bo\'lgan oylik hisobot (Excel) va to\'liq baza zaxirasi (.sql.gz) Telegram guruhga yuborilsinmi?');"
                 class="px-4 py-2 bg-sky-950/60 hover:bg-sky-900/60 border border-sky-600/40 text-sky-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
-                title="Bugungi kunlik xodimlar va stikerlar Excel hisobotini Telegram guruhga yuborish">
-                <i class="fa-brands fa-telegram text-base text-sky-400"></i> Telegramga Hisobot
+                title="Oy boshidan hozirgacha bo'lgan oylik Excel hisoboti va to'liq DB backupni Telegram guruhga yuborish">
+                <i class="fa-brands fa-telegram text-base text-sky-400"></i> Telegramga Oylik Hisobot va DB Backup
             </a>
 
             <!-- Direct Download Daily Excel -->

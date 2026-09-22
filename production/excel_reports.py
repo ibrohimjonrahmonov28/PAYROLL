@@ -2,7 +2,7 @@ import io
 import datetime
 from decimal import Decimal
 from django.utils import timezone
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 
 try:
     import openpyxl
@@ -12,7 +12,7 @@ try:
 except ImportError:
     HAS_OPENPYXL = False
 
-from accounts.models import Worker
+from accounts.models import Worker, WorkerPayout
 from production.models import Ticket
 
 
@@ -392,6 +392,392 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         c_node.border = thick_bottom_border
 
     # Faylni xotiraga yozish
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io.BytesIO:
+    """
+    Joriy oyning boshidan (1-kuni 00:00 dan) to hozirgi kungacha bo'lgan to'liq oylik
+    ish haqi va barcha skanerlangan stikerlar hisoboti (2 varaqli professional Excel):
+    - 1-varaq: "Xodimlar Oylik Tabeli" (Xodim, ishlagan kunlari, tikilgan jami dona, hisoblangan ish haqi, avanslar, to'langan oylik, to'lanishi kerak qoldiq, joriy balans)
+    - 2-varaq: "Barcha Skanerlangan Stikerlar" (Oy boshidan beri urilgan barcha stikerlar tafsiloti)
+    """
+    if not HAS_OPENPYXL:
+        raise ImportError("Serverda 'openpyxl' kutubxonasi o'rnatilmagan.")
+
+    now = timezone.localtime()
+    if target_date is None:
+        target_date = now.date()
+
+    start_of_month = target_date.replace(day=1)
+    tz = timezone.get_current_timezone()
+    month_start_dt = timezone.make_aware(datetime.datetime.combine(start_of_month, datetime.time.min), tz)
+    month_end_dt = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time.max), tz)
+
+    # 1. Oy boshidan beri skanerlangan barcha biletlar
+    month_tickets = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(month_start_dt, month_end_dt)
+    ).select_related(
+        'worker',
+        'article_operation__operation',
+        'article_operation__article__model',
+        'box__order'
+    ).order_by('scanned_at')
+
+    # Barcha xodimlar
+    active_worker_ids = set(month_tickets.values_list('worker_id', flat=True))
+    workers = list(Worker.objects.filter(
+        Q(id__in=active_worker_ids) | Q(is_active=True)
+    ).select_related('user').order_by('worker_id'))
+
+    # Xodimlar bo'yicha agregatsiya
+    worker_ticket_stats = month_tickets.values('worker_id').annotate(
+        units=Sum('quantity'),
+        gross=Sum('total_amount'),
+        days_worked=Count('scanned_at__date', distinct=True)
+    )
+    worker_ticket_map = {item['worker_id']: item for item in worker_ticket_stats}
+
+    # Payouts (avans va oyliklar)
+    month_payout_qs = WorkerPayout.objects.filter(
+        payout_date__range=(start_of_month, target_date)
+    ).values('worker_id').annotate(
+        advances=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.ADVANCE)),
+        salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY)),
+    )
+    month_payout_map = {item['worker_id']: item for item in month_payout_qs}
+
+    wb = openpyxl.Workbook()
+
+    # Ranglar va shriftlar
+    navy_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    dark_slate_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    zebra_fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    total_fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+
+    font_title = Font(name="Arial", size=15, bold=True, color="0F172A")
+    font_subtitle = Font(name="Arial", size=10, italic=True, color="475569")
+    font_header = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+    font_bold = Font(name="Arial", size=10, bold=True, color="0F172A")
+    font_regular = Font(name="Arial", size=10, color="0F172A")
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+    thick_bottom_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='medium', color='0F172A')
+    )
+
+    align_center = Alignment(horizontal='center', vertical='center')
+    align_left = Alignment(horizontal='left', vertical='center')
+    align_right = Alignment(horizontal='right', vertical='center')
+
+    # -------------------------------------------------------------
+    # 1-VARAQ: XODIMLAR OYLIK TABELI
+    # -------------------------------------------------------------
+    ws1 = wb.active
+    ws1.title = "Xodimlar Oylik Tabeli"
+    ws1.views.sheetView[0].showGridLines = True
+
+    # Sarlavha
+    ws1.merge_cells('A1:L1')
+    c_title = ws1['A1']
+    c_title.value = "TERRY JAR — OYLIK ISH HAQI VA XODIMLAR TABELI"
+    c_title.font = font_title
+    c_title.alignment = align_left
+    ws1.row_dimensions[1].height = 26
+
+    ws1.merge_cells('A2:L2')
+    c_sub = ws1['A2']
+    c_sub.value = f"Davr: {start_of_month.strftime('%d.%m.%Y')} 00:00 dan {target_date.strftime('%d.%m.%Y')} {now.strftime('%H:%M')} gacha | Shakllantirilgan vaqt: {now.strftime('%d.%m.%Y %H:%M')}"
+    c_sub.font = font_subtitle
+    c_sub.alignment = align_left
+    ws1.row_dimensions[2].height = 18
+
+    headers1 = [
+        "№", "Xodim ID", "F.I.SH", "Telefon", "Ishlagan Kunlari",
+        "Tikilgan Dona", "Hisoblangan Ish Haqi (UZS)", "Berilgan Avans (UZS)",
+        "To'langan Oylik (UZS)", "To'lanishi Kerak Qoldiq (UZS)", "Joriy Balans (UZS)", "Holati"
+    ]
+
+    ws1.row_dimensions[4].height = 24
+    for col_idx, h in enumerate(headers1, start=1):
+        cell = ws1.cell(row=4, column=col_idx, value=h)
+        cell.font = font_header
+        cell.fill = navy_fill
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    tot_units = 0
+    tot_gross = Decimal('0.00')
+    tot_adv = Decimal('0.00')
+    tot_sal = Decimal('0.00')
+    tot_net = Decimal('0.00')
+    tot_bal = Decimal('0.00')
+
+    row_idx = 5
+    counter = 1
+    for w in workers:
+        t_stat = worker_ticket_map.get(w.id, {})
+        u = t_stat.get('units') or 0
+        g = t_stat.get('gross') or Decimal('0.00')
+        days_w = t_stat.get('days_worked') or 0
+
+        p_stat = month_payout_map.get(w.id, {})
+        adv = p_stat.get('advances') or Decimal('0.00')
+        sal = p_stat.get('salaries') or Decimal('0.00')
+        net = g - adv - sal
+        bal = w.balance
+
+        if g == Decimal('0.00') and adv == Decimal('0.00') and sal == Decimal('0.00'):
+            status_str = "Ishlamagan"
+        elif net <= Decimal('0.00'):
+            status_str = "To'liq to'langan"
+        elif adv > Decimal('0.00'):
+            status_str = "Avans berilgan"
+        else:
+            status_str = "To'lov kutilmoqda"
+
+        c_fill = zebra_fill if counter % 2 == 0 else white_fill
+
+        ws1.cell(row=row_idx, column=1, value=counter).alignment = align_center
+        ws1.cell(row=row_idx, column=2, value=w.worker_id).alignment = align_center
+        ws1.cell(row=row_idx, column=3, value=w.full_name).alignment = align_left
+        ws1.cell(row=row_idx, column=4, value=w.phone_number or "—").alignment = align_center
+        ws1.cell(row=row_idx, column=5, value=days_w).alignment = align_center
+
+        c_u = ws1.cell(row=row_idx, column=6, value=u)
+        c_u.alignment = align_right
+        c_u.number_format = '#,##0'
+
+        c_g = ws1.cell(row=row_idx, column=7, value=float(g))
+        c_g.alignment = align_right
+        c_g.number_format = '#,##0'
+
+        c_adv = ws1.cell(row=row_idx, column=8, value=float(adv))
+        c_adv.alignment = align_right
+        c_adv.number_format = '#,##0'
+
+        c_sal = ws1.cell(row=row_idx, column=9, value=float(sal))
+        c_sal.alignment = align_right
+        c_sal.number_format = '#,##0'
+
+        c_net = ws1.cell(row=row_idx, column=10, value=float(net))
+        c_net.alignment = align_right
+        c_net.number_format = '#,##0'
+
+        c_bal = ws1.cell(row=row_idx, column=11, value=float(bal))
+        c_bal.alignment = align_right
+        c_bal.number_format = '#,##0'
+
+        ws1.cell(row=row_idx, column=12, value=status_str).alignment = align_center
+
+        for col_idx in range(1, 13):
+            c_node = ws1.cell(row=row_idx, column=col_idx)
+            c_node.border = thin_border
+            if c_fill.fill_type:
+                c_node.fill = c_fill
+            c_node.font = font_regular
+
+        tot_units += u
+        tot_gross += g
+        tot_adv += adv
+        tot_sal += sal
+        tot_net += net
+        tot_bal += bal
+
+        row_idx += 1
+        counter += 1
+
+    # Jami qatori
+    ws1.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=5)
+    c_tot_lbl = ws1.cell(row=row_idx, column=1, value="JAMI / BARCHASI:")
+    c_tot_lbl.font = font_bold
+    c_tot_lbl.alignment = align_right
+
+    c_tot_u = ws1.cell(row=row_idx, column=6, value=tot_units)
+    c_tot_u.font = font_bold
+    c_tot_u.alignment = align_right
+    c_tot_u.number_format = '#,##0'
+
+    c_tot_g = ws1.cell(row=row_idx, column=7, value=float(tot_gross))
+    c_tot_g.font = font_bold
+    c_tot_g.alignment = align_right
+    c_tot_g.number_format = '#,##0'
+
+    c_tot_adv = ws1.cell(row=row_idx, column=8, value=float(tot_adv))
+    c_tot_adv.font = font_bold
+    c_tot_adv.alignment = align_right
+    c_tot_adv.number_format = '#,##0'
+
+    c_tot_sal = ws1.cell(row=row_idx, column=9, value=float(tot_sal))
+    c_tot_sal.font = font_bold
+    c_tot_sal.alignment = align_right
+    c_tot_sal.number_format = '#,##0'
+
+    c_tot_net = ws1.cell(row=row_idx, column=10, value=float(tot_net))
+    c_tot_net.font = font_bold
+    c_tot_net.alignment = align_right
+    c_tot_net.number_format = '#,##0'
+
+    c_tot_bal = ws1.cell(row=row_idx, column=11, value=float(tot_bal))
+    c_tot_bal.font = font_bold
+    c_tot_bal.alignment = align_right
+    c_tot_bal.number_format = '#,##0'
+
+    ws1.cell(row=row_idx, column=12, value="")
+
+    for col_idx in range(1, 13):
+        c_node = ws1.cell(row=row_idx, column=col_idx)
+        c_node.fill = total_fill
+        c_node.border = thick_bottom_border
+
+    # Ustunlar kengligi
+    col_widths1 = [5, 12, 28, 16, 16, 15, 22, 20, 20, 24, 20, 18]
+    for i, w_val in enumerate(col_widths1, start=1):
+        ws1.column_dimensions[get_column_letter(i)].width = w_val
+
+    # -------------------------------------------------------------
+    # 2-VARAQ: BARCHA SKANERLANGAN STIKERLAR (OYLIK)
+    # -------------------------------------------------------------
+    ws2 = wb.create_sheet(title="Barcha Skanerlangan Stikerlar")
+    ws2.views.sheetView[0].showGridLines = True
+
+    ws2.merge_cells('A1:L1')
+    c_title2 = ws2['A1']
+    c_title2.value = "TERRY JAR — OY BO'YICHA SKANERLANGAN BARCHA STIKERLAR RO'YXATI"
+    c_title2.font = font_title
+    c_title2.alignment = align_left
+    ws2.row_dimensions[1].height = 26
+
+    ws2.merge_cells('A2:L2')
+    c_sub2 = ws2['A2']
+    c_sub2.value = f"Davr: {start_of_month.strftime('%d.%m.%Y')} — {target_date.strftime('%d.%m.%Y')} | Jami stikerlar: {month_tickets.count()} ta"
+    c_sub2.font = font_subtitle
+    c_sub2.alignment = align_left
+    ws2.row_dimensions[2].height = 18
+
+    headers2 = [
+        "№", "Stiker ID", "Skanerlangan Vaqt", "Xodim ID", "Xodim F.I.SH",
+        "Zakaz №", "Quti №", "Model", "Operatsiya",
+        "Soni (dona)", "Narxi (UZS)", "Jami Summa (UZS)"
+    ]
+
+    ws2.row_dimensions[4].height = 24
+    for col_idx, h in enumerate(headers2, start=1):
+        cell = ws2.cell(row=4, column=col_idx, value=h)
+        cell.font = font_header
+        cell.fill = dark_slate_fill
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    row_idx2 = 5
+    detail_counter = 1
+    total_detail_units = 0
+    total_detail_amount = Decimal('0.00')
+
+    for t in month_tickets:
+        scan_time_str = timezone.localtime(t.scanned_at).strftime("%d.%m.%Y %H:%M:%S") if t.scanned_at else "—"
+        worker_id = t.worker.worker_id if t.worker else "—"
+        worker_name = t.worker.full_name if t.worker else "Noma'lum"
+
+        order_num = "—"
+        box_num = "—"
+        if t.box:
+            box_num = str(t.box.box_number)
+            if t.box.order:
+                order_num = t.box.order.order_number
+
+        model_name = "—"
+        op_name = "—"
+        if t.article_operation:
+            if t.article_operation.operation:
+                op_name = t.article_operation.operation.name
+            if t.article_operation.article:
+                if t.article_operation.article.model:
+                    model_name = t.article_operation.article.model.name
+                else:
+                    model_name = t.article_operation.article.name
+
+        qty = t.quantity or 0
+        price = t.price_per_unit or Decimal('0.00')
+        tot_amt = t.total_amount or Decimal('0.00')
+
+        c_fill2 = zebra_fill if detail_counter % 2 == 0 else white_fill
+
+        ws2.cell(row=row_idx2, column=1, value=detail_counter).alignment = align_center
+        ws2.cell(row=row_idx2, column=2, value=t.id).alignment = align_center
+        ws2.cell(row=row_idx2, column=3, value=scan_time_str).alignment = align_center
+        ws2.cell(row=row_idx2, column=4, value=worker_id).alignment = align_center
+        ws2.cell(row=row_idx2, column=5, value=worker_name).alignment = align_left
+        ws2.cell(row=row_idx2, column=6, value=order_num).alignment = align_center
+        ws2.cell(row=row_idx2, column=7, value=box_num).alignment = align_center
+        ws2.cell(row=row_idx2, column=8, value=model_name).alignment = align_left
+        ws2.cell(row=row_idx2, column=9, value=op_name).alignment = align_left
+
+        c_q = ws2.cell(row=row_idx2, column=10, value=qty)
+        c_q.alignment = align_right
+        c_q.number_format = '#,##0'
+
+        c_p = ws2.cell(row=row_idx2, column=11, value=float(price))
+        c_p.alignment = align_right
+        c_p.number_format = '#,##0'
+
+        c_t = ws2.cell(row=row_idx2, column=12, value=float(tot_amt))
+        c_t.alignment = align_right
+        c_t.number_format = '#,##0'
+
+        for col_idx in range(1, 13):
+            c_node = ws2.cell(row=row_idx2, column=col_idx)
+            c_node.border = thin_border
+            if c_fill2.fill_type:
+                c_node.fill = c_fill2
+            c_node.font = font_regular
+
+        total_detail_units += qty
+        total_detail_amount += tot_amt
+
+        row_idx2 += 1
+        detail_counter += 1
+
+    # Sheet 2 Jami qatori
+    ws2.merge_cells(start_row=row_idx2, start_column=1, end_row=row_idx2, end_column=9)
+    c_tot_label2 = ws2.cell(row=row_idx2, column=1, value="JAMI / BARCHASI:")
+    c_tot_label2.font = font_bold
+    c_tot_label2.alignment = align_right
+
+    c_tot_q2 = ws2.cell(row=row_idx2, column=10, value=total_detail_units)
+    c_tot_q2.font = font_bold
+    c_tot_q2.alignment = align_right
+    c_tot_q2.number_format = '#,##0'
+
+    ws2.cell(row=row_idx2, column=11, value="")
+
+    c_tot_amt2 = ws2.cell(row=row_idx2, column=12, value=float(total_detail_amount))
+    c_tot_amt2.font = font_bold
+    c_tot_amt2.alignment = align_right
+    c_tot_amt2.number_format = '#,##0'
+
+    for col_idx in range(1, 13):
+        c_node = ws2.cell(row=row_idx2, column=col_idx)
+        c_node.fill = total_fill
+        c_node.border = thick_bottom_border
+
+    col_widths2 = [6, 12, 20, 12, 26, 16, 10, 22, 24, 14, 16, 18]
+    for i, w_val in enumerate(col_widths2, start=1):
+        ws2.column_dimensions[get_column_letter(i)].width = w_val
+
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
