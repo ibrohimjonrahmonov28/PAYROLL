@@ -92,65 +92,121 @@
         </a>
     </div>
 
-    <!-- TOOLBAR: SEARCH, ROLE TABS & ADD BUTTON -->
-    <div
-        class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <!-- Role Tabs -->
-        <div
-            class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
-            <a href="{% url 'superadmin_users' %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if not role_filter %}bg-slate-800 text-white shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
-                Barchasi ({{ all_users_count }})
-            </a>
-            <a href="{% url 'superadmin_users' %}?role=USER{% if search_q %}&q={{ search_q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'USER' %}bg-emerald-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
-                <i class="fa-solid fa-user mr-1"></i> Oddiy User ({{ regular_users_count }})
-            </a>
-            <a href="{% url 'superadmin_users' %}?role=MASTER{% if search_q %}&q={{ search_q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'MASTER' %}bg-sky-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-sky-400{% endif %}">
-                <i class="fa-brands fa-telegram mr-1"></i> Master ({{ masters_count }})
-            </a>
-            <a href="{% url 'superadmin_users' %}?role=ADMIN{% if search_q %}&q={{ search_q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'ADMIN' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
-                <i class="fa-solid fa-user-shield mr-1"></i> Admin ({{ admins_count }})
-            </a>
-            <a href="{% url 'superadmin_users' %}?role=SUPER_ADMIN{% if search_q %}&q={{ search_q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'SUPER_ADMIN' %}bg-rose-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-rose-400{% endif %}">
-                <i class="fa-solid fa-crown mr-1"></i> Super Admin ({{ superadmins_count }})
-            </a>
+    <!-- TOOLBAR: SEARCH, ROLE TABS, BIRKA TABS & ACTIONS -->
+    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl space-y-3">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <!-- Role Tabs -->
+            <div
+                class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full lg:w-auto overflow-x-auto">
+                <a href="{% url 'superadmin_users' %}{% if badge_filter %}?badge={{ badge_filter }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if not role_filter %}bg-slate-800 text-white shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                    Barchasi ({{ all_users_count }})
+                </a>
+                <a href="{% url 'superadmin_users' %}?role=USER{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'USER' %}bg-emerald-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
+                    <i class="fa-solid fa-user mr-1"></i> Oddiy User ({{ regular_users_count }})
+                </a>
+                <a href="{% url 'superadmin_users' %}?role=MASTER{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'MASTER' %}bg-sky-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-sky-400{% endif %}">
+                    <i class="fa-brands fa-telegram mr-1"></i> Master ({{ masters_count }})
+                </a>
+                <a href="{% url 'superadmin_users' %}?role=ADMIN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'ADMIN' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
+                    <i class="fa-solid fa-user-shield mr-1"></i> Admin ({{ admins_count }})
+                </a>
+                <a href="{% url 'superadmin_users' %}?role=SUPER_ADMIN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'SUPER_ADMIN' %}bg-rose-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-rose-400{% endif %}">
+                    <i class="fa-solid fa-crown mr-1"></i> Super Admin ({{ superadmins_count }})
+                </a>
+            </div>
+
+            <!-- Search Form & Add User Button -->
+            <div class="flex items-center gap-2.5 w-full lg:w-auto justify-end flex-wrap">
+                <form method="GET" action="{% url 'superadmin_users' %}"
+                    class="flex items-center gap-2 flex-1 lg:flex-initial">
+                    {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
+                    {% if badge_filter %}<input type="hidden" name="badge" value="{{ badge_filter }}">{% endif %}
+                    <div class="relative w-full lg:w-56">
+                        <input type="text" name="q" value="{{ search_q }}" placeholder="Qidirish (ism, UID, login)..."
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
+                    </div>
+                    {% if search_q %}
+                    <a href="{% url 'superadmin_users' %}?{% if role_filter %}role={{ role_filter }}&{% endif %}{% if badge_filter %}badge={{ badge_filter }}{% endif %}"
+                        class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs transition"
+                        title="Filtrni tozalash">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                    {% endif %}
+                </form>
+
+                <!-- Birkalarni Chop Etish (A4) - asosiy tugma -->
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={% if badge_filter %}{{ badge_filter }}{% else %}unprinted{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    target="_blank"
+                    class="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2 whitespace-nowrap"
+                    title="Chop etilmagan / berilmagan barcha birkalarni A4 qog'ozga joylab chop etish">
+                    <i class="fa-solid fa-print text-sm"></i>
+                    <span>Birkalarni Chop Etish (A4)</span>
+                    {% if unprinted_badges_count > 0 %}
+                    <span
+                        class="bg-slate-950 text-amber-400 text-[11px] font-black px-2 py-0.5 rounded-full shadow-inner">
+                        {{ unprinted_badges_count }} ta yangi
+                    </span>
+                    {% endif %}
+                </a>
+
+                <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')"
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 hover:border-amber-500/50 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-user-plus text-sm"></i>
+                    <span>Yangi Xodim Qo'shish</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Search Form & Add User Button -->
-        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-            <form method="GET" action="{% url 'superadmin_users' %}"
-                class="flex items-center gap-2 flex-1 md:flex-initial">
-                {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
-                <div class="relative w-full md:w-64">
-                    <input type="text" name="q" value="{{ search_q }}" placeholder="Qidirish (ism, UID, login)..."
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
-                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
-                </div>
-                {% if search_q %}
-                <a href="{% url 'superadmin_users' %}{% if role_filter %}?role={{ role_filter }}{% endif %}"
-                    class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs transition"
-                    title="Filtrni tozalash">
-                    <i class="fa-solid fa-xmark"></i>
+        <!-- 2-qator: Birka Holati Filter Tabs -->
+        <div class="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-800/80 flex-wrap text-xs">
+            <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <span class="text-[11px] font-bold text-slate-400 px-2.5">Birka Holati:</span>
+                <a href="{% url 'superadmin_users' %}?{% if role_filter %}role={{ role_filter }}&{% endif %}{% if search_q %}q={{ search_q }}&{% endif %}"
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap {% if not badge_filter %}bg-slate-800 text-white shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                    Barchasi ({{ all_users_count }})
                 </a>
-                {% endif %}
-            </form>
+                <a href="{% url 'superadmin_users' %}?badge=unprinted{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 {% if badge_filter == 'unprinted' %}bg-amber-500 text-slate-950 font-black shadow-sm{% else %}text-amber-400 hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-clock"></i> Chop Etilmaganlar ({{ unprinted_badges_count }})
+                </a>
+                <a href="{% url 'superadmin_users' %}?badge=printed{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 {% if badge_filter == 'printed' %}bg-emerald-500 text-slate-950 font-black shadow-sm{% else %}text-emerald-400 hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-check"></i> Berilganlar ({{ printed_badges_count }})
+                </a>
+            </div>
 
-            <a href="{% url 'superadmin_users_print_badges' %}{% if role_filter %}?role={{ role_filter }}{% endif %}{% if search_q %}{% if role_filter %}&{% else %}?{% endif %}q={{ search_q }}{% endif %}"
-                target="_blank"
-                class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 hover:border-amber-500/50 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2 whitespace-nowrap"
-                title="Hozirgi ro'yxatdagi barcha xodimlar birkalarini A4/stiker formatida chop etish">
-                <i class="fa-solid fa-print text-sm"></i>
-                <span>Barcha Birkalarni Chop Etish</span>
-            </a>
+            <div class="text-slate-400 text-[11px] flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-amber-400"></i>
+                <span>Jadvalda xodimga birka berilganligini checkbox orqali darhol belgilab qo'yishingiz mumkin.</span>
+            </div>
+        </div>
+    </div>
 
-            <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')"
-                class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-user-plus text-sm"></i>
-                <span>Yangi Foydalanuvchi Qo'shish</span>
+    <!-- BULK ACTIONS BAR (Checkboxlar tanlanganda ko'rinadi) -->
+    <div id="bulk-actions-bar"
+        class="hidden bg-slate-900 border border-amber-500/50 rounded-2xl p-3.5 px-5 shadow-xl flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+        <div class="flex items-center gap-2 text-xs font-bold text-white">
+            <i class="fa-solid fa-check-double text-amber-400 text-sm"></i>
+            <span><strong id="bulk-selected-count" class="text-amber-400 text-sm">0</strong> ta xodim tanlandi</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" onclick="bulkMarkBadges(true)"
+                class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-check"></i> 'Berilgan' deb belgilash
+            </button>
+            <button type="button" onclick="bulkMarkBadges(false)"
+                class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-clock"></i> 'Berilmagan' qilish
+            </button>
+            <button type="button" onclick="bulkPrintSelectedBadges()"
+                class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i> Tanlanganlarni chop etish (A4)
             </button>
         </div>
     </div>
@@ -162,9 +218,15 @@
                 <thead>
                     <tr
                         class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3.5 px-3 text-center w-10">
+                            <input type="checkbox" id="select-all-users" onclick="toggleSelectAllUsers(this)"
+                                class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-amber-500 cursor-pointer"
+                                title="Hammasini tanlash">
+                        </th>
                         <th class="py-3.5 px-4">Foydalanuvchi (Ism & Familiya)</th>
                         <th class="py-3.5 px-4 text-center">Unikal 6-UID</th>
                         <th class="py-3.5 px-4 text-center">QR Nishon</th>
+                        <th class="py-3.5 px-4 text-center">Birka Berilganmi?</th>
                         <th class="py-3.5 px-4">Roli & Huquqi</th>
                         <th class="py-3.5 px-4">Telegram ID</th>
                         <th class="py-3.5 px-4">Telefon</th>
@@ -175,6 +237,13 @@
                 <tbody class="divide-y divide-slate-800 text-slate-200">
                     {% for u in users %}
                     <tr class="hover:bg-slate-800/40 transition">
+                        <!-- Multi-select checkbox -->
+                        <td class="py-3.5 px-3 text-center">
+                            <input type="checkbox"
+                                class="user-select-check w-4 h-4 rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-amber-500 cursor-pointer"
+                                value="{{ u.id }}" onchange="updateBulkActionBtn()">
+                        </td>
+
                         <!-- Foydalanuvchi info: Ism, Familiya, Username -->
                         <td class="py-3.5 px-4">
                             <div class="flex items-center gap-3">
@@ -228,7 +297,11 @@
                         <td class="py-3.5 px-4 text-center">
                             {% if u.qr_code %}
                             <button
-                                onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:''|escapejs }}', '{{ u.uid|default:'------'|escapejs }}', '{{ u.get_role_display|escapejs }}', '{{ u.role|escapejs }}', '{{ u.qr_code.url }}', '{{ u.username|escapejs }}', '{% url 'superadmin_user_badge' u.id %}', '{{ u.worker_profile.worker_id|default:''|escapejs }}', '{{ u.phone_number|default:''|escapejs }}')"
+                                onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:""|escapejs }}', '{{ u.uid|default:"
+                                ------"|escapejs }}', '{{ u.get_role_display|escapejs }}' , '{{ u.role|escapejs }}'
+                                , '{{ u.qr_code.url }}' , '{{ u.username|escapejs }}' , '{% url ' superadmin_user_badge'
+                                u.id %}', '{{ u.worker_profile.worker_id|default:""|escapejs }}'
+                                , '{{ u.phone_number|default:""|escapejs }}' )"
                                 class="group relative inline-block p-1 bg-white rounded-lg border border-slate-700 hover:border-amber-400 transition"
                                 title="Universal Birkani ko'rish va chop etish">
                                 <img src="{{ u.qr_code.url }}" alt="QR" class="w-8 h-8 object-contain">
@@ -240,6 +313,24 @@
                             {% else %}
                             <span class="text-slate-600 text-xs italic">Mavjud emas</span>
                             {% endif %}
+                        </td>
+
+                        <!-- BIRKA BERILGANMI? (Tezkor Checkbox & Holat) -->
+                        <td class="py-3.5 px-4 text-center">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none group"
+                                title="Birka berilganligini o'zgartirish">
+                                <input type="checkbox" onchange="toggleBadgePrinted({{ u.id }}, this)"
+                                    class="w-4 h-4 rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500 focus:ring-offset-slate-900 cursor-pointer"
+                                    {% if u.is_badge_printed %}checked{% endif %}>
+                                <span id="badge-label-{{ u.id }}"
+                                    class="text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition {% if u.is_badge_printed %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/30{% else %}bg-amber-500/10 text-amber-400 border border-amber-500/30{% endif %}">
+                                    {% if u.is_badge_printed %}
+                                    <i class="fa-solid fa-check text-[10px]"></i> Berilgan
+                                    {% else %}
+                                    <i class="fa-solid fa-clock text-[10px]"></i> Berilmagan
+                                    {% endif %}
+                                </span>
+                            </label>
                         </td>
 
                         <!-- Roli -->
@@ -935,6 +1026,104 @@
         printWin.document.write('<\/script>');
         printWin.document.write('</body></html>');
         printWin.document.close();
+    }
+
+    // Toggle Birka Printed via AJAX
+    function toggleBadgePrinted(userId, checkbox) {
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        var label = document.getElementById('badge-label-' + userId);
+        var originalChecked = !checkbox.checked;
+
+        fetch("{% url 'superadmin_users' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: new URLSearchParams({
+                'action': 'toggle_badge_printed',
+                'user_id': userId
+            })
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.status === 'ok') {
+                    if (data.is_badge_printed) {
+                        label.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+                        label.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i> Berilgan';
+                    } else {
+                        label.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition bg-amber-500/10 text-amber-400 border border-amber-500/30';
+                        label.innerHTML = '<i class="fa-solid fa-clock text-[10px]"></i> Berilmagan';
+                    }
+                } else {
+                    checkbox.checked = originalChecked;
+                    alert('Xatolik yuz berdi');
+                }
+            })
+            .catch(function (err) {
+                checkbox.checked = originalChecked;
+                alert('Aloqa xatosi: ' + err);
+            });
+    }
+
+    // Multi-select and Bulk Actions
+    function toggleSelectAllUsers(master) {
+        var checks = document.querySelectorAll('.user-select-check');
+        for (var i = 0; i < checks.length; i++) {
+            checks[i].checked = master.checked;
+        }
+        updateBulkActionBtn();
+    }
+
+    function getSelectedUserIds() {
+        var checks = document.querySelectorAll('.user-select-check:checked');
+        var ids = [];
+        for (var i = 0; i < checks.length; i++) {
+            ids.push(checks[i].value);
+        }
+        return ids;
+    }
+
+    function updateBulkActionBtn() {
+        var ids = getSelectedUserIds();
+        var bar = document.getElementById('bulk-actions-bar');
+        var countSpan = document.getElementById('bulk-selected-count');
+        if (ids.length > 0) {
+            bar.classList.remove('hidden');
+            countSpan.innerText = ids.length;
+        } else {
+            bar.classList.add('hidden');
+            var master = document.getElementById('select-all-users');
+            if (master) master.checked = false;
+        }
+    }
+
+    function bulkMarkBadges(val) {
+        var ids = getSelectedUserIds();
+        if (ids.length === 0) return;
+        var actionText = val ? "'Berilgan'" : "'Berilmagan'";
+        if (!confirm("Tanlangan " + ids.length + " ta xodimning birkasini " + actionText + " deb belgilamoqchimisiz?")) return;
+
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'superadmin_users' %}";
+
+        var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        form.innerHTML = '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrf + '">' +
+            '<input type="hidden" name="action" value="bulk_mark_badge_printed">' +
+            '<input type="hidden" name="user_ids" value="' + ids.join(',') + '">' +
+            '<input type="hidden" name="value" value="' + (val ? 'true' : 'false') + '">';
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function bulkPrintSelectedBadges() {
+        var ids = getSelectedUserIds();
+        if (ids.length === 0) return;
+        var url = "{% url 'superadmin_users_print_badges' %}?ids=" + ids.join(',');
+        window.open(url, '_blank');
     }
 </script>
 {% endblock %}

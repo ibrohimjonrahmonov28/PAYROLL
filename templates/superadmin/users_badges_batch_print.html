@@ -192,10 +192,25 @@
 
             <!-- Boshqaruv tugmalari -->
             <div class="flex flex-wrap items-center gap-2.5">
+                {% if user_ids_str %}
+                <form method="POST"
+                    onsubmit="return confirm('Rostdan ham ro\'yxatdagi {{ total_badges }} ta xodimning birkasini \'Berilgan\' deb belgilamoqchimisiz?');"
+                    class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="mark_printed">
+                    <input type="hidden" name="user_ids" value="{{ user_ids_str }}">
+                    <button type="submit"
+                        class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2"
+                        title="Ushbu sahifadagi barcha xodimlar birkalarini berildi deb belgilash">
+                        <i class="fa-solid fa-circle-check"></i> Berildi Deb Belgilash ({{ total_badges }})
+                    </button>
+                </form>
+                {% endif %}
+
                 <!-- PDF download -->
                 <a href="{% url 'superadmin_users_download_badges_pdf' %}"
-                    class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
-                    <i class="fa-solid fa-download"></i> Tayyor PDF (A4) Yuklab Olish
+                    class="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i> PDF Yuklab Olish
                 </a>
 
                 <!-- Browser Print -->
@@ -214,17 +229,21 @@
         <!-- Filtrlar va Tezkor Tanlov -->
         <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
             <div class="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status=unprinted{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-black transition flex items-center gap-1.5 {% if badge_status == 'unprinted' and not batch %}bg-amber-500 text-slate-950 shadow-md{% else %}text-amber-400 hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-clock"></i> Chop Etilmaganlar ({{ unprinted_badges_count }})
+                </a>
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status=all{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if badge_status == 'all' and not batch %}bg-slate-800 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-layer-group"></i> Barchasi ({{ total_all_badges_count }})
+                </a>
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status=printed{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if badge_status == 'printed' and not batch %}bg-emerald-500 text-slate-950 font-black shadow-md{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
+                    <i class="fa-solid fa-circle-check"></i> Berilganlar ({{ printed_badges_count }})
+                </a>
                 <a href="{% url 'superadmin_users_print_badges' %}?batch=new"
-                    class="px-3 py-1.5 rounded-xl font-black transition flex items-center gap-1.5 {% if batch == 'new' %}bg-amber-500 text-slate-950 shadow-md{% else %}text-amber-400 hover:bg-slate-900{% endif %}">
-                    <i class="fa-solid fa-star"></i> Faqat Yangi 20 ta Ishchi
-                </a>
-                <a href="{% url 'superadmin_users_print_badges' %}?role=USER"
-                    class="px-3 py-1.5 rounded-xl font-bold transition {% if role_filter == 'USER' and not batch %}bg-emerald-500 text-slate-950 font-black{% else %}text-slate-400 hover:text-white{% endif %}">
-                    Barcha Tikuvchilar
-                </a>
-                <a href="{% url 'superadmin_users_print_badges' %}"
-                    class="px-3 py-1.5 rounded-xl font-bold transition {% if not role_filter and not batch %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
-                    Hammasi (Admin, Master, User)
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if batch == 'new' %}bg-purple-500 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-star"></i> Yangi 20 ta
                 </a>
             </div>
 

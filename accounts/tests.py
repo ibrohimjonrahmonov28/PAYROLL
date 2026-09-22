@@ -675,8 +675,7 @@ class SuperAdminPanelTest(TestCase):
             price_per_unit=Decimal('1800.00')
         )
         res_print = self.client.get(reverse('production:box_print_stickers', kwargs={'box_id': box_diff.id}))
-        self.assertEqual(res_print.status_code, 200)
-        self.assertContains(res_print, 'Qiyinlik:')
+        self.assertContains(res_print, 'QIYINLIK:')
         self.assertContains(res_print, '4.2')
 
     def test_update_article_daily_norm(self):
@@ -767,7 +766,7 @@ class SuperAdminPanelTest(TestCase):
         self.assertEqual(res['Content-Type'], 'application/pdf')
         self.assertTrue(len(res.content) > 0)
         self.assertIn(self.order.order_number, res['Content-Disposition'])
-        self.assertIn('BARCHA_STIKERLAR_100x60.pdf', res['Content-Disposition'])
+        self.assertIn('BARCHA_STIKERLAR_65x45.pdf', res['Content-Disposition'])
 
 
 class WorkerPerformanceHistoryAndBonusTest(TestCase):

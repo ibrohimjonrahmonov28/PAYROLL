@@ -403,10 +403,36 @@ def superadmin_users(request):
                 status_text = 'Faollashtirildi' if user.is_active else 'Bloklandi'
                 messages.success(request, f"{user.username} hisobi {status_text}.")
 
+        elif action == 'toggle_badge_printed':
+            user_id = request.POST.get('user_id')
+            target_user = get_object_or_404(User, id=user_id)
+            target_user.is_badge_printed = not target_user.is_badge_printed
+            target_user.save(update_fields=['is_badge_printed'])
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+                return JsonResponse({
+                    'status': 'ok',
+                    'user_id': target_user.id,
+                    'is_badge_printed': target_user.is_badge_printed,
+                    'badge_status_text': 'Berilgan' if target_user.is_badge_printed else 'Berilmagan'
+                })
+            messages.success(request, f"{target_user.get_full_name() or target_user.username} uchun birka holati '{'Berilgan' if target_user.is_badge_printed else 'Berilmagan'}' deb belgilandi.")
+            return redirect(request.META.get('HTTP_REFERER') or 'superadmin_users')
+
+        elif action == 'bulk_mark_badge_printed':
+            user_ids_raw = request.POST.get('user_ids', '')
+            val = request.POST.get('value', 'true').lower() == 'true'
+            ids = [int(i.strip()) for i in user_ids_raw.split(',') if i.strip().isdigit()]
+            if ids:
+                updated_cnt = User.objects.filter(id__in=ids).update(is_badge_printed=val)
+                state_lbl = "Berilgan" if val else "Berilmagan"
+                messages.success(request, f"{updated_cnt} ta xodimning birkasi '{state_lbl}' deb belgilandi.")
+            return redirect(request.META.get('HTTP_REFERER') or 'superadmin_users')
+
         return redirect('superadmin_users')
 
     search_q = request.GET.get('q', '').strip()
     role_filter = request.GET.get('role', '').strip()
+    badge_filter = request.GET.get('badge', '').strip()  # unprinted, printed, all
 
     users_qs = User.objects.all()
     if search_q:
@@ -421,6 +447,11 @@ def superadmin_users(request):
     if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.USER]:
         users_qs = users_qs.filter(role=role_filter)
 
+    if badge_filter == 'unprinted':
+        users_qs = users_qs.filter(is_badge_printed=False)
+    elif badge_filter == 'printed':
+        users_qs = users_qs.filter(is_badge_printed=True)
+
     users = users_qs.order_by('-date_joined')
 
     # Hisoblagichlar
@@ -429,16 +460,21 @@ def superadmin_users(request):
     masters_count = User.objects.filter(role=User.Role.MASTER).count()
     admins_count = User.objects.filter(role=User.Role.ADMIN).count()
     superadmins_count = User.objects.filter(role=User.Role.SUPER_ADMIN).count()
+    unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
+    printed_badges_count = User.objects.filter(is_badge_printed=True).count()
 
     return render(request, 'superadmin/users.html', {
         'users': users,
         'search_q': search_q,
         'role_filter': role_filter,
+        'badge_filter': badge_filter,
         'all_users_count': all_users_count,
         'regular_users_count': regular_users_count,
         'masters_count': masters_count,
         'admins_count': admins_count,
         'superadmins_count': superadmins_count,
+        'unprinted_badges_count': unprinted_badges_count,
+        'printed_badges_count': printed_badges_count,
     })
 
 
@@ -481,15 +517,31 @@ def superadmin_users_print_badges(request):
     Barcha yoki filtrlangan foydalanuvchilarning Universal Birkalarini
     A4 qog'ozda (varaqqa 8 tadan) ommaviy chop etish sahifasi.
     """
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'mark_printed':
+            user_ids_raw = request.POST.get('user_ids', '')
+            ids = [int(i.strip()) for i in user_ids_raw.split(',') if i.strip().isdigit()]
+            if ids:
+                updated_cnt = User.objects.filter(id__in=ids).update(is_badge_printed=True)
+                messages.success(request, f"Jami {updated_cnt} ta xodimning birkasi 'Berilgan' deb belgilandi!")
+            return redirect('superadmin_users_print_badges')
+
     search_q = request.GET.get('q', '').strip()
     role_filter = request.GET.get('role', '').strip()
     ids_param = request.GET.get('ids', '').strip()
     batch = request.GET.get('batch', '').strip()
+    badge_status = request.GET.get('badge_status', 'unprinted').strip()  # unprinted (default), printed, all
 
     users_qs = User.objects.all()
     if batch == 'new':
         # Faqat yangi qo'shilgan 20 ta ishchi (id >= 9)
         users_qs = users_qs.filter(id__gte=9, role=User.Role.USER)
+
+    if badge_status == 'unprinted':
+        users_qs = users_qs.filter(is_badge_printed=False)
+    elif badge_status == 'printed':
+        users_qs = users_qs.filter(is_badge_printed=True)
 
     if ids_param:
         try:
@@ -536,14 +588,23 @@ def superadmin_users_print_badges(request):
     CARDS_PER_A4 = 8
     pages_list = [users_list[i:i + CARDS_PER_A4] for i in range(0, len(users_list), CARDS_PER_A4)]
 
+    unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
+    printed_badges_count = User.objects.filter(is_badge_printed=True).count()
+    total_all_badges_count = User.objects.count()
+
     return render(request, 'superadmin/users_badges_batch_print.html', {
         'badge_users': users_list,
         'pages_list': pages_list,
         'search_q': search_q,
         'role_filter': role_filter,
+        'badge_status': badge_status,
         'batch': batch,
         'total_badges': len(users_list),
         'total_pages': len(pages_list),
+        'unprinted_badges_count': unprinted_badges_count,
+        'printed_badges_count': printed_badges_count,
+        'total_all_badges_count': total_all_badges_count,
+        'user_ids_str': ','.join(str(u.id) for u in users_list),
     })
 
 

@@ -45,6 +45,12 @@ class User(AbstractUser):
         unique=True,
         help_text="Master Telegram hisobi ID raqami (masalan: 123456789)"
     )
+    is_badge_printed = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Birka berilgan / chop etilgan",
+        help_text="Xodimga ID birka (beydjik) chop etib berilganmi?"
+    )
 
     def generate_qr_code(self):
         if not self.uid:
