@@ -55,7 +55,6 @@ def sticker_dashboard(request):
     all_orders_list = list(orders_qs)
     total_orders_count = len(all_orders_list)
 
-    for ord_obj in orders_qs:
     for ord_obj in all_orders_list:
         all_boxes = ord_obj.boxes.all()
         unprinted = [b for b in all_boxes if not b.is_printed]
