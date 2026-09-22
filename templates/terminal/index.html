@@ -1780,10 +1780,20 @@
         // 13. FULLSCREEN
         // -------------------------------------------------------------
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            const doc = document;
+            const docEl = document.documentElement;
+            const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+            if (!isFullscreen) {
+                const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFS) {
+                    requestFS.call(docEl).catch(err => console.warn("Fullscreen request error:", err));
+                }
             } else {
-                document.exitFullscreen();
+                const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+                if (exitFS) {
+                    exitFS.call(doc).catch(err => console.warn("Fullscreen exit error:", err));
+                }
             }
         }
 

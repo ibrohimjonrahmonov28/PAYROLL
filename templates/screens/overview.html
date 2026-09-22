@@ -38,6 +38,11 @@
                 class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-lg">
                 <i class="fa-solid fa-barcode"></i> Skanerlash Terminali
             </a>
+            <button onclick="toggleFullscreen()"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl text-xs font-semibold transition flex items-center gap-2 border border-slate-700 shadow-sm"
+                title="To'liq ekran (F11 yoki F)">
+                <i class="fa-solid fa-expand"></i> To'liq ekran
+            </button>
             <a href="/"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition flex items-center gap-2 border border-slate-700">
                 <i class="fa-solid fa-gauge"></i> Asosiy Panel
@@ -99,6 +104,32 @@
         </div>
         {% endfor %}
     </div>
+
+    <script>
+        function toggleFullscreen() {
+            const doc = document;
+            const docEl = document.documentElement;
+            const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+            if (!isFullscreen) {
+                const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFS) {
+                    requestFS.call(docEl).catch(err => console.warn("Fullscreen request error:", err));
+                }
+            } else {
+                const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+                if (exitFS) {
+                    exitFS.call(doc).catch(err => console.warn("Fullscreen exit error:", err));
+                }
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
+            }
+        });
+    </script>
 </body>
 
 </html>

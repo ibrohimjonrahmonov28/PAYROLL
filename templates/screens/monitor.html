@@ -89,7 +89,8 @@
 
             <!-- Terry Jar Title -->
             <div class="shrink-0">
-                <h1 class="text-xl md:text-2xl font-black tracking-wide text-white leading-tight flex items-center gap-2">
+                <h1
+                    class="text-xl md:text-2xl font-black tracking-wide text-white leading-tight flex items-center gap-2">
                     TERRY JAR
                     <span
                         class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
@@ -100,11 +101,15 @@
             </div>
 
             <!-- VAQT (Kattaroq, Terry Jar va Patok raqami qatorida) -->
-            <div class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-4 py-1.5 rounded-xl shrink-0">
+            <div
+                class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-4 py-1.5 rounded-xl shrink-0">
                 <i class="fa-regular fa-clock text-amber-400 text-2xl md:text-3xl"></i>
                 <div>
-                    <div id="live-clock" class="text-3xl md:text-4xl lg:text-5xl font-black digital-font text-amber-400 leading-none tracking-wider">00:00:00</div>
-                    <div id="live-date" class="text-xs text-slate-400 font-semibold tracking-wide mt-0.5">{{ date_str }}</div>
+                    <div id="live-clock"
+                        class="text-3xl md:text-4xl lg:text-5xl font-black digital-font text-amber-400 leading-none tracking-wider">
+                        00:00:00</div>
+                    <div id="live-date" class="text-xs text-slate-400 font-semibold tracking-wide mt-0.5">{{ date_str }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -112,20 +117,27 @@
         <!-- Right: Summary Stats & Actions -->
         <div class="flex items-center gap-3 shrink-0">
             <!-- Summary Stats Card -->
-            <div class="flex items-center gap-4 md:gap-6 bg-slate-900/90 border border-slate-800 px-5 py-1.5 rounded-xl">
+            <div
+                class="flex items-center gap-4 md:gap-6 bg-slate-900/90 border border-slate-800 px-5 py-1.5 rounded-xl">
                 <div class="text-center">
-                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Faol Tikuvchilar</span>
-                    <span id="stat-active-workers" class="text-2xl md:text-3xl font-black text-cyan-400 digital-font">{{ active_workers_count }}</span>
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Faol
+                        Tikuvchilar</span>
+                    <span id="stat-active-workers" class="text-2xl md:text-3xl font-black text-cyan-400 digital-font">{{
+                        active_workers_count }}</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center">
                     <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan (Dazmol)</span>
-                    <span id="stat-total-units" class="text-2xl md:text-3xl font-black text-amber-400 digital-font">{{ grand_total_units }}</span>
+                    <span id="stat-total-units" class="text-2xl md:text-3xl font-black text-amber-400 digital-font">{{
+                        grand_total_units }}</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center">
-                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">O'rtacha KPI</span>
-                    <span id="stat-avg-kpi" class="text-2xl md:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{ avg_screen_kpi }}%</span>
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">O'rtacha
+                        KPI</span>
+                    <span id="stat-avg-kpi"
+                        class="text-2xl md:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{
+                        avg_screen_kpi }}%</span>
                 </div>
             </div>
 
@@ -138,18 +150,18 @@
             </button>
 
             <!-- Countdown Timer Indicator -->
-            <div
-                class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs text-slate-400"
+            <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs text-slate-400"
                 title="Keyingi yangilanish">
                 <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
                 <strong id="timer-countdown" class="text-white digital-font text-sm">30</strong>s
             </div>
 
             <!-- Fullscreen Button -->
-            <button onclick="toggleFullscreen()"
-                class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl transition"
-                title="To'liq ekran (F11)">
-                <i class="fa-solid fa-expand text-lg"></i>
+            <button id="btn-fullscreen" onclick="toggleFullscreen()"
+                class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70 shadow-sm"
+                title="To'liq ekran (F11 yoki F)">
+                <i id="fullscreen-icon" class="fa-solid fa-expand"></i>
+                <span id="fullscreen-text" class="hidden sm:inline">To'liq ekran</span>
             </button>
         </div>
     </header>
@@ -383,16 +395,75 @@
             }
         }, 1000);
 
-        // Fullscreen Toggle
+        // Fullscreen Engine with Vendor Prefixes (Supports Smart TVs, iPads, Android TV, PCs)
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            const doc = document;
+            const docEl = document.documentElement;
+
+            const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+            if (!isFullscreen) {
+                const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFS) {
+                    requestFS.call(docEl).catch(err => {
+                        console.warn("Fullscreen request error:", err);
+                    });
+                }
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
+                const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+                if (exitFS) {
+                    exitFS.call(doc).catch(err => {
+                        console.warn("Fullscreen exit error:", err);
+                    });
                 }
             }
         }
+
+        function updateFullscreenUI() {
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            const icon = document.getElementById('fullscreen-icon');
+            const text = document.getElementById('fullscreen-text');
+            const btn = document.getElementById('btn-fullscreen');
+
+            if (isFullscreen) {
+                if (icon) {
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                }
+                if (text) text.innerText = 'Kichraytirish';
+                if (btn) {
+                    btn.classList.add('bg-amber-500/20', 'border-amber-500/40');
+                }
+            } else {
+                if (icon) {
+                    icon.classList.remove('fa-compress');
+                    icon.classList.add('fa-expand');
+                }
+                if (text) text.innerText = 'To\'liq ekran';
+                if (btn) {
+                    btn.classList.remove('bg-amber-500/20', 'border-amber-500/40');
+                }
+            }
+        }
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, updateFullscreenUI);
+        });
+
+        // Double click anywhere on header to toggle fullscreen (Very handy for TVs with mouse/remote)
+        document.addEventListener('DOMContentLoaded', () => {
+            const header = document.querySelector('header');
+            if (header) {
+                header.addEventListener('dblclick', toggleFullscreen);
+            }
+            // Keyboard shortcut: Press 'F' to toggle fullscreen
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'f' || e.key === 'F') {
+                    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+                    toggleFullscreen();
+                }
+            });
+        });
 
         // ==========================================
         // AUTO-SCROLL ENGINE FOR 64" TV MONITORS
