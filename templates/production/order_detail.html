@@ -372,7 +372,7 @@
                                 {% if box.tickets.exists %}
                                 <a href="{% url 'production:box_download_stickers_pdf' box.id %}"
                                     class="px-2.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition flex items-center gap-1.5"
-                                    title="100x60 PDF saqlash: {{ box.target_article.code }}_QUTI_{{ box.box_number }}">
+                                    title="65x45 PDF saqlash: {{ box.target_article.code }}_QUTI_{{ box.box_number }}">
                                     <i class="fa-solid fa-file-pdf"></i> PDF
                                 </a>
                                 <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"

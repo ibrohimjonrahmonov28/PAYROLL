@@ -102,7 +102,7 @@
 
             <a href="{% url 'production:order_print_all_stickers' order.id %}" target="_blank"
                 class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
-                <i class="fa-solid fa-print"></i> Barcha Stikerlarni Chop Etish (100x60)
+                <i class="fa-solid fa-print"></i> Barcha Stikerlarni Chop Etish (65x45)
             </a>
 
             {% if unprinted_boxes_count > 0 %}
@@ -202,7 +202,7 @@
                             <div class="flex items-center justify-center gap-1.5 flex-wrap">
                                 <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"
                                     class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg text-xs transition flex items-center gap-1"
-                                    title="Termal printerda chop etish (100x60mm)">
+                                    title="Termal printerda chop etish (65x45mm)">
                                     <i class="fa-solid fa-print"></i> Chop Etish
                                 </a>
                                 <a href="{% url 'production:box_download_stickers_pdf' box.id %}"

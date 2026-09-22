@@ -22,18 +22,18 @@
             font-family: 'Chakra Petch', monospace;
         }
 
-        /* 100mm x 60mm standart termal stiker o'lchami */
+        /* 65mm x 45mm standart termal stiker o'lchami */
         @page {
-            size: 100mm 60mm;
+            size: 65mm 45mm;
             margin: 0;
         }
 
         .sticker-card {
-            width: 100mm;
-            height: 60mm;
-            min-height: 60mm;
-            max-height: 60mm;
-            padding: 2.5mm 3.5mm;
+            width: 65mm;
+            height: 45mm;
+            min-height: 45mm;
+            max-height: 45mm;
+            padding: 1.5mm 2.5mm;
             border: 2px solid #0f172a;
             box-sizing: border-box;
             background: white;
@@ -52,7 +52,7 @@
                 background: white !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                width: 100mm !important;
+                width: 65mm !important;
             }
 
             .no-print {
@@ -67,16 +67,16 @@
             }
 
             .sticker-card {
-                width: 100mm !important;
-                height: 60mm !important;
-                min-height: 60mm !important;
-                max-height: 60mm !important;
+                width: 65mm !important;
+                height: 45mm !important;
+                min-height: 45mm !important;
+                max-height: 45mm !important;
                 border: 2px solid #000 !important;
                 box-shadow: none !important;
                 page-break-after: always !important;
                 break-after: page !important;
                 margin: 0 !important;
-                padding: 2.5mm 3.5mm !important;
+                padding: 1.5mm 2.5mm !important;
                 box-sizing: border-box !important;
             }
         }
@@ -105,7 +105,7 @@
                         {% endif %}
                     </span>
                     <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono text-[11px] font-black">
-                        100x60 MM TERMAL STIKER
+                        65x45 MM TERMAL STIKER
                     </span>
                 </div>
                 <h1 class="text-xl font-black text-slate-900 flex items-center gap-2 mt-1.5">
@@ -129,17 +129,17 @@
                 {% if is_order_all %}
                 <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}{% if selected_article %}?article_id={{ selected_article.id }}{% endif %}"
                     class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-pdf text-sm"></i> 100x60 PDF Faylini Yuklab Olish
+                    <i class="fa-solid fa-file-pdf text-sm"></i> 65x45 PDF Faylini Yuklab Olish
                 </a>
                 {% elif box.id %}
                 <a href="{% url 'production:box_download_stickers_pdf' box.id %}"
                     class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-pdf text-sm"></i> 100x60 PDF Faylini Yuklab Olish
+                    <i class="fa-solid fa-file-pdf text-sm"></i> 65x45 PDF Faylini Yuklab Olish
                 </a>
                 {% endif %}
                 <button onclick="window.print()"
                     class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
-                    <i class="fa-solid fa-print"></i> Printerdan Chop Etish (100x60)
+                    <i class="fa-solid fa-print"></i> Printerdan Chop Etish (65x45)
                 </button>
             </div>
         </div>
@@ -243,42 +243,41 @@
     <div class="sticker-grid max-w-5xl mx-auto flex flex-wrap gap-4 justify-center mb-6">
         {% for ticket in box_item.tickets %}
         <div
-            class="sticker-card rounded-xl shadow-sm border-2 border-slate-950 p-2 flex flex-col justify-between bg-white text-slate-950">
+            class="sticker-card rounded-lg shadow-sm border-2 border-slate-950 p-1.5 flex flex-col justify-between bg-white text-slate-950">
             <!-- 1. TOP HEADER: OPERATSIYA NOMI VA TARTIB RAQAMI (Butun qatorni egallaydi, katta va qalin) -->
-            <div class="border-b-2 border-slate-950 pb-1 flex flex-col justify-center">
+            <div class="border-b-2 border-slate-950 pb-0.5 flex flex-col justify-center">
                 <div class="flex items-center justify-between">
                     <span
                         class="text-[6.5px] font-black uppercase text-slate-400 tracking-wider leading-none">OPERATSIYA
                         NOMI:</span>
                     {% if ticket.article_operation and ticket.article_operation.sequence %}
-                    <span
-                        class="text-[8.5px] font-black text-slate-950 bg-slate-200 px-1 rounded font-mono leading-none">
+                    <span class="text-[8px] font-black text-slate-950 bg-slate-200 px-1 rounded font-mono leading-none">
                         TARTIB: №{{ ticket.article_operation.sequence }}
                     </span>
                     {% endif %}
                 </div>
-                <div class="text-[13.5px] font-black text-slate-950 uppercase truncate leading-tight mt-0.5 tracking-tight"
+                <div class="text-[12px] font-black text-slate-950 uppercase truncate leading-tight mt-0.5 tracking-tight"
                     title="{{ ticket.article_operation.operation.name }}">
                     {% if ticket.article_operation and ticket.article_operation.sequence %}№{{
                     ticket.article_operation.sequence }}. {% endif %}{{ ticket.article_operation.operation.name }}
                 </div>
             </div>
 
-            <!-- 2. ASOSIY QISM (BODY): CHAPDA QR KOD + STIKER ID | O'NGDA MODEL + ARTIKUL + DONA / QIYINLIK / RAZMER -->
-            <div class="flex items-center justify-between gap-3 my-1">
-                <!-- CHAP USTUN: QR Code (Katta) + STIKER ID (Ixcham) -->
-                <div class="flex flex-col items-center justify-center flex-shrink-0 w-[124px]">
+            <!-- 2. ASOSIY QISM (BODY): CHAPDA QR KOD + STIKER ID | O'NGDA QUTI ID + MODEL + ARTIKUL + KATAKLAR -->
+            <div class="flex items-center justify-between gap-2 my-0.5">
+                <!-- CHAP USTUN: QR Code (Katta) + STIKER ID (Katta va qalin) -->
+                <div class="flex flex-col items-center justify-center flex-shrink-0 w-[96px]">
                     <!-- QR Code (Katta va oson skanerlanadigan) -->
                     <div
-                        class="w-[124px] h-[124px] border-2 border-slate-950 rounded-lg p-1 bg-white flex items-center justify-center shadow-xs">
+                        class="w-[96px] h-[96px] border-2 border-slate-950 rounded p-0.5 bg-white flex items-center justify-center shadow-xs">
                         <img src="{{ ticket.qr_code_data_uri }}" alt="QR" class="w-full h-full object-contain">
                     </div>
-                    <!-- STIKER ID: Kichikroq, ixcham badge -->
+                    <!-- STIKER ID: Katta va ko'zga tashlanadigan badge -->
                     <div
-                        class="mt-1 w-full flex items-center justify-between px-1.5 py-0.5 border-2 border-slate-950 bg-slate-950 text-white rounded shadow-xs">
-                        <span class="text-[6.5px] font-bold uppercase tracking-wider leading-none text-amber-400">STIKER
+                        class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-slate-950 text-white rounded shadow-xs">
+                        <span class="text-[5.5px] font-bold uppercase tracking-wider leading-none text-amber-400">STIKER
                             ID:</span>
-                        <span class="font-mono font-black text-[10.5px] leading-none text-white tracking-wide">
+                        <span class="font-mono font-black text-[10.5px] leading-none text-white tracking-wide mt-0.5">
                             {% if ticket.stiker_code %}
                             #{{ ticket.stiker_code }}
                             {% else %}
@@ -288,88 +287,86 @@
                     </div>
                 </div>
 
-                <!-- O'NG USTUN: Model Name, Artikul, Son, Qiyinlik, Razmer -->
-                <div class="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5 space-y-1 text-left">
-                    <!-- Model name -->
-                    <div class="border-b border-slate-200 pb-0.5">
-                        <span class="text-[7.5px] font-bold uppercase text-slate-500 block leading-none">MODEL
-                            NOMI:</span>
-                        <strong class="text-xs font-black text-slate-950 uppercase truncate block leading-tight mt-0.5"
+                <!-- O'NG USTUN: Quti ID (Katta), Model Name, Artikul, 2x2 Kataklar -->
+                <div class="flex-1 min-w-0 flex flex-col justify-between h-full space-y-0.5 text-left">
+                    <!-- QUTI ID: Katta va yorqin badge (User talabi) -->
+                    <div
+                        class="px-1.5 py-0.5 bg-amber-100 border border-amber-500 rounded flex items-baseline justify-between shadow-xs">
+                        <span class="text-[6.5px] font-black uppercase text-amber-800 leading-none">QUTI ID:</span>
+                        <span class="font-mono font-black text-[11px] text-slate-950 leading-none">
+                            QUTI #{{ ticket.box.box_number }} [{{ ticket.box.box_code }}]
+                        </span>
+                    </div>
+
+                    <!-- Model name & Artikul -->
+                    <div class="flex items-baseline justify-between border-b border-slate-200 pb-0.5">
+                        <span class="text-[7px] font-bold uppercase text-slate-500 leading-none">MODEL:</span>
+                        <strong
+                            class="text-[10.5px] font-black text-slate-950 uppercase truncate max-w-[130px] leading-tight"
                             title="{{ ticket.article_operation.article.name|default:ticket.box.target_article.name }}">
                             {{ ticket.article_operation.article.name|default:ticket.box.target_article.name }}
                         </strong>
                     </div>
 
-                    <!-- Artikul -->
-                    <div class="border-b border-slate-200 pb-0.5">
-                        <span class="text-[7.5px] font-bold uppercase text-slate-500 block leading-none">ARTIKUL:</span>
-                        <span class="font-mono font-black text-xs text-slate-900 leading-tight block mt-0.5">
+                    <div class="flex items-baseline justify-between border-b border-slate-200 pb-0.5">
+                        <span class="text-[7px] font-bold uppercase text-slate-500 leading-none">ARTIKUL:</span>
+                        <span class="font-mono font-black text-[10px] text-slate-900 leading-tight">
                             {{ ticket.article_operation.article.code|default:ticket.box.target_article.code }}
                         </span>
                     </div>
 
-                    <!-- Son va Qiyinlik (va Razmer) kataklari -->
-                    <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
-                        <!-- Son katagi -->
+                    <!-- 2x2 Kataklar: SONI, RAZMER, PASTAL, QIYINLIK/BO'LAK -->
+                    <div class="grid grid-cols-2 gap-1 pt-0.5">
+                        <!-- Soni -->
                         <div
-                            class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
-                            <span class="text-[7.5px] font-black uppercase text-slate-600">SONI:</span>
-                            <span class="text-sm font-black digital-font text-slate-950 leading-none">{{
-                                ticket.quantity
-                                }}</span>
-                            <span class="text-[7.5px] font-black text-slate-700 uppercase">dona</span>
+                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
+                            <span class="text-[11px] font-black digital-font text-slate-950 leading-none">{{
+                                ticket.quantity }}</span>
                         </div>
 
-                        <!-- Qiyinlik katagi -->
+                        <!-- Razmer -->
                         <div
-                            class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
-                            <span class="text-[7.5px] font-black uppercase text-slate-600">Qiyinlik:</span>
-                            <span class="text-xs font-black font-mono text-slate-950 leading-none">
-                                {{ ticket.article_operation.difficulty_display }}
-                            </span>
+                            class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
+                            <span class="text-[10.5px] font-black text-purple-950 leading-none font-mono">{{
+                                ticket.box.razmer|default:"—" }}</span>
                         </div>
 
-                        <!-- Razmer katagi (agar mavjud bo'lsa) -->
-                        {% if ticket.box.razmer %}
+                        <!-- Pastal -->
                         <div
-                            class="border-2 border-purple-900 rounded px-1.5 py-0.5 bg-purple-50 flex items-baseline gap-1">
-                            <span class="text-[7.5px] font-black uppercase text-purple-900">RAZMER:</span>
-                            <span class="text-xs font-black text-purple-950 leading-none font-mono">{{
-                                ticket.box.razmer
-                                }}</span>
+                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-slate-700">PASTAL:</span>
+                            <span
+                                class="text-[9.5px] font-black font-mono text-slate-950 leading-none truncate max-w-[50px]">{{
+                                ticket.box.pastal_number|default:"—" }}</span>
                         </div>
-                        {% endif %}
 
-                        <!-- Pastal Code katagi (agar mavjud bo'lsa) -->
-                        {% if ticket.box.pastal_number %}
-                        <div
-                            class="border-2 border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline gap-1">
-                            <span class="text-[7.5px] font-black uppercase text-slate-700">PASTAL CODE:</span>
-                            <span class="text-xs font-black font-mono text-slate-950 leading-none">{{
-                                ticket.box.pastal_number
-                                }}</span>
-                        </div>
-                        {% endif %}
-
+                        <!-- Qiyinlik yoki Bo'lak -->
                         {% if ticket.total_splits > 1 %}
                         <div
-                            class="border border-indigo-300 rounded px-1 py-0.5 bg-indigo-50 text-[8px] font-bold text-indigo-900">
-                            Bo'lak: {{ ticket.split_index }}/{{ ticket.total_splits }}
+                            class="border border-indigo-500 rounded px-1 py-0.5 bg-indigo-50 flex items-baseline justify-between text-indigo-900">
+                            <span class="text-[6.5px] font-bold uppercase">BO'LAK:</span>
+                            <span class="text-[9.5px] font-black font-mono leading-none">{{ ticket.split_index }}/{{
+                                ticket.total_splits }}</span>
+                        </div>
+                        {% else %}
+                        <div
+                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-slate-600">QIYINLIK:</span>
+                            <span class="text-[10px] font-black font-mono text-slate-950 leading-none">{{
+                                ticket.article_operation.difficulty_display }}</span>
                         </div>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- 3. FOOTER: TERRY JAR & QUTI ID (Zakaz o'rnida) & Kod -->
+            <!-- 3. FOOTER: TERRY JAR & Kod -->
             <div
-                class="border-t border-slate-300 pt-1 flex items-center justify-between text-[8px] text-slate-600 font-bold uppercase tracking-wider">
+                class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7px] text-slate-600 font-bold uppercase tracking-wider">
                 <span class="font-extrabold text-slate-900 tracking-wider">TERRY JAR</span>
-                <span
-                    class="font-mono font-black text-[9px] text-slate-950 px-2 py-0.5 bg-amber-100 border border-slate-950 rounded leading-none">
-                    QUTI #{{ ticket.box.box_number }} [{{ ticket.box.box_code }}]
-                </span>
-                <span class="font-mono text-[8px] text-slate-700 tracking-tight font-black">{% if ticket.stiker_code
+                <span class="font-mono text-[7px] text-slate-700 tracking-tight font-black">{% if ticket.stiker_code
                     %}#{{
                     ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
             </div>

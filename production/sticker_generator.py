@@ -41,12 +41,12 @@ def get_fitted_font(draw, text, max_w, font_path, initial_size=42, min_size=24):
         return ImageFont.load_default()
 
 
-def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg_path: str = None) -> Image.Image:
+def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_path: str = None) -> Image.Image:
     """
-    Foydalanuvchi chizmasi (obrazes) bo'yicha 100mm x 60mm (1181 x 709 px, 300 DPI) termal stiker rasmini chizish:
-    - Yuqori sarlavha: Chapda katta "OPERATSIYA NOMI" | O'ngda "QUTI ID"
-    - Asosiy qism chapda: Katta unikal QR kod + ostida qora fonda "STIKER ID" katagi
-    - Asosiy qism o'ngda: "Model nomi" + "Artikul" + pastda "Son", "Qiyinlik", "Razmer" kataklari
+    Foydalanuvchi talabi bo'yicha 65mm x 45mm (768 x 531 px, 300 DPI) termal stiker rasmini chizish:
+    - Yuqori sarlavha: Butun eni bo'ylab katta va aniq "OPERATSIYA NOMI"
+    - Asosiy qism chapda: Katta unikal QR kod (320px) + ostida to'q fonda katta "STIKER ID" katagi
+    - Asosiy qism o'ngda: Katta "QUTI ID" (sariq/amber fonda) + "Model nomi" + "Artikul" + pastda "Soni", "Razmer", "Pastal", "Qiyinlik" kataklari
     - Pastki qism: TERRY JAR brendi va qisqa kod
     """
     import qrcode
@@ -55,30 +55,29 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
         font_bold_path = font_bold_path or fb
         font_reg_path = font_reg_path or fr
 
-    W = 1181  # 100 mm @ 300 DPI
-    H = 709   # 60 mm @ 300 DPI
+    W = 768  # 65 mm @ 300 DPI
+    H = 531  # 45 mm @ 300 DPI
 
     img = Image.new('RGB', (W, H), 'white')
     draw = ImageDraw.Draw(img)
 
     try:
-        font_title = ImageFont.truetype(font_bold_path, 34) if font_bold_path else ImageFont.load_default()
-        font_qty = ImageFont.truetype(font_bold_path, 48) if font_bold_path else ImageFont.load_default()
-        font_medium = ImageFont.truetype(font_reg_path, 26) if font_reg_path else ImageFont.load_default()
-        font_small = ImageFont.truetype(font_bold_path, 20) if font_bold_path else ImageFont.load_default()
-        font_badge = ImageFont.truetype(font_bold_path, 24) if font_bold_path else ImageFont.load_default()
-        font_code = ImageFont.truetype(font_bold_path, 18) if font_bold_path else ImageFont.load_default()
+        font_title = ImageFont.truetype(font_bold_path, 30) if font_bold_path else ImageFont.load_default()
+        font_qty = ImageFont.truetype(font_bold_path, 32) if font_bold_path else ImageFont.load_default()
+        font_medium = ImageFont.truetype(font_reg_path, 22) if font_reg_path else ImageFont.load_default()
+        font_small = ImageFont.truetype(font_bold_path, 15) if font_bold_path else ImageFont.load_default()
+        font_badge = ImageFont.truetype(font_bold_path, 18) if font_bold_path else ImageFont.load_default()
+        font_code = ImageFont.truetype(font_bold_path, 14) if font_bold_path else ImageFont.load_default()
     except Exception:
         font_title = font_qty = font_medium = font_small = font_badge = font_code = ImageFont.load_default()
 
     # 1. Tashqi ramka (Outer border)
-    draw.rounded_rectangle([18, 18, W - 18, H - 18], radius=20, fill='white', outline=(15, 23, 42), width=4)
+    draw.rounded_rectangle([12, 12, W - 12, H - 12], radius=16, fill='white', outline=(15, 23, 42), width=3)
 
     # 2. YUQORI SARLAVHA: OPERATSIYA NOMI (Butun qator bo'ylab katta va qalin)
-    header_h = 120
-    draw.line([(18, header_h), (W - 18, header_h)], fill=(15, 23, 42), width=3)
+    header_h = 86
+    draw.line([(12, header_h), (W - 12, header_h)], fill=(15, 23, 42), width=2)
 
-    # OPERATSIYA NOMI VA TARTIB RAQAMI
     op_name = ""
     seq_num = None
     if ticket.article_operation and ticket.article_operation.operation:
@@ -89,16 +88,16 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
 
     op_display = f"№{seq_num}. {op_name.upper()}" if seq_num else op_name.upper()
 
-    draw.text((42, 24), "OPERATSIYA NOMI:", fill=(100, 116, 139), font=font_small)
-    font_op = get_fitted_font(draw, op_display, W - 84, font_bold_path, initial_size=44, min_size=24)
-    draw.text((42, 52), op_display, fill=(15, 23, 42), font=font_op)
+    draw.text((24, 18), "OPERATSIYA NOMI:", fill=(100, 116, 139), font=font_small)
+    font_op = get_fitted_font(draw, op_display, W - 48, font_bold_path, initial_size=38, min_size=20)
+    draw.text((24, 38), op_display, fill=(15, 23, 42), font=font_op)
 
-    # 3. KATTA QR KOD VA KICHIKROQ STIKER ID (User talabi)
-    qr_x = 40
-    qr_y = 135
-    qr_size = 415  # Oldingi 350 o'rniga KATTA 415 px
+    # 3. KATTA QR KOD VA KATTA STIKER ID (User talabi)
+    qr_x = 22
+    qr_y = 94
+    qr_size = 340
 
-    draw.rounded_rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], radius=16, fill='white', outline=(15, 23, 42), width=3)
+    draw.rounded_rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], radius=12, fill='white', outline=(15, 23, 42), width=2)
 
     # QR kod tasvirini olish (mavjud bo'lsa ochadi, bo'lmasa xotirada tezkor yaratadi)
     qr_img = None
@@ -119,31 +118,42 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
 
-    qr_inner = 385  # Oldingi 318 o'rniga KATTA 385 px
+    qr_inner = 320
     qr_res = qr_img.resize((qr_inner, qr_inner), Image.Resampling.LANCZOS)
     draw_qr_x = qr_x + (qr_size - qr_inner) // 2
     draw_qr_y = qr_y + (qr_size - qr_inner) // 2
     img.paste(qr_res, (draw_qr_x, draw_qr_y))
 
-    # STIKER ID Katagi: Kichikroq, ixcham (64 px)
-    stiker_y = qr_y + qr_size + 12  # 562 px
-    stiker_h = 64
+    # STIKER ID Katagi: Katta va ko'zga tashlanadigan (User talabi)
+    stiker_y = qr_y + qr_size + 6  # 440 px
+    stiker_h = 75
     draw.rounded_rectangle([qr_x, stiker_y, qr_x + qr_size, stiker_y + stiker_h], radius=10, fill=(15, 23, 42), outline=(15, 23, 42), width=2)
-    draw.text((qr_x + 14, stiker_y + 8), "STIKER ID (UNIKAL):", fill=(251, 191, 36), font=font_code)
+    draw.text((qr_x + 12, stiker_y + 8), "STIKER ID (UNIKAL):", fill=(251, 191, 36), font=font_code)
 
-    # Yangilarida 8 xonali unikal stiker_code, eskilari uchun esa odatiy #id
     if getattr(ticket, 'stiker_code', None):
         stiker_text = f"#{ticket.stiker_code}"
     else:
         short_hash = ticket.short_hash
         stiker_text = f"#{ticket.id} [{short_hash}]" if short_hash else f"#{ticket.id}"
 
-    font_id = get_fitted_font(draw, stiker_text, qr_size - 28, font_bold_path, initial_size=30, min_size=18)
-    draw.text((qr_x + 14, stiker_y + 28), stiker_text, fill='white', font=font_id)
+    font_id = get_fitted_font(draw, stiker_text, qr_size - 24, font_bold_path, initial_size=34, min_size=20)
+    draw.text((qr_x + 12, stiker_y + 30), stiker_text, fill='white', font=font_id)
 
-    # 4. ASOSIY QISM O'NGDA: MODEL NAME, ARTIKUL, ZAKAZ, KATAKLAR
-    right_x = 485
-    right_w = W - 40 - right_x
+    # 4. ASOSIY QISM O'NGDA: QUTI ID (Katta), MODEL NOMI, ARTIKUL, KATAKLAR
+    right_x = 374
+    right_w = W - 22 - right_x  # 372 px
+
+    # QUTI ID: Katta va yorqin badge (User talabi)
+    box_y = 94
+    box_h = 72
+    box_num = ticket.box.box_number if ticket.box else 0
+    box_code = ticket.box.box_code if ticket.box else ""
+    box_badge_text = f"QUTI #{box_num} [{box_code}]"
+
+    draw.rounded_rectangle([right_x, box_y, right_x + right_w, box_y + box_h], radius=10, fill=(254, 243, 199), outline=(217, 119, 6), width=2)
+    draw.text((right_x + 12, box_y + 8), "QUTI ID:", fill=(180, 83, 9), font=font_code)
+    font_badge_box = get_fitted_font(draw, box_badge_text, right_w - 24, font_bold_path, initial_size=32, min_size=20)
+    draw.text((right_x + 12, box_y + 30), box_badge_text, fill=(15, 23, 42), font=font_badge_box)
 
     art_name = ""
     art_code = ""
@@ -154,85 +164,75 @@ def render_single_box_ticket_100x60(ticket, font_bold_path: str = None, font_reg
         art_name = ticket.box.article.name
         art_code = ticket.box.article.code
 
-    # Model Nomi (Chizmadagi ostiga chizilgan qator)
-    draw.text((right_x, 140), "MODEL NOMI:", fill=(100, 116, 139), font=font_small)
-    font_model = get_fitted_font(draw, art_name.upper(), right_w, font_bold_path, initial_size=36, min_size=24)
-    draw.text((right_x, 168), art_name.upper()[:36], fill=(15, 23, 42), font=font_model)
-    draw.line([(right_x, 214), (W - 40, 214)], fill=(203, 213, 225), width=2)
+    # Model Nomi
+    draw.text((right_x + 2, 174), "MODEL NOMI:", fill=(100, 116, 139), font=font_code)
+    font_model = get_fitted_font(draw, art_name.upper(), right_w - 4, font_bold_path, initial_size=26, min_size=18)
+    draw.text((right_x + 2, 192), art_name.upper()[:28], fill=(15, 23, 42), font=font_model)
+    draw.line([(right_x + 2, 222), (right_x + right_w, 222)], fill=(226, 232, 240), width=1)
 
-    # Artikul (Chizmadagi ostiga chizilgan qator)
-    draw.text((right_x, 228), "ARTIKUL:", fill=(100, 116, 139), font=font_small)
-    font_art = get_fitted_font(draw, art_code.upper(), right_w, font_bold_path, initial_size=32, min_size=22)
-    draw.text((right_x, 256), art_code.upper()[:28], fill=(15, 23, 42), font=font_art)
-    draw.line([(right_x, 302), (W - 40, 302)], fill=(203, 213, 225), width=2)
+    # Artikul
+    draw.text((right_x + 2, 226), "ARTIKUL:", fill=(100, 116, 139), font=font_code)
+    font_art = get_fitted_font(draw, art_code.upper(), right_w - 4, font_bold_path, initial_size=26, min_size=18)
+    draw.text((right_x + 2, 244), art_code.upper()[:24], fill=(15, 23, 42), font=font_art)
+    draw.line([(right_x + 2, 274), (right_x + right_w, 274)], fill=(226, 232, 240), width=1)
 
-    # Bo'lak (Split) agar mavjud bo'lsa
-    if ticket.total_splits > 1:
-        draw.text((right_x, 320), f"BO'LAK (SPLIT): {ticket.split_index} / {ticket.total_splits}", fill=(79, 70, 229), font=font_medium)
-
-    # Pastki Kataklar (Soni, Qiyinlik, Razmer) - STIKER ID bilan bir xil chiziqda pastda
-    boxes_y = stiker_y
-    box_h = stiker_h
+    # Pastki Kataklar (2 qator):
     diff_val = ticket.article_operation.difficulty_display if ticket.article_operation else "1"
     razmer_val = ticket.box.razmer.strip() if ticket.box and ticket.box.razmer else ""
     pastal_val = (ticket.box.pastal_number or "").strip() if ticket.box else ""
 
-    font_box_val = ImageFont.truetype(font_bold_path, 30) if font_bold_path else ImageFont.load_default()
+    badge_h = 88
+    col_gap = 10
+    col_w = (right_w - col_gap) // 2
 
-    # Ro'yxatdagi kataklar: (label, value, suffix, is_purple)
-    badges = [
-        ('SONI:', f"{ticket.quantity}", 'dona', False),
-        ('QIYINLIK:', f"{diff_val}", '', False),
-    ]
-    if razmer_val:
-        badges.append(('RAZMER:', razmer_val, '', True))
-    if pastal_val:
-        badges.append(('PASTAL CODE:', pastal_val, '', False))
+    # Qator 1: SONI | RAZMER
+    r1_y = 282
+    draw.rounded_rectangle([right_x, r1_y, right_x + col_w, r1_y + badge_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+    draw.text((right_x + 8, r1_y + 8), "SONI:", fill=(100, 116, 139), font=font_code)
+    draw.text((right_x + 8, r1_y + 30), f"{ticket.quantity}", fill=(15, 23, 42), font=font_qty)
+    draw.text((right_x + col_w - 44, r1_y + 60), "dona", fill=(100, 116, 139), font=font_code)
 
-    b_count = len(badges)
-    b_gap = 10 if b_count >= 4 else 12
-    b_w = (right_w - b_gap * (b_count - 1)) // b_count
+    draw.rounded_rectangle([right_x + col_w + col_gap, r1_y, right_x + right_w, r1_y + badge_h], radius=8, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
+    draw.text((right_x + col_w + col_gap + 8, r1_y + 8), "RAZMER:", fill=(107, 33, 168), font=font_code)
+    font_rz = get_fitted_font(draw, razmer_val or "—", col_w - 16, font_bold_path, initial_size=32, min_size=18)
+    draw.text((right_x + col_w + col_gap + 8, r1_y + 34), razmer_val or "—", fill=(88, 28, 135), font=font_rz)
 
-    for i, (b_label, b_val, b_suf, is_purp) in enumerate(badges):
-        bx = right_x + i * (b_w + b_gap)
-        bw_cur = b_w if i < b_count - 1 else (W - 40 - bx)
-        if is_purp:
-            draw.rounded_rectangle([bx, boxes_y, bx + bw_cur, boxes_y + box_h], radius=10, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
-            draw.text((bx + 8, boxes_y + 8), b_label, fill=(107, 33, 168), font=font_code)
-            font_v = get_fitted_font(draw, b_val, bw_cur - 16, font_bold_path, initial_size=30, min_size=18)
-            draw.text((bx + 8, boxes_y + 26), b_val, fill=(88, 28, 135), font=font_v)
-        else:
-            draw.rounded_rectangle([bx, boxes_y, bx + bw_cur, boxes_y + box_h], radius=10, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-            draw.text((bx + 8, boxes_y + 8), b_label, fill=(100, 116, 139), font=font_code)
-            font_v = get_fitted_font(draw, b_val, bw_cur - (42 if b_suf else 16), font_bold_path, initial_size=30, min_size=18)
-            draw.text((bx + 8, boxes_y + 26), b_val, fill=(15, 23, 42), font=font_v)
-            if b_suf:
-                draw.text((bx + bw_cur - 38, boxes_y + 36), b_suf, fill=(100, 116, 139), font=font_code)
+    # Qator 2: PASTAL | QIYINLIK (yoki BO'LAK)
+    r2_y = 378
+    draw.rounded_rectangle([right_x, r2_y, right_x + col_w, r2_y + badge_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+    draw.text((right_x + 8, r2_y + 8), "PASTAL:", fill=(100, 116, 139), font=font_code)
+    font_pst = get_fitted_font(draw, pastal_val or "—", col_w - 16, font_bold_path, initial_size=24, min_size=16)
+    draw.text((right_x + 8, r2_y + 36), pastal_val or "—", fill=(15, 23, 42), font=font_pst)
 
-    # 5. PASTKI QISM (Footer): TERRY JAR, QUTI ID (Zakaz o'rnida), va Kod
-    draw.line([(35, 642), (W - 35, 642)], fill=(226, 232, 240), width=2)
-    draw.text((42, 656), "TERRY JAR", fill=(15, 23, 42), font=font_badge)
+    if ticket.total_splits > 1:
+        draw.rounded_rectangle([right_x + col_w + col_gap, r2_y, right_x + right_w, r2_y + badge_h], radius=8, fill=(238, 242, 255), outline=(79, 70, 229), width=2)
+        draw.text((right_x + col_w + col_gap + 8, r2_y + 8), "BO'LAK:", fill=(79, 70, 229), font=font_code)
+        split_txt = f"{ticket.split_index}/{ticket.total_splits}"
+        font_spl = get_fitted_font(draw, split_txt, col_w - 16, font_bold_path, initial_size=28, min_size=18)
+        draw.text((right_x + col_w + col_gap + 8, r2_y + 34), split_txt, fill=(49, 46, 129), font=font_spl)
+    else:
+        draw.rounded_rectangle([right_x + col_w + col_gap, r2_y, right_x + right_w, r2_y + badge_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+        draw.text((right_x + col_w + col_gap + 8, r2_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
+        draw.text((right_x + col_w + col_gap + 8, r2_y + 34), f"{diff_val}", fill=(15, 23, 42), font=font_qty)
 
-    # Quti ID badge markazda
-    box_num = ticket.box.box_number if ticket.box else 0
-    box_code = ticket.box.box_code if ticket.box else ""
-    box_badge_text = f"QUTI #{box_num} [{box_code}]"
-    box_badge_w = 340
-    box_badge_x = (W - box_badge_w) // 2
-    draw.rounded_rectangle([box_badge_x, 648, box_badge_x + box_badge_w, 694], radius=8, fill=(254, 243, 199), outline=(15, 23, 42), width=2)
-    font_badge_box = get_fitted_font(draw, box_badge_text, box_badge_w - 20, font_bold_path, initial_size=24, min_size=18)
-    draw.text((box_badge_x + 18, 658), box_badge_text, fill=(15, 23, 42), font=font_badge_box)
-
-    short_code = getattr(ticket, 'stiker_code', None) or ticket.short_hash or ticket.ticket_code[-12:]
-    draw.text((W - 220, 656), f"#{short_code}", fill=(100, 116, 139), font=font_code)
+    # 5. FOOTER: TERRY JAR va Kod
+    draw.line([(right_x, 474), (right_x + right_w, 474)], fill=(226, 232, 240), width=1)
+    draw.text((right_x + 2, 484), "TERRY JAR", fill=(15, 23, 42), font=font_badge)
+    short_code = getattr(ticket, 'stiker_code', None) or ticket.short_hash or ticket.ticket_code[-10:]
+    draw.text((right_x + right_w - 130, 486), f"#{short_code}", fill=(100, 116, 139), font=font_code)
 
     return img
 
 
+# Backwards compatibility alias
+render_single_box_ticket_100x60 = render_single_box_ticket_65x45
+generate_box_stickers_65x45_pdf = None  # defined below
+
+
 def generate_box_stickers_100x60_pdf(tickets_qs, output_destination=None) -> bytes:
     """
-    Berilgan birkalar (tickets) uchun 100mm x 60mm stikerlar PDF faylini generatsiya qilish.
-    Har bir bilet alohida 100x60 mm varaqda bo'ladi.
+    Berilgan birkalar (tickets) uchun 65mm x 45mm stikerlar PDF faylini generatsiya qilish.
+    Har bir bilet alohida 65x45 mm varaqda bo'ladi.
     """
     font_bold, font_reg = get_font_paths()
 
@@ -240,11 +240,11 @@ def generate_box_stickers_100x60_pdf(tickets_qs, output_destination=None) -> byt
     pages = []
 
     for t in tickets:
-        img = render_single_box_ticket_100x60(t, font_bold, font_reg)
+        img = render_single_box_ticket_65x45(t, font_bold, font_reg)
         pages.append(img)
 
     if not pages:
-        blank = Image.new('RGB', (1181, 709), 'white')
+        blank = Image.new('RGB', (768, 531), 'white')
         pages.append(blank)
 
     # Agar fayl yo'li berilgan bo'lsa:
@@ -269,4 +269,7 @@ def generate_box_stickers_100x60_pdf(tickets_qs, output_destination=None) -> byt
     )
     buffer.seek(0)
     return buffer.getvalue()
+
+
+generate_box_stickers_65x45_pdf = generate_box_stickers_100x60_pdf
 
