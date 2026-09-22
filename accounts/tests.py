@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from accounts.models import User, Worker, WorkerPayout, DailyWorkerClosing
@@ -829,6 +829,28 @@ class WorkerPerformanceHistoryAndBonusTest(TestCase):
         self.assertContains(res, "—")
         self.assertNotContains(res, "+30 000 UZS")
 
+    def test_bonus_disabled_by_default(self):
+        # By default DAILY_BONUS_AMOUNT is 0 (canceled for now)
+        now = timezone.now()
+        Ticket.objects.create(
+            box=self.box_b,
+            article_operation=self.ao_b,
+            quantity=550, # 110%
+            price_per_unit=Decimal("200"),
+            total_amount=Decimal("110000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+        url = reverse('superadmin_worker_history', kwargs={'worker_id': self.worker.id}) + '?range=today'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "110.0%")
+        # Bonus should be 0 / not awarded because DAILY_BONUS_AMOUNT is 0
+        self.assertNotContains(res, "+30 000 UZS")
+        self.assertContains(res, "0 <small class=\"text-xs text-slate-500 font-normal\">UZS (Bekor qilingan)</small>")
+
+    @override_settings(DAILY_BONUS_AMOUNT=30000)
     def test_bonus_strictly_above_100_percent(self):
         now = timezone.now()
         # Exactly 100% on Model B (500 units on 500 norm):

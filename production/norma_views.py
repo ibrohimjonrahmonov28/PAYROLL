@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum, Q, Count
 
@@ -63,6 +64,7 @@ def norma_dashboard(request):
         **data,
         'workers_data': workers_data[:10], # Top 10 workers on dashboard
         'total_active_workers': len(workers_data),
+        'daily_bonus_amount': getattr(settings, 'DAILY_BONUS_AMOUNT', 0),
     })
 
 
@@ -255,6 +257,7 @@ def norma_workers(request):
         'workers_data': workers_data,
         'total_workers': len(workers_data),
         'bonus_workers_count': sum(1 for w in workers_data if w['has_bonus']),
+        'daily_bonus_amount': getattr(settings, 'DAILY_BONUS_AMOUNT', 0),
     })
 
 

@@ -326,10 +326,10 @@
                             </span>
                         </td>
                         <td class="py-3 px-3 text-center">
-                            {% if w.has_bonus %}
+                            {% if w.has_bonus and daily_bonus_amount > 0 %}
                             <span
                                 class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black flex items-center justify-center gap-1 w-max mx-auto">
-                                <i class="fa-solid fa-award"></i> +30,000 UZS Bonus
+                                <i class="fa-solid fa-award"></i> +{{ daily_bonus_amount|floatformat:0 }} UZS
                             </span>
                             {% else %}
                             <span class="text-slate-500 text-[11px]">—</span>

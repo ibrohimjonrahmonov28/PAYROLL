@@ -31,7 +31,7 @@ services:
       DB_PORT: 5432
       BOT_TOKEN: ${BOT_TOKEN:-}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://tezol.shop,https://www.tezol.shop}
-      BONUS: ${BONUS:-30000}
+      BONUS: ${BONUS:-0}
     volumes:
       - ./config:/app/config
       - ./accounts:/app/accounts

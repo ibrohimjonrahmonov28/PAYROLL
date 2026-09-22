@@ -150,9 +150,14 @@
                     <i class="fa-solid fa-gift"></i>
                 </div>
             </div>
-            <div class="text-xl font-black text-cyan-400 digital-font">+{{ daily_bonus_amount|floatformat:0 }} <small
-                    class="text-xs text-cyan-400/70 font-normal">UZS</small></div>
-            <div class="text-[11px] text-slate-500 mt-1">>100% norma uchun</div>
+            <div class="text-xl font-black text-cyan-400 digital-font">
+                {% if daily_bonus_amount > 0 %}
+                +{{ daily_bonus_amount|floatformat:0 }} <small class="text-xs text-cyan-400/70 font-normal">UZS</small>
+                {% else %}
+                0 <small class="text-xs text-slate-500 font-normal">UZS (Bekor qilingan)</small>
+                {% endif %}
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">{% if daily_bonus_amount > 0 %}>100% norma uchun{% else %}Hozircha bonus berilmaydi{% endif %}</div>
         </div>
 
     </div>

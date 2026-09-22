@@ -207,6 +207,7 @@ def get_workers_norma_breakdown(target_date: datetime.date = None) -> list:
             }
         worker_map[w.id]['models'][model_id]['units'] += t.quantity
 
+    daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 0)
     result = []
     for wid, data in worker_map.items():
         # Xodimning har bir model bo'yicha bajargan foizlari yig'indisi
@@ -218,7 +219,7 @@ def get_workers_norma_breakdown(target_date: datetime.date = None) -> list:
                 mdata['percentage'] = round(pct, 1)
 
         data['total_percentage'] = round(total_worker_pct, 1)
-        data['has_bonus'] = (data['total_percentage'] > Decimal('100.0'))
+        data['has_bonus'] = (data['total_percentage'] > Decimal('100.0')) and (daily_bonus_amount > 0)
         result.append(data)
 
     result.sort(key=lambda x: x['total_percentage'], reverse=True)

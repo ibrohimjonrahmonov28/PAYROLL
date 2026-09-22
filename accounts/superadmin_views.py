@@ -1793,7 +1793,7 @@ def superadmin_worker_history(request, worker_id: int):
         reverse=True
     )
 
-    daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 30000)
+    daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 0)
 
     UZ_DAYS = {
         0: 'Dushanba',
@@ -1846,8 +1846,8 @@ def superadmin_worker_history(request, worker_id: int):
 
         total_day_pct = round(total_day_pct, 1)
 
-        # Bonus sharti: qat'iy > 100.0% (100% bo'lsa hisob emas!)
-        has_bonus = total_day_pct > Decimal('100.0')
+        # Bonus sharti: qat'iy > 100.0% va bonus miqdori > 0 bo'lgandagina (100% bo'lsa hisob emas!)
+        has_bonus = (total_day_pct > Decimal('100.0')) and (daily_bonus_amount > 0)
         d_bonus = Decimal(str(daily_bonus_amount)) if has_bonus else Decimal('0.00')
 
         if has_bonus:
