@@ -784,7 +784,11 @@ class Box(models.Model):
 
     @property
     def pastal_code(self):
-        return self.pastal_number
+        if self.pastal_number:
+            return self.pastal_number
+        if self.cutting_batch_item and self.cutting_batch_item.batch:
+            return self.cutting_batch_item.batch.pastal_code or str(self.cutting_batch_item.batch.batch_number)
+        return ""
 
     def save(self, *args, **kwargs):
         if not self.box_code:

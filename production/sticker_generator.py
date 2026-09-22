@@ -88,8 +88,27 @@ def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_
 
     op_display = f"№{seq_num}. {op_name.upper()}" if seq_num else op_name.upper()
 
+    # Pastal kodini olish (barcha raqamlari bilan to'liq chiqishi uchun)
+    pastal_val = (ticket.box.pastal_number or "").strip() if ticket.box else ""
+    if not pastal_val and ticket.box and getattr(ticket.box, 'cutting_batch_item', None) and getattr(ticket.box.cutting_batch_item, 'batch', None):
+        pastal_val = (ticket.box.cutting_batch_item.batch.pastal_code or "").strip()
+    pc_display = f"PC: {pastal_val}" if pastal_val else "PC: —"
+
+    # PC badge (ong tomon yuqorida):
+    font_pc = get_fitted_font(draw, pc_display, 280, font_bold_path, initial_size=24, min_size=15)
+    pc_bbox = draw.textbbox((0, 0), pc_display, font=font_pc)
+    pc_text_w = pc_bbox[2] - pc_bbox[0]
+    pc_badge_w = max(pc_text_w + 20, 80)
+    pc_badge_x = W - 24 - pc_badge_w
+    pc_badge_y = 16
+    pc_badge_h = 36
+
+    draw.rounded_rectangle([pc_badge_x, pc_badge_y, pc_badge_x + pc_badge_w, pc_badge_y + pc_badge_h], radius=6, fill=(241, 245, 249), outline=(15, 23, 42), width=2)
+    pc_text_y = pc_badge_y + (pc_badge_h - (pc_bbox[3] - pc_bbox[1])) // 2 - 2
+    draw.text((pc_badge_x + 10, pc_text_y), pc_display, fill=(15, 23, 42), font=font_pc)
+
     draw.text((24, 18), "OPERATSIYA NOMI:", fill=(100, 116, 139), font=font_small)
-    font_op = get_fitted_font(draw, op_display, W - 48, font_bold_path, initial_size=38, min_size=20)
+    font_op = get_fitted_font(draw, op_display, pc_badge_x - 36, font_bold_path, initial_size=38, min_size=20)
     draw.text((24, 38), op_display, fill=(15, 23, 42), font=font_op)
 
     # 3. KATTA QR KOD VA KATTA STIKER ID (User talabi)
@@ -179,7 +198,6 @@ def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_
     # Pastki Kataklar (2 qator):
     diff_val = ticket.article_operation.difficulty_display if ticket.article_operation else "1"
     razmer_val = ticket.box.razmer.strip() if ticket.box and ticket.box.razmer else ""
-    pastal_val = (ticket.box.pastal_number or "").strip() if ticket.box else ""
 
     badge_h = 88
     col_gap = 10

@@ -250,11 +250,10 @@
                     <span
                         class="text-[6.5px] font-black uppercase text-slate-400 tracking-wider leading-none">OPERATSIYA
                         NOMI:</span>
-                    {% if ticket.article_operation and ticket.article_operation.sequence %}
-                    <span class="text-[8px] font-black text-slate-950 bg-slate-200 px-1 rounded font-mono leading-none">
-                        TARTIB: №{{ ticket.article_operation.sequence }}
+                    <span
+                        class="text-[9px] font-black text-slate-950 bg-slate-100 border border-slate-400 px-1.5 py-0.5 rounded font-mono leading-none whitespace-nowrap">
+                        PC: {{ ticket.box.pastal_code|default:ticket.box.pastal_number|default:"—" }}
                     </span>
-                    {% endif %}
                 </div>
                 <div class="text-[12px] font-black text-slate-950 uppercase truncate leading-tight mt-0.5 tracking-tight"
                     title="{{ ticket.article_operation.operation.name }}">
@@ -335,11 +334,11 @@
 
                         <!-- Pastal -->
                         <div
-                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
-                            <span class="text-[6.5px] font-black uppercase text-slate-700">PASTAL:</span>
-                            <span
-                                class="text-[9.5px] font-black font-mono text-slate-950 leading-none truncate max-w-[50px]">{{
-                                ticket.box.pastal_number|default:"—" }}</span>
+                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between overflow-hidden">
+                            <span class="text-[6.5px] font-black uppercase text-slate-700 mr-1">PASTAL:</span>
+                            <span class="text-[9px] font-black font-mono text-slate-950 leading-none truncate"
+                                title="{{ ticket.box.pastal_code|default:ticket.box.pastal_number|default:'—' }}">{{
+                                ticket.box.pastal_code|default:ticket.box.pastal_number|default:"—" }}</span>
                         </div>
 
                         <!-- Qiyinlik yoki Bo'lak -->
