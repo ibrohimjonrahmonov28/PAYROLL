@@ -1300,11 +1300,17 @@ class ControlRoleAndQualityControlTest(TestCase):
             password="password123",
             role=User.Role.SUPER_ADMIN
         )
-        self.controller = User.objects.create_user(
+        self.controller, _ = User.objects.get_or_create(
             username="patok1",
-            password="password123",
-            role=User.Role.CONTROL
+            defaults={
+                'role': User.Role.CONTROL,
+                'first_name': "Patok 1",
+                'last_name': "Kontrolchi",
+            }
         )
+        self.controller.set_password("password123")
+        self.controller.role = User.Role.CONTROL
+        self.controller.save()
         self.order = Order.objects.create(order_number="ORD-QC-01", total_quantity=50)
         self.article = Article.objects.create(code="DC-0309", name="Erkaklar Futbolkasi")
         self.box = Box.objects.create(
@@ -1423,6 +1429,30 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertContains(res, "SIFAT NAZORATI")
         self.assertContains(res, "CONTROL STIKER")
         self.assertContains(res, f"CONTROL:{self.box.box_code}")
+
+    def test_patok_users_generation_and_command(self):
+        from django.core.management import call_command
+        from io import StringIO
+
+        # 1. 0011 migratsiyasi orqali patok1 dan patok40 gacha yaratilganini tekshirish
+        self.assertTrue(User.objects.filter(username="patok1", role=User.Role.CONTROL).exists())
+        self.assertTrue(User.objects.filter(username="patok40", role=User.Role.CONTROL).exists())
+
+        # 2. Management command create_patok_users ni sinash
+        out = StringIO()
+        call_command('create_patok_users', count=10, reset_passwords=True, stdout=out)
+        self.assertIn("Jami: 10 ta patok", out.getvalue())
+
+        # 3. SuperAdmin panelidagi generate_patok_users action ini sinash
+        self.client.force_login(self.superadmin)
+        res = self.client.post(reverse('superadmin_users'), {
+            'action': 'generate_patok_users',
+            'count': 15,
+            'reset_passwords': '1'
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("?role=CONTROL", res.url)
+        self.assertEqual(User.objects.filter(username="patok15", role=User.Role.CONTROL).count(), 1)
 
 
 

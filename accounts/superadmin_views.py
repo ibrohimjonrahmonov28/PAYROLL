@@ -460,6 +460,54 @@ def superadmin_users(request):
                 messages.success(request, f"{updated_cnt} ta xodimning birkasi '{state_lbl}' deb belgilandi.")
             return redirect(request.META.get('HTTP_REFERER') or 'superadmin_users')
 
+        elif action == 'generate_patok_users':
+            try:
+                count = max(1, min(100, int(request.POST.get('count', 40))))
+            except (ValueError, TypeError):
+                count = 40
+            reset_passwords = request.POST.get('reset_passwords') == '1'
+            created_c = 0
+            updated_c = 0
+            for i in range(1, count + 1):
+                username = f"patok{i}"
+                default_password = f"patok{i}"
+                user, created = User.objects.get_or_create(
+                    username=username,
+                    defaults={
+                        'first_name': f"Patok {i}",
+                        'last_name': "Kontrolchi",
+                        'role': User.Role.CONTROL,
+                        'is_active': True,
+                        'is_staff': False,
+                        'is_superuser': False,
+                    }
+                )
+                if created:
+                    user.set_password(default_password)
+                    user.save()
+                    created_c += 1
+                else:
+                    changed = False
+                    if user.role != User.Role.CONTROL:
+                        user.role = User.Role.CONTROL
+                        changed = True
+                    if reset_passwords:
+                        user.set_password(default_password)
+                        changed = True
+                    if not user.is_active:
+                        user.is_active = True
+                        changed = True
+                    if changed:
+                        user.save()
+                        updated_c += 1
+            messages.success(
+                request,
+                f"1 dan {count} gacha bo'lgan Patok kontrolchi akkauntlari tayyor! "
+                f"({created_c} ta yangi yaratildi, {updated_c} ta mavjudi yangilandi). "
+                f"Login: patok1...patok{count}, Parol: patok1...patok{count}"
+            )
+            return redirect(reverse('superadmin_users') + '?role=CONTROL')
+
         return redirect('superadmin_users')
 
     search_q = request.GET.get('q', '').strip()
