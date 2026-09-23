@@ -361,21 +361,18 @@
                             </div>
 
                             <!-- O'ng tomon: Yuqori Sifatli QR Kod -->
-                            <div class="flex-shrink-0 flex flex-col items-center">
-                                <div
-                                    class="w-20 h-20 p-1 border-2 border-slate-900 rounded-xl bg-white shadow-sm flex items-center justify-center">
-                                    {% if u.qr_code %}
-                                    <img src="{{ u.qr_code.url }}" alt="QR: USER:{{ u.uid }}"
-                                        class="w-full h-full object-contain">
-                                    {% else %}
-                                    <div class="text-[9px] text-slate-400 font-bold text-center">
-                                        QR
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <span class="text-[6.5px] font-black text-slate-700 uppercase tracking-wider mt-0.5">
-                                    ZEBRA DS22 / TERMINAL
-                                </span>
+                            <div class="flex-shrink-0 flex flex-col items-center justify-center">
+                                 <div
+                                     class="w-28 h-28 p-1 border-2 border-slate-900 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                                     {% if u.qr_code %}
+                                     <img src="{{ u.qr_code.url }}" alt="QR: USER:{{ u.uid }}"
+                                         class="w-full h-full object-contain">
+                                     {% else %}
+                                     <div class="text-[10px] text-slate-400 font-bold text-center">
+                                         QR
+                                     </div>
+                                     {% endif %}
+                                 </div>
                             </div>
                         </div>
 

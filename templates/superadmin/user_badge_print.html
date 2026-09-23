@@ -206,9 +206,9 @@
                 </div>
 
                 <!-- O'ng tomon: Yuqori Sifatli QR Kod -->
-                <div class="flex-shrink-0 flex flex-col items-center">
+                <div class="flex-shrink-0 flex flex-col items-center justify-center">
                     <div
-                        class="w-24 h-24 sm:w-26 sm:h-26 p-1 border-2 border-slate-900 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                        class="w-28 h-28 sm:w-30 sm:h-30 p-1 border-2 border-slate-900 rounded-xl bg-white shadow-sm flex items-center justify-center">
                         {% if target_user.qr_code %}
                         <img src="{{ target_user.qr_code.url }}" alt="QR: USER:{{ target_user.uid }}"
                             class="w-full h-full object-contain">
@@ -219,9 +219,6 @@
                         </div>
                         {% endif %}
                     </div>
-                    <span class="text-[7.5px] font-black text-slate-700 uppercase tracking-wider mt-1">
-                        ZEBRA DS22 / TERMINAL
-                    </span>
                 </div>
             </div>
 

@@ -143,20 +143,17 @@
                 </div>
 
                 <!-- QR Code -->
-                <div class="flex-shrink-0 flex flex-col items-center">
+                <div class="flex-shrink-0 flex flex-col items-center justify-center">
                     <div
-                        class="w-22 h-22 p-1 border-2 border-slate-900 rounded-xl bg-white flex items-center justify-center">
+                        class="w-28 h-28 p-1 border-2 border-slate-900 rounded-xl bg-white flex items-center justify-center">
                         {% if worker.user and worker.user.qr_code %}
-                        <img src="{{ worker.user.qr_code.url }}" alt="QR" class="w-20 h-20 object-contain">
+                        <img src="{{ worker.user.qr_code.url }}" alt="QR" class="w-full h-full object-contain">
                         {% elif worker.qr_code %}
-                        <img src="{{ worker.qr_code.url }}" alt="QR" class="w-20 h-20 object-contain">
+                        <img src="{{ worker.qr_code.url }}" alt="QR" class="w-full h-full object-contain">
                         {% else %}
-                        <div class="text-[9px] text-slate-400 font-bold">QR yo'q</div>
+                        <div class="text-[10px] text-slate-400 font-bold">QR yo'q</div>
                         {% endif %}
                     </div>
-                    <span class="text-[7px] font-black text-slate-700 uppercase tracking-wider mt-1">
-                        ZEBRA DS22 / TERMINAL
-                    </span>
                 </div>
             </div>
 
