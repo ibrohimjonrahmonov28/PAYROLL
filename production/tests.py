@@ -1419,3 +1419,25 @@ class DailyExcelReportAndPricingSyncTest(TestCase):
         formula_val = ws_day.cell(row=5, column=8).value
         self.assertEqual(formula_val, "=G5+F5")
 
+        # 1-varaq: Oylik Umumiy Tabel tekshiruvi (foydalanuvchi talabi bo'yicha 10 ta ustun)
+        ws_month = wb["Oylik Umumiy Tabel"]
+        expected_month_headers = [
+            "№", "Xodim UID", "F.I.SH", "Ishlagan Kunlari",
+            "Hisoblangan Ish Haqi (UZS)", "Bonus (UZS)", "Berilgan Avans (UZS)",
+            "Magazin (UZS)", "To'langan Oylik (UZS)", "To'lanishi Kerak Qoldiq (UZS)"
+        ]
+        actual_month_headers = [ws_month.cell(row=4, column=col).value for col in range(1, 11)]
+        self.assertEqual(actual_month_headers, expected_month_headers)
+
+        # 5-qator: Xodim oylik hisob-kitobi va qoldiq formulasi
+        self.assertEqual(ws_month.cell(row=5, column=2).value, "TK-999")
+        self.assertEqual(ws_month.cell(row=5, column=3).value, "Nodirbek Qodirov")
+        self.assertEqual(ws_month.cell(row=5, column=5).value, 110000.0)  # Hisoblangan Ish Haqi
+        self.assertEqual(ws_month.cell(row=5, column=8).value, 0)         # Magazin
+        self.assertEqual(ws_month.cell(row=5, column=10).value, "=E5+F5-G5-H5-I5")  # Qoldiq formulasi
+
+        # 6-qator: JAMI qatori formulalari
+        self.assertEqual(ws_month.cell(row=6, column=1).value, "JAMI / BARCHASI:")
+        self.assertEqual(ws_month.cell(row=6, column=5).value, "=SUM(E5:E5)")
+        self.assertEqual(ws_month.cell(row=6, column=10).value, "=SUM(J5:J5)")
+

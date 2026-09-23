@@ -3,6 +3,7 @@ import datetime
 from decimal import Decimal
 from django.utils import timezone
 from django.db.models import Sum, Q, Count
+from django.conf import settings
 
 try:
     import openpyxl
@@ -866,14 +867,52 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     )
     worker_ticket_map = {item['worker_id']: item for item in worker_ticket_stats}
 
-    # Payouts (avans va oyliklar)
+    # Payouts (avans, oylik va bonuslar)
     month_payout_qs = WorkerPayout.objects.filter(
         payout_date__range=(start_of_month, target_date)
     ).values('worker_id').annotate(
         advances=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.ADVANCE)),
         salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY)),
+        bonuses=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.BONUS)),
     )
     month_payout_map = {item['worker_id']: item for item in month_payout_qs}
+
+    # Kunlik norma bonuslari (agar tizim sozlamalarida DAILY_BONUS_AMOUNT belgilangan bo'lsa)
+    daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 0)
+    worker_daily_bonuses = {}
+    if daily_bonus_amount > 0:
+        for w in workers:
+            w_tickets = [t for t in month_tickets if t.worker_id == w.id]
+            t_by_date = {}
+            for t in w_tickets:
+                if t.scanned_at:
+                    d = timezone.localtime(t.scanned_at).date()
+                    t_by_date.setdefault(d, []).append(t)
+
+            w_bonus_sum = Decimal('0.00')
+            for d, d_tickets in t_by_date.items():
+                model_stats = {}
+                for t in d_tickets:
+                    ao = t.article_operation
+                    art = ao.article if ao else None
+                    pmodel = art.model if art else None
+                    norm = (pmodel.daily_norm if (pmodel and pmodel.daily_norm) else (art.daily_norm if (art and art.daily_norm) else 1000)) or 1000
+                    diff = float(ao.difficulty) if (ao and ao.difficulty) else 1.0
+                    pts = t.quantity * diff
+                    m_key = f"m_{pmodel.id}" if pmodel else (f"art_{art.id}" if art else "0")
+                    if m_key not in model_stats:
+                        model_stats[m_key] = {'norm': norm, 'points': 0.0}
+                    model_stats[m_key]['points'] += pts
+
+                total_day_pct = Decimal('0.0')
+                for mk, mdata in model_stats.items():
+                    if mdata['norm'] > 0:
+                        total_day_pct += (Decimal(str(mdata['points'])) / Decimal(str(mdata['norm']))) * Decimal('100.0')
+
+                if total_day_pct > Decimal('100.0'):
+                    w_bonus_sum += Decimal(str(daily_bonus_amount))
+            if w_bonus_sum > 0:
+                worker_daily_bonuses[w.id] = w_bonus_sum
 
     # Oy boshidan oldingi balanslar (1 martalik tezkor agregatsiya):
     tickets_pre_month = Ticket.objects.filter(
@@ -938,20 +977,31 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
 
     # -------------------------------------------------------------
     # 1-VARAQ: XODIMLAR OYLIK TABELI (UMUMIY)
+    # Ustunlar:
+    # 1. №
+    # 2. Xodim UID
+    # 3. F.I.SH
+    # 4. Ishlagan Kunlari
+    # 5. Hisoblangan Ish Haqi (UZS) (dona-bay tikilgan ishlar summasi)
+    # 6. Bonus (UZS) (tizimdagi mukofot va bonuslar)
+    # 7. Berilgan Avans (UZS) (qo'lda kiritiladi / tahrirlanadi)
+    # 8. Magazin (UZS) (qo'lda kiritiladi)
+    # 9. To'langan Oylik (UZS)
+    # 10. To'lanishi Kerak Qoldiq (UZS) - Formula: =(E+F)-G-H-I
     # -------------------------------------------------------------
     ws1 = wb.active
     ws1.title = "Oylik Umumiy Tabel"
     ws1.views.sheetView[0].showGridLines = True
 
     # Sarlavha
-    ws1.merge_cells('A1:L1')
+    ws1.merge_cells('A1:J1')
     c_title = ws1['A1']
     c_title.value = "TERRY JAR — OYLIK ISH HAQI VA XODIMLAR TABELI"
     c_title.font = font_title
     c_title.alignment = align_left
     ws1.row_dimensions[1].height = 26
 
-    ws1.merge_cells('A2:L2')
+    ws1.merge_cells('A2:J2')
     c_sub = ws1['A2']
     c_sub.value = f"Davr: {start_of_month.strftime('%d.%m.%Y')} 00:00 dan {target_date.strftime('%d.%m.%Y')} {now.strftime('%H:%M')} gacha | Shakllantirilgan vaqt: {now.strftime('%d.%m.%Y %H:%M')}"
     c_sub.font = font_subtitle
@@ -959,147 +1009,136 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     ws1.row_dimensions[2].height = 18
 
     headers1 = [
-        "№", "Xodim ID", "F.I.SH", "Telefon", "Ishlagan Kunlari",
-        "Tikilgan Dona", "Hisoblangan Ish Haqi (UZS)", "Berilgan Avans (UZS)",
-        "To'langan Oylik (UZS)", "To'lanishi Kerak Qoldiq (UZS)", "Joriy Balans (UZS)", "Holati"
+        ("№", 5, align_center),
+        ("Xodim UID", 14, align_center),
+        ("F.I.SH", 28, align_left),
+        ("Ishlagan Kunlari", 16, align_center),
+        ("Hisoblangan Ish Haqi (UZS)", 24, align_right),
+        ("Bonus (UZS)", 18, align_right),
+        ("Berilgan Avans (UZS)", 22, align_right),
+        ("Magazin (UZS)", 18, align_right),
+        ("To'langan Oylik (UZS)", 22, align_right),
+        ("To'lanishi Kerak Qoldiq (UZS)", 26, align_right),
     ]
 
     ws1.row_dimensions[4].height = 24
-    for col_idx, h in enumerate(headers1, start=1):
-        cell = ws1.cell(row=4, column=col_idx, value=h)
+    for col_idx, (h_text, width, aln) in enumerate(headers1, start=1):
+        cell = ws1.cell(row=4, column=col_idx, value=h_text)
         cell.font = font_header
         cell.fill = navy_fill
         cell.alignment = align_center
         cell.border = thin_border
-
-    tot_units = 0
-    tot_gross = Decimal('0.00')
-    tot_adv = Decimal('0.00')
-    tot_sal = Decimal('0.00')
-    tot_net = Decimal('0.00')
-    tot_bal = Decimal('0.00')
+        ws1.column_dimensions[get_column_letter(col_idx)].width = width
 
     row_idx = 5
     counter = 1
     for w in workers:
         t_stat = worker_ticket_map.get(w.id, {})
-        u = t_stat.get('units') or 0
         g = t_stat.get('gross') or Decimal('0.00')
         days_w = t_stat.get('days_worked') or 0
 
         p_stat = month_payout_map.get(w.id, {})
         adv = p_stat.get('advances') or Decimal('0.00')
         sal = p_stat.get('salaries') or Decimal('0.00')
-        net = g - adv - sal
-        bal = w.balance
-
-        if g == Decimal('0.00') and adv == Decimal('0.00') and sal == Decimal('0.00'):
-            status_str = "Ishlamagan"
-        elif net <= Decimal('0.00'):
-            status_str = "To'liq to'langan"
-        elif adv > Decimal('0.00'):
-            status_str = "Avans berilgan"
-        else:
-            status_str = "To'lov kutilmoqda"
+        bonus = (p_stat.get('bonuses') or Decimal('0.00')) + worker_daily_bonuses.get(w.id, Decimal('0.00'))
 
         c_fill = zebra_fill if counter % 2 == 0 else white_fill
 
         ws1.cell(row=row_idx, column=1, value=counter).alignment = align_center
-        ws1.cell(row=row_idx, column=2, value=w.worker_id).alignment = align_center
-        ws1.cell(row=row_idx, column=3, value=w.full_name).alignment = align_left
-        ws1.cell(row=row_idx, column=4, value=w.phone_number or "—").alignment = align_center
-        ws1.cell(row=row_idx, column=5, value=days_w).alignment = align_center
 
-        c_u = ws1.cell(row=row_idx, column=6, value=u)
-        c_u.alignment = align_right
-        c_u.number_format = '#,##0'
+        c_uid = ws1.cell(row=row_idx, column=2, value=w.worker_id)
+        c_uid.alignment = align_center
+        c_uid.font = font_bold
 
-        c_g = ws1.cell(row=row_idx, column=7, value=float(g))
+        c_name = ws1.cell(row=row_idx, column=3, value=w.full_name)
+        c_name.alignment = align_left
+        c_name.font = font_bold
+
+        ws1.cell(row=row_idx, column=4, value=days_w).alignment = align_center
+
+        c_g = ws1.cell(row=row_idx, column=5, value=float(g))
         c_g.alignment = align_right
         c_g.number_format = '#,##0'
+        if g > 0:
+            c_g.font = font_green_bold
+            c_g.fill = green_fill
 
-        c_adv = ws1.cell(row=row_idx, column=8, value=float(adv))
+        c_bonus = ws1.cell(row=row_idx, column=6, value=float(bonus))
+        c_bonus.alignment = align_right
+        c_bonus.number_format = '#,##0'
+
+        c_adv = ws1.cell(row=row_idx, column=7, value=float(adv))
         c_adv.alignment = align_right
         c_adv.number_format = '#,##0'
+
+        # Magazin (UZS) - Excelda foydalanuvchi xarajatlarni to'g'ridan-to'g'ri kiritadi
+        c_mag = ws1.cell(row=row_idx, column=8, value=0)
+        c_mag.alignment = align_right
+        c_mag.number_format = '#,##0'
 
         c_sal = ws1.cell(row=row_idx, column=9, value=float(sal))
         c_sal.alignment = align_right
         c_sal.number_format = '#,##0'
 
-        c_net = ws1.cell(row=row_idx, column=10, value=float(net))
-        c_net.alignment = align_right
-        c_net.number_format = '#,##0'
+        # To'lanishi Kerak Qoldiq formulasi: =(Ish Haqi + Bonus) - Avans - Magazin - To'langan Oylik
+        c_qoldiq = ws1.cell(row=row_idx, column=10, value=f"=E{row_idx}+F{row_idx}-G{row_idx}-H{row_idx}-I{row_idx}")
+        c_qoldiq.alignment = align_right
+        c_qoldiq.font = font_bold
+        c_qoldiq.number_format = '#,##0'
 
-        c_bal = ws1.cell(row=row_idx, column=11, value=float(bal))
-        c_bal.alignment = align_right
-        c_bal.number_format = '#,##0'
-
-        ws1.cell(row=row_idx, column=12, value=status_str).alignment = align_center
-
-        for col_idx in range(1, 13):
+        for col_idx in range(1, 11):
             c_node = ws1.cell(row=row_idx, column=col_idx)
             c_node.border = thin_border
-            if c_fill.fill_type:
-                c_node.fill = c_fill
-            c_node.font = font_regular
-
-        tot_units += u
-        tot_gross += g
-        tot_adv += adv
-        tot_sal += sal
-        tot_net += net
-        tot_bal += bal
+            if col_idx != 5 or g == 0:
+                if c_fill.fill_type:
+                    c_node.fill = c_fill
+            if col_idx not in (2, 3, 5, 10):
+                c_node.font = font_regular
 
         row_idx += 1
         counter += 1
 
-    # Jami qatori
-    ws1.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=5)
+    # Jami / Barchasi qatori
+    ws1.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
     c_tot_lbl = ws1.cell(row=row_idx, column=1, value="JAMI / BARCHASI:")
     c_tot_lbl.font = font_bold
     c_tot_lbl.alignment = align_right
 
-    c_tot_u = ws1.cell(row=row_idx, column=6, value=tot_units)
-    c_tot_u.font = font_bold
-    c_tot_u.alignment = align_right
-    c_tot_u.number_format = '#,##0'
-
-    c_tot_g = ws1.cell(row=row_idx, column=7, value=float(tot_gross))
+    c_tot_g = ws1.cell(row=row_idx, column=5, value=f"=SUM(E5:E{row_idx-1})")
     c_tot_g.font = font_bold
     c_tot_g.alignment = align_right
     c_tot_g.number_format = '#,##0'
 
-    c_tot_adv = ws1.cell(row=row_idx, column=8, value=float(tot_adv))
+    c_tot_bonus = ws1.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
+    c_tot_bonus.font = font_bold
+    c_tot_bonus.alignment = align_right
+    c_tot_bonus.number_format = '#,##0'
+
+    c_tot_adv = ws1.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
     c_tot_adv.font = font_bold
     c_tot_adv.alignment = align_right
     c_tot_adv.number_format = '#,##0'
 
-    c_tot_sal = ws1.cell(row=row_idx, column=9, value=float(tot_sal))
+    c_tot_mag = ws1.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
+    c_tot_mag.font = font_bold
+    c_tot_mag.alignment = align_right
+    c_tot_mag.number_format = '#,##0'
+
+    c_tot_sal = ws1.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
     c_tot_sal.font = font_bold
     c_tot_sal.alignment = align_right
     c_tot_sal.number_format = '#,##0'
 
-    c_tot_net = ws1.cell(row=row_idx, column=10, value=float(tot_net))
-    c_tot_net.font = font_bold
-    c_tot_net.alignment = align_right
-    c_tot_net.number_format = '#,##0'
+    c_tot_qoldiq = ws1.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
+    c_tot_qoldiq.font = font_bold
+    c_tot_qoldiq.alignment = align_right
+    c_tot_qoldiq.number_format = '#,##0'
 
-    c_tot_bal = ws1.cell(row=row_idx, column=11, value=float(tot_bal))
-    c_tot_bal.font = font_bold
-    c_tot_bal.alignment = align_right
-    c_tot_bal.number_format = '#,##0'
-
-    ws1.cell(row=row_idx, column=12, value="")
-
-    for col_idx in range(1, 13):
+    ws1.row_dimensions[row_idx].height = 24
+    for col_idx in range(1, 11):
         c_node = ws1.cell(row=row_idx, column=col_idx)
         c_node.fill = total_fill
         c_node.border = thick_bottom_border
-
-    # Ustunlar kengligi
-    col_widths1 = [5, 12, 28, 16, 16, 15, 22, 20, 20, 24, 20, 18]
-    for i, w_val in enumerate(col_widths1, start=1):
-        ws1.column_dimensions[get_column_letter(i)].width = w_val
 
     # -------------------------------------------------------------
     # 2...N-VARAQLAR: KUNLIK HISOBOT VARAQLARI (01.MM dan BUGUN.MM gacha)
