@@ -258,6 +258,11 @@
                         </td>
                         <td class="py-3 px-3 text-center font-bold text-indigo-400 digital-font">
                             {{ row.month_units }} dona
+                            {% if row.total_tickets > 0 %}
+                            <span class="block text-[11px] text-slate-500 font-normal mt-0.5">
+                                {{ row.total_tickets }} stiker • {{ row.total_boxes }} quti
+                            </span>
+                            {% endif %}
                         </td>
                         <td class="py-3 px-4 text-right font-black text-emerald-400 digital-font text-base">
                             {{ row.month_gross|floatformat:0 }} <small
@@ -405,7 +410,7 @@
 <div id="daily-breakdown-modal"
     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div
-        class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+        class="bg-slate-900 border border-slate-800 w-full max-w-5xl rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
         <!-- Header -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-800">
             <div>
@@ -447,17 +452,18 @@
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="bg-slate-950 text-slate-400 uppercase font-bold border-b border-slate-800 sticky top-0">
-                        <th class="py-2.5 px-3">Sana</th>
-                        <th class="py-2.5 px-3">Hafta Kuni</th>
-                        <th class="py-2.5 px-3 text-center">Bilet / Dona</th>
+                        <th class="py-2.5 px-3">Sana va Kun</th>
+                        <th class="py-2.5 px-3">Tikilgan Ishlar (Operatsiyalar)</th>
+                        <th class="py-2.5 px-3 text-center">Dona</th>
                         <th class="py-2.5 px-3 text-right">Kunlik Ish Haqi</th>
                         <th class="py-2.5 px-3 text-right">Olingan Avans</th>
+                        <th class="py-2.5 px-3 text-center">Stikerlar</th>
                         <th class="py-2.5 px-3 text-center">Tungi 00:00 Reestri</th>
                     </tr>
                 </thead>
                 <tbody id="db-modal-tbody" class="divide-y divide-slate-800/80 text-slate-300">
                     <tr>
-                        <td colspan="6" class="py-8 text-center text-slate-500">
+                        <td colspan="7" class="py-8 text-center text-slate-500">
                             <i class="fa-solid fa-arrows-rotate animate-spin text-lg mr-2"></i> Ma'lumotlar
                             yuklanmoqda...
                         </td>
@@ -471,6 +477,114 @@
             <span>Har kuni soat 00:00 da kunlik summa balansga muhrlanadi.</span>
             <button onclick="document.getElementById('daily-breakdown-modal').classList.add('hidden')"
                 class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
+                Yopish
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: KUNLIK STIKERLAR TAFSILOTI (PAYROLL KUNBAYIDAN KO'RISH) -->
+<div id="payroll-stickers-modal"
+    class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+        class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between pb-4 border-b border-slate-800 mb-4 flex-shrink-0">
+            <div>
+                <h3 class="text-lg font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-qrcode text-cyan-400"></i>
+                    <span>Skanerlangan Stikerlar va Operatsiyalar</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Xodim: <strong class="text-white" id="ps-worker-name"></strong> (<span id="ps-worker-id" class="font-mono text-cyan-400"></span>) | Sana: <span id="ps-day-title"
+                        class="font-bold text-amber-400"></span>
+                </p>
+            </div>
+            <button onclick="closePayrollStickersModal()"
+                class="text-slate-400 hover:text-white text-lg p-1.5 rounded-xl hover:bg-slate-800 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Summary row -->
+        <div
+            class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-950 border border-slate-800 rounded-2xl p-3 mb-3 text-xs flex-shrink-0">
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Stikerlar soni</span>
+                <span id="ps-stat-tickets" class="font-bold text-white digital-font text-sm">0 ta</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Qutilar soni</span>
+                <span id="ps-stat-boxes" class="font-bold text-teal-400 digital-font text-sm">0 ta</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Tikilgan dona</span>
+                <span id="ps-stat-units" class="font-bold text-indigo-400 digital-font text-sm">0 dona</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Kunlik ish haqi</span>
+                <span id="ps-stat-total" class="font-black text-emerald-400 digital-font text-sm">0 UZS</span>
+            </div>
+        </div>
+
+        <!-- Sticker IDs panel with Copy button -->
+        <div class="bg-slate-950 border border-cyan-800/40 rounded-2xl p-3.5 mb-3 flex-shrink-0 space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-tags text-cyan-400"></i> Stiker ID lari:
+                    </span>
+                    <span id="ps-compact-stickers" class="text-xs font-mono font-bold text-amber-300">
+                        —
+                    </span>
+                </div>
+                <button type="button" id="ps-copy-btn" onclick="copyPayrollStickerIds()"
+                    class="px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                    title="Barcha stiker ID larini nusxalash">
+                    <i class="fa-solid fa-copy text-cyan-400"></i>
+                    <span id="ps-copy-btn-text">Barcha ID larni nusxalash</span>
+                </button>
+            </div>
+            <!-- Badges container -->
+            <div id="ps-sticker-badges" class="flex flex-wrap gap-1 max-h-20 overflow-y-auto pt-1">
+                <!-- Badges rendered via JS -->
+            </div>
+            <!-- Operations summary row -->
+            <div class="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80 flex items-center gap-1 flex-wrap">
+                <span class="text-slate-500 font-bold">Operatsiyalar:</span>
+                <span id="ps-operations-summary" class="text-slate-300 font-medium">—</span>
+            </div>
+        </div>
+
+        <!-- Tickets Table (Scrollable) -->
+        <div class="overflow-y-auto flex-1 border border-slate-800 rounded-2xl">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead class="sticky top-0 bg-slate-950 border-b border-slate-800 text-slate-400 font-bold uppercase">
+                    <tr>
+                        <th class="py-2.5 px-3 text-center w-10">№</th>
+                        <th class="py-2.5 px-3">Stiker ID</th>
+                        <th class="py-2.5 px-3">Quti ID</th>
+                        <th class="py-2.5 px-3">Zakaz / Model</th>
+                        <th class="py-2.5 px-3">Operatsiya Nomi</th>
+                        <th class="py-2.5 px-3 text-center">Soni</th>
+                        <th class="py-2.5 px-3 text-right">Summa</th>
+                        <th class="py-2.5 px-3 text-center">Vaqt</th>
+                        <th class="py-2.5 px-3">Master</th>
+                    </tr>
+                </thead>
+                <tbody id="ps-tickets-tbody" class="divide-y divide-slate-800 text-slate-300">
+                    <!-- Populated via AJAX / JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div
+            class="pt-4 border-t border-slate-800 mt-4 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
+            <span>Har bir bilet skanerlanganda vaqti va masteri qayd etilgan.</span>
+            <button type="button" onclick="closePayrollStickersModal()"
+                class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
                 Yopish
             </button>
         </div>
@@ -729,12 +843,133 @@
         document.getElementById('payout-modal').classList.remove('hidden');
     }
 
+    let currentPayrollTicketIds = [];
+
+    function copyPayrollStickerIds() {
+        if (!currentPayrollTicketIds || currentPayrollTicketIds.length === 0) return;
+        const textToCopy = currentPayrollTicketIds.join(', ');
+        const btnText = document.getElementById('ps-copy-btn-text');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                btnText.innerText = "✓ Nusxalandi!";
+                setTimeout(() => { btnText.innerText = "Barcha ID larni nusxalash"; }, 2000);
+            }).catch(() => {
+                fallbackCopyTextPayroll(textToCopy, btnText);
+            });
+        } else {
+            fallbackCopyTextPayroll(textToCopy, btnText);
+        }
+    }
+
+    function fallbackCopyTextPayroll(text, btnText) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            if (btnText) {
+                btnText.innerText = "✓ Nusxalandi!";
+                setTimeout(() => { btnText.innerText = "Barcha ID larni nusxalash"; }, 2000);
+            }
+        } catch (e) {
+            console.error('Nusxalashda xatolik', e);
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function copySinglePayrollStickerId(id) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(id);
+        }
+    }
+
+    function openTicketsFromPayroll(workerId, dateIso, dateFormatted, units, totalStr, workerName, workerCode) {
+        document.getElementById('ps-worker-name').innerText = workerName || 'Xodim';
+        document.getElementById('ps-worker-id').innerText = workerCode || '';
+        document.getElementById('ps-day-title').innerText = dateFormatted;
+        document.getElementById('ps-stat-units').innerText = `${units} dona`;
+        document.getElementById('ps-stat-total').innerText = totalStr;
+
+        const tbody = document.getElementById('ps-tickets-tbody');
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mr-2"></i> Yuklanmoqda...</td></tr>`;
+        document.getElementById('payroll-stickers-modal').classList.remove('hidden');
+
+        fetch(`/superadmin/workers/${workerId}/tickets-by-date/?date=${dateIso}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.tickets.length > 0) {
+                    document.getElementById('ps-stat-tickets').innerText = `${data.count} ta`;
+                    document.getElementById('ps-stat-boxes').innerText = `${data.boxes_count || 0} ta quti`;
+                    document.getElementById('ps-compact-stickers').innerText = data.compact_stickers || '—';
+                    document.getElementById('ps-operations-summary').innerText = data.operations_summary || '—';
+
+                    currentPayrollTicketIds = data.ticket_ids || [];
+
+                    const badgesContainer = document.getElementById('ps-sticker-badges');
+                    if (currentPayrollTicketIds.length > 0) {
+                        badgesContainer.innerHTML = currentPayrollTicketIds.map(id => `
+                            <span onclick="copySinglePayrollStickerId('${id}')"
+                                title="Bosib nusxalash: ${id}"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 text-slate-300 font-mono text-[10px] cursor-pointer transition select-all">
+                                ${id}
+                            </span>
+                        `).join('');
+                    } else {
+                        badgesContainer.innerHTML = `<span class="text-slate-500 text-[11px]">—</span>`;
+                    }
+
+                    let html = '';
+                    data.tickets.forEach((t, idx) => {
+                        html += `
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="py-2 px-3 text-center text-slate-500 font-mono">${idx + 1}</td>
+                                <td class="py-2 px-3 font-mono font-bold text-cyan-400">${t.stiker_id}</td>
+                                <td class="py-2 px-3 font-mono text-slate-300">QUTI #${t.box_number} [${t.box_code}]</td>
+                                <td class="py-2 px-3"><span class="font-bold text-white">${t.order_number}</span> <small class="text-slate-400 block">${t.model_name && t.model_name !== '—' && t.model_name !== t.article_name ? t.model_name + ' / ' : ''}${t.article_name}</small></td>
+                                <td class="py-2 px-3 font-medium text-slate-200">${t.operation_name}</td>
+                                <td class="py-2 px-3 text-center font-bold text-indigo-400 digital-font">${t.quantity} ta</td>
+                                <td class="py-2 px-3 text-right font-black text-emerald-400 digital-font">${t.total_amount_formatted}</td>
+                                <td class="py-2 px-3 text-center font-mono text-slate-400">${t.time}</td>
+                                <td class="py-2 px-3 text-slate-400">${t.master}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                } else {
+                    document.getElementById('ps-stat-tickets').innerText = `0 ta`;
+                    document.getElementById('ps-stat-boxes').innerText = `0 ta`;
+                    document.getElementById('ps-compact-stickers').innerText = '—';
+                    document.getElementById('ps-operations-summary').innerText = '—';
+                    document.getElementById('ps-sticker-badges').innerHTML = '';
+                    currentPayrollTicketIds = [];
+                    tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-500">Ushbu kunda biletlar topilmadi.</td></tr>`;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-rose-500">Ma'lumotlarni yuklashda xatolik yuz berdi.</td></tr>`;
+            });
+    }
+
+    function closePayrollStickersModal() {
+        document.getElementById('payroll-stickers-modal').classList.add('hidden');
+    }
+
+    document.getElementById('payroll-stickers-modal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closePayrollStickersModal();
+        }
+    });
+
     async function openDailyBreakdownModal(workerId) {
         const modal = document.getElementById('daily-breakdown-modal');
         const tbody = document.getElementById('db-modal-tbody');
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="py-8 text-center text-slate-500">
+                <td colspan="7" class="py-8 text-center text-slate-500">
                     <i class="fa-solid fa-arrows-rotate animate-spin text-lg mr-2"></i> Ma'lumotlar yuklanmoqda...
                 </td>
             </tr>`;
@@ -760,7 +995,7 @@
             if (data.rows.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="py-8 text-center text-slate-500">
+                        <td colspan="7" class="py-8 text-center text-slate-500">
                             Ushbu oyda xodim uchun ishlar yoki to'lovlar qayd etilmagan.
                         </td>
                     </tr>`;
@@ -773,18 +1008,52 @@
                     ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono text-[10px]">✓ 00:00 da yopilgan</span>`
                     : `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-mono text-[10px]">Bugungi navbat</span>`;
 
+                let opsHtml = '<span class="text-slate-600">—</span>';
+                if (r.operations_list && r.operations_list.length > 0) {
+                    const pills = r.operations_list.map(op => `
+                        <span class="inline-flex items-center gap-1 bg-slate-950 border border-slate-800 text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium mr-1 mb-1">
+                            <span class="text-slate-400">${op.name}:</span>
+                            <span class="text-indigo-400 font-bold font-mono">${op.quantity} ta</span>
+                        </span>
+                    `).join('');
+                    const boxes = r.boxes_count > 0 ? `<span class="text-[10px] text-teal-400 font-mono block mt-0.5"><i class="fa-solid fa-boxes-stacked mr-1"></i>${r.boxes_count} ta quti</span>` : '';
+                    opsHtml = `<div class="flex flex-wrap gap-1">${pills}</div>${boxes}`;
+                }
+
+                const safeWorkerName = (data.full_name || '').replace(/'/g, "\\'");
+                const safeWorkerCode = (data.worker_id || '').replace(/'/g, "\\'");
+
+                const stickersBtn = r.ticket_count > 0
+                    ? `<div class="flex flex-col items-center">
+                        <button type="button" onclick="openTicketsFromPayroll(${data.worker_pk}, '${r.date_iso}', '${r.date_str} (${r.day_name})', ${r.units}, '${r.amount_formatted}', '${safeWorkerName}', '${safeWorkerCode}')"
+                            class="px-2.5 py-1 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 hover:from-teal-500/30 hover:to-cyan-500/30 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition inline-flex items-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-qrcode text-cyan-400 text-[10px]"></i>
+                            <span>Stikerlar (${r.ticket_count})</span>
+                        </button>
+                        ${r.compact_stickers && r.compact_stickers !== '—' ? `<span class="text-[10px] text-slate-400 font-mono mt-0.5" title="Stiker ID diapazoni">${r.compact_stickers}</span>` : ''}
+                       </div>`
+                    : `<span class="text-slate-600">—</span>`;
+
                 html += `
-                    <tr class="hover:bg-slate-800/40">
-                        <td class="py-2.5 px-3 font-mono font-bold text-white">${r.date_str}</td>
-                        <td class="py-2.5 px-3 text-slate-400">${r.day_name}</td>
-                        <td class="py-2.5 px-3 text-center digital-font">
-                            ${r.ticket_count > 0 ? `<span class="text-indigo-400 font-bold">${r.units} dona</span> <span class="text-slate-500">(${r.ticket_count} ta bilet)</span>` : '—'}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-2.5 px-3">
+                            <span class="font-mono font-bold text-white block">${r.date_str}</span>
+                            <span class="text-xs text-slate-400">${r.day_name}</span>
+                        </td>
+                        <td class="py-2.5 px-3">
+                            ${opsHtml}
+                        </td>
+                        <td class="py-2.5 px-3 text-center digital-font font-bold text-indigo-400">
+                            ${r.units > 0 ? `${r.units} dona` : '—'}
                         </td>
                         <td class="py-2.5 px-3 text-right font-black text-emerald-400 digital-font">
                             ${r.amount > 0 ? r.amount_formatted : '0 UZS'}
                         </td>
                         <td class="py-2.5 px-3 text-right font-black text-cyan-400 digital-font">
                             ${r.advance_formatted}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            ${stickersBtn}
                         </td>
                         <td class="py-2.5 px-3 text-center">
                             ${closedBadge}
@@ -796,7 +1065,7 @@
         } catch (err) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="py-8 text-center text-rose-400">
+                    <td colspan="7" class="py-8 text-center text-rose-400">
                         Ma'lumotlarni yuklab bo'lmadi. Iltimos qaytadan urinib ko'ring.
                     </td>
                 </tr>`;

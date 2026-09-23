@@ -15,6 +15,7 @@ from django.conf import settings
 from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
 from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem
+from production.excel_reports import compact_ticket_ids
 
 
 def superadmin_required(view_func):
@@ -673,6 +674,7 @@ def superadmin_payroll(request):
         gross=Sum('total_amount'),
         days_worked=Count('scanned_at__date', distinct=True),
         total_tickets=Count('id'),
+        total_boxes=Count('box_id', distinct=True),
     )
     month_ticket_map = {item['worker_id']: item for item in month_ticket_qs}
 
@@ -702,6 +704,7 @@ def superadmin_payroll(request):
         month_gross = t_stat.get('gross') or Decimal('0.00')
         days_worked = t_stat.get('days_worked') or 0
         total_tickets = t_stat.get('total_tickets') or 0
+        total_boxes = t_stat.get('total_boxes') or 0
 
         p_stat = month_payout_map.get(w.id, {})
         advances = p_stat.get('advances') or Decimal('0.00')
@@ -751,6 +754,7 @@ def superadmin_payroll(request):
             'net_payable_month': net_payable_month,
             'lifetime_balance': lifetime_balance,
             'total_tickets': total_tickets,
+            'total_boxes': total_boxes,
             'status_text': status_text,
             'status_badge': status_badge,
         })
@@ -806,6 +810,9 @@ def superadmin_worker_daily_breakdown(request, worker_id):
         status=Ticket.Status.SCANNED,
         scanned_at__year=year,
         scanned_at__month=month
+    ).select_related(
+        'article_operation__operation',
+        'box'
     ).order_by('scanned_at')
 
     # Barcha ish kunlari
@@ -840,6 +847,21 @@ def superadmin_worker_daily_breakdown(request, worker_id):
         d_earned = sum(t.total_amount for t in d_tickets)
         d_count = len(d_tickets)
 
+        # Operatsiyalar xulosasi
+        op_counts = {}
+        for t in d_tickets:
+            op_name = "Noma'lum"
+            if t.article_operation and t.article_operation.operation:
+                op_name = t.article_operation.operation.name
+            op_counts[op_name] = op_counts.get(op_name, 0) + (t.quantity or 0)
+        sorted_ops = sorted(op_counts.items(), key=lambda x: x[1], reverse=True)
+        ops_summary = ", ".join(f"{name}: {qty} ta" for name, qty in sorted_ops)
+        ops_list = [{'name': name, 'quantity': qty} for name, qty in sorted_ops]
+
+        boxes_count = len(set(t.box_id for t in d_tickets if t.box_id))
+        compact_stickers = compact_ticket_ids(d_tickets) if d_tickets else "—"
+        ticket_ids = [t.stiker_id for t in d_tickets]
+
         d_payouts = [p for p in payouts if p.payout_date == d]
         d_advance = sum(p.amount for p in d_payouts if p.payout_type == WorkerPayout.PayoutType.ADVANCE)
 
@@ -851,11 +873,17 @@ def superadmin_worker_daily_breakdown(request, worker_id):
 
         daily_rows.append({
             'date_str': d.strftime("%d.%m.%Y"),
+            'date_iso': d.strftime("%Y-%m-%d"),
             'day_name': UZ_DAYS.get(d.weekday(), ''),
             'units': d_units,
             'amount': float(d_earned),
             'amount_formatted': f"{int(d_earned):,} UZS".replace(",", " "),
             'ticket_count': d_count,
+            'boxes_count': boxes_count,
+            'operations_summary': ops_summary,
+            'operations_list': ops_list,
+            'compact_stickers': compact_stickers,
+            'ticket_ids': ticket_ids,
             'advance_amount': float(d_advance),
             'advance_formatted': f"{int(d_advance):,} UZS".replace(",", " ") if d_advance > 0 else "—",
             'is_closed': is_closed,
@@ -865,6 +893,7 @@ def superadmin_worker_daily_breakdown(request, worker_id):
 
     return JsonResponse({
         'worker_id': worker.worker_id,
+        'worker_pk': worker.id,
         'full_name': worker.full_name,
         'uid': worker.user.uid if worker.user else "—",
         'year': year,
@@ -1850,6 +1879,21 @@ def superadmin_worker_history(request, worker_id: int):
         total_period_units += d_units
         total_period_piece_rate += d_earned
 
+        # Operatsiyalar xulosasi
+        op_counts = {}
+        for t in d_tickets:
+            op_name = "Noma'lum"
+            if t.article_operation and t.article_operation.operation:
+                op_name = t.article_operation.operation.name
+            op_counts[op_name] = op_counts.get(op_name, 0) + (t.quantity or 0)
+        sorted_ops = sorted(op_counts.items(), key=lambda x: x[1], reverse=True)
+        ops_summary = ", ".join(f"{name}: {qty} ta" for name, qty in sorted_ops)
+        ops_list = [{'name': name, 'quantity': qty} for name, qty in sorted_ops]
+
+        boxes_count = len(set(t.box_id for t in d_tickets if t.box_id))
+        compact_stickers = compact_ticket_ids(d_tickets) if d_tickets else "—"
+        ticket_ids_list = [t.stiker_id for t in d_tickets]
+
         tickets_list = []
         for t in d_tickets:
             tickets_list.append({
@@ -1876,6 +1920,12 @@ def superadmin_worker_history(request, worker_id: int):
             'day_name': UZ_DAYS.get(d.weekday(), ''),
             'units': d_units,
             'ticket_count': len(d_tickets),
+            'boxes_count': boxes_count,
+            'operations_summary': ops_summary,
+            'operations_list': ops_list,
+            'compact_stickers': compact_stickers,
+            'ticket_ids_list': ticket_ids_list,
+            'ticket_ids_str': ", ".join(ticket_ids_list),
             'norm_display': ", ".join(norms_list) if norms_list else "1 000 dona",
             'percentage': float(total_day_pct),
             'percentage_display': f"{total_day_pct:.1f}%",
@@ -1932,6 +1982,21 @@ def api_worker_tickets_by_date(request, worker_id: int):
         'scanned_by'
     ).order_by('scanned_at')
 
+    # Operatsiyalar xulosasi
+    op_counts = {}
+    for t in tickets:
+        op_name = "Noma'lum"
+        if t.article_operation and t.article_operation.operation:
+            op_name = t.article_operation.operation.name
+        op_counts[op_name] = op_counts.get(op_name, 0) + (t.quantity or 0)
+    sorted_ops = sorted(op_counts.items(), key=lambda x: x[1], reverse=True)
+    ops_summary = ", ".join(f"{name}: {qty} ta" for name, qty in sorted_ops)
+    ops_list = [{'name': name, 'quantity': qty} for name, qty in sorted_ops]
+
+    boxes_count = len(set(t.box_id for t in tickets if t.box_id))
+    compact_stickers = compact_ticket_ids(tickets) if tickets else "—"
+    ticket_ids = [t.stiker_id for t in tickets]
+
     items = []
     for t in tickets:
         items.append({
@@ -1959,6 +2024,11 @@ def api_worker_tickets_by_date(request, worker_id: int):
         'total_units': sum(t.quantity for t in tickets),
         'total_amount': float(sum(t.total_amount for t in tickets)),
         'count': len(items),
+        'boxes_count': boxes_count,
+        'compact_stickers': compact_stickers,
+        'ticket_ids': ticket_ids,
+        'operations_summary': ops_summary,
+        'operations_list': ops_list,
         'tickets': items
     })
 

@@ -184,11 +184,12 @@
                         <th class="py-3 px-4">Sana va Kun</th>
                         <th class="py-3 px-3 text-center">Tikilgan Dona</th>
                         <th class="py-3 px-4">Kunlik Model Normasi</th>
-                        <th class="py-3 px-4 text-center min-w-[160px]">Normadagi Foiz (%)</th>
+                        <th class="py-3 px-4 text-center min-w-[150px]">Normadagi Foiz (%)</th>
+                        <th class="py-3 px-4">Tikilgan Ishlar (Operatsiyalar)</th>
                         <th class="py-3 px-4 text-right">Dona-bay Haqi</th>
                         <th class="py-3 px-4 text-center">Bonus (>100%)</th>
                         <th class="py-3 px-4 text-right">Jami Kunlik</th>
-                        <th class="py-3 px-4 text-center">Operatsiyalar</th>
+                        <th class="py-3 px-4 text-center">Stikerlar</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800 text-slate-200">
@@ -238,6 +239,27 @@
                             </div>
                         </td>
 
+                        <!-- Tikilgan Ishlar (Operatsiyalar) -->
+                        <td class="py-3 px-4 text-xs">
+                            {% if day.operations_list %}
+                            <div class="flex flex-wrap gap-1 mb-1">
+                                {% for op in day.operations_list %}
+                                <span class="inline-flex items-center gap-1 bg-slate-950 border border-slate-800 text-slate-200 px-2 py-0.5 rounded-lg text-[11px] font-medium shadow-sm">
+                                    <span class="text-slate-400">{{ op.name }}:</span>
+                                    <span class="text-indigo-400 font-bold font-mono">{{ op.quantity }} ta</span>
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% if day.boxes_count > 0 %}
+                            <span class="text-[11px] text-teal-400 font-mono block">
+                                <i class="fa-solid fa-boxes-stacked mr-1"></i>{{ day.boxes_count }} ta quti
+                            </span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+
                         <!-- Dona-bay Haqi -->
                         <td class="py-3 px-4 text-right font-black text-slate-200 digital-font text-base">
                             {{ day.piece_rate_formatted }}
@@ -260,19 +282,25 @@
                             {{ day.total_income_formatted }}
                         </td>
 
-                        <!-- Operatsiyalar Tugmasi -->
+                        <!-- Stikerlar Tugmasi & ID lari -->
                         <td class="py-3 px-4 text-center">
                             <button type="button"
                                 onclick="openDayTicketsModal('{{ day.date_iso }}', '{{ day.date_str }} ({{ day.day_name }})', {{ day.units }}, '{{ day.total_income_formatted }}')"
-                                class="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 font-bold text-xs rounded-xl border border-blue-500/30 transition inline-flex items-center gap-1.5 shadow-sm">
-                                <i class="fa-solid fa-list-check text-xs"></i>
-                                <span>Operatsiyalar ({{ day.ticket_count }})</span>
+                                class="px-3 py-1.5 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 hover:from-teal-500/30 hover:to-cyan-500/30 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/30 transition inline-flex items-center gap-1.5 shadow-sm"
+                                title="O'sha kundagi barcha stikerlar ID larini ko'rish va nusxalash">
+                                <i class="fa-solid fa-qrcode text-xs text-cyan-400"></i>
+                                <span>Stikerlar ({{ day.ticket_count }})</span>
                             </button>
+                            {% if day.compact_stickers and day.compact_stickers != '—' %}
+                            <span class="block text-[11px] text-slate-400 font-mono mt-1" title="Stiker ID diapazoni">
+                                {{ day.compact_stickers }}
+                            </span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="py-12 text-center text-slate-500 text-xs">
+                        <td colspan="10" class="py-12 text-center text-slate-500 text-xs">
                             <i class="fa-solid fa-calendar-xmark text-3xl text-slate-600 mb-2 block"></i>
                             Tanlangan davrda skanerlangan operatsiyalar mavjud emas.
                         </td>
@@ -285,7 +313,7 @@
 
 </div>
 
-<!-- MODAL: KUNLIK OPERATSIYALAR TAFSILOTI -->
+<!-- MODAL: KUNLIK OPERATSIYALAR TAFSILOTI & STIKERLAR -->
 <div id="day-tickets-modal"
     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div
@@ -295,11 +323,11 @@
         <div class="flex items-start justify-between pb-4 border-b border-slate-800 mb-4 flex-shrink-0">
             <div>
                 <h3 class="text-lg font-black text-white flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-blue-500"></i>
-                    <span>Skanerlangan Operatsiyalar Ro'yxati</span>
+                    <i class="fa-solid fa-qrcode text-cyan-400"></i>
+                    <span>Skanerlangan Stikerlar va Operatsiyalar</span>
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
-                    Xodim: <strong class="text-white">{{ worker.full_name }}</strong> | Sana: <span id="modal-day-title"
+                    Xodim: <strong class="text-white">{{ worker.full_name }}</strong> ({{ worker.worker_id }}) | Sana: <span id="modal-day-title"
                         class="font-bold text-amber-400"></span>
                 </p>
             </div>
@@ -311,18 +339,51 @@
 
         <!-- Summary row -->
         <div
-            class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-2xl p-3.5 mb-4 text-xs flex-shrink-0">
+            class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-950 border border-slate-800 rounded-2xl p-3 mb-3 text-xs flex-shrink-0">
             <div>
-                <span class="text-slate-400">Jami biletlar:</span>
-                <span id="modal-tickets-count" class="font-bold text-white digital-font ml-1">0 ta</span>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Stikerlar soni</span>
+                <span id="modal-tickets-count" class="font-bold text-white digital-font text-sm">0 ta</span>
             </div>
             <div>
-                <span class="text-slate-400">Tikilgan dona:</span>
-                <span id="modal-day-units" class="font-bold text-indigo-400 digital-font ml-1">0 dona</span>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Qutilar soni</span>
+                <span id="modal-boxes-count" class="font-bold text-teal-400 digital-font text-sm">0 ta</span>
             </div>
             <div>
-                <span class="text-slate-400">Kunlik jami summa:</span>
-                <span id="modal-day-total" class="font-black text-emerald-400 digital-font ml-1">0 UZS</span>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Tikilgan dona</span>
+                <span id="modal-day-units" class="font-bold text-indigo-400 digital-font text-sm">0 dona</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Kunlik ish haqi</span>
+                <span id="modal-day-total" class="font-black text-emerald-400 digital-font text-sm">0 UZS</span>
+            </div>
+        </div>
+
+        <!-- Sticker IDs panel with Copy button -->
+        <div class="bg-slate-950 border border-cyan-800/40 rounded-2xl p-3.5 mb-3 flex-shrink-0 space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-tags text-cyan-400"></i> Stiker ID lari:
+                    </span>
+                    <span id="modal-compact-stickers" class="text-xs font-mono font-bold text-amber-300">
+                        —
+                    </span>
+                </div>
+                <button type="button" id="btn-copy-sticker-ids" onclick="copyStickerIds()"
+                    class="px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                    title="Barcha stiker ID larini nusxalash">
+                    <i class="fa-solid fa-copy text-cyan-400"></i>
+                    <span id="copy-btn-text">Barcha ID larni nusxalash</span>
+                </button>
+            </div>
+            <!-- Sticker Badges container -->
+            <div id="modal-sticker-badges" class="flex flex-wrap gap-1 max-h-20 overflow-y-auto pt-1">
+                <!-- Badges rendered via JS -->
+            </div>
+            <!-- Operations summary row -->
+            <div class="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80 flex items-center gap-1 flex-wrap">
+                <span class="text-slate-500 font-bold">Operatsiyalar:</span>
+                <span id="modal-operations-summary" class="text-slate-300 font-medium">—</span>
             </div>
         </div>
 
@@ -361,6 +422,50 @@
 </div>
 
 <script>
+    let currentModalTicketIds = [];
+
+    function copyStickerIds() {
+        if (!currentModalTicketIds || currentModalTicketIds.length === 0) return;
+        const textToCopy = currentModalTicketIds.join(', ');
+        const btnText = document.getElementById('copy-btn-text');
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                btnText.innerText = "✓ Nusxalandi!";
+                setTimeout(() => { btnText.innerText = "Barcha ID larni nusxalash"; }, 2000);
+            }).catch(() => {
+                fallbackCopyText(textToCopy, btnText);
+            });
+        } else {
+            fallbackCopyText(textToCopy, btnText);
+        }
+    }
+
+    function fallbackCopyText(text, btnText) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            if (btnText) {
+                btnText.innerText = "✓ Nusxalandi!";
+                setTimeout(() => { btnText.innerText = "Barcha ID larni nusxalash"; }, 2000);
+            }
+        } catch (e) {
+            console.error('Nusxalashda xatolik', e);
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function copySingleStickerId(id) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(id);
+        }
+    }
+
     function openDayTicketsModal(dateIso, dateFormatted, units, totalStr) {
         document.getElementById('modal-day-title').innerText = dateFormatted;
         document.getElementById('modal-day-units').innerText = `${units} dona`;
@@ -375,6 +480,26 @@
             .then(data => {
                 if (data.success && data.tickets.length > 0) {
                     document.getElementById('modal-tickets-count').innerText = `${data.count} ta`;
+                    document.getElementById('modal-boxes-count').innerText = `${data.boxes_count || 0} ta quti`;
+                    document.getElementById('modal-compact-stickers').innerText = data.compact_stickers || '—';
+                    document.getElementById('modal-operations-summary').innerText = data.operations_summary || '—';
+
+                    currentModalTicketIds = data.ticket_ids || [];
+
+                    // Render individual badges
+                    const badgesContainer = document.getElementById('modal-sticker-badges');
+                    if (currentModalTicketIds.length > 0) {
+                        badgesContainer.innerHTML = currentModalTicketIds.map(id => `
+                            <span onclick="copySingleStickerId('${id}')" 
+                                title="Bosib nusxalash: ${id}"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 text-slate-300 font-mono text-[10px] cursor-pointer transition select-all">
+                                ${id}
+                            </span>
+                        `).join('');
+                    } else {
+                        badgesContainer.innerHTML = `<span class="text-slate-500 text-[11px]">—</span>`;
+                    }
+
                     let html = '';
                     data.tickets.forEach((t, idx) => {
                         html += `
@@ -393,6 +518,12 @@
                     });
                     tbody.innerHTML = html;
                 } else {
+                    document.getElementById('modal-tickets-count').innerText = `0 ta`;
+                    document.getElementById('modal-boxes-count').innerText = `0 ta`;
+                    document.getElementById('modal-compact-stickers').innerText = '—';
+                    document.getElementById('modal-operations-summary').innerText = '—';
+                    document.getElementById('modal-sticker-badges').innerHTML = '';
+                    currentModalTicketIds = [];
                     tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-500">Ushbu kunda biletlar topilmadi.</td></tr>`;
                 }
             })

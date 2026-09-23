@@ -1054,6 +1054,133 @@ class SuperAdminPayrollBulkPayTest(TestCase):
         self.assertEqual(p2.amount, Decimal("30000.00"))
 
 
+class WorkerHistoryAndPayrollStickerFeaturesTest(TestCase):
+    def setUp(self):
+        self.superadmin = User.objects.create_superuser(
+            username='admin_test_stickers',
+            password='password123',
+            email='admin_stickers@test.com',
+            role=User.Role.SUPER_ADMIN
+        )
+        self.client.login(username='admin_test_stickers', password='password123')
+
+        self.worker = Worker.objects.create(
+            worker_id="W-STK-01",
+            first_name="Zilola",
+            last_name="Karimova",
+            is_active=True
+        )
+
+        self.model = ProductModel.objects.create(code="PM-STK-T", name="Futbolka Test", daily_norm=1000)
+        self.article = Article.objects.create(code="ART-STK-01", name="Futbolka Oq", model=self.model)
+
+        self.op_meto = Operation.objects.create(code="OP-METO", name="Meto")
+        self.op_dazmol = Operation.objects.create(code="OP-DAZMOL", name="Dazmol")
+
+        self.ao_meto = ArticleOperation.objects.create(
+            article=self.article, operation=self.op_meto, price_per_unit=Decimal("200"), difficulty=1.0
+        )
+        self.ao_dazmol = ArticleOperation.objects.create(
+            article=self.article, operation=self.op_dazmol, price_per_unit=Decimal("150"), difficulty=1.0
+        )
+
+        self.order = Order.objects.create(order_number="ORD-STK-001", article=self.article, total_quantity=5000)
+        self.box1 = Box.objects.create(order=self.order, article=self.article, box_number=1, quantity=400)
+        self.box2 = Box.objects.create(order=self.order, article=self.article, box_number=2, quantity=100)
+
+        self.today = timezone.localdate()
+        now = timezone.now()
+
+        # Ticket 1: Meto 400 ta in box 1
+        self.t1 = Ticket.objects.create(
+            box=self.box1,
+            article_operation=self.ao_meto,
+            quantity=400,
+            price_per_unit=Decimal("200"),
+            total_amount=Decimal("80000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+        # Ticket 2: Dazmol 100 ta in box 2
+        self.t2 = Ticket.objects.create(
+            box=self.box2,
+            article_operation=self.ao_dazmol,
+            quantity=100,
+            price_per_unit=Decimal("150"),
+            total_amount=Decimal("15000"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=now
+        )
+
+    def test_superadmin_worker_history_operations_and_stickers(self):
+        url = reverse('superadmin_worker_history', kwargs={'worker_id': self.worker.id}) + '?range=today'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        daily = res.context['daily_history']
+        self.assertEqual(len(daily), 1)
+        day0 = daily[0]
+
+        # Check operations summary & list
+        self.assertIn("Meto: 400 ta", day0['operations_summary'])
+        self.assertIn("Dazmol: 100 ta", day0['operations_summary'])
+        self.assertEqual(day0['boxes_count'], 2)
+        self.assertEqual(day0['ticket_count'], 2)
+        self.assertIsNotNone(day0['compact_stickers'])
+        self.assertEqual(len(day0['ticket_ids_list']), 2)
+
+        # Check HTML renders operations & sticker button
+        self.assertContains(res, "Meto:")
+        self.assertContains(res, "400 ta")
+        self.assertContains(res, "Dazmol:")
+        self.assertContains(res, "100 ta")
+        self.assertContains(res, "2 ta quti")
+        self.assertContains(res, "Stikerlar (2)")
+
+    def test_api_worker_tickets_by_date(self):
+        url = reverse('api_worker_tickets_by_date', kwargs={'worker_id': self.worker.id}) + f"?date={self.today.strftime('%Y-%m-%d')}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+
+        self.assertTrue(data['success'])
+        self.assertEqual(data['count'], 2)
+        self.assertEqual(data['boxes_count'], 2)
+        self.assertIn("Meto: 400 ta", data['operations_summary'])
+        self.assertEqual(len(data['ticket_ids']), 2)
+        self.assertIn(self.t1.stiker_id, data['ticket_ids'])
+
+    def test_superadmin_worker_daily_breakdown_json(self):
+        url = reverse('superadmin_worker_daily_breakdown', kwargs={'worker_id': self.worker.id}) + f"?year={self.today.year}&month={self.today.month}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+
+        self.assertEqual(data['worker_pk'], self.worker.id)
+        self.assertEqual(len(data['rows']), 1)
+        r0 = data['rows'][0]
+        self.assertEqual(r0['ticket_count'], 2)
+        self.assertEqual(r0['boxes_count'], 2)
+        self.assertIn("Meto: 400 ta", r0['operations_summary'])
+        self.assertIn("Dazmol: 100 ta", r0['operations_summary'])
+        self.assertEqual(len(r0['ticket_ids']), 2)
+
+    def test_superadmin_payroll_boxes_and_tickets(self):
+        url = reverse('superadmin_payroll') + f"?year={self.today.year}&month={self.today.month}&q={self.worker.worker_id}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        payroll_data = res.context['payroll_data']
+        self.assertEqual(len(payroll_data), 1)
+        w_data = payroll_data[0]
+        self.assertEqual(w_data['total_tickets'], 2)
+        self.assertEqual(w_data['total_boxes'], 2)
+        self.assertContains(res, "2 stiker • 2 quti")
+
+
+
 
 
 
