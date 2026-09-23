@@ -1,0 +1,180 @@
+<!-- 1. Sizes Breakdown Table -->
+<div>
+    <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+        <i class="fa-solid fa-ruler-combined text-rose-400"></i> Razmerlar Bo'yicha Reja va Kesim Natijasi:
+    </h4>
+
+    <div class="overflow-x-auto rounded-2xl border border-slate-800">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                    <th class="py-3 px-4">Razmer</th>
+                    <th class="py-3 px-4 text-center">Menejer Rejasi</th>
+                    <th class="py-3 px-4 text-center">Jami Kesilgan</th>
+                    <th class="py-3 px-4 text-center">Meto Tasdiqlagan</th>
+                    <th class="py-3 px-4 text-center">Kesilish Foizi</th>
+                    <th class="py-3 px-4 text-center">Farq (Qoldiq/Ortiqcha)</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 bg-slate-900/60">
+                {% for s in sizes_data %}
+                <tr class="hover:bg-slate-800/40 transition">
+                    <td class="py-3 px-4 font-black text-white text-sm">
+                        <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 font-mono text-cyan-400">
+                            {{ s.size.size_name }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-bold text-amber-400 digital-font text-sm">
+                        {{ s.planned }} dona
+                    </td>
+                    <td class="py-3 px-4 text-center font-black text-emerald-400 digital-font text-sm">
+                        {{ s.cut }} dona
+                    </td>
+                    <td class="py-3 px-4 text-center font-bold text-cyan-300 digital-font text-sm">
+                        {% if s.total_real > 0 %}{{ s.total_real }} dona{% else %}<span class="text-slate-600">—</span>{% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="w-28 mx-auto">
+                            <span class="font-black text-xs {% if s.percentage >= 100 %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                {{ s.percentage }}%
+                            </span>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden mt-0.5">
+                                <div class="h-full rounded-full {% if s.percentage >= 100 %}bg-emerald-500{% else %}bg-rose-500{% endif %}"
+                                    style="width: {% if s.percentage > 100 %}100{% else %}{{ s.percentage|floatformat:0 }}{% endif %}%;">
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono">
+                        {% if s.remaining > 0 %}
+                        <span class="text-rose-400 font-bold">-{{ s.remaining }} dona</span>
+                        {% elif s.excess > 0 %}
+                        <span class="text-emerald-400 font-bold">+{{ s.excess }} dona</span>
+                        {% else %}
+                        <span class="text-cyan-400 font-bold">✓ 100%</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-6 text-center text-slate-500">Ushbu artikul uchun razmerlar kiritilmagan.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 2. Cutting Batches (Kesim 1, Kesim 2...) -->
+<div>
+    <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+        <i class="fa-solid fa-boxes-stacked text-purple-400"></i> Kesim Partiyalari Tarixi va Meto Holati:
+    </h4>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for b in batches_data %}
+        <div class="batch-card bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner transition-all duration-300"
+            data-batch-name="{{ b.name|lower }}" data-partiya="{{ b.partiya_number|default:''|lower }}"
+            data-pastal="{{ b.pastal_code|default:''|lower }}"
+            data-cutter="{{ b.cutter_name|default:''|lower }}"
+            data-fabric-batch="{{ b.fabric_batch_code|default:''|lower }}">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-black text-white text-base flex items-center gap-2">
+                            <i class="fa-solid fa-scissors text-rose-500"></i> {{ b.name }}
+                        </span>
+                        {% if b.pastal_code %}
+                        <span class="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-mono font-bold">
+                            Pastal: {{ b.pastal_code }}
+                        </span>
+                        {% endif %}
+                        {% if b.partiya_number %}
+                        <span class="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-mono font-bold">
+                            Partiya: {{ b.partiya_number }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <span class="text-[11px] text-slate-400 mt-1 block">
+                        {{ b.created_at|date:"d.m.Y H:i" }}
+                        {% if b.cutter_name %}• Bichuvchi: <strong class="text-white">{{ b.cutter_name }}</strong>{% endif %}
+                        {% if b.fabric_weight_kg %}• Mato: <strong class="text-amber-400">{{ b.fabric_weight_kg }} kg</strong>{% endif %}
+                        {% if b.fabric_batch_code %} ({{ b.fabric_batch_code }}){% endif %}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-base font-black text-emerald-400 digital-font px-3 py-1 bg-slate-900 rounded-xl border border-slate-800">
+                        {{ b.total_quantity }} dona
+                    </span>
+                    {% if b.can_edit %}
+                    <button type="button"
+                        onclick="openEditBatchModal('{{ b.batch.id }}', '{{ b.name|escapejs }}', '{{ b.cutter_name|default:''|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ b.partiya_number|default:''|escapejs }}', '{{ b.fabric_weight_kg|default:'' }}', '{{ b.fabric_batch_code|default:''|escapejs }}', '{{ b.notes|default:''|escapejs }}', {{ b.items_json|safe }}, '{{ item.article.code|escapejs }}', '{{ b.total_quantity }}')"
+                        class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                        title="Sonlarni tahrirlash">
+                        <i class="fa-solid fa-pen-to-square"></i> Tahrirlash
+                    </button>
+                    {% else %}
+                    <span class="text-xs text-slate-500 flex items-center gap-1" title="Meto qabul qilgan, son qulflangan">
+                        <i class="fa-solid fa-lock text-slate-600"></i> Qulflangan
+                    </span>
+                    {% endif %}
+
+                    {% if b.can_delete %}
+                    <button type="button"
+                        onclick="openDeleteBatchModal('{{ b.batch.id }}', '{{ b.name|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ item.article.code|escapejs }}', '{{ b.total_quantity }}')"
+                        class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                        title="Partiyani o'chirish">
+                        <i class="fa-solid fa-trash-can"></i> O'chirish
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Razmerlar ro'yxati va Meto holati -->
+            <div class="space-y-2">
+                {% for b_it in b.items %}
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between gap-3">
+                    <div>
+                        <span class="font-black text-white font-mono text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-700 text-cyan-400">
+                            {{ b_it.size_name }}
+                        </span>
+                        <span class="text-xs text-slate-300 ml-2 font-bold">{{ b_it.quantity }} dona kesildi</span>
+
+                        {% if b_it.status == 'METO_CONFIRMED' or b_it.status == 'STICKERS_PRINTED' %}
+                        <div class="text-[11px] text-cyan-300 mt-1 flex items-center gap-1.5 font-bold">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                            <span>Meto tasdiqladi: <strong>{{ b_it.real_quantity }} dona</strong></span>
+                            {% if b_it.meto_number_start %}
+                            <span class="text-slate-400 text-[10px] font-mono">(Meto: #{{ b_it.meto_number_start }}-#{{ b_it.meto_number_end }})</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        {% if b_it.status == 'CUT_ENTERED' %}
+                        <span class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left animate-spin text-[10px]"></i> Meto kutilmoqda
+                        </span>
+                        {% elif b_it.status == 'METO_CONFIRMED' %}
+                        <span class="px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-barcode text-[11px]"></i> Stikerga tayyor
+                        </span>
+                        {% elif b_it.status == 'STICKERS_PRINTED' %}
+                        <span class="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-shirt text-[11px]"></i> Tikuvga berilgan
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-2 py-8 text-center text-slate-500 text-xs bg-slate-950/50 rounded-2xl border border-slate-800/80">
+            <i class="fa-solid fa-scissors text-2xl text-slate-600 mb-2 block"></i>
+            Hozircha kesim partiyalari kiritilmagan. Yuqoridagi "+ Yangi Partiya" tugmasini bosing.
+        </div>
+        {% endfor %}
+    </div>
+</div>
