@@ -1461,6 +1461,82 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertIn("?role=CONTROL", res.url)
         self.assertEqual(User.objects.filter(username="patok15", role=User.Role.CONTROL).count(), 1)
 
+    def test_unique_boxes_and_piece_aggregations_metric(self):
+        """
+        Bitta quti bir necha marta (masalan, ta'mirga borib qaytganda) tekshirilsa ham,
+        bugungi hisoblagichda unikal qutilar soni 1 ta deb ko'rsatilishi kerak.
+        Shuningdek, 1-sort, 2-sort va brak donalari to'g'ri agregatsiya qilinishi kerak.
+        """
+        self.client.force_login(self.controller)
+
+        # 1-quti: Birlamchi tekshiruv (50 dona: 37 ta 1-sort, 10 ta 2-sort, 3 ta ta'mir)
+        payload1 = {
+            'box_id': self.box.id,
+            'mode': 'INITIAL',
+            'total_qty': 50,
+            'second_sort_qty': 10,
+            'repair_qty': 3
+        }
+        res1 = self.client.post(reverse('control:api_submit'), json.dumps(payload1), content_type='application/json')
+        self.assertEqual(res1.status_code, 200)
+
+        # 1-quti: Ta'mirdan qaytish (3 ta ta'mirdan 2 tasi tuzaldi -> 1-sort, 1 tasi brak)
+        payload2 = {
+            'box_id': self.box.id,
+            'mode': 'REPAIR_RETURN',
+            'defect_qty': 1,
+            're_repair_qty': 0
+        }
+        res2 = self.client.post(reverse('control:api_submit'), json.dumps(payload2), content_type='application/json')
+        self.assertEqual(res2.status_code, 200)
+
+        # Loglar soni 2 ta bo'lishi kerak, lekin UNIKAL qutilar soni aniq 1 ta bo'lishi shart!
+        res_recent = self.client.get(reverse('control:api_recent'))
+        self.assertEqual(res_recent.status_code, 200)
+        data = res_recent.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(len(data['logs']), 2)  # 2 ta tekshiruv amali bo'lgan
+        self.assertEqual(data['today_boxes_count'], 1)  # FAQAT 1 TA UNIKAL QUTI!
+        self.assertEqual(data['today_first_sort'], 39)  # 37 + 2 = 39 dona
+        self.assertEqual(data['today_second_sort'], 10)  # 10 dona
+        self.assertEqual(data['today_defects'], 1)  # 1 dona brak
+
+        # Sahifa HTML'ida ham bugungi unikal qutilar va donalar soni to'g'ri chiqishini tekshirish
+        res_page = self.client.get(reverse('control:home'))
+        self.assertEqual(res_page.status_code, 200)
+        self.assertEqual(res_page.context['today_boxes_count'], 1)
+        self.assertEqual(res_page.context['today_first_sort'], 39)
+        self.assertEqual(res_page.context['today_second_sort'], 10)
+        self.assertEqual(res_page.context['today_defects'], 1)
+
+        # Endi 2-qutini kiritamiz (30 dona, barchasi 1-sort)
+        box2 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            box_number=2,
+            quantity=30,
+            razmer="L",
+            pastal_number="P-102"
+        )
+        payload3 = {
+            'box_id': box2.id,
+            'mode': 'INITIAL',
+            'total_qty': 30,
+            'second_sort_qty': 0,
+            'repair_qty': 0
+        }
+        res3 = self.client.post(reverse('control:api_submit'), json.dumps(payload3), content_type='application/json')
+        self.assertEqual(res3.status_code, 200)
+
+        # Endi unikal qutilar soni 2 ta, 1-sort esa 39 + 30 = 69 bo'lishi kerak
+        res_recent2 = self.client.get(reverse('control:api_recent'))
+        data2 = res_recent2.json()
+        self.assertEqual(data2['today_boxes_count'], 2)  # 2 ta unikal quti!
+        self.assertEqual(data2['today_first_sort'], 69)  # 39 + 30 = 69
+        self.assertEqual(data2['today_second_sort'], 10)
+        self.assertEqual(data2['today_defects'], 1)
+
+
 
 
 

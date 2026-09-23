@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.db.models import Sum
 from accounts.models import User
 from production.models import Box, BoxQualityInspectionLog
 
@@ -27,16 +28,32 @@ def control_home_view(request):
         return redirect('root_login')
 
     today = timezone.localdate()
-    today_inspections = BoxQualityInspectionLog.objects.filter(
-        created_at__date=today
-    ).select_related('box', 'box__order', 'box__article', 'inspector').order_by('-created_at')[:15]
+    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
 
-    today_count = BoxQualityInspectionLog.objects.filter(created_at__date=today).count()
+    today_inspections = today_logs_qs.select_related(
+        'box', 'box__order', 'box__article', 'inspector'
+    ).order_by('-created_at')[:25]
+
+    # Faqat unikal qutilar soni (bir quti 2-3 marta ta'mirga kirsa ham 1 ta quti hisoblanadi!)
+    today_boxes_count = today_logs_qs.values('box_id').distinct().count()
+
+    # Bugun 1-sort bo'lgan barcha donalar
+    today_first_sort = today_logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
+
+    # Bugun 2-sort bo'lgan barcha donalar
+    today_second_sort = today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
+
+    # Bugun brak (chiqindi) bo'lgan barcha donalar
+    today_defects = today_logs_qs.aggregate(s=Sum('defect_qty'))['s'] or 0
 
     return render(request, 'production/control_home.html', {
         'inspector': request.user,
         'today_inspections': today_inspections,
-        'today_count': today_count,
+        'today_count': today_boxes_count,
+        'today_boxes_count': today_boxes_count,
+        'today_first_sort': today_first_sort,
+        'today_second_sort': today_second_sort,
+        'today_defects': today_defects,
         'today_date': today,
     })
 
@@ -288,15 +305,29 @@ def control_submit_inspection_api(request):
 @require_http_methods(["GET"])
 def control_recent_inspections_api(request):
     """
-    Bugungi oxirgi tekshirilgan qutilar jurnali API.
+    Bugungi oxirgi tekshirilgan qutilar jurnali va umumiy statistika API.
     """
     if not _is_control_authorized(request.user):
         return JsonResponse({'status': 'FORBIDDEN'}, status=403)
 
     today = timezone.localdate()
-    logs = BoxQualityInspectionLog.objects.filter(
-        created_at__date=today
-    ).select_related('box', 'box__order', 'box__article', 'inspector').order_by('-created_at')[:20]
+    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+
+    logs = today_logs_qs.select_related(
+        'box', 'box__order', 'box__article', 'inspector'
+    ).order_by('-created_at')[:25]
+
+    # Faqat unikal qutilar soni (bir quti 2-3 marta ta'mirga kirsa ham 1 ta quti hisoblanadi!)
+    today_boxes_count = today_logs_qs.values('box_id').distinct().count()
+
+    # Bugun 1-sort bo'lgan barcha donalar
+    today_first_sort = today_logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
+
+    # Bugun 2-sort bo'lgan barcha donalar
+    today_second_sort = today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
+
+    # Bugun brak (chiqindi) bo'lgan barcha donalar
+    today_defects = today_logs_qs.aggregate(s=Sum('defect_qty'))['s'] or 0
 
     data = []
     for l in logs:
@@ -318,7 +349,11 @@ def control_recent_inspections_api(request):
 
     return JsonResponse({
         'status': 'OK',
-        'count': len(data),
+        'count': today_boxes_count,
+        'today_boxes_count': today_boxes_count,
+        'today_first_sort': today_first_sort,
+        'today_second_sort': today_second_sort,
+        'today_defects': today_defects,
         'logs': data
     })
 

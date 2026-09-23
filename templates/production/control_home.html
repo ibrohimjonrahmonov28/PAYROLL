@@ -72,15 +72,29 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2.5">
-                <!-- Bugungi hisoblagich -->
-                <div
-                    class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <div class="flex items-center gap-2 sm:gap-2.5">
+                <!-- Bugungi unikal qutilar hisoblagichi -->
+                <div class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
                     <i class="fa-solid fa-boxes-stacked text-xs text-amber-400"></i>
-                    <span class="text-xs text-slate-400 font-bold">Bugun:</span>
-                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{ today_count
-                        }}</strong>
-                    <span class="text-[10px] text-slate-500">ta quti</span>
+                    <span class="text-xs text-slate-400 font-bold">Qutilar:</span>
+                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{ today_boxes_count }}</strong>
+                    <span class="text-[10px] text-slate-500">ta</span>
+                </div>
+
+                <!-- Bugungi 1-sort hisoblagichi -->
+                <div class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                    <span class="text-xs text-slate-400 font-bold">1-Sort:</span>
+                    <strong id="header-today-first-sort" class="text-sm font-black text-emerald-400 digital-font">{{ today_first_sort }}</strong>
+                    <span class="text-[10px] text-slate-500">dona</span>
+                </div>
+
+                <!-- Bugungi brak hisoblagichi -->
+                <div class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+                    <span class="text-xs text-slate-400 font-bold">Brak:</span>
+                    <strong id="header-today-defects" class="text-sm font-black text-rose-400 digital-font">{{ today_defects }}</strong>
+                    <span class="text-[10px] text-slate-500">dona</span>
                 </div>
 
                 <!-- Foydalanuvchi info -->
@@ -109,6 +123,77 @@
 
     <!-- 2. MAIN CONTAINER -->
     <main class="max-w-7xl mx-auto w-full p-3 sm:p-5 flex-1 flex flex-col gap-4">
+
+        <!-- BUGUNGI STATISTIKA PANELI (KPI CARDS) -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <!-- 1. Qutilar soni (Unikal) -->
+            <div class="bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tekshirilgan Qutilar</span>
+                    <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm border border-indigo-500/20">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="kpi-today-boxes" class="text-2xl sm:text-3xl font-black text-white digital-font">{{ today_boxes_count }}</span>
+                    <span class="text-xs text-slate-500 font-bold">ta quti</span>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1 truncate" title="Faqat unikal qutilar (ta'mirga qaytsa ham 1 marta hisoblanadi)">
+                    <i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i>Faqat unikal qutilar
+                </p>
+            </div>
+
+            <!-- 2. 1-Sort (Tayyor mahsulot) -->
+            <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">1-Sort (Tayyor)</span>
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm border border-emerald-500/20">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="kpi-today-first-sort" class="text-2xl sm:text-3xl font-black text-emerald-400 digital-font">{{ today_first_sort }}</span>
+                    <span class="text-xs text-slate-500 font-bold">dona</span>
+                </div>
+                <p class="text-[10px] text-emerald-500/80 mt-1 truncate">
+                    <i class="fa-solid fa-box-open mr-1"></i>Upakovkaga o'tgan
+                </p>
+            </div>
+
+            <!-- 3. 2-Sort -->
+            <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">2-Sort</span>
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm border border-amber-500/20">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="kpi-today-second-sort" class="text-2xl sm:text-3xl font-black text-amber-400 digital-font">{{ today_second_sort }}</span>
+                    <span class="text-xs text-slate-500 font-bold">dona</span>
+                </div>
+                <p class="text-[10px] text-amber-500/80 mt-1 truncate">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>2-sortga ajratilgan
+                </p>
+            </div>
+
+            <!-- 4. Brak (Chiqindi) -->
+            <div class="bg-slate-900 border border-slate-800 hover:border-rose-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Brak (Chiqindi)</span>
+                    <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm border border-rose-500/20">
+                        <i class="fa-solid fa-ban"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="kpi-today-defects" class="text-2xl sm:text-3xl font-black text-rose-400 digital-font">{{ today_defects }}</span>
+                    <span class="text-xs text-slate-500 font-bold">dona</span>
+                </div>
+                <p class="text-[10px] text-rose-500/80 mt-1 truncate">
+                    <i class="fa-solid fa-circle-xmark mr-1"></i>Tuzalmas nuqson
+                </p>
+            </div>
+        </section>
 
         <!-- SKANER / QIDIRUV MAYDONI -->
         <section class="bg-slate-900 border-2 border-indigo-500/40 rounded-3xl p-3 sm:p-4 shadow-2xl">
@@ -220,19 +305,27 @@
                         <!-- 1-BOSQICH (1-QADAM): QUTIDAGI REAL (ANIQ) SONNI TASDIQLASH -->
                         <div id="initial-step-1" class="space-y-4">
                             <!-- Sarlavha / Status -->
-                            <div class="flex items-center justify-between bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl">
+                            <div
+                                class="flex items-center justify-between bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl">
                                 <div class="flex items-center gap-2.5">
-                                    <span class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-xs border border-amber-500/30">1</span>
-                                    <span class="text-xs font-black uppercase text-amber-300 tracking-wider">1-QADAM: QUTIDAGI REAL SONNI SANANG VA TASDIQLANG</span>
+                                    <span
+                                        class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-xs border border-amber-500/30">1</span>
+                                    <span class="text-xs font-black uppercase text-amber-300 tracking-wider">1-QADAM:
+                                        QUTIDAGI REAL SONNI SANANG VA TASDIQLANG</span>
                                 </div>
-                                <span class="text-xs text-slate-400 font-medium">Rejadagi son: <strong id="step1-plan-qty" class="text-white font-mono">50</strong> dona</span>
+                                <span class="text-xs text-slate-400 font-medium">Rejadagi son: <strong
+                                        id="step1-plan-qty" class="text-white font-mono">50</strong> dona</span>
                             </div>
 
                             <!-- Stepper va boshqaruv -->
-                            <div class="bg-slate-950 p-5 sm:p-7 rounded-2xl border border-slate-800 text-center space-y-5 shadow-inner">
+                            <div
+                                class="bg-slate-950 p-5 sm:p-7 rounded-2xl border border-slate-800 text-center space-y-5 shadow-inner">
                                 <div class="space-y-1">
-                                    <span class="text-xs font-black uppercase tracking-wider text-slate-400 block">QUTIDAGI HAQIQIY (ANIQ) DONA SONI:</span>
-                                    <p class="text-xs text-slate-500">Agar haqiqatda qutidagi son farq qilsa, tugmalar orqali to'g'rilang</p>
+                                    <span
+                                        class="text-xs font-black uppercase tracking-wider text-slate-400 block">QUTIDAGI
+                                        HAQIQIY (ANIQ) DONA SONI:</span>
+                                    <p class="text-xs text-slate-500">Agar haqiqatda qutidagi son farq qilsa, tugmalar
+                                        orqali to'g'rilang</p>
                                 </div>
 
                                 <!-- Stepper tugmalari -->
@@ -245,9 +338,11 @@
                                         class="touch-btn w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-500/40 font-black text-2xl shadow">-</button>
 
                                     <div class="relative inline-block">
-                                        <input type="number" id="input-total-qty" min="1" value="50" oninput="handleTotalQtyInput()"
+                                        <input type="number" id="input-total-qty" min="1" value="50"
+                                            oninput="handleTotalQtyInput()"
                                             class="w-32 sm:w-44 text-center bg-slate-900 border-2 border-indigo-500 rounded-2xl py-3 text-4xl sm:text-5xl font-black text-white digital-font focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 shadow-inner">
-                                        <span class="block text-[11px] text-slate-500 font-bold uppercase mt-1">Dona</span>
+                                        <span
+                                            class="block text-[11px] text-slate-500 font-bold uppercase mt-1">Dona</span>
                                     </div>
 
                                     <button type="button" onclick="adjustTotalQty(+1)"
@@ -265,7 +360,10 @@
                                         <span>SONNI TASDIQLASH VA SORTLARGA O'TISH</span>
                                         <i class="fa-solid fa-arrow-right text-xl"></i>
                                     </button>
-                                    <span class="text-[11px] text-slate-500 mt-2 block font-medium">Yoki klaviaturadan <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">ENTER</kbd> tugmasini bosing</span>
+                                    <span class="text-[11px] text-slate-500 mt-2 block font-medium">Yoki klaviaturadan
+                                        <kbd
+                                            class="px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">ENTER</kbd>
+                                        tugmasini bosing</span>
                                 </div>
                             </div>
                         </div>
@@ -273,14 +371,20 @@
                         <!-- 2-BOSQICH (2-QADAM): SORTLAR VA TA'MIRNI KIRITISH (Hozirgi oyna, umumiy son fiksirlangan) -->
                         <div id="initial-step-2" class="hidden space-y-4">
                             <!-- Tasdiqlangan jami son paneli (KAMAYTIRISH / KO'PAYTIRISH TUGMASI YO'Q, FAQAT FIKSIRLANGAN SON) -->
-                            <div class="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                            <div
+                                class="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-slate-800">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 font-black flex items-center justify-center text-xs border border-indigo-500/30">2</div>
+                                    <div
+                                        class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 font-black flex items-center justify-center text-xs border border-indigo-500/30">
+                                        2</div>
                                     <div>
-                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">2-QADAM: SORTLAR VA TA'MIRNI AJRATISH</span>
+                                        <span
+                                            class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">2-QADAM:
+                                            SORTLAR VA TA'MIRNI AJRATISH</span>
                                         <div class="text-sm font-black text-white flex items-center gap-2">
                                             <span>Tasdiqlangan Jami Son:</span>
-                                            <strong id="step2-confirmed-display-qty" class="digital-font text-amber-400 text-2xl">50</strong>
+                                            <strong id="step2-confirmed-display-qty"
+                                                class="digital-font text-amber-400 text-2xl">50</strong>
                                             <span class="text-xs text-slate-400 font-medium">dona</span>
                                         </div>
                                     </div>
@@ -309,7 +413,8 @@
                                         </span>
                                         <span class="text-xs text-emerald-400/80 font-bold ml-1">dona</span>
                                     </div>
-                                    <span class="text-[10px] text-emerald-400/60 font-semibold">Avtomatik hisoblanadi (Upakovkaga)</span>
+                                    <span class="text-[10px] text-emerald-400/60 font-semibold">Avtomatik hisoblanadi
+                                        (Upakovkaga)</span>
                                 </div>
 
                                 <!-- 2-SORT -->
@@ -341,7 +446,8 @@
                                     <div class="my-2 flex items-center justify-center gap-2">
                                         <button type="button" onclick="adjustRepairQty(-1)"
                                             class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
-                                        <input type="number" id="input-repair-qty" min="0" value="0" oninput="recalcSorts()"
+                                        <input type="number" id="input-repair-qty" min="0" value="0"
+                                            oninput="recalcSorts()"
                                             class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-rose-400 digital-font focus:outline-none">
                                         <button type="button" onclick="adjustRepairQty(+1)"
                                             class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
@@ -1026,9 +1132,27 @@
                     });
                     tbody.innerHTML = html;
 
-                    // Header sonini yangilash
+                    // Header va KPI hisoblagichlarini yangilash
+                    const boxesVal = data.today_boxes_count ?? data.count ?? 0;
+                    const firstVal = data.today_first_sort ?? 0;
+                    const secondVal = data.today_second_sort ?? 0;
+                    const defectVal = data.today_defects ?? 0;
+
                     const headerCount = document.getElementById('header-today-count');
-                    if (headerCount) headerCount.innerText = data.count;
+                    if (headerCount) headerCount.innerText = boxesVal;
+                    const headerFirst = document.getElementById('header-today-first-sort');
+                    if (headerFirst) headerFirst.innerText = firstVal;
+                    const headerDefects = document.getElementById('header-today-defects');
+                    if (headerDefects) headerDefects.innerText = defectVal;
+
+                    const kpiBoxes = document.getElementById('kpi-today-boxes');
+                    if (kpiBoxes) kpiBoxes.innerText = boxesVal;
+                    const kpiFirst = document.getElementById('kpi-today-first-sort');
+                    if (kpiFirst) kpiFirst.innerText = firstVal;
+                    const kpiSecond = document.getElementById('kpi-today-second-sort');
+                    if (kpiSecond) kpiSecond.innerText = secondVal;
+                    const kpiDefects = document.getElementById('kpi-today-defects');
+                    if (kpiDefects) kpiDefects.innerText = defectVal;
                 }
             } catch (err) {
                 console.warn('Refresh logs failed:', err);
