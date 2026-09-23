@@ -74,26 +74,32 @@
 
             <div class="flex items-center gap-2 sm:gap-2.5">
                 <!-- Bugungi unikal qutilar hisoblagichi -->
-                <div class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                <div
+                    class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
                     <i class="fa-solid fa-boxes-stacked text-xs text-amber-400"></i>
                     <span class="text-xs text-slate-400 font-bold">Qutilar:</span>
-                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{ today_boxes_count }}</strong>
+                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{
+                        today_boxes_count }}</strong>
                     <span class="text-[10px] text-slate-500">ta</span>
                 </div>
 
                 <!-- Bugungi 1-sort hisoblagichi -->
-                <div class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                <div
+                    class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
                     <span class="text-xs text-slate-400 font-bold">1-Sort:</span>
-                    <strong id="header-today-first-sort" class="text-sm font-black text-emerald-400 digital-font">{{ today_first_sort }}</strong>
+                    <strong id="header-today-first-sort" class="text-sm font-black text-emerald-400 digital-font">{{
+                        today_first_sort }}</strong>
                     <span class="text-[10px] text-slate-500">dona</span>
                 </div>
 
-                <!-- Bugungi brak hisoblagichi -->
-                <div class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
-                    <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
-                    <span class="text-xs text-slate-400 font-bold">Brak:</span>
-                    <strong id="header-today-defects" class="text-sm font-black text-rose-400 digital-font">{{ today_defects }}</strong>
+                <!-- Bugungi 2-sort hisoblagichi -->
+                <div
+                    class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                    <span class="text-xs text-slate-400 font-bold">2-Sort:</span>
+                    <strong id="header-today-second-sort" class="text-sm font-black text-amber-400 digital-font">{{
+                        today_second_sort }}</strong>
                     <span class="text-[10px] text-slate-500">dona</span>
                 </div>
 
@@ -124,73 +130,69 @@
     <!-- 2. MAIN CONTAINER -->
     <main class="max-w-7xl mx-auto w-full p-3 sm:p-5 flex-1 flex flex-col gap-4">
 
-        <!-- BUGUNGI STATISTIKA PANELI (KPI CARDS) -->
-        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <!-- BUGUNGI STATISTIKA PANELI (3 TA KPI KARTA: QUTILAR, 1-SORT, 2-SORT) -->
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <!-- 1. Qutilar soni (Unikal) -->
-            <div class="bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+            <div
+                class="bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-4 sm:p-5 transition shadow-lg relative overflow-hidden">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tekshirilgan Qutilar</span>
-                    <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm border border-indigo-500/20">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tekshirilgan
+                        Qutilar</span>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-base border border-indigo-500/20">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
                 </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                    <span id="kpi-today-boxes" class="text-2xl sm:text-3xl font-black text-white digital-font">{{ today_boxes_count }}</span>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="kpi-today-boxes" class="text-3xl sm:text-4xl font-black text-white digital-font">{{
+                        today_boxes_count }}</span>
                     <span class="text-xs text-slate-500 font-bold">ta quti</span>
                 </div>
-                <p class="text-[10px] text-slate-500 mt-1 truncate" title="Faqat unikal qutilar (ta'mirga qaytsa ham 1 marta hisoblanadi)">
+                <p class="text-[11px] text-slate-500 mt-1 truncate"
+                    title="Faqat unikal qutilar (ta'mirga qaytsa ham 1 marta hisoblanadi)">
                     <i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i>Faqat unikal qutilar
                 </p>
             </div>
 
             <!-- 2. 1-Sort (Tayyor mahsulot) -->
-            <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+            <div
+                class="bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-4 sm:p-5 transition shadow-lg relative overflow-hidden">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">1-Sort (Tayyor)</span>
-                    <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm border border-emerald-500/20">
-                        <i class="fa-solid fa-check-double"></i>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">1-Sort (Tayyor)</span>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base border border-emerald-500/20">
+                        <i class="fa-solid fa-circle-check"></i>
                     </div>
                 </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                    <span id="kpi-today-first-sort" class="text-2xl sm:text-3xl font-black text-emerald-400 digital-font">{{ today_first_sort }}</span>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="kpi-today-first-sort"
+                        class="text-3xl sm:text-4xl font-black text-emerald-400 digital-font">{{ today_first_sort
+                        }}</span>
                     <span class="text-xs text-slate-500 font-bold">dona</span>
                 </div>
-                <p class="text-[10px] text-emerald-500/80 mt-1 truncate">
+                <p class="text-[11px] text-emerald-500/80 mt-1 truncate">
                     <i class="fa-solid fa-box-open mr-1"></i>Upakovkaga o'tgan
                 </p>
             </div>
 
-            <!-- 3. 2-Sort -->
-            <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
+            <!-- 3. 2-Sort (Nuqsonli va 2-sort ishlar) -->
+            <div
+                class="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-4 sm:p-5 transition shadow-lg relative overflow-hidden">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">2-Sort</span>
-                    <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm border border-amber-500/20">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">2-Sort</span>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-base border border-amber-500/20">
                         <i class="fa-solid fa-tags"></i>
                     </div>
                 </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                    <span id="kpi-today-second-sort" class="text-2xl sm:text-3xl font-black text-amber-400 digital-font">{{ today_second_sort }}</span>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span id="kpi-today-second-sort"
+                        class="text-3xl sm:text-4xl font-black text-amber-400 digital-font">{{ today_second_sort
+                        }}</span>
                     <span class="text-xs text-slate-500 font-bold">dona</span>
                 </div>
-                <p class="text-[10px] text-amber-500/80 mt-1 truncate">
-                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>2-sortga ajratilgan
-                </p>
-            </div>
-
-            <!-- 4. Brak (Chiqindi) -->
-            <div class="bg-slate-900 border border-slate-800 hover:border-rose-500/40 rounded-2xl p-3.5 sm:p-4 transition shadow-lg relative overflow-hidden">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Brak (Chiqindi)</span>
-                    <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm border border-rose-500/20">
-                        <i class="fa-solid fa-ban"></i>
-                    </div>
-                </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                    <span id="kpi-today-defects" class="text-2xl sm:text-3xl font-black text-rose-400 digital-font">{{ today_defects }}</span>
-                    <span class="text-xs text-slate-500 font-bold">dona</span>
-                </div>
-                <p class="text-[10px] text-rose-500/80 mt-1 truncate">
-                    <i class="fa-solid fa-circle-xmark mr-1"></i>Tuzalmas nuqson
+                <p class="text-[11px] text-amber-500/80 mt-1 truncate">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>2-sortga ajratilgan donalar
                 </p>
             </div>
         </section>
@@ -476,22 +478,22 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <!-- BRAK (TUZALMAYDIGAN) -->
-                            <div class="bg-slate-950 border-2 border-rose-500/40 rounded-2xl p-4 text-center">
+                            <!-- 2-SORT (TUZALMAYDIGAN) -->
+                            <div class="bg-slate-950 border-2 border-amber-500/40 rounded-2xl p-4 text-center">
                                 <span
-                                    class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
-                                    <i class="fa-solid fa-trash-can"></i> BRAK (CHI QINDI)
+                                    class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-tags"></i> 2-SORT
                                 </span>
                                 <div class="my-2 flex items-center justify-center gap-2">
                                     <button type="button" onclick="adjustDefectQty(-1)"
                                         class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
                                     <input type="number" id="input-defect-qty" min="0" value="0"
                                         oninput="recalcRepairReturn()"
-                                        class="w-16 text-center bg-slate-900 border border-rose-500/50 rounded-lg py-1.5 text-2xl font-black text-rose-400 digital-font focus:outline-none">
+                                        class="w-16 text-center bg-slate-900 border border-amber-500/50 rounded-lg py-1.5 text-2xl font-black text-amber-400 digital-font focus:outline-none">
                                     <button type="button" onclick="adjustDefectQty(+1)"
                                         class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
                                 </div>
-                                <span class="text-[10px] text-slate-500">Tuzalmaydigan chiqindi</span>
+                                <span class="text-[10px] text-slate-500">Tuzalmadi (2-sortga o'tadi)</span>
                             </div>
 
                             <!-- QAYTA TA'MIRGA -->
@@ -589,7 +591,6 @@
                             <th class="py-2.5 px-3 text-center text-emerald-400">1-Sort</th>
                             <th class="py-2.5 px-3 text-center text-amber-400">2-Sort</th>
                             <th class="py-2.5 px-3 text-center text-rose-400">Ta'mir</th>
-                            <th class="py-2.5 px-3 text-center text-red-500">Brak</th>
                             <th class="py-2.5 px-3 text-right">Kontrolchi</th>
                         </tr>
                     </thead>
@@ -616,20 +617,16 @@
                                 </span>
                                 {% endif %}
                             </td>
-                            <td class="py-2 px-3 text-center font-mono font-bold text-emerald-400">{{ log.first_sort_qty
-                                }}</td>
-                            <td class="py-2 px-3 text-center font-mono font-bold text-amber-400">{{ log.second_sort_qty
-                                }}</td>
-                            <td class="py-2 px-3 text-center font-mono font-bold text-rose-400">{{ log.repair_qty }}
+                            <td class="py-2 px-3 text-center font-mono font-bold text-emerald-400">{{ log.first_sort_qty }}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-amber-400">
+                                {% if log.action_type == 'REPAIR_RETURN' %}{{ log.second_sort_qty|default:log.defect_qty }}{% else %}{{ log.second_sort_qty }}{% endif %}
                             </td>
-                            <td class="py-2 px-3 text-center font-mono font-bold text-red-500">{{ log.defect_qty }}</td>
-                            <td class="py-2 px-3 text-right text-slate-400">@{{ log.inspector.username|default:"—" }}
-                            </td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-rose-400">{{ log.repair_qty }}</td>
+                            <td class="py-2 px-3 text-right text-slate-400">@{{ log.inspector.username|default:"—" }}</td>
                         </tr>
                         {% empty %}
                         <tr id="no-logs-row">
-                            <td colspan="9" class="py-6 text-center text-slate-500">Bugun hali tekshirilgan qutilar
-                                mavjud emas.</td>
+                            <td colspan="8" class="py-6 text-center text-slate-500">Bugun hali tekshirilgan qutilar mavjud emas.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1057,7 +1054,7 @@
 
                 if (defect + reRepair > inHand) {
                     playSound('error');
-                    alert("Xatolik: Brak va Qayta ta'mir soni ta'mirdagi sondan oshib ketishi mumkin emas!");
+                    alert("Xatolik: 2-Sort va Qayta ta'mir soni ta'mirdagi sondan oshib ketishi mumkin emas!");
                     btn.disabled = false;
                     return;
                 }
@@ -1106,7 +1103,7 @@
                 if (res.ok && data.status === 'OK') {
                     const tbody = document.getElementById('recent-logs-body');
                     if (data.logs.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-500">Bugun hali tekshirilgan qutilar mavjud emas.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-slate-500">Bugun hali tekshirilgan qutilar mavjud emas.</td></tr>';
                         return;
                     }
 
@@ -1125,7 +1122,6 @@
                             <td class="py-2 px-3 text-center font-mono font-bold text-emerald-400">${l.first_sort}</td>
                             <td class="py-2 px-3 text-center font-mono font-bold text-amber-400">${l.second_sort}</td>
                             <td class="py-2 px-3 text-center font-mono font-bold text-rose-400">${l.repair}</td>
-                            <td class="py-2 px-3 text-center font-mono font-bold text-red-500">${l.defect}</td>
                             <td class="py-2 px-3 text-right text-slate-400">@${l.inspector}</td>
                         </tr>
                         `;
@@ -1136,14 +1132,13 @@
                     const boxesVal = data.today_boxes_count ?? data.count ?? 0;
                     const firstVal = data.today_first_sort ?? 0;
                     const secondVal = data.today_second_sort ?? 0;
-                    const defectVal = data.today_defects ?? 0;
 
                     const headerCount = document.getElementById('header-today-count');
                     if (headerCount) headerCount.innerText = boxesVal;
                     const headerFirst = document.getElementById('header-today-first-sort');
                     if (headerFirst) headerFirst.innerText = firstVal;
-                    const headerDefects = document.getElementById('header-today-defects');
-                    if (headerDefects) headerDefects.innerText = defectVal;
+                    const headerSecond = document.getElementById('header-today-second-sort');
+                    if (headerSecond) headerSecond.innerText = secondVal;
 
                     const kpiBoxes = document.getElementById('kpi-today-boxes');
                     if (kpiBoxes) kpiBoxes.innerText = boxesVal;
@@ -1151,8 +1146,6 @@
                     if (kpiFirst) kpiFirst.innerText = firstVal;
                     const kpiSecond = document.getElementById('kpi-today-second-sort');
                     if (kpiSecond) kpiSecond.innerText = secondVal;
-                    const kpiDefects = document.getElementById('kpi-today-defects');
-                    if (kpiDefects) kpiDefects.innerText = defectVal;
                 }
             } catch (err) {
                 console.warn('Refresh logs failed:', err);

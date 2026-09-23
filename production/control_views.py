@@ -40,11 +40,13 @@ def control_home_view(request):
     # Bugun 1-sort bo'lgan barcha donalar
     today_first_sort = today_logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
 
-    # Bugun 2-sort bo'lgan barcha donalar
-    today_second_sort = today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
-
-    # Bugun brak (chiqindi) bo'lgan barcha donalar
-    today_defects = today_logs_qs.aggregate(s=Sum('defect_qty'))['s'] or 0
+    # Bugun 2-sort bo'lgan barcha donalar (birlamchi 2-sort + ta'mirdan chiqqan nuqsonli/2-sort ishlar)
+    today_second_sort = (today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0)
+    legacy_defects = today_logs_qs.filter(
+        action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
+        second_sort_qty=0
+    ).aggregate(d=Sum('defect_qty'))['d'] or 0
+    today_second_sort += legacy_defects
 
     return render(request, 'production/control_home.html', {
         'inspector': request.user,
@@ -53,7 +55,7 @@ def control_home_view(request):
         'today_boxes_count': today_boxes_count,
         'today_first_sort': today_first_sort,
         'today_second_sort': today_second_sort,
-        'today_defects': today_defects,
+        'today_defects': today_second_sort,
         'today_date': today,
     })
 
@@ -243,14 +245,15 @@ def control_submit_inspection_api(request):
         if defect_qty + re_repair_qty > repair_in_hand:
             return JsonResponse({
                 'status': 'ERROR', 
-                'message': f"Brak ({defect_qty}) va Qayta ta'mir ({re_repair_qty}) yig'indisi ta'mirdagi sondan ({repair_in_hand}) ko'p bo'lishi mumkin emas!"
+                'message': f"2-Sort ({defect_qty}) va Qayta ta'mir ({re_repair_qty}) yig'indisi ta'mirdagi sondan ({repair_in_hand}) ko'p bo'lishi mumkin emas!"
             }, status=400)
 
         fixed_qty = repair_in_hand - defect_qty - re_repair_qty
         is_closed = (re_repair_qty == 0)
 
-        # Qutini yangilash
+        # Qutini yangilash (Brak bilan 2-sort bitta narsa - ikkalasi ham 2-sort)
         box.controlled_first_sort_qty += fixed_qty
+        box.controlled_second_sort_qty += defect_qty
         box.controlled_defect_qty += defect_qty
         box.controlled_repair_qty = re_repair_qty
         box.is_controlled = is_closed
@@ -258,9 +261,9 @@ def control_submit_inspection_api(request):
         box.controlled_at = timezone.now()
         box.controlled_by = request.user
         box.save(update_fields=[
-            'controlled_first_sort_qty', 'controlled_defect_qty',
-            'controlled_repair_qty', 'is_controlled', 'status',
-            'controlled_at', 'controlled_by'
+            'controlled_first_sort_qty', 'controlled_second_sort_qty',
+            'controlled_defect_qty', 'controlled_repair_qty',
+            'is_controlled', 'status', 'controlled_at', 'controlled_by'
         ])
 
         # Jurnalga yozish
@@ -270,16 +273,16 @@ def control_submit_inspection_api(request):
             action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
             inspected_qty=repair_in_hand,
             first_sort_qty=fixed_qty,
-            second_sort_qty=0,
+            second_sort_qty=defect_qty,
             repair_qty=re_repair_qty,
             defect_qty=defect_qty,
             notes=data.get('notes', '')
         )
 
         if is_closed:
-            msg = f"Quti #{box.box_number} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta brak. Mahsulot Upakovkaga topshiriladi!"
+            msg = f"Quti #{box.box_number} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort. Mahsulot Upakovkaga topshiriladi!"
         else:
-            msg = f"Quti #{box.box_number}: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta brak, {re_repair_qty} ta qayta ta'mirda qoldi."
+            msg = f"Quti #{box.box_number}: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort, {re_repair_qty} ta qayta ta'mirda qoldi."
 
         return JsonResponse({
             'status': 'OK',
@@ -292,7 +295,7 @@ def control_submit_inspection_api(request):
                 'first_sort': box.controlled_first_sort_qty,
                 'second_sort': box.controlled_second_sort_qty,
                 'repair': box.controlled_repair_qty,
-                'defect': box.controlled_defect_qty,
+                'defect': box.controlled_second_sort_qty,
                 'is_repair_active': (box.controlled_repair_qty > 0),
                 'is_closed': is_closed,
             }
@@ -323,14 +326,17 @@ def control_recent_inspections_api(request):
     # Bugun 1-sort bo'lgan barcha donalar
     today_first_sort = today_logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
 
-    # Bugun 2-sort bo'lgan barcha donalar
-    today_second_sort = today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
-
-    # Bugun brak (chiqindi) bo'lgan barcha donalar
-    today_defects = today_logs_qs.aggregate(s=Sum('defect_qty'))['s'] or 0
+    # Bugun 2-sort bo'lgan barcha donalar (birlamchi 2-sort + ta'mir natijasidagi 2-sort/brak)
+    today_second_sort = (today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0)
+    legacy_defects = today_logs_qs.filter(
+        action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
+        second_sort_qty=0
+    ).aggregate(d=Sum('defect_qty'))['d'] or 0
+    today_second_sort += legacy_defects
 
     data = []
     for l in logs:
+        effective_second_sort = l.second_sort_qty or (l.defect_qty if l.action_type == BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0)
         data.append({
             'id': l.id,
             'box_number': l.box.box_number,
@@ -340,9 +346,9 @@ def control_recent_inspections_api(request):
             'action_type': l.action_type,
             'action_type_display': l.get_action_type_display(),
             'first_sort': l.first_sort_qty,
-            'second_sort': l.second_sort_qty,
+            'second_sort': effective_second_sort,
             'repair': l.repair_qty,
-            'defect': l.defect_qty,
+            'defect': effective_second_sort,
             'inspector': l.inspector.get_full_name() or l.inspector.username if l.inspector else "—",
             'time': timezone.localtime(l.created_at).strftime("%H:%M:%S"),
         })
@@ -353,7 +359,7 @@ def control_recent_inspections_api(request):
         'today_boxes_count': today_boxes_count,
         'today_first_sort': today_first_sort,
         'today_second_sort': today_second_sort,
-        'today_defects': today_defects,
+        'today_defects': today_second_sort,
         'logs': data
     })
 

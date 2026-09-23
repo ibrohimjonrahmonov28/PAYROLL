@@ -1418,13 +1418,14 @@ class ControlRoleAndQualityControlTest(TestCase):
 
         self.box.refresh_from_db()
         # 1-sort: 37 + 2 = 39 ta!
+        # 2-sort: 10 + 1 (brak bilan 2-sort bitta narsa) = 11 ta!
         self.assertEqual(self.box.controlled_first_sort_qty, 39)
-        self.assertEqual(self.box.controlled_second_sort_qty, 10)
+        self.assertEqual(self.box.controlled_second_sort_qty, 11)
         self.assertEqual(self.box.controlled_defect_qty, 1)
         self.assertEqual(self.box.controlled_repair_qty, 0)
         self.assertTrue(self.box.is_controlled)  # Endi quti to'liq yopildi
         self.assertEqual(self.box.status, Box.Status.COMPLETED)
-        # Jami: 39 (1-sort) + 10 (2-sort) + 1 (brak) = 50 ta!
+        # Jami: 39 (1-sort) + 11 (2-sort) = 50 ta!
 
     def test_mandatory_control_sticker_printed(self):
         # Quti stikerlari chop etilganda oxirida CONTROL stikeri chiqishi kerak
@@ -1498,16 +1499,14 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertEqual(len(data['logs']), 2)  # 2 ta tekshiruv amali bo'lgan
         self.assertEqual(data['today_boxes_count'], 1)  # FAQAT 1 TA UNIKAL QUTI!
         self.assertEqual(data['today_first_sort'], 39)  # 37 + 2 = 39 dona
-        self.assertEqual(data['today_second_sort'], 10)  # 10 dona
-        self.assertEqual(data['today_defects'], 1)  # 1 dona brak
+        self.assertEqual(data['today_second_sort'], 11)  # 10 + 1 (brak bilan 2-sort bitta narsa) = 11 dona
 
         # Sahifa HTML'ida ham bugungi unikal qutilar va donalar soni to'g'ri chiqishini tekshirish
         res_page = self.client.get(reverse('control:home'))
         self.assertEqual(res_page.status_code, 200)
         self.assertEqual(res_page.context['today_boxes_count'], 1)
         self.assertEqual(res_page.context['today_first_sort'], 39)
-        self.assertEqual(res_page.context['today_second_sort'], 10)
-        self.assertEqual(res_page.context['today_defects'], 1)
+        self.assertEqual(res_page.context['today_second_sort'], 11)
 
         # Endi 2-qutini kiritamiz (30 dona, barchasi 1-sort)
         box2 = Box.objects.create(
@@ -1533,8 +1532,7 @@ class ControlRoleAndQualityControlTest(TestCase):
         data2 = res_recent2.json()
         self.assertEqual(data2['today_boxes_count'], 2)  # 2 ta unikal quti!
         self.assertEqual(data2['today_first_sort'], 69)  # 39 + 30 = 69
-        self.assertEqual(data2['today_second_sort'], 10)
-        self.assertEqual(data2['today_defects'], 1)
+        self.assertEqual(data2['today_second_sort'], 11)
 
 
 
