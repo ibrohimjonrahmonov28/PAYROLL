@@ -1277,3 +1277,145 @@ class NormaCanvasTest(TestCase):
         self.assertEqual(self.model.daily_norm, 0)
         self.assertEqual(self.order_item.norm, 0)
 
+
+class DailyExcelReportAndPricingSyncTest(TestCase):
+    def setUp(self):
+        from accounts.models import Worker
+        from production.models import (
+            ProductModel, Article, Operation, ArticleOperation,
+            ModelOperation, Order, Box, Ticket
+        )
+        self.worker = Worker.objects.create(
+            worker_id="TK-999",
+            first_name="Nodirbek",
+            last_name="Qodirov",
+            phone_number="+998901234567"
+        )
+        self.model = ProductModel.objects.create(name="T-Shirt Classic", code="TS-001")
+        self.article = Article.objects.create(code="ART-TS-01", name="White M", model=self.model)
+        self.op1 = Operation.objects.create(code="OP-DAZMOL", name="Dazmol")
+        self.op2 = Operation.objects.create(code="OP-METO", name="Meto")
+
+        self.ao1 = ArticleOperation.objects.create(
+            article=self.article,
+            operation=self.op1,
+            price_per_unit=Decimal('500.00'),
+            sequence=1
+        )
+        self.ao2 = ArticleOperation.objects.create(
+            article=self.article,
+            operation=self.op2,
+            price_per_unit=Decimal('300.00'),
+            sequence=2
+        )
+
+        self.order = Order.objects.create(order_number="ORD-2026-99")
+        self.box = Box.objects.create(order=self.order, box_number=1, quantity=100)
+
+        # Bugungi sana
+        self.today = timezone.localdate()
+        self.now = timezone.localtime()
+
+        self.t1 = Ticket.objects.create(
+            ticket_code="TK-TEST-001",
+            box=self.box,
+            article_operation=self.ao1,
+            quantity=100,
+            price_per_unit=Decimal('500.00'),
+            total_amount=Decimal('50000.00'),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=self.now
+        )
+        self.t2 = Ticket.objects.create(
+            ticket_code="TK-TEST-002",
+            box=self.box,
+            article_operation=self.ao2,
+            quantity=200,
+            price_per_unit=Decimal('300.00'),
+            total_amount=Decimal('60000.00'),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=self.now
+        )
+
+    def test_pricing_sync_updates_tickets_and_worker_balance(self):
+        """Ratsenka (narx) o'zgarganda barcha biletlar va xodim balansi avtomatik yangilanishi kerak"""
+        # Boshlang'ich balans: 50,000 + 60,000 = 110,000 UZS
+        self.assertEqual(self.worker.balance, Decimal('110000.00'))
+
+        # ao1 narxini 500 dan 800 ga o'zgartiramiz
+        self.ao1.price_per_unit = Decimal('800.00')
+        self.ao1.save()
+
+        self.t1.refresh_from_db()
+        self.assertEqual(self.t1.price_per_unit, Decimal('800.00'))
+        self.assertEqual(self.t1.total_amount, Decimal('80000.00'))
+
+        # Xodim balansi ham avtomatik 80,000 + 60,000 = 140,000 UZS bo'lishi kerak
+        self.assertEqual(self.worker.balance, Decimal('140000.00'))
+
+    def test_model_operation_save_cascades_to_tickets(self):
+        """ModelOperation narxi o'zgarganda barcha artikullardagi biletlar narxi yangilanishi kerak"""
+        from production.models import ModelOperation
+        m_op = ModelOperation.objects.create(
+            model=self.model,
+            operation=self.op1,
+            price_per_unit=Decimal('1200.00'),
+            sequence=1
+        )
+        m_op.save()
+
+        self.ao1.refresh_from_db()
+        self.assertEqual(self.ao1.price_per_unit, Decimal('1200.00'))
+
+        self.t1.refresh_from_db()
+        self.assertEqual(self.t1.price_per_unit, Decimal('1200.00'))
+        self.assertEqual(self.t1.total_amount, Decimal('120000.00'))
+
+    def test_compact_ticket_ids(self):
+        """Stikerlar ro'yxati qisqa va ixcham ko'rinishda formatlanishi kerak"""
+        from production.excel_reports import compact_ticket_ids
+        # Ketma-ket biletlar
+        compacted = compact_ticket_ids([self.t1, self.t2])
+        self.assertIn("Quti: #1", compacted)
+        self.assertIn("jami 2 ta", compacted)
+
+    def test_excel_report_structure_and_formula(self):
+        """Excel hisobotidagi 11 ta ustun va Joriy Balans formulasi =G{row}+F{row} to'g'ri ishlashi kerak"""
+        import openpyxl
+        from production.excel_reports import generate_month_to_date_excel_report
+
+        buf = generate_month_to_date_excel_report(self.today)
+        wb = openpyxl.load_workbook(buf, data_only=False)
+
+        # Varaqlar mavjudligi
+        self.assertIn("Oylik Umumiy Tabel", wb.sheetnames)
+        day_sheet_name = f"{self.today.day:02d}.{self.today.month:02d}"
+        self.assertIn(day_sheet_name, wb.sheetnames)
+        self.assertIn("Barcha Stikerlar", wb.sheetnames)
+
+        ws_day = wb[day_sheet_name]
+        # 4-qatordagi 11 ta ustun sarlavhalari
+        expected_headers = [
+            "№", "Xodim UID", "F.I.SH", "Ishlagan Kunlari",
+            "Tikilgan Ishlar (Operatsiyalar)", "Bugungi Ish Haqi (UZS)",
+            "Kechagi Balans (UZS)", "Joriy Balans (UZS)",
+            "Qutilar Soni", "Stikerlar Soni", "Skanerlangan Stikerlar"
+        ]
+        actual_headers = [ws_day.cell(row=4, column=col).value for col in range(1, 12)]
+        self.assertEqual(actual_headers, expected_headers)
+
+        # 5-qatordagi xodim ma'lumotlari
+        self.assertEqual(ws_day.cell(row=5, column=2).value, "TK-999")
+        self.assertEqual(ws_day.cell(row=5, column=3).value, "Nodirbek Qodirov")
+        # Operatsiyalar xulosasi
+        ops_cell_val = ws_day.cell(row=5, column=5).value
+        self.assertIn("Dazmol", ops_cell_val)
+        self.assertIn("Meto", ops_cell_val)
+        # Bugungi ish haqi (UZS)
+        self.assertEqual(ws_day.cell(row=5, column=6).value, 110000.0)
+        # Joriy Balans formulasi: =G5+F5
+        formula_val = ws_day.cell(row=5, column=8).value
+        self.assertEqual(formula_val, "=G5+F5")
+

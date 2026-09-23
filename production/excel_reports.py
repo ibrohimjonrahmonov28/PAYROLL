@@ -13,7 +13,79 @@ except ImportError:
     HAS_OPENPYXL = False
 
 from accounts.models import Worker, WorkerPayout
-from production.models import Ticket
+from production.models import Ticket, ArticleOperation
+
+
+def compact_ticket_ids(tickets, max_ranges=8) -> str:
+    """
+    Skanerlangan stikerlar ro'yxatini ixcham ko'rinishga keltiradi:
+    - Ketma-ket kelgan stiker ID larni diapazon qiladi: #101-#125
+    - Qutilar haqida ma'lumot beradi: Quti: #1, #2 (yoki Qutilar: #1-#5 (5 ta))
+    - Agar juda ko'p bo'lsa, qisqartirib, to'liq ro'yxat 'Barcha Stikerlar' varag'ida borligini bildiradi.
+    """
+    if not tickets:
+        return "—"
+
+    # 1. Unikal qutilar
+    box_nums = sorted(list({t.box.box_number for t in tickets if t.box and t.box.box_number is not None}))
+    if box_nums:
+        if len(box_nums) <= 3:
+            boxes_part = "Quti: " + ", ".join(f"#{b}" for b in box_nums)
+        else:
+            boxes_part = f"Qutilar: #{box_nums[0]}-#{box_nums[-1]} ({len(box_nums)} ta)"
+    else:
+        boxes_part = ""
+
+    # 2. Stiker ID diapazonlari
+    int_ids = []
+    other_codes = []
+    for t in tickets:
+        if t.id and isinstance(t.id, int):
+            int_ids.append(t.id)
+        elif t.stiker_code:
+            other_codes.append(str(t.stiker_code))
+
+    int_ids.sort()
+    ranges = []
+    if int_ids:
+        start = int_ids[0]
+        prev = int_ids[0]
+        for cur in int_ids[1:]:
+            if cur == prev + 1:
+                prev = cur
+            else:
+                if start == prev:
+                    ranges.append(f"#{start}")
+                elif prev == start + 1:
+                    ranges.append(f"#{start}, #{prev}")
+                else:
+                    ranges.append(f"#{start}-#{prev}")
+                start = cur
+                prev = cur
+        if start == prev:
+            ranges.append(f"#{start}")
+        elif prev == start + 1:
+            ranges.append(f"#{start}, #{prev}")
+        else:
+            ranges.append(f"#{start}-#{prev}")
+
+    all_tokens = ranges + other_codes
+    total_count = len(tickets)
+
+    if len(all_tokens) <= max_ranges:
+        ids_part = ", ".join(all_tokens)
+    else:
+        shown = ", ".join(all_tokens[:max_ranges])
+        rem_count = len(all_tokens) - max_ranges
+        ids_part = f"{shown} ... (+{rem_count} diapazon / 'Barcha Stikerlar' varag'ida)"
+
+    if boxes_part and ids_part:
+        return f"{boxes_part} | ID: {ids_part} (jami {total_count} ta)"
+    elif ids_part:
+        return f"ID: {ids_part} (jami {total_count} ta)"
+    elif boxes_part:
+        return f"{boxes_part} (jami {total_count} ta stiker)"
+    return f"{total_count} ta stiker"
 
 
 def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO:
@@ -33,6 +105,8 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
 
     # O'sha kunning boshlanishi va tugashi
     start_of_month = target_date.replace(day=1)
+    tz = timezone.get_current_timezone()
+    day_start_dt = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time.min), tz)
 
     # 1. Barcha o'sha kuni skanerlangan biletlar
     daily_tickets = Ticket.objects.filter(
@@ -45,8 +119,24 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         'box__order'
     ).order_by('scanned_at')
 
+    # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, ushbu kunda skanerlangan barcha biletlar
+    # narxlarini va jami summalarini eng so'nggi ratsenkalar bilan kafolatli qayta hisoblash:
+    ao_ids = daily_tickets.values_list('article_operation_id', flat=True).distinct()
+    for ao in ArticleOperation.objects.filter(id__in=ao_ids):
+        ao.sync_price_to_tickets()
+
+    # Qayta yangilangan biletlarni yuklash
+    daily_tickets = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__date=target_date
+    ).select_related(
+        'worker',
+        'article_operation__operation',
+        'article_operation__article__model',
+        'box__order'
+    ).order_by('scanned_at')
+
     # Xodimlar bo'yicha guruhlash
-    # O'sha kuni kamida 1 ta bilet skanerlagan yoki faol bo'lgan barcha ishchilar
     active_worker_ids = set(daily_tickets.values_list('worker_id', flat=True))
     workers = Worker.objects.filter(
         Q(id__in=active_worker_ids) | Q(is_active=True)
@@ -58,6 +148,31 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         if t.worker_id not in worker_tickets_map:
             worker_tickets_map[t.worker_id] = []
         worker_tickets_map[t.worker_id].append(t)
+
+    # Ushbu kunga qadar bo'lgan balanslar (kechagi balans) va ishlagan kunlar sonini hisoblash
+    tickets_pre_day = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__lt=day_start_dt
+    ).values('worker_id').annotate(total=Sum('total_amount'))
+    pre_day_earned_map = {item['worker_id']: item['total'] for item in tickets_pre_day}
+
+    payouts_pre_day = WorkerPayout.objects.filter(
+        payout_date__lt=target_date
+    ).values('worker_id').annotate(total=Sum('amount'))
+    pre_day_paid_map = {item['worker_id']: item['total'] for item in payouts_pre_day}
+
+    yesterday_balances = {}
+    for w in workers:
+        e_pre = pre_day_earned_map.get(w.id, Decimal('0.00')) or Decimal('0.00')
+        p_pre = pre_day_paid_map.get(w.id, Decimal('0.00')) or Decimal('0.00')
+        yesterday_balances[w.id] = e_pre - p_pre
+
+    days_worked_qs = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__date__gte=start_of_month,
+        scanned_at__date__lte=target_date
+    ).values('worker_id').annotate(cnt=Count('scanned_at__date', distinct=True))
+    days_worked_map = {item['worker_id']: item['cnt'] for item in days_worked_qs}
 
     # Excel workbook yaratish
     wb = openpyxl.Workbook()
@@ -103,31 +218,35 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     ws1.views.sheetView[0].showGridLines = True
 
     # Sarlavha
-    ws1.merge_cells("A1:J1")
+    ws1.merge_cells("A1:K1")
     ws1["A1"] = f"TERRY JAR — KUNLIK ISH HAQI VA STIKERLAR HISOBOTI ({target_date.strftime('%d.%m.%Y')})"
     ws1["A1"].font = font_title
     ws1["A1"].alignment = align_left
+    ws1.row_dimensions[1].height = 26
 
-    ws1.merge_cells("A2:J2")
+    ws1.merge_cells("A2:K2")
     ws1["A2"] = f"Hisobot shakllantirilgan vaqt: {timezone.localtime().strftime('%d.%m.%Y %H:%M')} | Avtomatik Telegram eksport"
     ws1["A2"].font = font_subtitle
     ws1["A2"].alignment = align_left
+    ws1.row_dimensions[2].height = 18
 
     headers_ws1 = [
         ("№", 5, align_center),
-        ("Xodim ID", 12, align_center),
-        ("Ism Familiya", 26, align_left),
-        ("Telefon Raqami", 16, align_center),
-        ("Bugun Tikkan (Dona)", 18, align_right),
+        ("Xodim UID", 13, align_center),
+        ("F.I.SH", 26, align_left),
+        ("Ishlagan Kunlari", 16, align_center),
+        ("Tikilgan Ishlar (Operatsiyalar)", 32, align_wrap),
         ("Bugungi Ish Haqi (UZS)", 22, align_right),
-        ("Shu Oydagi Ish Haqi (UZS)", 24, align_right),
-        ("Joriy Balans / Qoldiq (UZS)", 24, align_right),
-        ("Biletlar Soni", 14, align_center),
-        ("Urgan Stikerlar ID lari", 45, align_wrap),
+        ("Kechagi Balans (UZS)", 22, align_right),
+        ("Joriy Balans (UZS)", 22, align_right),
+        ("Qutilar Soni", 14, align_center),
+        ("Stikerlar Soni", 14, align_center),
+        ("Skanerlangan Stikerlar", 45, align_wrap),
     ]
 
     # Header qatori
     header_row_ws1 = 4
+    ws1.row_dimensions[header_row_ws1].height = 24
     for col_idx, (header_text, width, alignment) in enumerate(headers_ws1, 1):
         cell = ws1.cell(row=header_row_ws1, column=col_idx, value=header_text)
         cell.font = font_header
@@ -141,8 +260,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     counter = 1
     total_today_units = 0
     total_today_earned = Decimal('0.00')
-    total_month_earned = Decimal('0.00')
-    total_balance = Decimal('0.00')
+    total_boxes_count = 0
     total_tickets_count = 0
 
     # Xodimlarni bugungi topgan puli bo'yicha kamayish tartibida saralaymiz
@@ -154,41 +272,49 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
 
     for w in sorted_workers:
         w_tickets = worker_tickets_map.get(w.id, [])
-        
-        # Faqat bugun ishlagan yoki faol xodimlar
+        # Faqat bugun ishlagan xodimlar
+        if not w_tickets:
+            continue
+
         today_u = sum(t.quantity for t in w_tickets)
         today_e = sum(t.total_amount for t in w_tickets)
-        
-        # Agar xodim umuman ishlamagan bo'lsa va ro'yxatda biletlar bo'lsa, keyinroq ko'rsatiladi
-        # Shu oydagi jami hisoblangan maosh
-        month_e = Ticket.objects.filter(
-            worker=w,
-            status=Ticket.Status.SCANNED,
-            scanned_at__date__gte=start_of_month,
-            scanned_at__date__lte=target_date
-        ).aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+        days_w = days_worked_map.get(w.id, 0)
+        yesterday_bal = yesterday_balances.get(w.id, Decimal('0.00'))
 
-        w_balance = w.balance
-
-        # Urgan stikerlar ID lari
-        # Har bir bilet uchun stiker_code yoki ticket_code yoki id
-        stiker_ids = []
+        # Operatsiyalar xulosasi
+        op_stats = {}
         for t in w_tickets:
-            code_str = t.stiker_code or t.ticket_code or f"TK#{t.id}"
-            stiker_ids.append(str(code_str))
-        stikers_joined = ", ".join(stiker_ids) if stiker_ids else "—"
+            op_name = t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "Operatsiya"
+            op_stats[op_name] = op_stats.get(op_name, 0) + (t.quantity or 0)
+        sorted_ops = sorted(op_stats.items(), key=lambda x: -x[1])
+        ops_display = "\n".join(f"{name}: {qty:,} ta".replace(",", " ") for name, qty in sorted_ops)
+
+        num_ops = len(sorted_ops)
+        if num_ops > 1:
+            ws1.row_dimensions[row_idx].height = max(24, num_ops * 18)
+        else:
+            ws1.row_dimensions[row_idx].height = 24
+
+        boxes_count = len({t.box_id for t in w_tickets if t.box_id})
+        stikers_display = compact_ticket_ids(w_tickets)
 
         is_zebra = (counter % 2 == 0)
         current_fill = zebra_fill if is_zebra else PatternFill(fill_type=None)
 
         ws1.cell(row=row_idx, column=1, value=counter).alignment = align_center
-        ws1.cell(row=row_idx, column=2, value=w.worker_id).alignment = align_center
-        ws1.cell(row=row_idx, column=3, value=w.full_name).alignment = align_left
-        ws1.cell(row=row_idx, column=4, value=w.phone_number or "—").alignment = align_center
 
-        c_today_u = ws1.cell(row=row_idx, column=5, value=today_u)
-        c_today_u.alignment = align_right
-        c_today_u.number_format = '#,##0'
+        c_uid = ws1.cell(row=row_idx, column=2, value=w.worker_id)
+        c_uid.alignment = align_center
+        c_uid.font = font_bold
+
+        c_name = ws1.cell(row=row_idx, column=3, value=w.full_name)
+        c_name.alignment = align_left
+        c_name.font = font_bold
+
+        ws1.cell(row=row_idx, column=4, value=days_w).alignment = align_center
+
+        c_ops = ws1.cell(row=row_idx, column=5, value=ops_display)
+        c_ops.alignment = align_wrap
 
         c_today_e = ws1.cell(row=row_idx, column=6, value=float(today_e))
         c_today_e.alignment = align_right
@@ -197,33 +323,39 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
             c_today_e.font = font_green_bold
             c_today_e.fill = green_fill
 
-        c_month_e = ws1.cell(row=row_idx, column=7, value=float(month_e))
-        c_month_e.alignment = align_right
-        c_month_e.number_format = '#,##0'
+        c_yest = ws1.cell(row=row_idx, column=7, value=float(yesterday_bal))
+        c_yest.alignment = align_right
+        c_yest.number_format = '#,##0'
 
-        c_balance = ws1.cell(row=row_idx, column=8, value=float(w_balance))
-        c_balance.alignment = align_right
-        c_balance.number_format = '#,##0'
+        # Joriy Balans formulasi: Kechagi Balans + Bugungi Ish Haqi
+        c_curr = ws1.cell(row=row_idx, column=8, value=f"=G{row_idx}+F{row_idx}")
+        c_curr.alignment = align_right
+        c_curr.font = font_bold
+        c_curr.number_format = '#,##0'
 
-        c_t_cnt = ws1.cell(row=row_idx, column=9, value=len(w_tickets))
+        c_boxes = ws1.cell(row=row_idx, column=9, value=boxes_count)
+        c_boxes.alignment = align_center
+        c_boxes.number_format = '#,##0'
+
+        c_t_cnt = ws1.cell(row=row_idx, column=10, value=len(w_tickets))
         c_t_cnt.alignment = align_center
+        c_t_cnt.number_format = '#,##0'
 
-        c_stikers = ws1.cell(row=row_idx, column=10, value=stikers_joined)
+        c_stikers = ws1.cell(row=row_idx, column=11, value=stikers_display)
         c_stikers.alignment = align_wrap
 
-        for col_idx in range(1, 11):
+        for col_idx in range(1, 12):
             cell = ws1.cell(row=row_idx, column=col_idx)
             cell.border = thin_border
             if col_idx != 6 or today_e == 0:
                 if current_fill.fill_type:
                     cell.fill = current_fill
-            if col_idx not in (3, 6):
+            if col_idx not in (2, 3, 6, 8):
                 cell.font = font_regular
 
         total_today_units += today_u
         total_today_earned += today_e
-        total_month_earned += month_e
-        total_balance += w_balance
+        total_boxes_count += boxes_count
         total_tickets_count += len(w_tickets)
 
         row_idx += 1
@@ -235,33 +367,39 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     c_tot_label.font = font_bold
     c_tot_label.alignment = align_right
 
-    c_tot_units = ws1.cell(row=row_idx, column=5, value=total_today_units)
-    c_tot_units.font = font_bold
-    c_tot_units.alignment = align_right
-    c_tot_units.number_format = '#,##0'
+    c_tot_ops = ws1.cell(row=row_idx, column=5, value=f"{total_today_units:,} ta".replace(",", " "))
+    c_tot_ops.font = font_bold
+    c_tot_ops.alignment = align_right
 
-    c_tot_earned = ws1.cell(row=row_idx, column=6, value=float(total_today_earned))
+    c_tot_earned = ws1.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
     c_tot_earned.font = font_bold
     c_tot_earned.alignment = align_right
     c_tot_earned.number_format = '#,##0'
 
-    c_tot_month = ws1.cell(row=row_idx, column=7, value=float(total_month_earned))
-    c_tot_month.font = font_bold
-    c_tot_month.alignment = align_right
-    c_tot_month.number_format = '#,##0'
+    c_tot_yest = ws1.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
+    c_tot_yest.font = font_bold
+    c_tot_yest.alignment = align_right
+    c_tot_yest.number_format = '#,##0'
 
-    c_tot_bal = ws1.cell(row=row_idx, column=8, value=float(total_balance))
+    c_tot_bal = ws1.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
     c_tot_bal.font = font_bold
     c_tot_bal.alignment = align_right
     c_tot_bal.number_format = '#,##0'
 
-    c_tot_t_cnt = ws1.cell(row=row_idx, column=9, value=total_tickets_count)
+    c_tot_b = ws1.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
+    c_tot_b.font = font_bold
+    c_tot_b.alignment = align_center
+    c_tot_b.number_format = '#,##0'
+
+    c_tot_t_cnt = ws1.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
     c_tot_t_cnt.font = font_bold
     c_tot_t_cnt.alignment = align_center
+    c_tot_t_cnt.number_format = '#,##0'
 
-    ws1.cell(row=row_idx, column=10, value="")
+    ws1.cell(row=row_idx, column=11, value="")
 
-    for col_idx in range(1, 11):
+    ws1.row_dimensions[row_idx].height = 24
+    for col_idx in range(1, 12):
         cell = ws1.cell(row=row_idx, column=col_idx)
         cell.fill = total_fill
         cell.border = thick_bottom_border
@@ -403,26 +541,40 @@ def _build_day_sheet(
     target_date: datetime.date,
     day_tickets: list,
     all_workers: list,
-    navy_fill,
-    zebra_fill,
-    green_fill,
-    total_fill,
-    font_title,
-    font_subtitle,
-    font_header,
-    font_bold,
-    font_regular,
-    font_green_bold,
-    thin_border,
-    thick_bottom_border,
-    align_center,
-    align_left,
-    align_right,
-    align_wrap
+    yesterday_balances: dict = None,
+    days_worked_map: dict = None,
+    navy_fill=None,
+    zebra_fill=None,
+    green_fill=None,
+    total_fill=None,
+    font_title=None,
+    font_subtitle=None,
+    font_header=None,
+    font_bold=None,
+    font_regular=None,
+    font_green_bold=None,
+    thin_border=None,
+    thick_bottom_border=None,
+    align_center=None,
+    align_left=None,
+    align_right=None,
+    align_wrap=None
 ):
     """
     Har bir kun uchun alohida varaq (list) yaratuvchi funksiya.
     Masalan: '01.09', '02.09', ... '10.09'.
+    Ustunlar:
+    1. №
+    2. Xodim UID
+    3. F.I.SH
+    4. Ishlagan Kunlari
+    5. Tikilgan Ishlar (Operatsiyalar) - masalan: Meto: 400 ta, Dazmol: 100 ta
+    6. Bugungi Ish Haqi (UZS)
+    7. Kechagi Balans (UZS)
+    8. Joriy Balans (UZS) - Formula: =G{row}+F{row}
+    9. Qutilar Soni
+    10. Stikerlar Soni
+    11. Skanerlangan Stikerlar (Ixcham format: Qutilar va ketma-ket ID diapazonlari)
     """
     sheet_title = f"{target_date.day:02d}.{target_date.month:02d}"
     ws = wb.create_sheet(title=sheet_title)
@@ -449,33 +601,36 @@ def _build_day_sheet(
     active_count = len(worker_tickets_map)
 
     # 1. Sarlavha
-    ws.merge_cells("A1:H1")
+    ws.merge_cells("A1:K1")
     ws["A1"] = f"TERRY JAR — KUNLIK ISH HAQI VA STIKERLAR HISOBOTI ({target_date.strftime('%d.%m.%Y')})"
     ws["A1"].font = font_title
     ws["A1"].alignment = align_left
     ws.row_dimensions[1].height = 26
 
-    ws.merge_cells("A2:H2")
+    ws.merge_cells("A2:K2")
     ws["A2"] = (
         f"Sana: {target_date.strftime('%d.%m.%Y')} ({weekday_name}) | "
         f"Faol xodimlar: {active_count} nafar | "
         f"Tikilgan jami: {day_units:,} dona | "
-        f"Hisoblangan ish haqi: {day_earned:,.0f} UZS"
+        f"Bugungi hisoblangan ish haqi: {day_earned:,.0f} UZS"
     ).replace(",", " ")
     ws["A2"].font = font_subtitle
     ws["A2"].alignment = align_left
     ws.row_dimensions[2].height = 18
 
-    # 2. Jadval sarlavhalari
+    # 2. Jadval sarlavhalari (11 ta ustun)
     headers = [
         ("№", 5, align_center),
-        ("Xodim ID", 12, align_center),
-        ("Ism Familiya", 26, align_left),
-        ("Telefon", 16, align_center),
-        ("Tikilgan Dona", 16, align_right),
+        ("Xodim UID", 13, align_center),
+        ("F.I.SH", 26, align_left),
+        ("Ishlagan Kunlari", 16, align_center),
+        ("Tikilgan Ishlar (Operatsiyalar)", 32, align_wrap),
         ("Bugungi Ish Haqi (UZS)", 22, align_right),
-        ("Biletlar Soni", 14, align_center),
-        ("Urgan Stikerlar ID lari", 45, align_wrap),
+        ("Kechagi Balans (UZS)", 22, align_right),
+        ("Joriy Balans (UZS)", 22, align_right),
+        ("Qutilar Soni", 14, align_center),
+        ("Stikerlar Soni", 14, align_center),
+        ("Skanerlangan Stikerlar", 45, align_wrap),
     ]
 
     ws.row_dimensions[4].height = 24
@@ -489,12 +644,12 @@ def _build_day_sheet(
 
     # Agar bu kunda hech qanday stiker urilmagan bo'lsa
     if not day_tickets:
-        ws.merge_cells("A5:H5")
+        ws.merge_cells("A5:K5")
         c_empty = ws.cell(row=5, column=1, value="Ushbu kunda tikuv operatsiyalari qayd etilmagan (Dam olish kuni yoki ish bo'lmagan).")
         c_empty.font = Font(name="Arial", size=10, italic=True, color="64748B")
         c_empty.alignment = align_center
         ws.row_dimensions[5].height = 30
-        for col in range(1, 9):
+        for col in range(1, 12):
             ws.cell(row=5, column=col).border = thin_border
         return ws
 
@@ -509,31 +664,54 @@ def _build_day_sheet(
     counter = 1
     total_u = 0
     total_e = Decimal('0.00')
+    total_boxes = 0
     total_t = 0
 
     for w in sorted_workers:
         w_tickets = worker_tickets_map.get(w.id, [])
-        u = sum(t.quantity for t in w_tickets)
-        e = sum(t.total_amount for t in w_tickets)
-
-        # Ushbu kunda ishlamagan xodimlarni o'tkazib yuboramiz
-        if u == 0 and e == Decimal('0.00'):
+        # Faqat ushbu kunda ishlagan xodimlarni chiqaramiz
+        if not w_tickets:
             continue
 
-        stiker_ids = [str(t.stiker_code or t.ticket_code or f"TK#{t.id}") for t in w_tickets]
-        stikers_str = ", ".join(stiker_ids) if stiker_ids else "—"
+        u = sum(t.quantity for t in w_tickets)
+        e = sum(t.total_amount for t in w_tickets)
+        days_w = days_worked_map.get(w.id, 0) if days_worked_map else 1
+        yesterday_bal = yesterday_balances.get(w.id, Decimal('0.00')) if yesterday_balances else Decimal('0.00')
+
+        # Operatsiyalar xulosasi
+        op_stats = {}
+        for t in w_tickets:
+            op_name = t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else "Operatsiya"
+            op_stats[op_name] = op_stats.get(op_name, 0) + (t.quantity or 0)
+        sorted_ops = sorted(op_stats.items(), key=lambda x: -x[1])
+        ops_display = "\n".join(f"{name}: {qty:,} ta".replace(",", " ") for name, qty in sorted_ops)
+
+        num_ops = len(sorted_ops)
+        if num_ops > 1:
+            ws.row_dimensions[row_idx].height = max(24, num_ops * 18)
+        else:
+            ws.row_dimensions[row_idx].height = 24
+
+        boxes_count = len({t.box_id for t in w_tickets if t.box_id})
+        stikers_display = compact_ticket_ids(w_tickets)
 
         is_zebra = (counter % 2 == 0)
         c_fill = zebra_fill if is_zebra else PatternFill(fill_type=None)
 
         ws.cell(row=row_idx, column=1, value=counter).alignment = align_center
-        ws.cell(row=row_idx, column=2, value=w.worker_id).alignment = align_center
-        ws.cell(row=row_idx, column=3, value=w.full_name).alignment = align_left
-        ws.cell(row=row_idx, column=4, value=w.phone_number or "—").alignment = align_center
 
-        c_u = ws.cell(row=row_idx, column=5, value=u)
-        c_u.alignment = align_right
-        c_u.number_format = '#,##0'
+        c_uid = ws.cell(row=row_idx, column=2, value=w.worker_id)
+        c_uid.alignment = align_center
+        c_uid.font = font_bold
+
+        c_name = ws.cell(row=row_idx, column=3, value=w.full_name)
+        c_name.alignment = align_left
+        c_name.font = font_bold
+
+        ws.cell(row=row_idx, column=4, value=days_w).alignment = align_center
+
+        c_ops = ws.cell(row=row_idx, column=5, value=ops_display)
+        c_ops.alignment = align_wrap
 
         c_e = ws.cell(row=row_idx, column=6, value=float(e))
         c_e.alignment = align_right
@@ -542,23 +720,39 @@ def _build_day_sheet(
             c_e.font = font_green_bold
             c_e.fill = green_fill
 
-        c_cnt = ws.cell(row=row_idx, column=7, value=len(w_tickets))
-        c_cnt.alignment = align_center
+        c_yest = ws.cell(row=row_idx, column=7, value=float(yesterday_bal))
+        c_yest.alignment = align_right
+        c_yest.number_format = '#,##0'
 
-        c_st = ws.cell(row=row_idx, column=8, value=stikers_str)
+        # Joriy Balans formulasi: Kechagi Balans + Bugungi Ish Haqi
+        c_curr = ws.cell(row=row_idx, column=8, value=f"=G{row_idx}+F{row_idx}")
+        c_curr.alignment = align_right
+        c_curr.font = font_bold
+        c_curr.number_format = '#,##0'
+
+        c_boxes = ws.cell(row=row_idx, column=9, value=boxes_count)
+        c_boxes.alignment = align_center
+        c_boxes.number_format = '#,##0'
+
+        c_t_cnt = ws.cell(row=row_idx, column=10, value=len(w_tickets))
+        c_t_cnt.alignment = align_center
+        c_t_cnt.number_format = '#,##0'
+
+        c_st = ws.cell(row=row_idx, column=11, value=stikers_display)
         c_st.alignment = align_wrap
 
-        for col_idx in range(1, 9):
+        for col_idx in range(1, 12):
             cell = ws.cell(row=row_idx, column=col_idx)
             cell.border = thin_border
             if col_idx != 6 or e == 0:
                 if c_fill.fill_type:
                     cell.fill = c_fill
-            if col_idx not in (3, 6):
+            if col_idx not in (2, 3, 6, 8):
                 cell.font = font_regular
 
         total_u += u
         total_e += e
+        total_boxes += boxes_count
         total_t += len(w_tickets)
 
         row_idx += 1
@@ -570,24 +764,39 @@ def _build_day_sheet(
     c_tot_label.font = font_bold
     c_tot_label.alignment = align_right
 
-    c_tot_u = ws.cell(row=row_idx, column=5, value=total_u)
+    c_tot_u = ws.cell(row=row_idx, column=5, value=f"{total_u:,} ta".replace(",", " "))
     c_tot_u.font = font_bold
     c_tot_u.alignment = align_right
-    c_tot_u.number_format = '#,##0'
 
-    c_tot_e = ws.cell(row=row_idx, column=6, value=float(total_e))
+    c_tot_e = ws.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
     c_tot_e.font = font_bold
     c_tot_e.alignment = align_right
     c_tot_e.number_format = '#,##0'
 
-    c_tot_t = ws.cell(row=row_idx, column=7, value=total_t)
+    c_tot_yest = ws.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
+    c_tot_yest.font = font_bold
+    c_tot_yest.alignment = align_right
+    c_tot_yest.number_format = '#,##0'
+
+    c_tot_curr = ws.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
+    c_tot_curr.font = font_bold
+    c_tot_curr.alignment = align_right
+    c_tot_curr.number_format = '#,##0'
+
+    c_tot_b = ws.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
+    c_tot_b.font = font_bold
+    c_tot_b.alignment = align_center
+    c_tot_b.number_format = '#,##0'
+
+    c_tot_t = ws.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
     c_tot_t.font = font_bold
     c_tot_t.alignment = align_center
     c_tot_t.number_format = '#,##0'
 
-    ws.cell(row=row_idx, column=8, value="")
+    ws.cell(row=row_idx, column=11, value="")
 
-    for col in range(1, 9):
+    ws.row_dimensions[row_idx].height = 24
+    for col in range(1, 12):
         c_n = ws.cell(row=row_idx, column=col)
         c_n.fill = total_fill
         c_n.border = thick_bottom_border
@@ -626,6 +835,23 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
         'box__order'
     ).order_by('scanned_at')
 
+    # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, ushbu oyda skanerlangan barcha biletlar
+    # narxlarini va jami summalarini eng so'nggi ratsenkalar bilan kafolatli qayta hisoblash:
+    ao_ids = month_tickets.values_list('article_operation_id', flat=True).distinct()
+    for ao in ArticleOperation.objects.filter(id__in=ao_ids):
+        ao.sync_price_to_tickets()
+
+    # Qayta yangilangan biletlarni yuklash
+    month_tickets = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(month_start_dt, month_end_dt)
+    ).select_related(
+        'worker',
+        'article_operation__operation',
+        'article_operation__article__model',
+        'box__order'
+    ).order_by('scanned_at')
+
     # Barcha xodimlar
     active_worker_ids = set(month_tickets.values_list('worker_id', flat=True))
     workers = list(Worker.objects.filter(
@@ -648,6 +874,32 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
         salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY)),
     )
     month_payout_map = {item['worker_id']: item for item in month_payout_qs}
+
+    # Oy boshidan oldingi balanslar (1 martalik tezkor agregatsiya):
+    tickets_pre_month = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__lt=month_start_dt
+    ).values('worker_id').annotate(total=Sum('total_amount'))
+    pre_month_earned_map = {item['worker_id']: item['total'] for item in tickets_pre_month}
+
+    payouts_pre_month = WorkerPayout.objects.filter(
+        payout_date__lt=start_of_month
+    ).values('worker_id').annotate(total=Sum('amount'))
+    pre_month_paid_map = {item['worker_id']: item['total'] for item in payouts_pre_month}
+
+    # Ushbu oy davomidagi barcha to'lovlar (worker_id, date) bo'yicha:
+    month_payouts_by_worker_date = {}
+    for p in WorkerPayout.objects.filter(payout_date__range=(start_of_month, target_date)):
+        key = (p.worker_id, p.payout_date)
+        month_payouts_by_worker_date[key] = month_payouts_by_worker_date.get(key, Decimal('0.00')) + p.amount
+
+    running_balances = {}
+    for w in workers:
+        earned_pre = pre_month_earned_map.get(w.id, Decimal('0.00')) or Decimal('0.00')
+        paid_pre = pre_month_paid_map.get(w.id, Decimal('0.00')) or Decimal('0.00')
+        running_balances[w.id] = earned_pre - paid_pre
+
+    worker_worked_days_set = {w.id: set() for w in workers}
 
     wb = openpyxl.Workbook()
 
@@ -864,11 +1116,24 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     for day_num in range(1, target_date.day + 1):
         cur_date = datetime.date(target_date.year, target_date.month, day_num)
         cur_day_tickets = tickets_by_date.get(cur_date, [])
+
+        # Kechagi balanslar (bu kunga kirish holatidagi balans):
+        yesterday_balances = {w.id: running_balances[w.id] for w in workers}
+
+        # Agar bugun bilet skanerlagan bo'lsa, ishlagan kunlar to'plamiga qo'shish:
+        for t in cur_day_tickets:
+            if t.worker_id and t.worker_id in worker_worked_days_set:
+                worker_worked_days_set[t.worker_id].add(cur_date)
+
+        days_worked_map = {w.id: len(worker_worked_days_set[w.id]) for w in workers}
+
         _build_day_sheet(
             wb=wb,
             target_date=cur_date,
             day_tickets=cur_day_tickets,
             all_workers=workers,
+            yesterday_balances=yesterday_balances,
+            days_worked_map=days_worked_map,
             navy_fill=navy_fill,
             zebra_fill=zebra_fill,
             green_fill=green_fill,
@@ -886,6 +1151,13 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
             align_right=align_right,
             align_wrap=align_wrap
         )
+
+        # Ushbu kun yakunida har bir xodimning balansini yangilab qo'yamiz (keyingi kunlar uchun):
+        for w in workers:
+            w_tickets_today = [t for t in cur_day_tickets if t.worker_id == w.id]
+            today_earned = sum(t.total_amount for t in w_tickets_today)
+            today_paid = month_payouts_by_worker_date.get((w.id, cur_date), Decimal('0.00'))
+            running_balances[w.id] += (today_earned - today_paid)
 
     # -------------------------------------------------------------
     # OXIRGI VARAQ: BARCHA SKANERLANGAN STIKERLAR (OYLIK RO'YXAT)

@@ -196,8 +196,32 @@ class ProductModelOperation(models.Model):
         except Exception:
             return str(self.difficulty)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Modeldagi operatsiya narxi yoki qiyinligi o'zgarganda, ushbu modelga ulangan barcha artikullardagi
+        # ArticleOperation larni yangilash (bu o'z navbatida barcha biletlarni qayta hisoblaydi)
+        for art in self.model.articles.all():
+            ao = ArticleOperation.objects.filter(article=art, operation=self.operation).first()
+            if ao:
+                ao.price_per_unit = self.price_per_unit
+                ao.sequence = self.sequence
+                ao.difficulty = self.difficulty
+                ao.save()
+            else:
+                ArticleOperation.objects.create(
+                    article=art,
+                    operation=self.operation,
+                    price_per_unit=self.price_per_unit,
+                    sequence=self.sequence,
+                    difficulty=self.difficulty
+                )
+
     def __str__(self):
         return f"{self.model.code} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS, Qiyinlik: {self.difficulty_display})"
+
+
+# Qisqa alias
+ModelOperation = ProductModelOperation
 
 
 class OperationGroup(models.Model):
@@ -322,10 +346,8 @@ class ArticleOperation(models.Model):
     sync_price_to_unfrozen_tickets = sync_price_to_tickets
 
     def save(self, *args, **kwargs):
-        is_existing = self.pk is not None
         super().save(*args, **kwargs)
-        if is_existing:
-            self.sync_price_to_tickets()
+        self.sync_price_to_tickets()
 
     def __str__(self):
         return f"{self.article.code} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS, Qiyinlik: {self.difficulty_display})"
