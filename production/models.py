@@ -796,6 +796,43 @@ class Box(models.Model):
     is_printed = models.BooleanField(default=False, verbose_name="Chop etilgan")
     printed_at = models.DateTimeField(null=True, blank=True, verbose_name="Chop etilgan vaqt")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATED, db_index=True, verbose_name="Holati")
+
+    # Sifat Nazorati (Quality Control / OTK) maydonlari
+    is_controlled = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Kontroldan o'tgan"
+    )
+    controlled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Kontrol qilingan vaqt"
+    )
+    controlled_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='controlled_boxes',
+        verbose_name="Tekshirgan kontrolchi"
+    )
+    controlled_first_sort_qty = models.PositiveIntegerField(
+        default=0,
+        verbose_name="1-sort soni"
+    )
+    controlled_second_sort_qty = models.PositiveIntegerField(
+        default=0,
+        verbose_name="2-sort soni"
+    )
+    controlled_repair_qty = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Hozir ta'mirda turgan soni"
+    )
+    controlled_defect_qty = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Brak (chiqindi) soni"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -811,6 +848,25 @@ class Box(models.Model):
         if self.cutting_batch_item and self.cutting_batch_item.batch:
             return self.cutting_batch_item.batch.pastal_code or str(self.cutting_batch_item.batch.batch_number)
         return ""
+
+    def control_qr_code_data_uri(self) -> str:
+        """
+        Xotirada (RAM) tezkor generatsiya qilinadigan CONTROL Base64 QR-kodi.
+        Sifat nazorati (OTK) planshetida skaner qilinganda qutini topish uchun.
+        """
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=1,
+        )
+        qr.add_data(f"CONTROL:{self.box_code}")
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return f"data:image/png;base64,{b64}"
 
     def save(self, *args, **kwargs):
         if not self.box_code:
@@ -870,6 +926,48 @@ class Box(models.Model):
     def __str__(self):
         art_code = self.target_article.code if self.target_article else "N/A"
         return f"{self.order.order_number} - Quti #{self.box_number} [{self.box_code}] ({self.quantity} dona)"
+
+
+class BoxQualityInspectionLog(models.Model):
+    class ActionType(models.TextChoices):
+        INITIAL = 'INITIAL', 'Birlamchi Tekshiruv'
+        REPAIR_RETURN = 'REPAIR_RETURN', "Ta'mirdan Qaytish"
+
+    box = models.ForeignKey(
+        Box,
+        on_delete=models.CASCADE,
+        related_name='quality_inspection_logs',
+        verbose_name="Quti"
+    )
+    inspector = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='box_inspections',
+        verbose_name="Kontrolchi"
+    )
+    action_type = models.CharField(
+        max_length=20,
+        choices=ActionType.choices,
+        default=ActionType.INITIAL,
+        verbose_name="Tekshiruv turi"
+    )
+    inspected_qty = models.PositiveIntegerField(default=0, verbose_name="Ko'rib chiqilgan son")
+    first_sort_qty = models.PositiveIntegerField(default=0, verbose_name="1-sort qilingan")
+    second_sort_qty = models.PositiveIntegerField(default=0, verbose_name="2-sort qilingan")
+    repair_qty = models.PositiveIntegerField(default=0, verbose_name="Ta'mirga yuborilgan")
+    defect_qty = models.PositiveIntegerField(default=0, verbose_name="Brak deb topilgan")
+    notes = models.TextField(blank=True, verbose_name="Izoh")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqt")
+
+    class Meta:
+        verbose_name = "Sifat Nazorati Jurnali"
+        verbose_name_plural = "Sifat Nazorati Jurnallari"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.box.box_code} ({self.get_action_type_display()}): 1-sort: {self.first_sort_qty}, 2-sort: {self.second_sort_qty}, Ta'mir: {self.repair_qty}, Brak: {self.defect_qty}"
 
 
 class Ticket(models.Model):

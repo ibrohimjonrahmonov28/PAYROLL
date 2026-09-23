@@ -26,6 +26,7 @@ class User(AbstractUser):
         METO = 'METO', 'Metochi (Nomerovka)'
         STICKER = 'STICKER', 'Stiker Chiqaruvchi'
         MASTER = 'MASTER', 'Master'
+        CONTROL = 'CONTROL', 'Kontrolchi (Sifat Nazorati)'
         USER = 'USER', 'Oddiy User'
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
@@ -97,6 +98,9 @@ class User(AbstractUser):
 
     def is_master(self):
         return self.role == self.Role.MASTER or self.is_superuser
+
+    def is_controller(self):
+        return self.role == self.Role.CONTROL or self.is_superuser
 
     def is_regular_user(self):
         return self.role == self.Role.USER

@@ -25,6 +25,7 @@ urlpatterns = [
     path('login/', login_view, name='root_login'),
     path('logout/', logout_view, name='root_logout'),
     path('', include('production.urls')),
+    path('control/', include('production.control_urls')),
     path('superadmin/', include('accounts.superadmin_urls')),
     path('managers/', include('production.manager_urls')),
     path('cutting/', include('production.cutting_urls')),

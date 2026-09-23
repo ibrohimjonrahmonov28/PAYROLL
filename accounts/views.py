@@ -10,6 +10,8 @@ def login_view(request):
     Master roli egalari kirgach avtomatik ravishda /terminal/ ga yo'naltiriladi.
     """
     if request.user.is_authenticated:
+        if getattr(request.user, 'role', None) == User.Role.CONTROL:
+            return redirect('production:control_home')
         if getattr(request.user, 'role', None) == User.Role.MASTER:
             return redirect('production:terminal_home')
         if getattr(request.user, 'role', None) == User.Role.MANAGER:
@@ -33,7 +35,9 @@ def login_view(request):
             if user is not None:
                 auth_login(request, user)
                 
-                # Master roli faqat terminalga yo'naltiriladi
+                # Kontrolchi va Master rollari faqat o'z sahifasiga yo'naltiriladi
+                if user.role == User.Role.CONTROL:
+                    return redirect('production:control_home')
                 if user.role == User.Role.MASTER:
                     return redirect('production:terminal_home')
                 

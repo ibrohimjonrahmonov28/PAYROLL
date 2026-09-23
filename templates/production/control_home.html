@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SIFAT NAZORATI (OTK / CONTROL) — TERRY JAR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1120;
+            color: #f8fafc;
+            touch-action: manipulation;
+        }
+
+        .digital-font {
+            font-family: 'Chakra Petch', monospace;
+        }
+
+        /* Sensor tugmalar uchun faol teginish effekti */
+        .touch-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Pulse animatsiyasi */
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+        }
+
+        .pulse-active {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between select-none">
+
+    <!-- 1. TOP NAVBAR -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 shadow-xl sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center text-lg shadow-inner">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base font-black text-white tracking-wide uppercase">SIFAT NAZORATI</h1>
+                        <span
+                            class="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            OTK / CONTROL
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 font-medium">TERRY JAR Tikuvchilik Fabrikasi</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+                <!-- Bugungi hisoblagich -->
+                <div
+                    class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-boxes-stacked text-xs text-amber-400"></i>
+                    <span class="text-xs text-slate-400 font-bold">Bugun:</span>
+                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{ today_count
+                        }}</strong>
+                    <span class="text-[10px] text-slate-500">ta quti</span>
+                </div>
+
+                <!-- Foydalanuvchi info -->
+                <div
+                    class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    <i class="fa-solid fa-user-tag text-indigo-400"></i>
+                    <span class="font-bold text-slate-200">@{{ inspector.username }}</span>
+                </div>
+
+                <!-- Ovoz toggle -->
+                <button type="button" id="btn-toggle-sound" onclick="toggleSound()"
+                    class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm transition"
+                    title="Ovozni yoqish / o'chirish">
+                    <i class="fa-solid fa-volume-high text-amber-400" id="sound-icon"></i>
+                </button>
+
+                <!-- Logout -->
+                <a href="{% url 'root_logout' %}"
+                    class="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden md:inline">Chiqish</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto w-full p-3 sm:p-5 flex-1 flex flex-col gap-4">
+
+        <!-- SKANER / QIDIRUV MAYDONI -->
+        <section class="bg-slate-900 border-2 border-indigo-500/40 rounded-3xl p-3 sm:p-4 shadow-2xl">
+            <form id="scanner-form" onsubmit="handleScannerSubmit(event)" class="flex items-center gap-2.5">
+                <div class="relative flex-1">
+                    <div
+                        class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-400 text-lg">
+                        <i class="fa-solid fa-barcode"></i>
+                    </div>
+                    <input type="text" id="scanner-input" autofocus autocomplete="off"
+                        placeholder="Quti yoki CONTROL stikerini skanerlang (yoki kodni kiriting)..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-12 py-3.5 text-base sm:text-lg font-bold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition uppercase font-mono tracking-wider">
+                    <button type="button" onclick="clearScannerInput()"
+                        class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-white text-base">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+                <button type="submit"
+                    class="touch-btn px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span class="hidden sm:inline">Qidirish</span>
+                </button>
+            </form>
+            <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mt-2 px-2">
+                <span class="flex items-center gap-1.5 text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block pulse-active"></span>
+                    Skanerlashga tayyor (Har qanday skaner / USB / Bluetooth ishlaydi)
+                </span>
+                <span class="hidden sm:inline text-slate-500">Format: CONTROL:KOD yoki Quti raqami</span>
+            </div>
+        </section>
+
+        <!-- STANDBY (KUTILMOQDA) EKRANI -->
+        <section id="standby-screen"
+            class="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center my-auto shadow-xl">
+            <div
+                class="w-24 h-24 mx-auto rounded-3xl bg-indigo-500/10 border-2 border-dashed border-indigo-500/30 flex items-center justify-center text-4xl text-indigo-400 mb-4 shadow-inner">
+                <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-white">Stikerni Skanerlang</h2>
+            <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mt-1.5 leading-relaxed">
+                Qutidagi <strong class="text-amber-400">CONTROL</strong> stikerini yoki quti QR kodini skaner uskunasi
+                orqali o'qing.
+                Model ma'lumotlari va sonlar planshetda aks etadi.
+            </p>
+        </section>
+
+        <!-- QUTI TEKSHIRUV KARTASI (AJAX orqali to'ldiriladi) -->
+        <section id="inspection-card"
+            class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-5">
+            <!-- REJIMA SOHASI (INITIAL yoki REPAIR_RETURN) -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <span id="badge-mode"
+                        class="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                        BIRLAMCHI TEKSHIRUV
+                    </span>
+                    <span id="badge-box-id"
+                        class="px-3 py-1 rounded-xl text-xs font-mono font-black bg-slate-950 text-amber-400 border border-slate-800">
+                        QUTI #--- [------]
+                    </span>
+                </div>
+                <div class="text-xs font-bold text-slate-400 flex items-center gap-2">
+                    <span>Zakaz: <strong id="val-order-number" class="text-white">---</strong></span>
+                    <span>•</span>
+                    <span>Pastal: <strong id="val-pastal-code" class="text-white">---</strong></span>
+                </div>
+            </div>
+
+            <!-- ASOSIY QISM: RASM + MODEL MA'LUMOTLARI + SONLARNI BOSHQARISH -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                <!-- 1. MODEL RASMI VA NOMI (4 ustun) -->
+                <div
+                    class="lg:col-span-4 flex flex-col items-center sm:items-start text-center sm:text-left gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800/80">
+                    <div
+                        class="w-full h-44 sm:h-52 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shadow-inner">
+                        <img id="val-product-img" src="" alt="Model Rasmi" class="w-full h-full object-contain hidden">
+                        <div id="val-product-no-img"
+                            class="flex flex-col items-center justify-center text-slate-600 gap-1.5">
+                            <i class="fa-solid fa-shirt text-4xl"></i>
+                            <span class="text-[11px] font-bold">Rasm mavjud emas</span>
+                        </div>
+                    </div>
+                    <div class="w-full">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">ARTIKUL &
+                            MODEL</span>
+                        <h3 id="val-article-code"
+                            class="text-xl font-black text-amber-400 font-mono tracking-wide uppercase truncate">
+                            DC-0000
+                        </h3>
+                        <h4 id="val-article-name" class="text-sm font-bold text-white truncate">
+                            Model Nomi
+                        </h4>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span
+                                class="px-2.5 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-xs font-black font-mono">
+                                RAZMER: <span id="val-razmer">--</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. SONLARNI BOSHQARISH (8 ustun) -->
+                <div class="lg:col-span-8 flex flex-col justify-between gap-4">
+
+                    <!-- NORMAL REJIM (INITIAL CHECK) -->
+                    <div id="mode-initial-panel" class="space-y-4">
+                        <!-- Qutidagi jami son (O'rtada katta boshqaruv) -->
+                        <div
+                            class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <span class="text-xs font-black uppercase tracking-wider text-slate-400 block">QUTIDAGI
+                                    JAMI SONI:</span>
+                                <span class="text-[11px] text-slate-500">Agar haqiqiy son farq qilsa, tugmalar bilan
+                                    to'g'rilang</span>
+                            </div>
+                            <!-- Stepper -->
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustTotalQty(-5)"
+                                    class="touch-btn w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs font-mono">-5</button>
+                                <button type="button" onclick="adjustTotalQty(-1)"
+                                    class="touch-btn w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-black text-xl shadow">-</button>
+                                <input type="number" id="input-total-qty" min="1" value="50" oninput="recalcSorts()"
+                                    class="w-24 text-center bg-slate-900 border-2 border-indigo-500/50 rounded-xl py-2 text-2xl font-black text-white digital-font focus:outline-none focus:border-indigo-400">
+                                <button type="button" onclick="adjustTotalQty(+1)"
+                                    class="touch-btn w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-black text-xl shadow">+</button>
+                                <button type="button" onclick="adjustTotalQty(+5)"
+                                    class="touch-btn w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs font-mono">+5</button>
+                            </div>
+                        </div>
+
+                        <!-- 3 ta Karta: 1-SORT, 2-SORT, TA'MIR -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <!-- 1-SORT (AVTOMATIK KATTA YASHIL BLOK) -->
+                            <div
+                                class="bg-gradient-to-br from-emerald-950/80 to-slate-950 border-2 border-emerald-500/60 rounded-2xl p-4 flex flex-col justify-between text-center shadow-lg shadow-emerald-950/40">
+                                <span
+                                    class="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-circle-check"></i> 1-SORT (TAYYOR)
+                                </span>
+                                <div class="my-2">
+                                    <span id="display-first-sort"
+                                        class="digital-font text-4xl sm:text-5xl font-black text-emerald-400">
+                                        50
+                                    </span>
+                                    <span class="text-xs text-emerald-400/80 font-bold ml-1">dona</span>
+                                </div>
+                                <span class="text-[10px] text-emerald-400/60 font-semibold">Avtomatik hisoblanadi
+                                    (Upakovkaga)</span>
+                            </div>
+
+                            <!-- 2-SORT -->
+                            <div
+                                class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-center">
+                                <span
+                                    class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> 2-SORT
+                                </span>
+                                <div class="my-2 flex items-center justify-center gap-2">
+                                    <button type="button" onclick="adjustSecondSort(-1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
+                                    <input type="number" id="input-second-sort" min="0" value="0"
+                                        oninput="recalcSorts()"
+                                        class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-amber-400 digital-font focus:outline-none">
+                                    <button type="button" onclick="adjustSecondSort(+1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-medium">Mayda nuqsonli ish</span>
+                            </div>
+
+                            <!-- TA'MIR (REMONT) -->
+                            <div
+                                class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-center">
+                                <span
+                                    class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-wrench"></i> TA'MIR (REMONT)
+                                </span>
+                                <div class="my-2 flex items-center justify-center gap-2">
+                                    <button type="button" onclick="adjustRepairQty(-1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
+                                    <input type="number" id="input-repair-qty" min="0" value="0" oninput="recalcSorts()"
+                                        class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-rose-400 digital-font focus:outline-none">
+                                    <button type="button" onclick="adjustRepairQty(+1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-medium">Tikuvchiga qaytariladi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TA'MIRDAN QAYTISH REJIMI (REPAIR RETURN PANEL) -->
+                    <div id="mode-repair-panel" class="hidden space-y-4">
+                        <div
+                            class="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-300 flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 text-base flex-shrink-0">
+                                <i class="fa-solid fa-arrows-spin fa-spin"></i>
+                            </div>
+                            <div>
+                                <strong class="text-sm font-black text-white block">TA'MIR QAYTISHI BOSQICHI</strong>
+                                <span>Ushbu qutida ta'mirga ketgan <strong id="val-repair-in-hand"
+                                        class="text-amber-400 text-sm font-mono">0</strong> ta ish bor. Natijasini
+                                    kiriting:</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <!-- BRAK (TUZALMAYDIGAN) -->
+                            <div class="bg-slate-950 border-2 border-rose-500/40 rounded-2xl p-4 text-center">
+                                <span
+                                    class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-trash-can"></i> BRAK (CHI QINDI)
+                                </span>
+                                <div class="my-2 flex items-center justify-center gap-2">
+                                    <button type="button" onclick="adjustDefectQty(-1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
+                                    <input type="number" id="input-defect-qty" min="0" value="0"
+                                        oninput="recalcRepairReturn()"
+                                        class="w-16 text-center bg-slate-900 border border-rose-500/50 rounded-lg py-1.5 text-2xl font-black text-rose-400 digital-font focus:outline-none">
+                                    <button type="button" onclick="adjustDefectQty(+1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                </div>
+                                <span class="text-[10px] text-slate-500">Tuzalmaydigan chiqindi</span>
+                            </div>
+
+                            <!-- QAYTA TA'MIRGA -->
+                            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center">
+                                <span
+                                    class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-rotate-left"></i> QAYTA TA'MIRGA
+                                </span>
+                                <div class="my-2 flex items-center justify-center gap-2">
+                                    <button type="button" onclick="adjustReRepairQty(-1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
+                                    <input type="number" id="input-re-repair-qty" min="0" value="0"
+                                        oninput="recalcRepairReturn()"
+                                        class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-amber-400 digital-font focus:outline-none">
+                                    <button type="button" onclick="adjustReRepairQty(+1)"
+                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                </div>
+                                <span class="text-[10px] text-slate-500">Yana ta'mirda qoladigan</span>
+                            </div>
+
+                            <!-- 1-SORTGA QO'SHILADI -->
+                            <div
+                                class="bg-gradient-to-br from-emerald-950/80 to-slate-950 border-2 border-emerald-500/60 rounded-2xl p-4 text-center flex flex-col justify-between">
+                                <span
+                                    class="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-check-double"></i> TUZALDI (1-SORTGA)
+                                </span>
+                                <div class="my-2">
+                                    <span id="display-fixed-sort"
+                                        class="digital-font text-4xl sm:text-5xl font-black text-emerald-400">
+                                        0
+                                    </span>
+                                    <span class="text-xs text-emerald-400/80 font-bold ml-1">dona</span>
+                                </div>
+                                <span class="text-[10px] text-emerald-400/60 font-semibold">1-sortga qo'shiladi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TASDIQLASH TUGMASI (Katta Sensor Tugma) -->
+                    <div class="pt-2">
+                        <button type="button" id="btn-submit-inspection" onclick="submitInspection()"
+                            class="touch-btn w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition">
+                            <i class="fa-solid fa-circle-check text-xl"></i>
+                            <span>TASDIQLASH VA SAQLASH (ENTER)</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. BUGUNGI OXIRGI TEKSHIRILGAN QUTILAR JURNALI -->
+        <section class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-sm font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
+                    Bugun Tekshirilgan Qutilar Jurnali
+                </h3>
+                <span class="text-xs font-mono text-slate-400">{{ today_date }}</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="text-slate-400 uppercase font-black border-b border-slate-800/80 text-[11px]">
+                            <th class="py-2.5 px-3">Vaqt</th>
+                            <th class="py-2.5 px-3">Quti</th>
+                            <th class="py-2.5 px-3">Zakaz / Model</th>
+                            <th class="py-2.5 px-3">Amal</th>
+                            <th class="py-2.5 px-3 text-center text-emerald-400">1-Sort</th>
+                            <th class="py-2.5 px-3 text-center text-amber-400">2-Sort</th>
+                            <th class="py-2.5 px-3 text-center text-rose-400">Ta'mir</th>
+                            <th class="py-2.5 px-3 text-center text-red-500">Brak</th>
+                            <th class="py-2.5 px-3 text-right">Kontrolchi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-logs-body" class="divide-y divide-slate-800/50 font-medium">
+                        {% for log in today_inspections %}
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="py-2 px-3 text-slate-400 font-mono">{{ log.created_at|date:"H:i:s" }}</td>
+                            <td class="py-2 px-3 font-mono font-bold text-amber-400">
+                                QUTI #{{ log.box.box_number }} [{{ log.box.box_code }}]
+                            </td>
+                            <td class="py-2 px-3 text-slate-300">
+                                {{ log.box.order.order_number }} • {{ log.box.target_article.code|default:"—" }}
+                            </td>
+                            <td class="py-2 px-3">
+                                {% if log.action_type == 'INITIAL' %}
+                                <span
+                                    class="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                    Birlamchi
+                                </span>
+                                {% else %}
+                                <span
+                                    class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    Ta'mirdan
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-emerald-400">{{ log.first_sort_qty
+                                }}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-amber-400">{{ log.second_sort_qty
+                                }}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-rose-400">{{ log.repair_qty }}
+                            </td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-red-500">{{ log.defect_qty }}</td>
+                            <td class="py-2 px-3 text-right text-slate-400">@{{ log.inspector.username|default:"—" }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr id="no-logs-row">
+                            <td colspan="9" class="py-6 text-center text-slate-500">Bugun hali tekshirilgan qutilar
+                                mavjud emas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 4. FOOTER -->
+    <footer class="bg-slate-950 border-t border-slate-800/80 px-4 py-2.5 text-center text-[11px] text-slate-500">
+        TERRY JAR Tikuvchilik Majmuasi • Sifat Nazorati (OTK / CONTROL) Tizimi
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Global State
+        let currentBox = null;
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (ctx.state === 'suspended') ctx.resume();
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.25);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, ctx.currentTime);
+                    osc.frequency.setValueAtTime(120, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'beep') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(750, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.08);
+                }
+            } catch (e) {
+                console.warn('Audio feedback failed:', e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-amber-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+            }
+        }
+
+        function clearScannerInput() {
+            const input = document.getElementById('scanner-input');
+            input.value = '';
+            input.focus();
+        }
+
+        // Qidiruv / Skanerlash hodisasi
+        async function handleScannerSubmit(e) {
+            if (e) e.preventDefault();
+            const input = document.getElementById('scanner-input');
+            const code = input.value.trim();
+            if (!code) return;
+
+            playSound('beep');
+
+            try {
+                const res = await fetch(`{% url 'control:api_lookup' %}?code=${encodeURIComponent(code)}`);
+                const data = await res.json();
+
+                if (res.ok && data.status === 'OK') {
+                    currentBox = data.box;
+                    renderInspectionCard(currentBox);
+                    playSound('success');
+                } else {
+                    playSound('error');
+                    alert(data.message || "Quti topilmadi!");
+                    input.select();
+                }
+            } catch (err) {
+                playSound('error');
+                alert("Server bilan bog'lanishda xatolik yuz berdi!");
+                console.error(err);
+            }
+        }
+
+        // Karta ma'lumotlarini chizish
+        function renderInspectionCard(b) {
+            document.getElementById('standby-screen').classList.add('hidden');
+            const card = document.getElementById('inspection-card');
+            card.classList.remove('hidden');
+
+            document.getElementById('badge-box-id').innerText = `QUTI #${b.box_number} [${b.box_code}]`;
+            document.getElementById('val-order-number').innerText = b.order_number;
+            document.getElementById('val-pastal-code').innerText = b.pastal_code;
+            document.getElementById('val-article-code').innerText = b.article_code;
+            document.getElementById('val-article-name').innerText = b.article_name;
+            document.getElementById('val-razmer').innerText = b.razmer;
+
+            // Rasm
+            const imgEl = document.getElementById('val-product-img');
+            const noImgEl = document.getElementById('val-product-no-img');
+            if (b.image_url) {
+                imgEl.src = b.image_url;
+                imgEl.classList.remove('hidden');
+                noImgEl.classList.add('hidden');
+            } else {
+                imgEl.classList.add('hidden');
+                noImgEl.classList.remove('hidden');
+            }
+
+            // Rejim
+            if (b.mode === 'REPAIR_RETURN') {
+                document.getElementById('badge-mode').innerText = "TA'MIRDAN QAYTISH REJIMI";
+                document.getElementById('badge-mode').className = "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40";
+                document.getElementById('mode-initial-panel').classList.add('hidden');
+                document.getElementById('mode-repair-panel').classList.remove('hidden');
+                document.getElementById('val-repair-in-hand').innerText = b.controlled_repair_qty;
+
+                document.getElementById('input-defect-qty').value = 0;
+                document.getElementById('input-re-repair-qty').value = 0;
+                recalcRepairReturn();
+            } else {
+                document.getElementById('badge-mode').innerText = "BIRLAMCHI TEKSHIRUV";
+                document.getElementById('badge-mode').className = "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40";
+                document.getElementById('mode-repair-panel').classList.add('hidden');
+                document.getElementById('mode-initial-panel').classList.remove('hidden');
+
+                document.getElementById('input-total-qty').value = b.quantity;
+                document.getElementById('input-second-sort').value = 0;
+                document.getElementById('input-repair-qty').value = 0;
+                recalcSorts();
+            }
+        }
+
+        // Birlamchi tekshiruv hisob-kitobi: 1-sort = Jami - 2-sort - Ta'mir
+        function recalcSorts() {
+            const total = parseInt(document.getElementById('input-total-qty').value) || 0;
+            const second = parseInt(document.getElementById('input-second-sort').value) || 0;
+            const repair = parseInt(document.getElementById('input-repair-qty').value) || 0;
+
+            let first = total - second - repair;
+            const display = document.getElementById('display-first-sort');
+
+            if (first < 0) {
+                display.innerText = "Xato!";
+                display.className = "digital-font text-3xl font-black text-rose-500";
+            } else {
+                display.innerText = first;
+                display.className = "digital-font text-4xl sm:text-5xl font-black text-emerald-400";
+            }
+        }
+
+        function adjustTotalQty(delta) {
+            const input = document.getElementById('input-total-qty');
+            let val = (parseInt(input.value) || 0) + delta;
+            if (val < 1) val = 1;
+            input.value = val;
+            recalcSorts();
+        }
+
+        function adjustSecondSort(delta) {
+            const input = document.getElementById('input-second-sort');
+            let val = (parseInt(input.value) || 0) + delta;
+            if (val < 0) val = 0;
+            input.value = val;
+            recalcSorts();
+        }
+
+        function adjustRepairQty(delta) {
+            const input = document.getElementById('input-repair-qty');
+            let val = (parseInt(input.value) || 0) + delta;
+            if (val < 0) val = 0;
+            input.value = val;
+            recalcSorts();
+        }
+
+        // Ta'mirdan qaytish hisob-kitobi: Tuzaldi = Ta'mirdagi son - Brak - Qayta ta'mir
+        function recalcRepairReturn() {
+            if (!currentBox) return;
+            const inHand = currentBox.controlled_repair_qty;
+            const defect = parseInt(document.getElementById('input-defect-qty').value) || 0;
+            const reRepair = parseInt(document.getElementById('input-re-repair-qty').value) || 0;
+
+            let fixed = inHand - defect - reRepair;
+            const display = document.getElementById('display-fixed-sort');
+
+            if (fixed < 0) {
+                display.innerText = "Xato!";
+                display.className = "digital-font text-3xl font-black text-rose-500";
+            } else {
+                display.innerText = fixed;
+                display.className = "digital-font text-4xl sm:text-5xl font-black text-emerald-400";
+            }
+        }
+
+        function adjustDefectQty(delta) {
+            const input = document.getElementById('input-defect-qty');
+            let val = (parseInt(input.value) || 0) + delta;
+            if (val < 0) val = 0;
+            input.value = val;
+            recalcRepairReturn();
+        }
+
+        function adjustReRepairQty(delta) {
+            const input = document.getElementById('input-re-repair-qty');
+            let val = (parseInt(input.value) || 0) + delta;
+            if (val < 0) val = 0;
+            input.value = val;
+            recalcRepairReturn();
+        }
+
+        // Tasdiqlash va serverga jo'natish
+        async function submitInspection() {
+            if (!currentBox) return;
+            const btn = document.getElementById('btn-submit-inspection');
+            btn.disabled = true;
+
+            let payload = {
+                box_id: currentBox.id,
+                mode: currentBox.mode
+            };
+
+            if (currentBox.mode === 'INITIAL') {
+                const total = parseInt(document.getElementById('input-total-qty').value) || 0;
+                const second = parseInt(document.getElementById('input-second-sort').value) || 0;
+                const repair = parseInt(document.getElementById('input-repair-qty').value) || 0;
+
+                if (second + repair > total) {
+                    playSound('error');
+                    alert("Xatolik: 2-sort va Ta'mir soni jami sondan katta bo'lishi mumkin emas!");
+                    btn.disabled = false;
+                    return;
+                }
+
+                payload.total_qty = total;
+                payload.second_sort_qty = second;
+                payload.repair_qty = repair;
+            } else {
+                const inHand = currentBox.controlled_repair_qty;
+                const defect = parseInt(document.getElementById('input-defect-qty').value) || 0;
+                const reRepair = parseInt(document.getElementById('input-re-repair-qty').value) || 0;
+
+                if (defect + reRepair > inHand) {
+                    playSound('error');
+                    alert("Xatolik: Brak va Qayta ta'mir soni ta'mirdagi sondan oshib ketishi mumkin emas!");
+                    btn.disabled = false;
+                    return;
+                }
+
+                payload.defect_qty = defect;
+                payload.re_repair_qty = reRepair;
+            }
+
+            try {
+                const res = await fetch(`{% url 'control:api_submit' %}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (res.ok && data.status === 'OK') {
+                    playSound('success');
+                    // Standby ga qaytarish
+                    document.getElementById('inspection-card').classList.add('hidden');
+                    document.getElementById('standby-screen').classList.remove('hidden');
+                    currentBox = null;
+                    clearScannerInput();
+                    // Jurnalni yangilash
+                    refreshRecentLogs();
+                } else {
+                    playSound('error');
+                    alert(data.message || "Tasdiqlashda xatolik yuz berdi!");
+                }
+            } catch (err) {
+                playSound('error');
+                alert("Server xatosi!");
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Oxirgi jurnallarni yangilash
+        async function refreshRecentLogs() {
+            try {
+                const res = await fetch(`{% url 'control:api_recent' %}`);
+                const data = await res.json();
+                if (res.ok && data.status === 'OK') {
+                    const tbody = document.getElementById('recent-logs-body');
+                    if (data.logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-500">Bugun hali tekshirilgan qutilar mavjud emas.</td></tr>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.logs.forEach(l => {
+                        const badgeHtml = l.action_type === 'INITIAL'
+                            ? '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Birlamchi</span>'
+                            : '<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">Ta\'mirdan</span>';
+
+                        html += `
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="py-2 px-3 text-slate-400 font-mono">${l.time}</td>
+                            <td class="py-2 px-3 font-mono font-bold text-amber-400">QUTI #${l.box_number} [${l.box_code}]</td>
+                            <td class="py-2 px-3 text-slate-300">${l.order_number} • ${l.article_code}</td>
+                            <td class="py-2 px-3">${badgeHtml}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-emerald-400">${l.first_sort}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-amber-400">${l.second_sort}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-rose-400">${l.repair}</td>
+                            <td class="py-2 px-3 text-center font-mono font-bold text-red-500">${l.defect}</td>
+                            <td class="py-2 px-3 text-right text-slate-400">@${l.inspector}</td>
+                        </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+
+                    // Header sonini yangilash
+                    const headerCount = document.getElementById('header-today-count');
+                    if (headerCount) headerCount.innerText = data.count;
+                }
+            } catch (err) {
+                console.warn('Refresh logs failed:', err);
+            }
+        }
+
+        // CSRF Token olish
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Klaviatura yordamida tezkor boshqaruv
+        document.addEventListener('keydown', function (e) {
+            // Agar inputda bo'lsa va Enter bosilsa:
+            if (e.key === 'Enter') {
+                const activeId = document.activeElement ? document.activeElement.id : '';
+                if (activeId === 'scanner-input') {
+                    // form submit handles it
+                    return;
+                }
+                if (currentBox && activeId !== 'scanner-input') {
+                    e.preventDefault();
+                    submitInspection();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

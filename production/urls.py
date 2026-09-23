@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import terminal_views
+from . import control_views
 
 app_name = 'production'
 
@@ -26,4 +27,7 @@ urlpatterns = [
     path('terminal/api/box-lookup/', terminal_views.terminal_box_lookup_api, name='terminal_box_lookup'),
     path('terminal/api/worker-balance/', terminal_views.terminal_worker_balance_api, name='terminal_worker_balance'),
     path('terminal/api/reset-session/', terminal_views.terminal_reset_session_api, name='terminal_reset_session'),
+
+    # Sifat Nazorati (OTK / Control)
+    path('control/', control_views.control_home_view, name='control_home'),
 ]

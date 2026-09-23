@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog
 
 
 @admin.register(Customer)
@@ -121,3 +121,10 @@ class CuttingBatchItemAdmin(admin.ModelAdmin):
     ]
     list_filter = ['status', 'batch__order_item__order']
     search_fields = ['meto_worker_name', 'meto_number_start', 'meto_number_end']
+
+
+@admin.register(BoxQualityInspectionLog)
+class BoxQualityInspectionLogAdmin(admin.ModelAdmin):
+    list_display = ['box', 'inspector', 'action_type', 'first_sort_qty', 'second_sort_qty', 'repair_qty', 'defect_qty', 'created_at']
+    list_filter = ['action_type', 'created_at']
+    search_fields = ['box__box_code', 'box__order__order_number', 'inspector__username']

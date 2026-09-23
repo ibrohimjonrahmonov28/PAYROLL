@@ -79,5 +79,33 @@ class MasterTerminalAccessRestrictionMiddleware:
                     
                     return redirect('production:order_list')
 
+            elif getattr(request.user, 'role', None) == User.Role.CONTROL:
+                path = request.path_info
+                allowed_prefixes = (
+                    '/control/',
+                    '/control',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes)
+                if not is_allowed:
+                    is_ajax = (
+                        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                        'application/json' in request.headers.get('accept', '') or
+                        request.content_type == 'application/json'
+                    )
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'FORBIDDEN',
+                            'message': "Ruxsat etilmagan! Kontrolchi hisobi faqat Sifat Nazorati (Control) sahifasidan foydalana oladi."
+                        }, status=403)
+                    
+                    return redirect('production:control_home')
+
         return self.get_response(request)
 

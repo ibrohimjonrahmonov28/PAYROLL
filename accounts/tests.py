@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
@@ -1289,6 +1290,140 @@ class SuperadminUserEditFeaturesTest(TestCase):
         self.user1.refresh_from_db()
         # user1 ga bu ID biriktirilmasligi kerak (chunki u user2 da bor)
         self.assertNotEqual(self.user1.telegram_user_id, 123456789)
+
+
+class ControlRoleAndQualityControlTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username="super_ctrl",
+            password="password123",
+            role=User.Role.SUPER_ADMIN
+        )
+        self.controller = User.objects.create_user(
+            username="patok1",
+            password="password123",
+            role=User.Role.CONTROL
+        )
+        self.order = Order.objects.create(order_number="ORD-QC-01", total_quantity=50)
+        self.article = Article.objects.create(code="DC-0309", name="Erkaklar Futbolkasi")
+        self.box = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            box_number=1,
+            quantity=50,
+            razmer="XL",
+            pastal_number="P-101"
+        )
+
+    def test_control_role_access_and_restriction(self):
+        # 1. Kontrolchi /control/ sahifasiga kira oladi
+        self.client.force_login(self.controller)
+        res = self.client.get(reverse('control:home'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "SIFAT NAZORATI")
+        self.assertContains(res, "patok1")
+
+        # 2. Kontrolchi /orders/ ga kirishga harakat qilsa, /control/ ga yo'naltiriladi
+        res_orders = self.client.get(reverse('production:order_list'))
+        self.assertEqual(res_orders.status_code, 302)
+        self.assertIn('/control/', res_orders.url)
+
+        # 3. Kontrolchi AJAX orqali boshqa joyga so'rov bersa 403 oladi
+        res_ajax = self.client.get(reverse('production:order_list'), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_ajax.status_code, 403)
+        self.assertEqual(res_ajax.json()['status'], 'FORBIDDEN')
+
+        # 4. Superadmin ham /control/ ga kira oladi
+        self.client.force_login(self.superadmin)
+        res_sa = self.client.get(reverse('control:home'))
+        self.assertEqual(res_sa.status_code, 200)
+
+    def test_control_box_lookup_api(self):
+        self.client.force_login(self.controller)
+
+        # 1. CONTROL:BOX_CODE formatida qidirish
+        res = self.client.get(reverse('control:api_lookup'), {'code': f'CONTROL:{self.box.box_code}'})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(data['box']['box_code'], self.box.box_code)
+        self.assertEqual(data['box']['article_code'], 'DC-0309')
+        self.assertEqual(data['box']['quantity'], 50)
+        self.assertEqual(data['box']['mode'], 'INITIAL')
+
+        # 2. Shunchaki box_code orqali qidirish
+        res2 = self.client.get(reverse('control:api_lookup'), {'code': self.box.box_code.lower()})
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.json()['box']['id'], self.box.id)
+
+    def test_control_inspection_initial_and_repair_cycle(self):
+        self.client.force_login(self.controller)
+
+        # 1. Birlamchi tekshiruv: 50 tadan 10 tasi 2-sort, 3 tasi ta'mir -> 1-sort = 37 ta bo'lishi kerak
+        payload = {
+            'box_id': self.box.id,
+            'mode': 'INITIAL',
+            'total_qty': 50,
+            'second_sort_qty': 10,
+            'repair_qty': 3
+        }
+        res = self.client.post(
+            reverse('control:api_submit'),
+            json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(data['box']['first_sort'], 37)
+        self.assertEqual(data['box']['second_sort'], 10)
+        self.assertEqual(data['box']['repair'], 3)
+
+        self.box.refresh_from_db()
+        self.assertTrue(self.box.is_controlled)
+        self.assertEqual(self.box.controlled_first_sort_qty, 37)
+        self.assertEqual(self.box.controlled_second_sort_qty, 10)
+        self.assertEqual(self.box.controlled_repair_qty, 3)
+
+        # 2. Quti qayta qidirilganda REPAIR_RETURN rejimida chiqishi kerak (chunki repair_qty = 3)
+        res_lookup = self.client.get(reverse('control:api_lookup'), {'code': self.box.box_code})
+        self.assertEqual(res_lookup.json()['box']['mode'], 'REPAIR_RETURN')
+        self.assertEqual(res_lookup.json()['box']['controlled_repair_qty'], 3)
+
+        # 3. Ta'mirdan qaytish: 3 tadan 1 tasi tuzalmas brak, 0 tasi qayta ta'mir -> 2 tasi 1-sortga qo'shiladi!
+        repair_payload = {
+            'box_id': self.box.id,
+            'mode': 'REPAIR_RETURN',
+            'defect_qty': 1,
+            're_repair_qty': 0
+        }
+        res_rep = self.client.post(
+            reverse('control:api_submit'),
+            json.dumps(repair_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res_rep.status_code, 200)
+
+        self.box.refresh_from_db()
+        # 1-sort: 37 + 2 = 39 ta!
+        self.assertEqual(self.box.controlled_first_sort_qty, 39)
+        self.assertEqual(self.box.controlled_second_sort_qty, 10)
+        self.assertEqual(self.box.controlled_defect_qty, 1)
+        self.assertEqual(self.box.controlled_repair_qty, 0)
+        # Jami: 39 (1-sort) + 10 (2-sort) + 1 (brak) = 50 ta!
+
+    def test_mandatory_control_sticker_printed(self):
+        # Quti stikerlari chop etilganda oxirida CONTROL stikeri chiqishi kerak
+        self.client.force_login(self.superadmin)
+        url = reverse('production:box_print_stickers', kwargs={'box_id': self.box.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "CONTROL")
+        self.assertContains(res, "SIFAT NAZORATI")
+        self.assertContains(res, "CONTROL STIKER")
+        self.assertContains(res, f"CONTROL:{self.box.box_code}")
+
 
 
 

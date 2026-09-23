@@ -403,7 +403,7 @@ def superadmin_users(request):
             user = get_object_or_404(User, id=user_id)
             if user == request.user and new_role != User.Role.SUPER_ADMIN:
                 messages.error(request, "Xatolik: O'zingizning Super Admin rolingizni o'zgartira olmaysiz!")
-            elif new_role not in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.USER]:
+            elif new_role not in User.Role.values:
                 messages.error(request, "Noto'g'ri rol tanlandi!")
             else:
                 user.role = new_role
@@ -476,7 +476,7 @@ def superadmin_users(request):
             Q(phone_number__icontains=search_q) |
             Q(email__icontains=search_q)
         )
-    if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.USER]:
+    if role_filter in User.Role.values:
         users_qs = users_qs.filter(role=role_filter)
 
     if badge_filter == 'unprinted':
@@ -490,6 +490,7 @@ def superadmin_users(request):
     all_users_count = User.objects.count()
     regular_users_count = User.objects.filter(role=User.Role.USER).count()
     masters_count = User.objects.filter(role=User.Role.MASTER).count()
+    controllers_count = User.objects.filter(role=User.Role.CONTROL).count()
     admins_count = User.objects.filter(role=User.Role.ADMIN).count()
     superadmins_count = User.objects.filter(role=User.Role.SUPER_ADMIN).count()
     unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
@@ -503,6 +504,7 @@ def superadmin_users(request):
         'all_users_count': all_users_count,
         'regular_users_count': regular_users_count,
         'masters_count': masters_count,
+        'controllers_count': controllers_count,
         'admins_count': admins_count,
         'superadmins_count': superadmins_count,
         'unprinted_badges_count': unprinted_badges_count,
