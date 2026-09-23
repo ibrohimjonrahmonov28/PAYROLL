@@ -830,13 +830,13 @@
             </button>
         </div>
 
-        <!-- Printable Universal Badge Card (Standard CR80: 86mm x 54mm) -->
+        <!-- Printable Universal Badge Card (Standard 90mm x 61mm) -->
         <div id="printable-badge"
-            style="width: 86mm; height: 54mm; padding: 3.5mm 4mm; border: 2px solid #0f172a; border-radius: 4mm; box-sizing: border-box; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; margin: 0 auto 1.25rem auto; text-align: left; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);">
+            style="width: 90mm; height: 61mm; padding: 2.5mm 3.5mm; border: 2px solid #0f172a; border-radius: 3mm; box-sizing: border-box; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; margin: 0 auto 1.25rem auto; text-align: left; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);">
 
             <!-- Beydjik tasmachasi teshik o'rni -->
             <div
-                style="position: absolute; top: 1.5mm; left: 50%; transform: translateX(-50%); width: 12mm; height: 2mm; border: 1px dashed #94a3b8; border-radius: 1mm; background: #f8fafc;">
+                style="position: absolute; top: 1.5mm; left: 50%; transform: translateX(-50%); width: 14mm; height: 2mm; border: 1px dashed #94a3b8; border-radius: 1mm; background: #f8fafc;">
             </div>
 
             <!-- 1. Header: Fabrika va Rol -->
@@ -914,16 +914,18 @@
         <!-- Actions -->
         <div class="grid grid-cols-3 gap-2">
             <a id="qr-modal-open-link" href="#" target="_blank"
-                class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Alohida
+                class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700"
+                title="A4 varaqqa to'liq sahifada ochish">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> A4 Sahifada
             </a>
             <a id="qr-modal-download" href="" download=""
                 class="py-2.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700">
                 <i class="fa-solid fa-download"></i> QR Yuklash
             </a>
             <button onclick="printBadge()"
-                class="py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-print"></i> Chop Etish
+                class="py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-1.5"
+                title="A4 formatda 1:1 haqiqiy o'lchamda chop etish">
+                <i class="fa-solid fa-print"></i> Chop Etish (A4)
             </button>
         </div>
     </div>
@@ -1027,19 +1029,25 @@
         document.getElementById('qr-preview-modal').classList.remove('hidden');
     }
 
-    // Print Badge Function (Tuzatilgan va optimallashtirilgan)
+    // Print Badge Function (A4 formatga moslashtirilgan, 1:1 haqiqiy o'lcham)
     function printBadge() {
         var badgeHtml = document.getElementById('printable-badge').outerHTML;
-        var printWin = window.open('', '_blank', 'width=650,height=520');
-        printWin.document.write('<!DOCTYPE html><html><head><title>Universal Birka</title>');
+        var printWin = window.open('', '_blank', 'width=800,height=700');
+        printWin.document.write('<!DOCTYPE html><html><head><title>Universal Birka — A4</title>');
         printWin.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">');
         printWin.document.write('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;600;700;800;900&display=swap">');
         printWin.document.write('<style>');
-        printWin.document.write('body{font-family:"Inter",sans-serif;margin:0;padding:20px;display:flex;align-items:center;justify-content:center;background:#fff;min-height:100vh;}');
-        printWin.document.write('@media print{body{padding:0;margin:0;min-height:auto;}@page{size:86mm 54mm;margin:0;}}');
+        printWin.document.write('@page{size:A4 portrait;margin:6mm 5mm 6mm 5mm;}');
+        printWin.document.write('*{box-sizing:border-box;}');
+        printWin.document.write('body{font-family:"Inter",sans-serif;margin:0;padding:6mm 5mm;background:#fff;}');
+        printWin.document.write('.a4-sheet{width:210mm;background:#fff;margin:0 auto;}');
+        printWin.document.write('.cut-box{width:94mm;height:65mm;padding:1.5mm;border:1px dashed #64748b;border-radius:3.5mm;position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}');
+        printWin.document.write('.scissor-guide{position:absolute;top:-8px;left:10px;background:#fff;padding:0 5px;font-size:8px;font-weight:700;color:#64748b;display:flex;align-items:center;gap:4px;z-index:10;}');
+        printWin.document.write('#printable-badge{width:90mm !important;height:61mm !important;padding:2.5mm 3.5mm !important;border:2px solid #000 !important;border-radius:3mm !important;box-shadow:none !important;margin:0 !important;box-sizing:border-box !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}');
+        printWin.document.write('@media print{body{padding:0;margin:0;}.a4-sheet{width:100%;height:auto;}}');
         printWin.document.write('</style>');
         printWin.document.write('</head><body>');
-        printWin.document.write(badgeHtml);
+        printWin.document.write('<div class="a4-sheet"><div class="cut-box"><div class="scissor-guide"><i class="fa-solid fa-scissors"></i> Kesish chizig\'i (90 &times; 61 mm)</div>' + badgeHtml + '</div></div>');
         printWin.document.write('<script>');
         printWin.document.write('window.onload = function(){ setTimeout(function(){ window.print(); }, 250); };');
         printWin.document.write('<\/script>');

@@ -588,6 +588,10 @@ class SuperAdminPanelTest(TestCase):
         self.assertContains(res, f'UID: {test_user.uid}')
         self.assertContains(res, f'USER:{test_user.uid}')
         self.assertContains(res, 'TIKUVCHILIK FABRIKASI')
+        self.assertContains(res, 'a4-sheet-container')
+        self.assertContains(res, 'cut-box')
+        self.assertContains(res, 'scissor-guide')
+        self.assertContains(res, 'setCopies')
 
     def test_superadmin_users_print_badges_batch(self):
         self.client.force_login(self.superadmin)
