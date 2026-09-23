@@ -1385,9 +1385,12 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertEqual(data['box']['first_sort'], 37)
         self.assertEqual(data['box']['second_sort'], 10)
         self.assertEqual(data['box']['repair'], 3)
+        self.assertFalse(data['is_closed'])
+        self.assertIn("ta'mirga", data['message'])
 
         self.box.refresh_from_db()
-        self.assertTrue(self.box.is_controlled)
+        self.assertFalse(self.box.is_controlled)  # Ta'mirga ketgani uchun hali yopilmagan
+        self.assertEqual(self.box.status, Box.Status.IN_PROGRESS)
         self.assertEqual(self.box.controlled_first_sort_qty, 37)
         self.assertEqual(self.box.controlled_second_sort_qty, 10)
         self.assertEqual(self.box.controlled_repair_qty, 3)
@@ -1410,6 +1413,8 @@ class ControlRoleAndQualityControlTest(TestCase):
             content_type='application/json'
         )
         self.assertEqual(res_rep.status_code, 200)
+        self.assertTrue(res_rep.json()['is_closed'])
+        self.assertIn("yopildi", res_rep.json()['message'])
 
         self.box.refresh_from_db()
         # 1-sort: 37 + 2 = 39 ta!
@@ -1417,6 +1422,8 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertEqual(self.box.controlled_second_sort_qty, 10)
         self.assertEqual(self.box.controlled_defect_qty, 1)
         self.assertEqual(self.box.controlled_repair_qty, 0)
+        self.assertTrue(self.box.is_controlled)  # Endi quti to'liq yopildi
+        self.assertEqual(self.box.status, Box.Status.COMPLETED)
         # Jami: 39 (1-sort) + 10 (2-sort) + 1 (brak) = 50 ta!
 
     def test_mandatory_control_sticker_printed(self):

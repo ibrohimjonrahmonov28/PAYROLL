@@ -214,89 +214,143 @@
                 <!-- 2. SONLARNI BOSHQARISH (8 ustun) -->
                 <div class="lg:col-span-8 flex flex-col justify-between gap-4">
 
-                    <!-- NORMAL REJIM (INITIAL CHECK) -->
+                    <!-- NORMAL REJIM (INITIAL CHECK): 2 BOSQICHLI TIZIM -->
                     <div id="mode-initial-panel" class="space-y-4">
-                        <!-- Qutidagi jami son (O'rtada katta boshqaruv) -->
-                        <div
-                            class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div>
-                                <span class="text-xs font-black uppercase tracking-wider text-slate-400 block">QUTIDAGI
-                                    JAMI SONI:</span>
-                                <span class="text-[11px] text-slate-500">Agar haqiqiy son farq qilsa, tugmalar bilan
-                                    to'g'rilang</span>
+
+                        <!-- 1-BOSQICH (1-QADAM): QUTIDAGI REAL (ANIQ) SONNI TASDIQLASH -->
+                        <div id="initial-step-1" class="space-y-4">
+                            <!-- Sarlavha / Status -->
+                            <div class="flex items-center justify-between bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-xs border border-amber-500/30">1</span>
+                                    <span class="text-xs font-black uppercase text-amber-300 tracking-wider">1-QADAM: QUTIDAGI REAL SONNI SANANG VA TASDIQLANG</span>
+                                </div>
+                                <span class="text-xs text-slate-400 font-medium">Rejadagi son: <strong id="step1-plan-qty" class="text-white font-mono">50</strong> dona</span>
                             </div>
-                            <!-- Stepper -->
-                            <div class="flex items-center gap-2">
-                                <button type="button" onclick="adjustTotalQty(-5)"
-                                    class="touch-btn w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs font-mono">-5</button>
-                                <button type="button" onclick="adjustTotalQty(-1)"
-                                    class="touch-btn w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-black text-xl shadow">-</button>
-                                <input type="number" id="input-total-qty" min="1" value="50" oninput="recalcSorts()"
-                                    class="w-24 text-center bg-slate-900 border-2 border-indigo-500/50 rounded-xl py-2 text-2xl font-black text-white digital-font focus:outline-none focus:border-indigo-400">
-                                <button type="button" onclick="adjustTotalQty(+1)"
-                                    class="touch-btn w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-black text-xl shadow">+</button>
-                                <button type="button" onclick="adjustTotalQty(+5)"
-                                    class="touch-btn w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs font-mono">+5</button>
+
+                            <!-- Stepper va boshqaruv -->
+                            <div class="bg-slate-950 p-5 sm:p-7 rounded-2xl border border-slate-800 text-center space-y-5 shadow-inner">
+                                <div class="space-y-1">
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-400 block">QUTIDAGI HAQIQIY (ANIQ) DONA SONI:</span>
+                                    <p class="text-xs text-slate-500">Agar haqiqatda qutidagi son farq qilsa, tugmalar orqali to'g'rilang</p>
+                                </div>
+
+                                <!-- Stepper tugmalari -->
+                                <div class="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                                    <button type="button" onclick="adjustTotalQty(-10)"
+                                        class="touch-btn w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs sm:text-sm font-mono">-10</button>
+                                    <button type="button" onclick="adjustTotalQty(-5)"
+                                        class="touch-btn w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs sm:text-sm font-mono">-5</button>
+                                    <button type="button" onclick="adjustTotalQty(-1)"
+                                        class="touch-btn w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-500/40 font-black text-2xl shadow">-</button>
+
+                                    <div class="relative inline-block">
+                                        <input type="number" id="input-total-qty" min="1" value="50" oninput="handleTotalQtyInput()"
+                                            class="w-32 sm:w-44 text-center bg-slate-900 border-2 border-indigo-500 rounded-2xl py-3 text-4xl sm:text-5xl font-black text-white digital-font focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 shadow-inner">
+                                        <span class="block text-[11px] text-slate-500 font-bold uppercase mt-1">Dona</span>
+                                    </div>
+
+                                    <button type="button" onclick="adjustTotalQty(+1)"
+                                        class="touch-btn w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 font-black text-2xl shadow">+</button>
+                                    <button type="button" onclick="adjustTotalQty(+5)"
+                                        class="touch-btn w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs sm:text-sm font-mono">+5</button>
+                                    <button type="button" onclick="adjustTotalQty(+10)"
+                                        class="touch-btn w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs sm:text-sm font-mono">+10</button>
+                                </div>
+
+                                <!-- Tasdiqlash va Keyingi bosqich -->
+                                <div class="pt-2">
+                                    <button type="button" id="btn-confirm-step1" onclick="goToStep2Sorts()"
+                                        class="touch-btn w-full py-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 transition cursor-pointer">
+                                        <span>SONNI TASDIQLASH VA SORTLARGA O'TISH</span>
+                                        <i class="fa-solid fa-arrow-right text-xl"></i>
+                                    </button>
+                                    <span class="text-[11px] text-slate-500 mt-2 block font-medium">Yoki klaviaturadan <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">ENTER</kbd> tugmasini bosing</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- 3 ta Karta: 1-SORT, 2-SORT, TA'MIR -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <!-- 1-SORT (AVTOMATIK KATTA YASHIL BLOK) -->
-                            <div
-                                class="bg-gradient-to-br from-emerald-950/80 to-slate-950 border-2 border-emerald-500/60 rounded-2xl p-4 flex flex-col justify-between text-center shadow-lg shadow-emerald-950/40">
-                                <span
-                                    class="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
-                                    <i class="fa-solid fa-circle-check"></i> 1-SORT (TAYYOR)
-                                </span>
-                                <div class="my-2">
-                                    <span id="display-first-sort"
-                                        class="digital-font text-4xl sm:text-5xl font-black text-emerald-400">
-                                        50
+                        <!-- 2-BOSQICH (2-QADAM): SORTLAR VA TA'MIRNI KIRITISH (Hozirgi oyna, umumiy son fiksirlangan) -->
+                        <div id="initial-step-2" class="hidden space-y-4">
+                            <!-- Tasdiqlangan jami son paneli (KAMAYTIRISH / KO'PAYTIRISH TUGMASI YO'Q, FAQAT FIKSIRLANGAN SON) -->
+                            <div class="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 font-black flex items-center justify-center text-xs border border-indigo-500/30">2</div>
+                                    <div>
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">2-QADAM: SORTLAR VA TA'MIRNI AJRATISH</span>
+                                        <div class="text-sm font-black text-white flex items-center gap-2">
+                                            <span>Tasdiqlangan Jami Son:</span>
+                                            <strong id="step2-confirmed-display-qty" class="digital-font text-amber-400 text-2xl">50</strong>
+                                            <span class="text-xs text-slate-400 font-medium">dona</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="backToStep1()"
+                                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700"
+                                    title="Qutidagi umumiy sonni qayta o'zgartirish">
+                                    <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+                                    <span>Sonni o'zgartirish</span>
+                                </button>
+                            </div>
+
+                            <!-- 3 ta Karta: 1-SORT, 2-SORT, TA'MIR -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <!-- 1-SORT (AVTOMATIK KATTA YASHIL BLOK) -->
+                                <div
+                                    class="bg-gradient-to-br from-emerald-950/80 to-slate-950 border-2 border-emerald-500/60 rounded-2xl p-4 flex flex-col justify-between text-center shadow-lg shadow-emerald-950/40">
+                                    <span
+                                        class="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-circle-check"></i> 1-SORT (TAYYOR)
                                     </span>
-                                    <span class="text-xs text-emerald-400/80 font-bold ml-1">dona</span>
+                                    <div class="my-2">
+                                        <span id="display-first-sort"
+                                            class="digital-font text-4xl sm:text-5xl font-black text-emerald-400">
+                                            50
+                                        </span>
+                                        <span class="text-xs text-emerald-400/80 font-bold ml-1">dona</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-400/60 font-semibold">Avtomatik hisoblanadi (Upakovkaga)</span>
                                 </div>
-                                <span class="text-[10px] text-emerald-400/60 font-semibold">Avtomatik hisoblanadi
-                                    (Upakovkaga)</span>
-                            </div>
 
-                            <!-- 2-SORT -->
-                            <div
-                                class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-center">
-                                <span
-                                    class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> 2-SORT
-                                </span>
-                                <div class="my-2 flex items-center justify-center gap-2">
-                                    <button type="button" onclick="adjustSecondSort(-1)"
-                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
-                                    <input type="number" id="input-second-sort" min="0" value="0"
-                                        oninput="recalcSorts()"
-                                        class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-amber-400 digital-font focus:outline-none">
-                                    <button type="button" onclick="adjustSecondSort(+1)"
-                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                <!-- 2-SORT -->
+                                <div
+                                    class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-center">
+                                    <span
+                                        class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> 2-SORT
+                                    </span>
+                                    <div class="my-2 flex items-center justify-center gap-2">
+                                        <button type="button" onclick="adjustSecondSort(-1)"
+                                            class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
+                                        <input type="number" id="input-second-sort" min="0" value="0"
+                                            oninput="recalcSorts()"
+                                            class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-amber-400 digital-font focus:outline-none">
+                                        <button type="button" onclick="adjustSecondSort(+1)"
+                                            class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500 font-medium">Mayda nuqsonli ish</span>
                                 </div>
-                                <span class="text-[10px] text-slate-500 font-medium">Mayda nuqsonli ish</span>
-                            </div>
 
-                            <!-- TA'MIR (REMONT) -->
-                            <div
-                                class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-center">
-                                <span
-                                    class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
-                                    <i class="fa-solid fa-wrench"></i> TA'MIR (REMONT)
-                                </span>
-                                <div class="my-2 flex items-center justify-center gap-2">
-                                    <button type="button" onclick="adjustRepairQty(-1)"
-                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
-                                    <input type="number" id="input-repair-qty" min="0" value="0" oninput="recalcSorts()"
-                                        class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-rose-400 digital-font focus:outline-none">
-                                    <button type="button" onclick="adjustRepairQty(+1)"
-                                        class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                <!-- TA'MIR (REMONT) -->
+                                <div
+                                    class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between text-center">
+                                    <span
+                                        class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-wrench"></i> TA'MIR (REMONT)
+                                    </span>
+                                    <div class="my-2 flex items-center justify-center gap-2">
+                                        <button type="button" onclick="adjustRepairQty(-1)"
+                                            class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">-</button>
+                                        <input type="number" id="input-repair-qty" min="0" value="0" oninput="recalcSorts()"
+                                            class="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-2xl font-black text-rose-400 digital-font focus:outline-none">
+                                        <button type="button" onclick="adjustRepairQty(+1)"
+                                            class="touch-btn w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-lg">+</button>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500 font-medium">Tikuvchiga qaytariladi</span>
                                 </div>
-                                <span class="text-[10px] text-slate-500 font-medium">Tikuvchiga qaytariladi</span>
                             </div>
                         </div>
+
                     </div>
 
                     <!-- TA'MIRDAN QAYTISH REJIMI (REPAIR RETURN PANEL) -->
@@ -371,18 +425,42 @@
                         </div>
                     </div>
 
-                    <!-- TASDIQLASH TUGMASI (Katta Sensor Tugma) -->
-                    <div class="pt-2">
+                    <!-- TASDIQLASH TUGMASI (2-Qadamda va Ta'mir rejimida chiqadi) -->
+                    <div id="btn-submit-container" class="pt-2 hidden">
                         <button type="button" id="btn-submit-inspection" onclick="submitInspection()"
-                            class="touch-btn w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition">
-                            <i class="fa-solid fa-circle-check text-xl"></i>
-                            <span>TASDIQLASH VA SAQLASH (ENTER)</span>
+                            class="touch-btn w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition cursor-pointer">
+                            <i class="fa-solid fa-box-archive text-xl" id="btn-submit-icon"></i>
+                            <span id="btn-submit-text">QUTINI YOPISH VA SAQLASH (ENTER)</span>
                         </button>
                     </div>
 
                 </div>
             </div>
         </section>
+
+        <!-- NATIJA BILDIRISHNOMA MODALI (Quti yopildi / Ta'mirga ketdi) -->
+        <div id="inspection-result-modal"
+            class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div id="result-modal-box"
+                class="bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-4 shadow-2xl transition-all">
+                <div id="result-icon-container"
+                    class="w-20 h-20 mx-auto rounded-3xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-4xl shadow-inner">
+                    <i class="fa-solid fa-box-archive" id="result-icon"></i>
+                </div>
+                <h3 id="result-title" class="text-2xl sm:text-3xl font-black text-white uppercase tracking-wide">
+                    QUTI YOPILDI!
+                </h3>
+                <p id="result-message" class="text-sm sm:text-base text-slate-300 leading-relaxed font-medium">
+                    Mahsulot qabul qilindi.
+                </p>
+                <div class="pt-2">
+                    <button type="button" onclick="closeResultModal()"
+                        class="touch-btn w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-black text-sm rounded-2xl border border-slate-700 transition">
+                        Keyingi Qutiga O'tish (ENTER)
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- 3. BUGUNGI OXIRGI TEKSHIRILGAN QUTILAR JURNALI -->
         <section class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-3">
@@ -559,6 +637,59 @@
             }
         }
 
+        // 2-Bosqichli Ish Oqimi Holati
+        let currentStep = 1; // 1: Aniq sonni tasdiqlash, 2: Sortlar va ta'mirni ajratish
+        let modalTimer = null;
+
+        function handleTotalQtyInput() {
+            const input = document.getElementById('input-total-qty');
+            let val = parseInt(input.value);
+            if (isNaN(val) || val < 1) {
+                // Vaqtincha kiritayotgan bo'lishi mumkin
+            }
+        }
+
+        // 1-QADAMDAN 2-QADAMGA O'TISH (Sonni tasdiqlash)
+        function goToStep2Sorts() {
+            if (!currentBox) return;
+            const input = document.getElementById('input-total-qty');
+            let val = parseInt(input.value) || 0;
+            if (val < 1) {
+                playSound('error');
+                alert("Qutidagi haqiqiy son kamida 1 dona bo'lishi shart!");
+                input.focus();
+                return;
+            }
+
+            playSound('beep');
+
+            // 2-bosqichdagi fiksirlangan sonni yangilash
+            document.getElementById('step2-confirmed-display-qty').innerText = val;
+
+            // 1-qadamni yashirib, 2-qadamni ko'rsatish
+            document.getElementById('initial-step-1').classList.add('hidden');
+            document.getElementById('initial-step-2').classList.remove('hidden');
+            document.getElementById('btn-submit-container').classList.remove('hidden');
+
+            currentStep = 2;
+            recalcSorts();
+            updateSubmitButtonLabel();
+        }
+
+        // 2-QADAMDAN 1-QADAMGA QAYTISH (Sonni qayta o'zgartirish)
+        function backToStep1() {
+            document.getElementById('initial-step-2').classList.add('hidden');
+            document.getElementById('btn-submit-container').classList.add('hidden');
+            document.getElementById('initial-step-1').classList.remove('hidden');
+
+            currentStep = 1;
+            const input = document.getElementById('input-total-qty');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+
         // Karta ma'lumotlarini chizish
         function renderInspectionCard(b) {
             document.getElementById('standby-screen').classList.add('hidden');
@@ -590,21 +721,36 @@
                 document.getElementById('badge-mode').className = "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40";
                 document.getElementById('mode-initial-panel').classList.add('hidden');
                 document.getElementById('mode-repair-panel').classList.remove('hidden');
+                document.getElementById('btn-submit-container').classList.remove('hidden');
                 document.getElementById('val-repair-in-hand').innerText = b.controlled_repair_qty;
 
                 document.getElementById('input-defect-qty').value = 0;
                 document.getElementById('input-re-repair-qty').value = 0;
+                currentStep = 2;
                 recalcRepairReturn();
+                updateSubmitButtonLabel();
             } else {
                 document.getElementById('badge-mode').innerText = "BIRLAMCHI TEKSHIRUV";
                 document.getElementById('badge-mode').className = "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40";
                 document.getElementById('mode-repair-panel').classList.add('hidden');
                 document.getElementById('mode-initial-panel').classList.remove('hidden');
 
+                // 1-bosqichni ochish, 2-bosqichni va tasdiqlash tugmasini yashirish
+                document.getElementById('initial-step-1').classList.remove('hidden');
+                document.getElementById('initial-step-2').classList.add('hidden');
+                document.getElementById('btn-submit-container').classList.add('hidden');
+
+                document.getElementById('step1-plan-qty').innerText = b.quantity;
                 document.getElementById('input-total-qty').value = b.quantity;
                 document.getElementById('input-second-sort').value = 0;
                 document.getElementById('input-repair-qty').value = 0;
-                recalcSorts();
+                currentStep = 1;
+
+                const input = document.getElementById('input-total-qty');
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
             }
         }
 
@@ -624,6 +770,40 @@
                 display.innerText = first;
                 display.className = "digital-font text-4xl sm:text-5xl font-black text-emerald-400";
             }
+
+            updateSubmitButtonLabel();
+        }
+
+        // Tugma holati va sarlavhasini ta'mir soniga qarab dinamik yangilash
+        function updateSubmitButtonLabel() {
+            const btn = document.getElementById('btn-submit-inspection');
+            const icon = document.getElementById('btn-submit-icon');
+            const text = document.getElementById('btn-submit-text');
+            if (!btn || !text) return;
+
+            if (currentBox && currentBox.mode === 'REPAIR_RETURN') {
+                const reRepair = parseInt(document.getElementById('input-re-repair-qty').value) || 0;
+                if (reRepair === 0) {
+                    btn.className = "touch-btn w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition cursor-pointer";
+                    icon.className = "fa-solid fa-box-archive text-xl";
+                    text.innerText = "TA'MIRNI YAKUNLASH VA QUTINI YOPISH (ENTER)";
+                } else {
+                    btn.className = "touch-btn w-full py-4 bg-gradient-to-r from-amber-600 via-orange-500 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-amber-600/30 flex items-center justify-center gap-3 transition cursor-pointer";
+                    icon.className = "fa-solid fa-rotate-left text-xl";
+                    text.innerText = `QAYTA TA'MIRGA YUBORISH (${reRepair} ta ta'mirda qoladi)`;
+                }
+            } else {
+                const repair = parseInt(document.getElementById('input-repair-qty').value) || 0;
+                if (repair === 0) {
+                    btn.className = "touch-btn w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition cursor-pointer";
+                    icon.className = "fa-solid fa-box-archive text-xl";
+                    text.innerText = "QUTINI YOPISH VA SAQLASH (ENTER)";
+                } else {
+                    btn.className = "touch-btn w-full py-4 bg-gradient-to-r from-amber-600 via-orange-500 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-amber-600/30 flex items-center justify-center gap-3 transition cursor-pointer";
+                    icon.className = "fa-solid fa-wrench text-xl";
+                    text.innerText = `TA'MIRGA YUBORISH VA SAQLASH (${repair} ta ta'mirga ketadi)`;
+                }
+            }
         }
 
         function adjustTotalQty(delta) {
@@ -631,7 +811,10 @@
             let val = (parseInt(input.value) || 0) + delta;
             if (val < 1) val = 1;
             input.value = val;
-            recalcSorts();
+            if (currentStep === 2) {
+                document.getElementById('step2-confirmed-display-qty').innerText = val;
+                recalcSorts();
+            }
         }
 
         function adjustSecondSort(delta) {
@@ -667,6 +850,8 @@
                 display.innerText = fixed;
                 display.className = "digital-font text-4xl sm:text-5xl font-black text-emerald-400";
             }
+
+            updateSubmitButtonLabel();
         }
 
         function adjustDefectQty(delta) {
@@ -683,6 +868,54 @@
             if (val < 0) val = 0;
             input.value = val;
             recalcRepairReturn();
+        }
+
+        // Natija modalini ko'rsatish
+        function showResultModal(isClosed, title, message) {
+            const modal = document.getElementById('inspection-result-modal');
+            const box = document.getElementById('result-modal-box');
+            const iconContainer = document.getElementById('result-icon-container');
+            const icon = document.getElementById('result-icon');
+            const titleEl = document.getElementById('result-title');
+            const msgEl = document.getElementById('result-message');
+
+            if (isClosed) {
+                box.className = "bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-4 shadow-2xl shadow-emerald-500/20";
+                iconContainer.className = "w-20 h-20 mx-auto rounded-3xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-4xl shadow-inner";
+                icon.className = "fa-solid fa-box-archive";
+                titleEl.className = "text-2xl sm:text-3xl font-black text-emerald-400 uppercase tracking-wide";
+            } else {
+                box.className = "bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-4 shadow-2xl shadow-amber-500/20";
+                iconContainer.className = "w-20 h-20 mx-auto rounded-3xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-4xl shadow-inner";
+                icon.className = "fa-solid fa-wrench";
+                titleEl.className = "text-2xl sm:text-3xl font-black text-amber-400 uppercase tracking-wide";
+            }
+
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+            modal.classList.remove('hidden');
+
+            if (modalTimer) clearTimeout(modalTimer);
+            modalTimer = setTimeout(() => {
+                closeResultModal();
+            }, 3000);
+        }
+
+        // Natija modalini yopish va Standby ga o'tish
+        function closeResultModal() {
+            if (modalTimer) {
+                clearTimeout(modalTimer);
+                modalTimer = null;
+            }
+            const modal = document.getElementById('inspection-result-modal');
+            if (modal) modal.classList.add('hidden');
+
+            document.getElementById('inspection-card').classList.add('hidden');
+            document.getElementById('standby-screen').classList.remove('hidden');
+            currentBox = null;
+            currentStep = 1;
+            clearScannerInput();
+            refreshRecentLogs();
         }
 
         // Tasdiqlash va serverga jo'natish
@@ -739,14 +972,13 @@
 
                 const data = await res.json();
                 if (res.ok && data.status === 'OK') {
-                    playSound('success');
-                    // Standby ga qaytarish
-                    document.getElementById('inspection-card').classList.add('hidden');
-                    document.getElementById('standby-screen').classList.remove('hidden');
-                    currentBox = null;
-                    clearScannerInput();
-                    // Jurnalni yangilash
-                    refreshRecentLogs();
+                    if (data.is_closed) {
+                        playSound('success');
+                        showResultModal(true, "QUTI YOPILDI!", data.message);
+                    } else {
+                        playSound('beep');
+                        showResultModal(false, "QUTI TA'MIRGA YUBORILDI!", data.message);
+                    }
                 } else {
                     playSound('error');
                     alert(data.message || "Tasdiqlashda xatolik yuz berdi!");
@@ -819,18 +1051,35 @@
             return cookieValue;
         }
 
-        // Klaviatura yordamida tezkor boshqaruv
+        // Klaviatura yordamida tezkor boshqaruv (Enter / Esc)
         document.addEventListener('keydown', function (e) {
-            // Agar inputda bo'lsa va Enter bosilsa:
+            const resultModal = document.getElementById('inspection-result-modal');
+            if (resultModal && !resultModal.classList.contains('hidden')) {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.preventDefault();
+                    closeResultModal();
+                    return;
+                }
+            }
+
             if (e.key === 'Enter') {
                 const activeId = document.activeElement ? document.activeElement.id : '';
                 if (activeId === 'scanner-input') {
-                    // form submit handles it
+                    // scanner form submit handles it
                     return;
                 }
-                if (currentBox && activeId !== 'scanner-input') {
+
+                if (currentBox) {
                     e.preventDefault();
-                    submitInspection();
+                    if (currentBox.mode === 'INITIAL') {
+                        if (currentStep === 1) {
+                            goToStep2Sorts();
+                        } else if (currentStep === 2) {
+                            submitInspection();
+                        }
+                    } else {
+                        submitInspection();
+                    }
                 }
             }
         });

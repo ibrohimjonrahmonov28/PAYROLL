@@ -156,6 +156,7 @@ def control_submit_inspection_api(request):
             }, status=400)
 
         first_sort = total_qty - second_sort - repair_qty
+        is_closed = (repair_qty == 0)
 
         # Qutini yangilash
         box.quantity = total_qty
@@ -163,13 +164,14 @@ def control_submit_inspection_api(request):
         box.controlled_second_sort_qty = second_sort
         box.controlled_repair_qty = repair_qty
         box.controlled_defect_qty = 0
-        box.is_controlled = True
+        box.is_controlled = is_closed
+        box.status = Box.Status.COMPLETED if is_closed else Box.Status.IN_PROGRESS
         box.controlled_at = timezone.now()
         box.controlled_by = request.user
         box.save(update_fields=[
             'quantity', 'controlled_first_sort_qty', 'controlled_second_sort_qty',
             'controlled_repair_qty', 'controlled_defect_qty', 'is_controlled',
-            'controlled_at', 'controlled_by'
+            'status', 'controlled_at', 'controlled_by'
         ])
 
         # Jurnalga yozish
@@ -185,15 +187,16 @@ def control_submit_inspection_api(request):
             notes=data.get('notes', '')
         )
 
-        msg = f"Quti #{box.box_number} qabul qilindi: {first_sort} ta 1-sort, {second_sort} ta 2-sort"
-        if repair_qty > 0:
-            msg += f", {repair_qty} ta ta'mirga jo'natildi."
+        if is_closed:
+            msg = f"Quti #{box.box_number} yopildi: {first_sort} ta 1-sort, {second_sort} ta 2-sort. Mahsulot qabul qilindi va Upakovkaga topshiriladi!"
         else:
-            msg += "."
+            msg = f"Quti #{box.box_number} ta'mirga yuborildi: {repair_qty} ta ta'mirga ketdi. Quti qutisi bilan ta'mir bo'limiga qaytariladi."
 
         return JsonResponse({
             'status': 'OK',
             'message': msg,
+            'is_closed': is_closed,
+            'repair_qty': repair_qty,
             'box': {
                 'box_code': box.box_code,
                 'box_number': box.box_number,
@@ -202,6 +205,7 @@ def control_submit_inspection_api(request):
                 'repair': box.controlled_repair_qty,
                 'defect': box.controlled_defect_qty,
                 'is_repair_active': (box.controlled_repair_qty > 0),
+                'is_closed': is_closed,
             }
         })
 
@@ -221,21 +225,25 @@ def control_submit_inspection_api(request):
             return JsonResponse({'status': 'ERROR', 'message': "Sonlar manfiy bo'lishi mumkin emas!"}, status=400)
         if defect_qty + re_repair_qty > repair_in_hand:
             return JsonResponse({
-                'status': 'ERROR',
+                'status': 'ERROR', 
                 'message': f"Brak ({defect_qty}) va Qayta ta'mir ({re_repair_qty}) yig'indisi ta'mirdagi sondan ({repair_in_hand}) ko'p bo'lishi mumkin emas!"
             }, status=400)
 
         fixed_qty = repair_in_hand - defect_qty - re_repair_qty
+        is_closed = (re_repair_qty == 0)
 
         # Qutini yangilash
         box.controlled_first_sort_qty += fixed_qty
         box.controlled_defect_qty += defect_qty
         box.controlled_repair_qty = re_repair_qty
+        box.is_controlled = is_closed
+        box.status = Box.Status.COMPLETED if is_closed else Box.Status.IN_PROGRESS
         box.controlled_at = timezone.now()
         box.controlled_by = request.user
         box.save(update_fields=[
             'controlled_first_sort_qty', 'controlled_defect_qty',
-            'controlled_repair_qty', 'controlled_at', 'controlled_by'
+            'controlled_repair_qty', 'is_controlled', 'status',
+            'controlled_at', 'controlled_by'
         ])
 
         # Jurnalga yozish
@@ -251,15 +259,16 @@ def control_submit_inspection_api(request):
             notes=data.get('notes', '')
         )
 
-        msg = f"Ta'mirdan qabul qilindi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta brak"
-        if re_repair_qty > 0:
-            msg += f", {re_repair_qty} ta qayta ta'mirda qoldi."
+        if is_closed:
+            msg = f"Quti #{box.box_number} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta brak. Mahsulot Upakovkaga topshiriladi!"
         else:
-            msg += ". Ta'mir to'liq yakunlandi!"
+            msg = f"Quti #{box.box_number}: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta brak, {re_repair_qty} ta qayta ta'mirda qoldi."
 
         return JsonResponse({
             'status': 'OK',
             'message': msg,
+            'is_closed': is_closed,
+            'repair_qty': re_repair_qty,
             'box': {
                 'box_code': box.box_code,
                 'box_number': box.box_number,
@@ -268,6 +277,7 @@ def control_submit_inspection_api(request):
                 'repair': box.controlled_repair_qty,
                 'defect': box.controlled_defect_qty,
                 'is_repair_active': (box.controlled_repair_qty > 0),
+                'is_closed': is_closed,
             }
         })
 

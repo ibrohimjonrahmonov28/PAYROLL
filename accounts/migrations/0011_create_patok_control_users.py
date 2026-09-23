@@ -84,3 +84,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(create_patok_users, reverse_code=remove_patok_users),
     ]
+

@@ -77,3 +77,4 @@ class Command(BaseCommand):
                 f"\nTayyor! Jami: {count} ta patok. Yaratildi: {created_count} ta, Yangilandi: {updated_count} ta."
             )
         )
+
