@@ -1180,6 +1180,114 @@ class WorkerHistoryAndPayrollStickerFeaturesTest(TestCase):
         self.assertContains(res, "2 stiker • 2 quti")
 
 
+class SuperadminUserEditFeaturesTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username='main_superadmin',
+            password='Password123!',
+            role=User.Role.SUPER_ADMIN
+        )
+        self.client.force_login(self.superadmin)
+
+        # Xodim apostrofli ism bilan
+        self.user1 = User.objects.create_user(
+            username='worker_otkir',
+            password='worker123',
+            first_name="O'tkir",
+            last_name="Po'latov",
+            role=User.Role.USER,
+            phone_number="+998901112233"
+        )
+        self.worker1 = Worker.objects.create(
+            user=self.user1,
+            worker_id="W-901",
+            first_name="O'tkir",
+            last_name="Po'latov",
+            phone_number="+998901112233"
+        )
+
+    def test_users_page_renders_with_apostrophe_names_safely(self):
+        """Apostrofli ismlar (O'tkir, Po'latov) xatosiz HTML data-* atributlarida chiqishi kerak"""
+        url = reverse('superadmin_users')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        # HTML da data-first-name va data-last-name mavjudligini tekshirish
+        self.assertContains(res, 'data-first-name="O&#x27;tkir"')
+        self.assertContains(res, 'openEditUserModalFromBtn(this)')
+
+    def test_update_user_name_with_apostrophe_and_worker_sync(self):
+        """Ismni apostrof bilan o'zgartirish va u avtomatik Worker profiliga ham o'tishi kerak"""
+        url = reverse('superadmin_users')
+        data = {
+            'action': 'update_user',
+            'user_id': self.user1.id,
+            'first_name': "G'ayrat",
+            'last_name': "Yo'ldoshev",
+            'username': "worker_otkir",
+            'role': User.Role.USER,
+            'phone_number': "+998909998877",
+            'email': "gayrat@example.com"
+        }
+        res = self.client.post(url, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        self.user1.refresh_from_db()
+        self.assertEqual(self.user1.first_name, "G'ayrat")
+        self.assertEqual(self.user1.last_name, "Yo'ldoshev")
+        self.assertEqual(self.user1.phone_number, "+998909998877")
+
+        # Worker modeli ham sinxronlashgan bo'lishi kerak
+        self.worker1.refresh_from_db()
+        self.assertEqual(self.worker1.first_name, "G'ayrat")
+        self.assertEqual(self.worker1.last_name, "Yo'ldoshev")
+        self.assertEqual(self.worker1.phone_number, "+998909998877")
+        self.assertEqual(self.worker1.full_name, "G'ayrat Yo'ldoshev")
+
+    def test_update_user_without_last_name(self):
+        """Faqat ismi bo'lgan (familiyasi bo'sh) xodimni saqlash muvaffaqiyatli bo'lishi kerak"""
+        url = reverse('superadmin_users')
+        data = {
+            'action': 'update_user',
+            'user_id': self.user1.id,
+            'first_name': "Ziyoda",
+            'last_name': "",
+            'role': User.Role.USER,
+            'phone_number': "+998901112233"
+        }
+        res = self.client.post(url, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        self.user1.refresh_from_db()
+        self.assertEqual(self.user1.first_name, "Ziyoda")
+        self.assertEqual(self.user1.last_name, "")
+
+    def test_duplicate_telegram_id_does_not_crash(self):
+        """Takroriy Telegram ID kiritilganda server 500 bermasligi, ogohlantirish berishi kerak"""
+        self.user2 = User.objects.create_user(
+            username='master_user',
+            password='password',
+            role=User.Role.MASTER,
+            telegram_user_id=123456789
+        )
+        url = reverse('superadmin_users')
+        data = {
+            'action': 'update_user',
+            'user_id': self.user1.id,
+            'first_name': "Test",
+            'last_name': "User",
+            'role': User.Role.USER,
+            'telegram_user_id': "123456789"  # user2 ga tegishli
+        }
+        res = self.client.post(url, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        self.user1.refresh_from_db()
+        # user1 ga bu ID biriktirilmasligi kerak (chunki u user2 da bor)
+        self.assertNotEqual(self.user1.telegram_user_id, 123456789)
+
+
+
 
 
 

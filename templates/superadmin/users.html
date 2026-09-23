@@ -297,7 +297,7 @@
                         <td class="py-3.5 px-4 text-center">
                             {% if u.qr_code %}
                             <button
-                                onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:''|escapejs }}', '{{ u.uid|default:'------'|escapejs }}', '{{ u.get_role_display|escapejs }}', '{{ u.role|escapejs }}', '{{ u.qr_code.url }}', '{{ u.username|escapejs }}', '{% url 'superadmin_user_badge' u.id %}', '{{ u.worker_profile.worker_id|default:''|escapejs }}', '{{ u.phone_number|default:''|escapejs }}')"
+                                onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:''|escapejs }}', '{{ u.uid|default:'------'|escapejs }}', '{{ u.get_role_display|escapejs }}', '{{ u.role|escapejs }}', '{% if u.qr_code %}{{ u.qr_code.url }}{% endif %}', '{{ u.username|escapejs }}', '{% url 'superadmin_user_badge' u.id %}', '{{ u.worker_profile.worker_id|default:''|escapejs }}', '{{ u.phone_number|default:''|escapejs }}')"
                                 class="group relative inline-block p-1 bg-white rounded-lg border border-slate-700 hover:border-amber-400 transition"
                                 title="Universal Birkani ko'rish va chop etish">
                                 <img src="{{ u.qr_code.url }}" alt="QR" class="w-8 h-8 object-contain">
@@ -356,7 +356,7 @@
 
                                 <!-- Tezkor rol o'zgartirish tugmasi -->
                                 <button
-                                    onclick="openChangeRoleModal({{ u.id }}, '{{ u.username }}', '{{ u.role }}', '{{ u.get_full_name|default:u.username }}')"
+                                    onclick="openChangeRoleModal({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.role|escapejs }}', '{{ u.get_full_name|default:u.username|escapejs }}')"
                                     title="Rolni tezkor o'zgartirish"
                                     class="p-1 rounded-md text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition">
                                     <i class="fa-solid fa-arrows-rotate text-xs"></i>
@@ -424,10 +424,13 @@
                             </a>
 
                             <!-- Tahrirlash -->
-                            <button
-                                onclick="openEditUserModal({{ u.id }}, '{{ u.username }}', '{{ u.first_name }}', '{{ u.last_name }}', '{{ u.email }}', '{{ u.role }}', '{{ u.phone_number }}', '{{ u.telegram_user_id|default:'' }}')"
-                                class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-slate-700 transition"
-                                title="Tahrirlash">
+                            <button type="button"
+                                class="btn-edit-user px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-slate-700 transition"
+                                title="Tahrirlash" data-user-id="{{ u.id }}" data-username="{{ u.username }}"
+                                data-first-name="{{ u.first_name }}" data-last-name="{{ u.last_name }}"
+                                data-email="{{ u.email }}" data-role="{{ u.role }}" data-phone="{{ u.phone_number }}"
+                                data-tg-id="{{ u.telegram_user_id|default:'' }}"
+                                onclick="openEditUserModalFromBtn(this)">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
 
@@ -451,8 +454,8 @@
 
                             <!-- O'CHIRISH (DELETE) -->
                             {% if u != request.user %}
-                            <button
-                                onclick="openDeleteUserModal({{ u.id }}, '{{ u.username }}', '{{ u.get_full_name|default:u.username }}', '{{ u.get_role_display }}')"
+                            <button type="button"
+                                onclick="openDeleteUserModal({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.get_full_name|default:u.username|escapejs }}', '{{ u.get_role_display|escapejs }}')"
                                 class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-bold transition"
                                 title="Foydalanuvchini o'chirish">
                                 <i class="fa-solid fa-trash-can"></i>
@@ -514,9 +517,9 @@
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Familiyasi
-                        *</label>
-                    <input type="text" name="last_name" required placeholder="Masalan: Karimov"
+                    <label
+                        class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Familiyasi</label>
+                    <input type="text" name="last_name" placeholder="Masalan: Karimov"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
             </div>
@@ -612,11 +615,18 @@
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Familiyasi
-                        *</label>
-                    <input type="text" name="last_name" id="edit-last-name" required
+                    <label
+                        class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Familiyasi</label>
+                    <input type="text" name="last_name" id="edit-last-name"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Login (Username)
+                    *</label>
+                <input type="text" name="username" id="edit-username" required
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -922,15 +932,31 @@
 <script>
     // Edit Modal
     function openEditUserModal(id, username, fn, ln, email, role, phone, tgId) {
-        document.getElementById('edit-user-id').value = id;
-        document.getElementById('edit-username-span').innerText = '@' + username;
-        document.getElementById('edit-first-name').value = fn;
-        document.getElementById('edit-last-name').value = ln;
-        document.getElementById('edit-email').value = email;
-        document.getElementById('edit-role').value = role;
-        document.getElementById('edit-phone').value = phone;
-        document.getElementById('edit-tg-id').value = tgId;
+        document.getElementById('edit-user-id').value = id || '';
+        document.getElementById('edit-username-span').innerText = '@' + (username || '');
+        if (document.getElementById('edit-username')) {
+            document.getElementById('edit-username').value = username || '';
+        }
+        document.getElementById('edit-first-name').value = fn || '';
+        document.getElementById('edit-last-name').value = ln || '';
+        document.getElementById('edit-email').value = email || '';
+        document.getElementById('edit-role').value = role || 'USER';
+        document.getElementById('edit-phone').value = phone || '';
+        document.getElementById('edit-tg-id').value = tgId || '';
         document.getElementById('edit-user-modal').classList.remove('hidden');
+    }
+
+    function openEditUserModalFromBtn(btn) {
+        openEditUserModal(
+            btn.getAttribute('data-user-id'),
+            btn.getAttribute('data-username'),
+            btn.getAttribute('data-first-name'),
+            btn.getAttribute('data-last-name'),
+            btn.getAttribute('data-email'),
+            btn.getAttribute('data-role'),
+            btn.getAttribute('data-phone'),
+            btn.getAttribute('data-tg-id')
+        );
     }
 
     // Role Quick Change Modal

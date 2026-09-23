@@ -337,6 +337,14 @@ def superadmin_users(request):
             user.last_name = request.POST.get('last_name', '').strip()
             user.email = request.POST.get('email', '').strip()
             user.phone_number = request.POST.get('phone_number', '').strip()
+
+            # Username o'zgartirish (agar kiritilgan bo'lsa)
+            new_username = request.POST.get('username', '').strip()
+            if new_username and new_username != user.username:
+                if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                    messages.error(request, f"'{new_username}' logini allaqachon boshqa foydalanuvchi tomonidan band qilingan!")
+                else:
+                    user.username = new_username
             
             old_role = user.role
             new_role = request.POST.get('role', user.role)
@@ -346,7 +354,18 @@ def superadmin_users(request):
                 user.role = new_role
             
             tg_id = request.POST.get('telegram_user_id', '').strip()
-            user.telegram_user_id = int(tg_id) if tg_id else None
+            if tg_id:
+                try:
+                    parsed_tg = int(tg_id)
+                    existing_tg = User.objects.filter(telegram_user_id=parsed_tg).exclude(id=user.id).first()
+                    if existing_tg:
+                        messages.warning(request, f"Telegram ID {parsed_tg} allaqachon '{existing_tg.username}' foydalanuvchisiga biriktirilgan, shuning uchun Telegram ID saqlanmadi.")
+                    else:
+                        user.telegram_user_id = parsed_tg
+                except ValueError:
+                    messages.warning(request, "Telegram ID faqat sonlardan iborat bo'lishi kerak.")
+            else:
+                user.telegram_user_id = None
 
             new_password = request.POST.get('new_password', '').strip()
             if new_password:
@@ -357,14 +376,26 @@ def superadmin_users(request):
             user.save()
 
             # Agar Worker profili bog'langan bo'lsa, ismi va telefonini ham sinxronlashtirish
-            if hasattr(user, 'worker_profile') and user.worker_profile:
-                w = user.worker_profile
-                w.first_name = user.first_name
-                w.last_name = user.last_name
-                w.phone_number = user.phone_number
-                w.save(update_fields=['first_name', 'last_name', 'phone_number'])
+            worker = Worker.objects.filter(user=user).first()
+            if worker:
+                worker.first_name = user.first_name
+                worker.last_name = user.last_name
+                worker.phone_number = user.phone_number
+                worker.save(update_fields=['first_name', 'last_name', 'phone_number'])
+            elif user.role == User.Role.USER:
+                # Agar user_id bog'lanmagan worker bo'lsa, uni bog'lashga harakat qilamiz
+                w_code = user.username.replace('worker_', '').replace('_', '-').upper()
+                unlinked_worker = Worker.objects.filter(user__isnull=True, worker_id__iexact=w_code).first()
+                if not unlinked_worker and user.phone_number:
+                    unlinked_worker = Worker.objects.filter(user__isnull=True, phone_number=user.phone_number).first()
+                if unlinked_worker:
+                    unlinked_worker.user = user
+                    unlinked_worker.first_name = user.first_name
+                    unlinked_worker.last_name = user.last_name
+                    unlinked_worker.phone_number = user.phone_number
+                    unlinked_worker.save(update_fields=['user', 'first_name', 'last_name', 'phone_number'])
 
-            messages.success(request, f"{user.username} ma'lumotlari muvaffaqiyatli yangilandi.")
+            messages.success(request, f"{user.username} ({user.get_full_name() or 'Foydalanuvchi'}) ma'lumotlari muvaffaqiyatli yangilandi.")
 
         elif action == 'change_role':
             user_id = request.POST.get('user_id')
