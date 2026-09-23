@@ -160,15 +160,32 @@
     </div>
 
     <!-- VIEW 1: Articles, Sizes & Batches Breakdown (Modellar bo'yicha) -->
-    <div id="articles-view-container" class="space-y-6">
+    <div id="articles-view-container" class="space-y-4">
+        <!-- Expand / Collapse All Controls -->
+        <div class="flex items-center justify-between gap-3 text-xs text-slate-400 px-1">
+            <span class="font-bold flex items-center gap-1.5 text-slate-300">
+                <i class="fa-solid fa-shirt text-amber-400"></i> Zakazdagi Artikullar va Modellar ({{ items_data|length }} ta)
+            </span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="expandAllArticles()"
+                    class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-800 text-[11px] font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-angles-down text-[10px] text-amber-400"></i> Hammasini ochish
+                </button>
+                <button type="button" onclick="collapseAllArticles()"
+                    class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-800 text-[11px] font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-angles-up text-[10px] text-slate-400"></i> Hammasini yopish
+                </button>
+            </div>
+        </div>
+
         {% for item_data in items_data %}
         <div id="article-card-{{ item_data.item.id }}"
-            class="article-card bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6 transition-all duration-300"
+            class="article-card bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 transition-all duration-300"
             data-article-code="{{ item_data.item.article.code|lower }}"
             data-article-name="{{ item_data.item.article.name|lower }}"
             data-model-name="{{ item_data.item.article.model.name|default:''|lower }}">
             <!-- Article Header -->
-            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-800">
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <span
@@ -181,17 +198,61 @@
                             Model: {{ item_data.item.article.model.name }}
                         </span>
                         {% endif %}
+                        <span class="text-[11px] text-slate-400 font-mono">
+                            • {{ item_data.sizes|length }} ta razmer • {{ item_data.batches|length }} ta partiya
+                        </span>
                     </div>
-                    <h3 class="text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
+                    <h3 class="text-base sm:text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
+
+                    <!-- Qisqa Reja & Kesim ko'rsatkichi -->
+                    <div class="flex items-center gap-3 mt-2 flex-wrap text-xs font-mono">
+                        <span class="text-slate-400">Reja: <strong class="text-amber-400 font-bold">{{ item_data.planned_qty }}</strong> ta</span>
+                        <span class="text-slate-600">•</span>
+                        <span class="text-slate-400">Kesildi: <strong class="text-emerald-400 font-bold">{{ item_data.cut_qty }}</strong> ta</span>
+                        <span class="text-slate-600">•</span>
+                        <span class="font-bold {% if item_data.cut_percentage >= 100 %}text-emerald-400{% else %}text-cyan-400{% endif %}">
+                            {{ item_data.cut_percentage }}%
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Add Batch Action Button -->
-                <button type="button"
-                    onclick="openAddBatchModal('{{ item_data.item.id }}', '{{ item_data.item.article.code }}', '{{ item_data.next_batch_name }}')"
-                    class="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
-                    <i class="fa-solid fa-circle-plus text-sm"></i> + Yangi Partiya ({{ item_data.next_batch_name }})
-                </button>
+                <!-- Tugmalar: + Yangi Partiya va Batafsil -->
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <button type="button"
+                        onclick="openAddBatchModal('{{ item_data.item.id }}', '{{ item_data.item.article.code }}', '{{ item_data.next_batch_name }}')"
+                        class="px-4 py-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-sm"></i> + Yangi Partiya ({{ item_data.next_batch_name }})
+                    </button>
+
+                    <button type="button"
+                        onclick="toggleArticleDetail('{{ item_data.item.id }}')"
+                        id="btn-toggle-article-{{ item_data.item.id }}"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold rounded-xl text-xs border border-slate-700 transition flex items-center gap-2 shadow-sm"
+                        title="Razmerlar va partiyalar jadvalini ochish / yopish">
+                        <i class="fa-solid fa-ruler-combined text-rose-400"></i>
+                        <span id="text-toggle-article-{{ item_data.item.id }}">Batafsil</span>
+                        <i id="icon-toggle-article-{{ item_data.item.id }}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                    </button>
+                </div>
             </div>
+
+            <!-- Qisqartirilgan Teaser Qatori (Yopiq turganda ko'rinadi) -->
+            <div id="article-teaser-{{ item_data.item.id }}"
+                class="flex items-center justify-between text-xs text-slate-300 bg-slate-950/70 px-4 py-3 rounded-2xl border border-slate-800/80 cursor-pointer hover:border-slate-700 hover:bg-slate-950 transition"
+                onclick="toggleArticleDetail('{{ item_data.item.id }}')">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <i class="fa-solid fa-ruler-combined text-rose-400"></i>
+                    <span class="font-extrabold uppercase text-slate-300 tracking-wider">Razmerlar Bo'yicha Reja va Kesim Natijasi:</span>
+                    <span class="text-slate-500 text-[11px]">({{ item_data.sizes|length }} ta razmer, {{ item_data.batches|length }} ta kesim partiyasi)</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-amber-400 font-black text-xs">
+                    <span>Batafsil ko'rish</span>
+                    <i class="fa-solid fa-arrow-down text-[10px]"></i>
+                </div>
+            </div>
+
+            <!-- To'liq Ma'lumotlar (Batafsil bosilganda ochiladi) -->
+            <div id="article-detail-{{ item_data.item.id }}" class="hidden space-y-6 pt-2">
 
             <!-- Sizes Breakdown Table -->
             <div>
@@ -395,6 +456,7 @@
                     {% endfor %}
                 </div>
             </div>
+            </div> <!-- /article-detail -->
 
         </div>
         {% endfor %}
@@ -776,7 +838,8 @@
                 </div>
                 <ul class="list-disc list-inside space-y-1 text-slate-300 pl-1">
                     <li>Meto bo'limidagi barcha qilingan ishlar butunlay yo'qoladi.</li>
-                    <li>Ushbu pastal bo'yicha yaratilgan barcha <strong>qutilar va QR stikerlar bekor qilinadi</strong> (qog'ozda chop etilgan bo'lsa ham, skanerda "Topilmadi" deb xatolik beradi).</li>
+                    <li>Ushbu pastal bo'yicha yaratilgan barcha <strong>qutilar va QR stikerlar bekor qilinadi</strong>
+                        (qog'ozda chop etilgan bo'lsa ham, skanerda "Topilmadi" deb xatolik beradi).</li>
                     <li>Chop etilgan qog'oz stikerlarni xatolik bilan ishlatmaslik uchun yirtib tashlang!</li>
                 </ul>
             </div>
@@ -897,6 +960,9 @@
             if (!q || artMatches || hasMatchingBatch) {
                 card.classList.remove('hidden');
                 totalArticleMatches++;
+                if (q && (hasMatchingBatch || artMatches)) {
+                    toggleArticleDetail(card.id.replace('article-card-', ''), true);
+                }
             } else {
                 card.classList.add('hidden');
             }
@@ -945,18 +1011,65 @@
         }
     }
 
+    function toggleArticleDetail(itemId, forceOpen = null) {
+        const detailEl = document.getElementById('article-detail-' + itemId);
+        const teaserEl = document.getElementById('article-teaser-' + itemId);
+        const toggleBtn = document.getElementById('btn-toggle-article-' + itemId);
+        const toggleText = document.getElementById('text-toggle-article-' + itemId);
+        const toggleIcon = document.getElementById('icon-toggle-article-' + itemId);
+
+        if (!detailEl) return;
+
+        const isCurrentlyHidden = detailEl.classList.contains('hidden');
+        const shouldOpen = (forceOpen !== null) ? forceOpen : isCurrentlyHidden;
+
+        if (shouldOpen) {
+            detailEl.classList.remove('hidden');
+            if (teaserEl) teaserEl.classList.add('hidden');
+            if (toggleText) toggleText.innerText = 'Yopish';
+            if (toggleIcon) toggleIcon.classList.add('rotate-180');
+            if (toggleBtn) {
+                toggleBtn.classList.add('bg-rose-500/20', 'text-rose-300', 'border-rose-500/40');
+                toggleBtn.classList.remove('bg-slate-800', 'text-slate-200');
+            }
+        } else {
+            detailEl.classList.add('hidden');
+            if (teaserEl) teaserEl.classList.remove('hidden');
+            if (toggleText) toggleText.innerText = 'Batafsil';
+            if (toggleIcon) toggleIcon.classList.remove('rotate-180');
+            if (toggleBtn) {
+                toggleBtn.classList.remove('bg-rose-500/20', 'text-rose-300', 'border-rose-500/40');
+                toggleBtn.classList.add('bg-slate-800', 'text-slate-200');
+            }
+        }
+    }
+
+    function expandAllArticles() {
+        {% for item_data in items_data %}
+        toggleArticleDetail('{{ item_data.item.id }}', true);
+        {% endfor %}
+    }
+
+    function collapseAllArticles() {
+        {% for item_data in items_data %}
+        toggleArticleDetail('{{ item_data.item.id }}', false);
+        {% endfor %}
+    }
+
     function clearCuttingSearch() {
         const input = document.getElementById('cutting-search-input');
         input.value = '';
         filterCuttingData();
+        collapseAllArticles();
         input.focus();
     }
 
     function scrollToArticleSection(itemId) {
         switchViewMode('articles');
+        toggleArticleDetail(itemId, true);
         const target = document.getElementById('article-card-' + itemId);
         if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             target.classList.add('ring-4', 'ring-rose-500');
             setTimeout(() => {
                 target.classList.remove('ring-4', 'ring-rose-500');
