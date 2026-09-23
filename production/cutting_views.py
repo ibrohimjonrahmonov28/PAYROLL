@@ -103,6 +103,14 @@ def cutting_order_detail(request, order_id: int):
             status=Ticket.Status.SCANNED
         ).values_list('box__cutting_batch_item__batch_id', flat=True)
     )
+    scanned_pastal_codes = set(
+        Ticket.objects.filter(
+            box__order=order,
+            status=Ticket.Status.SCANNED
+        ).exclude(
+            box__pastal_number__exact=''
+        ).values_list('box__pastal_number', flat=True)
+    )
 
     items_data = []
     all_batches_flat = []
@@ -151,7 +159,10 @@ def cutting_order_detail(request, order_id: int):
                     'can_edit': b_it.can_edit_cut,
                 })
 
-            can_delete_this_batch = (batch.id not in scanned_batch_ids)
+            can_delete_this_batch = (
+                batch.id not in scanned_batch_ids and
+                (not batch.pastal_code or batch.pastal_code not in scanned_pastal_codes)
+            )
 
             batch_info = {
                 'batch': batch,
@@ -363,7 +374,8 @@ def cutting_delete_batch(request, order_id: int, batch_id: int):
     Kesim Partiyasini (Pastalni) O'chirish (POST):
     - Xato artikulga kiritilgan pastalni butunlay o'chirish.
     - Agar ushbu partiya stikerlari tikuvchilar tomonidan allaqachon skanerlangan bo'lsa (SCANNED), o'chirish taqiqlanadi!
-    - Agar Meto tasdiqlagan bo'lsa-yu, lekin hali skanerlanmagan bo'lsa, unga tegishli barcha qutilar va stikerlar ham xavfsiz o'chiriladi.
+    - Agar Meto tasdiqlagan bo'lsa-yu, stikerlar chiqarilgan yoki chiqarilmagan bo'lsa, lekin hali skanerlanmagan bo'lsa:
+      Meto bo'limidagi barcha hisoblar bekor bo'ladi va ushbu pastalning barcha QR stikerlari va qutilari bazadan butunlay o'chiriladi.
     """
     if request.method != 'POST':
         messages.error(request, "Noto'g'ri so'rov usuli!")
@@ -372,9 +384,18 @@ def cutting_delete_batch(request, order_id: int, batch_id: int):
     order = get_object_or_404(Order, id=order_id)
     batch = get_object_or_404(CuttingBatch, id=batch_id, order_item__order=order)
 
+    # Ushbu partiyaga tegishli barcha qutilarni aniqlash:
+    # 1) cutting_batch_item orqali
+    # 2) pastal_code va order_item.article orqali
+    boxes_filter = Q(cutting_batch_item__batch=batch)
+    if batch.pastal_code:
+        boxes_filter |= Q(order=order, article=batch.order_item.article, pastal_number=batch.pastal_code)
+    
+    related_boxes = Box.objects.filter(boxes_filter).distinct()
+
     # 1. Tikuvchilar tomonidan skanerlangan stikerlar bor-yo'qligini tekshirish
     scanned_tickets_count = Ticket.objects.filter(
-        box__cutting_batch_item__batch=batch,
+        box__in=related_boxes,
         status=Ticket.Status.SCANNED
     ).count()
 
@@ -391,19 +412,24 @@ def cutting_delete_batch(request, order_id: int, batch_id: int):
     article_code = batch.order_item.article.code
 
     with transaction.atomic():
-        # Ushbu partiyaga tegishli yaratilgan qutilarni va ularning stikerlarini o'chirish
-        related_boxes = Box.objects.filter(cutting_batch_item__batch=batch)
         deleted_boxes_count = related_boxes.count()
+        total_tickets_deleted = Ticket.objects.filter(box__in=related_boxes).count()
+
+        # 1. Bog'liq barcha qutilar va ularning QR stikerlarini butunlay o'chirish (CASCADE)
         if deleted_boxes_count > 0:
             related_boxes.delete()
 
-        # Batch va unga tegishli barcha CuttingBatchItem larni o'chirish (CASCADE)
+        # 2. Batch va unga tegishli barcha Meto/Kesim bandlarini o'chirish (CASCADE)
         batch.delete()
 
-    msg = f"'{article_code}' artikulidan '{batch_name}' (Pastal: {pastal_code}) muvaffaqiyatli o'chirildi!"
+    msg = (
+        f"'{article_code}' artikulidan '{batch_name}' (Pastal: {pastal_code}) muvaffaqiyatli o'chirildi! "
+        f"Meto bo'limidagi unga oid barcha hisoblar bekor qilindi."
+    )
     if deleted_boxes_count > 0:
-        msg += f" (Unga biriktirilgan {deleted_boxes_count} ta quti va stikerlar ham bekor qilindi)."
+        msg += f" Unga tegishli {deleted_boxes_count} ta quti va {total_tickets_deleted} ta QR stiker bazadan butunlay o'chirildi (chop etilgan stikerlar endi skanerda 'Topilmadi' deb bekor bo'ldi)."
 
     messages.success(request, msg)
     return redirect('cutting_order_detail', order_id=order_id)
+
 

@@ -733,7 +733,8 @@
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5">
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div>
@@ -768,9 +769,20 @@
                     <strong class="text-emerald-400 font-bold" id="del-modal-qty"></strong>
                 </div>
             </div>
+            <div class="text-[11px] text-rose-300 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 space-y-1.5">
+                <div class="font-bold flex items-center gap-1.5 text-rose-400">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>O'chirish natijasida:</span>
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-slate-300 pl-1">
+                    <li>Meto bo'limidagi barcha qilingan ishlar butunlay yo'qoladi.</li>
+                    <li>Ushbu pastal bo'yicha yaratilgan barcha <strong>qutilar va QR stikerlar bekor qilinadi</strong> (qog'ozda chop etilgan bo'lsa ham, skanerda "Topilmadi" deb xatolik beradi).</li>
+                    <li>Chop etilgan qog'oz stikerlarni xatolik bilan ishlatmaslik uchun yirtib tashlang!</li>
+                </ul>
+            </div>
             <p class="text-[11px] text-amber-400/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
                 <i class="fa-solid fa-circle-info mr-1"></i>
-                Agar ushbu partiya xato artikulga kiritilgan bo'lsa, uni o'chirib to'g'ri artikulga qaytadan kiritishingiz mumkin.
+                Ushbu xato partiyani o'chirib, to'g'ri artikulga bemalol yangidan kiritishingiz mumkin.
             </p>
         </div>
 
@@ -1055,7 +1067,7 @@
         document.getElementById('del-modal-pastal').innerText = pastalCode || '—';
         document.getElementById('del-modal-article').innerText = articleCode || '—';
         document.getElementById('del-modal-qty').innerText = (totalQuantity ? (totalQuantity + ' dona') : '—');
-        
+
         const deleteUrlTemplate = "{% url 'cutting_delete_batch' order.id 999999 %}";
         document.getElementById('delete-batch-form').action = deleteUrlTemplate.replace('999999', batchId);
         document.getElementById('delete-batch-modal').classList.remove('hidden');
