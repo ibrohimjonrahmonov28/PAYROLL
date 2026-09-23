@@ -260,9 +260,7 @@
             </div>
 
             <!-- To'liq Ma'lumotlar (Batafsil bosilganda AJAX orqali yuklanadi) -->
-            <div id="article-detail-{{ item_data.item.id }}"
-                class="hidden space-y-6 pt-2"
-                data-loaded="false"
+            <div id="article-detail-{{ item_data.item.id }}" class="hidden space-y-6 pt-2" data-loaded="false"
                 data-url="{% url 'cutting_item_detail' order.id item_data.item.id %}">
                 <div class="py-8 text-center text-slate-400 bg-slate-950/40 rounded-2xl border border-slate-800/80">
                     <i class="fa-solid fa-circle-notch fa-spin text-2xl text-rose-500 mb-2 block"></i>

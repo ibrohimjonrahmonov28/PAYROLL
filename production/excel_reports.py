@@ -398,12 +398,210 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     return buffer
 
 
+def _build_day_sheet(
+    wb,
+    target_date: datetime.date,
+    day_tickets: list,
+    all_workers: list,
+    navy_fill,
+    zebra_fill,
+    green_fill,
+    total_fill,
+    font_title,
+    font_subtitle,
+    font_header,
+    font_bold,
+    font_regular,
+    font_green_bold,
+    thin_border,
+    thick_bottom_border,
+    align_center,
+    align_left,
+    align_right,
+    align_wrap
+):
+    """
+    Har bir kun uchun alohida varaq (list) yaratuvchi funksiya.
+    Masalan: '01.09', '02.09', ... '10.09'.
+    """
+    sheet_title = f"{target_date.day:02d}.{target_date.month:02d}"
+    ws = wb.create_sheet(title=sheet_title)
+    ws.views.sheetView[0].showGridLines = True
+
+    WEEKDAYS_UZ = {
+        0: "Dushanba",
+        1: "Seshanba",
+        2: "Chorshanba",
+        3: "Payshanba",
+        4: "Juma",
+        5: "Shanba",
+        6: "Yakshanba"
+    }
+    weekday_name = WEEKDAYS_UZ.get(target_date.weekday(), "")
+
+    # Group tickets by worker
+    worker_tickets_map = {}
+    for t in day_tickets:
+        worker_tickets_map.setdefault(t.worker_id, []).append(t)
+
+    day_units = sum(t.quantity for t in day_tickets)
+    day_earned = sum(t.total_amount for t in day_tickets)
+    active_count = len(worker_tickets_map)
+
+    # 1. Sarlavha
+    ws.merge_cells("A1:H1")
+    ws["A1"] = f"TERRY JAR — KUNLIK ISH HAQI VA STIKERLAR HISOBOTI ({target_date.strftime('%d.%m.%Y')})"
+    ws["A1"].font = font_title
+    ws["A1"].alignment = align_left
+    ws.row_dimensions[1].height = 26
+
+    ws.merge_cells("A2:H2")
+    ws["A2"] = (
+        f"Sana: {target_date.strftime('%d.%m.%Y')} ({weekday_name}) | "
+        f"Faol xodimlar: {active_count} nafar | "
+        f"Tikilgan jami: {day_units:,} dona | "
+        f"Hisoblangan ish haqi: {day_earned:,.0f} UZS"
+    ).replace(",", " ")
+    ws["A2"].font = font_subtitle
+    ws["A2"].alignment = align_left
+    ws.row_dimensions[2].height = 18
+
+    # 2. Jadval sarlavhalari
+    headers = [
+        ("№", 5, align_center),
+        ("Xodim ID", 12, align_center),
+        ("Ism Familiya", 26, align_left),
+        ("Telefon", 16, align_center),
+        ("Tikilgan Dona", 16, align_right),
+        ("Bugungi Ish Haqi (UZS)", 22, align_right),
+        ("Biletlar Soni", 14, align_center),
+        ("Urgan Stikerlar ID lari", 45, align_wrap),
+    ]
+
+    ws.row_dimensions[4].height = 24
+    for col_idx, (h_text, width, aln) in enumerate(headers, 1):
+        c = ws.cell(row=4, column=col_idx, value=h_text)
+        c.font = font_header
+        c.fill = navy_fill
+        c.alignment = align_center
+        c.border = thin_border
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    # Agar bu kunda hech qanday stiker urilmagan bo'lsa
+    if not day_tickets:
+        ws.merge_cells("A5:H5")
+        c_empty = ws.cell(row=5, column=1, value="Ushbu kunda tikuv operatsiyalari qayd etilmagan (Dam olish kuni yoki ish bo'lmagan).")
+        c_empty.font = Font(name="Arial", size=10, italic=True, color="64748B")
+        c_empty.alignment = align_center
+        ws.row_dimensions[5].height = 30
+        for col in range(1, 9):
+            ws.cell(row=5, column=col).border = thin_border
+        return ws
+
+    # Xodimlarni ushbu kunda topgan puli bo'yicha kamayish tartibida saralaymiz
+    def sort_key(w):
+        t_list = worker_tickets_map.get(w.id, [])
+        return (len(t_list) > 0, sum(t.total_amount for t in t_list))
+
+    sorted_workers = sorted(all_workers, key=sort_key, reverse=True)
+
+    row_idx = 5
+    counter = 1
+    total_u = 0
+    total_e = Decimal('0.00')
+    total_t = 0
+
+    for w in sorted_workers:
+        w_tickets = worker_tickets_map.get(w.id, [])
+        u = sum(t.quantity for t in w_tickets)
+        e = sum(t.total_amount for t in w_tickets)
+
+        # Ushbu kunda ishlamagan xodimlarni o'tkazib yuboramiz
+        if u == 0 and e == Decimal('0.00'):
+            continue
+
+        stiker_ids = [str(t.stiker_code or t.ticket_code or f"TK#{t.id}") for t in w_tickets]
+        stikers_str = ", ".join(stiker_ids) if stiker_ids else "—"
+
+        is_zebra = (counter % 2 == 0)
+        c_fill = zebra_fill if is_zebra else PatternFill(fill_type=None)
+
+        ws.cell(row=row_idx, column=1, value=counter).alignment = align_center
+        ws.cell(row=row_idx, column=2, value=w.worker_id).alignment = align_center
+        ws.cell(row=row_idx, column=3, value=w.full_name).alignment = align_left
+        ws.cell(row=row_idx, column=4, value=w.phone_number or "—").alignment = align_center
+
+        c_u = ws.cell(row=row_idx, column=5, value=u)
+        c_u.alignment = align_right
+        c_u.number_format = '#,##0'
+
+        c_e = ws.cell(row=row_idx, column=6, value=float(e))
+        c_e.alignment = align_right
+        c_e.number_format = '#,##0'
+        if e > 0:
+            c_e.font = font_green_bold
+            c_e.fill = green_fill
+
+        c_cnt = ws.cell(row=row_idx, column=7, value=len(w_tickets))
+        c_cnt.alignment = align_center
+
+        c_st = ws.cell(row=row_idx, column=8, value=stikers_str)
+        c_st.alignment = align_wrap
+
+        for col_idx in range(1, 9):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.border = thin_border
+            if col_idx != 6 or e == 0:
+                if c_fill.fill_type:
+                    cell.fill = c_fill
+            if col_idx not in (3, 6):
+                cell.font = font_regular
+
+        total_u += u
+        total_e += e
+        total_t += len(w_tickets)
+
+        row_idx += 1
+        counter += 1
+
+    # JAMI / KUNLIK qatori
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
+    c_tot_label = ws.cell(row=row_idx, column=1, value="JAMI / KUNLIK:")
+    c_tot_label.font = font_bold
+    c_tot_label.alignment = align_right
+
+    c_tot_u = ws.cell(row=row_idx, column=5, value=total_u)
+    c_tot_u.font = font_bold
+    c_tot_u.alignment = align_right
+    c_tot_u.number_format = '#,##0'
+
+    c_tot_e = ws.cell(row=row_idx, column=6, value=float(total_e))
+    c_tot_e.font = font_bold
+    c_tot_e.alignment = align_right
+    c_tot_e.number_format = '#,##0'
+
+    c_tot_t = ws.cell(row=row_idx, column=7, value=total_t)
+    c_tot_t.font = font_bold
+    c_tot_t.alignment = align_center
+    c_tot_t.number_format = '#,##0'
+
+    ws.cell(row=row_idx, column=8, value="")
+
+    for col in range(1, 9):
+        c_n = ws.cell(row=row_idx, column=col)
+        c_n.fill = total_fill
+        c_n.border = thick_bottom_border
+
+    return ws
+
+
 def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io.BytesIO:
     """
     Joriy oyning boshidan (1-kuni 00:00 dan) to hozirgi kungacha bo'lgan to'liq oylik
-    ish haqi va barcha skanerlangan stikerlar hisoboti (2 varaqli professional Excel):
-    - 1-varaq: "Xodimlar Oylik Tabeli" (Xodim, ishlagan kunlari, tikilgan jami dona, hisoblangan ish haqi, avanslar, to'langan oylik, to'lanishi kerak qoldiq, joriy balans)
-    - 2-varaq: "Barcha Skanerlangan Stikerlar" (Oy boshidan beri urilgan barcha stikerlar tafsiloti)
+    ish haqi hisoboti (Har bir kun alohida varaq/list bo'lib, kunlar yig'ilib boradi):
+    - 1-varaq: "Oylik Umumiy Tabel" (Xodim, ishlagan kunlari, jami dona, hisoblangan ish haqi, avanslar, oylik, qoldiq)
+    - 2...N-varaqlari: "01.09", "02.09", ... "10.09" (Har bir kunning alohida hisobot varag'i)
+    - Oxirgi varaq: "Barcha Stikerlar" (Oy boshidan beri urilgan barcha stikerlar tafsiloti)
     """
     if not HAS_OPENPYXL:
         raise ImportError("Serverda 'openpyxl' kutubxonasi o'rnatilmagan.")
@@ -459,12 +657,14 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     zebra_fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     total_fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    green_fill = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
 
     font_title = Font(name="Arial", size=15, bold=True, color="0F172A")
     font_subtitle = Font(name="Arial", size=10, italic=True, color="475569")
     font_header = Font(name="Arial", size=10, bold=True, color="FFFFFF")
     font_bold = Font(name="Arial", size=10, bold=True, color="0F172A")
     font_regular = Font(name="Arial", size=10, color="0F172A")
+    font_green_bold = Font(name="Arial", size=10, bold=True, color="166534")
 
     thin_border = Border(
         left=Side(style='thin', color='CBD5E1'),
@@ -482,12 +682,13 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     align_center = Alignment(horizontal='center', vertical='center')
     align_left = Alignment(horizontal='left', vertical='center')
     align_right = Alignment(horizontal='right', vertical='center')
+    align_wrap = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
     # -------------------------------------------------------------
-    # 1-VARAQ: XODIMLAR OYLIK TABELI
+    # 1-VARAQ: XODIMLAR OYLIK TABELI (UMUMIY)
     # -------------------------------------------------------------
     ws1 = wb.active
-    ws1.title = "Xodimlar Oylik Tabeli"
+    ws1.title = "Oylik Umumiy Tabel"
     ws1.views.sheetView[0].showGridLines = True
 
     # Sarlavha
@@ -649,9 +850,47 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
         ws1.column_dimensions[get_column_letter(i)].width = w_val
 
     # -------------------------------------------------------------
-    # 2-VARAQ: BARCHA SKANERLANGAN STIKERLAR (OYLIK)
+    # 2...N-VARAQLAR: KUNLIK HISOBOT VARAQLARI (01.MM dan BUGUN.MM gacha)
+    # Har bir kun alohida varaq (list) sifatida saqlanadi
     # -------------------------------------------------------------
-    ws2 = wb.create_sheet(title="Barcha Skanerlangan Stikerlar")
+    tickets_by_date = {}
+    for t in month_tickets:
+        if t.scanned_at:
+            t_date = timezone.localtime(t.scanned_at).date()
+            if t_date not in tickets_by_date:
+                tickets_by_date[t_date] = []
+            tickets_by_date[t_date].append(t)
+
+    for day_num in range(1, target_date.day + 1):
+        cur_date = datetime.date(target_date.year, target_date.month, day_num)
+        cur_day_tickets = tickets_by_date.get(cur_date, [])
+        _build_day_sheet(
+            wb=wb,
+            target_date=cur_date,
+            day_tickets=cur_day_tickets,
+            all_workers=workers,
+            navy_fill=navy_fill,
+            zebra_fill=zebra_fill,
+            green_fill=green_fill,
+            total_fill=total_fill,
+            font_title=font_title,
+            font_subtitle=font_subtitle,
+            font_header=font_header,
+            font_bold=font_bold,
+            font_regular=font_regular,
+            font_green_bold=font_green_bold,
+            thin_border=thin_border,
+            thick_bottom_border=thick_bottom_border,
+            align_center=align_center,
+            align_left=align_left,
+            align_right=align_right,
+            align_wrap=align_wrap
+        )
+
+    # -------------------------------------------------------------
+    # OXIRGI VARAQ: BARCHA SKANERLANGAN STIKERLAR (OYLIK RO'YXAT)
+    # -------------------------------------------------------------
+    ws2 = wb.create_sheet(title="Barcha Stikerlar")
     ws2.views.sheetView[0].showGridLines = True
 
     ws2.merge_cells('A1:L1')

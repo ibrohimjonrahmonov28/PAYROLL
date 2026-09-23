@@ -30,6 +30,11 @@ class Command(BaseCommand):
             type=str,
             help="Faylni lokal diskka ham saqlash (masalan: /tmp/hisobot.xlsx)"
         )
+        parser.add_argument(
+            '--with-backup',
+            action='store_true',
+            help="Excel hisoboti bilan birga to'liq DB zaxira nusxasini ham jo'natish"
+        )
 
     def handle(self, *args, **options):
         date_str = options.get('date')
@@ -50,23 +55,32 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"Sana bo'yicha hisobot shakllantirilmoqda: {target_date}"))
 
+        with_backup = options.get('with_backup')
+        chat_id = options.get('chat_id')
+        token = options.get('token')
+
         # Agar lokal saqlash so'ralgan bo'lsa
         save_path = options.get('save_local')
         if save_path:
-            excel_buf = generate_daily_excel_report(target_date=target_date)
+            from production.excel_reports import generate_month_to_date_excel_report
+            excel_buf = generate_month_to_date_excel_report(target_date=target_date)
             with open(save_path, 'wb') as f:
                 f.write(excel_buf.getvalue())
             self.stdout.write(self.style.SUCCESS(f"Excel fayli lokal saqlandi: {save_path}"))
 
         # Telegramga jo'natish
-        chat_id = options.get('chat_id')
-        token = options.get('token')
-
-        result = send_daily_excel_report(
-            target_date=target_date,
-            chat_id=chat_id,
-            bot_token=token
-        )
+        if with_backup:
+            from production.telegram_reports import send_month_to_date_telegram_report
+            result = send_month_to_date_telegram_report(
+                chat_id=chat_id,
+                bot_token=token
+            )
+        else:
+            result = send_daily_excel_report(
+                target_date=target_date,
+                chat_id=chat_id,
+                bot_token=token
+            )
 
         if result.get('success'):
             self.stdout.write(self.style.SUCCESS(f"✅ {result.get('message')}"))

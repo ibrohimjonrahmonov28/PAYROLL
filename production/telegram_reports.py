@@ -321,7 +321,7 @@ def send_month_to_date_telegram_report(chat_id: str = None, bot_token: str = Non
         f"💰 *Jami hisoblangan ish haqi:* {total_gross:,.0f} UZS\n"
         f"💵 *Berilgan avanslar:* {total_advances:,.0f} UZS\n"
         f"💳 *To'lanishi kerak qoldiq:* {total_payable:,.0f} UZS\n\n"
-        f"📁 *Barcha xodimlar va stikerlar bo'yicha to'liq oylik tabel ilova qilingan Excel faylda keltirilgan.*"
+        f"📁 *Excel faylda: 1-varaqda umumiy oylik tabel, keyingi varaqlarda esa oy boshidan to bugungacha har bir kun (01.{now.strftime('%m')} dan {now.strftime('%d.%m')} gacha) alohida listlarga yozilgan.*"
     ).replace(",", " ")
 
     api_url = f"https://api.telegram.org/bot{token}/sendDocument"
