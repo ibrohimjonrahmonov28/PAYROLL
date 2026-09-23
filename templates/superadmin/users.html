@@ -297,7 +297,7 @@
                         <td class="py-3.5 px-4 text-center">
                             {% if u.qr_code %}
                             <button
-                                onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:""|escapejs }}', '{{ u.uid|default:"------"|escapejs }}', '{{ u.get_role_display|escapejs }}', '{{ u.role|escapejs }}', '{{ u.qr_code.url }}', '{{ u.username|escapejs }}', '{% url 'superadmin_user_badge' u.id %}', '{{ u.worker_profile.worker_id|default:""|escapejs }}', '{{ u.phone_number|default:""|escapejs }}')"
+                                onclick="openUniversalBadgeModal('{{ u.first_name|default:u.username|escapejs }}', '{{ u.last_name|default:''|escapejs }}', '{{ u.uid|default:'------'|escapejs }}', '{{ u.get_role_display|escapejs }}', '{{ u.role|escapejs }}', '{{ u.qr_code.url }}', '{{ u.username|escapejs }}', '{% url 'superadmin_user_badge' u.id %}', '{{ u.worker_profile.worker_id|default:''|escapejs }}', '{{ u.phone_number|default:''|escapejs }}')"
                                 class="group relative inline-block p-1 bg-white rounded-lg border border-slate-700 hover:border-amber-400 transition"
                                 title="Universal Birkani ko'rish va chop etish">
                                 <img src="{{ u.qr_code.url }}" alt="QR" class="w-8 h-8 object-contain">
@@ -883,7 +883,8 @@
                 </div>
 
                 <!-- O'ng tomon: Yuqori Sifatli QR Kod -->
-                <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div
+                    style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <div
                         style="width: 110px; height: 110px; padding: 4px; border: 1.5px solid #0f172a; border-radius: 10px; background: #ffffff; display: flex; align-items: center; justify-content: center;">
                         <img id="qr-modal-img" src="" alt="QR" style="width: 100%; height: 100%; object-fit: contain;">

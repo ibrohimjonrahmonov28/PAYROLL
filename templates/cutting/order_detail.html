@@ -313,7 +313,7 @@
                                 </span>
                                 {% if b.can_edit %}
                                 <button type="button"
-                                    onclick="openEditBatchModal('{{ b.batch.id }}', '{{ b.name }}', '{{ b.cutter_name|default:''|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ b.partiya_number|default:''|escapejs }}', '{{ b.fabric_weight_kg|default:'' }}', '{{ b.fabric_batch_code|default:''|escapejs }}', '{{ b.notes|default:''|escapejs }}', {{ b.items|safe }})"
+                                    onclick="openEditBatchModal('{{ b.batch.id }}', '{{ b.name }}', '{{ b.cutter_name|default:''|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ b.partiya_number|default:''|escapejs }}', '{{ b.fabric_weight_kg|default:'' }}', '{{ b.fabric_batch_code|default:''|escapejs }}', '{{ b.notes|default:''|escapejs }}', {{ b.items|safe }}, '{{ item_data.item.article.code|escapejs }}', '{{ b.total_quantity }}')"
                                     class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1"
                                     title="Sonlarni tahrirlash">
                                     <i class="fa-solid fa-pen-to-square"></i> Tahrirlash
@@ -323,6 +323,15 @@
                                     title="Meto qabul qilgan, son qulflangan">
                                     <i class="fa-solid fa-lock text-slate-600"></i> Qulflangan
                                 </span>
+                                {% endif %}
+
+                                {% if b.can_delete %}
+                                <button type="button"
+                                    onclick="openDeleteBatchModal('{{ b.batch.id }}', '{{ b.name|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ item_data.item.article.code|escapejs }}', '{{ b.total_quantity }}')"
+                                    class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                                    title="Partiyani o'chirish">
+                                    <i class="fa-solid fa-trash-can"></i> O'chirish
+                                </button>
                                 {% endif %}
                             </div>
                         </div>
@@ -506,11 +515,21 @@
                             {{ b.created_at|date:"d.m.Y H:i" }}
                         </td>
                         <td class="py-3 px-4 text-center">
-                            <button type="button" onclick="scrollToArticleSection('{{ b.item_id }}')"
-                                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-white border border-slate-700 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5"
-                                title="Ushbu model bo'limiga o'tish">
-                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> O'tish
-                            </button>
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="scrollToArticleSection('{{ b.item_id }}')"
+                                    class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-white border border-slate-700 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5"
+                                    title="Ushbu model bo'limiga o'tish">
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> O'tish
+                                </button>
+                                {% if b.can_delete %}
+                                <button type="button"
+                                    onclick="openDeleteBatchModal('{{ b.batch.id }}', '{{ b.name|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ b.article_code|escapejs }}', '{{ b.total_quantity }}')"
+                                    class="px-2 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 rounded-lg text-xs font-bold transition inline-flex items-center gap-1"
+                                    title="Ushbu partiyani o'chirish">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -687,16 +706,84 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onclick="closeEditBatchModal()"
-                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
-                    Bekor Qilish
+            <div class="flex items-center justify-between gap-3 pt-2">
+                <button type="button" onclick="confirmDeleteFromEditModal()"
+                    class="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white font-bold rounded-xl text-xs border border-rose-500/30 transition flex items-center gap-1.5"
+                    title="Ushbu partiyani butunlay o'chirish">
+                    <i class="fa-solid fa-trash-can"></i> O'chirish
                 </button>
-                <button type="submit"
-                    class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">
-                    O'zgarishlarni Saqlash
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeEditBatchModal()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                        Bekor Qilish
+                    </button>
+                    <button type="submit"
+                        class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">
+                        O'zgarishlarni Saqlash
+                    </button>
+                </div>
             </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: Kesim Partiyasini O'chirish -->
+<div id="delete-batch-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-white">Partiyani O'chirish</h3>
+                    <p class="text-xs text-slate-400">Pastalni bazadan butunlay o'chirish</p>
+                </div>
+            </div>
+            <button onclick="closeDeleteBatchModal()" class="text-slate-400 hover:text-white text-xl p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Haqiqatan ham quyidagi partiya ma'lumotlarini bazadan o'chirmoqchimisiz?
+            </p>
+            <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1.5 text-xs font-mono">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Model / Artikul:</span>
+                    <strong class="text-amber-400 font-bold" id="del-modal-article"></strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Kesim Nomi:</span>
+                    <strong class="text-white font-bold" id="del-modal-batch"></strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Pastal Kodi:</span>
+                    <strong class="text-cyan-400 font-bold" id="del-modal-pastal"></strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Jami Soni:</span>
+                    <strong class="text-emerald-400 font-bold" id="del-modal-qty"></strong>
+                </div>
+            </div>
+            <p class="text-[11px] text-amber-400/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
+                <i class="fa-solid fa-circle-info mr-1"></i>
+                Agar ushbu partiya xato artikulga kiritilgan bo'lsa, uni o'chirib to'g'ri artikulga qaytadan kiritishingiz mumkin.
+            </p>
+        </div>
+
+        <form method="POST" id="delete-batch-form" class="flex items-center justify-end gap-3 pt-2">
+            {% csrf_token %}
+            <button type="button" onclick="closeDeleteBatchModal()"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                Bekor Qilish
+            </button>
+            <button type="submit"
+                class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-trash-can"></i> Ha, O'chirilsin
+            </button>
         </form>
     </div>
 </div>
@@ -911,7 +998,10 @@
         document.getElementById('add-batch-modal').classList.add('hidden');
     }
 
-    function openEditBatchModal(batchId, batchName, cutterName, pastalCode, partiyaNumber, fabricWeight, fabricBatch, notes, items) {
+    let currentEditBatch = { id: null, name: '', pastal: '', artCode: '', qty: '' };
+
+    function openEditBatchModal(batchId, batchName, cutterName, pastalCode, partiyaNumber, fabricWeight, fabricBatch, notes, items, artCode = '', totalQty = '') {
+        currentEditBatch = { id: batchId, name: batchName, pastal: pastalCode, artCode: artCode, qty: totalQty };
         document.getElementById('edit-modal-title').innerText = batchName + ' ni Tahrirlash';
         document.getElementById('edit-batch-form').action = `{% url 'cutting_dashboard' %}orders/{{ order.id }}/batches/${batchId}/edit/`;
         document.getElementById('edit-cutter-name').value = cutterName || '';
@@ -947,6 +1037,32 @@
 
     function closeEditBatchModal() {
         document.getElementById('edit-batch-modal').classList.add('hidden');
+    }
+
+    function confirmDeleteFromEditModal() {
+        if (!currentEditBatch.id) return;
+        const bId = currentEditBatch.id;
+        const bName = currentEditBatch.name;
+        const pCode = currentEditBatch.pastal;
+        const aCode = currentEditBatch.artCode;
+        const tQty = currentEditBatch.qty;
+        closeEditBatchModal();
+        openDeleteBatchModal(bId, bName, pCode, aCode, tQty);
+    }
+
+    function openDeleteBatchModal(batchId, batchName, pastalCode, articleCode, totalQuantity) {
+        document.getElementById('del-modal-batch').innerText = batchName || '—';
+        document.getElementById('del-modal-pastal').innerText = pastalCode || '—';
+        document.getElementById('del-modal-article').innerText = articleCode || '—';
+        document.getElementById('del-modal-qty').innerText = (totalQuantity ? (totalQuantity + ' dona') : '—');
+        
+        const deleteUrlTemplate = "{% url 'cutting_delete_batch' order.id 999999 %}";
+        document.getElementById('delete-batch-form').action = deleteUrlTemplate.replace('999999', batchId);
+        document.getElementById('delete-batch-modal').classList.remove('hidden');
+    }
+
+    function closeDeleteBatchModal() {
+        document.getElementById('delete-batch-modal').classList.add('hidden');
     }
 </script>
 {% endblock %}

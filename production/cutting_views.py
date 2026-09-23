@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max
 from django.http import JsonResponse
-from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box
+from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket
 
 
 def cutter_required(view_func):
@@ -95,6 +95,15 @@ def cutting_order_detail(request, order_id: int):
         id=order_id
     )
 
+    # Skanerlangan partiyalar ID lari (tikuvda skanerlangan bo'lsa o'chirish taqiqlanadi)
+    scanned_batch_ids = set(
+        Ticket.objects.filter(
+            box__order=order,
+            box__cutting_batch_item__isnull=False,
+            status=Ticket.Status.SCANNED
+        ).values_list('box__cutting_batch_item__batch_id', flat=True)
+    )
+
     items_data = []
     all_batches_flat = []
     total_planned_order = 0
@@ -142,6 +151,8 @@ def cutting_order_detail(request, order_id: int):
                     'can_edit': b_it.can_edit_cut,
                 })
 
+            can_delete_this_batch = (batch.id not in scanned_batch_ids)
+
             batch_info = {
                 'batch': batch,
                 'name': batch.name,
@@ -157,6 +168,7 @@ def cutting_order_detail(request, order_id: int):
                 'total_real_quantity': batch.total_real_quantity,
                 'items': batch_items,
                 'can_edit': can_edit_this_batch,
+                'can_delete': can_delete_this_batch,
                 'is_all_meto_confirmed': batch.is_all_meto_confirmed,
             }
             batches_data.append(batch_info)
@@ -343,3 +355,55 @@ def cutting_edit_batch(request, order_id: int, batch_id: int):
         return redirect('cutting_order_detail', order_id=order.id)
 
     return redirect('cutting_order_detail', order_id=order.id)
+
+
+@cutter_required
+def cutting_delete_batch(request, order_id: int, batch_id: int):
+    """
+    Kesim Partiyasini (Pastalni) O'chirish (POST):
+    - Xato artikulga kiritilgan pastalni butunlay o'chirish.
+    - Agar ushbu partiya stikerlari tikuvchilar tomonidan allaqachon skanerlangan bo'lsa (SCANNED), o'chirish taqiqlanadi!
+    - Agar Meto tasdiqlagan bo'lsa-yu, lekin hali skanerlanmagan bo'lsa, unga tegishli barcha qutilar va stikerlar ham xavfsiz o'chiriladi.
+    """
+    if request.method != 'POST':
+        messages.error(request, "Noto'g'ri so'rov usuli!")
+        return redirect('cutting_order_detail', order_id=order_id)
+
+    order = get_object_or_404(Order, id=order_id)
+    batch = get_object_or_404(CuttingBatch, id=batch_id, order_item__order=order)
+
+    # 1. Tikuvchilar tomonidan skanerlangan stikerlar bor-yo'qligini tekshirish
+    scanned_tickets_count = Ticket.objects.filter(
+        box__cutting_batch_item__batch=batch,
+        status=Ticket.Status.SCANNED
+    ).count()
+
+    if scanned_tickets_count > 0:
+        messages.error(
+            request,
+            f"'{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {scanned_tickets_count} ta operatsiya "
+            f"tikuvchilar tomonidan allaqachon skanerlangan va ish haqi hisoblangan! Ushbu partiyani o'chirib bo'lmaydi."
+        )
+        return redirect('cutting_order_detail', order_id=order_id)
+
+    batch_name = batch.name
+    pastal_code = batch.pastal_code or "—"
+    article_code = batch.order_item.article.code
+
+    with transaction.atomic():
+        # Ushbu partiyaga tegishli yaratilgan qutilarni va ularning stikerlarini o'chirish
+        related_boxes = Box.objects.filter(cutting_batch_item__batch=batch)
+        deleted_boxes_count = related_boxes.count()
+        if deleted_boxes_count > 0:
+            related_boxes.delete()
+
+        # Batch va unga tegishli barcha CuttingBatchItem larni o'chirish (CASCADE)
+        batch.delete()
+
+    msg = f"'{article_code}' artikulidan '{batch_name}' (Pastal: {pastal_code}) muvaffaqiyatli o'chirildi!"
+    if deleted_boxes_count > 0:
+        msg += f" (Unga biriktirilgan {deleted_boxes_count} ta quti va stikerlar ham bekor qilindi)."
+
+    messages.success(request, msg)
+    return redirect('cutting_order_detail', order_id=order_id)
+
