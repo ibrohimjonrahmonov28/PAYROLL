@@ -163,6 +163,21 @@
 
 <body class="p-4 md:p-8">
 
+    <!-- Xabarlar (Messages) -->
+    {% if messages %}
+    <div class="no-print max-w-5xl mx-auto mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="px-4 py-3 rounded-2xl text-xs font-bold flex items-center justify-between shadow-lg {% if message.tags == 'success' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif message.tags == 'error' %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% endif %}">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check{% elif message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Print Control & Actions Bar (Faqat ekranda ko'rinadi) -->
     <div
         class="no-print max-w-5xl mx-auto mb-8 bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-2xl space-y-4">
@@ -193,18 +208,32 @@
             <!-- Boshqaruv tugmalari -->
             <div class="flex flex-wrap items-center gap-2.5">
                 {% if user_ids_str %}
-                <form method="POST"
-                    onsubmit="return confirm('Rostdan ham ro\'yxatdagi {{ total_badges }} ta xodimning birkasini \'Berilgan\' deb belgilamoqchimisiz?');"
-                    class="inline">
+                <form method="POST" id="form-mark-all-printed" class="inline"
+                    onsubmit="event.preventDefault(); markAllPrintedAjax('{{ user_ids_str }}', true);">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="mark_printed">
                     <input type="hidden" name="user_ids" value="{{ user_ids_str }}">
-                    <button type="submit"
-                        class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2"
+                    <button type="submit" id="btn-mark-all-printed"
+                        class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2 cursor-pointer"
                         title="Ushbu sahifadagi barcha xodimlar birkalarini berildi deb belgilash">
                         <i class="fa-solid fa-circle-check"></i> Berildi Deb Belgilash ({{ total_badges }})
                     </button>
                 </form>
+
+                {% if badge_status == 'printed' or badge_status == 'all' %}
+                <form method="POST" id="form-mark-all-unprinted" class="inline"
+                    onsubmit="event.preventDefault(); markAllPrintedAjax('{{ user_ids_str }}', false);">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="bulk_mark_badge_printed">
+                    <input type="hidden" name="value" value="false">
+                    <input type="hidden" name="user_ids" value="{{ user_ids_str }}">
+                    <button type="submit" id="btn-mark-all-unprinted"
+                        class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                        title="Birkalarni qayta berilmagan deb belgilash">
+                        <i class="fa-solid fa-rotate-left"></i> Berilmagan Qilish
+                    </button>
+                </form>
+                {% endif %}
                 {% endif %}
 
                 <!-- PDF download -->
@@ -274,6 +303,21 @@
                 <div class="cut-box">
                     <div class="scissor-guide no-print">
                         <i class="fa-solid fa-scissors"></i>
+                    </div>
+
+                    <!-- Tezkor Holat Tugmasi (Berilgan / Berilmagan) - Faqat Ekranda -->
+                    <div class="no-print absolute top-1.5 right-2 z-10">
+                        <button type="button" onclick="toggleBadgeStatus({{ u.id }}, this)"
+                            id="badge-status-btn-{{ u.id }}"
+                            data-printed="{{ u.is_badge_printed|yesno:'true,false' }}"
+                            class="px-2.5 py-0.5 rounded-full text-[9px] font-black transition-all flex items-center gap-1 shadow-md cursor-pointer {% if u.is_badge_printed %}bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-400{% else %}bg-amber-500 hover:bg-amber-400 text-slate-950 ring-1 ring-amber-400{% endif %}"
+                            title="Holatni almashtirish uchun bosing (Berilgan / Berilmagan)">
+                            {% if u.is_badge_printed %}
+                            <i class="fa-solid fa-check text-[9px]"></i> Berilgan
+                            {% else %}
+                            <i class="fa-solid fa-clock text-[9px]"></i> Berilmagan
+                            {% endif %}
+                        </button>
                     </div>
 
                     <div class="universal-badge-card">
@@ -395,6 +439,129 @@
         {% endfor %}
     </div>
 
+    <!-- Interactive JavaScript Engine -->
+    <script>
+        function showToast(message, type) {
+            var container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'no-print fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm';
+                document.body.appendChild(container);
+            }
+            var toast = document.createElement('div');
+            var bgClass = type === 'success' ? 'bg-emerald-600 text-white' : (type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white');
+            toast.className = bgClass + ' px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2.5 transition-all transform translate-y-2 opacity-0 border border-white/10';
+            toast.innerHTML = '<i class="fa-solid ' + (type === 'success' ? 'fa-circle-check text-emerald-200' : 'fa-circle-info') + '"></i><span>' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+            setTimeout(function() {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3500);
+        }
+
+        function toggleBadgeStatus(userId, btn) {
+            var originalHtml = btn.innerHTML;
+            var originalClass = btn.className;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[9px]"></i>';
+            btn.disabled = true;
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    'action': 'toggle_badge_printed',
+                    'user_id': userId
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                if (data.status === 'ok') {
+                    btn.setAttribute('data-printed', data.is_badge_printed ? 'true' : 'false');
+                    if (data.is_badge_printed) {
+                        btn.className = 'px-2.5 py-0.5 rounded-full text-[9px] font-black transition-all flex items-center gap-1 shadow-md cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-400';
+                        btn.innerHTML = '<i class="fa-solid fa-check text-[9px]"></i> Berilgan';
+                        showToast(data.message || 'Birka berildi deb belgilandi', 'success');
+                    } else {
+                        btn.className = 'px-2.5 py-0.5 rounded-full text-[9px] font-black transition-all flex items-center gap-1 shadow-md cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 ring-1 ring-amber-400';
+                        btn.innerHTML = '<i class="fa-solid fa-clock text-[9px]"></i> Berilmagan';
+                        showToast(data.message || 'Birka berilmagan deb belgilandi', 'info');
+                    }
+                } else {
+                    btn.innerHTML = originalHtml;
+                    btn.className = originalClass;
+                    alert('Xatolik: ' + (data.message || 'Statusni saqlab bo\'lmadi'));
+                }
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                btn.className = originalClass;
+                alert('Aloqa xatoligi: ' + err);
+            });
+        }
+
+        function markAllPrintedAjax(userIds, isPrintedVal) {
+            if (!userIds) return;
+            var confirmMsg = isPrintedVal 
+                ? "Rostdan ham ushbu sahifadagi barcha xodimlarning birkasini 'Berilgan' deb belgilamoqchimisiz?"
+                : "Rostdan ham ushbu sahifadagi barcha xodimlarning birkasini 'Berilmagan' holatiga qaytarmoqchimisiz?";
+            if (!confirm(confirmMsg)) return;
+
+            var btn = document.getElementById(isPrintedVal ? 'btn-mark-all-printed' : 'btn-mark-all-unprinted');
+            var originalBtnHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saqlanmoqda...';
+                btn.disabled = true;
+            }
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    'action': 'bulk_mark_badge_printed',
+                    'user_ids': userIds,
+                    'value': isPrintedVal ? 'true' : 'false'
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    showToast(data.message || 'Barcha birkalar yangilandi!', 'success');
+                    // Sahifani qayta yuklash (filtrlarga mos ravishda)
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 800);
+                } else {
+                    if (btn) {
+                        btn.innerHTML = originalBtnHtml;
+                        btn.disabled = false;
+                    }
+                    alert('Xatolik yuz berdi');
+                }
+            })
+            .catch(function(err) {
+                if (btn) {
+                    btn.innerHTML = originalBtnHtml;
+                    btn.disabled = false;
+                }
+                var form = document.getElementById(isPrintedVal ? 'form-mark-all-printed' : 'form-mark-all-unprinted');
+                if (form) form.submit();
+            });
+        }
+    </script>
 </body>
 
 </html>

@@ -603,13 +603,46 @@ def superadmin_users_print_badges(request):
     """
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'mark_printed':
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            request.GET.get('format') == 'json'
+        )
+
+        if action in ['mark_printed', 'bulk_mark_badge_printed']:
             user_ids_raw = request.POST.get('user_ids', '')
+            val = request.POST.get('value', 'true').lower() == 'true'
             ids = [int(i.strip()) for i in user_ids_raw.split(',') if i.strip().isdigit()]
+            updated_cnt = 0
             if ids:
-                updated_cnt = User.objects.filter(id__in=ids).update(is_badge_printed=True)
-                messages.success(request, f"Jami {updated_cnt} ta xodimning birkasi 'Berilgan' deb belgilandi!")
-            return redirect('superadmin_users_print_badges')
+                updated_cnt = User.objects.filter(id__in=ids).update(is_badge_printed=val)
+                state_lbl = "Berilgan" if val else "Berilmagan"
+                messages.success(request, f"Jami {updated_cnt} ta xodimning birkasi '{state_lbl}' deb belgilandi!")
+
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'ok',
+                    'updated_count': updated_cnt,
+                    'is_badge_printed': val,
+                    'message': f"Jami {updated_cnt} ta xodimning birkasi 'Berilgan' deb belgilandi!" if val else f"{updated_cnt} ta xodim birkasi 'Berilmagan' holatiga qaytarildi."
+                })
+            return redirect(request.get_full_path())
+
+        elif action == 'toggle_badge_printed':
+            user_id = request.POST.get('user_id')
+            target_user = get_object_or_404(User, id=user_id)
+            target_user.is_badge_printed = not target_user.is_badge_printed
+            target_user.save(update_fields=['is_badge_printed'])
+
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'ok',
+                    'user_id': target_user.id,
+                    'is_badge_printed': target_user.is_badge_printed,
+                    'badge_status_text': 'Berilgan' if target_user.is_badge_printed else 'Berilmagan',
+                    'message': f"{target_user.get_full_name() or target_user.username} uchun birka holati '{'Berilgan' if target_user.is_badge_printed else 'Berilmagan'}' deb belgilandi."
+                })
+            messages.success(request, f"{target_user.get_full_name() or target_user.username} uchun birka holati '{'Berilgan' if target_user.is_badge_printed else 'Berilmagan'}' deb belgilandi.")
+            return redirect(request.get_full_path())
 
     search_q = request.GET.get('q', '').strip()
     role_filter = request.GET.get('role', '').strip()
@@ -672,9 +705,12 @@ def superadmin_users_print_badges(request):
     CARDS_PER_A4 = 8
     pages_list = [users_list[i:i + CARDS_PER_A4] for i in range(0, len(users_list), CARDS_PER_A4)]
 
-    unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
-    printed_badges_count = User.objects.filter(is_badge_printed=True).count()
-    total_all_badges_count = User.objects.count()
+    base_counts_qs = User.objects.all()
+    if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.CONTROL, User.Role.SCREEN, User.Role.USER]:
+        base_counts_qs = base_counts_qs.filter(role=role_filter)
+    unprinted_badges_count = base_counts_qs.filter(is_badge_printed=False).count()
+    printed_badges_count = base_counts_qs.filter(is_badge_printed=True).count()
+    total_all_badges_count = base_counts_qs.count()
 
     return render(request, 'superadmin/users_badges_batch_print.html', {
         'badge_users': users_list,

@@ -619,7 +619,29 @@ class SuperAdminPanelTest(TestCase):
         self.assertContains(res_q, 'Azamat')
         self.assertNotContains(res_q, 'Zafar')
 
-        # 4. PDF yuklab olish testi
+        # 4. Holatni Berilgan deb belgilash (POST) va query params saqlanishi
+        url_with_params = reverse('superadmin_users_print_badges') + '?badge_status=unprinted&role=USER'
+        res_mark = self.client.post(url_with_params, {
+            'action': 'mark_printed',
+            'user_ids': str(u1.id)
+        })
+        self.assertRedirects(res_mark, url_with_params)
+        u1.refresh_from_db()
+        self.assertTrue(u1.is_badge_printed)
+
+        # 5. AJAX orqali alohida birka holatini toggle qilish
+        res_toggle = self.client.post(
+            reverse('superadmin_users_print_badges'),
+            {'action': 'toggle_badge_printed', 'user_id': str(u1.id)},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(res_toggle.status_code, 200)
+        self.assertEqual(res_toggle.json()['status'], 'ok')
+        self.assertFalse(res_toggle.json()['is_badge_printed'])
+        u1.refresh_from_db()
+        self.assertFalse(u1.is_badge_printed)
+
+        # 6. PDF yuklab olish testi
         res_pdf = self.client.get(reverse('superadmin_users_download_badges_pdf'))
         self.assertEqual(res_pdf.status_code, 200)
         self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
