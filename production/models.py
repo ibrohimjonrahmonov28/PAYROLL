@@ -354,12 +354,13 @@ class ArticleOperation(models.Model):
 
     def sync_price_to_tickets(self):
         """
-        Operatsiya narxi o'zgarganda ushbu operatsiyaning barcha biletlari
-        (shu jumladan o'tgan kunlarda skanerlangan biletlar) dona narxi
-        va umumiy summasini avtomatik yangilash.
+        Operatsiya narxi o'zgarganda faqat MUZLATILMAGAN (is_frozen=False)
+        biletlarning (joriy oy va hali yopilmagan o'tgan oydagi faol biletlar)
+        dona narxi va umumiy summasini avtomatik yangilash.
+        Muzlatilgan (is_frozen=True) biletlar daxlsiz qoladi.
         """
         from django.db.models import F
-        return self.tickets.update(
+        return self.tickets.filter(is_frozen=False).update(
             price_per_unit=self.price_per_unit,
             total_amount=F('quantity') * self.price_per_unit
         )

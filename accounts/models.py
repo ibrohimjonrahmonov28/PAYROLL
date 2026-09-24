@@ -312,3 +312,70 @@ class DailyWorkerClosing(models.Model):
         return f"{self.date} | {self.worker.worker_id} - {self.total_amount:,.0f} UZS ({self.total_units} dona)"
 
 
+class MonthlyClosing(models.Model):
+    """
+    Oylik ish haqi hisobini yopish, xodimlarga oylik berilganini qayd etish
+    va 7 kunlik taymer orqali stikerlarni avtomatik muzlatish (freeze) modeli.
+    """
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', 'Ochiq (Aktiv / Qayta hisoblash mumkin)'
+        PENDING_FREEZE = 'PENDING_FREEZE', 'Oylik berilgan (7 kunlik taymerda)'
+        FROZEN = 'FROZEN', 'Muzlatilgan (Qulflangan / Arxiv)'
+
+    year = models.PositiveIntegerField(verbose_name="Yil")
+    month = models.PositiveIntegerField(verbose_name="Oy")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.OPEN,
+        db_index=True,
+        verbose_name="Holati"
+    )
+    payout_marked_at = models.DateTimeField(null=True, blank=True, verbose_name="Oylik to'langan vaqt")
+    payout_marked_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='monthly_closings_marked',
+        verbose_name="Oylik to'lagan mas'ul"
+    )
+    freeze_deadline = models.DateTimeField(null=True, blank=True, db_index=True, verbose_name="Muzlash muddati (Taymer tugashi)")
+    frozen_at = models.DateTimeField(null=True, blank=True, verbose_name="Muzlatilgan vaqt")
+    total_workers_count = models.PositiveIntegerField(default=0, verbose_name="Xodimlar soni")
+    total_units = models.PositiveIntegerField(default=0, verbose_name="Jami donalar")
+    total_gross_amount = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal('0.00'), verbose_name="Jami hisoblangan ish haqi")
+    total_advances = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal('0.00'), verbose_name="Jami avanslar")
+    total_paid_salary = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal('0.00'), verbose_name="Jami to'langan oylik")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Oylik Yopish Reestri"
+        verbose_name_plural = "Oylik Yopish Reestrlari"
+        unique_together = ('year', 'month')
+        ordering = ['-year', '-month']
+
+    @property
+    def is_timer_active(self):
+        if self.status == self.Status.PENDING_FREEZE and self.freeze_deadline:
+            return timezone.now() < self.freeze_deadline
+        return False
+
+    @property
+    def time_remaining_display(self):
+        if not self.is_timer_active:
+            return ""
+        diff = self.freeze_deadline - timezone.now()
+        days = diff.days
+        hours, remainder = divmod(diff.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+        if days > 0:
+            return f"{days} kun, {hours} soat qoldi"
+        return f"{hours} soat, {minutes} daqiqa qoldi"
+
+    def __str__(self):
+        return f"{self.year}-{self.month:02d} | {self.get_status_display()}"
+
+
+
