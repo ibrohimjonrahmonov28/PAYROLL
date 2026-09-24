@@ -131,6 +131,17 @@
                         </a>
                         {% endif %}
 
+                        {% if b.needs_boxes_generation %}
+                        <form method="POST" action="{% url 'meto_generate_missing_boxes' b.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black rounded-xl text-xs shadow-md transition flex items-center gap-1.5"
+                                title="Ushbu pastal uchun barcha qutilar va QR stikerlarni yaratish">
+                                <i class="fa-solid fa-boxes-stacked"></i> Qutilar va Stikerlarni Yaratish
+                            </button>
+                        </form>
+                        {% endif %}
+
                         {% if b.has_pending %}
                         <span
                             class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center gap-1.5">

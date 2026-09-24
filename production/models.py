@@ -743,7 +743,8 @@ class CuttingBatchItem(models.Model):
 
     @property
     def remaining_to_box(self):
-        return max(0, self.effective_quantity - self.boxes_created_qty)
+        actual_boxes_qty = sum(b.quantity for b in self.boxes.all())
+        return max(0, self.effective_quantity - actual_boxes_qty)
 
     def __str__(self):
         return f"{self.batch.name} - {self.order_item_size.size_name}: Kesim {self.quantity} ta (Meto: {self.effective_quantity})"

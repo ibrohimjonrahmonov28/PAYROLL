@@ -106,7 +106,7 @@ def meto_order_detail(request, order_id: int):
 
     order_items = order.items.all().select_related('article__model').prefetch_related(
         'article__article_operations',
-        'cutting_batches__items'
+        'cutting_batches__items__boxes'
     )
 
     items_data = []
@@ -121,7 +121,9 @@ def meto_order_detail(request, order_id: int):
             confirmed_items_count = sum(1 for bi in b_items if bi.status != CuttingBatchItem.Status.CUT_ENTERED)
             total_items_count = len(b_items)
             has_pending = confirmed_items_count < total_items_count
-            has_boxes = any(bi.boxes_created_qty > 0 for bi in b_items)
+            total_boxes_count = sum(len(bi.boxes.all()) for bi in b_items)
+            has_boxes = total_boxes_count > 0
+            needs_boxes_generation = any(len(bi.boxes.all()) == 0 for bi in b_items)
 
             batches_data.append({
                 'batch': batch,
@@ -141,6 +143,8 @@ def meto_order_detail(request, order_id: int):
                 'confirmed_items_count': confirmed_items_count,
                 'has_pending': has_pending,
                 'has_boxes': has_boxes,
+                'needs_boxes_generation': needs_boxes_generation,
+                'total_boxes_count': total_boxes_count,
             })
 
         items_data.append({
@@ -351,3 +355,47 @@ def meto_confirm_item(request, item_id: int):
         )
 
     return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
+
+
+@meto_required
+def meto_generate_missing_boxes(request, batch_id: int):
+    """
+    Pastalning qutisi yaratilmagan barcha bandlari uchun qutilar va QR stikerlarni bir zumda generatsiya qilish:
+    """
+    batch = get_object_or_404(
+        CuttingBatch.objects.select_related('order_item__order', 'order_item__article'),
+        id=batch_id
+    )
+    order = batch.order_item.order
+    created_boxes_total = 0
+
+    with transaction.atomic():
+        for b_it in batch.items.all():
+            if b_it.boxes.count() == 0:
+                if b_it.status == CuttingBatchItem.Status.CUT_ENTERED:
+                    b_it.status = CuttingBatchItem.Status.METO_CONFIRMED
+                    if not b_it.real_quantity:
+                        b_it.real_quantity = b_it.quantity
+                    b_it.save(update_fields=['status', 'real_quantity'])
+
+                if b_it.remaining_to_box > 0:
+                    boxes = auto_generate_boxes_for_batch_item(
+                        batch_item=b_it,
+                        split_count=1,
+                        pastal_number=batch.pastal_code or str(batch.batch_number)
+                    )
+                    created_boxes_total += len(boxes)
+
+    if created_boxes_total > 0:
+        messages.success(
+            request,
+            f"Muvaffaqiyatli! '{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {created_boxes_total} ta quti va barcha QR stikerlar generatsiya qilindi va Stikerlar bo'limiga uzatildi!"
+        )
+    else:
+        messages.info(request, "Ushbu pastalning barcha qutilari allaqachon mavjud.")
+
+    return_to = request.GET.get('from')
+    if return_to == 'stickers':
+        return redirect('sticker_order_boxes', order_id=order.id)
+
+    return redirect(f"/meto/orders/{order.id}/?open_batch={batch.id}")

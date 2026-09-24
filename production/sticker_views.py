@@ -106,6 +106,7 @@ def sticker_order_boxes(request, order_id: int):
     order = get_object_or_404(
         Order.objects.select_related('customer', 'article').prefetch_related(
             'items__article__article_operations',
+            'items__cutting_batches__items__boxes',
             'boxes__article',
             'boxes__tickets',
             'boxes__cutting_batch_item'
@@ -120,6 +121,19 @@ def sticker_order_boxes(request, order_id: int):
     for it in order.items.all():
         if it.article and it.article.article_operations.count() == 0:
             articles_without_ops.append(it.article)
+
+    # Qutilari hali generatsiya qilinmagan pastallarni aniqlash
+    batches_without_boxes = []
+    for it in order.items.all():
+        for batch in it.cutting_batches.all():
+            b_items = list(batch.items.all())
+            if b_items and any(len(bi.boxes.all()) == 0 for bi in b_items):
+                batches_without_boxes.append({
+                    'batch': batch,
+                    'pastal_code': batch.pastal_code or str(batch.batch_number),
+                    'missing_count': sum(1 for bi in b_items if len(bi.boxes.all()) == 0),
+                    'total_count': len(b_items),
+                })
 
     unprinted_boxes = [b for b in boxes if not b.is_printed]
     available_source_articles = Article.objects.filter(article_operations__isnull=False).distinct()
@@ -155,6 +169,7 @@ def sticker_order_boxes(request, order_id: int):
         'boxes_without_tickets_count': len(boxes_without_tickets),
         'articles_without_ops': articles_without_ops,
         'available_source_articles': available_source_articles,
+        'batches_without_boxes': batches_without_boxes,
     })
 
 

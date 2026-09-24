@@ -7,5 +7,6 @@ urlpatterns = [
     path('batches/<int:batch_id>/items/', meto_views.meto_batch_items_view, name='meto_batch_items'),
     path('items/<int:item_id>/confirm/', meto_views.meto_confirm_item, name='meto_confirm_item'),
     path('items/<int:item_id>/reset/', meto_views.meto_reset_item, name='meto_reset_item'),
+    path('batches/<int:batch_id>/generate-boxes/', meto_views.meto_generate_missing_boxes, name='meto_generate_missing_boxes'),
 ]
 
