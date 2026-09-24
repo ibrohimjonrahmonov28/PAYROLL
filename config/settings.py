@@ -42,6 +42,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://www.tezol.shop',
     'https://34.156.34.148',
     'http://34.156.34.148',
+    'https://91.99.181.42',
+    'http://91.99.181.42',
     'https://*.tezol.shop',
     'https://*.jprq.live',
     'https://*.jprq.site',
