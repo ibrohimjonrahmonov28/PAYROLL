@@ -1210,20 +1210,35 @@ def superadmin_send_telegram_report(request):
     Superadmin panelidan turib xodimlar va stikerlar bo'yicha joriy oy boshidan hozirgacha
     bo'lgan to'liq oylik Excel hisoboti va To'liq baza zaxira nusxasini (DB Backup)
     Telegram guruhga yuborish.
+    Gunicorn worker va veb sahifa qotib qolmasligi uchun jarayon orqa fonda (background thread) bajariladi.
     """
+    import threading
+    import logging
+    from django.db import connection
+
     chat_id = (request.POST.get('chat_id') or request.GET.get('chat_id') or '').strip() or None
     bot_token = (request.POST.get('bot_token') or request.GET.get('bot_token') or '').strip() or None
 
-    try:
-        from production.telegram_reports import send_month_to_date_telegram_report
-        result = send_month_to_date_telegram_report(chat_id=chat_id, bot_token=bot_token)
+    def _send_report_worker(c_id, b_token):
+        logger = logging.getLogger('production.telegram_reports')
+        try:
+            from production.telegram_reports import send_month_to_date_telegram_report
+            logger.info("Fonda oylik hisobot va DB backup yuborish boshlandi...")
+            res = send_month_to_date_telegram_report(chat_id=c_id, bot_token=b_token)
+            logger.info(f"Fonda hisobot natijasi: {res}")
+        except Exception as exc:
+            logger.error(f"Fonda hisobot yuborishda xatolik: {exc}", exc_info=True)
+        finally:
+            connection.close()
 
-        if result.get('success'):
-            messages.success(request, f"✅ {result.get('message')}")
-        else:
-            messages.warning(request, f"⚠️ {result.get('message')}")
-    except Exception as e:
-        messages.error(request, f"Xatolik: {str(e)}")
+    bg_thread = threading.Thread(target=_send_report_worker, args=(chat_id, bot_token), daemon=True)
+    bg_thread.start()
+
+    messages.success(
+        request,
+        "🚀 Oylik hisobot (Excel) va to'liq baza zaxira nusxasi (Backup) orqa fonda Telegram guruhga jo'natilmoqda. "
+        "Fayllar 10-30 soniya ichida Telegramga yetib boradi."
+    )
 
     referer = request.META.get('HTTP_REFERER')
     if referer and 'telegram-report' not in referer:

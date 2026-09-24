@@ -187,8 +187,11 @@ def send_full_db_backup(chat_id: str = None, bot_token: str = None) -> dict:
         import gzip
         try:
             with gzip.open(backup_path, 'wt', encoding='utf-8') as f_gz:
-                call_command('dumpdata', natural_foreign=True, natural_primary=True,
-                             exclude=['contenttypes', 'auth.permission'], stdout=f_gz)
+                call_command(
+                    'dumpdata',
+                    exclude=['contenttypes', 'auth.permission', 'admin.logentry', 'sessions.session'],
+                    stdout=f_gz
+                )
         except Exception as e:
             return {
                 'success': False,

@@ -124,8 +124,7 @@
                             title="Faqat ushbu pastal stikerlarini umumiy chop etish (65x45)">
                             <i class="fa-solid fa-print"></i> Pastalni Chop Etish (65x45)
                         </a>
-                        <a href="{% url 'production:pastal_passport' b.id %}"
-                            target="_blank"
+                        <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
                             class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
                             title="A4 Pastal Pasportini ko'rish va chop etish">
                             <i class="fa-solid fa-file-lines"></i> Pasport (A4)
@@ -262,15 +261,16 @@
     }
 
     // Agar URLda open_batch ko'rsatilgan bo'lsa, avtomatik ochish
-    document.addEventListener('DOMContentLoaded', function() {
-        const openBatchId = {{ open_batch_id|default:"null" }};
-        if (openBatchId) {
-            toggleBatch(openBatchId);
-            const el = document.getElementById(`batch-card-${openBatchId}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+    document.addEventListener('DOMContentLoaded', function () {
+        const openBatchId = {{ open_batch_id|default: "null"
+    }};
+    if (openBatchId) {
+        toggleBatch(openBatchId);
+        const el = document.getElementById(`batch-card-${openBatchId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+    }
     });
 </script>
 {% endblock %}

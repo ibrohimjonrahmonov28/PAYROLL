@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="uz">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,7 +32,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .btn {
@@ -52,6 +53,7 @@
             background-color: #f59e0b;
             color: #0f172a;
         }
+
         .btn-print:hover {
             background-color: #d97706;
         }
@@ -60,6 +62,7 @@
             background-color: #334155;
             color: #f8fafc;
         }
+
         .btn-close:hover {
             background-color: #475569;
         }
@@ -71,7 +74,7 @@
             padding: 12mm 15mm;
             margin: 20px auto;
             background: #ffffff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -297,13 +300,15 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Screen Controls (Chop etish tugmasi) -->
     <div class="screen-toolbar no-print">
         <div style="color: white; font-size: 13px;">
             <i class="fa-solid fa-file-lines text-amber-400 mr-2"></i>
-            <span>Pastal Pasporti (A4 Marshrut Varaqasi) — <strong>{{ batch.pastal_code|default:batch.name }}</strong></span>
+            <span>Pastal Pasporti (A4 Marshrut Varaqasi) — <strong>{{ batch.pastal_code|default:batch.name
+                    }}</strong></span>
         </div>
         <div style="display: flex; gap: 10px;">
             <button onclick="window.print()" class="btn btn-print">
@@ -336,12 +341,14 @@
 
                     <div class="meta-line">
                         <strong>Zakaz:</strong> {{ order.order_number }}
-                        <span style="color: #475569; margin-left: 6px;">(Mijoz: {{ order.customer.name|default:order.client_name }})</span>
+                        <span style="color: #475569; margin-left: 6px;">(Mijoz: {{
+                            order.customer.name|default:order.client_name }})</span>
                     </div>
 
                     <div class="meta-line">
                         <strong>Pastal kodi:</strong>
-                        <span style="font-family: monospace; font-size: 14px; font-weight: 900; background: #fef3c7; padding: 1px 6px; border: 1px solid #f59e0b; border-radius: 4px;">
+                        <span
+                            style="font-family: monospace; font-size: 14px; font-weight: 900; background: #fef3c7; padding: 1px 6px; border: 1px solid #f59e0b; border-radius: 4px;">
                             PC: {{ batch.pastal_code|default:batch.name }}
                         </span>
                         {% if batch.partiya_number %}
@@ -351,8 +358,10 @@
                     </div>
 
                     <div class="meta-line">
-                        <strong>Artikul:</strong> <span style="font-family: monospace; font-weight: 800;">{{ article.code }}</span>
-                        <span style="margin-left: 12px;"><strong>Model:</strong> {{ article.name }}{% if article.model %} ({{ article.model.name }}){% endif %}</span>
+                        <strong>Artikul:</strong> <span style="font-family: monospace; font-weight: 800;">{{
+                            article.code }}</span>
+                        <span style="margin-left: 12px;"><strong>Model:</strong> {{ article.name }}{% if article.model
+                            %} ({{ article.model.name }}){% endif %}</span>
                     </div>
 
                     <div class="meta-line">
@@ -377,9 +386,18 @@
                             <th class="col-soni">Soni</th>
                             <th class="col-meto">Meto Oralig'i</th>
                             <th class="col-boxes">Quti ID lari</th>
-                            <th class="col-check"><div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;"></div></th>
-                            <th class="col-check"><div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;"></div></th>
-                            <th class="col-check"><div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;"></div></th>
+                            <th class="col-check">
+                                <div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;">
+                                </div>
+                            </th>
+                            <th class="col-check">
+                                <div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;">
+                                </div>
+                            </th>
+                            <th class="col-check">
+                                <div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;">
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -389,9 +407,15 @@
                             <td class="col-soni">{{ b_it.quantity }} dona</td>
                             <td class="col-meto">{{ b_it.meto_range }}</td>
                             <td class="col-boxes">{{ b_it.boxes_text }}</td>
-                            <td class="col-check"><div class="checkbox-square"></div></td>
-                            <td class="col-check"><div class="checkbox-square"></div></td>
-                            <td class="col-check"><div class="checkbox-square"></div></td>
+                            <td class="col-check">
+                                <div class="checkbox-square"></div>
+                            </td>
+                            <td class="col-check">
+                                <div class="checkbox-square"></div>
+                            </td>
+                            <td class="col-check">
+                                <div class="checkbox-square"></div>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -441,12 +465,13 @@
     <script>
         // Agar URLda ?print=1 bo'lsa avtomatik print oynasini ochish
         if (window.location.search.includes('print=1')) {
-            window.addEventListener('load', function() {
-                setTimeout(function() {
+            window.addEventListener('load', function () {
+                setTimeout(function () {
                     window.print();
                 }, 400);
             });
         }
     </script>
 </body>
+
 </html>
