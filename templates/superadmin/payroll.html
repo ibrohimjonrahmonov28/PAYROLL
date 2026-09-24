@@ -125,7 +125,7 @@
         {% else %}
             bg-emerald-950/30 border-emerald-500/30 text-emerald-200
         {% endif %}">
-        
+
         <div class="flex items-center gap-3.5">
             <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-inner
                 {% if closing_info.status == 'FROZEN' %}
@@ -136,11 +136,11 @@
                     bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
                 {% endif %}">
                 {% if closing_info.status == 'FROZEN' %}
-                    <i class="fa-solid fa-lock"></i>
+                <i class="fa-solid fa-lock"></i>
                 {% elif closing_info.status == 'PENDING_FREEZE' %}
-                    <i class="fa-solid fa-hourglass-half"></i>
+                <i class="fa-solid fa-hourglass-half"></i>
                 {% else %}
-                    <i class="fa-solid fa-unlock-keyhole"></i>
+                <i class="fa-solid fa-unlock-keyhole"></i>
                 {% endif %}
             </div>
             <div>
@@ -149,28 +149,35 @@
                         {{ selected_year }}-yil {{ selected_month_name }} oylik hisob-kitob holati:
                     </span>
                     {% if closing_info.status == 'FROZEN' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-800 text-slate-300 border border-slate-600">
-                            🔒 MUZLATILGAN (DAXLSIZ TARIX)
-                        </span>
+                    <span
+                        class="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-800 text-slate-300 border border-slate-600">
+                        🔒 MUZLATILGAN (DAXLSIZ TARIX)
+                    </span>
                     {% elif closing_info.status == 'PENDING_FREEZE' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                            ⏳ OYLIK BERILGAN (TAYMER FAOL)
-                        </span>
+                    <span
+                        class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                        ⏳ OYLIK BERILGAN (TAYMER FAOL)
+                    </span>
                     {% else %}
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                            🟢 OCHIQ (AKTIV / QAYTA HISOBLASH MUMKIN)
-                        </span>
+                    <span
+                        class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        🟢 OCHIQ (AKTIV / QAYTA HISOBLASH MUMKIN)
+                    </span>
                     {% endif %}
                 </div>
-                
+
                 <p class="text-xs mt-1 text-slate-300">
                     {% if closing_info.status == 'FROZEN' %}
-                        Ushbu oy to'liq yopilgan va muzlatilgan ({{ closing_info.closing.frozen_at|date:"d.m.Y H:i" }}). Stikerlar qulflangan — yangi operatsiya narxlari bu oyga aslo ta'sir qilmaydi.
+                    Ushbu oy to'liq yopilgan va muzlatilgan ({{ closing_info.closing.frozen_at|date:"d.m.Y H:i" }}).
+                    Stikerlar qulflangan — yangi operatsiya narxlari bu oyga aslo ta'sir qilmaydi.
                     {% elif closing_info.status == 'PENDING_FREEZE' %}
-                        Xodimlarga oyliklar berildi. Chevarlar e'tirozlarini ko'rib chiqish davri ketmoqda. Taymer tugagach ({{ closing_info.closing.freeze_deadline|date:"d.m.Y H:i" }}), barcha stikerlar avtomatik qulflanadi.
+                    Xodimlarga oyliklar berildi. Chevarlar e'tirozlarini ko'rib chiqish davri ketmoqda. Taymer tugagach
+                    ({{ closing_info.closing.freeze_deadline|date:"d.m.Y H:i" }}), barcha stikerlar avtomatik
+                    qulflanadi.
                     {% else %}
-                        Ushbu oy hali ochiq. Barcha stikerlar aktiv — operatsiyalar narxi o'zgarsa, ushbu oydagi barcha stikerlar yangi narxlarga avtomatik yangilanadi.
+                    Ushbu oy hali ochiq. Barcha stikerlar aktiv — operatsiyalar narxi o'zgarsa, ushbu oydagi barcha
+                    stikerlar yangi narxlarga avtomatik yangilanadi.
                     {% endif %}
                 </p>
             </div>
@@ -179,47 +186,52 @@
         <!-- Right Side Actions & Countdown -->
         <div class="flex flex-wrap items-center gap-3">
             {% if closing_info.status == 'PENDING_FREEZE' %}
-                <div class="bg-amber-950/80 border border-amber-500/50 rounded-xl px-4 py-2 text-center shadow-lg">
-                    <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Muzlashiga qoldi:</span>
-                    <span class="text-sm sm:text-base font-black text-white font-mono flex items-center gap-1.5 justify-center">
-                        <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
-                        {{ closing_info.time_remaining }}
-                    </span>
-                </div>
-                <!-- Manual Instant Freeze Button -->
-                <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="year" value="{{ selected_year }}">
-                    <input type="hidden" name="month" value="{{ selected_month }}">
-                    <input type="hidden" name="action" value="freeze">
-                    <button type="submit" onclick="return confirm('7 kunlik taymerni kutmasdan, ushbu oyning barcha stikerlarini hoziroq muzlatishni (qulflashni) xohlaysizmi?');"
-                        class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-lock"></i> Hozir muzlatish
-                    </button>
-                </form>
+            <div class="bg-amber-950/80 border border-amber-500/50 rounded-xl px-4 py-2 text-center shadow-lg">
+                <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Muzlashiga
+                    qoldi:</span>
+                <span
+                    class="text-sm sm:text-base font-black text-white font-mono flex items-center gap-1.5 justify-center">
+                    <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
+                    {{ closing_info.time_remaining }}
+                </span>
+            </div>
+            <!-- Manual Instant Freeze Button -->
+            <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="action" value="freeze">
+                <button type="submit"
+                    onclick="return confirm('7 kunlik taymerni kutmasdan, ushbu oyning barcha stikerlarini hoziroq muzlatishni (qulflashni) xohlaysizmi?');"
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-lock"></i> Hozir muzlatish
+                </button>
+            </form>
             {% elif closing_info.status == 'OPEN' %}
-                <!-- Start 7-Day Timer Button -->
-                <form method="POST" action="{% url 'superadmin_start_month_freeze_timer' %}" class="inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="year" value="{{ selected_year }}">
-                    <input type="hidden" name="month" value="{{ selected_month }}">
-                    <button type="submit" onclick="return confirm('{{ selected_year }}-yil {{ selected_month_name }} oyliklari to\'liq berildimi? 7 kunlik muzlatish taymeri boshlansinmi?');"
-                        class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2">
-                        <i class="fa-solid fa-hourglass-start text-base"></i> Oylik berildi (7 kunlik taymerni boshlash)
-                    </button>
-                </form>
+            <!-- Start 7-Day Timer Button -->
+            <form method="POST" action="{% url 'superadmin_start_month_freeze_timer' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <button type="submit"
+                    onclick="return confirm('{{ selected_year }}-yil {{ selected_month_name }} oyliklari to\'liq berildimi? 7 kunlik muzlatish taymeri boshlansinmi?');"
+                    class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-hourglass-start text-base"></i> Oylik berildi (7 kunlik taymerni boshlash)
+                </button>
+            </form>
             {% elif closing_info.status == 'FROZEN' %}
-                <!-- Superadmin unfreeze override -->
-                <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="year" value="{{ selected_year }}">
-                    <input type="hidden" name="month" value="{{ selected_month }}">
-                    <input type="hidden" name="action" value="unfreeze">
-                    <button type="submit" onclick="return confirm('DIQQAT! Ushbu oyni muzdan chiqarish (ochish) barcha stikerlarni qayta faollashtiradi va narxlar o\'zgarsa hisob o\'zgarishi mumkin. Davom etasizmi?');"
-                        class="px-3 py-1.5 bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/30 transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-lock-open"></i> Muzdan chiqarish (Ochish)
-                    </button>
-                </form>
+            <!-- Superadmin unfreeze override -->
+            <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="action" value="unfreeze">
+                <button type="submit"
+                    onclick="return confirm('DIQQAT! Ushbu oyni muzdan chiqarish (ochish) barcha stikerlarni qayta faollashtiradi va narxlar o\'zgarsa hisob o\'zgarishi mumkin. Davom etasizmi?');"
+                    class="px-3 py-1.5 bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/30 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-lock-open"></i> Muzdan chiqarish (Ochish)
+                </button>
+            </form>
             {% endif %}
         </div>
     </div>
@@ -822,7 +834,8 @@
         <input type="hidden" name="selected_year" value="{{ selected_year }}">
         <input type="hidden" name="selected_month" value="{{ selected_month }}">
         <div id="bulk-hidden-inputs"></div>
-        <button type="submit" onclick="return confirm('Tanlangan barcha xodimlarga oylik to\'liq berildimi? Tasdiqlangach, ushbu oy uchun 7 kunlik muzlatish taymeri ishga tushadi.');"
+        <button type="submit"
+            onclick="return confirm('Tanlangan barcha xodimlarga oylik to\'liq berildimi? Tasdiqlangach, ushbu oy uchun 7 kunlik muzlatish taymeri ishga tushadi.');"
             class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 text-slate-950 font-black rounded-2xl text-xs shadow-lg transition flex items-center gap-2 cursor-pointer">
             <i class="fa-solid fa-circle-check text-sm"></i>
             <span>Tanlanganlarga Maosh Berildi (7 Kunlik Yopish)</span>

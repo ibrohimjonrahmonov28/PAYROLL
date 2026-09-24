@@ -199,3 +199,26 @@ DAILY_BONUS_AMOUNT = 0
 # Telegram Bot & Daily Excel Report Settings
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or os.getenv('BOT_TOKEN', '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg')
 TELEGRAM_REPORT_CHAT_ID = os.getenv('TELEGRAM_REPORT_CHAT_ID', '-1004374345556')
+
+# Console Logging to see 500 errors in docker compose logs web
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
