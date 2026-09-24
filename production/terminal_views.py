@@ -456,6 +456,20 @@ def terminal_scan_ticket_api(request):
         'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
     ).get(id=ticket_id)
 
+    # 0. Bekor qilingan / eskirgan bilet tekshiruvi:
+    if ticket.status == Ticket.Status.CANCELLED or (ticket.box and ticket.box.status == Box.Status.CANCELLED):
+        op_name = ticket.article_operation.operation.name if ticket.article_operation else "Operatsiya"
+        razmer_str = f", Razmer: {ticket.box.razmer}" if ticket.box and ticket.box.razmer else ""
+        box_num_str = f"Quti #{ticket.box.box_number}" if ticket.box else ""
+        return JsonResponse({
+            'status': 'CANCELLED_TICKET',
+            'message': f"⚠️ DIQQAT: USHBU BILET BEKOR QILINGAN (ESKIRGAN)!\n\n"
+                       f"Operatsiya: {op_name}\n"
+                       f"{box_num_str}{razmer_str}\n\n"
+                       f"Sababi: Ushbu qutilar Meto yoki Kesim bo'limida qayta taqsimlangan (yoki o'chirilgan).\n"
+                       f"👉 Iltimos, uning o'rniga chiqarilgan YANGI STIKERni skanerlang!"
+        })
+
     # 1. Baza bo'yicha dublikat tekshiruvi: bilet allaqachon qabul qilinganmi?
     if ticket.status == Ticket.Status.SCANNED:
         scanned_time = timezone.localtime(ticket.scanned_at).strftime("%d.%m.%Y %H:%M") if ticket.scanned_at else ""

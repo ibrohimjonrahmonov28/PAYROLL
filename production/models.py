@@ -743,7 +743,7 @@ class CuttingBatchItem(models.Model):
 
     @property
     def remaining_to_box(self):
-        actual_boxes_qty = sum(b.quantity for b in self.boxes.all())
+        actual_boxes_qty = sum(b.quantity for b in self.boxes.exclude(status='CANCELLED'))
         return max(0, self.effective_quantity - actual_boxes_qty)
 
     def __str__(self):
@@ -772,6 +772,7 @@ class Box(models.Model):
         CREATED = 'CREATED', 'Yaratildi'
         IN_PROGRESS = 'IN_PROGRESS', 'Jarayonda'
         COMPLETED = 'COMPLETED', 'Bajarildi'
+        CANCELLED = 'CANCELLED', 'Bekor qilingan (Eskirgan)'
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='boxes', verbose_name="Buyurtma")
     article = models.ForeignKey(
@@ -985,6 +986,7 @@ class Ticket(models.Model):
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Kutilmoqda'
         SCANNED = 'SCANNED', 'Bajarildi (Skanerlangan)'
+        CANCELLED = 'CANCELLED', 'Bekor qilingan (Eskirgan)'
 
     ticket_code = models.CharField(
         max_length=64, 

@@ -572,38 +572,30 @@ def cutting_delete_batch(request, order_id: int, batch_id: int):
         )
         return redirect('cutting_order_detail', order_id=order_id)
 
-    # 2. Chop etilgan qutilar bor-yo'qligini tekshirish
-    printed_boxes_count = related_boxes.filter(is_printed=True).count()
-    if printed_boxes_count > 0 and not (request.user.is_superuser or (hasattr(request.user, 'is_superadmin') and request.user.is_superadmin())):
-        messages.error(
-            request,
-            f"'{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {printed_boxes_count} ta qutining stikerlari allaqachon chop etilgan! "
-            f"Chevarlar qo'lidagi qog'oz stikerlar bekor bo'lib qolmasligi uchun bu partiyani o'chirish taqiqlanadi. "
-            f"Zarur bo'lsa, Superadminga murojaat qiling."
-        )
-        return redirect('cutting_order_detail', order_id=order_id)
-
     batch_name = batch.name
     pastal_code = batch.pastal_code or "—"
     article_code = batch.order_item.article.code
 
     with transaction.atomic():
-        deleted_boxes_count = related_boxes.count()
-        total_tickets_deleted = Ticket.objects.filter(box__in=related_boxes).count()
+        cancelled_boxes_count = related_boxes.count()
+        total_tickets_cancelled = Ticket.objects.filter(box__in=related_boxes).count()
 
-        # 1. Bog'liq barcha qutilar va ularning QR stikerlarini butunlay o'chirish (CASCADE)
-        if deleted_boxes_count > 0:
-            related_boxes.delete()
+        # Bog'liq barcha qutilar va biletlarni o'chirib yubormasdan, BEKOR QILINDI (CANCELLED) deb belgilash
+        # Shunda qog'oz stiker skanerlanganda "Bu pastal o'chirilgan" deb to'g'ri xabar beradi
+        for b in related_boxes:
+            b.status = Box.Status.CANCELLED
+            b.save(update_fields=['status'])
+            b.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
-        # 2. Batch va unga tegishli barcha Meto/Kesim bandlarini o'chirish (CASCADE)
+        # Batch va unga tegishli barcha Meto/Kesim bandlarini o'chirish
         batch.delete()
 
     msg = (
         f"'{article_code}' artikulidan '{batch_name}' (Pastal: {pastal_code}) muvaffaqiyatli o'chirildi! "
         f"Meto bo'limidagi unga oid barcha hisoblar bekor qilindi."
     )
-    if deleted_boxes_count > 0:
-        msg += f" Unga tegishli {deleted_boxes_count} ta quti va {total_tickets_deleted} ta QR stiker bazadan butunlay o'chirildi (chop etilgan stikerlar endi skanerda 'Topilmadi' deb bekor bo'ldi)."
+    if cancelled_boxes_count > 0:
+        msg += f" Unga tegishli {cancelled_boxes_count} ta quti va {total_tickets_cancelled} ta QR stiker bekor qilindi (agar qog'oz stiker skanerlansa, tizim 'Bekor qilingan pastal' deb ogohlantiradi)."
 
     messages.success(request, msg)
     return redirect('cutting_order_detail', order_id=order_id)

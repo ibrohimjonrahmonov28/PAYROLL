@@ -180,8 +180,9 @@ def meto_batch_items_view(request, batch_id: int):
 
     batch_items_data = []
     for b_it in batch.items.all().order_by('order_item_size__id'):
-        boxes = list(b_it.boxes.all())
+        boxes = list(b_it.boxes.exclude(status=Box.Status.CANCELLED))
         has_printed = any(b.is_printed for b in boxes)
+        has_scanned = any(t.status == Ticket.Status.SCANNED for b in boxes for t in b.tickets.all())
         batch_items_data.append({
             'item': b_it,
             'id': b_it.id,
@@ -199,7 +200,7 @@ def meto_batch_items_view(request, batch_id: int):
             'meto_completed_at': b_it.meto_completed_at,
             'boxes_count': len(boxes),
             'boxes': boxes,
-            'can_reset': b_it.status != CuttingBatchItem.Status.CUT_ENTERED and not has_printed,
+            'can_reset': b_it.status != CuttingBatchItem.Status.CUT_ENTERED and not has_scanned,
             'has_printed': has_printed,
         })
 
@@ -214,8 +215,10 @@ def meto_batch_items_view(request, batch_id: int):
 @meto_required
 def meto_reset_item(request, item_id: int):
     """
-    Stiker chiqarilgunga qadar adashib noto'g'ri bo'lingan qutilarni o'chirish va
-    Meto kiritish formasini qaytadan ochish (Re-split / Reset).
+    Qutilarni qayta taqsimlash (Re-split / Reset):
+    - Eski qutilarni bazadan o'chirib yubormaydi, balki CANCELLED (Bekor qilingan) qiladi.
+    - Agar eski qog'oz stiker skanerlansa, terminal "Ushbu stiker bekor qilingan (eskirgan)" deb aniq ko'rsatadi!
+    - Yangi qutilar noldan to'g'ri taqsimlanadi.
     """
     if request.method != 'POST':
         return redirect('meto_dashboard')
@@ -229,8 +232,7 @@ def meto_reset_item(request, item_id: int):
     )
     order = batch_item.batch.order_item.order
 
-    # Stikerlar chop etilganligini yoki skanerlanganligini tekshirish
-    has_printed = batch_item.boxes.filter(is_printed=True).exists()
+    # Skanerlangan biletlar bor-yo'qligini tekshirish
     has_scanned = batch_item.boxes.filter(tickets__status=Ticket.Status.SCANNED).exists()
 
     if has_scanned:
@@ -241,27 +243,25 @@ def meto_reset_item(request, item_id: int):
         )
         return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 
-    if has_printed and not (request.user.is_superuser or (hasattr(request.user, 'is_superadmin') and request.user.is_superadmin())):
-        messages.error(
-            request,
-            f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha stikerlar allaqachon chop etilgan (tikuvga berilgan)! "
-            f"Chevarlar qo'lidagi qog'oz stikerlar buzilmasligi uchun chop etilgan qutilarni o'zgartirish taqiqlanadi. "
-            f"Zarur bo'lsa, Superadminga murojaat qiling."
-        )
-        return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
-
     with transaction.atomic():
-        # Chop etilmagan qutilarni va ularga biriktirilgan biletlarni o'chirish
-        deleted_count = batch_item.boxes.count()
-        batch_item.boxes.all().delete()
+        # Qutilarni o'chirmasdan, BEKOR QILINDI (CANCELLED) holatiga o'tkazish
+        # Agar eski stikerlar chop etilgan bo'lsa, skanerda "Eskirgan/Bekor qilingan" deb aniq ko'rsatiladi
+        active_boxes = batch_item.boxes.exclude(status=Box.Status.CANCELLED)
+        cancelled_count = active_boxes.count()
+        for b in active_boxes:
+            b.status = Box.Status.CANCELLED
+            b.save(update_fields=['status'])
+            b.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+
         batch_item.boxes_created_qty = 0
         batch_item.status = CuttingBatchItem.Status.CUT_ENTERED
         batch_item.save(update_fields=['boxes_created_qty', 'status'])
 
     messages.success(
         request,
-        f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha {deleted_count} ta quti bekor qilindi. "
-        f"Endi soni va qutilar taqsimotini qaytadan to'g'rilab saqlashingiz mumkin!"
+        f"'{batch_item.order_item_size.size_name}' razmeri qutilari qaytadan taqsimlash uchun ochildi! "
+        f"Oldingi {cancelled_count} ta quti bekor qilindi (agar eski stikerlar chop etilgan bo'lsa, "
+        f"skanerda ular 'Bekor qilingan (Eskirgan)' deb ko'rsatiladi)."
     )
     return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 

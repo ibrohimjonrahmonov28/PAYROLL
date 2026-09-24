@@ -1181,6 +1181,9 @@
                         pendingTickets.push(data.scanned_ticket);
                         addTicketRowToTable(data.scanned_ticket, data.summary);
                         updateBatchSummary(data.summary);
+                    } else if (data.status === 'CANCELLED_TICKET') {
+                        playErrorBuzz();
+                        showStatusBanner('error', "BEKOR QILINGAN (ESKIRGAN) BILET!", data.message);
                     } else if (data.status === 'ALREADY_SCANNED') {
                         playErrorBuzz();
                         showStatusBanner('error', "DIQQAT: BILET ALLAQACHON QABUL QILINGAN!", data.message);
