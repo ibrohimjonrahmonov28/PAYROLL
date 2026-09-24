@@ -6,15 +6,10 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Tizim paketlari (PostgreSQL, OpenCV, Pillow grafik modullari uchun)
+# Tizim paketlari (PostgreSQL mijoz, OpenCV headless va yordamchi modullar uchun)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
     postgresql-client \
-    libgl1 \
     libglib2.0-0 \
-    libjpeg-dev \
-    zlib1g-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
