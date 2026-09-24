@@ -339,23 +339,24 @@ def find_ticket_fast(raw_code: str) -> int | None:
             return ticket_id
 
     # 6. Oxirgi 6 xonali bilet xeshi bo'yicha (masalan: "-3B6412" yoki "3B6412")
-    hash_match = re.search(r'(?:^|-)([A-Z0-9]{6})$', clean_upper)
-    if hash_match:
-        t_hash = hash_match.group(1)
-        possible_ids = list(Ticket.objects.filter(ticket_code__endswith=f"-{t_hash}").values_list('id', flat=True)[:5])
-        if len(possible_ids) == 1:
-            return possible_ids[0]
-        elif len(possible_ids) > 1:
-            num_match = re.search(r'-(\d+)-', clean_code)
-            if num_match:
-                bx_num = int(num_match.group(1))
-                ticket_id = Ticket.objects.filter(
-                    id__in=possible_ids,
-                    box__box_number=bx_num
-                ).values_list('id', flat=True).first()
-                if ticket_id:
-                    return ticket_id
-            return possible_ids[0]
+    # FAQAT qisqa kod kiritilganda yoki to'liq TK- prefiksi bo'lmaganda (soxta dublikat xatolarini oldini olish uchun)
+    if not clean_upper.startswith('TK-'):
+        hash_match = re.search(r'(?:^|-)([A-Z0-9]{6})$', clean_upper)
+        if hash_match:
+            t_hash = hash_match.group(1)
+            possible_ids = list(Ticket.objects.filter(ticket_code__endswith=f"-{t_hash}").values_list('id', flat=True)[:5])
+            if len(possible_ids) == 1:
+                return possible_ids[0]
+            elif len(possible_ids) > 1:
+                num_match = re.search(r'-(\d+)-', clean_code)
+                if num_match:
+                    bx_num = int(num_match.group(1))
+                    ticket_id = Ticket.objects.filter(
+                        id__in=possible_ids,
+                        box__box_number=bx_num
+                    ).values_list('id', flat=True).first()
+                    if ticket_id:
+                        return ticket_id
 
     # 7. Kirillcha klaviatura orqali kiritilgan bo'lsa avto-o'girish va qayta tekshirish
     converted = fix_cyrillic_layout(raw_code)
@@ -440,9 +441,14 @@ def terminal_scan_ticket_api(request):
                            f"Ishbay haq hisoblanishi uchun quti stikeridagi kerakli OPERATSIYA BILETI QR kodini skanerlang."
             })
 
+        box_hint = ""
+        box_num_m = re.search(r'TK-[^-]+-(\d+)-', clean_code)
+        if box_num_m:
+            box_hint = f"\n(Eslatma: Quti #{box_num_m.group(1)} bazada mavjud emas yoki o'chirilgan)"
+
         return JsonResponse({
             'status': 'NOT_FOUND',
-            'message': f"❌ Bilet bazada topilmadi:\n'{clean_code}'"
+            'message': f"❌ Bilet bazada topilmadi:\n'{clean_code}'{box_hint}"
         })
 
     # Yagona tezkor fetch: primary key bo'yicha barcha bog'langan jadvallarni bir marta olish (< 0.5ms)

@@ -572,6 +572,17 @@ def cutting_delete_batch(request, order_id: int, batch_id: int):
         )
         return redirect('cutting_order_detail', order_id=order_id)
 
+    # 2. Chop etilgan qutilar bor-yo'qligini tekshirish
+    printed_boxes_count = related_boxes.filter(is_printed=True).count()
+    if printed_boxes_count > 0 and not (request.user.is_superuser or (hasattr(request.user, 'is_superadmin') and request.user.is_superadmin())):
+        messages.error(
+            request,
+            f"'{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {printed_boxes_count} ta qutining stikerlari allaqachon chop etilgan! "
+            f"Chevarlar qo'lidagi qog'oz stikerlar bekor bo'lib qolmasligi uchun bu partiyani o'chirish taqiqlanadi. "
+            f"Zarur bo'lsa, Superadminga murojaat qiling."
+        )
+        return redirect('cutting_order_detail', order_id=order_id)
+
     batch_name = batch.name
     pastal_code = batch.pastal_code or "—"
     article_code = batch.order_item.article.code

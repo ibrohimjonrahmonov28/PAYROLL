@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max, Sum, Count
 from django.utils import timezone
-from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, ArticleOperation
+from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, ArticleOperation, Ticket
 from .services import auto_generate_boxes_for_batch_item
 
 
@@ -229,12 +229,24 @@ def meto_reset_item(request, item_id: int):
     )
     order = batch_item.batch.order_item.order
 
-    # Stikerlar chop etilganligini tekshirish
-    if batch_item.boxes.filter(is_printed=True).exists():
+    # Stikerlar chop etilganligini yoki skanerlanganligini tekshirish
+    has_printed = batch_item.boxes.filter(is_printed=True).exists()
+    has_scanned = batch_item.boxes.filter(tickets__status=Ticket.Status.SCANNED).exists()
+
+    if has_scanned:
+        messages.error(
+            request,
+            f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha operatsiyalar tikuvchilar tomonidan allaqachon skanerlangan! "
+            f"Ushbu qutilarni o'zgartirib bo'lmaydi."
+        )
+        return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
+
+    if has_printed and not (request.user.is_superuser or (hasattr(request.user, 'is_superadmin') and request.user.is_superadmin())):
         messages.error(
             request,
             f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha stikerlar allaqachon chop etilgan (tikuvga berilgan)! "
-            f"Chop etilgan qutilarni o'zgartirib bo'lmaydi."
+            f"Chevarlar qo'lidagi qog'oz stikerlar buzilmasligi uchun chop etilgan qutilarni o'zgartirish taqiqlanadi. "
+            f"Zarur bo'lsa, Superadminga murojaat qiling."
         )
         return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 

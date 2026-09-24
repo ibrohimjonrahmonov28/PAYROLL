@@ -7,8 +7,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Q, F, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch, CuttingBatchItem
 from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets
 from accounts.models import Worker
 
@@ -326,6 +325,14 @@ def box_print_stickers_view(request, box_id: int):
         'total_quantity': box.quantity,
     }]
 
+    if not box.is_printed:
+        box.is_printed = True
+        box.printed_at = timezone.now()
+        box.save(update_fields=['is_printed', 'printed_at'])
+        if box.cutting_batch_item:
+            box.cutting_batch_item.status = CuttingBatchItem.Status.STICKERS_PRINTED
+            box.cutting_batch_item.save(update_fields=['status'])
+
     return render(request, 'production/box_stickers_print.html', {
         'box': box,
         'tickets': tickets,
@@ -438,6 +445,13 @@ def order_print_all_stickers_view(request, order_id: int):
     if selected_pastal:
         box_display_title = f"Pastal: {selected_pastal} (Buyurtma {order.order_number})"
 
+    # Avtomatik ravishda chop etildi deb belgilash (himoya uchun)
+    box_ids = [t.box_id for t in tickets if t.box_id]
+    if box_ids:
+        now = timezone.now()
+        Box.objects.filter(id__in=box_ids, is_printed=False).update(is_printed=True, printed_at=now)
+        CuttingBatchItem.objects.filter(boxes__id__in=box_ids).update(status=CuttingBatchItem.Status.STICKERS_PRINTED)
+
     return render(request, 'production/box_stickers_print.html', {
         'box': {'box_number': box_display_title, 'order': order, 'quantity': order.all_models_quantity},
         'tickets': tickets,
@@ -459,6 +473,15 @@ def box_download_stickers_100x60_pdf(request, box_id: int):
     ).order_by('article_operation__sequence', 'split_index')
 
     pdf_bytes = generate_box_stickers_100x60_pdf(tickets)
+
+    if not box.is_printed:
+        box.is_printed = True
+        box.printed_at = timezone.now()
+        box.save(update_fields=['is_printed', 'printed_at'])
+        if box.cutting_batch_item:
+            box.cutting_batch_item.status = CuttingBatchItem.Status.STICKERS_PRINTED
+            box.cutting_batch_item.save(update_fields=['status'])
+
     art = box.target_article
     art_code = "".join(c for c in (art.code if art else "ARTIKUL") if c.isalnum() or c in ('-', '_')).strip() or "ARTIKUL"
     clean_ord = "".join(c for c in (box.order.order_number if box.order else f"ORD_{box.order_id}") if c.isalnum() or c in ('-', '_')).strip()
@@ -504,6 +527,13 @@ def order_download_all_stickers_100x60_pdf(request, order_id: int):
             filename = f"BUYURTMA_{clean_ord}_BARCHA_STIKERLAR_65x45.pdf"
     else:
         filename = f"BUYURTMA_{clean_ord}_BARCHA_STIKERLAR_65x45.pdf"
+
+    # Avtomatik ravishda chop etildi deb belgilash (himoya uchun)
+    box_ids = list(tickets_qs.values_list('box_id', flat=True).distinct())
+    if box_ids:
+        now = timezone.now()
+        Box.objects.filter(id__in=box_ids, is_printed=False).update(is_printed=True, printed_at=now)
+        CuttingBatchItem.objects.filter(boxes__id__in=box_ids).update(status=CuttingBatchItem.Status.STICKERS_PRINTED)
 
     tickets = tickets_qs.select_related(
         'box', 'box__order', 'box__article', 'article_operation__operation', 'article_operation__article'
