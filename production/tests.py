@@ -855,6 +855,58 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertContains(res_reset_blocked, "allaqachon chop etilgan")
         self.assertEqual(batch_item.boxes.count(), 2)  # Not deleted!
 
+    def test_sticker_lazy_load_by_pastal_and_batch_mark_printed(self):
+        sticker_user = User.objects.create_user(username="sticker_lazy_user", password="password123", role=User.Role.STICKER)
+        self.client.login(username="sticker_lazy_user", password="password123")
+
+        order = Order.objects.create(order_number="ORD-STK-LAZY", status=Order.Status.IN_PROGRESS)
+        art = Article.objects.create(code="ART-STK", name="Sticker Lazy Model")
+        op = Operation.objects.create(code="OP-STK", name="Sticker Op")
+        ArticleOperation.objects.create(article=art, operation=op, price_per_unit=Decimal("500.00"), sequence=1)
+        ord_item = OrderItem.objects.create(order=order, article=art, quantity=200)
+        size_xl = OrderItemSize.objects.create(order_item=ord_item, size_name="XL", planned_quantity=200)
+
+        batch = CuttingBatch.objects.create(
+            order_item=ord_item,
+            batch_number=55,
+            pastal_code="09-LAZY",
+            name="Partiya 55"
+        )
+        batch_item = CuttingBatchItem.objects.create(
+            batch=batch,
+            order_item_size=size_xl,
+            quantity=200,
+            real_quantity=200,
+            meto_number_start="1",
+            meto_number_end="200",
+            status=CuttingBatchItem.Status.METO_CONFIRMED
+        )
+        from production.services import auto_split_boxes_for_batch_item
+        auto_split_boxes_for_batch_item(batch_item, box_count=4)
+
+        # 1. Main sticker page loads without dumping all boxes
+        stk_url = reverse('sticker_order_boxes', kwargs={'order_id': order.id})
+        res_main = self.client.get(stk_url)
+        self.assertEqual(res_main.status_code, 200)
+        self.assertContains(res_main, "09-LAZY")
+        self.assertContains(res_main, "4 ta quti")
+        self.assertContains(res_main, "#1-#200")
+
+        # 2. Ajax partial endpoint loads boxes for the batch
+        boxes_url = reverse('sticker_batch_boxes', kwargs={'order_id': order.id, 'batch_id': batch.id})
+        res_boxes = self.client.get(boxes_url)
+        self.assertEqual(res_boxes.status_code, 200)
+        self.assertContains(res_boxes, "XL")
+        self.assertContains(res_boxes, "50 dona")
+        self.assertContains(res_boxes, "Chop etilmagan")
+
+        # 3. Mark entire batch printed
+        mark_batch_url = reverse('sticker_mark_batch_printed', kwargs={'order_id': order.id, 'batch_id': batch.id})
+        res_mark = self.client.post(mark_batch_url, follow=True)
+        self.assertEqual(res_mark.status_code, 200)
+        for b in batch_item.boxes.all():
+            self.assertTrue(b.is_printed)
+
     def test_permissions_manager_and_cutter(self):
         user = User.objects.create_user(username="normal_user", password="password123", role=User.Role.USER)
         self.client.login(username="normal_user", password="password123")

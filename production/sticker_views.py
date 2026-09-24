@@ -2,9 +2,10 @@ from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q, Max, Count
+from django.db.models import Q, Max, Count, Sum
+from django.http import JsonResponse
 from django.utils import timezone
-from .models import Order, OrderItem, Box, CuttingBatchItem, ArticleOperation, Article
+from .models import Order, OrderItem, Box, CuttingBatch, CuttingBatchItem, ArticleOperation, Article
 
 
 def sticker_required(view_func):
@@ -24,7 +25,7 @@ def sticker_dashboard(request):
     """
     Stiker Chiqarish Bo'limi Boshqaruv Paneli:
     - Meto tomonidan tasdiqlanib, avtomatik stikerlari generatsiya bo'lgan buyurtmalar
-    - Chop etilishi kutilayotgan qutilar va stikerlar
+    - Chop etilishi kutilayotgan qutilar va stikerlar (Yengil va tezkor hisoblash)
     """
     search_q = request.GET.get('q', '').strip()
     filter_status = request.GET.get('status', 'unprinted')  # unprinted, printed, all
@@ -33,7 +34,6 @@ def sticker_dashboard(request):
         boxes__isnull=False
     ).select_related('customer', 'article').prefetch_related(
         'boxes__article',
-        'boxes__tickets',
         'boxes__cutting_batch_item'
     ).distinct().order_by('-created_at')
 
@@ -56,7 +56,7 @@ def sticker_dashboard(request):
     total_orders_count = len(all_orders_list)
 
     for ord_obj in all_orders_list:
-        all_boxes = ord_obj.boxes.all()
+        all_boxes = [b for b in ord_obj.boxes.all() if b.status != Box.Status.CANCELLED]
         unprinted = [b for b in all_boxes if not b.is_printed]
         printed = [b for b in all_boxes if b.is_printed]
 
@@ -97,80 +97,194 @@ def sticker_dashboard(request):
 @sticker_required
 def sticker_order_boxes(request, order_id: int):
     """
-    Buyurtma Qutilari va QR Stikerlarni Chop Etish Oynasi:
-    - Barcha generatsiya qilingan qutilar
-    - Razmer, dona, Meto raqamlari oralig'i
-    - 100x60mm chop etish, PDF yuklab olish
-    - 'Tikuvga Berildi' (Chop etildi deb belgilash)
+    Buyurtma Qutilari va QR Stikerlarni Chop Etish Oynasi (Lazy Loading / Pastallar bo'yicha):
+    - Tezkor va yengil yuklash: Barcha yuzlab qutilar va minglab stikerlar birdaniga yuklanmaydi!
+    - Pastallar (CuttingBatches) ro'yxati va ularning statistikasi bir zumda ko'rsatiladi.
+    - Pastal bosilganda uning qutilari bazadan yuklanadi (Lazy loading - xuddi Meto/Kroy kabi).
     """
     order = get_object_or_404(
-        Order.objects.select_related('customer', 'article').prefetch_related(
-            'items__article__article_operations',
-            'items__cutting_batches__items__boxes',
-            'boxes__article',
-            'boxes__tickets',
-            'boxes__cutting_batch_item'
-        ),
+        Order.objects.select_related('customer', 'article'),
         id=order_id
     )
 
-    boxes = order.boxes.all().select_related('article', 'cutting_batch_item').prefetch_related('tickets').order_by('box_number')
+    open_batch_id = request.GET.get('open_batch')
+    try:
+        open_batch_id = int(open_batch_id) if open_batch_id else None
+    except (ValueError, TypeError):
+        open_batch_id = None
 
-    # Operatsiyalar borligini tekshirish
+    order_items = order.items.all().select_related('article__model').prefetch_related(
+        'article__article_operations',
+        'cutting_batches__items__order_item_size',
+        'cutting_batches__items__boxes'
+    )
+
+    items_data = []
     articles_without_ops = []
-    for it in order.items.all():
-        if it.article and it.article.article_operations.count() == 0:
-            articles_without_ops.append(it.article)
-
-    # Qutilari hali generatsiya qilinmagan pastallarni aniqlash
     batches_without_boxes = []
-    for it in order.items.all():
-        for batch in it.cutting_batches.all():
+
+    for item in order_items:
+        art = item.article
+        ops_count = art.article_operations.count() if art else 0
+        if art and ops_count == 0:
+            articles_without_ops.append(art)
+
+        batches_data = []
+        for batch in item.cutting_batches.all().order_by('-batch_number'):
             b_items = list(batch.items.all())
-            if b_items and any(len(bi.boxes.all()) == 0 for bi in b_items):
+            active_boxes = [box for bi in b_items for box in bi.boxes.all() if box.status != Box.Status.CANCELLED]
+            total_boxes_count = len(active_boxes)
+            unprinted_count = sum(1 for b in active_boxes if not b.is_printed)
+            printed_count = sum(1 for b in active_boxes if b.is_printed)
+            total_qty = sum(b.quantity for b in active_boxes)
+
+            box_numbers = [b.box_number for b in active_boxes]
+            if box_numbers:
+                min_box = min(box_numbers)
+                max_box = max(box_numbers)
+                box_range = f"#{min_box} — #{max_box}" if min_box != max_box else f"#{min_box}"
+            else:
+                box_range = "—"
+
+            # Razmerlar va meto oraliqlari xulosasi (masalan: M: 45 dona (#1-#90))
+            sizes_summary = []
+            for bi in b_items:
+                meto_str = ""
+                if bi.meto_number_start and bi.meto_number_end:
+                    meto_str = f"#{bi.meto_number_start}-#{bi.meto_number_end}"
+                sizes_summary.append({
+                    'size_name': bi.order_item_size.size_name,
+                    'qty': bi.effective_quantity,
+                    'meto_range': meto_str,
+                })
+
+            needs_gen = b_items and any(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0 for bi in b_items)
+            if needs_gen:
                 batches_without_boxes.append({
                     'batch': batch,
                     'pastal_code': batch.pastal_code or str(batch.batch_number),
-                    'missing_count': sum(1 for bi in b_items if len(bi.boxes.all()) == 0),
+                    'missing_count': sum(1 for bi in b_items if len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0),
                     'total_count': len(b_items),
                 })
 
-    unprinted_boxes = [b for b in boxes if not b.is_printed]
+            batches_data.append({
+                'batch': batch,
+                'id': batch.id,
+                'name': batch.name,
+                'batch_number': batch.batch_number,
+                'pastal_code': batch.pastal_code or str(batch.batch_number),
+                'partiya_number': batch.partiya_number,
+                'cutter_name': batch.cutter_name,
+                'fabric_weight_kg': batch.fabric_weight_kg,
+                'fabric_batch_code': batch.fabric_batch_code,
+                'notes': batch.notes,
+                'created_at': batch.created_at,
+                'total_boxes_count': total_boxes_count,
+                'unprinted_count': unprinted_count,
+                'printed_count': printed_count,
+                'total_qty': total_qty,
+                'box_range': box_range,
+                'sizes_summary': sizes_summary,
+                'has_boxes': total_boxes_count > 0,
+                'has_unprinted': unprinted_count > 0,
+                'needs_boxes_generation': needs_gen,
+            })
+
+        items_data.append({
+            'item': item,
+            'operations_count': ops_count,
+            'batches': batches_data,
+        })
+
+    # Buyurtma umumiy qutilari (tezkor hisoblash)
+    all_order_boxes = order.boxes.exclude(status=Box.Status.CANCELLED)
+    total_boxes_count = all_order_boxes.count()
+    unprinted_boxes_count = all_order_boxes.filter(is_printed=False).count()
+    printed_boxes_count = all_order_boxes.filter(is_printed=True).count()
+    boxes_without_tickets_count = all_order_boxes.filter(tickets__isnull=True).count()
     available_source_articles = Article.objects.filter(article_operations__isnull=False).distinct()
-    boxes_without_tickets = [b for b in boxes if b.tickets.count() == 0]
 
-    # Pastallar bo'yicha guruhlash (Bitta pastalni alohida chop etish imkoniyati)
-    pastals_dict = {}
-    for b in boxes:
-        p_code = (b.pastal_number or "").strip()
-        if not p_code and b.cutting_batch_item and b.cutting_batch_item.batch:
-            p_code = (b.cutting_batch_item.batch.pastal_code or "").strip()
-        p_key = p_code or "Noma'lum"
-        if p_key not in pastals_dict:
-            pastals_dict[p_key] = {
-                'pastal_code': p_key,
-                'boxes_count': 0,
-                'total_qty': 0,
-                'unprinted_count': 0,
-                'batch_id': b.cutting_batch_item.batch_id if b.cutting_batch_item else None,
-            }
-        pastals_dict[p_key]['boxes_count'] += 1
-        pastals_dict[p_key]['total_qty'] += b.quantity
-        if not b.is_printed:
-            pastals_dict[p_key]['unprinted_count'] += 1
-
-    pastals_list = list(pastals_dict.values())
+    # Pastalsiz (alohida) qutilar bor bo'lsa (backward compatibility)
+    unassigned_boxes = list(all_order_boxes.filter(cutting_batch_item__isnull=True).order_by('box_number'))
 
     return render(request, 'stickers/order_boxes.html', {
         'order': order,
-        'boxes': boxes,
-        'pastals_list': pastals_list,
-        'unprinted_boxes_count': len(unprinted_boxes),
-        'boxes_without_tickets_count': len(boxes_without_tickets),
+        'items_data': items_data,
+        'total_boxes_count': total_boxes_count,
+        'unprinted_boxes_count': unprinted_boxes_count,
+        'printed_boxes_count': printed_boxes_count,
+        'boxes_without_tickets_count': boxes_without_tickets_count,
         'articles_without_ops': articles_without_ops,
         'available_source_articles': available_source_articles,
         'batches_without_boxes': batches_without_boxes,
+        'unassigned_boxes': unassigned_boxes,
+        'open_batch_id': open_batch_id,
+        'boxes': all_order_boxes,
     })
+
+
+@sticker_required
+def sticker_batch_boxes_view(request, order_id: int, batch_id: int):
+    """
+    Pastal (CuttingBatch) ichidagi barcha qutilarni yuklash (Lazy Loading HTML partial):
+    Faqat ushbu pastalga tegishli qutilar va biletlar yuklanadi.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    batch = get_object_or_404(
+        CuttingBatch.objects.select_related('order_item__article'),
+        id=batch_id,
+        order_item__order=order
+    )
+    boxes = Box.objects.filter(
+        cutting_batch_item__batch=batch
+    ).exclude(
+        status=Box.Status.CANCELLED
+    ).select_related(
+        'article',
+        'cutting_batch_item__order_item_size'
+    ).prefetch_related(
+        'tickets'
+    ).order_by('box_number')
+
+    unprinted_count = sum(1 for b in boxes if not b.is_printed)
+
+    return render(request, 'stickers/partials/batch_boxes.html', {
+        'order': order,
+        'batch': batch,
+        'boxes': boxes,
+        'unprinted_count': unprinted_count,
+        'total_boxes_count': len(boxes),
+    })
+
+
+@sticker_required
+def sticker_mark_batch_printed(request, order_id: int, batch_id: int):
+    """
+    Pastaldagi barcha qutilarni chop etilgan (Tikuvga berilgan) deb belgilash
+    """
+    if request.method != 'POST':
+        return redirect('sticker_order_boxes', order_id=order_id)
+
+    order = get_object_or_404(Order, id=order_id)
+    batch = get_object_or_404(CuttingBatch, id=batch_id, order_item__order=order)
+    boxes = Box.objects.filter(
+        cutting_batch_item__batch=batch,
+        is_printed=False
+    ).exclude(status=Box.Status.CANCELLED)
+
+    count = boxes.count()
+    now = timezone.now()
+    with transaction.atomic():
+        boxes.update(is_printed=True, printed_at=now)
+        batch.items.filter(
+            status=CuttingBatchItem.Status.METO_CONFIRMED
+        ).update(status=CuttingBatchItem.Status.STICKERS_PRINTED)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1':
+        return JsonResponse({'status': 'ok', 'count': count, 'batch_id': batch.id})
+
+    messages.success(request, f"Pastal '{batch.pastal_code or batch.name}' dagi barcha ({count} ta) quti Tikuvga berildi deb belgilandi!")
+    return redirect(f"/stickers/orders/{order.id}/?open_batch={batch.id}")
 
 
 @sticker_required
@@ -250,6 +364,30 @@ def sticker_copy_operations_and_generate(request, order_id: int):
 
 
 @sticker_required
+def sticker_unassigned_boxes_view(request, order_id: int):
+    """
+    Pastalga biriktirilmagan umumiy qutilarni yuklash (Lazy Loading HTML partial):
+    """
+    order = get_object_or_404(Order, id=order_id)
+    boxes = Box.objects.filter(
+        order=order,
+        cutting_batch_item__isnull=True
+    ).exclude(
+        status=Box.Status.CANCELLED
+    ).select_related('article').prefetch_related('tickets').order_by('box_number')
+
+    unprinted_count = sum(1 for b in boxes if not b.is_printed)
+
+    return render(request, 'stickers/partials/batch_boxes.html', {
+        'order': order,
+        'batch': None,
+        'boxes': boxes,
+        'unprinted_count': unprinted_count,
+        'total_boxes_count': len(boxes),
+    })
+
+
+@sticker_required
 def sticker_mark_box_printed(request, box_id: int):
     """Bitta qutini chop etilgan deb belgilash va Tikuvga uzatish"""
     box = get_object_or_404(Box, id=box_id)
@@ -257,11 +395,23 @@ def sticker_mark_box_printed(request, box_id: int):
     box.printed_at = timezone.now()
     box.save(update_fields=['is_printed', 'printed_at'])
 
+    batch_id = None
     if box.cutting_batch_item:
-        box.cutting_batch_item.status = CuttingBatchItem.Status.STICKERS_PRINTED
-        box.cutting_batch_item.save(update_fields=['status'])
+        batch_id = box.cutting_batch_item.batch_id
+        active_remaining = Box.objects.filter(
+            cutting_batch_item=box.cutting_batch_item,
+            is_printed=False
+        ).exclude(status=Box.Status.CANCELLED).count()
+        if active_remaining == 0:
+            box.cutting_batch_item.status = CuttingBatchItem.Status.STICKERS_PRINTED
+            box.cutting_batch_item.save(update_fields=['status'])
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1':
+        return JsonResponse({'status': 'ok', 'box_id': box.id, 'batch_id': batch_id})
 
     messages.success(request, f"Quti #{box.box_number} [{box.box_code}] stikerlari chop etildi va Tikuvga berildi deb belgilandi!")
+    if batch_id:
+        return redirect(f"/stickers/orders/{box.order.id}/?open_batch={batch_id}")
     return redirect('sticker_order_boxes', order_id=box.order.id)
 
 
@@ -270,7 +420,7 @@ def sticker_mark_all_printed(request, order_id: int):
     """Buyurtmaning barcha qutilarini chop etilgan deb belgilash"""
     order = get_object_or_404(Order, id=order_id)
     now = timezone.now()
-    boxes = order.boxes.filter(is_printed=False)
+    boxes = order.boxes.filter(is_printed=False).exclude(status=Box.Status.CANCELLED)
     count = boxes.count()
 
     with transaction.atomic():
