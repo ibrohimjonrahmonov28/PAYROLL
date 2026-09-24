@@ -374,6 +374,23 @@ def find_ticket_fast(raw_code: str) -> int | None:
             if ticket_id:
                 return ticket_id
 
+    # 8. 100% kafolatlangan universal qidiruv (agar skaner yoki matn noaniq formatda kelgan bo'lsa)
+    fallback_id = Ticket.objects.filter(
+        models.Q(ticket_code__iexact=clean_code) |
+        models.Q(stiker_code__iexact=clean_code) |
+        models.Q(ticket_code__icontains=clean_code)
+    ).values_list('id', flat=True).first()
+    if fallback_id:
+        return fallback_id
+
+    if clean_no_prefix:
+        fallback_id = Ticket.objects.filter(
+            models.Q(stiker_code__iexact=clean_no_prefix) |
+            models.Q(ticket_code__icontains=clean_no_prefix)
+        ).values_list('id', flat=True).first()
+        if fallback_id:
+            return fallback_id
+
     return None
 
 
