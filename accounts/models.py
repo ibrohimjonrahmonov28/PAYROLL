@@ -27,6 +27,7 @@ class User(AbstractUser):
         STICKER = 'STICKER', 'Stiker Chiqaruvchi'
         MASTER = 'MASTER', 'Master'
         CONTROL = 'CONTROL', 'Kontrolchi (Sifat Nazorati)'
+        SCREEN = 'SCREEN', 'Ekran (Monitor)'
         USER = 'USER', 'Oddiy User'
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
@@ -101,6 +102,28 @@ class User(AbstractUser):
 
     def is_controller(self):
         return self.role == self.Role.CONTROL or self.is_superuser
+
+    def is_screen(self):
+        return self.role == self.Role.SCREEN
+
+    @property
+    def assigned_screen_number(self):
+        """
+        SCREEN roli foydalanuvchisi uchun biriktirilgan ekran raqami (1..40).
+        Masalan, ekran1 -> 1, ..., ekran40 -> 40.
+        """
+        if self.role == self.Role.SCREEN:
+            import re
+            match = re.search(r'\d+', self.username)
+            if match:
+                try:
+                    num = int(match.group())
+                    if 1 <= num <= 40:
+                        return num
+                except ValueError:
+                    pass
+            return 1
+        return None
 
     def is_regular_user(self):
         return self.role == self.Role.USER

@@ -124,3 +124,86 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
 
         # Check that the stat label specifies Dazmol
         self.assertIn("Bugun Tikilgan (Dazmol)", html)
+
+
+class ScreenAccountAuthAndAccessRestrictionTest(TestCase):
+    def setUp(self):
+        # Migration 0013 creates ekran1..ekran40 with password 111 and SCREEN role
+        self.ekran1 = User.objects.get(username='ekran1')
+        self.ekran5 = User.objects.get(username='ekran5')
+        self.superadmin = User.objects.create_superuser(
+            username='super_screen_admin',
+            password='adminpassword123',
+            role=User.Role.SUPER_ADMIN
+        )
+
+    def test_login_redirects_to_assigned_screen(self):
+        res = self.client.post(reverse('root_login'), {
+            'username': 'ekran1',
+            'password': '111'
+        })
+        self.assertRedirects(res, reverse('screens:screen_view', args=[1]))
+
+        self.client.logout()
+
+        res5 = self.client.post(reverse('root_login'), {
+            'username': 'ekran5',
+            'password': '111'
+        })
+        self.assertRedirects(res5, reverse('screens:screen_view', args=[5]))
+
+    def test_screen_user_can_access_own_screen_and_api(self):
+        self.client.login(username='ekran1', password='111')
+
+        res_page = self.client.get(reverse('screens:screen_view', args=[1]))
+        self.assertEqual(res_page.status_code, 200)
+
+        res_api = self.client.get(reverse('screens:screen_api', args=[1]))
+        self.assertEqual(res_api.status_code, 200)
+
+    def test_screen_user_cannot_access_other_screens(self):
+        self.client.login(username='ekran1', password='111')
+
+        # Trying to access screen 2 should redirect to screen 1
+        res = self.client.get(reverse('screens:screen_view', args=[2]))
+        self.assertRedirects(res, reverse('screens:screen_view', args=[1]))
+
+        # Trying to access screen 2 API should return 403 Forbidden
+        res_api = self.client.get(reverse('screens:screen_api', args=[2]))
+        self.assertEqual(res_api.status_code, 403)
+        self.assertEqual(res_api.json()['status'], 'FORBIDDEN')
+
+        # Trying to access all screens overview should redirect to screen 1
+        res_overview = self.client.get(reverse('screens:overview'))
+        self.assertRedirects(res_overview, reverse('screens:screen_view', args=[1]))
+
+    def test_screen_user_cannot_access_other_modules(self):
+        self.client.login(username='ekran1', password='111')
+
+        # Orders page -> redirect to screen 1
+        res_orders = self.client.get(reverse('production:order_list'))
+        self.assertRedirects(res_orders, reverse('screens:screen_view', args=[1]))
+
+        # Superadmin -> redirect to screen 1
+        res_super = self.client.get('/superadmin/')
+        self.assertRedirects(res_super, reverse('screens:screen_view', args=[1]))
+
+        # Control -> redirect to screen 1
+        res_ctrl = self.client.get(reverse('production:control_home'))
+        self.assertRedirects(res_ctrl, reverse('screens:screen_view', args=[1]))
+
+        # Terminal -> redirect to screen 1
+        res_term = self.client.get(reverse('production:terminal_home'))
+        self.assertRedirects(res_term, reverse('screens:screen_view', args=[1]))
+
+    def test_superadmin_can_access_any_screen(self):
+        self.client.login(username='super_screen_admin', password='adminpassword123')
+
+        res1 = self.client.get(reverse('screens:screen_view', args=[1]))
+        self.assertEqual(res1.status_code, 200)
+
+        res2 = self.client.get(reverse('screens:screen_view', args=[2]))
+        self.assertEqual(res2.status_code, 200)
+
+        res_overview = self.client.get(reverse('screens:overview'))
+        self.assertEqual(res_overview.status_code, 200)

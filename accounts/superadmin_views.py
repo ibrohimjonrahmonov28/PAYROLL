@@ -539,6 +539,7 @@ def superadmin_users(request):
     regular_users_count = User.objects.filter(role=User.Role.USER).count()
     masters_count = User.objects.filter(role=User.Role.MASTER).count()
     controllers_count = User.objects.filter(role=User.Role.CONTROL).count()
+    screens_count = User.objects.filter(role=User.Role.SCREEN).count()
     admins_count = User.objects.filter(role=User.Role.ADMIN).count()
     superadmins_count = User.objects.filter(role=User.Role.SUPER_ADMIN).count()
     unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
@@ -553,6 +554,7 @@ def superadmin_users(request):
         'regular_users_count': regular_users_count,
         'masters_count': masters_count,
         'controllers_count': controllers_count,
+        'screens_count': screens_count,
         'admins_count': admins_count,
         'superadmins_count': superadmins_count,
         'unprinted_badges_count': unprinted_badges_count,
@@ -641,7 +643,7 @@ def superadmin_users_print_badges(request):
             Q(last_name__icontains=search_q) |
             Q(phone_number__icontains=search_q)
         )
-    if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.USER]:
+    if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.CONTROL, User.Role.SCREEN, User.Role.USER]:
         users_qs = users_qs.filter(role=role_filter)
 
     users_list = list(users_qs.order_by('role', 'worker_profile__worker_id', 'id'))

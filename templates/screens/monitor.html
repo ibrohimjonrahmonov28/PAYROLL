@@ -127,8 +127,7 @@
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center">
-                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan
-                        (Dazmol)</span>
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan (Dazmol)</span>
                     <span id="stat-total-units" class="text-2xl md:text-3xl font-black text-amber-400 digital-font">{{
                         grand_total_units }}</span>
                 </div>
@@ -164,6 +163,16 @@
                 <i id="fullscreen-icon" class="fa-solid fa-expand"></i>
                 <span id="fullscreen-text" class="hidden sm:inline">To'liq ekran</span>
             </button>
+
+            {% if request.user.is_authenticated %}
+            <!-- Logout Button -->
+            <a href="{% url 'root_logout' %}"
+                class="bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-300 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70 shadow-sm"
+                title="Tizimdan chiqish ({{ request.user.username }})">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="hidden sm:inline">Chiqish</span>
+            </a>
+            {% endif %}
         </div>
     </header>
 
@@ -517,7 +526,7 @@
                     container.scrollTop = maxScroll;
                     currentScrollPos = maxScroll;
 
-         // Pastga yetganda 3.5 soniya to'xtab turadi (oxiridagi xodimlar ko'rinishi uchun)
+                    // Pastga yetganda 3.5 soniya to'xtab turadi (oxiridagi xodimlar ko'rinishi uchun)
                     pauseAutoScroll(3500);
 
                     // 3.5 soniyadan so'ng pastdan tepaga sirpanmasdan, to'g'ridan-to'g'ri yana boshiga qaytadi
