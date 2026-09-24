@@ -3,12 +3,34 @@ import base64
 import uuid
 import secrets
 import string
+import functools
 from decimal import Decimal
 import qrcode
 from django.db import models
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from accounts.models import Worker, User
+
+
+@functools.lru_cache(maxsize=10000)
+def _generate_qr_data_uri(data_str: str, box_size: int = 8, border: int = 1) -> str:
+    """
+    Xotirada (RAM) LRU-keshlangan Base64 QR-kod.
+    Bir xil kod takror hisoblanmaydi (0 CPU overhead).
+    """
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=box_size,
+        border=border,
+    )
+    qr.add_data(data_str)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    return f"data:image/png;base64,{b64}"
 
 
 class Customer(models.Model):
@@ -854,19 +876,7 @@ class Box(models.Model):
         Xotirada (RAM) tezkor generatsiya qilinadigan CONTROL Base64 QR-kodi.
         Sifat nazorati (OTK) planshetida skaner qilinganda qutini topish uchun.
         """
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=10,
-            border=1,
-        )
-        qr.add_data(f"CONTROL:{self.box_code}")
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
-        b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        return f"data:image/png;base64,{b64}"
+        return _generate_qr_data_uri(f"CONTROL:{self.box_code}", box_size=10, border=1)
 
     def save(self, *args, **kwargs):
         if not self.box_code:
@@ -1096,19 +1106,7 @@ class Ticket(models.Model):
             except Exception:
                 pass
 
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=8,
-            border=1,
-        )
-        qr.add_data(f"TICKET:{self.ticket_code}")
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        b64 = base64.b64encode(buf.getvalue()).decode('ascii')
-        return f"data:image/png;base64,{b64}"
+        return _generate_qr_data_uri(f"TICKET:{self.ticket_code}", box_size=8, border=1)
 
     def save(self, *args, **kwargs):
         if not self.ticket_code:

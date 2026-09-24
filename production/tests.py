@@ -236,6 +236,31 @@ class OrderPrintSeparationTest(TestCase):
         self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
         self.assertIn(f'ART-01_QUTI_1_{self.box1.box_code}_ORD-SEP-01.pdf', res_pdf['Content-Disposition'])
 
+    def test_multiple_tickets_all_rendered_individually_with_control_sticker(self):
+        # Qo'shimcha 3 ta operatsiya qo'shamiz
+        op2 = Operation.objects.create(code="OP_TEST_2", name="Yoqa tikish")
+        op3 = Operation.objects.create(code="OP_TEST_3", name="Yeng tikish")
+        ao2 = ArticleOperation.objects.create(article=self.art1, operation=op2, price_per_unit=100, sequence=2)
+        ao3 = ArticleOperation.objects.create(article=self.art1, operation=op3, price_per_unit=100, sequence=3)
+
+        generate_box_tickets(self.box1, {ao2.id: 1, ao3.id: 1})
+        self.assertEqual(self.box1.tickets.count(), 3)
+
+        url = reverse('production:order_print_all_stickers', args=[self.order.id]) + f"?article_id={self.art1.id}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        content = res.content.decode('utf-8')
+        # Barcha 3 ta operatsiya chiqishi kerak
+        self.assertIn("Tikish A", content)
+        self.assertIn("Yoqa tikish", content)
+        self.assertIn("Yeng tikish", content)
+        # CONTROL stikeri ham chiqishi kerak
+        self.assertIn("CONTROL STIKER", content)
+
+        # 3 ta bilet + 1 ta CONTROL stikeri = jami 4 ta sticker-card bo'lishi shart!
+        self.assertEqual(content.count('class="sticker-card'), 4)
+
 
 class BoxRazmerFeatureTest(TestCase):
     def setUp(self):

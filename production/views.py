@@ -374,7 +374,7 @@ def order_print_all_stickers_view(request, order_id: int):
             pass
 
     tickets = tickets_qs.select_related(
-        'box', 'box__order', 'box__article', 'article_operation__operation', 'article_operation__article'
+        'box', 'box__order', 'box__article', 'box__cutting_batch_item__batch', 'article_operation__operation', 'article_operation__article'
     ).order_by('box__article__code', 'box__box_number', 'article_operation__sequence', 'split_index')
 
     grouped_data = OrderedDict()

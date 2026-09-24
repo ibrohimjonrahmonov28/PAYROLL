@@ -372,149 +372,148 @@
                 class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7px] text-slate-600 font-bold uppercase tracking-wider">
                 <span class="font-extrabold text-slate-900 tracking-wider">TERRY JAR</span>
                 <span class="font-mono text-[7px] text-slate-700 tracking-tight font-black">{% if ticket.stiker_code
-                    %}#{{
-                    ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
+                    %}#{{ ticket.stiker_code }}{% else %}{{ ticket.short_hash }}{% endif %}</span>
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
 
-            <!-- ================= MAJBURIY "CONTROL" STIKERI ================= -->
-            <div
-                class="sticker-card rounded-lg shadow-sm border-2 border-slate-950 p-1.5 flex flex-col justify-between bg-white text-slate-950">
-                <!-- 1. TOP HEADER: CONTROL (Katta va qalin, tartib raqamsiz) -->
-                <div class="border-b-2 border-slate-950 pb-0.5 flex flex-col justify-center">
-                    <div class="flex items-center justify-between">
-                        <span
-                            class="text-[6.5px] font-black uppercase text-amber-600 tracking-wider leading-none">BOSQICH:
-                            SIFAT NAZORATI</span>
-                        <span
-                            class="text-[9px] font-black text-slate-950 bg-slate-100 border border-slate-400 px-1.5 py-0.5 rounded font-mono leading-none whitespace-nowrap">
-                            PC: {{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:"—" }}
-                        </span>
+        <!-- ================= MAJBURIY "CONTROL" STIKERI ================= -->
+        <div
+            class="sticker-card rounded-lg shadow-sm border-2 border-slate-950 p-1.5 flex flex-col justify-between bg-white text-slate-950">
+            <!-- 1. TOP HEADER: CONTROL (Katta va qalin, tartib raqamsiz) -->
+            <div class="border-b-2 border-slate-950 pb-0.5 flex flex-col justify-center">
+                <div class="flex items-center justify-between">
+                    <span class="text-[6.5px] font-black uppercase text-amber-600 tracking-wider leading-none">BOSQICH:
+                        SIFAT NAZORATI</span>
+                    <span
+                        class="text-[9px] font-black text-slate-950 bg-slate-100 border border-slate-400 px-1.5 py-0.5 rounded font-mono leading-none whitespace-nowrap">
+                        PC: {{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:"—" }}
+                    </span>
+                </div>
+                <div
+                    class="text-[14px] font-black text-slate-950 uppercase leading-tight mt-0.5 tracking-wider flex items-center justify-between">
+                    <span>CONTROL</span>
+                    <span
+                        class="text-[9px] bg-slate-950 text-amber-400 px-1.5 py-0.2 rounded font-mono font-bold">OTK</span>
+                </div>
+            </div>
+
+            <!-- 2. ASOSIY QISM (BODY): CHAPDA QUTI QR KOD | O'NGDA QUTI ID + MODEL + ARTIKUL + KATAKLAR -->
+            <div class="flex items-center justify-between gap-2 my-0.5">
+                <!-- CHAP USTUN: Quti QR Code (Katta) + CONTROL BADGE -->
+                <div class="flex flex-col items-center justify-center flex-shrink-0 w-[96px]">
+                    <div
+                        class="w-[96px] h-[96px] border-2 border-slate-950 rounded p-0.5 bg-white flex items-center justify-center shadow-xs">
+                        <img src="{{ box_item.box.control_qr_code_data_uri }}"
+                            alt="QR: CONTROL:{{ box_item.box.box_code }}" class="w-full h-full object-contain">
                     </div>
                     <div
-                        class="text-[14px] font-black text-slate-950 uppercase leading-tight mt-0.5 tracking-wider flex items-center justify-between">
-                        <span>CONTROL</span>
+                        class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-slate-950 text-white rounded shadow-xs text-center">
                         <span
-                            class="text-[9px] bg-slate-950 text-amber-400 px-1.5 py-0.2 rounded font-mono font-bold">OTK</span>
+                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-amber-400 w-full text-center">CONTROL STIKER</span>
+                        <span
+                            class="font-mono font-black text-[9.5px] leading-none text-white tracking-wide mt-0.5 w-full text-center">{{ box_item.box.box_code }}</span>
                     </div>
                 </div>
 
-                <!-- 2. ASOSIY QISM (BODY): CHAPDA QUTI QR KOD | O'NGDA QUTI ID + MODEL + ARTIKUL + KATAKLAR -->
-                <div class="flex items-center justify-between gap-2 my-0.5">
-                    <!-- CHAP USTUN: Quti QR Code (Katta) + CONTROL BADGE -->
-                    <div class="flex flex-col items-center justify-center flex-shrink-0 w-[96px]">
-                        <div
-                            class="w-[96px] h-[96px] border-2 border-slate-950 rounded p-0.5 bg-white flex items-center justify-center shadow-xs">
-                            <img src="{{ box_item.box.control_qr_code_data_uri }}"
-                                alt="QR: CONTROL:{{ box_item.box.box_code }}" class="w-full h-full object-contain">
-                        </div>
-                        <div
-                            class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-slate-950 text-white rounded shadow-xs text-center">
-                            <span class="text-[6px] font-bold uppercase tracking-wider leading-none text-amber-400 w-full text-center">CONTROL STIKER</span>
-                            <span
-                                class="font-mono font-black text-[9.5px] leading-none text-white tracking-wide mt-0.5 w-full text-center">{{
-                                box_item.box.box_code }}</span>
-                        </div>
+                <!-- O'NG USTUN: Quti ID, Model, Artikul, 2x2 Kataklar -->
+                <div class="flex-1 min-w-0 flex flex-col justify-between h-full space-y-0.5 text-left">
+                    <!-- QUTI ID -->
+                    <div
+                        class="px-1.5 py-0.5 bg-amber-100 border border-amber-500 rounded flex items-baseline justify-between shadow-xs">
+                        <span class="text-[6.5px] font-black uppercase text-amber-800 leading-none">QUTI ID:</span>
+                        <span class="font-mono font-black text-[11px] text-slate-950 leading-none">
+                            QUTI #{{ box_item.box.box_number }} [{{ box_item.box.box_code }}]
+                        </span>
                     </div>
 
-                    <!-- O'NG USTUN: Quti ID, Model, Artikul, 2x2 Kataklar -->
-                    <div class="flex-1 min-w-0 flex flex-col justify-between h-full space-y-0.5 text-left">
-                        <!-- QUTI ID -->
+                    <!-- Model name & Artikul -->
+                    <div class="flex items-baseline justify-between border-b border-slate-200 pb-0.5">
+                        <span class="text-[7px] font-bold uppercase text-slate-500 leading-none">MODEL:</span>
+                        <strong
+                            class="text-[10.5px] font-black text-slate-950 uppercase truncate max-w-[130px] leading-tight"
+                            title="{{ box_item.box.target_article.name }}">
+                            {{ box_item.box.target_article.name }}
+                        </strong>
+                    </div>
+
+                    <div class="flex items-baseline justify-between border-b border-slate-200 pb-0.5">
+                        <span class="text-[7px] font-bold uppercase text-slate-500 leading-none">ARTIKUL:</span>
+                        <span class="font-mono font-black text-[10px] text-slate-900 leading-tight">
+                            {{ box_item.box.target_article.code }}
+                        </span>
+                    </div>
+
+                    <!-- 2x2 Kataklar: SONI, RAZMER, PASTAL, QIYMATH -->
+                    <div class="grid grid-cols-2 gap-1 pt-0.5">
+                        <!-- Soni -->
                         <div
-                            class="px-1.5 py-0.5 bg-amber-100 border border-amber-500 rounded flex items-baseline justify-between shadow-xs">
-                            <span class="text-[6.5px] font-black uppercase text-amber-800 leading-none">QUTI ID:</span>
-                            <span class="font-mono font-black text-[11px] text-slate-950 leading-none">
-                                QUTI #{{ box_item.box.box_number }} [{{ box_item.box.box_code }}]
+                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
+                            <span class="text-[11px] font-black digital-font text-slate-950 leading-none">
+                                {{ box_item.box.quantity }}
                             </span>
                         </div>
 
-                        <!-- Model name & Artikul -->
-                        <div class="flex items-baseline justify-between border-b border-slate-200 pb-0.5">
-                            <span class="text-[7px] font-bold uppercase text-slate-500 leading-none">MODEL:</span>
-                            <strong
-                                class="text-[10.5px] font-black text-slate-950 uppercase truncate max-w-[130px] leading-tight"
-                                title="{{ box_item.box.target_article.name }}">
-                                {{ box_item.box.target_article.name }}
-                            </strong>
-                        </div>
-
-                        <div class="flex items-baseline justify-between border-b border-slate-200 pb-0.5">
-                            <span class="text-[7px] font-bold uppercase text-slate-500 leading-none">ARTIKUL:</span>
-                            <span class="font-mono font-black text-[10px] text-slate-900 leading-tight">
-                                {{ box_item.box.target_article.code }}
+                        <!-- Razmer -->
+                        <div
+                            class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
+                            <span class="text-[10.5px] font-black text-purple-950 leading-none font-mono">
+                                {{ box_item.box.razmer|default:"—" }}
                             </span>
                         </div>
 
-                        <!-- 2x2 Kataklar: SONI, RAZMER, PASTAL, QIYMATH -->
-                        <div class="grid grid-cols-2 gap-1 pt-0.5">
-                            <!-- Soni -->
-                            <div
-                                class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
-                                <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
-                                <span class="text-[11px] font-black digital-font text-slate-950 leading-none">
-                                    {{ box_item.box.quantity }}
-                                </span>
-                            </div>
+                        <!-- Pastal -->
+                        <div
+                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between overflow-hidden">
+                            <span class="text-[6.5px] font-black uppercase text-slate-700 mr-1">PASTAL:</span>
+                            <span class="text-[9px] font-black font-mono text-slate-950 leading-none truncate"
+                                title="{{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:'—' }}">
+                                {{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:"—" }}
+                            </span>
+                        </div>
 
-                            <!-- Razmer -->
-                            <div
-                                class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
-                                <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
-                                <span class="text-[10.5px] font-black text-purple-950 leading-none font-mono">
-                                    {{ box_item.box.razmer|default:"—" }}
-                                </span>
-                            </div>
-
-                            <!-- Pastal -->
-                            <div
-                                class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between overflow-hidden">
-                                <span class="text-[6.5px] font-black uppercase text-slate-700 mr-1">PASTAL:</span>
-                                <span class="text-[9px] font-black font-mono text-slate-950 leading-none truncate"
-                                    title="{{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:'—' }}">
-                                    {{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:"—" }}
-                                </span>
-                            </div>
-
-                            <!-- QIYMATH: 0 SO'M -->
-                            <div
-                                class="border border-emerald-800 rounded px-1 py-0.5 bg-emerald-50 flex items-baseline justify-between text-emerald-950">
-                                <span class="text-[6.5px] font-black uppercase">NARX:</span>
-                                <span class="text-[9.5px] font-black font-mono leading-none">0 SO'M</span>
-                            </div>
+                        <!-- QIYMATH: 0 SO'M -->
+                        <div
+                            class="border border-emerald-800 rounded px-1 py-0.5 bg-emerald-50 flex items-baseline justify-between text-emerald-950">
+                            <span class="text-[6.5px] font-black uppercase">NARX:</span>
+                            <span class="text-[9.5px] font-black font-mono leading-none">0 SO'M</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- 3. FOOTER -->
-                <div
-                    class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7px] text-slate-600 font-bold uppercase tracking-wider">
-                    <span class="font-extrabold text-slate-900 tracking-wider">TERRY JAR • SIFAT NAZORATI</span>
-                    <span class="font-mono text-[7px] text-slate-700 tracking-tight font-black">CONTROL:{{
-                        box_item.box.box_code }}</span>
                 </div>
             </div>
-        </div>
-        {% endfor %}
-        {% empty %}
-        <div class="text-center py-16 text-slate-500 no-print">
+
+            <!-- 3. FOOTER -->
             <div
-                class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
-                <i class="fa-solid fa-qrcode"></i>
+                class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7px] text-slate-600 font-bold uppercase tracking-wider">
+                <span class="font-extrabold text-slate-900 tracking-wider">TERRY JAR • SIFAT NAZORATI</span>
+                <span class="font-mono text-[7px] text-slate-700 tracking-tight font-black">CONTROL:{{
+                    box_item.box.box_code }}</span>
             </div>
-            <p class="text-base font-black text-slate-700">QR Stikerlar topilmadi</p>
-            <p class="text-xs text-slate-500 mt-1">Ushbu model yoki quti uchun stikerlar hali yaratilmagan.</p>
         </div>
-        {% endfor %}
+    </div>
+    {% endfor %}
+    {% empty %}
+    <div class="text-center py-16 text-slate-500 no-print">
+        <div
+            class="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl text-slate-400 mb-3 shadow-sm">
+            <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <p class="text-base font-black text-slate-700">QR Stikerlar topilmadi</p>
+        <p class="text-xs text-slate-500 mt-1">Ushbu model yoki quti uchun stikerlar hali yaratilmagan.</p>
+    </div>
+    {% endfor %}
 
-        <script>
-            (function () {
-                var targetTitle = "{% if not is_order_all and box.id %}{{ box.target_article.code|default:selected_article.code|default:'ARTIKUL' }}_QUTI_{{ box.box_number }}{% elif selected_article %}{{ selected_article.code }}_BARCHA_QUTILAR_{{ order.order_number }}{% else %}{{ order.order_number }}_BARCHA_QUTILARI{% endif %}";
+    <script>
+        (function () {
+            var targetTitle = "{% if not is_order_all and box.id %}{{ box.target_article.code|default:selected_article.code|default:'ARTIKUL' }}_QUTI_{{ box.box_number }}{% elif selected_article %}{{ selected_article.code }}_BARCHA_QUTILAR_{{ order.order_number }}{% else %}{{ order.order_number }}_BARCHA_QUTILARI{% endif %}";
+            document.title = targetTitle;
+            window.addEventListener('beforeprint', function () {
                 document.title = targetTitle;
-                window.addEventListener('beforeprint', function () {
-                    document.title = targetTitle;
-                });
-            })();
-        </script>
+            });
+        })();
+    </script>
 </body>
 
 </html>
