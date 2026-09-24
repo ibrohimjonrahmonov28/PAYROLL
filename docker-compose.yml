@@ -35,7 +35,7 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       BOT_TOKEN: ${BOT_TOKEN:-}
-      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://tezol.shop,https://www.tezol.shop,https://34.156.34.148,http://34.156.34.148,https://91.99.181.42,http://91.99.181.42}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://terryjar.uz,https://www.terryjar.uz,https://tezol.shop,https://www.tezol.shop,https://34.156.34.148,http://34.156.34.148,https://91.99.181.42,http://91.99.181.42}
       BONUS: ${BONUS:-0}
     volumes:
       - ./config:/app/config
