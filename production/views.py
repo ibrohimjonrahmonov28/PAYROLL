@@ -18,13 +18,22 @@ def dashboard_view(request):
         return redirect('production:order_list')
 
     today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    from datetime import datetime, time
+    day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
 
-    # Bugungi statistika
-    today_tickets = Ticket.objects.filter(status=Ticket.Status.SCANNED, scanned_at__date=today)
+    # Bugungi statistika (Index-friendly datetime range)
+    today_tickets = Ticket.objects.filter(status=Ticket.Status.SCANNED, scanned_at__range=(day_start, day_end))
     
-    total_wages_today = today_tickets.aggregate(s=Sum('total_amount'))['s'] or Decimal('0')
-    total_units_today = today_tickets.aggregate(s=Sum('quantity'))['s'] or 0
-    active_workers_today = today_tickets.values('worker').distinct().count()
+    today_agg = today_tickets.aggregate(
+        wages=Sum('total_amount'),
+        units=Sum('quantity'),
+        workers=Count('worker', distinct=True)
+    )
+    total_wages_today = today_agg['wages'] or Decimal('0')
+    total_units_today = today_agg['units'] or 0
+    active_workers_today = today_agg['workers'] or 0
 
     # Top tikuvchilar (bugungi)
     top_workers = today_tickets.values(
@@ -604,12 +613,17 @@ def box_pipeline_statistics_view(request):
     highlighted_box_id = None
 
     if clean_q:
-        # Avvalo stiker kodi yoki ticket id bo'yicha qidiramiz
-        ticket_match = Ticket.objects.filter(
-            Q(stiker_code__iexact=clean_q) |
-            Q(ticket_code__iexact=clean_q) |
-            Q(id=int(clean_q) if clean_q.isdigit() else -1)
-        ).first()
+        # Avvalo tezkor indeksli bilet qidiramiz (<1ms)
+        from .terminal_views import find_ticket_fast
+        fast_ticket_id = find_ticket_fast(clean_q)
+        if fast_ticket_id:
+            ticket_match = Ticket.objects.only('id', 'box_id').filter(id=fast_ticket_id).first()
+        else:
+            ticket_match = Ticket.objects.filter(
+                Q(stiker_code__iexact=clean_q) |
+                Q(ticket_code__iexact=clean_q) |
+                Q(id=int(clean_q) if clean_q.isdigit() else -1)
+            ).first()
 
         if ticket_match:
             boxes_qs = boxes_qs.filter(id=ticket_match.box_id)
@@ -724,21 +738,32 @@ def box_pipeline_statistics_view(request):
 
 @login_required
 def api_ticket_scan_detail(request, code_or_id):
-    clean_val = code_or_id.lstrip('#').strip()
     current_tz = timezone.get_current_timezone()
-
-    ticket = Ticket.objects.filter(
-        Q(stiker_code__iexact=clean_val) |
-        Q(ticket_code__iexact=clean_val) |
-        Q(id=int(clean_val) if clean_val.isdigit() else -1)
-    ).select_related(
-        'box__order',
-        'box__article',
-        'article_operation__article',
-        'article_operation__operation',
-        'worker__user',
-        'scanned_by'
-    ).first()
+    from .terminal_views import find_ticket_fast
+    fast_ticket_id = find_ticket_fast(code_or_id)
+    if fast_ticket_id:
+        ticket = Ticket.objects.filter(id=fast_ticket_id).select_related(
+            'box__order',
+            'box__article',
+            'article_operation__article',
+            'article_operation__operation',
+            'worker__user',
+            'scanned_by'
+        ).first()
+    else:
+        clean_val = code_or_id.lstrip('#').strip()
+        ticket = Ticket.objects.filter(
+            Q(stiker_code__iexact=clean_val) |
+            Q(ticket_code__iexact=clean_val) |
+            Q(id=int(clean_val) if clean_val.isdigit() else -1)
+        ).select_related(
+            'box__order',
+            'box__article',
+            'article_operation__article',
+            'article_operation__operation',
+            'worker__user',
+            'scanned_by'
+        ).first()
 
     if not ticket:
         return JsonResponse({'success': False, 'error': 'Stiker topilmadi'}, status=404)

@@ -8,8 +8,22 @@ from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction, models
 from django.utils import timezone
+from django.core.cache import cache
 from accounts.models import Worker, User
 from production.models import Ticket, Box, Order
+
+
+RU_TO_EN_TRANS = str.maketrans(
+    "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ",
+    "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>"
+)
+
+
+def fix_cyrillic_layout(text: str) -> str:
+    """Agar foydalanuvchi yoki skaner lotin o'rniga kirill klaviaturasida kiritgan bo'lsa, lotinga o'giradi."""
+    if not text:
+        return text
+    return text.translate(RU_TO_EN_TRANS)
 
 
 def _get_request_param(request, *keys, default=''):
@@ -69,11 +83,43 @@ def terminal_home_view(request):
     day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
     day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
     
-    # Bugungi umumiy terminal statistikasi (Index-friendly datetime range)
+    # Bugungi umumiy terminal statistikasi (Index-friendly datetime range + 10s Cache)
     today_scans = Ticket.objects.filter(status=Ticket.Status.SCANNED, scanned_at__range=(day_start, day_end))
-    today_total_units = today_scans.aggregate(s=models.Sum('quantity'))['s'] or 0
-    today_total_amount = today_scans.aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')
-    today_active_workers = today_scans.values('worker').distinct().count()
+    
+    today_stats = cache.get('terminal_today_stats')
+    if today_stats is None:
+        agg = today_scans.aggregate(
+            units=models.Sum('quantity'),
+            amount=models.Sum('total_amount'),
+            workers=models.Count('worker', distinct=True)
+        )
+        today_total_units = agg['units'] or 0
+        today_total_amount = agg['amount'] or Decimal('0')
+        today_active_workers = agg['workers'] or 0
+
+        screen_stats = today_scans.filter(screen_number__isnull=False).values('screen_number').annotate(
+            worker_count=models.Count('worker', distinct=True),
+            units_count=models.Sum('quantity')
+        )
+        screen_stats_map = {
+            s['screen_number']: {
+                'workers': s['worker_count'] or 0,
+                'units': s['units_count'] or 0
+            }
+            for s in screen_stats if s['screen_number']
+        }
+        today_stats = {
+            'today_total_units': today_total_units,
+            'today_total_amount': today_total_amount,
+            'today_active_workers': today_active_workers,
+            'screen_stats_map': screen_stats_map,
+        }
+        cache.set('terminal_today_stats', today_stats, timeout=10)
+    else:
+        today_total_units = today_stats['today_total_units']
+        today_total_amount = today_stats['today_total_amount']
+        today_active_workers = today_stats['today_active_workers']
+        screen_stats_map = today_stats['screen_stats_map']
 
     # Oxirgi 10 ta skanerlangan biletlar oqimi
     recent_scans = today_scans.select_related(
@@ -81,19 +127,6 @@ def terminal_home_view(request):
     ).order_by('-scanned_at')[:10]
 
     screens_list = list(range(1, 41))
-
-    # Bugungi 40 ta patok bo'yicha faollik ma'lumotlari
-    screen_stats = today_scans.values('screen_number').annotate(
-        worker_count=models.Count('worker', distinct=True),
-        units_count=models.Sum('quantity')
-    )
-    screen_stats_map = {
-        s['screen_number']: {
-            'workers': s['worker_count'] or 0,
-            'units': s['units_count'] or 0
-        }
-        for s in screen_stats if s['screen_number']
-    }
 
     patoks_data = []
     for sc in range(1, 41):
@@ -214,8 +247,9 @@ def terminal_identify_worker_api(request):
     day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
     day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
     today_tickets = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED, scanned_at__range=(day_start, day_end))
-    today_units = today_tickets.aggregate(s=models.Sum('quantity'))['s'] or 0
-    today_earned = today_tickets.aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')
+    today_agg = today_tickets.aggregate(u=models.Sum('quantity'), e=models.Sum('total_amount'))
+    today_units = today_agg['u'] or 0
+    today_earned = today_agg['e'] or Decimal('0')
 
     # Umumiy balans
     total_earned = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED).aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')
@@ -238,6 +272,109 @@ def terminal_identify_worker_api(request):
             'current_balance_formatted': f"{int(current_balance):,}".replace(",", " "),
         }
     })
+
+
+def find_ticket_fast(raw_code: str) -> int | None:
+    """
+    Tezkor (<2ms) indeksli bilet qidirish.
+    Barcha mumkin bo'lgan skanerlash formatlarini eng ehtimolli va tez tartibda qidiradi.
+    HECH QANDAY og'ir JOIN qilmaydi, faqat ticket.id (int) qaytaradi.
+    1. Aniq ticket_code (Zebra DS22 QR kodi)
+    2. 8 xonali unikal stiker_code (#LTFVLFJP, LTFVLFJP, ST-LTFVLFJP)
+    3. Raqamli Ticket ID (1042, #1042, ST-1042)
+    4. Quti kodi va bilet xeshi (BN624PAP-3B6412)
+    5. Oxirgi 6 xonali bilet xeshi (-3B6412 yoki 3B6412)
+    6. Kirillcha klaviatura orqali kiritilgan bo'lsa avto-o'girish
+    """
+    raw_str = (raw_code or '').strip().strip('"\'\t\r\n')
+    if not raw_str:
+        return None
+
+    clean_code = extract_ticket_code(raw_str).strip()
+    if not clean_code:
+        return None
+
+    clean_upper = clean_code.upper()
+
+    # 1. Aniq ticket_code bo'yicha (Zebra DS22 QR kodi) - B-Tree Index Scan: ~0.1ms
+    ticket_id = Ticket.objects.filter(ticket_code=clean_code).values_list('id', flat=True).first()
+    if not ticket_id and clean_upper != clean_code:
+        ticket_id = Ticket.objects.filter(ticket_code=clean_upper).values_list('id', flat=True).first()
+    if ticket_id:
+        return ticket_id
+
+    # Prefikslarni tozalash (#, ST-, TK-)
+    clean_no_prefix = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', clean_code).strip().upper()
+
+    # 2. 8 xonali unikal Stiker kodi bo'yicha (#LTFVLFJP, LTFVLFJP, ST-LTFVLFJP) - B-Tree Index Scan: ~0.1ms
+    if len(clean_no_prefix) == 8 and clean_no_prefix.isalnum():
+        ticket_id = Ticket.objects.filter(stiker_code=clean_no_prefix).values_list('id', flat=True).first()
+        if ticket_id:
+            return ticket_id
+
+    # 3. Raqamli Ticket ID bo'yicha (1042, #1042, ST-1042) - Primary Key Scan: ~0.05ms
+    if clean_no_prefix.isdigit():
+        ticket_id = Ticket.objects.filter(id=int(clean_no_prefix)).values_list('id', flat=True).first()
+        if ticket_id:
+            return ticket_id
+
+    # 4. Quti kodi va bilet xeshi (masalan: "BN624PAP-3B6412" yoki "TK- -1-BN624PAP-3B6412")
+    # 8 xonali box_code va 6 xonali xesh
+    box_hash_match = re.search(r'([A-Z0-9]{8})-([A-Z0-9]{6})$', clean_upper)
+    if box_hash_match:
+        b_code, t_hash = box_hash_match.group(1), box_hash_match.group(2)
+        ticket_id = Ticket.objects.filter(
+            box__box_code=b_code,
+            ticket_code__endswith=f"-{t_hash}"
+        ).values_list('id', flat=True).first()
+        if ticket_id:
+            return ticket_id
+
+    # 5. Umumiyroq suffiks: masalan "Q0S13EZI-3B6412"
+    suffix_match = re.search(r'([A-Z0-9]{6,12}-[A-Z0-9]{4,10})$', clean_upper)
+    if suffix_match:
+        suffix = suffix_match.group(1)
+        ticket_id = Ticket.objects.filter(ticket_code__endswith=suffix).values_list('id', flat=True).first()
+        if ticket_id:
+            return ticket_id
+
+    # 6. Oxirgi 6 xonali bilet xeshi bo'yicha (masalan: "-3B6412" yoki "3B6412")
+    hash_match = re.search(r'(?:^|-)([A-Z0-9]{6})$', clean_upper)
+    if hash_match:
+        t_hash = hash_match.group(1)
+        possible_ids = list(Ticket.objects.filter(ticket_code__endswith=f"-{t_hash}").values_list('id', flat=True)[:5])
+        if len(possible_ids) == 1:
+            return possible_ids[0]
+        elif len(possible_ids) > 1:
+            num_match = re.search(r'-(\d+)-', clean_code)
+            if num_match:
+                bx_num = int(num_match.group(1))
+                ticket_id = Ticket.objects.filter(
+                    id__in=possible_ids,
+                    box__box_number=bx_num
+                ).values_list('id', flat=True).first()
+                if ticket_id:
+                    return ticket_id
+            return possible_ids[0]
+
+    # 7. Kirillcha klaviatura orqali kiritilgan bo'lsa avto-o'girish va qayta tekshirish
+    converted = fix_cyrillic_layout(raw_code)
+    if converted != raw_code:
+        conv_clean = extract_ticket_code(converted).strip()
+        conv_upper = conv_clean.upper()
+        ticket_id = Ticket.objects.filter(ticket_code=conv_clean).values_list('id', flat=True).first()
+        if not ticket_id and conv_upper != conv_clean:
+            ticket_id = Ticket.objects.filter(ticket_code=conv_upper).values_list('id', flat=True).first()
+        if ticket_id:
+            return ticket_id
+
+        conv_no_prefix = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', conv_clean).strip().upper()
+        if len(conv_no_prefix) == 8 and conv_no_prefix.isalnum():
+            ticket_id = Ticket.objects.filter(stiker_code=conv_no_prefix).values_list('id', flat=True).first()
+            if ticket_id:
+                return ticket_id
+
+    return None
 
 
 @csrf_exempt
@@ -265,68 +402,20 @@ def terminal_scan_ticket_api(request):
 
     clean_code = extract_ticket_code(raw_code).strip()
 
-    # 1. Biletni qidirish: Aniq moslik bo'yicha
-    ticket = Ticket.objects.filter(
-        models.Q(ticket_code=clean_code) | models.Q(ticket_code=clean_code.upper())
-    ).select_related(
-        'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-    ).first()
+    # Biletni tezkor topish (< 2ms)
+    ticket_id = find_ticket_fast(raw_code)
 
-    if not ticket:
-        ticket = Ticket.objects.filter(ticket_code__iexact=clean_code).select_related(
-            'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-        ).first()
+    # Agar bilet topilmagan bo'lsa: foydalanuvchi adashib butun Quti QR kodini skanerlagan bo'lishi mumkin
+    if not ticket_id:
+        box_clean = extract_box_code(raw_code).strip().upper()
+        box_match = None
+        if len(box_clean) == 8 and box_clean.isalnum():
+            box_match = Box.objects.filter(box_code=box_clean).only('id', 'box_number', 'box_code').first()
+        elif box_clean.isdigit():
+            box_match = Box.objects.filter(
+                models.Q(id=int(box_clean)) | models.Q(box_number=int(box_clean))
+            ).only('id', 'box_number', 'box_code').first()
 
-    # 2. Skaner orqali kelgan quti kodi va bilet xeshi bo'yicha qidirish
-    # Masalan: "TICK. T:TK- -13-Q0S13EZI-3B6412" yoki "TK- -13-Q0S13EZI-3B6412" -> "Q0S13EZI-3B6412"
-    if not ticket:
-        suffix_match = re.search(r'([A-Z0-9]{6,12}-[A-Z0-9]{4,10})$', clean_code.upper())
-        if suffix_match:
-            suffix = suffix_match.group(1)
-            ticket = Ticket.objects.filter(ticket_code__iendswith=suffix).select_related(
-                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-            ).first()
-
-    # 3. Agar faqat oxirgi 6 xonali bilet xeshi bo'lsa (masalan: "-3B6412")
-    if not ticket:
-        hash_match = re.search(r'-([A-Z0-9]{6})$', clean_code.upper())
-        if hash_match:
-            ticket_hash = hash_match.group(1)
-            possible = Ticket.objects.filter(ticket_code__iendswith=f"-{ticket_hash}").select_related(
-                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-            )
-            if possible.count() == 1:
-                ticket = possible.first()
-            elif possible.count() > 1:
-                num_match = re.search(r'-(\d+)-', clean_code)
-                if num_match:
-                    bx_num = int(num_match.group(1))
-                    filtered = possible.filter(box__box_number=bx_num).first()
-                    if filtered:
-                        ticket = filtered
-
-    # 4. Agar 8 xonali unikal Stiker kodi bo'yicha kiritilgan bo'lsa (masalan: K7B9P2X4, #K7B9P2X4, ST-K7B9P2X4)
-    if not ticket:
-        clean_stiker = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', clean_code).strip().upper()
-        if len(clean_stiker) == 8:
-            ticket = Ticket.objects.filter(stiker_code=clean_stiker).select_related(
-                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-            ).first()
-
-    # 5. Agar raqamli ID bo'yicha kiritilgan bo'lsa (masalan: 1042, #1042, ST-1042)
-    if not ticket:
-        clean_id = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', clean_code).strip().replace(' ', '').replace(',', '')
-        if clean_id.isdigit():
-            ticket = Ticket.objects.filter(id=int(clean_id)).select_related(
-                'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
-            ).first()
-
-    # 5. Agar foydalanuvchi adashib butun Quti QR kodini skanerlagan bo'lsa
-    if not ticket:
-        box_clean = extract_box_code(raw_code)
-        box_match = Box.objects.filter(
-            models.Q(box_code__iexact=box_clean) | models.Q(id=int(box_clean) if box_clean.isdigit() else -1)
-        ).first()
         if box_match:
             return JsonResponse({
                 'status': 'IS_BOX_CODE',
@@ -334,11 +423,15 @@ def terminal_scan_ticket_api(request):
                            f"Ishbay haq hisoblanishi uchun quti stikeridagi kerakli OPERATSIYA BILETI QR kodini skanerlang."
             })
 
-    if not ticket:
         return JsonResponse({
             'status': 'NOT_FOUND',
             'message': f"❌ Bilet bazada topilmadi:\n'{clean_code}'"
         })
+
+    # Yagona tezkor fetch: primary key bo'yicha barcha bog'langan jadvallarni bir marta olish (< 0.5ms)
+    ticket = Ticket.objects.select_related(
+        'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
+    ).get(id=ticket_id)
 
     # 1. Baza bo'yicha dublikat tekshiruvi: bilet allaqachon qabul qilinganmi?
     if ticket.status == Ticket.Status.SCANNED:
@@ -366,17 +459,14 @@ def terminal_scan_ticket_api(request):
     request.session['terminal_pending_tickets'] = pending_ids
     request.session.modified = True
 
-    # Barcha kiritilgan biletlarni hisoblash
-    pending_tickets = list(Ticket.objects.filter(id__in=pending_ids).select_related(
-        'box__order', 'box__article', 'article_operation__operation'
-    ))
-    # Saqlangan tartibda saralash
-    ticket_map = {t.id: t for t in pending_tickets}
-    sorted_tickets = [ticket_map[tid] for tid in pending_ids if tid in ticket_map]
-
-    total_count = len(sorted_tickets)
-    total_units = sum(t.quantity for t in sorted_tickets)
-    total_amount = sum(t.total_amount for t in sorted_tickets)
+    # Barcha kiritilgan biletlarni hisoblash: 0 JOIN, yagona indeksli aggregatsiya (< 0.5ms)
+    pending_agg = Ticket.objects.filter(id__in=pending_ids).aggregate(
+        units=models.Sum('quantity'),
+        amount=models.Sum('total_amount')
+    )
+    total_count = len(pending_ids)
+    total_units = pending_agg['units'] or 0
+    total_amount = pending_agg['amount'] or Decimal('0')
 
     return JsonResponse({
         'status': 'OK',
@@ -425,10 +515,18 @@ def terminal_remove_ticket_api(request):
         request.session['terminal_pending_tickets'] = pending_ids
         request.session.modified = True
 
-    pending_tickets = list(Ticket.objects.filter(id__in=pending_ids))
-    total_count = len(pending_tickets)
-    total_units = sum(t.quantity for t in pending_tickets)
-    total_amount = sum(t.total_amount for t in pending_tickets)
+    if pending_ids:
+        agg = Ticket.objects.filter(id__in=pending_ids).aggregate(
+            units=models.Sum('quantity'),
+            amount=models.Sum('total_amount')
+        )
+        total_count = len(pending_ids)
+        total_units = agg['units'] or 0
+        total_amount = agg['amount'] or Decimal('0')
+    else:
+        total_count = 0
+        total_units = 0
+        total_amount = Decimal('0')
 
     return JsonResponse({
         'status': 'OK',
@@ -509,6 +607,11 @@ def terminal_finalize_api(request):
         request.session.pop('terminal_worker_id', None)
         request.session.pop('terminal_pending_tickets', None)
         request.session.modified = True
+
+    # Keshni tozalash: monitor ekranlar va terminal yangi ma'lumotni darhol ko'rishi uchun
+    cache.delete(f'screen_data_{screen_number}')
+    cache.delete('today_worker_screens')
+    cache.delete('terminal_today_stats')
 
     return JsonResponse({
         'status': 'OK',
@@ -614,9 +717,14 @@ def terminal_worker_balance_api(request):
         return JsonResponse({'status': 'NOT_FOUND', 'message': f"Xodim topilmadi: '{clean_code}'"})
 
     today = timezone.localdate()
-    today_tickets = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED, scanned_at__date=today)
-    today_units = today_tickets.aggregate(s=models.Sum('quantity'))['s'] or 0
-    today_earned = today_tickets.aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(today, time.max), tz)
+
+    today_tickets = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED, scanned_at__range=(day_start, day_end))
+    today_agg = today_tickets.aggregate(u=models.Sum('quantity'), e=models.Sum('total_amount'))
+    today_units = today_agg['u'] or 0
+    today_earned = today_agg['e'] or Decimal('0')
 
     from accounts.models import WorkerPayout
     total_earned = Ticket.objects.filter(worker=worker, status=Ticket.Status.SCANNED).aggregate(s=models.Sum('total_amount'))['s'] or Decimal('0')

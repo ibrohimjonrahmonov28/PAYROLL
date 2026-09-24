@@ -7,6 +7,7 @@ from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, 
 from django.db.models.functions import Coalesce
 from production.models import Ticket, OrderItem, Operation
 from accounts.models import Worker
+from django.core.cache import cache
 
 
 MAX_SCREENS = 40
@@ -20,8 +21,7 @@ def get_screen_data(screen_number: int, target_date=None):
     day_start = timezone.make_aware(datetime.combine(target_date, time.min), tz)
     day_end = timezone.make_aware(datetime.combine(target_date, time.max), tz)
 
-    # Bugun faol bo'lgan barcha xodimlarning oxirgi skanerlangan patokini aniqlash:
-    # Qoidaga ko'ra: Xodim bir nechta patokda ishlashi mumkin, mobodo almashsa oxirgi stiker urilgan patokda ismi chiqadi
+    # Bugun faol bo'lgan barcha xodimlarning oxirgi skanerlangan patokini aniqlash
     all_today_scans = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__range=(day_start, day_end),
@@ -35,15 +35,20 @@ def get_screen_data(screen_number: int, target_date=None):
     # Ushbu ekranga oxirgi stikeri to'g'ri kelgan xodimlar
     screen_worker_ids = [w_id for w_id, s_num in worker_latest_screen.items() if s_num == screen_number]
 
-    # Bugun dazmoldan o'tgan mahsulotlar soni:
-    # Foydalanuvchi talabi: Bugun tikilgan dona operatsiyalardan bugun dazmoldan o'tgan sonlar yig'indisi bo'ladi
-    dazmol_qs = Ticket.objects.filter(
-        Q(screen_number=screen_number) | (Q(worker_id__in=screen_worker_ids) if screen_worker_ids else Q(pk__in=[])),
-        status=Ticket.Status.SCANNED,
-        scanned_at__range=(day_start, day_end),
-        article_operation__operation__name__icontains='DAZMOL'
-    ).distinct()
-    dazmol_units = dazmol_qs.aggregate(s=Sum('quantity'))['s'] or 0
+    # Dazmol operatsiyalari ID lari
+    dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
+
+    # Bugun dazmoldan o'tgan mahsulotlar soni
+    if dazmol_op_ids:
+        dazmol_qs = Ticket.objects.filter(
+            Q(screen_number=screen_number) | (Q(worker_id__in=screen_worker_ids) if screen_worker_ids else Q(pk__in=[])),
+            status=Ticket.Status.SCANNED,
+            scanned_at__range=(day_start, day_end),
+            article_operation__operation_id__in=dazmol_op_ids
+        )
+        dazmol_units = dazmol_qs.aggregate(s=Sum('quantity'))['s'] or 0
+    else:
+        dazmol_units = 0
 
     if not screen_worker_ids:
         return {
@@ -66,10 +71,11 @@ def get_screen_data(screen_number: int, target_date=None):
         scanned_at__range=(day_start, day_end)
     )
 
-    # OrderItem lardan har bir (order_id, article_id) ning normasini olish
+    # OrderItem lardan faqat bugun ishlangan tegishli order larning normasini olish (butun bazani emas!)
+    order_ids = list(tickets.values_list('box__order_id', flat=True).distinct())
     order_item_norms = {
         (oi['order_id'], oi['article_id']): oi['norm']
-        for oi in OrderItem.objects.values('order_id', 'article_id', 'norm')
+        for oi in OrderItem.objects.filter(order_id__in=order_ids).values('order_id', 'article_id', 'norm')
     }
 
     points_expr = ExpressionWrapper(
@@ -244,7 +250,7 @@ def get_screen_data(screen_number: int, target_date=None):
 
     avg_screen_kpi = round(total_pct_sum / len(workers_list), 1) if workers_list else 0.0
 
-    has_dazmol_op = Operation.objects.filter(name__icontains='DAZMOL').exists()
+    has_dazmol_op = bool(dazmol_op_ids)
     grand_total_units = dazmol_units if has_dazmol_op else total_scanned_units
 
     return {
@@ -273,18 +279,33 @@ def screen_api_view(request, screen_number: int):
     if not 1 <= screen_number <= MAX_SCREENS:
         return JsonResponse({'error': f'Invalid screen number (must be 1-{MAX_SCREENS})'}, status=400)
 
+    cache_key = f"screen_api_data_{screen_number}"
+    cached_data = cache.get(cache_key)
+    if cached_data is not None:
+        return JsonResponse(cached_data)
+
     data = get_screen_data(screen_number)
+    cache.set(cache_key, data, timeout=10)
     return JsonResponse(data)
 
 
 def all_screens_overview(request):
     """Barcha 40 ta patok ekranini umumiy kuzatish sahifasi"""
-    screens_summary = []
+    cached_summary = cache.get('all_screens_overview_data')
     today = timezone.localdate()
+    if cached_summary is not None:
+        return render(request, 'screens/overview.html', {
+            'screens': cached_summary,
+            'date_str': today.strftime("%d.%m.%Y"),
+            'max_screens': MAX_SCREENS,
+        })
+
+    screens_summary = []
     for s_num in range(1, MAX_SCREENS + 1):
         data = get_screen_data(s_num, today)
         screens_summary.append(data)
 
+    cache.set('all_screens_overview_data', screens_summary, timeout=10)
     return render(request, 'screens/overview.html', {
         'screens': screens_summary,
         'date_str': today.strftime("%d.%m.%Y"),

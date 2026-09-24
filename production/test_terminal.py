@@ -233,4 +233,51 @@ class MasterWebTerminalTest(TestCase):
             self.assertEqual(res.status_code, 302, f"Expected 302 redirect for {url}")
             self.assertIn('/terminal/', res.url, f"Expected redirect to terminal for {url}")
 
+    def test_fast_ticket_lookup_variants(self):
+        self.client.force_login(self.master)
+        self.client.post(reverse('production:terminal_identify_worker'), {'code': self.worker.worker_id})
+
+        # Set a known stiker_code on ticket1
+        self.ticket1.stiker_code = "ABCDEFGH"
+        self.ticket1.save()
+
+        # 1. Lookup by 8-character stiker_code with # prefix
+        res1 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': '#ABCDEFGH'})
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(res1.json()['status'], 'OK')
+        self.assertEqual(res1.json()['scanned_ticket']['id'], self.ticket1.id)
+
+        # Clear session for next lookup
+        self.client.post(reverse('production:terminal_remove_ticket'), {'ticket_id': self.ticket1.id})
+
+        # 2. Lookup by raw 8-character stiker_code (no prefix)
+        res2 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': 'abcdefgh'})
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.json()['status'], 'OK')
+        self.assertEqual(res2.json()['scanned_ticket']['id'], self.ticket1.id)
+
+        self.client.post(reverse('production:terminal_remove_ticket'), {'ticket_id': self.ticket1.id})
+
+        # 3. Lookup by ticket ID
+        res3 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': f"#{self.ticket1.id}"})
+        self.assertEqual(res3.status_code, 200)
+        self.assertEqual(res3.json()['status'], 'OK')
+        self.assertEqual(res3.json()['scanned_ticket']['id'], self.ticket1.id)
+
+        self.client.post(reverse('production:terminal_remove_ticket'), {'ticket_id': self.ticket1.id})
+
+        # 4. Lookup by hash
+        hash_part = self.ticket1.ticket_code.split('-')[-1]
+        res4 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': f"-{hash_part}"})
+        self.assertEqual(res4.status_code, 200)
+        self.assertEqual(res4.json()['status'], 'OK')
+        self.assertEqual(res4.json()['scanned_ticket']['id'], self.ticket1.id)
+
+        self.client.post(reverse('production:terminal_remove_ticket'), {'ticket_id': self.ticket1.id})
+
+        # 5. Lookup box code -> should return IS_BOX_CODE warning
+        res_box = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': f"BOX:{self.box.box_code}"})
+        self.assertEqual(res_box.status_code, 200)
+        self.assertEqual(res_box.json()['status'], 'IS_BOX_CODE')
+
 

@@ -88,14 +88,19 @@ def control_box_lookup_api(request):
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):].strip()
 
-    # Bazadan qidirish
-    box = Box.objects.filter(box_code__iexact=cleaned).select_related('order', 'article').first()
+    # Bazadan qidirish: avval indeksli aniq moslik (<0.1ms)
+    box = None
+    if len(cleaned) == 8 and cleaned.isalnum():
+        box = Box.objects.filter(box_code=cleaned).select_related('order', 'article').first()
 
     if not box and cleaned.isdigit():
         num = int(cleaned)
         box = Box.objects.filter(id=num).select_related('order', 'article').first()
         if not box:
             box = Box.objects.filter(box_number=num).select_related('order', 'article').first()
+
+    if not box:
+        box = Box.objects.filter(box_code__iexact=cleaned).select_related('order', 'article').first()
 
     if not box:
         return JsonResponse({
