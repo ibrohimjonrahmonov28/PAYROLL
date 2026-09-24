@@ -11,6 +11,7 @@ urlpatterns = [
     path('orders/<int:order_id>/', views.order_detail_view, name='order_detail'),
     path('orders/<int:order_id>/print-all/', views.order_print_all_stickers_view, name='order_print_all_stickers'),
     path('orders/<int:order_id>/pdf/', views.order_download_all_stickers_100x60_pdf, name='order_download_all_stickers_pdf'),
+    path('batches/<int:batch_id>/passport/', views.pastal_passport_view, name='pastal_passport'),
     path('boxes/<int:box_id>/split/', views.box_split_wizard_view, name='box_split_wizard'),
     path('boxes/<int:box_id>/print/', views.box_print_stickers_view, name='box_print_stickers'),
     path('boxes/<int:box_id>/pdf/', views.box_download_stickers_100x60_pdf, name='box_download_stickers_pdf'),

@@ -907,6 +907,14 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         for b in batch_item.boxes.all():
             self.assertTrue(b.is_printed)
 
+        # 4. Pastal passport view
+        passport_url = reverse('production:pastal_passport', kwargs={'batch_id': batch.id})
+        res_passport = self.client.get(passport_url)
+        self.assertEqual(res_passport.status_code, 200)
+        self.assertContains(res_passport, "PASTAL PASPORTI (A4 MARSHRUT VARAQASI)")
+        self.assertContains(res_passport, "09-LAZY")
+        self.assertContains(res_passport, "XL")
+
     def test_permissions_manager_and_cutter(self):
         user = User.objects.create_user(username="normal_user", password="password123", role=User.Role.USER)
         self.client.login(username="normal_user", password="password123")

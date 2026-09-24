@@ -828,3 +828,79 @@ def api_ticket_scan_detail(request, code_or_id):
     }
     return JsonResponse(data)
 
+
+def pastal_passport_view(request, batch_id: int):
+    """
+    Pastal Pasporti (A4 Marshrut Varaqasi) Chop Etish Oynasi:
+    - Model rasmi, Zakaz ma'lumotlari, Pastal kodi, Artikul, Model nomi, Bichuvchi, Gazlama
+    - Razmerlar, Soni, Meto oralig'i, Quti ID lari va 3 ta checkbox ustunlari
+    - Jami hisob-kitob va mas'ullar imzosi qatori
+    """
+    if not request.user.is_authenticated:
+        return redirect('root_login')
+
+    batch = get_object_or_404(
+        CuttingBatch.objects.select_related(
+            'order_item__order__customer',
+            'order_item__article__model'
+        ).prefetch_related(
+            'items__order_item_size',
+            'items__boxes'
+        ),
+        id=batch_id
+    )
+    order = batch.order_item.order
+    article = batch.order_item.article
+
+    batch_items_data = []
+    total_boxes_count = 0
+    total_qty = 0
+
+    for b_it in batch.items.all().order_by('order_item_size__id'):
+        boxes = list(b_it.boxes.exclude(status=Box.Status.CANCELLED).order_by('box_number'))
+        total_boxes_count += len(boxes)
+        qty = b_it.effective_quantity
+        total_qty += qty
+
+        # Meto oralig'i
+        meto_range = "—"
+        if b_it.meto_number_start and b_it.meto_number_end:
+            meto_range = f"#{b_it.meto_number_start} — #{b_it.meto_number_end}"
+        elif boxes and any(b.meto_range for b in boxes):
+            ranges = [b.meto_range for b in boxes if b.meto_range]
+            meto_range = ranges[0]
+
+        # Qutilar ro'yxati (masalan: #161 (44), #162 (43), #163 (43))
+        boxes_display = [f"#{b.box_number} ({b.quantity})" for b in boxes]
+        boxes_text = ", ".join(boxes_display) if boxes_display else "—"
+
+        batch_items_data.append({
+            'size_name': b_it.order_item_size.size_name,
+            'quantity': qty,
+            'meto_range': meto_range,
+            'boxes': boxes,
+            'boxes_display': boxes_display,
+            'boxes_text': boxes_text,
+            'boxes_count': len(boxes),
+        })
+
+    # Model rasmi borligini tekshirish
+    article_image_url = None
+    if article and article.image:
+        try:
+            article_image_url = article.image.url
+        except Exception:
+            article_image_url = None
+
+    return render(request, 'production/pastal_passport.html', {
+        'batch': batch,
+        'order': order,
+        'article': article,
+        'article_image_url': article_image_url,
+        'batch_items': batch_items_data,
+        'total_sizes_count': len(batch_items_data),
+        'total_boxes_count': total_boxes_count,
+        'total_qty': total_qty,
+    })
+
+
