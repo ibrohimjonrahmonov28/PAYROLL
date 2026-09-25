@@ -165,10 +165,21 @@
                             {{ binfo.batch.name }}
                         </span>
                     </div>
+                    {% if binfo.pending_meto_count > 0 %}
+                    <span class="text-[10px] text-amber-400 font-bold block mt-1">
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Meto kutilmoqda ({{ binfo.pending_meto_count }}/{{ binfo.total_count }} ta razmer)
+                    </span>
+                    {% else %}
                     <span class="text-[10px] text-rose-400 font-bold block mt-1">
                         • {{ binfo.missing_count }}/{{ binfo.total_count }} ta razmerda qutilar yo'q
                     </span>
+                    {% endif %}
                 </div>
+                {% if binfo.pending_meto_count > 0 %}
+                <span class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-hourglass-half"></i> Meto Kutilmoqda
+                </span>
+                {% elif binfo.can_generate %}
                 <form method="POST" action="{% url 'meto_generate_missing_boxes' binfo.batch.id %}?from=stickers">
                     {% csrf_token %}
                     <button type="submit"
@@ -177,6 +188,7 @@
                         <i class="fa-solid fa-bolt"></i> Yaratish
                     </button>
                 </form>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -388,7 +400,11 @@
                         </a>
                         {% endif %}
 
-                        {% if b.needs_boxes_generation %}
+                        {% if b.has_pending_meto %}
+                        <span class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Meto Kutilmoqda
+                        </span>
+                        {% elif b.needs_boxes_generation and b.can_generate %}
                         <form method="POST" action="{% url 'meto_generate_missing_boxes' b.id %}?from=stickers"
                             class="inline">
                             {% csrf_token %}

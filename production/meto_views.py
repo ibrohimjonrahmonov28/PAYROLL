@@ -124,7 +124,7 @@ def meto_order_detail(request, order_id: int):
             active_boxes_count = sum(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) for bi in b_items)
             total_boxes_count = active_boxes_count
             has_boxes = total_boxes_count > 0
-            needs_boxes_generation = any(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0 for bi in b_items)
+            needs_boxes_generation = (not has_pending) and any(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0 for bi in b_items)
 
             batches_data.append({
                 'batch': batch,
@@ -381,28 +381,32 @@ def meto_generate_missing_boxes(request, batch_id: int):
     )
     order = batch.order_item.order
     created_boxes_total = 0
+    pending_items_count = 0
 
     with transaction.atomic():
         for b_it in batch.items.all():
-            if b_it.boxes.count() == 0:
-                if b_it.status == CuttingBatchItem.Status.CUT_ENTERED:
-                    b_it.status = CuttingBatchItem.Status.METO_CONFIRMED
-                    if not b_it.real_quantity:
-                        b_it.real_quantity = b_it.quantity
-                    b_it.save(update_fields=['status', 'real_quantity'])
+            if b_it.status == CuttingBatchItem.Status.CUT_ENTERED:
+                pending_items_count += 1
+                continue  # Meto hali sanamagan va tasdiqlamagan, o'zboshimchalik bilan quti ochish taqiqlanadi!
 
-                if b_it.remaining_to_box > 0:
-                    boxes = auto_generate_boxes_for_batch_item(
-                        batch_item=b_it,
-                        split_count=1,
-                        pastal_number=batch.pastal_code or str(batch.batch_number)
-                    )
-                    created_boxes_total += len(boxes)
+            active_boxes = b_it.boxes.exclude(status=Box.Status.CANCELLED)
+            if active_boxes.count() == 0 and b_it.remaining_to_box > 0:
+                boxes = auto_generate_boxes_for_batch_item(
+                    batch_item=b_it,
+                    split_count=1,
+                    pastal_number=batch.pastal_code or str(batch.batch_number)
+                )
+                created_boxes_total += len(boxes)
 
     if created_boxes_total > 0:
         messages.success(
             request,
             f"Muvaffaqiyatli! '{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {created_boxes_total} ta quti va barcha QR stikerlar generatsiya qilindi va Stikerlar bo'limiga uzatildi!"
+        )
+    elif pending_items_count > 0:
+        messages.warning(
+            request,
+            f"Diqqat! Ushbu pastalda {pending_items_count} ta razmer hali Meto bo'limi tomonidan tasdiqlanmagan. Qutilar faqat Metochi har bir razmerni kiritib tasdiqlaganidan so'ng yaratiladi!"
         )
     else:
         messages.info(request, "Ushbu pastalning barcha qutilari allaqachon mavjud.")

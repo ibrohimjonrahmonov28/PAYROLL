@@ -158,13 +158,22 @@ def sticker_order_boxes(request, order_id: int):
                     'meto_range': meto_str,
                 })
 
-            needs_gen = b_items and any(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0 for bi in b_items)
+            pending_meto_count = sum(1 for bi in b_items if bi.status == CuttingBatchItem.Status.CUT_ENTERED)
+            missing_boxes_count = sum(1 for bi in b_items if len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0)
+            confirmed_missing_count = sum(1 for bi in b_items if bi.status != CuttingBatchItem.Status.CUT_ENTERED and len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0)
+
+            needs_gen = missing_boxes_count > 0
+            can_generate = pending_meto_count == 0 and confirmed_missing_count > 0
+
             if needs_gen:
                 batches_without_boxes.append({
                     'batch': batch,
                     'pastal_code': batch.pastal_code or str(batch.batch_number),
-                    'missing_count': sum(1 for bi in b_items if len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0),
+                    'missing_count': missing_boxes_count,
+                    'pending_meto_count': pending_meto_count,
+                    'confirmed_missing_count': confirmed_missing_count,
                     'total_count': len(b_items),
+                    'can_generate': can_generate,
                 })
 
             batches_data.append({
@@ -188,6 +197,8 @@ def sticker_order_boxes(request, order_id: int):
                 'has_boxes': total_boxes_count > 0,
                 'has_unprinted': unprinted_count > 0,
                 'needs_boxes_generation': needs_gen,
+                'has_pending_meto': pending_meto_count > 0,
+                'can_generate': can_generate,
             })
 
         items_data.append({

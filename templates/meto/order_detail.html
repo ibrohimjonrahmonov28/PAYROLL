@@ -131,7 +131,7 @@
                         </a>
                         {% endif %}
 
-                        {% if b.needs_boxes_generation %}
+                        {% if b.needs_boxes_generation and not b.has_pending %}
                         <form method="POST" action="{% url 'meto_generate_missing_boxes' b.id %}" class="inline">
                             {% csrf_token %}
                             <button type="submit"
