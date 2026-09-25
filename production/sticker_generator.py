@@ -167,7 +167,10 @@ def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_
     box_h = 72
     box_num = ticket.box.box_number if ticket.box else 0
     box_code = ticket.box.box_code if ticket.box else ""
-    box_badge_text = f"QUTI #{box_num} [{box_code}]"
+    if box_code and '-' in box_code:
+        box_badge_text = f"QUTI {box_code}"
+    else:
+        box_badge_text = f"QUTI #{box_num} [{box_code}]"
 
     draw.rounded_rectangle([right_x, box_y, right_x + right_w, box_y + box_h], radius=10, fill=(254, 243, 199), outline=(217, 119, 6), width=2)
     draw.text((right_x + 12, box_y + 8), "QUTI ID:", fill=(180, 83, 9), font=font_code)

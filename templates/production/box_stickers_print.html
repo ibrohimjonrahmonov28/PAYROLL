@@ -213,7 +213,7 @@
         class="no-print max-w-5xl mx-auto my-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2.5 flex items-center justify-between text-amber-950 shadow-sm">
         <div class="flex items-center gap-2.5 flex-wrap">
             <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
-            <strong class="font-black text-sm">QUTI #{{ box_item.box.box_number }}</strong>
+            <strong class="font-black text-sm">{{ box_item.box.display_title }}</strong>
             <span
                 class="font-mono text-xs px-2.5 py-0.5 bg-white border border-amber-400 rounded-md font-black tracking-widest text-slate-900 shadow-xs">
                 {{ box_item.box.box_code }}
@@ -299,7 +299,7 @@
                         class="px-1.5 py-0.5 bg-amber-100 border border-amber-500 rounded flex items-baseline justify-between shadow-xs">
                         <span class="text-[6.5px] font-black uppercase text-amber-800 leading-none">QUTI ID:</span>
                         <span class="font-mono font-black text-[11px] text-slate-950 leading-none">
-                            QUTI #{{ ticket.box.box_number }} [{{ ticket.box.box_code }}]
+                            {{ ticket.box.display_title|upper }}
                         </span>
                     </div>
 
@@ -425,7 +425,7 @@
                         class="px-1.5 py-0.5 bg-amber-100 border border-amber-500 rounded flex items-baseline justify-between shadow-xs">
                         <span class="text-[6.5px] font-black uppercase text-amber-800 leading-none">QUTI ID:</span>
                         <span class="font-mono font-black text-[11px] text-slate-950 leading-none">
-                            QUTI #{{ box_item.box.box_number }} [{{ box_item.box.box_code }}]
+                            {{ box_item.box.display_title|upper }}
                         </span>
                     </div>
 

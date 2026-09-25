@@ -138,11 +138,10 @@ def sticker_order_boxes(request, order_id: int):
             printed_count = sum(1 for b in active_boxes if b.is_printed)
             total_qty = sum(b.quantity for b in active_boxes)
 
-            box_numbers = [b.box_number for b in active_boxes]
-            if box_numbers:
-                min_box = min(box_numbers)
-                max_box = max(box_numbers)
-                box_range = f"#{min_box} — #{max_box}" if min_box != max_box else f"#{min_box}"
+            if active_boxes:
+                first_code = active_boxes[0].display_code
+                last_code = active_boxes[-1].display_code
+                box_range = f"{first_code} — {last_code}" if first_code != last_code else f"{first_code}"
             else:
                 box_range = "—"
 

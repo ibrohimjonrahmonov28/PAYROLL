@@ -1,4 +1,5 @@
 import io
+import re
 import base64
 import uuid
 import secrets
@@ -751,12 +752,72 @@ class CuttingBatchItem(models.Model):
         return f"{self.batch.name} - {self.order_item_size.size_name}: Kesim {self.quantity} ta (Meto: {self.effective_quantity})"
 
 
-def generate_unique_box_code():
-    alphabet = string.ascii_uppercase + string.digits
+def index_to_letters(n: int) -> str:
+    result = ''
     while True:
-        code = ''.join(secrets.choice(alphabet) for _ in range(8))
+        result = chr(ord('A') + (n % 26)) + result
+        n = n // 26 - 1
+        if n < 0:
+            break
+    return result
+
+
+def letters_to_index(s: str) -> int:
+    n = 0
+    for char in s.upper():
+        if 'A' <= char <= 'Z':
+            n = n * 26 + (ord(char) - ord('A') + 1)
+    return n - 1
+
+
+def generate_unique_box_code():
+    """
+    Yangi Quti ID generatsiyasi (User talabi):
+    - Harflar alifbo tartibida (A, B, C ... Z, AA ...).
+    - Hozirgi oy raqami (masalan sentabrda 9, oktyabrda 10).
+    - Chiziqcha (-) va 1 dan 999 gacha son (A9-1, A9-2 ... A9-999).
+    - 999 ga yetganda keyingi harfdan 1 dan boshlaydi: B9-1 ... B9-999, keyin C9-1 ...
+    - Yangi oy boshlanganda hammasi boshidan A10-1 dan boshlanadi.
+    - Istalgan zakaz uchun global ketma-ketlikda davom etadi.
+    - Mavjud eski qutilarga tegmaydi.
+    """
+    now = timezone.localtime()
+    month = now.month
+
+    pattern = re.compile(rf'^([A-Z]+){month}-(\d+)$')
+
+    codes = list(
+        Box.objects.filter(box_code__regex=rf'^[A-Z]+{month}-\d+$').values_list('box_code', flat=True)
+    )
+
+    parsed = []
+    for c in codes:
+        m = pattern.match(c)
+        if m:
+            l_str, n_str = m.group(1), m.group(2)
+            parsed.append((letters_to_index(l_str), int(n_str)))
+
+    if not parsed:
+        cur_l_idx = 0  # 'A'
+        cur_num = 1
+    else:
+        max_l_idx, max_num = max(parsed)
+        if max_num < 999:
+            cur_l_idx = max_l_idx
+            cur_num = max_num + 1
+        else:
+            cur_l_idx = max_l_idx + 1
+            cur_num = 1
+
+    while True:
+        code = f"{index_to_letters(cur_l_idx)}{month}-{cur_num}"
         if not Box.objects.filter(box_code=code).exists():
             return code
+        if cur_num < 999:
+            cur_num += 1
+        else:
+            cur_l_idx += 1
+            cur_num = 1
 
 
 def generate_unique_stiker_code():
@@ -793,11 +854,11 @@ class Box(models.Model):
         verbose_name="Kesim Partiyasi Bandi"
     )
     box_code = models.CharField(
-        max_length=8, 
+        max_length=20, 
         unique=True, 
         default=generate_unique_box_code,
         db_index=True, 
-        verbose_name="Quti Unikal ID (8 talik)"
+        verbose_name="Quti Unikal ID"
     )
     box_number = models.PositiveIntegerField(db_index=True, verbose_name="Quti raqami")
     quantity = models.PositiveIntegerField(verbose_name="Qutidagi donalar soni")
@@ -936,9 +997,22 @@ class Box(models.Model):
             self.save(update_fields=['status'])
         return self.status
 
+    @property
+    def display_code(self):
+        """Foydalanuvchi va stikerlar uchun quti kodi (masalan: A9-234 yoki #469)"""
+        if self.box_code and '-' in self.box_code:
+            return self.box_code
+        return f"#{self.box_number}"
+
+    @property
+    def display_title(self):
+        """Quti sarlavhasi (masalan: Quti A9-234 yoki Quti #469)"""
+        if self.box_code and '-' in self.box_code:
+            return f"Quti {self.box_code}"
+        return f"Quti #{self.box_number}"
+
     def __str__(self):
-        art_code = self.target_article.code if self.target_article else "N/A"
-        return f"{self.order.order_number} - Quti #{self.box_number} [{self.box_code}] ({self.quantity} dona)"
+        return f"{self.order.order_number} - {self.display_title} ({self.quantity} dona)"
 
 
 class BoxQualityInspectionLog(models.Model):

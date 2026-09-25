@@ -71,9 +71,11 @@
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <span
                                 class="px-2 py-0.5 rounded-md bg-slate-900 border border-amber-500/40 text-amber-300 font-black text-xs">
-                                #{{ box.box_number }}
+                                {{ box.display_code }}
                             </span>
+                            {% if not '-' in box.box_code %}
                             <span class="text-slate-500 font-mono text-[11px]">{{ box.box_code }}</span>
+                            {% endif %}
                             {% if box.pastal_number %}
                             <span
                                 class="px-1.5 py-0.5 rounded bg-sky-950 border border-sky-800 text-sky-300 text-[10px] font-bold font-mono">
