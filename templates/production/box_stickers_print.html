@@ -133,7 +133,7 @@
                     <i class="fa-solid fa-arrow-left mr-1"></i> Orqaga
                 </a>
                 {% if is_order_all %}
-                <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}{% if selected_pastal %}?pastal={{ selected_pastal }}{% elif selected_article %}?article_id={{ selected_article.id }}{% endif %}"
+                <a href="{% url 'production:order_download_all_stickers_pdf' order.id %}?{% if batch_id %}batch_id={{ batch_id }}&{% endif %}{% if selected_pastal %}pastal={{ selected_pastal }}{% elif selected_article %}article_id={{ selected_article.id }}{% endif %}"
                     class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center gap-2">
                     <i class="fa-solid fa-file-pdf text-sm"></i> 65x45 PDF Faylini Yuklab Olish
                 </a>
@@ -410,9 +410,11 @@
                     <div
                         class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-slate-950 text-white rounded shadow-xs text-center">
                         <span
-                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-amber-400 w-full text-center">CONTROL STIKER</span>
+                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-amber-400 w-full text-center">CONTROL
+                            STIKER</span>
                         <span
-                            class="font-mono font-black text-[9.5px] leading-none text-white tracking-wide mt-0.5 w-full text-center">{{ box_item.box.box_code }}</span>
+                            class="font-mono font-black text-[9.5px] leading-none text-white tracking-wide mt-0.5 w-full text-center">{{
+                            box_item.box.box_code }}</span>
                     </div>
                 </div>
 

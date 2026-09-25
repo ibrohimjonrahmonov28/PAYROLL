@@ -191,7 +191,7 @@ def order_detail_view(request, order_id: int):
         Order.objects.prefetch_related('items__article__article_operations__operation', 'boxes__tickets', 'boxes__article'), 
         id=order_id
     )
-    boxes = order.boxes.all().select_related('article', 'order').prefetch_related('tickets').order_by('box_number')
+    boxes = order.boxes.exclude(status=Box.Status.CANCELLED).select_related('article', 'order').prefetch_related('tickets').order_by('box_number')
 
     if request.method == 'POST':
         action = request.POST.get('action', '')
@@ -234,8 +234,8 @@ def order_detail_view(request, order_id: int):
 
     order_items = order.items.all().select_related('article').prefetch_related('article__article_operations__operation')
     for item in order_items:
-        item.boxes_count = order.boxes.filter(article=item.article).count()
-        item.boxes_total_qty = order.boxes.filter(article=item.article).aggregate(s=Sum('quantity'))['s'] or 0
+        item.boxes_count = order.boxes.exclude(status=Box.Status.CANCELLED).filter(article=item.article).count()
+        item.boxes_total_qty = order.boxes.exclude(status=Box.Status.CANCELLED).filter(article=item.article).aggregate(s=Sum('quantity'))['s'] or 0
 
     available_articles = []
     if order_items.exists():
@@ -305,8 +305,11 @@ def box_split_wizard_view(request, box_id: int):
 
 
 def box_print_stickers_view(request, box_id: int):
-    box = get_object_or_404(Box.objects.select_related('order', 'article'), id=box_id)
-    tickets = box.tickets.all().select_related(
+    box = get_object_or_404(
+        Box.objects.exclude(status=Box.Status.CANCELLED).select_related('order', 'article'), 
+        id=box_id
+    )
+    tickets = box.tickets.exclude(status=Ticket.Status.CANCELLED).select_related(
         'article_operation__operation', 'article_operation__article', 'box__order', 'box__article'
     ).order_by('article_operation__sequence', 'split_index')
     art = box.target_article
@@ -368,7 +371,13 @@ def order_print_all_stickers_view(request, order_id: int):
         except (ValueError, TypeError):
             pass
 
-    tickets_qs = Ticket.objects.filter(box__order=order)
+    tickets_qs = Ticket.objects.filter(
+        box__order=order
+    ).exclude(
+        box__status=Box.Status.CANCELLED
+    ).exclude(
+        status=Ticket.Status.CANCELLED
+    )
     if selected_article:
         tickets_qs = tickets_qs.filter(
             Q(box__article=selected_article) | Q(article_operation__article=selected_article)
@@ -395,6 +404,8 @@ def order_print_all_stickers_view(request, order_id: int):
 
     grouped_data = OrderedDict()
     for ticket in tickets:
+        if not ticket.box or ticket.box.status == Box.Status.CANCELLED or ticket.status == Ticket.Status.CANCELLED:
+            continue
         art = (ticket.article_operation.article if ticket.article_operation else None) or (ticket.box.target_article if ticket.box else None)
         art_id = art.id if art else 0
         art_code = art.code if art else "N/A"
@@ -446,10 +457,10 @@ def order_print_all_stickers_view(request, order_id: int):
         box_display_title = f"Pastal: {selected_pastal} (Buyurtma {order.order_number})"
 
     # Avtomatik ravishda chop etildi deb belgilash (himoya uchun)
-    box_ids = [t.box_id for t in tickets if t.box_id]
+    box_ids = [t.box_id for t in tickets if t.box_id and t.box and t.box.status != Box.Status.CANCELLED]
     if box_ids:
         now = timezone.now()
-        Box.objects.filter(id__in=box_ids, is_printed=False).update(is_printed=True, printed_at=now)
+        Box.objects.filter(id__in=box_ids, is_printed=False).exclude(status=Box.Status.CANCELLED).update(is_printed=True, printed_at=now)
         CuttingBatchItem.objects.filter(boxes__id__in=box_ids).update(status=CuttingBatchItem.Status.STICKERS_PRINTED)
 
     return render(request, 'production/box_stickers_print.html', {
@@ -460,6 +471,7 @@ def order_print_all_stickers_view(request, order_id: int):
         'articles_grouped_list': articles_grouped_list,
         'selected_article': selected_article,
         'selected_pastal': selected_pastal,
+        'batch_id': batch_id,
         'available_articles': available_articles,
     })
 
@@ -499,7 +511,13 @@ def order_download_all_stickers_100x60_pdf(request, order_id: int):
     article_id = request.GET.get('article_id')
     pastal_code = request.GET.get('pastal', '').strip()
     batch_id = request.GET.get('batch_id', '').strip()
-    tickets_qs = Ticket.objects.filter(box__order=order)
+    tickets_qs = Ticket.objects.filter(
+        box__order=order
+    ).exclude(
+        box__status=Box.Status.CANCELLED
+    ).exclude(
+        status=Ticket.Status.CANCELLED
+    )
     clean_ord = "".join(c for c in order.order_number if c.isalnum() or c in ('-', '_')).strip() or f"ORDER_{order.id}"
 
     if pastal_code or batch_id:
@@ -532,7 +550,7 @@ def order_download_all_stickers_100x60_pdf(request, order_id: int):
     box_ids = list(tickets_qs.values_list('box_id', flat=True).distinct())
     if box_ids:
         now = timezone.now()
-        Box.objects.filter(id__in=box_ids, is_printed=False).update(is_printed=True, printed_at=now)
+        Box.objects.filter(id__in=box_ids, is_printed=False).exclude(status=Box.Status.CANCELLED).update(is_printed=True, printed_at=now)
         CuttingBatchItem.objects.filter(boxes__id__in=box_ids).update(status=CuttingBatchItem.Status.STICKERS_PRINTED)
 
     tickets = tickets_qs.select_related(

@@ -121,9 +121,10 @@ def meto_order_detail(request, order_id: int):
             confirmed_items_count = sum(1 for bi in b_items if bi.status != CuttingBatchItem.Status.CUT_ENTERED)
             total_items_count = len(b_items)
             has_pending = confirmed_items_count < total_items_count
-            total_boxes_count = sum(len(bi.boxes.all()) for bi in b_items)
+            active_boxes_count = sum(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) for bi in b_items)
+            total_boxes_count = active_boxes_count
             has_boxes = total_boxes_count > 0
-            needs_boxes_generation = any(len(bi.boxes.all()) == 0 for bi in b_items)
+            needs_boxes_generation = any(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0 for bi in b_items)
 
             batches_data.append({
                 'batch': batch,

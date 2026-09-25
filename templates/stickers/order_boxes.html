@@ -693,9 +693,10 @@
 
     // Agar URLda open_batch ko'rsatilgan bo'lsa, avtomatik ochish
     document.addEventListener('DOMContentLoaded', function () {
-        const openBatchId = {{ open_batch_id|default:"null" }};
-        if (openBatchId) {
-            togglePastal(openBatchId);
+        const openBatchId = {{ open_batch_id|default: "null"
+    }};
+    if (openBatchId) {
+        togglePastal(openBatchId);
         const el = document.getElementById(`batch-card-${openBatchId}`);
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -34,7 +34,8 @@
             </div>
             <div>
                 <h1 class="font-black text-lg text-white leading-tight">FILIAL ADMIN</h1>
-                <span class="text-[11px] text-emerald-400 font-bold uppercase tracking-wider">{{ request.user.get_branch_display }} filiali</span>
+                <span class="text-[11px] text-emerald-400 font-bold uppercase tracking-wider">{{
+                    request.user.get_branch_display }} filiali</span>
             </div>
             {% else %}
             <div
@@ -51,7 +52,8 @@
         <!-- Nav Links -->
         <nav class="p-4 space-y-1.5 flex-1">
             {% if request.user.role == 'BRANCH_ADMIN' %}
-            <div class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3 mb-2">{{ request.user.get_branch_display }} Menyusi</div>
+            <div class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3 mb-2">{{
+                request.user.get_branch_display }} Menyusi</div>
 
             <a href="{% url 'superadmin_payroll' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'payroll' in request.resolver_match.url_name %}bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
@@ -66,7 +68,8 @@
             </a>
 
             <div class="pt-4 border-t border-slate-800 my-3">
-                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Skaner & Terminal</span>
+                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Skaner &
+                    Terminal</span>
             </div>
 
             <a href="{% url 'production:terminal_home' %}"
@@ -74,7 +77,8 @@
                 <i class="fa-solid fa-barcode w-5 text-center text-emerald-400"></i>
                 <div class="flex-1 min-w-0">
                     <span class="block leading-tight">Master Terminali</span>
-                    <span class="text-[10px] text-emerald-400/80 font-normal uppercase tracking-wider">Zebra DS22 Skaner</span>
+                    <span class="text-[10px] text-emerald-400/80 font-normal uppercase tracking-wider">Zebra DS22
+                        Skaner</span>
                 </div>
             </a>
             {% else %}
@@ -180,12 +184,15 @@
             <div class="flex items-center gap-2">
                 <div
                     class="w-7 h-7 rounded-full {% if request.user.role == 'BRANCH_ADMIN' %}bg-emerald-500/20 text-emerald-400{% else %}bg-rose-500/20 text-rose-400{% endif %} flex items-center justify-center font-bold">
-                    <i class="fa-solid {% if request.user.role == 'BRANCH_ADMIN' %}fa-building-user{% else %}fa-user-shield{% endif %} text-xs"></i>
+                    <i
+                        class="fa-solid {% if request.user.role == 'BRANCH_ADMIN' %}fa-building-user{% else %}fa-user-shield{% endif %} text-xs"></i>
                 </div>
                 <div>
                     <strong class="text-slate-200 block text-xs">{{ request.user.username }}</strong>
-                    <span class="text-[10px] {% if request.user.role == 'BRANCH_ADMIN' %}text-emerald-400{% else %}text-amber-400{% endif %} font-semibold">
-                        {% if request.user.role == 'BRANCH_ADMIN' %}Filial Admini ({{ request.user.get_branch_display }}){% else %}Super Admin{% endif %}
+                    <span
+                        class="text-[10px] {% if request.user.role == 'BRANCH_ADMIN' %}text-emerald-400{% else %}text-amber-400{% endif %} font-semibold">
+                        {% if request.user.role == 'BRANCH_ADMIN' %}Filial Admini ({{ request.user.get_branch_display
+                        }}){% else %}Super Admin{% endif %}
                     </span>
                 </div>
             </div>
