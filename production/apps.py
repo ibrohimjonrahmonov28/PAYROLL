@@ -11,7 +11,9 @@ class ProductionConfig(AppConfig):
         orig_init = dtb.Template.__init__
 
         def _clean_var(m):
-            return "{{" + " ".join(m.group(1).split()) + "}}"
+            raw = " ".join(m.group(1).split())
+            raw = re.sub(r'\|default:\s+', r'|default:', raw)
+            return "{{" + raw + "}}"
 
         def _clean_tag(m):
             raw = m.group(1)

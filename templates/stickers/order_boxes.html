@@ -167,7 +167,8 @@
                     </div>
                     {% if binfo.pending_meto_count > 0 %}
                     <span class="text-[10px] text-amber-400 font-bold block mt-1">
-                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Meto kutilmoqda ({{ binfo.pending_meto_count }}/{{ binfo.total_count }} ta razmer)
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Meto kutilmoqda ({{ binfo.pending_meto_count
+                        }}/{{ binfo.total_count }} ta razmer)
                     </span>
                     {% else %}
                     <span class="text-[10px] text-rose-400 font-bold block mt-1">
@@ -176,7 +177,8 @@
                     {% endif %}
                 </div>
                 {% if binfo.pending_meto_count > 0 %}
-                <span class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
+                <span
+                    class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-hourglass-half"></i> Meto Kutilmoqda
                 </span>
                 {% elif binfo.can_generate %}
@@ -401,7 +403,8 @@
                         {% endif %}
 
                         {% if b.has_pending_meto %}
-                        <span class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
+                        <span
+                            class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
                             <i class="fa-solid fa-clock-rotate-left"></i> Meto Kutilmoqda
                         </span>
                         {% elif b.needs_boxes_generation and b.can_generate %}
@@ -709,15 +712,14 @@
 
     // Agar URLda open_batch ko'rsatilgan bo'lsa, avtomatik ochish
     document.addEventListener('DOMContentLoaded', function () {
-        const openBatchId = {{ open_batch_id|default: "null"
-    }};
-    if (openBatchId) {
-        togglePastal(openBatchId);
-        const el = document.getElementById(`batch-card-${openBatchId}`);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const openBatchId = {{ open_batch_id|default:"null" }};
+        if (openBatchId) {
+            togglePastal(openBatchId);
+            const el = document.getElementById(`batch-card-${openBatchId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
-    }
     });
 </script>
 {% endblock %}
