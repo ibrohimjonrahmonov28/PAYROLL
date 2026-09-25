@@ -35,6 +35,13 @@ def login_view(request):
             messages.error(request, "Iltimos, login va parolni kiriting.")
         else:
             user = authenticate(request, username=username, password=password)
+            if user is None:
+                # Agar username katta-kichik harf (masalan: Patok12) yoki 6 xonali UID orqali kiritilgan bo'lsa
+                from django.db.models import Q
+                candidate = User.objects.filter(Q(username__iexact=username) | Q(uid=username)).first()
+                if candidate:
+                    user = authenticate(request, username=candidate.username, password=password)
+
             if user is not None:
                 auth_login(request, user)
                 
