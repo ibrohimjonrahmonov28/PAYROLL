@@ -33,6 +33,20 @@ def superadmin_required(view_func):
     return _wrapped_view
 
 
+def payroll_admin_required(view_func):
+    """
+    Ruxsat tekshiruvi: Super Admin (HQ) yoki Filial Admini (BRANCH_ADMIN)
+    """
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(f'/login/?next={request.path}')
+        if not (request.user.is_superuser or request.user.role in [User.Role.SUPER_ADMIN, User.Role.BRANCH_ADMIN]):
+            messages.error(request, "Ushbu sahifaga kirish huquqingiz yo'q!")
+            return redirect('root_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
 @superadmin_required
 def superadmin_dashboard(request):
     today = timezone.localdate()
@@ -290,6 +304,9 @@ def superadmin_users(request):
             email = request.POST.get('email', '').strip()
             password = request.POST.get('password', '').strip()
             role = request.POST.get('role', User.Role.USER)
+            branch = request.POST.get('branch', User.Branch.HQ)
+            if branch not in User.Branch.values:
+                branch = User.Branch.HQ
             phone_number = request.POST.get('phone_number', '').strip()
             telegram_user_id = request.POST.get('telegram_user_id', '').strip() or None
 
@@ -304,6 +321,7 @@ def superadmin_users(request):
                     last_name=last_name,
                     email=email,
                     role=role,
+                    branch=branch,
                     phone_number=phone_number,
                     telegram_user_id=int(telegram_user_id) if telegram_user_id else None,
                     is_staff=(role in [User.Role.SUPER_ADMIN, User.Role.ADMIN]),
@@ -325,10 +343,11 @@ def superadmin_users(request):
                         first_name=first_name,
                         last_name=last_name,
                         phone_number=phone_number,
+                        branch=branch,
                         is_active=True
                     )
 
-                messages.success(request, f"Foydalanuvchi {user.get_full_name()} (UID: {user.uid}, {user.get_role_display()}) muvaffaqiyatli yaratildi va QR kodi generatsiya qilindi!")
+                messages.success(request, f"Foydalanuvchi {user.get_full_name()} (UID: {user.uid}, {user.get_role_display()}, {user.get_branch_display()}) muvaffaqiyatli yaratildi va QR kodi generatsiya qilindi!")
 
         elif action == 'update_user':
             user_id = request.POST.get('user_id')
@@ -337,6 +356,13 @@ def superadmin_users(request):
             user.last_name = request.POST.get('last_name', '').strip()
             user.email = request.POST.get('email', '').strip()
             user.phone_number = request.POST.get('phone_number', '').strip()
+
+            new_branch = request.POST.get('branch')
+            if new_branch in User.Branch.values:
+                user.branch = new_branch
+                if hasattr(user, 'worker_profile'):
+                    user.worker_profile.branch = new_branch
+                    user.worker_profile.save(update_fields=['branch'])
 
             # Username o'zgartirish (agar kiritilgan bo'lsa)
             new_username = request.POST.get('username', '').strip()
@@ -748,7 +774,7 @@ MONTHS_LIST = [
 ]
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_payroll(request):
     today = timezone.localdate()
     try:
@@ -770,6 +796,22 @@ def superadmin_payroll(request):
 
     search_q = request.GET.get('q', '').strip()
     workers = Worker.objects.all().select_related('user').order_by('worker_id')
+
+    # Filial (Branch) filtri: Filial admini faqat o'z filialini ko'radi, Superadmin barchasini
+    if request.user.role == User.Role.BRANCH_ADMIN:
+        user_branch = request.user.branch or User.Branch.UYCHI
+        workers = workers.filter(branch=user_branch)
+        selected_branch = user_branch
+        is_branch_admin = True
+    else:
+        is_branch_admin = False
+        branch_filter = request.GET.get('branch', 'ALL').strip().upper()
+        if branch_filter and branch_filter in User.Branch.values:
+            workers = workers.filter(branch=branch_filter)
+            selected_branch = branch_filter
+        else:
+            selected_branch = 'ALL'
+
     if search_q:
         workers = workers.filter(
             Q(worker_id__icontains=search_q) |
@@ -778,6 +820,8 @@ def superadmin_payroll(request):
             Q(user__uid__icontains=search_q) |
             Q(phone_number__icontains=search_q)
         )
+
+    worker_ids = list(workers.values_list('id', flat=True))
 
     payroll_data = []
     grand_gross_month = Decimal('0.00')
@@ -788,11 +832,12 @@ def superadmin_payroll(request):
     grand_lifetime_balance = Decimal('0.00')
     active_workers_count = 0
 
-    # 1. Tanlangan oy uchun barcha xodimlarning biletlarini bitta so'rovda agregatsiya qilish
+    # 1. Tanlangan oy uchun xodimlarning biletlarini bitta so'rovda agregatsiya qilish (faqat tanlangan filial)
     month_ticket_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__year=selected_year,
-        scanned_at__month=selected_month
+        scanned_at__month=selected_month,
+        worker_id__in=worker_ids
     ).values('worker_id').annotate(
         units=Sum('quantity'),
         gross=Sum('total_amount'),
@@ -802,10 +847,11 @@ def superadmin_payroll(request):
     )
     month_ticket_map = {item['worker_id']: item for item in month_ticket_qs}
 
-    # 2. Tanlangan oy uchun barcha xodimlarning to'lovlarini bitta so'rovda agregatsiya qilish
+    # 2. Tanlangan oy uchun xodimlarning to'lovlarini bitta so'rovda agregatsiya qilish
     month_payout_qs = WorkerPayout.objects.filter(
         payout_date__year=selected_year,
-        payout_date__month=selected_month
+        payout_date__month=selected_month,
+        worker_id__in=worker_ids
     ).values('worker_id').annotate(
         advances=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.ADVANCE)),
         salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY)),
@@ -815,11 +861,14 @@ def superadmin_payroll(request):
 
     # 3. Barcha vaqt uchun doimiy balanslarni tezkor hisoblash
     lifetime_earnings_qs = Ticket.objects.filter(
-        status=Ticket.Status.SCANNED
+        status=Ticket.Status.SCANNED,
+        worker_id__in=worker_ids
     ).values('worker_id').annotate(total=Sum('total_amount'))
     lifetime_earned_map = {item['worker_id']: (item['total'] or Decimal('0.00')) for item in lifetime_earnings_qs}
 
-    lifetime_paid_qs = WorkerPayout.objects.values('worker_id').annotate(total=Sum('amount'))
+    lifetime_paid_qs = WorkerPayout.objects.filter(
+        worker_id__in=worker_ids
+    ).values('worker_id').annotate(total=Sum('amount'))
     lifetime_paid_map = {item['worker_id']: (item['total'] or Decimal('0.00')) for item in lifetime_paid_qs}
 
     for w in workers:
@@ -914,15 +963,21 @@ def superadmin_payroll(request):
         'today_str': today.strftime("%Y-%m-%d"),
         'today_is_closed': today_is_closed,
         'search_q': search_q,
+        'selected_branch': selected_branch,
+        'is_branch_admin': is_branch_admin,
+        'branches_list': User.Branch.choices,
     })
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_worker_daily_breakdown(request, worker_id):
     """
     Buxgalteriya uchun xodimning tanlangan oydagi har bir kunlik ishi va olgan avanslari tafsiloti (AJAX).
     """
     worker = get_object_or_404(Worker, id=worker_id)
+    if request.user.role == User.Role.BRANCH_ADMIN and worker.branch != request.user.branch:
+        return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat berilmagan!"}, status=403)
+
     today = timezone.localdate()
     try:
         year = int(request.GET.get('year', today.year))
@@ -1035,7 +1090,7 @@ def superadmin_worker_daily_breakdown(request, worker_id):
     })
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_close_daily_now(request):
     """
     Superadmin yoki Buxgalteriya panelidan turib kunlik hisobotni qo'lda yopish va balansga muhrlash.
@@ -1061,7 +1116,7 @@ def superadmin_close_daily_now(request):
     return redirect('superadmin_payroll')
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_payout_create(request):
     if request.method == 'POST':
         worker_id = request.POST.get('worker_id')
@@ -1071,12 +1126,15 @@ def superadmin_payout_create(request):
         note = request.POST.get('note', '').strip()
         month = request.POST.get('selected_month')
         year = request.POST.get('selected_year')
-        auto_freeze = request.POST.get('auto_freeze', '1') == '1'
 
         if not worker_id or not amount:
             messages.error(request, "Xodim va to'lov summasi kiritilishi shart!")
         else:
             worker = get_object_or_404(Worker, id=worker_id)
+            if request.user.role == User.Role.BRANCH_ADMIN and worker.branch != request.user.branch:
+                messages.error(request, "Siz faqat o'z filialingizdagi xodimlarga to'lov qila olasiz!")
+                return redirect('superadmin_payroll')
+
             with transaction.atomic():
                 payout = WorkerPayout.objects.create(
                     worker=worker,
@@ -1087,7 +1145,6 @@ def superadmin_payout_create(request):
                     created_by=request.user
                 )
 
-
             messages.success(request, f"{worker.full_name} ga {int(payout.amount):,} UZS ({payout.get_payout_type_display()}) muvaffaqiyatli to'landi!")
 
         if month and year:
@@ -1097,7 +1154,7 @@ def superadmin_payout_create(request):
     return redirect('superadmin_payroll')
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_payroll_export_csv(request):
     """
     Buxgalteriya uchun tanlangan oy bo'yicha sdelshina ish haqi hisobotini Excel/CSV formatida yuklab olish.
@@ -1124,6 +1181,7 @@ def superadmin_payroll_export_csv(request):
         "Xodim ID",
         "6-Xonali UID",
         "F.I.SH",
+        "Filial",
         "Telefon",
         f"Ishlagan Kunlari ({selected_month_name})",
         f"Tikilgan Dona ({selected_month_name})",
@@ -1135,13 +1193,24 @@ def superadmin_payroll_export_csv(request):
         "Holati"
     ])
 
-    workers = list(Worker.objects.all().select_related('user').order_by('worker_id'))
+    workers_qs = Worker.objects.all().select_related('user').order_by('worker_id')
+    if request.user.role == User.Role.BRANCH_ADMIN:
+        user_branch = request.user.branch or User.Branch.UYCHI
+        workers_qs = workers_qs.filter(branch=user_branch)
+    else:
+        branch_filter = request.GET.get('branch', 'ALL').strip().upper()
+        if branch_filter and branch_filter in User.Branch.values:
+            workers_qs = workers_qs.filter(branch=branch_filter)
 
-    # Batch SQL agregatsiya
+    workers = list(workers_qs)
+    worker_ids = [w.id for w in workers]
+
+    # Batch SQL agregatsiya (faqat tanlangan filial xodimlari)
     month_ticket_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__year=selected_year,
-        scanned_at__month=selected_month
+        scanned_at__month=selected_month,
+        worker_id__in=worker_ids
     ).values('worker_id').annotate(
         units=Sum('quantity'),
         gross=Sum('total_amount'),
@@ -1151,7 +1220,8 @@ def superadmin_payroll_export_csv(request):
 
     month_payout_qs = WorkerPayout.objects.filter(
         payout_date__year=selected_year,
-        payout_date__month=selected_month
+        payout_date__month=selected_month,
+        worker_id__in=worker_ids
     ).values('worker_id').annotate(
         advances=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.ADVANCE)),
         salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY)),
@@ -1159,11 +1229,14 @@ def superadmin_payroll_export_csv(request):
     month_payout_map = {item['worker_id']: item for item in month_payout_qs}
 
     lifetime_earnings_qs = Ticket.objects.filter(
-        status=Ticket.Status.SCANNED
+        status=Ticket.Status.SCANNED,
+        worker_id__in=worker_ids
     ).values('worker_id').annotate(total=Sum('total_amount'))
     lifetime_earned_map = {item['worker_id']: (item['total'] or Decimal('0.00')) for item in lifetime_earnings_qs}
 
-    lifetime_paid_qs = WorkerPayout.objects.values('worker_id').annotate(total=Sum('amount'))
+    lifetime_paid_qs = WorkerPayout.objects.filter(
+        worker_id__in=worker_ids
+    ).values('worker_id').annotate(total=Sum('amount'))
     lifetime_paid_map = {item['worker_id']: (item['total'] or Decimal('0.00')) for item in lifetime_paid_qs}
 
     for idx, w in enumerate(workers, start=1):
@@ -1196,6 +1269,7 @@ def superadmin_payroll_export_csv(request):
             w.worker_id,
             uid_val,
             w.full_name,
+            w.get_branch_display(),
             w.phone_number or "—",
             days_worked,
             month_units,
@@ -1210,7 +1284,7 @@ def superadmin_payroll_export_csv(request):
     return response
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_send_telegram_report(request):
     """
     Superadmin panelidan turib xodimlar va stikerlar bo'yicha joriy oy boshidan hozirgacha
@@ -1252,7 +1326,7 @@ def superadmin_send_telegram_report(request):
     return redirect('superadmin_payroll')
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_download_daily_excel(request):
     """
     Superadmin uchun kunlik xodimlar va stikerlar hisobotini brauzerda to'g'ridan-to'g'ri Excel (.xlsx) sifatida yuklab olish.
@@ -1903,13 +1977,17 @@ def superadmin_order_model_delete_operation(request, order_id: int, item_id: int
     return redirect('superadmin_order_detail', order_id=order.id)
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_worker_history(request, worker_id: int):
     """
     Ishchining kunlik normasi, foizi, ishlab topgan sdelshina haqi, 
     100% dan oshganda +30000 bonus va o'sha kuni qilgan barcha operatsiyalari (stikerlari).
     """
     worker = get_object_or_404(Worker, id=worker_id)
+    if request.user.role == User.Role.BRANCH_ADMIN and worker.branch != request.user.branch:
+        messages.error(request, "Siz faqat o'z filialingizdagi xodimlarning tarixini ko'ra olasiz!")
+        return redirect('superadmin_payroll')
+
     today = timezone.localdate()
     current_tz = timezone.get_current_timezone()
 
@@ -2100,9 +2178,12 @@ def superadmin_worker_history(request, worker_id: int):
     return render(request, 'superadmin/worker_history.html', context)
 
 
-@superadmin_required
+@payroll_admin_required
 def api_worker_tickets_by_date(request, worker_id: int):
     worker = get_object_or_404(Worker, id=worker_id)
+    if request.user.role == User.Role.BRANCH_ADMIN and worker.branch != request.user.branch:
+        return JsonResponse({'success': False, 'error': "Ruxsat berilmagan!"}, status=403)
+
     date_str = request.GET.get('date')
     if not date_str:
         return JsonResponse({'success': False, 'error': 'Sana kiritilmadi'}, status=400)
@@ -2173,7 +2254,7 @@ def api_worker_tickets_by_date(request, worker_id: int):
     })
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_payroll_bulk_pay(request):
     """
     Buxgalteriya tabelidan tanlangan bir nechta xodimlarga oylik maoshni guruhlab to'lash (yopish).
@@ -2183,6 +2264,10 @@ def superadmin_payroll_bulk_pay(request):
         return redirect('superadmin_payroll')
 
     worker_ids = request.POST.getlist('selected_worker_ids')
+    if request.user.role == User.Role.BRANCH_ADMIN:
+        user_branch = request.user.branch or User.Branch.UYCHI
+        worker_ids = list(Worker.objects.filter(id__in=worker_ids, branch=user_branch).values_list('id', flat=True))
+
     year = int(request.POST.get('selected_year', timezone.localdate().year))
     month = int(request.POST.get('selected_month', timezone.localdate().month))
     today = timezone.localdate()
@@ -2245,7 +2330,7 @@ def superadmin_payroll_bulk_pay(request):
     return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_start_month_freeze_timer(request):
     """
     Buxgalter qo'lda 'Ushbu oy uchun 7 kunlik taymerni boshlash' tugmasini bosganda chaqiriladi.
@@ -2274,7 +2359,7 @@ def superadmin_start_month_freeze_timer(request):
     return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_month_freeze_toggle(request):
     """
     Superadmin uchun oyni darhol muzlatish yoki muzdan chiqarish (Manual override).
@@ -2321,7 +2406,7 @@ def superadmin_month_freeze_toggle(request):
     return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_ticket_freeze_toggle(request):
     """
     Xodimning tanlangan oy bo'yicha biletlarini qo'lda qulflash (freeze) yoki ochish (unfreeze).
@@ -2333,6 +2418,10 @@ def superadmin_ticket_freeze_toggle(request):
         action_type = request.POST.get('action_type', 'freeze')  # 'freeze' yoki 'unfreeze'
 
         worker = get_object_or_404(Worker, id=worker_id)
+        if request.user.role == User.Role.BRANCH_ADMIN and worker.branch != request.user.branch:
+            messages.error(request, "Siz faqat o'z filialingizdagi xodimlar stikerlarini boshqara olasiz!")
+            return redirect('superadmin_payroll')
+
         tickets_qs = worker.tickets.filter(
             status=Ticket.Status.SCANNED,
             scanned_at__year=year,
@@ -2358,7 +2447,7 @@ def superadmin_ticket_freeze_toggle(request):
     return redirect('superadmin_payroll')
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_recalculate_unfrozen_tickets(request):
     """
     Tizimdagi barcha biletlarni operatsiyalarning eng so'nggi narxlari bilan
@@ -2382,5 +2471,28 @@ def superadmin_recalculate_unfrozen_tickets(request):
         return redirect('superadmin_payroll')
 
     return redirect('superadmin_payroll')
+
+
+@superadmin_required
+def superadmin_update_worker_branch(request):
+    """
+    Super Admin (HQ) xodimning ish joyini (Filialini) HQ yoki Uychiga o'zgartirishi uchun.
+    """
+    if request.method == 'POST':
+        worker_id = request.POST.get('worker_id')
+        new_branch = request.POST.get('branch', '').strip().upper()
+        worker = get_object_or_404(Worker, id=worker_id)
+        if new_branch in User.Branch.values:
+            worker.branch = new_branch
+            worker.save(update_fields=['branch'])
+            if worker.user:
+                worker.user.branch = new_branch
+                worker.user.save(update_fields=['branch'])
+            messages.success(request, f"✓ {worker.full_name} ({worker.worker_id}) ning filiali '{worker.get_branch_display()}' ga o'zgartirildi.")
+        else:
+            messages.error(request, "Noto'g'ri filial tanlandi!")
+        return redirect(request.META.get('HTTP_REFERER') or 'superadmin_payroll')
+    return redirect('superadmin_payroll')
+
 
 

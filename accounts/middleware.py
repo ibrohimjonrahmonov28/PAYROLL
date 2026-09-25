@@ -143,5 +143,39 @@ class MasterTerminalAccessRestrictionMiddleware:
 
                     return redirect('screens:screen_view', screen_number=screen_num)
 
+            elif getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN:
+                path = request.path_info
+                allowed_prefixes = (
+                    '/superadmin/payroll/',
+                    '/superadmin/payroll',
+                    '/superadmin/workers/',
+                    '/statistics/',
+                    '/statistics',
+                    '/terminal/',
+                    '/terminal',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes)
+                if not is_allowed:
+                    is_ajax = (
+                        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                        'application/json' in request.headers.get('accept', '') or
+                        request.content_type == 'application/json' or
+                        '/api/' in path
+                    )
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'FORBIDDEN',
+                            'message': "Ruxsat etilmagan! Filial admini faqat Oyliklar, Statistika va Skanerlash Terminalidan foydalana oladi."
+                        }, status=403)
+
+                    return redirect('superadmin_payroll')
+
         return self.get_response(request)
 

@@ -19,8 +19,8 @@ def login_view(request):
             return redirect('production:terminal_home')
         if getattr(request.user, 'role', None) == User.Role.MANAGER:
             return redirect('manager_dashboard')
-        if getattr(request.user, 'role', None) == User.Role.CUTTER:
-            return redirect('cutting_dashboard')
+        if getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN:
+            return redirect('superadmin_payroll')
         if request.user.is_superadmin():
             return redirect('superadmin_dashboard')
         return redirect('production:order_list')
@@ -46,6 +46,8 @@ def login_view(request):
                     return redirect('production:control_home')
                 if user.role == User.Role.MASTER:
                     return redirect('production:terminal_home')
+                if user.role == User.Role.BRANCH_ADMIN:
+                    return redirect('superadmin_payroll')
                 
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)
@@ -83,6 +85,10 @@ def worker_list_view(request):
         last_name = request.POST.get('last_name', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
 
+        branch = request.POST.get('branch', User.Branch.HQ)
+        if branch not in User.Branch.values:
+            branch = User.Branch.HQ
+
         if not worker_id or not first_name or not last_name:
             messages.error(request, "Iltimos, xodim ID, ism va familiyasini to'ldiring.")
         elif Worker.objects.filter(worker_id=worker_id).exists():
@@ -93,9 +99,10 @@ def worker_list_view(request):
                 first_name=first_name,
                 last_name=last_name,
                 phone_number=phone_number,
+                branch=branch,
                 is_active=True
             )
-            messages.success(request, f"Tikuvchi {worker.full_name} ({worker.worker_id}) muvaffaqiyatli qo'shildi va QR kodi yaratildi!")
+            messages.success(request, f"Tikuvchi {worker.full_name} ({worker.worker_id}, {worker.get_branch_display()}) muvaffaqiyatli qo'shildi va QR kodi yaratildi!")
             return redirect('accounts:worker_list')
 
     workers = Worker.objects.all().order_by('worker_id')

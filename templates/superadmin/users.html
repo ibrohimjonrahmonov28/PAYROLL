@@ -288,6 +288,11 @@
                                             {{ u.worker_profile.worker_id }}
                                         </a>
                                         {% endif %}
+                                        {% if u.branch == 'UYCHI' %}
+                                        <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-1.5 py-0.5 rounded font-bold" title="Uychi filiali">Uychi</span>
+                                        {% else %}
+                                        <span class="text-[10px] bg-blue-950 text-blue-400 border border-blue-800/50 px-1.5 py-0.5 rounded font-bold" title="Bosh bino (HQ)">Bosh bino</span>
+                                        {% endif %}
                                     </div>
                                     <span class="text-slate-400 font-mono text-xs">@{{ u.username }} {% if u.email %}•
                                         {{ u.email }}{% endif %}</span>
@@ -347,6 +352,11 @@
                                 <span
                                     class="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-crown text-[11px]"></i> Super Admin
+                                </span>
+                                {% elif u.role == 'BRANCH_ADMIN' %}
+                                <span
+                                    class="bg-teal-500/20 text-teal-300 border border-teal-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-building-user text-[11px]"></i> Filial Admini
                                 </span>
                                 {% elif u.role == 'ADMIN' %}
                                 <span
@@ -445,7 +455,7 @@
                                 title="Tahrirlash" data-user-id="{{ u.id }}" data-username="{{ u.username }}"
                                 data-first-name="{{ u.first_name }}" data-last-name="{{ u.last_name }}"
                                 data-email="{{ u.email }}" data-role="{{ u.role }}" data-phone="{{ u.phone_number }}"
-                                data-tg-id="{{ u.telegram_user_id|default:'' }}"
+                                data-tg-id="{{ u.telegram_user_id|default:'' }}" data-branch="{{ u.branch }}"
                                 onclick="openEditUserModalFromBtn(this)">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
@@ -620,7 +630,7 @@
                 </div>
             </div>
 
-            <!-- Roli & Telefon -->
+            <!-- Roli & Filial -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Roli *</label>
@@ -630,20 +640,32 @@
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
+                        <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin (To'liq huquq)</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish Joyi *</label>
+                    <select name="branch" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 focus:outline-none focus:border-amber-500 font-bold">
+                        <option value="HQ" selected>🏢 Bosh bino (HQ)</option>
+                        <option value="UYCHI">📍 Uychi filiali</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Telefon & Email -->
+            <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Telefon</label>
                     <input type="text" name="phone_number" placeholder="+998 90 ..."
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Email</label>
-                <input type="email" name="email" placeholder="xodim@pochta.uz"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Email</label>
+                    <input type="email" name="email" placeholder="xodim@pochta.uz"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
             </div>
 
             <div>
@@ -720,20 +742,31 @@
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
+                        <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin (To'liq huquq)</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish Joyi</label>
+                    <select name="branch" id="edit-branch"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 focus:outline-none focus:border-amber-500 font-bold">
+                        <option value="HQ">🏢 Bosh bino (HQ)</option>
+                        <option value="UYCHI">📍 Uychi filiali</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Telefon</label>
                     <input type="text" name="phone_number" id="edit-phone"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
                 </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Email</label>
-                <input type="email" name="email" id="edit-email"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Email</label>
+                    <input type="email" name="email" id="edit-email"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
             </div>
 
             <div>
@@ -834,6 +867,17 @@
                                 class="fa-solid fa-user-shield mr-1"></i> Admin</strong>
                         <span class="text-[11px] text-slate-400">Ishlab chiqarish buyurtmalari va qutilarni nazorat
                             qilish</span>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="role" value="BRANCH_ADMIN" id="role-radio-branchadmin"
+                        class="text-teal-500 focus:ring-0">
+                    <div>
+                        <strong class="text-sm font-bold text-teal-400 block"><i
+                                class="fa-solid fa-building-user mr-1"></i> Filial Admini</strong>
+                        <span class="text-[11px] text-slate-400">Faqat Oyliklar, Qutilar Statistikasi va Master Terminaliga ruxsat</span>
                     </div>
                 </label>
 
@@ -1028,7 +1072,7 @@
 
 <script>
     // Edit Modal
-    function openEditUserModal(id, username, fn, ln, email, role, phone, tgId) {
+    function openEditUserModal(id, username, fn, ln, email, role, phone, tgId, branch) {
         document.getElementById('edit-user-id').value = id || '';
         document.getElementById('edit-username-span').innerText = '@' + (username || '');
         if (document.getElementById('edit-username')) {
@@ -1038,6 +1082,9 @@
         document.getElementById('edit-last-name').value = ln || '';
         document.getElementById('edit-email').value = email || '';
         document.getElementById('edit-role').value = role || 'USER';
+        if (document.getElementById('edit-branch')) {
+            document.getElementById('edit-branch').value = branch || 'HQ';
+        }
         document.getElementById('edit-phone').value = phone || '';
         document.getElementById('edit-tg-id').value = tgId || '';
         document.getElementById('edit-user-modal').classList.remove('hidden');
@@ -1052,7 +1099,8 @@
             btn.getAttribute('data-email'),
             btn.getAttribute('data-role'),
             btn.getAttribute('data-phone'),
-            btn.getAttribute('data-tg-id')
+            btn.getAttribute('data-tg-id'),
+            btn.getAttribute('data-branch')
         );
     }
 
@@ -1063,6 +1111,9 @@
         document.getElementById('role-username-span').innerText = '@' + username;
         if (currentRole === 'SUPER_ADMIN') {
             document.getElementById('role-radio-superadmin').checked = true;
+        } else if (currentRole === 'BRANCH_ADMIN') {
+            const rAdmin = document.getElementById('role-radio-branchadmin');
+            if (rAdmin) rAdmin.checked = true;
         } else if (currentRole === 'ADMIN') {
             document.getElementById('role-radio-admin').checked = true;
         } else if (currentRole === 'MASTER') {

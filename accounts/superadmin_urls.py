@@ -16,6 +16,7 @@ urlpatterns = [
     path('payroll/worker/<int:worker_id>/daily/', superadmin_views.superadmin_worker_daily_breakdown, name='superadmin_worker_daily_breakdown'),
     path('workers/<int:worker_id>/history/', superadmin_views.superadmin_worker_history, name='superadmin_worker_history'),
     path('workers/<int:worker_id>/tickets-by-date/', superadmin_views.api_worker_tickets_by_date, name='api_worker_tickets_by_date'),
+    path('workers/update-branch/', superadmin_views.superadmin_update_worker_branch, name='superadmin_update_worker_branch'),
     path('payroll/bulk-pay/', superadmin_views.superadmin_payroll_bulk_pay, name='superadmin_payroll_bulk_pay'),
     path('payroll/start-freeze-timer/', superadmin_views.superadmin_start_month_freeze_timer, name='superadmin_start_month_freeze_timer'),
     path('payroll/month-freeze-toggle/', superadmin_views.superadmin_month_freeze_toggle, name='superadmin_month_freeze_toggle'),

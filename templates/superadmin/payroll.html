@@ -28,15 +28,31 @@
                 <select name="month"
                     class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
                     {% for m_num, m_name in months_list %}
-                    <option value="{{ m_num }}" {% if m_num==selected_month %}selected{% endif %}>{{ m_name }}</option>
+                    <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
                     {% endfor %}
                 </select>
                 <select name="year"
                     class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
                     {% for y in years_list %}
-                    <option value="{{ y }}" {% if y==selected_year %}selected{% endif %}>{{ y }} yil</option>
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} yil</option>
                     {% endfor %}
                 </select>
+
+                {% if not is_branch_admin %}
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-2">Filial:</label>
+                <select name="branch"
+                    class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-amber-400 font-bold focus:outline-none focus:border-amber-500">
+                    <option value="ALL" {% if selected_branch == 'ALL' %}selected{% endif %}>Barcha Filiallar</option>
+                    <option value="HQ" {% if selected_branch == 'HQ' %}selected{% endif %}>Bosh bino (HQ)</option>
+                    <option value="UYCHI" {% if selected_branch == 'UYCHI' %}selected{% endif %}>Uychi filiali</option>
+                </select>
+                {% else %}
+                <div class="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 ml-2">
+                    <i class="fa-solid fa-location-dot"></i> {{ request.user.get_branch_display }} filiali
+                </div>
+                <input type="hidden" name="branch" value="{{ selected_branch }}">
+                {% endif %}
+
                 <button type="submit"
                     class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
                     <i class="fa-solid fa-filter text-amber-400"></i> Filtrlash
@@ -60,8 +76,7 @@
                         class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-1.5 py-0.5 rounded font-mono">Yopilgan</span>
                     {% else %}
                     <span
-                        class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-mono">00:00
-                        da</span>
+                        class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-mono">00:00 da</span>
                     {% endif %}
                 </button>
             </form>
@@ -81,6 +96,7 @@
                 <i class="fa-solid fa-file-arrow-down text-base text-teal-400"></i> Kunlik Excel
             </a>
 
+            {% if not is_branch_admin %}
             <!-- Narxlar Matritsasi (Pricing) link -->
             <a href="{% url 'superadmin_pricing' %}"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
@@ -100,9 +116,10 @@
                     <i class="fa-solid fa-arrows-rotate text-base text-indigo-400"></i> Narxlarni Qayta Hisoblash
                 </button>
             </form>
+            {% endif %}
 
             <!-- CSV / Excel Export -->
-            <a href="{% url 'superadmin_payroll_export' %}?year={{ selected_year }}&month={{ selected_month }}"
+            <a href="{% url 'superadmin_payroll_export' %}?year={{ selected_year }}&month={{ selected_month }}&branch={{ selected_branch }}"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm">
                 <i class="fa-solid fa-file-excel text-base"></i> Buxgalteriya Tabeli (Excel)
             </a>
@@ -321,6 +338,7 @@
                         <th class="py-3 px-3 text-center w-12">№</th>
                         <th class="py-3 px-4">Xodim ID / UID</th>
                         <th class="py-3 px-4">Tikuvchi F.I.SH</th>
+                        <th class="py-3 px-3 text-center">Filial</th>
                         <th class="py-3 px-3 text-center">Ish Kunlari</th>
                         <th class="py-3 px-3 text-center">Tikilgan Dona</th>
                         <th class="py-3 px-4 text-right">Hisoblangan Maosh</th>
@@ -334,14 +352,13 @@
                 <tbody id="payroll-tbody" class="divide-y divide-slate-800 text-slate-200">
                     {% for row in payroll_data %}
                     <tr class="hover:bg-slate-800/40 transition payroll-worker-row"
-                        data-search="{{ row.worker.worker_id }} {{ row.worker.user.uid|default:'' }} {{ row.worker.full_name }} {{ row.worker.phone_number|default:'' }}">
+                        data-search="{{ row.worker.worker_id }} {{ row.worker.user.uid|default:'' }} {{ row.worker.full_name }} {{ row.worker.phone_number|default:'' }} {{ row.worker.get_branch_display }}">
                         <!-- Checkbox -->
                         <td class="py-3 px-3 text-center">
                             <input type="checkbox" value="{{ row.worker.id }}"
                                 data-payable="{{ row.net_payable_month }}" onchange="updateBulkPayoutBar()"
                                 class="worker-payroll-checkbox w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
-                                {% if row.net_payable_month <=0 %}disabled title="To'lanadigan maosh qoldig'i yo'q" {%
-                                endif %}>
+                                {% if row.net_payable_month <= 0 %}disabled title="To'lanadigan maosh qoldig'i yo'q" {% endif %}>
                         </td>
                         <td class="py-3 px-3 text-center text-slate-500 text-xs font-mono">
                             {{ forloop.counter }}
@@ -373,6 +390,20 @@
                             {% if row.worker.phone_number %}
                             <span class="block text-[11px] text-slate-500 font-normal font-mono">{{
                                 row.worker.phone_number }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if not is_branch_admin %}
+                            <select onchange="changeWorkerBranch('{{ row.worker.id }}', this.value)"
+                                class="text-[11px] font-bold rounded-lg px-2 py-1 border transition cursor-pointer {% if row.worker.branch == 'UYCHI' %}bg-emerald-950/80 text-emerald-400 border-emerald-500/40{% else %}bg-blue-950/80 text-blue-400 border-blue-500/40{% endif %}"
+                                title="Filialni o'zgartirish">
+                                <option value="HQ" {% if row.worker.branch == 'HQ' %}selected{% endif %}>Bosh bino</option>
+                                <option value="UYCHI" {% if row.worker.branch == 'UYCHI' %}selected{% endif %}>Uychi</option>
+                            </select>
+                            {% else %}
+                            <span class="text-[11px] font-bold rounded-lg px-2 py-1 border bg-emerald-950/80 text-emerald-400 border-emerald-500/40">
+                                {{ row.worker.get_branch_display }}
+                            </span>
                             {% endif %}
                         </td>
                         <td class="py-3 px-3 text-center font-bold text-slate-300 digital-font">
@@ -453,14 +484,14 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="11" class="py-12 text-center text-slate-500">
+                        <td colspan="12" class="py-12 text-center text-slate-500">
                             <i class="fa-solid fa-users text-4xl mb-2 block text-slate-700"></i>
                             Tizimda tikuvchilar mavjud emas.
                         </td>
                     </tr>
                     {% endfor %}
                     <tr id="payroll-search-empty" class="hidden">
-                        <td colspan="11" class="py-12 text-center text-slate-500">
+                        <td colspan="12" class="py-12 text-center text-slate-500">
                             <i class="fa-solid fa-magnifying-glass text-3xl mb-2 block text-slate-700"></i>
                             Qidiruv bo'yicha xodim topilmadi.
                         </td>
@@ -1194,6 +1225,30 @@
                     </td>
                 </tr>`;
         }
+    }
+
+    function changeWorkerBranch(workerId, branch) {
+        const formData = new FormData();
+        formData.append('worker_id', workerId);
+        formData.append('branch', branch);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'superadmin_update_worker_branch' %}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                // Keep current query params and reload
+                window.location.reload();
+            } else {
+                alert(data.message || 'Xatolik yuz berdi');
+            }
+        })
+        .catch(err => {
+            alert('Server bilan bog\'lanishda xatolik yuz berdi');
+        });
     }
 </script>
 {% endblock %}

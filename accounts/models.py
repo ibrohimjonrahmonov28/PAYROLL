@@ -18,9 +18,14 @@ def generate_unique_user_uid():
 
 
 class User(AbstractUser):
+    class Branch(models.TextChoices):
+        HQ = 'HQ', 'Bosh bino (HQ)'
+        UYCHI = 'UYCHI', 'Uychi'
+
     class Role(models.TextChoices):
         SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
         ADMIN = 'ADMIN', 'Admin'
+        BRANCH_ADMIN = 'BRANCH_ADMIN', 'Filial Admini'
         MANAGER = 'MANAGER', 'Menejer'
         CUTTER = 'CUTTER', 'Kesimchi (Bichuv)'
         METO = 'METO', 'Metochi (Nomerovka)'
@@ -31,6 +36,13 @@ class User(AbstractUser):
         USER = 'USER', 'Oddiy User'
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
+    branch = models.CharField(
+        max_length=50,
+        choices=Branch.choices,
+        default=Branch.HQ,
+        db_index=True,
+        verbose_name="Ish joyi (Filial)"
+    )
     phone_number = models.CharField(max_length=20, blank=True)
     uid = models.CharField(
         max_length=6,
@@ -106,6 +118,12 @@ class User(AbstractUser):
     def is_screen(self):
         return self.role == self.Role.SCREEN
 
+    def is_branch_admin(self):
+        return self.role == self.Role.BRANCH_ADMIN
+
+    def can_access_payroll(self):
+        return self.is_superadmin() or self.role == self.Role.BRANCH_ADMIN
+
     @property
     def assigned_screen_number(self):
         """
@@ -147,6 +165,13 @@ class Worker(models.Model):
     first_name = models.CharField(max_length=100, verbose_name="Ismi")
     last_name = models.CharField(max_length=100, verbose_name="Familiyasi")
     phone_number = models.CharField(max_length=25, blank=True, verbose_name="Telefon raqami")
+    branch = models.CharField(
+        max_length=50,
+        choices=User.Branch.choices,
+        default=User.Branch.HQ,
+        db_index=True,
+        verbose_name="Ish joyi (Filial)"
+    )
     is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faolmi?")
     qr_code = models.ImageField(upload_to='qr_codes/workers/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -192,6 +217,7 @@ class Worker(models.Model):
                 first_name=self.first_name,
                 last_name=self.last_name,
                 phone_number=self.phone_number,
+                branch=self.branch,
                 role=User.Role.USER,
                 is_staff=False,
                 is_superuser=False
@@ -200,12 +226,22 @@ class Worker(models.Model):
             new_user.save()
             self.user = new_user
         else:
-            # Agar ishchining ismi yoki familiyasi o'zgarsa, user hisobini ham yangilash
-            if self.user.first_name != self.first_name or self.user.last_name != self.last_name or self.user.phone_number != self.phone_number:
+            # Agar ishchining ma'lumotlari o'zgarsa, user hisobini ham yangilash
+            update_user_fields = []
+            if self.user.first_name != self.first_name:
                 self.user.first_name = self.first_name
+                update_user_fields.append('first_name')
+            if self.user.last_name != self.last_name:
                 self.user.last_name = self.last_name
+                update_user_fields.append('last_name')
+            if self.user.phone_number != self.phone_number:
                 self.user.phone_number = self.phone_number
-                self.user.save(update_fields=['first_name', 'last_name', 'phone_number'])
+                update_user_fields.append('phone_number')
+            if self.user.branch != self.branch:
+                self.user.branch = self.branch
+                update_user_fields.append('branch')
+            if update_user_fields:
+                self.user.save(update_fields=update_user_fields)
 
         if not self.qr_code:
             self.generate_qr_code()
