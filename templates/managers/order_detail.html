@@ -163,12 +163,14 @@
 
     <!-- Articles & Sizes Breakdown -->
     <div class="space-y-6">
-        <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+        <div
+            class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <div>
                 <h3 class="text-base font-black text-white flex items-center gap-2">
                     <i class="fa-solid fa-layer-group text-cyan-400"></i> Modellar va Artikul Rejasi
                 </h3>
-                <p class="text-xs text-slate-400 mt-0.5">Ushbu buyurtmaga biriktirilgan modellar, razmerlar va tikuv operatsiyalari</p>
+                <p class="text-xs text-slate-400 mt-0.5">Ushbu buyurtmaga biriktirilgan modellar, razmerlar va tikuv
+                    operatsiyalari</p>
             </div>
             <button type="button" onclick="openAddArticleModal()"
                 class="px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs rounded-xl shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer">
@@ -201,10 +203,12 @@
                             {% if item_data.item.article.operation_group %}
                             <span
                                 class="bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1">
-                                <i class="fa-solid fa-list-check text-cyan-400"></i> Guruh: {{ item_data.item.article.operation_group.name }}
+                                <i class="fa-solid fa-list-check text-cyan-400"></i> Guruh: {{
+                                item_data.item.article.operation_group.name }}
                             </span>
                             {% endif %}
-                            <span class="bg-slate-800 text-slate-300 border border-slate-700 font-bold px-2 py-0.5 rounded text-xs">
+                            <span
+                                class="bg-slate-800 text-slate-300 border border-slate-700 font-bold px-2 py-0.5 rounded text-xs">
                                 {{ item_data.item.article.article_operations.count }} ta operatsiya
                             </span>
                         </div>
@@ -387,17 +391,21 @@
     </div>
 
     <!-- Modal: Add Article to Order -->
-    <div id="addArticleModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto">
+    <div id="addArticleModal"
+        class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto">
             <!-- Modal Header -->
             <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg">
+                    <div
+                        class="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg">
                         <i class="fa-solid fa-shirt"></i>
                     </div>
                     <div>
                         <h3 class="text-base font-black text-white">Mavjud Zakazga Yangi Model Qo'shish</h3>
-                        <p class="text-xs text-slate-400">Zakaz: <span class="text-cyan-400 font-mono font-bold">{{ order.order_number }}</span></p>
+                        <p class="text-xs text-slate-400">Zakaz: <span class="text-cyan-400 font-mono font-bold">{{
+                                order.order_number }}</span></p>
                     </div>
                 </div>
                 <button type="button" onclick="closeAddArticleModal()"
@@ -406,7 +414,8 @@
                 </button>
             </div>
 
-            <form method="POST" action="{% url 'manager_order_add_article' order.id %}" enctype="multipart/form-data" class="space-y-5" id="addArticleForm">
+            <form method="POST" action="{% url 'manager_order_add_article' order.id %}" enctype="multipart/form-data"
+                class="space-y-5" id="addArticleForm">
                 {% csrf_token %}
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -415,15 +424,18 @@
                         <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
                             Model / Artikul Kodi <span class="text-rose-400">*</span>
                         </label>
-                        <input type="text" name="article_code" id="modal_article_code" required list="existing_articles_list"
-                            placeholder="Masalan: POLO-01 yoki 2044"
+                        <input type="text" name="article_code" id="modal_article_code" required
+                            list="existing_articles_list" placeholder="Masalan: POLO-01 yoki 2044"
                             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white uppercase focus:outline-none focus:border-cyan-500 font-mono placeholder:text-slate-600">
                         <datalist id="existing_articles_list">
                             {% for art in existing_articles %}
-                            <option value="{{ art.code }}" data-name="{{ art.name }}" data-group="{{ art.operation_group_id|default:'' }}" data-model="{{ art.model_id|default:'' }}">{{ art.name }}</option>
+                            <option value="{{ art.code }}" data-name="{{ art.name }}"
+                                data-group="{{ art.operation_group_id|default:'' }}"
+                                data-model="{{ art.model_id|default:'' }}">{{ art.name }}</option>
                             {% endfor %}
                         </datalist>
-                        <p class="text-[10px] text-slate-500 mt-1">Mavjud artikul yoki mutlaqo yangi kod kiritish mumkin</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Mavjud artikul yoki mutlaqo yangi kod kiritish mumkin
+                        </p>
                     </div>
 
                     <!-- Article Name -->
@@ -442,7 +454,8 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Operatsiyalar guruhi -->
                     <div>
-                        <label class="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <label
+                            class="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-list-check"></i> Operatsiyalar Guruhi (Shablon)
                         </label>
                         <select name="operation_group_id" id="modal_operation_group"
@@ -450,16 +463,19 @@
                             <option value="">— Guruh tanlanmagan (bo'sh) —</option>
                             {% for grp in operation_groups %}
                             <option value="{{ grp.id }}">
-                                {{ grp.name }} ({{ grp.items.count }} ta op, {{ grp.total_unit_rate|floatformat:0 }} so'm)
+                                {{ grp.name }} ({{ grp.items.count }} ta op, {{ grp.total_unit_rate|floatformat:0 }}
+                                so'm)
                             </option>
                             {% endfor %}
                         </select>
-                        <p class="text-[10px] text-slate-400 mt-1">Guruh tanlansa, ushbu model uchun barcha operatsiya va stavkalar avtomatik bog'lanadi!</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Guruh tanlansa, ushbu model uchun barcha operatsiya
+                            va stavkalar avtomatik bog'lanadi!</p>
                     </div>
 
                     <!-- Product Model -->
                     <div>
-                        <label class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <label
+                            class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-tag"></i> Tegishli Model (Kategoriya)
                         </label>
                         <select name="product_model_id" id="modal_product_model"
@@ -475,7 +491,8 @@
 
                 <!-- Image Upload -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <label
+                        class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                         <i class="fa-regular fa-image"></i> Model Rasmi (Ixtiyoriy)
                     </label>
                     <input type="file" name="article_image" accept="image/*"
@@ -486,15 +503,18 @@
                 <div class="space-y-3 pt-2 border-t border-slate-800">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                            <label class="text-xs font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                                <i class="fa-solid fa-ruler-combined text-cyan-400"></i> Kiyim Razmerlari va Reja Soni (dona) <span class="text-rose-400">*</span>
+                            <label
+                                class="text-xs font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-ruler-combined text-cyan-400"></i> Kiyim Razmerlari va Reja Soni
+                                (dona) <span class="text-rose-400">*</span>
                             </label>
                             <p class="text-[10px] text-slate-500">Tezkor shablonlarni bosing yoki qo'lda kiriting</p>
                         </div>
 
                         <!-- Presets -->
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="applyPresetSizes(['92', '98', '104', '110', '116', '122', '128'])"
+                            <button type="button"
+                                onclick="applyPresetSizes(['92', '98', '104', '110', '116', '122', '128'])"
                                 class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition border border-slate-700 cursor-pointer">
                                 Bolalar (92-128)
                             </button>
@@ -513,7 +533,8 @@
                         </div>
                     </div>
 
-                    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2 max-h-56 overflow-y-auto" id="sizesContainer">
+                    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2 max-h-56 overflow-y-auto"
+                        id="sizesContainer">
                         <!-- Dynamic Rows inserted here -->
                     </div>
 
@@ -525,7 +546,8 @@
 
                         <div class="text-right">
                             <span class="text-xs text-slate-400 font-semibold">Jami Reja:</span>
-                            <span id="modalTotalQty" class="text-lg font-black text-amber-400 digital-font ml-1">0</span>
+                            <span id="modalTotalQty"
+                                class="text-lg font-black text-amber-400 digital-font ml-1">0</span>
                             <span class="text-xs text-slate-400">dona</span>
                         </div>
                     </div>
@@ -569,13 +591,13 @@
         if (modal) modal.classList.add('hidden');
     }
 
-    document.getElementById('addArticleModal')?.addEventListener('click', function(e) {
+    document.getElementById('addArticleModal')?.addEventListener('click', function (e) {
         if (e.target === this) {
             closeAddArticleModal();
         }
     });
 
-    document.getElementById('modal_article_code')?.addEventListener('input', function() {
+    document.getElementById('modal_article_code')?.addEventListener('input', function () {
         const val = this.value.trim().toUpperCase();
         const opt = document.querySelector(`#existing_articles_list option[value="${val}"]`);
         if (opt) {

@@ -1,4 +1,5 @@
 import os
+import re
 import csv
 import json
 import datetime
@@ -1356,6 +1357,65 @@ def superadmin_download_daily_excel(request):
     return response
 
 
+CYRILLIC_TO_LATIN = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j', 'з': 'z',
+    'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
+    'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sh',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya', 'ў': 'o', 'қ': 'q', 'ғ': 'g', 'ҳ': 'h'
+}
+
+
+def get_or_create_operation_safely(name: str, code: str = None, difficulty: float = 1.0, description: str = "", order_number: int = None):
+    """
+    Yangi operatsiyani xavfsiz yaratish yoki mavjudini qaytarish:
+    - Nomi bo'yicha takrorlanishdan saqlaydi.
+    - Agar kod kiritilmagan bo'lsa, nomidan (kirill/lotin transliteratsiya bilan) toza unique kod hosil qiladi.
+    - Kod bazada mavjud bo'lsa, unga avtomatik -1, -2 sufiks qo'shadi.
+    """
+    name = (name or '').strip()
+    if not name:
+        return None
+
+    existing = Operation.objects.filter(name__iexact=name).first()
+    if existing:
+        return existing
+
+    if code and code.strip():
+        op_code = re.sub(r'[^A-Za-z0-9_\-\.]+', '-', code.strip().upper()).strip('-')[:50]
+    else:
+        res = ''
+        for ch in name.lower():
+            res += CYRILLIC_TO_LATIN.get(ch, ch)
+        op_code = re.sub(r'[^A-Za-z0-9_\-\.]+', '-', res).strip('-').upper()[:45]
+
+    if not op_code:
+        op_code = "OP"
+
+    final_code = op_code
+    counter = 1
+    while Operation.objects.filter(code=final_code).exists():
+        suffix = f"-{counter}"
+        final_code = f"{op_code[:50-len(suffix)]}{suffix}"
+        counter += 1
+
+    if not order_number:
+        max_order = Operation.objects.aggregate(m=Max('order_number'))['m'] or 0
+        order_number = max_order + 1
+
+    try:
+        diff_val = float(difficulty) if difficulty else 1.0
+    except (ValueError, TypeError):
+        diff_val = 1.0
+
+    return Operation.objects.create(
+        code=final_code,
+        name=name,
+        description=description or "",
+        default_difficulty=diff_val,
+        order_number=order_number
+    )
+
+
 @superadmin_required
 def superadmin_pricing(request):
     """
@@ -1368,8 +1428,61 @@ def superadmin_pricing(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        # 0. TEZKOR AJAX ORQALI YANGI OPERATSIYA YARATISH (Modal ichida sahifani yangilamasdan)
+        if action == 'quick_create_operation':
+            op_name = request.POST.get('name', '').strip()
+            op_code = request.POST.get('code', '').strip()
+            diff_str = request.POST.get('difficulty', '1.0').strip()
+            if not op_name:
+                return JsonResponse({'success': False, 'error': "Operatsiya nomini kiritish shart!"}, status=400)
+            try:
+                diff_val = float(diff_str) if diff_str else 1.0
+            except Exception:
+                diff_val = 1.0
+            op = get_or_create_operation_safely(op_name, code=op_code, difficulty=diff_val)
+            return JsonResponse({
+                'success': True,
+                'operation': {
+                    'id': op.id,
+                    'code': op.code,
+                    'name': op.name,
+                    'default_difficulty': op.default_difficulty_display,
+                    'order_number': op.order_number,
+                }
+            })
+
+        # 0.1 KATALOGGA MUSTAQIL YANGI OPERATSIYA QO'SHISH
+        elif action == 'create_catalog_operation':
+            op_name = request.POST.get('name', '').strip()
+            op_code = request.POST.get('code', '').strip()
+            diff_str = request.POST.get('difficulty', '1.0').strip()
+            desc = request.POST.get('description', '').strip()
+            ord_str = request.POST.get('order_number', '').strip()
+            if not op_name:
+                messages.error(request, "Operatsiya nomini kiritish shart!")
+                return redirect('superadmin_pricing')
+
+            try:
+                ord_val = int(ord_str) if ord_str else None
+            except Exception:
+                ord_val = None
+            try:
+                diff_val = float(diff_str) if diff_str else 1.0
+            except Exception:
+                diff_val = 1.0
+
+            op = get_or_create_operation_safely(
+                op_name,
+                code=op_code,
+                difficulty=diff_val,
+                description=desc,
+                order_number=ord_val
+            )
+            messages.success(request, f"'{op.name}' ({op.code}) operatsiyasi katalogga muvaffaqiyatli qo'shildi!")
+            return redirect('superadmin_pricing')
+
         # 1. YANGI GURUH (SHABLON) YARATISH
-        if action == 'create_group':
+        elif action == 'create_group':
             name = request.POST.get('name', '').strip()
             description = request.POST.get('description', '').strip()
             selected_ops = request.POST.getlist('selected_operations')
@@ -1385,6 +1498,7 @@ def superadmin_pricing(request):
             group = OperationGroup.objects.create(name=name, description=description)
 
             added_count = 0
+            # Mavjud katalog operatsiyalaridan tanlanganlar
             for idx, op_id in enumerate(selected_ops, start=1):
                 try:
                     op = Operation.objects.get(id=op_id)
@@ -1402,6 +1516,49 @@ def superadmin_pricing(request):
                     added_count += 1
                 except Exception:
                     pass
+
+            # Shu paytning o'zida kiritilgan yangi maxsus operatsiyalar (agar bo'lsa)
+            new_op_names = request.POST.getlist('new_op_name[]')
+            new_op_codes = request.POST.getlist('new_op_code[]')
+            new_op_prices = request.POST.getlist('new_op_price[]')
+            new_op_diffs = request.POST.getlist('new_op_difficulty[]')
+            new_op_seqs = request.POST.getlist('new_op_sequence[]')
+
+            for idx, n_name in enumerate(new_op_names):
+                n_name = n_name.strip()
+                if not n_name:
+                    continue
+                n_code = new_op_codes[idx].strip() if idx < len(new_op_codes) else ''
+                n_price_str = new_op_prices[idx].strip() if idx < len(new_op_prices) else '0'
+                n_diff_str = new_op_diffs[idx].strip() if idx < len(new_op_diffs) else '1.0'
+                n_seq_str = new_op_seqs[idx].strip() if idx < len(new_op_seqs) else str(group.items.count() + 1)
+
+                try:
+                    d_val = float(n_diff_str or 1.0)
+                except Exception:
+                    d_val = 1.0
+
+                new_op_obj = get_or_create_operation_safely(n_name, code=n_code, difficulty=d_val)
+                if new_op_obj:
+                    try:
+                        p_val = Decimal(n_price_str or '0')
+                    except Exception:
+                        p_val = Decimal('0.00')
+                    try:
+                        s_val = int(n_seq_str)
+                    except Exception:
+                        s_val = group.items.count() + 1
+
+                    OperationGroupItem.objects.update_or_create(
+                        group=group,
+                        operation=new_op_obj,
+                        defaults={
+                            'price_per_unit': p_val,
+                            'sequence': s_val,
+                            'difficulty': d_val,
+                        }
+                    )
+                    added_count += 1
 
             messages.success(request, f"'{group.name}' operatsiyalar guruhi yaratildi ({added_count} ta operatsiya bilan).")
             return redirect('superadmin_pricing')
@@ -1437,15 +1594,21 @@ def superadmin_pricing(request):
             )
             return redirect('superadmin_pricing')
 
-        # 3. MAVJUD GURUHGA YANGI OPERATSIYA QO'SHISH
+        # 3. MAVJUD GURUHGA OPERATSIYA QO'SHISH (Mavjudini tanlash yoki yangisini yaratish)
         elif action == 'add_op_to_group':
             group_id = request.POST.get('group_id')
             group = get_object_or_404(OperationGroup, id=group_id)
-            op_id = request.POST.get('operation_id')
-            op = get_object_or_404(Operation, id=op_id)
             price = Decimal(request.POST.get('price_per_unit', '0').strip() or '0')
             seq = int(request.POST.get('sequence', group.items.count() + 1))
             diff = float(request.POST.get('difficulty', 1.0) or 1.0)
+
+            new_op_name = request.POST.get('new_op_name', '').strip()
+            if new_op_name:
+                new_op_code = request.POST.get('new_op_code', '').strip()
+                op = get_or_create_operation_safely(new_op_name, code=new_op_code, difficulty=diff)
+            else:
+                op_id = request.POST.get('operation_id')
+                op = get_object_or_404(Operation, id=op_id)
 
             item, created = OperationGroupItem.objects.update_or_create(
                 group=group,
@@ -1532,11 +1695,13 @@ def superadmin_pricing(request):
     groups = OperationGroup.objects.prefetch_related('items__operation', 'articles').order_by('name')
     catalog_operations = Operation.objects.all().order_by('order_number', 'code')
     articles = Article.objects.all().select_related('operation_group').prefetch_related('article_operations__operation').order_by('code')
+    next_order_number = (Operation.objects.aggregate(m=Max('order_number'))['m'] or 0) + 1
 
     return render(request, 'superadmin/pricing.html', {
         'groups': groups,
         'catalog_operations': catalog_operations,
         'articles': articles,
+        'next_order_number': next_order_number,
     })
 
 

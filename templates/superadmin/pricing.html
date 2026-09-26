@@ -32,10 +32,14 @@
                 Guruhda biror narx o'zgarsa, unga ulangan barcha artikullar va barcha biletlar avtomatik yangilanadi.
             </p>
         </div>
-        <div class="flex items-center gap-3 flex-shrink-0">
-            <button onclick="openCreateGroupModal()"
-                class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2">
-                <i class="fa-solid fa-plus text-sm"></i> Yangi Guruh (Shablon) Yaratish
+        <div class="flex items-center gap-3 flex-shrink-0 flex-wrap">
+            <button type="button" onclick="openCreateCatalogOpModal()"
+                class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-black rounded-xl transition flex items-center gap-2 cursor-pointer shadow">
+                <i class="fa-solid fa-plus-circle text-emerald-400 text-sm"></i> Yangi Operatsiya (Katalogga)
+            </button>
+            <button type="button" onclick="openCreateGroupModal()"
+                class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-layer-group text-sm"></i> Yangi Guruh (Shablon) Yaratish
             </button>
         </div>
     </div>
@@ -232,23 +236,86 @@
             </div>
 
             <!-- Operations Search & Selection Toolbar -->
-            <div class="flex items-center justify-between gap-3 flex-shrink-0">
-                <div class="relative flex-1">
-                    <i
-                        class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                    <input type="text" id="create-op-search" oninput="filterCreateOps(this.value)"
-                        placeholder="Operatsiyalarni qidirish..."
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+            <div class="space-y-3 flex-shrink-0">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="relative flex-1 min-w-[200px]">
+                        <i
+                            class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="create-op-search" oninput="filterCreateOps(this.value)"
+                            placeholder="Operatsiyalarni qidirish (masalan: Beka, Yelka...)..."
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="toggleInlineNewOpBox()"
+                            class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-xs font-black text-white flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-plus-circle text-sm"></i> + Yangi Operatsiya Qo'shish
+                        </button>
+                        <button type="button" onclick="toggleAllCreateOps(true)"
+                            class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition">
+                            Barchasi
+                        </button>
+                        <button type="button" onclick="toggleAllCreateOps(false)"
+                            class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 transition">
+                            Tozalash
+                        </button>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="toggleAllCreateOps(true)"
-                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
-                        Barchasini tanlash
-                    </button>
-                    <button type="button" onclick="toggleAllCreateOps(false)"
-                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400">
-                        Tozalash
-                    </button>
+
+                <!-- Inline Quick New Operation Form inside Create Group Modal -->
+                <div id="inline-new-op-box" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-4 space-y-3 shadow-xl shadow-emerald-950/30 transition-all duration-200">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold text-emerald-400 flex items-center gap-2">
+                            <i class="fa-solid fa-sparkles"></i> Katalogda yo'q yangi operatsiyani shu yerning o'zida kiritish:
+                        </span>
+                        <button type="button" onclick="toggleInlineNewOpBox(false)" class="text-slate-500 hover:text-white text-xs p-1">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                        <div class="sm:col-span-4">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Operatsiya Nomi <span class="text-rose-400">*</span>
+                            </label>
+                            <input type="text" id="inline_op_name" placeholder="Masalan: BEKA 0.5 yoki YOQA TIKISH"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Kodi (Ixtiyoriy)
+                            </label>
+                            <input type="text" id="inline_op_code" placeholder="Avto generatsiya"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-emerald-500 uppercase">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Qiyinlik
+                            </label>
+                            <input type="number" id="inline_op_diff" value="1" step="any" min="0"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-indigo-400 font-mono text-center focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Dona Narxi (UZS)
+                            </label>
+                            <input type="number" id="inline_op_price" value="0" min="0" step="1"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-emerald-400 font-black digital-font text-right focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="text-[11px] text-slate-500">
+                            Yangi operatsiya avtomatik katalogga qo'shiladi va ushbu guruh jadvaliga tanlangan holda joylashtiriladi.
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="toggleInlineNewOpBox(false)"
+                                class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold rounded-lg transition">
+                                Bekor qilish
+                            </button>
+                            <button type="button" onclick="submitInlineQuickOp()" id="btn-submit-inline-op"
+                                class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black rounded-lg transition shadow flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-check"></i> <span>Guruhga Qo'shish</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -297,11 +364,19 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="5" class="py-6 text-center text-slate-500 italic">Katalogda operatsiyalar
-                                topilmadi.</td>
+                        <tr class="no-ops-row">
+                            <td colspan="5" class="py-6 text-center text-slate-500 italic">Katalogda operatsiyalar topilmadi.</td>
                         </tr>
                         {% endfor %}
+                        <tr id="create-ops-search-empty" class="hidden">
+                            <td colspan="5" class="py-8 text-center space-y-2 bg-slate-900/50">
+                                <p class="text-xs text-slate-400 font-semibold" id="empty-search-msg">Operatsiya topilmadi.</p>
+                                <button type="button" onclick="quickCreateFromSearch()"
+                                    class="px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 cursor-pointer shadow">
+                                    <i class="fa-solid fa-plus-circle text-emerald-400"></i> <span id="empty-search-btn-text">Ushbu nom bilan yangi operatsiya yaratish</span>
+                                </button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -415,15 +490,50 @@
                     class="text-sm font-bold text-white bg-slate-950 p-2.5 rounded-xl border border-slate-800"></div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiyani
-                    tanlang</label>
-                <select name="operation_id" required
+            <!-- Mode Switcher -->
+            <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button type="button" id="tab-add-op-existing" onclick="switchAddOpMode('existing')"
+                    class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-amber-400 transition text-center cursor-pointer">
+                    Mavjudidan tanlash
+                </button>
+                <button type="button" id="tab-add-op-new" onclick="switchAddOpMode('new')"
+                    class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition text-center cursor-pointer">
+                    + Yangi yaratish
+                </button>
+            </div>
+
+            <div id="add-op-existing-sec">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Operatsiyani tanlang
+                </label>
+                <select name="operation_id" id="add-op-select"
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
                     {% for op in catalog_operations %}
                     <option value="{{ op.id }}">{{ op.name }} ({{ op.code }})</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div id="add-op-new-sec" class="hidden space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
+                        Yangi Operatsiya Nomi <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="text" name="new_op_name" id="add-op-new-name" placeholder="Masalan: BEKA 0.5"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-bold focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kodi (Ixtiyoriy)</label>
+                        <input type="text" name="new_op_code" placeholder="Avto generatsiya"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-emerald-500 uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Qiyinlik</label>
+                        <input type="number" name="difficulty" value="1" step="any" min="0"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-indigo-400 font-mono text-center focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -454,7 +564,89 @@
     </div>
 </div>
 
+<!-- Modal: Create Catalog Operation Standalone -->
+<div id="create-catalog-op-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-emerald-400"></i> Katalogga Yangi Operatsiya Qo'shish
+            </h3>
+            <button type="button" onclick="closeCreateCatalogOpModal()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_pricing' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_catalog_operation">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Operatsiya Nomi <span class="text-rose-400">*</span>
+                </label>
+                <input type="text" name="name" required placeholder="Masalan: BEKA 0.5 yoki YENG TIKISH"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:outline-none focus:border-emerald-500">
+                <p class="text-[10px] text-slate-500 mt-1">Ushbu operatsiya katalogga saqlanadi va barcha guruhlar va modellar uchun ochiq bo'ladi</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Kodi (Ixtiyoriy)
+                    </label>
+                    <input type="text" name="code" placeholder="Avto generatsiya"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono uppercase focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Qiyinlik (Koeffitsient)
+                    </label>
+                    <input type="number" name="difficulty" value="1" step="any" min="0"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-indigo-400 font-mono text-center focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Tartib №
+                    </label>
+                    <input type="number" name="order_number" value="{{ next_order_number|default:1 }}" min="1"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono text-center focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Tavsif (Ixtiyoriy)
+                    </label>
+                    <input type="text" name="description" placeholder="Qisqacha izoh..."
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button type="button" onclick="closeCreateCatalogOpModal()"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-lg shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-check"></i> Saqlash
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    function openCreateCatalogOpModal() {
+        document.getElementById('create-catalog-op-modal').classList.remove('hidden');
+    }
+
+    function closeCreateCatalogOpModal() {
+        document.getElementById('create-catalog-op-modal').classList.add('hidden');
+    }
+
     function openCreateGroupModal() {
         document.getElementById('create-group-modal').classList.remove('hidden');
         updateCreateSelectedCount();
@@ -462,6 +654,157 @@
 
     function closeCreateGroupModal() {
         document.getElementById('create-group-modal').classList.add('hidden');
+        toggleInlineNewOpBox(false);
+    }
+
+    function toggleInlineNewOpBox(force) {
+        const box = document.getElementById('inline-new-op-box');
+        if (!box) return;
+        const shouldShow = (typeof force === 'boolean') ? force : box.classList.contains('hidden');
+        if (shouldShow) {
+            box.classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('inline_op_name')?.focus();
+            }, 50);
+        } else {
+            box.classList.add('hidden');
+        }
+    }
+
+    function quickCreateFromSearch() {
+        const q = (document.getElementById('create-op-search')?.value || '').trim();
+        toggleInlineNewOpBox(true);
+        const nameInp = document.getElementById('inline_op_name');
+        if (nameInp) {
+            nameInp.value = q;
+            nameInp.focus();
+        }
+    }
+
+    function submitInlineQuickOp() {
+        const nameInput = document.getElementById('inline_op_name');
+        const name = (nameInput?.value || '').trim();
+        if (!name) {
+            alert("Operatsiya nomini kiriting!");
+            nameInput?.focus();
+            return;
+        }
+        const code = (document.getElementById('inline_op_code')?.value || '').trim();
+        const diff = (document.getElementById('inline_op_diff')?.value || '').trim() || '1';
+        const price = (document.getElementById('inline_op_price')?.value || '').trim() || '0';
+
+        const btn = document.getElementById('btn-submit-inline-op');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Qo'shilmoqda...`;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'quick_create_operation');
+        formData.append('name', name);
+        formData.append('code', code);
+        formData.append('difficulty', diff);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch("{% url 'superadmin_pricing' %}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Guruhga Qo'shish</span>`;
+            }
+
+            if (data.success && data.operation) {
+                const op = data.operation;
+                insertOpRowToCreateModal(op.id, op.code, op.name, op.default_difficulty, price);
+                if (nameInput) nameInput.value = '';
+                const codeInp = document.getElementById('inline_op_code');
+                if (codeInp) codeInp.value = '';
+                const priceInp = document.getElementById('inline_op_price');
+                if (priceInp) priceInp.value = '0';
+                toggleInlineNewOpBox(false);
+
+                // Clear search and filter so the newly added row shows up
+                const searchInp = document.getElementById('create-op-search');
+                if (searchInp) {
+                    searchInp.value = '';
+                    filterCreateOps('');
+                }
+            } else {
+                alert(data.error || "Xatolik yuz berdi!");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Guruhga Qo'shish</span>`;
+            }
+            alert("Operatsiyani saqlashda xatolik yuz berdi. Iltimos qaytadan urining.");
+        });
+    }
+
+    function insertOpRowToCreateModal(opId, opCode, opName, opDiff, opPrice) {
+        const tbody = document.getElementById('create-ops-tbody');
+        if (!tbody) return;
+
+        // Remove empty placeholder row if present
+        const emptyRow = tbody.querySelector('.no-ops-row');
+        if (emptyRow) emptyRow.remove();
+
+        // Check if row already exists
+        const existingChk = document.getElementById(`chk-op-${opId}`);
+        if (existingChk) {
+            existingChk.checked = true;
+            onOpCheckChanged(opId);
+            const tr = existingChk.closest('tr');
+            tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            tr.classList.add('bg-emerald-950/60');
+            return;
+        }
+
+        const currentRowsCount = tbody.querySelectorAll('.create-op-row').length;
+        const nextSeq = currentRowsCount + 1;
+
+        const tr = document.createElement('tr');
+        tr.className = 'create-op-row bg-emerald-950/40 border-l-4 border-emerald-500 hover:bg-slate-800/40 transition';
+        tr.innerHTML = `
+            <td class="py-2.5 px-3 text-center">
+                <input type="checkbox" name="selected_operations" value="${opId}"
+                    id="chk-op-${opId}" checked
+                    class="create-op-chk w-4 h-4 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-0 cursor-pointer"
+                    onchange="onOpCheckChanged(${opId})">
+            </td>
+            <td class="py-2.5 px-3 text-center">
+                <input type="number" name="sequence_${opId}" value="${nextSeq}" min="1"
+                    class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center text-white font-mono focus:outline-none focus:border-amber-500">
+            </td>
+            <td class="py-2.5 px-3">
+                <label for="chk-op-${opId}" class="cursor-pointer block">
+                    <span class="font-bold text-white text-sm op-name-text">${opName}</span>
+                    <span class="text-xs text-amber-400/80 font-mono ml-1.5">(${opCode})</span>
+                    <span class="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">Yangi</span>
+                </label>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+                <input type="number" name="difficulty_${opId}"
+                    value="${opDiff || '1'}" step="any" min="0"
+                    class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center text-indigo-400 font-mono focus:outline-none focus:border-indigo-500">
+            </td>
+            <td class="py-2.5 px-4 text-right">
+                <input type="number" name="price_${opId}" value="${opPrice || 0}" min="0" step="1"
+                    class="w-32 bg-slate-900 border border-emerald-500/60 rounded-lg px-2.5 py-1 text-xs text-right text-emerald-400 font-black digital-font text-sm focus:outline-none focus:border-emerald-500">
+            </td>
+        `;
+        tbody.insertBefore(tr, tbody.firstChild);
+        tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        updateCreateSelectedCount();
     }
 
     function openEditItemModal(id, groupName, opName, price, seq, diff) {
@@ -476,7 +819,38 @@
     function openAddOpToGroupModal(groupId, groupName) {
         document.getElementById('add-op-group-id').value = groupId;
         document.getElementById('add-op-group-title').innerText = groupName;
+        switchAddOpMode('existing');
         document.getElementById('add-op-modal').classList.remove('hidden');
+    }
+
+    function switchAddOpMode(mode) {
+        const existingSec = document.getElementById('add-op-existing-sec');
+        const newSec = document.getElementById('add-op-new-sec');
+        const tabExisting = document.getElementById('tab-add-op-existing');
+        const tabNew = document.getElementById('tab-add-op-new');
+        const sel = document.getElementById('add-op-select');
+        const newNameInp = document.getElementById('add-op-new-name');
+
+        if (mode === 'new') {
+            existingSec.classList.add('hidden');
+            newSec.classList.remove('hidden');
+            tabNew.classList.add('bg-slate-800', 'text-emerald-400');
+            tabNew.classList.remove('text-slate-400');
+            tabExisting.classList.remove('bg-slate-800', 'text-amber-400');
+            tabExisting.classList.add('text-slate-400');
+            sel.removeAttribute('required');
+            newNameInp.setAttribute('required', 'required');
+            setTimeout(() => newNameInp.focus(), 50);
+        } else {
+            newSec.classList.add('hidden');
+            existingSec.classList.remove('hidden');
+            tabExisting.classList.add('bg-slate-800', 'text-amber-400');
+            tabExisting.classList.remove('text-slate-400');
+            tabNew.classList.remove('bg-slate-800', 'text-emerald-400');
+            tabNew.classList.add('text-slate-400');
+            newNameInp.removeAttribute('required');
+            sel.setAttribute('required', 'required');
+        }
     }
 
     function onOpCheckChanged(opId) {
@@ -500,14 +874,27 @@
 
     function filterCreateOps(query) {
         const q = (query || '').toLowerCase().trim();
+        let matchCount = 0;
         document.querySelectorAll('.create-op-row').forEach(row => {
             const text = row.querySelector('.op-name-text')?.innerText?.toLowerCase() || '';
             if (!q || text.includes(q)) {
                 row.style.display = '';
+                matchCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+
+        const emptySearchTr = document.getElementById('create-ops-search-empty');
+        if (emptySearchTr) {
+            if (q && matchCount === 0) {
+                emptySearchTr.classList.remove('hidden');
+                document.getElementById('empty-search-msg').innerText = `«${query}» bo'yicha katalogda operatsiya topilmadi.`;
+                document.getElementById('empty-search-btn-text').innerText = `+ «${query}» nomli yangi operatsiya yaratish`;
+            } else {
+                emptySearchTr.classList.add('hidden');
+            }
+        }
     }
 </script>
 {% endblock %}
