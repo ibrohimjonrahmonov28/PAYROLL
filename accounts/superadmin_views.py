@@ -361,17 +361,18 @@ def superadmin_users(request):
             new_branch = request.POST.get('branch')
             if new_branch in User.Branch.values:
                 user.branch = new_branch
-                if hasattr(user, 'worker_profile'):
-                    user.worker_profile.branch = new_branch
-                    user.worker_profile.save(update_fields=['branch'])
 
-            # Username o'zgartirish (agar kiritilgan bo'lsa)
-            new_username = request.POST.get('username', '').strip() or None
-            if new_username != user.username:
-                if new_username and User.objects.filter(username=new_username).exclude(id=user.id).exists():
-                    messages.error(request, f"'{new_username}' logini allaqachon boshqa foydalanuvchi tomonidan band qilingan!")
-                else:
-                    user.username = new_username
+            # Username o'zgartirish (faqat agar formda aniq mavjud va to'ldirilgan bo'lsa)
+            if 'username' in request.POST and request.POST.get('username', '').strip():
+                new_username = request.POST.get('username', '').strip()
+                if new_username != user.username:
+                    if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                        messages.error(request, f"'{new_username}' logini allaqachon boshqa foydalanuvchi tomonidan band qilingan!")
+                    else:
+                        user.username = new_username
+
+            if not user.username:
+                user.username = f"user_{user.uid or generate_unique_user_uid()}"
             
             old_role = user.role
             new_role = request.POST.get('role', user.role)
@@ -386,7 +387,7 @@ def superadmin_users(request):
                     parsed_tg = int(tg_id)
                     existing_tg = User.objects.filter(telegram_user_id=parsed_tg).exclude(id=user.id).first()
                     if existing_tg:
-                        messages.warning(request, f"Telegram ID {parsed_tg} allaqachon '{existing_tg.username}' foydalanuvchisiga biriktirilgan, shuning uchun Telegram ID saqlanmadi.")
+                        messages.warning(request, f"Telegram ID {parsed_tg} allaqachon '{existing_tg.username or existing_tg.get_full_name()}' foydalanuvchisiga biriktirilgan, shuning uchun Telegram ID saqlanmadi.")
                     else:
                         user.telegram_user_id = parsed_tg
                 except ValueError:
@@ -402,17 +403,20 @@ def superadmin_users(request):
             user.is_superuser = (user.role == User.Role.SUPER_ADMIN)
             user.save()
 
-            # Agar Worker profili bog'langan bo'lsa, ismi va telefonini ham sinxronlashtirish
-            worker = Worker.objects.filter(user=user).first()
+            # Agar Worker profili bog'langan bo'lsa, ismi, familiyasi, telefoni va filialini ham sinxronlashtirish
+            worker = getattr(user, 'worker_profile', None) or Worker.objects.filter(user=user).first()
             if worker:
                 worker.first_name = user.first_name
                 worker.last_name = user.last_name
                 worker.phone_number = user.phone_number
-                worker.save(update_fields=['first_name', 'last_name', 'phone_number'])
+                worker.branch = user.branch
+                worker.save(update_fields=['first_name', 'last_name', 'phone_number', 'branch'])
             elif user.role == User.Role.USER:
                 # Agar user_id bog'lanmagan worker bo'lsa, uni bog'lashga harakat qilamiz
-                w_code = user.username.replace('worker_', '').replace('_', '-').upper()
-                unlinked_worker = Worker.objects.filter(user__isnull=True, worker_id__iexact=w_code).first()
+                w_code = (user.username or '').replace('worker_', '').replace('_', '-').upper() if user.username else None
+                unlinked_worker = None
+                if w_code:
+                    unlinked_worker = Worker.objects.filter(user__isnull=True, worker_id__iexact=w_code).first()
                 if not unlinked_worker and user.phone_number:
                     unlinked_worker = Worker.objects.filter(user__isnull=True, phone_number=user.phone_number).first()
                 if unlinked_worker:
@@ -420,7 +424,8 @@ def superadmin_users(request):
                     unlinked_worker.first_name = user.first_name
                     unlinked_worker.last_name = user.last_name
                     unlinked_worker.phone_number = user.phone_number
-                    unlinked_worker.save(update_fields=['user', 'first_name', 'last_name', 'phone_number'])
+                    unlinked_worker.branch = user.branch
+                    unlinked_worker.save(update_fields=['user', 'first_name', 'last_name', 'phone_number', 'branch'])
 
             messages.success(request, f"{user.get_full_name() or user.username or 'Foydalanuvchi'} ma'lumotlari muvaffaqiyatli yangilandi.")
 

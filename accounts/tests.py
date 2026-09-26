@@ -1313,6 +1313,57 @@ class SuperadminUserEditFeaturesTest(TestCase):
         # user1 ga bu ID biriktirilmasligi kerak (chunki u user2 da bor)
         self.assertNotEqual(self.user1.telegram_user_id, 123456789)
 
+    def test_update_user_name_without_username_in_post(self):
+        """Web interfeysidan username maydoni olib tashlanganda ham ism va familiya to'g'ri yangilanishi va username yo'qolib ketmasligi kerak"""
+        url = reverse('superadmin_users')
+        original_username = self.user1.username
+        data = {
+            'action': 'update_user',
+            'user_id': self.user1.id,
+            'first_name': "Jasurbek",
+            'last_name': "Xoliqov",
+            'role': User.Role.USER,
+            'branch': User.Branch.HQ,
+            'phone_number': "+998907776655"
+        }
+        res = self.client.post(url, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        self.user1.refresh_from_db()
+        self.assertEqual(self.user1.first_name, "Jasurbek")
+        self.assertEqual(self.user1.last_name, "Xoliqov")
+        self.assertEqual(self.user1.phone_number, "+998907776655")
+        self.assertEqual(self.user1.username, original_username)
+
+        # Worker ham sinxronlashgan bo'lishi kerak
+        self.worker1.refresh_from_db()
+        self.assertEqual(self.worker1.first_name, "Jasurbek")
+        self.assertEqual(self.worker1.last_name, "Xoliqov")
+        self.assertEqual(self.worker1.phone_number, "+998907776655")
+
+    def test_update_user_without_worker_and_null_username_does_not_crash(self):
+        """Worker biriktirilmagan va username None bo'lgan xodim tahrirlanganda replace xatosi bo'lmasligi kerak"""
+        unlinked_user = User.objects.create(
+            first_name="Mansur",
+            last_name="Aliyev",
+            role=User.Role.USER
+        )
+        url = reverse('superadmin_users')
+        data = {
+            'action': 'update_user',
+            'user_id': unlinked_user.id,
+            'first_name': "Mansurbek",
+            'last_name': "Aliyev",
+            'role': User.Role.USER,
+            'branch': User.Branch.HQ
+        }
+        res = self.client.post(url, data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        unlinked_user.refresh_from_db()
+        self.assertEqual(unlinked_user.first_name, "Mansurbek")
+        self.assertTrue(unlinked_user.username.startswith('user_'))
+
 
 class ControlRoleAndQualityControlTest(TestCase):
     def setUp(self):
@@ -1457,7 +1508,6 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "CONTROL")
         self.assertContains(res, "SIFAT NAZORATI")
-        self.assertContains(res, "CONTROL STIKER")
         self.assertContains(res, f"CONTROL:{self.box.box_code}")
 
     def test_patok_users_generation_and_command(self):

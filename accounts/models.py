@@ -96,7 +96,12 @@ class User(AbstractUser):
         if not self.uid:
             self.uid = generate_unique_user_uid()
         if not self.username:
-            self.username = None
+            candidate = f"user_{self.uid}"
+            suffix = 1
+            while User.objects.filter(username=candidate).exclude(id=self.id).exists():
+                candidate = f"user_{self.uid}_{suffix}"
+                suffix += 1
+            self.username = candidate
         if not self.qr_code:
             self.generate_qr_code()
         super().save(*args, **kwargs)
@@ -142,7 +147,7 @@ class User(AbstractUser):
         """
         if self.role == self.Role.SCREEN:
             import re
-            match = re.search(r'\d+', self.username)
+            match = re.search(r'\d+', self.username or '')
             if match:
                 try:
                     num = int(match.group())
@@ -237,21 +242,24 @@ class Worker(models.Model):
             self.user = new_user
         else:
             # Agar ishchining ma'lumotlari o'zgarsa, user hisobini ham yangilash
-            update_user_fields = []
-            if self.user.first_name != self.first_name:
-                self.user.first_name = self.first_name
-                update_user_fields.append('first_name')
-            if self.user.last_name != self.last_name:
-                self.user.last_name = self.last_name
-                update_user_fields.append('last_name')
-            if self.user.phone_number != self.phone_number:
-                self.user.phone_number = self.phone_number
-                update_user_fields.append('phone_number')
-            if self.user.branch != self.branch:
-                self.user.branch = self.branch
-                update_user_fields.append('branch')
-            if update_user_fields:
-                self.user.save(update_fields=update_user_fields)
+            if self.user:
+                update_fields_arg = kwargs.get('update_fields')
+                update_fields_set = set(update_fields_arg) if update_fields_arg is not None else None
+                update_user_fields = []
+                if (update_fields_set is None or 'first_name' in update_fields_set) and self.user.first_name != self.first_name:
+                    self.user.first_name = self.first_name
+                    update_user_fields.append('first_name')
+                if (update_fields_set is None or 'last_name' in update_fields_set) and self.user.last_name != self.last_name:
+                    self.user.last_name = self.last_name
+                    update_user_fields.append('last_name')
+                if (update_fields_set is None or 'phone_number' in update_fields_set) and self.user.phone_number != self.phone_number:
+                    self.user.phone_number = self.phone_number
+                    update_user_fields.append('phone_number')
+                if (update_fields_set is None or 'branch' in update_fields_set) and self.user.branch != self.branch:
+                    self.user.branch = self.branch
+                    update_user_fields.append('branch')
+                if update_user_fields:
+                    self.user.save(update_fields=update_user_fields)
 
         if not self.qr_code:
             self.generate_qr_code()

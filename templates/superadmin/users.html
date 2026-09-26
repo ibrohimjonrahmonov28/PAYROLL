@@ -131,7 +131,8 @@
                     {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
                     {% if badge_filter %}<input type="hidden" name="badge" value="{{ badge_filter }}">{% endif %}
                     <div class="relative w-full lg:w-56">
-                        <input type="text" name="q" value="{{ search_q }}" placeholder="Qidirish (ism, familiya, UID, telefon)..."
+                        <input type="text" name="q" value="{{ search_q }}"
+                            placeholder="Qidirish (ism, familiya, UID, telefon)..."
                             class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
                         <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
                     </div>
@@ -300,7 +301,9 @@
                                     </div>
                                     {% if u.phone_number or u.email %}
                                     <span class="text-slate-400 text-xs">
-                                        {% if u.phone_number %}<i class="fa-solid fa-phone text-[10px] text-slate-500 mr-1"></i>{{ u.phone_number }}{% endif %}
+                                        {% if u.phone_number %}<i
+                                            class="fa-solid fa-phone text-[10px] text-slate-500 mr-1"></i>{{
+                                        u.phone_number }}{% endif %}
                                         {% if u.phone_number and u.email %} • {% endif %}
                                         {% if u.email %}{{ u.email }}{% endif %}
                                     </span>
@@ -391,7 +394,7 @@
 
                                 <!-- Tezkor rol o'zgartirish tugmasi -->
                                 <button
-                                    onclick="openChangeRoleModal({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.role|escapejs }}', '{{ u.get_full_name|default:u.username|escapejs }}')"
+                                    onclick="openChangeRoleModal({{ u.id }}, '{{ u.username|default:''|escapejs }}', '{{ u.role|escapejs }}', '{{ u.get_full_name|default:u.username|default:'Foydalanuvchi'|escapejs }}')"
                                     title="Rolni tezkor o'zgartirish"
                                     class="p-1 rounded-md text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition">
                                     <i class="fa-solid fa-arrows-rotate text-xs"></i>
@@ -461,9 +464,9 @@
                             <!-- Tahrirlash -->
                             <button type="button"
                                 class="btn-edit-user px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-slate-700 transition"
-                                title="Tahrirlash" data-user-id="{{ u.id }}" data-username="{{ u.username }}"
-                                data-first-name="{{ u.first_name }}" data-last-name="{{ u.last_name }}"
-                                data-email="{{ u.email }}" data-role="{{ u.role }}" data-phone="{{ u.phone_number }}"
+                                title="Tahrirlash" data-user-id="{{ u.id }}" data-username="{{ u.username|default:'' }}"
+                                data-first-name="{{ u.first_name|default:'' }}" data-last-name="{{ u.last_name|default:'' }}"
+                                data-email="{{ u.email|default:'' }}" data-role="{{ u.role }}" data-phone="{{ u.phone_number|default:'' }}"
                                 data-tg-id="{{ u.telegram_user_id|default:'' }}" data-branch="{{ u.branch }}"
                                 onclick="openEditUserModalFromBtn(this)">
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -490,7 +493,7 @@
                             <!-- O'CHIRISH (DELETE) -->
                             {% if u != request.user %}
                             <button type="button"
-                                onclick="openDeleteUserModal({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.get_full_name|default:u.username|escapejs }}', '{{ u.get_role_display|escapejs }}')"
+                                onclick="openDeleteUserModal({{ u.id }}, '{{ u.username|default:''|escapejs }}', '{{ u.get_full_name|default:u.username|default:'Foydalanuvchi'|escapejs }}', '{{ u.get_role_display|escapejs }}')"
                                 class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-bold transition"
                                 title="Foydalanuvchini o'chirish">
                                 <i class="fa-solid fa-trash-can"></i>
