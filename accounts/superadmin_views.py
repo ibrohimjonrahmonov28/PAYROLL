@@ -1502,22 +1502,67 @@ def superadmin_pricing(request):
             for idx, op_id in enumerate(selected_ops, start=1):
                 try:
                     op = Operation.objects.get(id=op_id)
-                    seq = int(request.POST.get(f'sequence_{op_id}', idx))
-                    price = Decimal(request.POST.get(f'price_{op_id}', '0').strip() or '0')
-                    diff = float(request.POST.get(f'difficulty_{op_id}', 1.0) or 1.0)
+                    seq_raw = request.POST.get(f'sequence_{op_id}', idx)
+                    try:
+                        seq = int(seq_raw)
+                    except Exception:
+                        seq = idx
 
-                    OperationGroupItem.objects.create(
+                    price_raw = request.POST.get(f'price_{op_id}', '0').strip().replace(' ', '').replace(',', '.')
+                    try:
+                        price = Decimal(price_raw or '0')
+                    except Exception:
+                        price = Decimal('0.00')
+
+                    diff_raw = request.POST.get(f'difficulty_{op_id}', '1.0').strip().replace(',', '.')
+                    try:
+                        diff = float(diff_raw or 1.0)
+                    except Exception:
+                        diff = 1.0
+
+                    OperationGroupItem.objects.update_or_create(
                         group=group,
                         operation=op,
-                        sequence=seq,
-                        price_per_unit=price,
-                        difficulty=diff
+                        defaults={
+                            'sequence': seq,
+                            'price_per_unit': price,
+                            'difficulty': diff,
+                        }
                     )
                     added_count += 1
                 except Exception:
                     pass
 
-            # Shu paytning o'zida kiritilgan yangi maxsus operatsiyalar (agar bo'lsa)
+            # Shu paytning o'zida kiritilgan yangi maxsus operatsiyalar (inline formadan)
+            inline_name = request.POST.get('inline_new_op_name', '').strip()
+            if inline_name:
+                inline_code = request.POST.get('inline_new_op_code', '').strip()
+                inline_diff_raw = request.POST.get('inline_new_op_diff', '1.0').strip().replace(',', '.')
+                inline_price_raw = request.POST.get('inline_new_op_price', '0').strip().replace(' ', '').replace(',', '.')
+                try:
+                    i_diff = float(inline_diff_raw or 1.0)
+                except Exception:
+                    i_diff = 1.0
+                try:
+                    i_price = Decimal(inline_price_raw or '0')
+                except Exception:
+                    i_price = Decimal('0.00')
+
+                inline_op = get_or_create_operation_safely(inline_name, code=inline_code, difficulty=i_diff)
+                if inline_op:
+                    next_s = group.items.count() + 1
+                    OperationGroupItem.objects.update_or_create(
+                        group=group,
+                        operation=inline_op,
+                        defaults={
+                            'sequence': next_s,
+                            'price_per_unit': i_price,
+                            'difficulty': i_diff,
+                        }
+                    )
+                    added_count += 1
+
+            # Massiv sifatida yuborilgan new_op_name[] bo'lsa
             new_op_names = request.POST.getlist('new_op_name[]')
             new_op_codes = request.POST.getlist('new_op_code[]')
             new_op_prices = request.POST.getlist('new_op_price[]')
@@ -1529,8 +1574,8 @@ def superadmin_pricing(request):
                 if not n_name:
                     continue
                 n_code = new_op_codes[idx].strip() if idx < len(new_op_codes) else ''
-                n_price_str = new_op_prices[idx].strip() if idx < len(new_op_prices) else '0'
-                n_diff_str = new_op_diffs[idx].strip() if idx < len(new_op_diffs) else '1.0'
+                n_price_str = (new_op_prices[idx].strip().replace(' ', '').replace(',', '.')) if idx < len(new_op_prices) else '0'
+                n_diff_str = (new_op_diffs[idx].strip().replace(',', '.')) if idx < len(new_op_diffs) else '1.0'
                 n_seq_str = new_op_seqs[idx].strip() if idx < len(new_op_seqs) else str(group.items.count() + 1)
 
                 try:
@@ -1560,7 +1605,31 @@ def superadmin_pricing(request):
                     )
                     added_count += 1
 
-            messages.success(request, f"'{group.name}' operatsiyalar guruhi yaratildi ({added_count} ta operatsiya bilan).")
+            messages.success(request, f"'{group.name}' operatsiyalar guruhi muvaffaqiyatli yaratildi ({added_count} ta operatsiya bilan).")
+            return redirect('superadmin_pricing')
+
+        # 1.1 GURUH NOMINI VA TAVSIFINI TAHRIRLASH
+        elif action == 'update_group':
+            group_id = request.POST.get('group_id')
+            group = get_object_or_404(OperationGroup, id=group_id)
+            new_name = request.POST.get('name', '').strip()
+            new_desc = request.POST.get('description', '').strip()
+
+            if not new_name:
+                messages.error(request, "Guruh nomini kiritish shart!")
+                return redirect('superadmin_pricing')
+
+            # Nom takrorlanmasligi kerak (boshqa guruhlarda)
+            if OperationGroup.objects.filter(name__iexact=new_name).exclude(id=group.id).exists():
+                messages.error(request, f"'{new_name}' nomli boshqa guruh allaqachon mavjud!")
+                return redirect('superadmin_pricing')
+
+            old_name = group.name
+            group.name = new_name
+            group.description = new_desc
+            group.save(update_fields=['name', 'description'])
+
+            messages.success(request, f"Guruh nomi muvaffaqiyatli yangilandi: '{old_name}' ➔ '{group.name}'")
             return redirect('superadmin_pricing')
 
         # 2. GURUH OPERATSIYASI NARXINI / TARTIBINI O'ZGARTIRISH
@@ -1573,7 +1642,7 @@ def superadmin_pricing(request):
 
             if price is not None:
                 try:
-                    item.price_per_unit = Decimal(price.strip() or '0')
+                    item.price_per_unit = Decimal(price.strip().replace(' ', '').replace(',', '.') or '0')
                 except Exception:
                     pass
             if seq:
@@ -1583,7 +1652,7 @@ def superadmin_pricing(request):
                     pass
             if diff:
                 try:
-                    item.difficulty = float(diff)
+                    item.difficulty = float(diff.strip().replace(',', '.'))
                 except Exception:
                     pass
 
@@ -1598,9 +1667,23 @@ def superadmin_pricing(request):
         elif action == 'add_op_to_group':
             group_id = request.POST.get('group_id')
             group = get_object_or_404(OperationGroup, id=group_id)
-            price = Decimal(request.POST.get('price_per_unit', '0').strip() or '0')
-            seq = int(request.POST.get('sequence', group.items.count() + 1))
-            diff = float(request.POST.get('difficulty', 1.0) or 1.0)
+
+            price_raw = request.POST.get('price_per_unit', '0').strip().replace(' ', '').replace(',', '.')
+            try:
+                price = Decimal(price_raw or '0')
+            except Exception:
+                price = Decimal('0.00')
+
+            try:
+                seq = int(request.POST.get('sequence', group.items.count() + 1))
+            except Exception:
+                seq = group.items.count() + 1
+
+            diff_raw = request.POST.get('difficulty', '1.0').strip().replace(',', '.')
+            try:
+                diff = float(diff_raw or 1.0)
+            except Exception:
+                diff = 1.0
 
             new_op_name = request.POST.get('new_op_name', '').strip()
             if new_op_name:
@@ -1619,7 +1702,10 @@ def superadmin_pricing(request):
                     'difficulty': diff,
                 }
             )
-            messages.success(request, f"'{op.name}' operatsiyasi '{group.name}' guruhiga qo'shildi.")
+            if created:
+                messages.success(request, f"'{op.name}' operatsiyasi '{group.name}' guruhiga qo'shildi ({price:,.0f} UZS).")
+            else:
+                messages.info(request, f"'{op.name}' operatsiyasi '{group.name}' guruhida mavjud edi — uning narxi {price:,.0f} UZS va tartibi yangilandi.")
             return redirect('superadmin_pricing')
 
         # 4. GURUHDAN OPERATSIYANI O'CHIRISH

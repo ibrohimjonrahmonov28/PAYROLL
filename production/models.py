@@ -259,7 +259,7 @@ class OperationGroup(models.Model):
 
     @property
     def total_unit_rate(self):
-        return sum(item.price_per_unit for item in self.items.all())
+        return sum((item.price_per_unit or Decimal('0.00')) for item in self.items.all())
 
     def sync_to_articles(self):
         """Ushbu guruhga ulangan barcha artikullarga operatsiyalarni sinxronlash"""
