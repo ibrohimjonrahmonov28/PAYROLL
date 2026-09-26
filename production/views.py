@@ -594,11 +594,13 @@ def articles_catalog_view(request):
                         seq += 1
                 messages.success(request, f"Model {code} muvaffaqiyatli yaratildi ({len(checked_operations)} ta operatsiya bilan).")
         elif action == 'create_operation':
-            code = request.POST.get('code', '').strip()
             name = request.POST.get('name', '').strip()
-            if code and name:
-                Operation.objects.create(code=code, name=name)
-                messages.success(request, f"Operatsiya {code} - {name} katalogga qo'shildi.")
+            code = request.POST.get('code', '').strip().upper()
+            if not code and name:
+                code = name.upper()[:50]
+            if name:
+                op = Operation.objects.create(code=code, name=name)
+                messages.success(request, f"Operatsiya {op.code} - {op.name} katalogga qo'shildi.")
         elif action == 'link_operation':
             article_id = request.POST.get('article_id')
             operation_id = request.POST.get('operation_id')

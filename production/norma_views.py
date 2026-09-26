@@ -402,8 +402,10 @@ def norma_model_delete_operation(request, model_id: int, mo_id: int):
 def norma_operations_catalog(request):
     """Barcha mavjud operatsiyalar katalogi"""
     if request.method == 'POST':
-        code = request.POST.get('code', '').strip().upper()
         name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip().upper()
+        if not code and name:
+            code = name.upper()[:50]
         order_number_str = request.POST.get('order_number', '1').strip()
         difficulty_str = request.POST.get('default_difficulty', '1.0').strip()
         description = request.POST.get('description', '').strip()
@@ -415,8 +417,8 @@ def norma_operations_catalog(request):
             order_number = 1
             difficulty = 1.0
 
-        if not code or not name:
-            messages.error(request, "Operatsiya kodi va nomi to'ldirilishi shart!")
+        if not name:
+            messages.error(request, "Operatsiya nomi kiritilishi shart!")
         elif Operation.objects.filter(code=code).exists():
             messages.error(request, f"'{code}' kodli operatsiya allaqachon mavjud!")
         else:
@@ -747,8 +749,7 @@ def norma_canvas_save(request):
 
             code = str(op_item.get('code', '')).strip().upper()
             if not code:
-                import re
-                code = re.sub(r'[^A-Za-z0-9]', '', name.upper())[:20] or f"OP_{idx}"
+                code = name.upper()[:50]
 
             try:
                 seq = int(op_item.get('sequence', idx))
@@ -973,8 +974,7 @@ def norma_canvas_save(request):
                 return JsonResponse({'success': False, 'error': f"{idx}-operatsiyaning nomi kiritilishi shart!"}, status=400)
             code = str(op_item.get('code', '')).strip().upper()
             if not code:
-                import re
-                code = re.sub(r'[^A-Za-z0-9]', '', name.upper())[:20] or f"OP_{idx}"
+                code = name.upper()[:50]
 
             try:
                 seq = int(op_item.get('sequence', idx))

@@ -56,8 +56,10 @@
                         <span
                             class="bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black px-3 py-1 rounded-xl text-sm font-mono flex items-center gap-1.5">
                             <i class="fa-solid fa-folder-open text-xs"></i> {{ group.name }}
-                            <button type="button" onclick="openEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}', '{{ group.description|default:''|escapejs }}')"
-                                title="Guruh nomini tahrirlash" class="hover:text-white transition ml-1 p-0.5 text-amber-400/80 cursor-pointer">
+                            <button type="button"
+                                onclick="openEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}', '{{ group.description|default:''|escapejs }}')"
+                                title="Guruh nomini tahrirlash"
+                                class="hover:text-white transition ml-1 p-0.5 text-amber-400/80 cursor-pointer">
                                 <i class="fa-solid fa-pen text-[11px]"></i>
                             </button>
                         </span>
@@ -90,11 +92,13 @@
 
                 <!-- Group Actions -->
                 <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                    <button type="button" onclick="openEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}', '{{ group.description|default:''|escapejs }}')"
+                    <button type="button"
+                        onclick="openEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}', '{{ group.description|default:''|escapejs }}')"
                         class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i> Guruh nomini tahrirlash
                     </button>
-                    <button type="button" onclick="openAddOpToGroupModal({{ group.id }}, '{{ group.name|escapejs }}', {{ group.items.all|length|add:1 }})"
+                    <button type="button"
+                        onclick="openAddOpToGroupModal({{ group.id }}, '{{ group.name|escapejs }}', {{ group.items.all|length|add:1 }})"
                         class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-plus text-[10px]"></i> Operatsiya qo'shish
                     </button>
@@ -287,28 +291,33 @@
                             <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 Operatsiya Nomi <span class="text-rose-400">*</span>
                             </label>
-                            <input type="text" name="inline_new_op_name" id="inline_op_name" placeholder="Masalan: BEKA 0.5 yoki YOQA TIKISH"
+                            <input type="text" name="inline_new_op_name" id="inline_op_name"
+                                oninput="syncOpCode(this, 'inline_op_code')"
+                                placeholder="Masalan: BEKA 0.5 yoki YOQA TIKISH"
                                 class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-emerald-500">
                         </div>
                         <div class="sm:col-span-3">
                             <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                                Kodi (Ixtiyoriy)
+                                Kodi (Avto: Nomi bilan bir xil)
                             </label>
-                            <input type="text" name="inline_new_op_code" id="inline_op_code" placeholder="Avto generatsiya"
+                            <input type="text" name="inline_new_op_code" id="inline_op_code"
+                                placeholder="Avto: Nomi bilan bir xil"
                                 class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-emerald-500 uppercase">
                         </div>
                         <div class="sm:col-span-2">
                             <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 Qiyinlik
                             </label>
-                            <input type="number" name="inline_new_op_diff" id="inline_op_diff" value="1" step="any" min="0"
+                            <input type="number" name="inline_new_op_diff" id="inline_op_diff" value="1" step="any"
+                                min="0"
                                 class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-indigo-400 font-mono text-center focus:outline-none focus:border-emerald-500">
                         </div>
                         <div class="sm:col-span-3">
                             <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 Dona Narxi (UZS)
                             </label>
-                            <input type="number" name="inline_new_op_price" id="inline_op_price" value="0" min="0" step="1"
+                            <input type="number" name="inline_new_op_price" id="inline_op_price" value="0" min="0"
+                                step="1"
                                 class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-emerald-400 font-black digital-font text-right focus:outline-none focus:border-emerald-500">
                         </div>
                     </div>
@@ -504,14 +513,16 @@
                 </label>
                 <input type="text" name="name" id="edit-group-name" required placeholder="Masalan: Futbolka Arabekali"
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
-                <p class="text-[11px] text-slate-500 mt-1">Guruh nomi o'zgarganda barcha bog'liq modellarda yangi nom avtomatik aks etadi.</p>
+                <p class="text-[11px] text-slate-500 mt-1">Guruh nomi o'zgarganda barcha bog'liq modellarda yangi nom
+                    avtomatik aks etadi.</p>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
                     Tavsif (Ixtiyoriy)
                 </label>
-                <textarea name="description" id="edit-group-description" rows="2" placeholder="Izoh yoki model haqida qisqacha..."
+                <textarea name="description" id="edit-group-description" rows="2"
+                    placeholder="Izoh yoki model haqida qisqacha..."
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500"></textarea>
             </div>
 
@@ -584,13 +595,14 @@
                         Yangi Operatsiya Nomi <span class="text-rose-400">*</span>
                     </label>
                     <input type="text" name="new_op_name" id="add-op-new-name" placeholder="Masalan: BEKA 0.5"
+                        oninput="syncOpCode(this, 'add-op-new-code')"
                         class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-bold focus:outline-none focus:border-emerald-500">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kodi
-                            (Ixtiyoriy)</label>
-                        <input type="text" name="new_op_code" placeholder="Avto generatsiya"
+                            (Avto: Nomi bilan bir xil)</label>
+                        <input type="text" name="new_op_code" id="add-op-new-code" placeholder="Avto: Nomi bilan bir xil"
                             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-emerald-500 uppercase">
                     </div>
                     <div>
@@ -651,18 +663,18 @@
                 <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
                     Operatsiya Nomi <span class="text-rose-400">*</span>
                 </label>
-                <input type="text" name="name" required placeholder="Masalan: BEKA 0.5 yoki YENG TIKISH"
+                <input type="text" name="name" id="catalog-op-name" required placeholder="Masalan: BEKA 0.5 yoki YENG TIKISH"
+                    oninput="syncOpCode(this, 'catalog-op-code')"
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:outline-none focus:border-emerald-500">
-                <p class="text-[10px] text-slate-500 mt-1">Ushbu operatsiya katalogga saqlanadi va barcha guruhlar va
-                    modellar uchun ochiq bo'ladi</p>
+                <p class="text-[10px] text-slate-500 mt-1">Ushbu operatsiya katalogga saqlanadi va kodi nomi bilan bir xil (katta harflarda) bo'ladi</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
-                        Kodi (Ixtiyoriy)
+                        Kodi (Avto: Nomi bilan bir xil)
                     </label>
-                    <input type="text" name="code" placeholder="Avto generatsiya"
+                    <input type="text" name="code" id="catalog-op-code" placeholder="Avto: Nomi bilan bir xil"
                         class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono uppercase focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
@@ -748,6 +760,13 @@
         }
     }
 
+    function syncOpCode(nameInput, codeInputId) {
+        const codeInp = document.getElementById(codeInputId);
+        if (codeInp) {
+            codeInp.value = (nameInput.value || '').toUpperCase();
+        }
+    }
+
     function submitInlineQuickOp() {
         const nameInput = document.getElementById('inline_op_name');
         const name = (nameInput?.value || '').trim();
@@ -756,7 +775,12 @@
             nameInput?.focus();
             return;
         }
-        const code = (document.getElementById('inline_op_code')?.value || '').trim();
+        let code = (document.getElementById('inline_op_code')?.value || '').trim();
+        if (!code) {
+            code = name.toUpperCase();
+        } else {
+            code = code.toUpperCase();
+        }
         const diff = (document.getElementById('inline_op_diff')?.value || '').trim() || '1';
         const price = (document.getElementById('inline_op_price')?.value || '').trim() || '0';
 
@@ -950,8 +974,7 @@
         }
     }
 
-    function onOpCheckChanged(opId) {
-        updateCreateSelectedCount();
+    function onOpCheckChanged(o updateCreateSelectedCount();
     }
 
     function updateCreateSelectedCount() {

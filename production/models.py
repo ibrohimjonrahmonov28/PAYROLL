@@ -185,6 +185,25 @@ class Operation(models.Model):
         except Exception:
             return str(self.default_difficulty)
 
+    def save(self, *args, **kwargs):
+        base_code = (self.code.strip() if self.code and self.code.strip() else self.name.strip()).upper()[:50]
+        if not base_code:
+            base_code = "OP"
+        final_code = base_code
+        counter = 1
+        qs = Operation.objects.filter(code=final_code)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        while qs.exists():
+            suffix = f" {counter}"
+            final_code = f"{base_code[:50-len(suffix)]}{suffix}"
+            counter += 1
+            qs = Operation.objects.filter(code=final_code)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+        self.code = final_code
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.code} - {self.name}"
 

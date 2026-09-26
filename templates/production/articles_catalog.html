@@ -227,15 +227,16 @@
             <input type="hidden" name="action" value="create_operation">
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya
-                    Kodi</label>
-                <input type="text" name="code" required placeholder="Masalan: OP-01, OP-YOQA"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono">
+                    Nomi <span class="text-rose-400">*</span></label>
+                <input type="text" name="name" required placeholder="Masalan: Yoqa tikish, Yeng ulash, Tugma qadash"
+                    oninput="document.getElementById('art-op-code').value = this.value.toUpperCase()"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white font-bold focus:outline-none focus:border-cyan-500">
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Operatsiya
-                    Nomi</label>
-                <input type="text" name="name" required placeholder="Masalan: Yoqa tikish, Yeng ulash, Tugma qadash"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    Kodi (Avto: Nomi bilan bir xil)</label>
+                <input type="text" name="code" id="art-op-code" placeholder="Avto: Nomi bilan bir xil"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-300 focus:outline-none focus:border-cyan-500 font-mono uppercase">
             </div>
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
                 <button type="button" onclick="document.getElementById('new-operation-modal').classList.add('hidden')"

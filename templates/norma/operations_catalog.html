@@ -125,15 +125,16 @@
                     Operatsiya Nomi:
                 </label>
                 <input type="text" name="name" required placeholder="Masalan: Yoqa tikish"
+                    oninput="document.getElementById('norma-op-code').value = this.value.toUpperCase()"
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-bold focus:outline-none focus:border-indigo-500">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Operatsiya Kodi:
+                    Operatsiya Kodi (Avto: Nomi bilan bir xil):
                 </label>
-                <input type="text" name="code" required placeholder="Masalan: OP_YOQA"
-                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono uppercase focus:outline-none focus:border-indigo-500">
+                <input type="text" name="code" id="norma-op-code" placeholder="Avto: Nomi bilan bir xil"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-amber-300 font-mono uppercase focus:outline-none focus:border-indigo-500">
             </div>
 
             <div>

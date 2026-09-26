@@ -1369,8 +1369,8 @@ def get_or_create_operation_safely(name: str, code: str = None, difficulty: floa
     """
     Yangi operatsiyani xavfsiz yaratish yoki mavjudini qaytarish:
     - Nomi bo'yicha takrorlanishdan saqlaydi.
-    - Agar kod kiritilmagan bo'lsa, nomidan (kirill/lotin transliteratsiya bilan) toza unique kod hosil qiladi.
-    - Kod bazada mavjud bo'lsa, unga avtomatik -1, -2 sufiks qo'shadi.
+    - Kod operatsiya nomi bilan bir xil va KATTA HARFLARDA bo'ladi (foydalanuvchi talabi).
+    - Kod bazada mavjud bo'lsa, unga avtomatik 1, 2 sufiks qo'shadi.
     """
     name = (name or '').strip()
     if not name:
@@ -1380,13 +1380,11 @@ def get_or_create_operation_safely(name: str, code: str = None, difficulty: floa
     if existing:
         return existing
 
-    if code and code.strip():
-        op_code = re.sub(r'[^A-Za-z0-9_\-\.]+', '-', code.strip().upper()).strip('-')[:50]
+    raw_code = (code or '').strip()
+    if raw_code:
+        op_code = raw_code.upper()[:50]
     else:
-        res = ''
-        for ch in name.lower():
-            res += CYRILLIC_TO_LATIN.get(ch, ch)
-        op_code = re.sub(r'[^A-Za-z0-9_\-\.]+', '-', res).strip('-').upper()[:45]
+        op_code = name.upper()[:50]
 
     if not op_code:
         op_code = "OP"
@@ -1394,7 +1392,7 @@ def get_or_create_operation_safely(name: str, code: str = None, difficulty: floa
     final_code = op_code
     counter = 1
     while Operation.objects.filter(code=final_code).exists():
-        suffix = f"-{counter}"
+        suffix = f" {counter}"
         final_code = f"{op_code[:50-len(suffix)]}{suffix}"
         counter += 1
 
