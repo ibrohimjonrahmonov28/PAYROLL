@@ -36,10 +36,15 @@ def login_view(request):
         else:
             user = authenticate(request, username=username, password=password)
             if user is None:
-                # Agar username katta-kichik harf (masalan: Patok12) yoki 6 xonali UID orqali kiritilgan bo'lsa
+                # Agar username katta-kichik harf (masalan: Patok12), 6 xonali UID yoki telefon orqali kiritilgan bo'lsa
                 from django.db.models import Q
-                candidate = User.objects.filter(Q(username__iexact=username) | Q(uid=username)).first()
-                if candidate:
+                candidate = User.objects.filter(
+                    Q(username__iexact=username) | Q(uid=username) | Q(phone_number=username)
+                ).first()
+                if candidate and candidate.check_password(password):
+                    user = candidate
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
+                elif candidate and candidate.username:
                     user = authenticate(request, username=candidate.username, password=password)
 
             if user is not None:

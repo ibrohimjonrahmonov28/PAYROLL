@@ -299,7 +299,7 @@ def superadmin_users(request):
         action = request.POST.get('action')
 
         if action == 'create_user':
-            username = request.POST.get('username', '').strip()
+            username = request.POST.get('username', '').strip() or None
             first_name = request.POST.get('first_name', '').strip()
             last_name = request.POST.get('last_name', '').strip()
             email = request.POST.get('email', '').strip()
@@ -311,9 +311,9 @@ def superadmin_users(request):
             phone_number = request.POST.get('phone_number', '').strip()
             telegram_user_id = request.POST.get('telegram_user_id', '').strip() or None
 
-            if not username or not password or not first_name or not last_name:
-                messages.error(request, "Login, parol, ism va familiya kiritilishi shart!")
-            elif User.objects.filter(username=username).exists():
+            if not first_name or not password:
+                messages.error(request, "Ism va parol kiritilishi shart!")
+            elif username and User.objects.filter(username=username).exists():
                 messages.error(request, f"'{username}' nomli foydalanuvchi allaqachon mavjud!")
             else:
                 user = User(
@@ -348,7 +348,7 @@ def superadmin_users(request):
                         is_active=True
                     )
 
-                messages.success(request, f"Foydalanuvchi {user.get_full_name()} (UID: {user.uid}, {user.get_role_display()}, {user.get_branch_display()}) muvaffaqiyatli yaratildi va QR kodi generatsiya qilindi!")
+                messages.success(request, f"Foydalanuvchi {user.get_full_name() or user.username or 'Yangi foydalanuvchi'} (UID: {user.uid}, {user.get_role_display()}, {user.get_branch_display()}) muvaffaqiyatli yaratildi va QR kodi generatsiya qilindi!")
 
         elif action == 'update_user':
             user_id = request.POST.get('user_id')
@@ -366,9 +366,9 @@ def superadmin_users(request):
                     user.worker_profile.save(update_fields=['branch'])
 
             # Username o'zgartirish (agar kiritilgan bo'lsa)
-            new_username = request.POST.get('username', '').strip()
-            if new_username and new_username != user.username:
-                if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+            new_username = request.POST.get('username', '').strip() or None
+            if new_username != user.username:
+                if new_username and User.objects.filter(username=new_username).exclude(id=user.id).exists():
                     messages.error(request, f"'{new_username}' logini allaqachon boshqa foydalanuvchi tomonidan band qilingan!")
                 else:
                     user.username = new_username
@@ -422,7 +422,7 @@ def superadmin_users(request):
                     unlinked_worker.phone_number = user.phone_number
                     unlinked_worker.save(update_fields=['user', 'first_name', 'last_name', 'phone_number'])
 
-            messages.success(request, f"{user.username} ({user.get_full_name() or 'Foydalanuvchi'}) ma'lumotlari muvaffaqiyatli yangilandi.")
+            messages.success(request, f"{user.get_full_name() or user.username or 'Foydalanuvchi'} ma'lumotlari muvaffaqiyatli yangilandi.")
 
         elif action == 'change_role':
             user_id = request.POST.get('user_id')
@@ -437,7 +437,7 @@ def superadmin_users(request):
                 user.is_staff = (new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN])
                 user.is_superuser = (new_role == User.Role.SUPER_ADMIN)
                 user.save(update_fields=['role', 'is_staff', 'is_superuser'])
-                messages.success(request, f"'{user.username}' foydalanuvchisi roli '{user.get_role_display()}' ga o'zgartirildi.")
+                messages.success(request, f"'{user.get_full_name() or user.username or 'Foydalanuvchi'}' foydalanuvchisi roli '{user.get_role_display()}' ga o'zgartirildi.")
 
         elif action == 'delete_user':
             user_id = request.POST.get('user_id')
@@ -447,9 +447,9 @@ def superadmin_users(request):
             elif target_user.role == User.Role.SUPER_ADMIN and User.objects.filter(role=User.Role.SUPER_ADMIN).count() <= 1:
                 messages.error(request, "Xatolik: Tizimdagi yagona Super Adminni o'chirib bo'lmaydi!")
             else:
-                deleted_username = target_user.username
+                deleted_name = target_user.get_full_name() or target_user.username or "Foydalanuvchi"
                 target_user.delete()
-                messages.success(request, f"Foydalanuvchi '{deleted_username}' tizimdan butunlay o'chirildi.")
+                messages.success(request, f"Foydalanuvchi '{deleted_name}' tizimdan butunlay o'chirildi.")
 
         elif action == 'toggle_active':
             user_id = request.POST.get('user_id')
@@ -460,7 +460,7 @@ def superadmin_users(request):
                 user.is_active = not user.is_active
                 user.save(update_fields=['is_active'])
                 status_text = 'Faollashtirildi' if user.is_active else 'Bloklandi'
-                messages.success(request, f"{user.username} hisobi {status_text}.")
+                messages.success(request, f"{user.get_full_name() or user.username or 'Foydalanuvchi'} hisobi {status_text}.")
 
         elif action == 'toggle_badge_printed':
             user_id = request.POST.get('user_id')

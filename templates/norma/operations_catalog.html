@@ -79,7 +79,9 @@
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-center">
-                            <form method="POST" onsubmit="return confirm('Rostdan ham «{{ op.name|escapejs }}» operatsiyasini butunlay o\'chirmoqchimisiz?');" class="inline">
+                            <form method="POST"
+                                onsubmit="return confirm('Rostdan ham «{{ op.name|escapejs }}» operatsiyasini butunlay o\'chirmoqchimisiz?');"
+                                class="inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="delete_operation">
                                 <input type="hidden" name="operation_id" value="{{ op.id }}">

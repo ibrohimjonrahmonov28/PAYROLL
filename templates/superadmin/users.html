@@ -131,7 +131,7 @@
                     {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
                     {% if badge_filter %}<input type="hidden" name="badge" value="{{ badge_filter }}">{% endif %}
                     <div class="relative w-full lg:w-56">
-                        <input type="text" name="q" value="{{ search_q }}" placeholder="Qidirish (ism, UID, login)..."
+                        <input type="text" name="q" value="{{ search_q }}" placeholder="Qidirish (ism, familiya, UID, telefon)..."
                             class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
                         <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
                     </div>
@@ -260,7 +260,7 @@
                             <div class="flex items-center gap-3">
                                 <div
                                     class="w-10 h-10 rounded-full {% if u.role == 'SUPER_ADMIN' %}bg-rose-500/20 text-rose-400 border border-rose-500/30{% elif u.role == 'ADMIN' %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% elif u.role == 'MASTER' %}bg-sky-500/20 text-sky-400 border border-sky-500/30{% else %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% endif %} flex items-center justify-center font-black text-sm flex-shrink-0">
-                                    {{ u.first_name|default:u.username|first|upper }}
+                                    {{ u.first_name|default:"U"|first|upper }}
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2">
@@ -268,13 +268,13 @@
                                         <a href="{% url 'superadmin_worker_history' u.worker_profile.id %}"
                                             class="text-white hover:text-emerald-400 text-base block font-bold transition flex items-center gap-1.5"
                                             title="Kunlik norma va tarixlarni ko'rish">
-                                            <span>{{ u.get_full_name|default:u.username }}</span>
+                                            <span>{{ u.get_full_name|default:"Foydalanuvchi" }}</span>
                                             <i
                                                 class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 hover:text-emerald-400"></i>
                                         </a>
                                         {% else %}
                                         <strong class="text-white text-base block font-bold">
-                                            {{ u.get_full_name|default:u.username }}
+                                            {{ u.get_full_name|default:"Foydalanuvchi" }}
                                         </strong>
                                         {% endif %}
                                         {% if u == request.user %}
@@ -298,8 +298,13 @@
                                             title="Bosh bino (HQ)">Bosh bino</span>
                                         {% endif %}
                                     </div>
-                                    <span class="text-slate-400 font-mono text-xs">@{{ u.username }} {% if u.email %}•
-                                        {{ u.email }}{% endif %}</span>
+                                    {% if u.phone_number or u.email %}
+                                    <span class="text-slate-400 text-xs">
+                                        {% if u.phone_number %}<i class="fa-solid fa-phone text-[10px] text-slate-500 mr-1"></i>{{ u.phone_number }}{% endif %}
+                                        {% if u.phone_number and u.email %} • {% endif %}
+                                        {% if u.email %}{{ u.email }}{% endif %}
+                                    </span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>
@@ -619,19 +624,11 @@
                 </div>
             </div>
 
-            <!-- Login & Parol -->
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Login (Username)
-                        *</label>
-                    <input type="text" name="username" required placeholder="masalan: dilshod_k"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Parol *</label>
-                    <input type="password" name="password" required placeholder="Murakkab parol"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
+            <!-- Parol -->
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Parol *</label>
+                <input type="password" name="password" required placeholder="Tizimga kirish uchun parol"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
 
             <!-- Roli & Filial -->
@@ -731,12 +728,6 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Login (Username)
-                    *</label>
-                <input type="text" name="username" id="edit-username" required
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono">
-            </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -825,7 +816,6 @@
             <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
                 <p class="text-xs text-slate-400">Xodim:</p>
                 <strong id="role-user-fullname" class="text-white text-base block font-bold"></strong>
-                <span id="role-username-span" class="text-amber-400 font-mono text-xs"></span>
             </div>
 
             <div class="space-y-2.5">
@@ -937,8 +927,7 @@
             <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mb-4 space-y-1.5">
                 <p class="text-xs text-slate-400">Quyidagi hisob butunlay o'chiriladi:</p>
                 <div class="text-white font-bold text-base" id="delete-user-name"></div>
-                <div class="text-amber-400 font-mono text-xs">@<span id="delete-username"></span> (<span
-                        id="delete-user-role"></span>)</div>
+                <div class="text-amber-400 font-bold text-xs"><span id="delete-user-role"></span></div>
             </div>
 
             <p class="text-xs text-slate-400 mb-5 leading-relaxed">
@@ -1081,7 +1070,11 @@
     // Edit Modal
     function openEditUserModal(id, username, fn, ln, email, role, phone, tgId, branch) {
         document.getElementById('edit-user-id').value = id || '';
-        document.getElementById('edit-username-span').innerText = '@' + (username || '');
+        const nameDisplay = (fn || '') + (ln ? ' ' + ln : '');
+        const titleSpan = document.getElementById('edit-username-span') || document.getElementById('edit-name-span');
+        if (titleSpan) {
+            titleSpan.innerText = nameDisplay || (username ? '@' + username : 'Foydalanuvchi');
+        }
         if (document.getElementById('edit-username')) {
             document.getElementById('edit-username').value = username || '';
         }
@@ -1114,8 +1107,11 @@
     // Role Quick Change Modal
     function openChangeRoleModal(id, username, currentRole, fullName) {
         document.getElementById('role-user-id').value = id;
-        document.getElementById('role-user-fullname').innerText = fullName;
-        document.getElementById('role-username-span').innerText = '@' + username;
+        document.getElementById('role-user-fullname').innerText = fullName || 'Foydalanuvchi';
+        const roleSpan = document.getElementById('role-username-span');
+        if (roleSpan) {
+            roleSpan.innerText = username ? '@' + username : '';
+        }
         if (currentRole === 'SUPER_ADMIN') {
             document.getElementById('role-radio-superadmin').checked = true;
         } else if (currentRole === 'BRANCH_ADMIN') {
@@ -1136,15 +1132,16 @@
     // Delete Confirmation Modal
     function openDeleteUserModal(id, username, fullName, roleDisplay) {
         document.getElementById('delete-user-id').value = id;
-        document.getElementById('delete-username').innerText = username;
-        document.getElementById('delete-user-name').innerText = fullName;
+        const delUsername = document.getElementById('delete-username');
+        if (delUsername) delUsername.innerText = username || '';
+        document.getElementById('delete-user-name').innerText = fullName || 'Foydalanuvchi';
         document.getElementById('delete-user-role').innerText = roleDisplay;
         document.getElementById('delete-user-modal').classList.remove('hidden');
     }
 
     // Universal Birka Modal (Yangi universal birka funksiyasi)
     function openUniversalBadgeModal(fn, ln, uid, roleDisplay, roleKey, qrUrl, username, badgeUrl, workerId, phone) {
-        document.getElementById('qr-modal-firstname').innerText = fn || username;
+        document.getElementById('qr-modal-firstname').innerText = fn || username || 'Xodim';
         document.getElementById('qr-modal-lastname').innerText = ln || '';
         document.getElementById('qr-modal-uid').innerText = 'UID: ' + uid;
         document.getElementById('qr-modal-footer-code').innerText = 'USER:' + uid;
@@ -1169,9 +1166,8 @@
             badgeElement.style.borderColor = '#a7f3d0';
         }
 
-        var extraInfo = '@' + username;
+        var extraInfo = phone ? ('Tel: ' + phone) : ('UID: ' + uid);
         if (workerId) extraInfo = '[' + workerId + '] ' + extraInfo;
-        if (phone) extraInfo += ' • ' + phone;
         document.getElementById('qr-modal-extra').innerText = extraInfo;
 
         if (qrUrl) {

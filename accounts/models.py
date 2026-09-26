@@ -35,6 +35,14 @@ class User(AbstractUser):
         SCREEN = 'SCREEN', 'Ekran (Monitor)'
         USER = 'USER', 'Oddiy User'
 
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Foydalanuvchi nomi"
+    )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
     branch = models.CharField(
         max_length=50,
@@ -87,6 +95,8 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         if not self.uid:
             self.uid = generate_unique_user_uid()
+        if not self.username:
+            self.username = None
         if not self.qr_code:
             self.generate_qr_code()
         super().save(*args, **kwargs)

@@ -35,7 +35,8 @@
         <div class="flex items-center gap-3 flex-shrink-0 flex-wrap">
             <button type="button" onclick="openCatalogOpsModal()"
                 class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-black rounded-xl transition flex items-center gap-2 cursor-pointer shadow">
-                <i class="fa-solid fa-list-check text-amber-400 text-sm"></i> Operatsiyalar Katalogi (<span id="topbar-ops-count">{{ catalog_operations|length }}</span>)
+                <i class="fa-solid fa-list-check text-amber-400 text-sm"></i> Operatsiyalar Katalogi (<span
+                    id="topbar-ops-count">{{ catalog_operations|length }}</span>)
             </button>
             <button type="button" onclick="openCreateCatalogOpModal()"
                 class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-black rounded-xl transition flex items-center gap-2 cursor-pointer shadow">
@@ -389,7 +390,8 @@
                                     class="w-32 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-right text-emerald-400 font-black digital-font text-sm focus:outline-none focus:border-emerald-500">
                             </td>
                             <td class="py-2.5 px-2 text-center">
-                                <button type="button" onclick="deleteCatalogOpDirectly({{ op.id }}, '{{ op.name|escapejs }}', this)"
+                                <button type="button"
+                                    onclick="deleteCatalogOpDirectly({{ op.id }}, '{{ op.name|escapejs }}', this)"
                                     title="Ushbu operatsiyani katalogdan o'chirish"
                                     class="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white border border-rose-500/20 text-rose-400 inline-flex items-center justify-center transition cursor-pointer">
                                     <i class="fa-solid fa-trash-can text-[10px]"></i>
@@ -734,7 +736,8 @@
 <!-- Modal: Operatsiyalar Katalogi (Barcha operatsiyalar ro'yxati va O'chirish) -->
 <div id="catalog-ops-list-modal"
     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+    <div
+        class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-800 flex-shrink-0">
             <div class="flex items-center gap-3">
@@ -744,7 +747,8 @@
                 <div>
                     <h3 class="text-base font-bold text-white flex items-center gap-2">
                         Operatsiyalar Katalogi
-                        <span id="catalog-modal-count-badge" class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-bold">
+                        <span id="catalog-modal-count-badge"
+                            class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-bold">
                             {{ catalog_operations|length }} ta
                         </span>
                     </h3>
@@ -756,7 +760,8 @@
                     class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow">
                     <i class="fa-solid fa-plus"></i> Yangi Qo'shish
                 </button>
-                <button type="button" onclick="closeCatalogOpsModal()" class="text-slate-400 hover:text-white p-1.5 cursor-pointer">
+                <button type="button" onclick="closeCatalogOpsModal()"
+                    class="text-slate-400 hover:text-white p-1.5 cursor-pointer">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -765,7 +770,8 @@
         <!-- Search Bar -->
         <div class="flex-shrink-0">
             <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
                 <input type="text" id="catalog-modal-search-input" oninput="filterCatalogModalTable(this.value)"
                     placeholder="Operatsiya nomi yoki kodi bo'yicha tezkor qidirish..."
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
@@ -775,7 +781,8 @@
         <!-- Table Container -->
         <div class="overflow-y-auto flex-1 border border-slate-800 rounded-xl">
             <table class="w-full text-left text-xs">
-                <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider sticky top-0 z-10 border-b border-slate-800">
+                <thead
+                    class="bg-slate-950 text-slate-400 uppercase tracking-wider sticky top-0 z-10 border-b border-slate-800">
                     <tr>
                         <th class="py-2.5 px-3 text-center w-16">№</th>
                         <th class="py-2.5 px-3">Operatsiya Nomi</th>
@@ -798,19 +805,22 @@
                             {% endif %}
                         </td>
                         <td class="py-2.5 px-3">
-                            <span class="font-mono text-xs text-amber-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 catalog-op-code">
+                            <span
+                                class="font-mono text-xs text-amber-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 catalog-op-code">
                                 {{ op.code }}
                             </span>
                         </td>
                         <td class="py-2.5 px-3 text-center">
-                            <span class="font-mono text-cyan-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            <span
+                                class="font-mono text-cyan-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                                 {{ op.default_difficulty_display }}
                             </span>
                         </td>
                         <td class="py-2.5 px-3 text-center">
                             {% with g_count=op.group_items.count %}
                             {% if g_count > 0 %}
-                            <span class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 text-[11px] font-mono">
+                            <span
+                                class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 text-[11px] font-mono">
                                 {{ g_count }} ta guruhda
                             </span>
                             {% else %}
@@ -819,7 +829,8 @@
                             {% endwith %}
                         </td>
                         <td class="py-2.5 px-3 text-center">
-                            <button type="button" onclick="deleteCatalogOpDirectly({{ op.id }}, '{{ op.name|escapejs }}', this)"
+                            <button type="button"
+                                onclick="deleteCatalogOpDirectly({{ op.id }}, '{{ op.name|escapejs }}', this)"
                                 class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-600 hover:text-white border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5 cursor-pointer"
                                 title="Ushbu operatsiyani katalogdan o'chirish">
                                 <i class="fa-solid fa-trash-can text-[11px]"></i> O'chirish
@@ -838,7 +849,8 @@
         </div>
 
         <!-- Footer -->
-        <div class="pt-3 border-t border-slate-800 flex justify-between items-center flex-shrink-0 text-xs text-slate-400">
+        <div
+            class="pt-3 border-t border-slate-800 flex justify-between items-center flex-shrink-0 text-xs text-slate-400">
             <span>Keraksiz test operatsiyalarini o'chirish uchun «O'chirish» tugmasini bosing.</span>
             <button type="button" onclick="closeCatalogOpsModal()"
                 class="px-4 py-2 border border-slate-700 rounded-xl font-bold text-slate-300 hover:text-white transition">
