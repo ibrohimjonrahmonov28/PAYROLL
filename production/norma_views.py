@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, ProtectedError
 
 from .models import (
     ProductModel, ProductModelOperation, Article, ArticleOperation, Operation,
@@ -402,6 +402,30 @@ def norma_model_delete_operation(request, model_id: int, mo_id: int):
 def norma_operations_catalog(request):
     """Barcha mavjud operatsiyalar katalogi"""
     if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'delete_operation':
+            op_id = request.POST.get('operation_id')
+            op = get_object_or_404(Operation, id=op_id)
+            op_name = op.name
+
+            tickets_count = Ticket.objects.filter(article_operation__operation=op).count()
+            if tickets_count > 0:
+                messages.error(
+                    request,
+                    f"'{op_name}' operatsiyasini o'chirib bo'lmaydi! Ushbu operatsiya bo'yicha {tickets_count} ta ishchi bileti mavjud."
+                )
+                return redirect('norma_operations_catalog')
+
+            try:
+                op.delete()
+                messages.success(request, f"'{op_name}' operatsiyasi katalogdan muvaffaqiyatli o'chirildi.")
+            except ProtectedError:
+                messages.error(request, f"'{op_name}' operatsiyasini o'chirib bo'lmaydi, chunki unga bog'langan ma'lumotlar mavjud.")
+            except Exception as e:
+                messages.error(request, f"Xatolik yuz berdi: {str(e)}")
+
+            return redirect('norma_operations_catalog')
+
         name = request.POST.get('name', '').strip()
         code = request.POST.get('code', '').strip().upper()
         if not code and name:

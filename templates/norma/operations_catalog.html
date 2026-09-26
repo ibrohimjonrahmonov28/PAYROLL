@@ -43,6 +43,7 @@
                         <th class="py-3.5 px-4">Operatsiya Nomi</th>
                         <th class="py-3.5 px-4 text-center w-32">Standart Qiyinlik</th>
                         <th class="py-3.5 px-4 text-center w-40">Modellarda Ishlatilishi</th>
+                        <th class="py-3.5 px-4 text-center w-28">Amallar</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800 font-semibold">
@@ -77,10 +78,22 @@
                                 {{ op.operation_models.count }} ta modelda
                             </span>
                         </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <form method="POST" onsubmit="return confirm('Rostdan ham «{{ op.name|escapejs }}» operatsiyasini butunlay o\'chirmoqchimisiz?');" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_operation">
+                                <input type="hidden" name="operation_id" value="{{ op.id }}">
+                                <button type="submit"
+                                    class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5 cursor-pointer"
+                                    title="Operatsiyani o'chirish">
+                                    <i class="fa-solid fa-trash-can text-[11px]"></i> O'chirish
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="py-16 text-center text-slate-500">
+                        <td colspan="6" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-scissors text-4xl mb-3 block text-slate-700"></i>
                             <span class="text-base font-bold block text-slate-300">Operatsiyalar ro'yxati bo'sh</span>
                             <p class="text-xs text-slate-500 mt-1">"Yangi Operatsiya Yaratish" tugmasini bosing.</p>

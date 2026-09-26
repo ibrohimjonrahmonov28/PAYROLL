@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Sum, Count, Q, F, FloatField, ExpressionWrapper, Value, Max
+from django.db.models import Sum, Count, Q, F, FloatField, ExpressionWrapper, Value, Max, ProtectedError
 from django.db.models.functions import Coalesce
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
@@ -1479,6 +1479,41 @@ def superadmin_pricing(request):
             messages.success(request, f"'{op.name}' ({op.code}) operatsiyasi katalogga muvaffaqiyatli qo'shildi!")
             return redirect('superadmin_pricing')
 
+        # 0.2 KATALOGDAN OPERATSIYANI O'CHIRISH
+        elif action == 'delete_catalog_operation':
+            op_id = request.POST.get('operation_id')
+            op = get_object_or_404(Operation, id=op_id)
+            op_name = op.name
+            is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
+
+            # Biletlar mavjudligini tekshirish (Ticket -> ArticleOperation on_delete=PROTECT)
+            tickets_count = Ticket.objects.filter(article_operation__operation=op).count()
+            if tickets_count > 0:
+                err_msg = f"'{op_name}' operatsiyasini o'chirib bo'lmaydi! Ushbu operatsiya bo'yicha ishlab chiqarishda {tickets_count} ta ishchi bileti mavjud."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('superadmin_pricing')
+
+            try:
+                op.delete()
+                suc_msg = f"'{op_name}' operatsiyasi katalogdan muvaffaqiyatli o'chirildi."
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': suc_msg, 'operation_id': op_id})
+                messages.success(request, suc_msg)
+            except ProtectedError:
+                err_msg = f"'{op_name}' operatsiyasini o'chirib bo'lmaydi, chunki unga bog'langan ma'lumotlar mavjud."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+            except Exception as e:
+                err_msg = f"Xatolik yuz berdi: {str(e)}"
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+
+            return redirect('superadmin_pricing')
+
         # 1. YANGI GURUH (SHABLON) YARATISH
         elif action == 'create_group':
             name = request.POST.get('name', '').strip()
@@ -1777,7 +1812,7 @@ def superadmin_pricing(request):
             return redirect('superadmin_pricing')
 
     groups = OperationGroup.objects.prefetch_related('items__operation', 'articles').order_by('name')
-    catalog_operations = Operation.objects.all().order_by('order_number', 'code')
+    catalog_operations = Operation.objects.prefetch_related('group_items__group').order_by('order_number', 'code')
     articles = Article.objects.all().select_related('operation_group').prefetch_related('article_operations__operation').order_by('code')
     next_order_number = (Operation.objects.aggregate(m=Max('order_number'))['m'] or 0) + 1
 

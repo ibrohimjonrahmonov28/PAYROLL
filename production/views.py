@@ -601,6 +601,19 @@ def articles_catalog_view(request):
             if name:
                 op = Operation.objects.create(code=code, name=name)
                 messages.success(request, f"Operatsiya {op.code} - {op.name} katalogga qo'shildi.")
+        elif action == 'delete_operation':
+            op_id = request.POST.get('operation_id')
+            op = get_object_or_404(Operation, id=op_id)
+            op_name = op.name
+            tickets_count = Ticket.objects.filter(article_operation__operation=op).count()
+            if tickets_count > 0:
+                messages.error(request, f"'{op_name}' operatsiyasini o'chirib bo'lmaydi! Unga bog'langan {tickets_count} ta bilet mavjud.")
+            else:
+                try:
+                    op.delete()
+                    messages.success(request, f"'{op_name}' operatsiyasi muvaffaqiyatli o'chirildi.")
+                except Exception as e:
+                    messages.error(request, f"Xatolik yuz berdi: {str(e)}")
         elif action == 'link_operation':
             article_id = request.POST.get('article_id')
             operation_id = request.POST.get('operation_id')
