@@ -163,6 +163,20 @@
 
     <!-- Articles & Sizes Breakdown -->
     <div class="space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-cyan-400"></i> Modellar va Artikul Rejasi
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Ushbu buyurtmaga biriktirilgan modellar, razmerlar va tikuv operatsiyalari</p>
+            </div>
+            <button type="button" onclick="openAddArticleModal()"
+                class="px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs rounded-xl shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer">
+                <i class="fa-solid fa-plus-circle text-sm"></i>
+                <span>Yangi Model (Artikul) Qo'shish</span>
+            </button>
+        </div>
+
         {% for item_data in items_data %}
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
             <!-- Article Header -->
@@ -181,16 +195,24 @@
                             {% if item_data.item.article.model %}
                             <span
                                 class="bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold px-2 py-0.5 rounded text-xs">
-                                Model: {{ item_data.item.article.model.name }} (Norma: {{
-                                item_data.item.article.model.daily_norm }} dona)
+                                Model: {{ item_data.item.article.model.name }}
                             </span>
                             {% endif %}
+                            {% if item_data.item.article.operation_group %}
+                            <span
+                                class="bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                                <i class="fa-solid fa-list-check text-cyan-400"></i> Guruh: {{ item_data.item.article.operation_group.name }}
+                            </span>
+                            {% endif %}
+                            <span class="bg-slate-800 text-slate-300 border border-slate-700 font-bold px-2 py-0.5 rounded text-xs">
+                                {{ item_data.item.article.article_operations.count }} ta operatsiya
+                            </span>
                         </div>
                         <h3 class="text-lg font-black text-white mt-1">{{ item_data.item.article.name }}</h3>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4 text-right">
+                <div class="flex items-center gap-4 text-right flex-wrap">
                     <div>
                         <span class="text-xs text-slate-400 block font-semibold">Artikul Rejasi:</span>
                         <span class="text-xl font-black text-amber-400 digital-font">{{ item_data.planned_qty }}
@@ -206,6 +228,18 @@
                         <span class="text-xl font-black text-cyan-400 digital-font">{{ item_data.cut_percentage
                             }}%</span>
                     </div>
+                    {% if item_data.can_delete %}
+                    <form method="POST" action="{% url 'manager_order_delete_item' order.id item_data.item.id %}"
+                        onsubmit="return confirm('«{{ item_data.item.article.code }}» modelini buyurtmadan butunlay o\'chirmoqchimisiz? (Chunki ushbu model bo\'yicha hali kesim boshlanmagan)')">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="p-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                            title="Modelni zakazdan o'chirish (hali bichilmagan)">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span class="hidden sm:inline">Modelni o'chirish</span>
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
 
@@ -352,5 +386,282 @@
         {% endfor %}
     </div>
 
+    <!-- Modal: Add Article to Order -->
+    <div id="addArticleModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg">
+                        <i class="fa-solid fa-shirt"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-white">Mavjud Zakazga Yangi Model Qo'shish</h3>
+                        <p class="text-xs text-slate-400">Zakaz: <span class="text-cyan-400 font-mono font-bold">{{ order.order_number }}</span></p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAddArticleModal()"
+                    class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'manager_order_add_article' order.id %}" enctype="multipart/form-data" class="space-y-5" id="addArticleForm">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Article Code -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                            Model / Artikul Kodi <span class="text-rose-400">*</span>
+                        </label>
+                        <input type="text" name="article_code" id="modal_article_code" required list="existing_articles_list"
+                            placeholder="Masalan: POLO-01 yoki 2044"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white uppercase focus:outline-none focus:border-cyan-500 font-mono placeholder:text-slate-600">
+                        <datalist id="existing_articles_list">
+                            {% for art in existing_articles %}
+                            <option value="{{ art.code }}" data-name="{{ art.name }}" data-group="{{ art.operation_group_id|default:'' }}" data-model="{{ art.model_id|default:'' }}">{{ art.name }}</option>
+                            {% endfor %}
+                        </datalist>
+                        <p class="text-[10px] text-slate-500 mt-1">Mavjud artikul yoki mutlaqo yangi kod kiritish mumkin</p>
+                    </div>
+
+                    <!-- Article Name -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                            Model Nomi / Tavsifi
+                        </label>
+                        <input type="text" name="article_name" id="modal_article_name"
+                            placeholder="Masalan: Erkaklar futbolkasi qora"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500 placeholder:text-slate-600">
+                        <p class="text-[10px] text-slate-500 mt-1">Bo'sh qolsa artikul kodi nomi sifatida olinadi</p>
+                    </div>
+                </div>
+
+                <!-- Operation Group & Product Model -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Operatsiyalar guruhi -->
+                    <div>
+                        <label class="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check"></i> Operatsiyalar Guruhi (Shablon)
+                        </label>
+                        <select name="operation_group_id" id="modal_operation_group"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-cyan-500 cursor-pointer">
+                            <option value="">— Guruh tanlanmagan (bo'sh) —</option>
+                            {% for grp in operation_groups %}
+                            <option value="{{ grp.id }}">
+                                {{ grp.name }} ({{ grp.items.count }} ta op, {{ grp.total_unit_rate|floatformat:0 }} so'm)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1">Guruh tanlansa, ushbu model uchun barcha operatsiya va stavkalar avtomatik bog'lanadi!</p>
+                    </div>
+
+                    <!-- Product Model -->
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-tag"></i> Tegishli Model (Kategoriya)
+                        </label>
+                        <select name="product_model_id" id="modal_product_model"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-cyan-500 cursor-pointer">
+                            <option value="">— Model tanlanmagan —</option>
+                            {% for pm in product_models %}
+                            <option value="{{ pm.id }}">{{ pm.name }} (Norma: {{ pm.daily_norm }})</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1">Standart norma va operatsiyalar uchun</p>
+                    </div>
+                </div>
+
+                <!-- Image Upload -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-regular fa-image"></i> Model Rasmi (Ixtiyoriy)
+                    </label>
+                    <input type="file" name="article_image" accept="image/*"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-white hover:file:bg-slate-700 cursor-pointer">
+                </div>
+
+                <!-- Sizes & Quantities Table -->
+                <div class="space-y-3 pt-2 border-t border-slate-800">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <label class="text-xs font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-ruler-combined text-cyan-400"></i> Kiyim Razmerlari va Reja Soni (dona) <span class="text-rose-400">*</span>
+                            </label>
+                            <p class="text-[10px] text-slate-500">Tezkor shablonlarni bosing yoki qo'lda kiriting</p>
+                        </div>
+
+                        <!-- Presets -->
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="applyPresetSizes(['92', '98', '104', '110', '116', '122', '128'])"
+                                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition border border-slate-700 cursor-pointer">
+                                Bolalar (92-128)
+                            </button>
+                            <button type="button" onclick="applyPresetSizes(['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'])"
+                                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition border border-slate-700 cursor-pointer">
+                                Kattalar (XS-3XL)
+                            </button>
+                            <button type="button" onclick="applyPresetSizes(['S', 'M', 'L', 'XL', 'XXL'])"
+                                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold transition border border-slate-700 cursor-pointer">
+                                Standart (S-XXL)
+                            </button>
+                            <button type="button" onclick="clearSizes()"
+                                class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-[10px] font-bold transition border border-rose-500/20 cursor-pointer">
+                                Tozalash
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2 max-h-56 overflow-y-auto" id="sizesContainer">
+                        <!-- Dynamic Rows inserted here -->
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <button type="button" onclick="addSizeRow('', '')"
+                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 cursor-pointer">
+                            <i class="fa-solid fa-plus"></i> Yangi Razmer Qatori Qo'shish
+                        </button>
+
+                        <div class="text-right">
+                            <span class="text-xs text-slate-400 font-semibold">Jami Reja:</span>
+                            <span id="modalTotalQty" class="text-lg font-black text-amber-400 digital-font ml-1">0</span>
+                            <span class="text-xs text-slate-400">dona</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onclick="closeAddArticleModal()"
+                        class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer">
+                        Bekor qilish
+                    </button>
+                    <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Modelni Qo'shish va Saqlash</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    function openAddArticleModal() {
+        const modal = document.getElementById('addArticleModal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        const container = document.getElementById('sizesContainer');
+        if (container && container.children.length === 0) {
+            applyPresetSizes(['S', 'M', 'L', 'XL', 'XXL']);
+        }
+        setTimeout(() => {
+            const codeInput = document.getElementById('modal_article_code');
+            if (codeInput) codeInput.focus();
+        }, 100);
+    }
+
+    function closeAddArticleModal() {
+        const modal = document.getElementById('addArticleModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    document.getElementById('addArticleModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAddArticleModal();
+        }
+    });
+
+    document.getElementById('modal_article_code')?.addEventListener('input', function() {
+        const val = this.value.trim().toUpperCase();
+        const opt = document.querySelector(`#existing_articles_list option[value="${val}"]`);
+        if (opt) {
+            const name = opt.getAttribute('data-name');
+            const grp = opt.getAttribute('data-group');
+            const mdl = opt.getAttribute('data-model');
+            const nameInput = document.getElementById('modal_article_name');
+            if (name && nameInput && !nameInput.value) {
+                nameInput.value = name;
+            }
+            if (grp) {
+                const grpSel = document.getElementById('modal_operation_group');
+                if (grpSel) grpSel.value = grp;
+            }
+            if (mdl) {
+                const mdlSel = document.getElementById('modal_product_model');
+                if (mdlSel) mdlSel.value = mdl;
+            }
+        }
+    });
+
+    function addSizeRow(name = '', qty = '') {
+        const container = document.getElementById('sizesContainer');
+        if (!container) return;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 size-row';
+        row.innerHTML = `
+            <div class="w-1/3">
+                <input type="text" name="size_name[]" value="${name}" placeholder="Razmer (masalan: M)"
+                    required
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-white uppercase font-mono focus:outline-none focus:border-cyan-500">
+            </div>
+            <div class="flex-1">
+                <input type="number" name="size_qty[]" value="${qty}" min="0" placeholder="Reja soni (dona)"
+                    oninput="calcTotalQty()"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-amber-400 digital-font focus:outline-none focus:border-cyan-500">
+            </div>
+            <button type="button" onclick="removeSizeRow(this)"
+                class="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
+                title="Qatorni o'chirish">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+        `;
+        container.appendChild(row);
+        calcTotalQty();
+    }
+
+    function removeSizeRow(btn) {
+        const row = btn.closest('.size-row');
+        if (row) {
+            row.remove();
+            calcTotalQty();
+        }
+    }
+
+    function applyPresetSizes(sizesArray) {
+        const container = document.getElementById('sizesContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        sizesArray.forEach(sz => {
+            addSizeRow(sz, '');
+        });
+        calcTotalQty();
+    }
+
+    function clearSizes() {
+        const container = document.getElementById('sizesContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        calcTotalQty();
+    }
+
+    function calcTotalQty() {
+        let total = 0;
+        const inputs = document.querySelectorAll('input[name="size_qty[]"]');
+        inputs.forEach(inp => {
+            const val = parseInt(inp.value, 10);
+            if (!isNaN(val) && val > 0) {
+                total += val;
+            }
+        });
+        const totalEl = document.getElementById('modalTotalQty');
+        if (totalEl) {
+            totalEl.textContent = total.toLocaleString();
+        }
+    }
+</script>
 {% endblock %}

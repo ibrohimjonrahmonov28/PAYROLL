@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Max
-from .models import Customer, ProductModel, Article, Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem
+from .models import Customer, ProductModel, Article, Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, OperationGroup
 
 
 def manager_required(view_func):
@@ -319,9 +319,14 @@ def manager_order_detail(request, order_id: int):
             'planned_qty': item.total_planned_quantity,
             'cut_qty': item.total_cut_quantity,
             'cut_percentage': item.overall_cut_percentage,
+            'can_delete': not item.cutting_batches.exists(),
         })
 
     overall_order_pct = round((total_cut_order / total_planned_order) * 100, 1) if total_planned_order > 0 else 0.0
+
+    operation_groups = OperationGroup.objects.prefetch_related('items__operation').all().order_by('name')
+    product_models = ProductModel.objects.all().order_by('name')
+    existing_articles = Article.objects.all().select_related('model', 'operation_group').order_by('code')
 
     return render(request, 'managers/order_detail.html', {
         'order': order,
@@ -330,6 +335,9 @@ def manager_order_detail(request, order_id: int):
         'total_cut_order': total_cut_order,
         'overall_order_pct': overall_order_pct,
         'status_choices': Order.Status.choices,
+        'operation_groups': operation_groups,
+        'product_models': product_models,
+        'existing_articles': existing_articles,
     })
 
 
@@ -371,5 +379,184 @@ def manager_order_delete(request, order_id: int):
         return redirect('manager_dashboard')
     messages.error(request, "Noto'g'ri so'rov usuli.")
     return redirect('manager_order_detail', order_id=order.id)
+
+
+@manager_required
+def manager_order_add_article(request, order_id: int):
+    """
+    Mavjud Zakazga Yangi Model (Artikul) va uning razmerlarini qo'shish:
+    - Masalan, zakaz ochilganidan bir necha kun o'tib, mijoz yana qo'shimcha modellar qo'shmoqchi bo'lsa.
+    - Artikul kodi, nomi, tegishli model, operatsiyalar guruhi (shablon) va kiyim razmerlari (reja soni) kiritiladi.
+    - Operatsiyalar guruhi tanlangan bo'lsa, avtomatik ravishda artikulga barcha narx va operatsiyalar biriktiriladi.
+    - Zakazning umumiy soni yangilanadi va Kesim bo'limida yangi model darhol ko'rinadi.
+    """
+    order = get_object_or_404(Order, id=order_id)
+
+    if request.method != 'POST':
+        return redirect('manager_order_detail', order_id=order.id)
+
+    art_code = request.POST.get('article_code', '').strip().upper()
+    art_name = request.POST.get('article_name', '').strip()
+    product_model_id = request.POST.get('product_model_id')
+    operation_group_id = request.POST.get('operation_group_id')
+    article_image = request.FILES.get('article_image')
+
+    if not art_code:
+        messages.error(request, "Model kodi (artikul) kiritilishi shart!")
+        return redirect('manager_order_detail', order_id=order.id)
+
+    if not art_name:
+        art_name = art_code
+
+    # Ushbu zakazda ushbu artikul allaqachon bormi?
+    existing_item = order.items.filter(article__code__iexact=art_code).first()
+    if existing_item:
+        messages.warning(request, f"'{art_code}' artikuli ushbu zakazda allaqachon mavjud! Iltimos, boshqa artikul kodi kiriting.")
+        return redirect('manager_order_detail', order_id=order.id)
+
+    # Razmerlar ma'lumotlari
+    size_names = request.POST.getlist('size_name[]')
+    size_qtys = request.POST.getlist('size_qty[]')
+
+    parsed_sizes = []
+    total_planned = 0
+    for idx, s_name in enumerate(size_names):
+        s_name = s_name.strip().upper()
+        if not s_name:
+            continue
+        try:
+            s_qty = int(size_qtys[idx]) if idx < len(size_qtys) else 0
+        except (ValueError, TypeError):
+            s_qty = 0
+
+        if s_qty > 0:
+            parsed_sizes.append((s_name, s_qty))
+            total_planned += s_qty
+
+    # Agar razmerlar orqali son kiritilmagan bo'lsa, fallback umumiy son
+    if total_planned == 0:
+        fallback_qty = request.POST.get('total_quantity', '0').strip()
+        try:
+            total_planned = max(0, int(fallback_qty))
+        except (ValueError, TypeError):
+            total_planned = 0
+
+    if total_planned == 0:
+        messages.error(request, "Hech bo'lmaganda bitta razmer bo'yicha reja soni (dona) kiritilishi shart!")
+        return redirect('manager_order_detail', order_id=order.id)
+
+    product_model = None
+    if product_model_id:
+        product_model = ProductModel.objects.filter(id=product_model_id).first()
+
+    operation_group = None
+    if operation_group_id:
+        operation_group = OperationGroup.objects.filter(id=operation_group_id).first()
+
+    norm_val = product_model.daily_norm if (product_model and product_model.daily_norm) else 1000
+
+    try:
+        with transaction.atomic():
+            article, created = Article.objects.get_or_create(
+                code=art_code,
+                defaults={
+                    'name': art_name,
+                    'daily_norm': norm_val,
+                    'model': product_model,
+                    'operation_group': operation_group,
+                }
+            )
+
+            update_fields = []
+            if product_model and article.model != product_model:
+                article.model = product_model
+                update_fields.append('model')
+            if art_name and article.name != art_name:
+                article.name = art_name
+                update_fields.append('name')
+            if operation_group:
+                article.operation_group = operation_group
+                update_fields.append('operation_group')
+            if article_image:
+                try:
+                    article.image = article_image
+                    update_fields.append('image')
+                except Exception:
+                    pass
+
+            if update_fields:
+                article.save(update_fields=update_fields)
+
+            # Operatsiyalarni sinxronlash
+            if operation_group:
+                article.sync_operations_from_group()
+            elif product_model:
+                article.sync_operations_from_model()
+
+            order_item = OrderItem.objects.create(
+                order=order,
+                article=article,
+                quantity=total_planned,
+                norm=norm_val
+            )
+
+            for s_name, s_qty in parsed_sizes:
+                OrderItemSize.objects.create(
+                    order_item=order_item,
+                    size_name=s_name,
+                    planned_quantity=s_qty
+                )
+
+            # Buyurtmaning umumiy reja sonini yangilash
+            order.total_quantity = sum(it.total_planned_quantity for it in order.items.all())
+            if not order.article:
+                order.article = article
+            order.save(update_fields=['total_quantity', 'article'])
+
+        ops_count = article.article_operations.count()
+        messages.success(
+            request,
+            f"Muvaffaqiyatli! '{order.order_number}' zakaziga yangi model [{article.code}] {article.name} qo'shildi! "
+            f"Jami reja: {total_planned} dona. {ops_count} ta operatsiya biriktirildi va Kesim bo'limiga uzatildi."
+        )
+    except Exception as e:
+        messages.error(request, f"Modelni qo'shishda xatolik yuz berdi: {str(e)}")
+
+    return redirect('manager_order_detail', order_id=order.id)
+
+
+@manager_required
+def manager_order_delete_item(request, order_id: int, item_id: int):
+    """
+    Zakazdan noto'g'ri qo'shilgan modelni (OrderItem) o'chirish:
+    - Agar kesimchi hali ushbu artikul bo'yicha hech qanday kesim kiritmagan bo'lsa, xavfsiz o'chirishga ruxsat beriladi.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    order_item = get_object_or_404(OrderItem, id=item_id, order=order)
+
+    if request.method != 'POST':
+        return redirect('manager_order_detail', order_id=order.id)
+
+    # Bloklash tekshiruvi: Agar kesim qilingan bo'lsa o'chirib bo'lmaydi
+    if order_item.cutting_batches.exists():
+        messages.error(
+            request,
+            f"'{order_item.article.code}' modelini o'chirib bo'lmaydi, chunki Kesim bo'limi tomonidan allaqachon partiyalar bichilgan!"
+        )
+        return redirect('manager_order_detail', order_id=order.id)
+
+    art_code = order_item.article.code
+    with transaction.atomic():
+        order_item.delete()
+        order.total_quantity = sum(it.total_planned_quantity for it in order.items.all())
+        if order.items.exists():
+            order.article = order.items.first().article
+        else:
+            order.article = None
+        order.save(update_fields=['total_quantity', 'article'])
+
+    messages.success(request, f"'{art_code}' modeli zakazdan muvaffaqiyatli o'chirildi.")
+    return redirect('manager_order_detail', order_id=order.id)
+
 
 
