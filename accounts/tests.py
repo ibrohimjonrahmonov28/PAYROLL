@@ -4,7 +4,7 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from accounts.models import User, Worker, WorkerPayout, DailyWorkerClosing
-from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, ProductModel
+from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, ProductModel, DefectReason
 
 
 class SuperAdminPanelTest(TestCase):
@@ -1605,6 +1605,142 @@ class ControlRoleAndQualityControlTest(TestCase):
         self.assertEqual(data2['today_boxes_count'], 2)  # 2 ta unikal quti!
         self.assertEqual(data2['today_first_sort'], 69)  # 39 + 30 = 69
         self.assertEqual(data2['today_second_sort'], 11)
+
+
+class SuperAdminDefectReasonsTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username="admin_otk_test",
+            password="testpassword123",
+            role=User.Role.SUPER_ADMIN
+        )
+        self.master = User.objects.create_user(
+            username="master_otk_test",
+            password="testpassword123",
+            role=User.Role.MASTER
+        )
+
+    def test_access_restricted(self):
+        url = reverse('superadmin_defect_reasons')
+        # Anonim foydalanuvchi login sahifasiga yo'naltiriladi
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/login/', res.url)
+
+        # Oddiy master ruxsati yo'q, dashboardga yo'naltiriladi
+        self.client.login(username="master_otk_test", password="testpassword123")
+        res2 = self.client.get(url)
+        self.assertEqual(res2.status_code, 302)
+        self.assertNotIn('defect-reasons', res2.url)
+
+    def test_superadmin_view_list(self):
+        self.client.login(username="admin_otk_test", password="testpassword123")
+        url = reverse('superadmin_defect_reasons')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'superadmin/defect_reasons.html')
+
+    def test_superadmin_create_defect_reason(self):
+        self.client.login(username="admin_otk_test", password="testpassword123")
+        url = reverse('superadmin_defect_reason_create')
+
+        # 1. Custom kod bilan yaratish
+        payload1 = {
+            'name': "Chok qiyshiq tikilgan",
+            'code': "CHOK-01",
+            'category': DefectReason.Category.SEWING,
+            'defect_type': DefectReason.DefectType.REPAIRABLE,
+            'order': 1,
+            'description': "Chok tekis emas",
+            'is_active': '1'
+        }
+        res1 = self.client.post(url, payload1)
+        self.assertEqual(res1.status_code, 302)
+        reason1 = DefectReason.objects.get(code="CHOK-01")
+        self.assertEqual(reason1.name, "Chok qiyshiq tikilgan")
+        self.assertEqual(reason1.category, DefectReason.Category.SEWING)
+        self.assertTrue(reason1.is_active)
+
+        # 2. Bo'sh kod bilan yaratish (avtomatik kod generatsiya)
+        payload2 = {
+            'name': "Mato teshilgan",
+            'code': "",
+            'category': DefectReason.Category.FABRIC,
+            'defect_type': DefectReason.DefectType.NON_REPAIRABLE,
+            'order': 2,
+            'description': "Igna teshigi bor",
+            'is_active': '1'
+        }
+        res2 = self.client.post(url, payload2)
+        self.assertEqual(res2.status_code, 302)
+        reason2 = DefectReason.objects.get(name="Mato teshilgan")
+        self.assertTrue(reason2.code.startswith("BRK-"))
+
+    def test_superadmin_edit_defect_reason(self):
+        self.client.login(username="admin_otk_test", password="testpassword123")
+        reason = DefectReason.objects.create(
+            name="Eski nom",
+            code="BRK-TEST",
+            category=DefectReason.Category.SEWING,
+            defect_type=DefectReason.DefectType.REPAIRABLE
+        )
+        url = reverse('superadmin_defect_reason_edit', args=[reason.id])
+        res = self.client.post(url, {
+            'name': "Yangi yangilangan nom",
+            'code': "BRK-TEST-EDITED",
+            'category': DefectReason.Category.CUTTING,
+            'defect_type': DefectReason.DefectType.NON_REPAIRABLE,
+            'order': 5,
+            'description': "Yangilangan izoh",
+            'is_active': '1'
+        })
+        self.assertEqual(res.status_code, 302)
+        reason.refresh_from_db()
+        self.assertEqual(reason.name, "Yangi yangilangan nom")
+        self.assertEqual(reason.code, "BRK-TEST-EDITED")
+        self.assertEqual(reason.category, DefectReason.Category.CUTTING)
+        self.assertEqual(reason.defect_type, DefectReason.DefectType.NON_REPAIRABLE)
+
+    def test_superadmin_toggle_defect_reason(self):
+        self.client.login(username="admin_otk_test", password="testpassword123")
+        reason = DefectReason.objects.create(
+            name="Toggle test",
+            code="BRK-TOGGLE",
+            is_active=True
+        )
+        url = reverse('superadmin_defect_reason_toggle', args=[reason.id])
+
+        # AJAX orqali almashtirish
+        res = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertFalse(data['is_active'])
+
+        reason.refresh_from_db()
+        self.assertFalse(reason.is_active)
+
+    def test_superadmin_delete_defect_reason(self):
+        self.client.login(username="admin_otk_test", password="testpassword123")
+        reason = DefectReason.objects.create(
+            name="Delete test",
+            code="BRK-DELETE"
+        )
+        url = reverse('superadmin_defect_reason_delete', args=[reason.id])
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(DefectReason.objects.filter(id=reason.id).exists())
+
+    def test_superadmin_seed_defaults(self):
+        self.client.login(username="admin_otk_test", password="testpassword123")
+        self.assertEqual(DefectReason.objects.count(), 0)
+        url = reverse('superadmin_defect_reason_seed_defaults')
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(DefectReason.objects.count(), 10)
+        self.assertTrue(DefectReason.objects.filter(code="BRK-001").exists())
+
 
 
 

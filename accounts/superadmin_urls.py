@@ -33,5 +33,12 @@ urlpatterns = [
     path('orders/<int:order_id>/models/<int:item_id>/add-op/', superadmin_views.superadmin_order_model_add_operation, name='superadmin_order_model_add_operation'),
     path('orders/<int:order_id>/models/<int:item_id>/delete-op/<int:ao_id>/', superadmin_views.superadmin_order_model_delete_operation, name='superadmin_order_model_delete_operation'),
     path('orders/<int:order_id>/delete/', superadmin_views.superadmin_order_delete, name='superadmin_order_delete'),
+    # Sifat Nazorati (OTK): Brak sabablari shablonlari
+    path('control/defect-reasons/', superadmin_views.superadmin_defect_reasons, name='superadmin_defect_reasons'),
+    path('control/defect-reasons/create/', superadmin_views.superadmin_defect_reason_create, name='superadmin_defect_reason_create'),
+    path('control/defect-reasons/<int:reason_id>/edit/', superadmin_views.superadmin_defect_reason_edit, name='superadmin_defect_reason_edit'),
+    path('control/defect-reasons/<int:reason_id>/toggle/', superadmin_views.superadmin_defect_reason_toggle, name='superadmin_defect_reason_toggle'),
+    path('control/defect-reasons/<int:reason_id>/delete/', superadmin_views.superadmin_defect_reason_delete, name='superadmin_defect_reason_delete'),
+    path('control/defect-reasons/seed-defaults/', superadmin_views.superadmin_defect_reason_seed_defaults, name='superadmin_defect_reason_seed_defaults'),
 ]
 

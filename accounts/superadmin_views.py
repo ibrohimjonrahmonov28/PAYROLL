@@ -15,7 +15,7 @@ from django.db import transaction
 from django.conf import settings
 from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
-from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem
+from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason
 from production.excel_reports import compact_ticket_ids
 
 
@@ -2788,6 +2788,305 @@ def superadmin_update_worker_branch(request):
             messages.error(request, "Noto'g'ri filial tanlandi!")
         return redirect(request.META.get('HTTP_REFERER') or 'superadmin_payroll')
     return redirect('superadmin_payroll')
+
+
+# ==============================================================================
+# SIFAT NAZORATI (OTK): BRAK / NUQSON SABABLARI SHABLONLARI BOSHQARUVI
+# ==============================================================================
+
+@superadmin_required
+def superadmin_defect_reasons(request):
+    """
+    Super Admin uchun Sifat Nazorati (OTK) brak sabablari shablonlari ro'yxati va filtrlash.
+    """
+    search_q = request.GET.get('q', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+    defect_type_filter = request.GET.get('defect_type', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    qs = DefectReason.objects.all()
+
+    if search_q:
+        qs = qs.filter(
+            Q(name__icontains=search_q) |
+            Q(code__icontains=search_q) |
+            Q(description__icontains=search_q)
+        )
+
+    if category_filter and category_filter in DefectReason.Category.values:
+        qs = qs.filter(category=category_filter)
+
+    if defect_type_filter and defect_type_filter in DefectReason.DefectType.values:
+        qs = qs.filter(defect_type=defect_type_filter)
+
+    if status_filter == 'active':
+        qs = qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        qs = qs.filter(is_active=False)
+
+    defect_reasons = qs.order_by('order', 'id')
+
+    total_count = DefectReason.objects.count()
+    active_count = DefectReason.objects.filter(is_active=True).count()
+    repairable_count = DefectReason.objects.filter(defect_type__in=[DefectReason.DefectType.REPAIRABLE, DefectReason.DefectType.BOTH]).count()
+    non_repairable_count = DefectReason.objects.filter(defect_type__in=[DefectReason.DefectType.NON_REPAIRABLE, DefectReason.DefectType.BOTH]).count()
+
+    context = {
+        'defect_reasons': defect_reasons,
+        'total_count': total_count,
+        'active_count': active_count,
+        'repairable_count': repairable_count,
+        'non_repairable_count': non_repairable_count,
+        'search_q': search_q,
+        'category_filter': category_filter,
+        'defect_type_filter': defect_type_filter,
+        'status_filter': status_filter,
+        'categories': DefectReason.Category.choices,
+        'defect_types': DefectReason.DefectType.choices,
+    }
+    return render(request, 'superadmin/defect_reasons.html', context)
+
+
+@superadmin_required
+def superadmin_defect_reason_create(request):
+    """
+    Yangi brak sababi shablonini yaratish
+    """
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip().upper()
+        category = request.POST.get('category', DefectReason.Category.SEWING)
+        defect_type = request.POST.get('defect_type', DefectReason.DefectType.REPAIRABLE)
+        description = request.POST.get('description', '').strip()
+        is_active = request.POST.get('is_active') in ['1', 'true', 'on', True]
+
+        try:
+            order = int(request.POST.get('order', 1) or 1)
+        except (ValueError, TypeError):
+            order = 1
+
+        if not name:
+            messages.error(request, "Brak sababi nomi kiritilishi shart!")
+            return redirect('superadmin_defect_reasons')
+
+        if code and DefectReason.objects.filter(code=code).exists():
+            messages.error(request, f"'{code}' kodi bilan shablon allaqachon mavjud!")
+            return redirect('superadmin_defect_reasons')
+
+        reason = DefectReason.objects.create(
+            name=name,
+            code=code,
+            category=category,
+            defect_type=defect_type,
+            description=description,
+            order=order,
+            is_active=is_active,
+            created_by=request.user
+        )
+        messages.success(request, f"✓ '{reason.name}' shabloni yaratildi (Kod: {reason.code}).")
+        return redirect('superadmin_defect_reasons')
+
+    return redirect('superadmin_defect_reasons')
+
+
+@superadmin_required
+def superadmin_defect_reason_edit(request, reason_id):
+    """
+    Mavjud brak sababi shablonini tahrirlash
+    """
+    reason = get_object_or_404(DefectReason, id=reason_id)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip().upper()
+        category = request.POST.get('category', reason.category)
+        defect_type = request.POST.get('defect_type', reason.defect_type)
+        description = request.POST.get('description', '').strip()
+        is_active = request.POST.get('is_active') in ['1', 'true', 'on', True]
+
+        try:
+            order = int(request.POST.get('order', reason.order) or 1)
+        except (ValueError, TypeError):
+            order = reason.order
+
+        if not name:
+            messages.error(request, "Brak sababi nomi bo'sh bo'lishi mumkin emas!")
+            return redirect('superadmin_defect_reasons')
+
+        if code and DefectReason.objects.filter(code=code).exclude(id=reason.id).exists():
+            messages.error(request, f"'{code}' kodi boshqa shablonda ishlatilgan!")
+            return redirect('superadmin_defect_reasons')
+
+        reason.name = name
+        if code:
+            reason.code = code
+        reason.category = category
+        reason.defect_type = defect_type
+        reason.description = description
+        reason.order = order
+        reason.is_active = is_active
+        reason.save()
+
+        messages.success(request, f"✓ '{reason.name}' ({reason.code}) shabloni muvaffaqiyatli yangilandi.")
+        return redirect('superadmin_defect_reasons')
+
+    return redirect('superadmin_defect_reasons')
+
+
+@superadmin_required
+def superadmin_defect_reason_toggle(request, reason_id):
+    """
+    Shablonni faol / nofaol holatini almashtirish (toggle)
+    """
+    if request.method == 'POST':
+        reason = get_object_or_404(DefectReason, id=reason_id)
+        reason.is_active = not reason.is_active
+        reason.save(update_fields=['is_active', 'updated_at'])
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            return JsonResponse({
+                'status': 'OK',
+                'id': reason.id,
+                'is_active': reason.is_active,
+                'message': f"'{reason.name}' holati yangilandi."
+            })
+
+        status_text = "faollashtirildi" if reason.is_active else "nofaol qilindi"
+        messages.success(request, f"✓ '{reason.name}' shabloni {status_text}.")
+        return redirect('superadmin_defect_reasons')
+
+    return redirect('superadmin_defect_reasons')
+
+
+@superadmin_required
+def superadmin_defect_reason_delete(request, reason_id):
+    """
+    Shablonni o'chirish
+    """
+    if request.method == 'POST':
+        reason = get_object_or_404(DefectReason, id=reason_id)
+        name = reason.name
+        code = reason.code
+        reason.delete()
+        messages.success(request, f"✓ '{name}' ({code}) shabloni o'chirildi.")
+        return redirect('superadmin_defect_reasons')
+
+    return redirect('superadmin_defect_reasons')
+
+
+@superadmin_required
+def superadmin_defect_reason_seed_defaults(request):
+    """
+    Trikotaj / Tikuvchilik fabrikasi uchun standart brak sabablari shablonlarini avtomatik yuklash.
+    """
+    if request.method == 'POST':
+        default_templates = [
+            {
+                'name': "Chok qiyshiq yoki to'lqinsimon",
+                'code': "BRK-001",
+                'category': DefectReason.Category.SEWING,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 1,
+                'description': "Tikuv chizig'i standart bo'yicha to'g'ri emas, qiyshaygan yoki to'lqinlanib qolgan."
+            },
+            {
+                'name': "Chok qadami tashlab ketgan (propusk)",
+                'code': "BRK-002",
+                'category': DefectReason.Category.SEWING,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 2,
+                'description': "Igna ipni ilmasdan o'tib ketgan, chok orasida bo'shliq hosil bo'lgan."
+            },
+            {
+                'name': "Ip uzilgan yoki tortilib qolgan",
+                'code': "BRK-003",
+                'category': DefectReason.Category.SEWING,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 3,
+                'description': "Chok ipi uzilgan, tarangligi noto'g'ri (juda qattiq yoki bo'sh)."
+            },
+            {
+                'name': "Detallar simmetriyasi buzilgan",
+                'code': "BRK-004",
+                'category': DefectReason.Category.SEWING,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 4,
+                'description': "O'ng va chap tomon (yeng, cho'ntak, yoqa) o'lchami yoki joylashuvi teng emas."
+            },
+            {
+                'name': "Cho'ntak yoki yoqa qiyshiq o'rnatilgan",
+                'code': "BRK-005",
+                'category': DefectReason.Category.SEWING,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 5,
+                'description': "Belgilangan andaza chizig'iga mos kelmaydigan burchak ostida tikilgan."
+            },
+            {
+                'name': "Mato ignadan yoki pichoqdan teshilgan",
+                'code': "BRK-006",
+                'category': DefectReason.Category.FABRIC,
+                'defect_type': DefectReason.DefectType.NON_REPAIRABLE,
+                'order': 6,
+                'description': "Bichuv pichog'i yoki noto'g'ri igna tufayli mato tolalari kesilib teshilgan."
+            },
+            {
+                'name': "Mato rangida dog' yoki yog' izlari",
+                'code': "BRK-007",
+                'category': DefectReason.Category.IRONING,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 7,
+                'description': "Mashina moyi, kir yoki boshqa dog'lar tushgan (yuvish yoki kimyoviy tozalash talab qilinadi)."
+            },
+            {
+                'name': "O'lcham / Razmer mos kelmaydi",
+                'code': "BRK-008",
+                'category': DefectReason.Category.CUTTING,
+                'defect_type': DefectReason.DefectType.NON_REPAIRABLE,
+                'order': 8,
+                'description': "Bichuv andazasi xato kesilgan yoki noto'g'ri razmer detallari birlashtirilgan."
+            },
+            {
+                'name': "Furnitura / Tugma noto'g'ri qadalgan",
+                'code': "BRK-009",
+                'category': DefectReason.Category.ACCESSORY,
+                'defect_type': DefectReason.DefectType.REPAIRABLE,
+                'order': 9,
+                'description': "Tugma, zamok (molniya) yoki knopka noto'g'ri o'rnatilgan yoki ishlamaydi."
+            },
+            {
+                'name': "Mato to'qilishi yoki rang tuslanishi (xomashyo nuqsoni)",
+                'code': "BRK-010",
+                'category': DefectReason.Category.FABRIC,
+                'defect_type': DefectReason.DefectType.NON_REPAIRABLE,
+                'order': 10,
+                'description': "Xomashyo nuqsoni: mato to'qilishidagi chiziqlar yoki rang ohangining tafovuti."
+            }
+        ]
+
+        created_count = 0
+        for item in default_templates:
+            if not DefectReason.objects.filter(Q(code=item['code']) | Q(name=item['name'])).exists():
+                DefectReason.objects.create(
+                    name=item['name'],
+                    code=item['code'],
+                    category=item['category'],
+                    defect_type=item['defect_type'],
+                    order=item['order'],
+                    description=item['description'],
+                    is_active=True,
+                    created_by=request.user
+                )
+                created_count += 1
+
+        if created_count > 0:
+            messages.success(request, f"✓ {created_count} ta standart namuna shablonlari muvaffaqiyatli yuklandi.")
+        else:
+            messages.info(request, "Barcha standart shablonlar allaqachon mavjud.")
+
+        return redirect('superadmin_defect_reasons')
+
+    return redirect('superadmin_defect_reasons')
+
 
 
 

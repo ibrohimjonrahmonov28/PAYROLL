@@ -1,0 +1,701 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}Brak Sabablari Shablonlari — SIFAT NAZORATI (OTK){% endblock %}
+
+{% block superadmin_header %}
+<div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-lg shadow-rose-500/20">
+        <i class="fa-solid fa-clipboard-check"></i>
+    </div>
+    <div>
+        <h2 class="text-lg font-black text-white leading-tight">Sifat Nazorati: Brak Sabablari Shablonlari</h2>
+        <span class="text-[11px] text-amber-400 font-bold uppercase tracking-wider">OTK / Control Standartlari Boshqaruvi</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- KPI / SUMMARY CARDS -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Jami shablonlar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Jami Shablonlar</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-white digital-font mt-2">
+                {{ total_count }} <small class="text-xs text-slate-400 font-normal">ta</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Barcha kiritilgan shablonlar</div>
+        </div>
+
+        <!-- 2. Faol shablonlar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Faol Shablonlar</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-emerald-400 digital-font mt-2">
+                {{ active_count }} <small class="text-xs text-emerald-300 font-normal">ta</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">OTK planshetida faol ko'rinadi</div>
+        </div>
+
+        <!-- 3. Ta'mir shablonlari -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Ta'mir (Tuzatiladi)</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-amber-400 digital-font mt-2">
+                {{ repairable_count }} <small class="text-xs text-amber-300 font-normal">ta</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Qayta tikuvga yuboriladigan</div>
+        </div>
+
+        <!-- 4. Yaroqsiz / Brak shablonlari -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Tuzatib bo'lmaydi (Brak)</span>
+                <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-ban"></i>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-rose-400 digital-font mt-2">
+                {{ non_repairable_count }} <small class="text-xs text-rose-300 font-normal">ta</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">2-sort yoki hisobdan chiqariladigan</div>
+        </div>
+    </div>
+
+    <!-- ACTION & FILTER BAR -->
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-rose-400"></i> OTK Brak Sabablari Ro'yxati
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Kontrolchilar qutini tekshirayotganda qaysi sababga ko'ra ta'mirga yoki brakka chiqarishini aniq belgilash uchun shablonlar.
+                </p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <a href="{% url 'control:home' %}" target="_blank"
+                   class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                    <i class="fa-solid fa-tablet-screen-button text-emerald-400"></i> OTK Planshetini Ko'rish
+                </a>
+
+                {% if total_count == 0 %}
+                <form method="POST" action="{% url 'superadmin_defect_reason_seed_defaults' %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Standart Namunalar Yuklash
+                    </button>
+                </form>
+                {% endif %}
+
+                <button onclick="openCreateModal()"
+                        class="px-4 py-2.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-rose-500/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-sm"></i> Yangi Shablon Qo'shish
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters Form -->
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 pt-3 border-t border-slate-800/80">
+            <!-- Search Input -->
+            <div class="lg:col-span-4 relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                <input type="text" id="defect-search-input" name="q" value="{{ search_q }}"
+                       placeholder="Sabab nomi, kodi yoki izoh..." oninput="clientFilterDefects(this.value)"
+                       class="w-full pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition shadow-inner">
+                {% if search_q %}
+                <a href="{% url 'superadmin_defect_reasons' %}"
+                   class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Category Filter -->
+            <div class="lg:col-span-3">
+                <select name="category" onchange="this.form.submit()"
+                        class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500">
+                    <option value="">Barcha bo'limlar (Kategoriya)</option>
+                    {% for code, label in categories %}
+                    <option value="{{ code }}" {% if category_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Defect Type Filter -->
+            <div class="lg:col-span-3">
+                <select name="defect_type" onchange="this.form.submit()"
+                        class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500">
+                    <option value="">Barcha turlar (Oqibati)</option>
+                    {% for code, label in defect_types %}
+                    <option value="{{ code }}" {% if defect_type_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="lg:col-span-2 flex items-center gap-2">
+                <select name="status" onchange="this.form.submit()"
+                        class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500">
+                    <option value="">Holat: Hammasi</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Faqat Faol</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Faqat Nofaol</option>
+                </select>
+
+                {% if search_q or category_filter or defect_type_filter or status_filter %}
+                <a href="{% url 'superadmin_defect_reasons' %}"
+                   class="px-2.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl text-xs font-bold border border-slate-700"
+                   title="Filtrlarni tozalash">
+                    <i class="fa-solid fa-filter-circle-xmark"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- DEFECT REASONS TABLE -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
+                        <th class="py-3.5 px-4 w-12 text-center">#</th>
+                        <th class="py-3.5 px-4 w-28">Kodi</th>
+                        <th class="py-3.5 px-4 min-w-[220px]">Brak / Nuqson Sababi</th>
+                        <th class="py-3.5 px-4 w-44">Bo'lim / Kategoriya</th>
+                        <th class="py-3.5 px-4 w-44">Turi (Oqibati)</th>
+                        <th class="py-3.5 px-4 w-28 text-center">Holati</th>
+                        <th class="py-3.5 px-4 w-32 text-right">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody id="defect-table-body" class="divide-y divide-slate-800 text-slate-200">
+                    {% for reason in defect_reasons %}
+                    <tr class="defect-row hover:bg-slate-800/40 transition"
+                        data-search="{{ reason.name|lower }} {{ reason.code|lower }} {{ reason.description|lower }} {{ reason.get_category_display|lower }}"
+                        id="reason-row-{{ reason.id }}">
+                        <!-- Order / Sequence -->
+                        <td class="py-3.5 px-4 text-center font-mono text-slate-400 font-bold">
+                            {{ reason.order }}
+                        </td>
+
+                        <!-- Code -->
+                        <td class="py-3.5 px-4 font-mono font-bold">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-amber-400 text-xs">
+                                {{ reason.code }}
+                            </span>
+                        </td>
+
+                        <!-- Name & Description -->
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-white text-sm flex items-center gap-2">
+                                <span>{{ reason.name }}</span>
+                            </div>
+                            {% if reason.description %}
+                            <p class="text-xs text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                                {{ reason.description }}
+                            </p>
+                            {% endif %}
+                            <span class="text-[10px] text-slate-500 font-mono block mt-1">
+                                Yaratilgan: {{ reason.created_at|date:"d.m.Y H:i" }} {% if reason.created_by %}• @{{ reason.created_by.username }}{% endif %}
+                            </span>
+                        </td>
+
+                        <!-- Category -->
+                        <td class="py-3.5 px-4">
+                            {% if reason.category == 'SEWING' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                                <i class="fa-solid fa-shirt text-[10px]"></i> Tikuvchilik
+                            </span>
+                            {% elif reason.category == 'CUTTING' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                                <i class="fa-solid fa-scissors text-[10px]"></i> Bichuv (Kesim)
+                            </span>
+                            {% elif reason.category == 'FABRIC' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                                <i class="fa-solid fa-scroll text-[10px]"></i> Mato / Xomashyo
+                            </span>
+                            {% elif reason.category == 'IRONING' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                <i class="fa-solid fa-soap text-[10px]"></i> Dazmol / Tozalash
+                            </span>
+                            {% elif reason.category == 'ACCESSORY' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                <i class="fa-solid fa-tag text-[10px]"></i> Furnitura
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-700/30 text-slate-300 border border-slate-700/50">
+                                <i class="fa-solid fa-ellipsis text-[10px]"></i> Boshqa
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Defect Type -->
+                        <td class="py-3.5 px-4">
+                            {% if reason.defect_type == 'REPAIRABLE' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                                <i class="fa-solid fa-screwdriver-wrench text-[10px]"></i> Ta'mirga yuborish
+                            </span>
+                            {% elif reason.defect_type == 'NON_REPAIRABLE' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30">
+                                <i class="fa-solid fa-ban text-[10px]"></i> Tuzatib bo'lmaydi (Brak)
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/30">
+                                <i class="fa-solid fa-arrows-split-up-and-left text-[10px]"></i> Har ikkalasi
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status Toggle Button -->
+                        <td class="py-3.5 px-4 text-center">
+                            <button type="button" onclick="toggleDefectActive({{ reason.id }}, this)"
+                                    data-active="{{ reason.is_active|yesno:'true,false' }}"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition {% if reason.is_active %}bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25{% else %}bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700{% endif %}"
+                                    title="Holatni almashtirish uchun bosing">
+                                <i class="fa-solid {% if reason.is_active %}fa-check-circle{% else %}fa-circle-xmark{% endif %} text-[11px]"></i>
+                                <span>{% if reason.is_active %}Faol{% else %}Nofaol{% endif %}</span>
+                            </button>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button"
+                                        onclick="openEditModal({
+                                            id: {{ reason.id }},
+                                            code: '{{ reason.code|escapejs }}',
+                                            name: '{{ reason.name|escapejs }}',
+                                            category: '{{ reason.category }}',
+                                            defect_type: '{{ reason.defect_type }}',
+                                            order: {{ reason.order }},
+                                            is_active: {{ reason.is_active|yesno:'true,false' }},
+                                            description: '{{ reason.description|escapejs }}'
+                                        })"
+                                        class="p-2 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/30 transition text-xs"
+                                        title="Tahrirlash">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+
+                                <button type="button"
+                                        onclick="openDeleteModal({{ reason.id }}, '{{ reason.code|escapejs }}', '{{ reason.name|escapejs }}')"
+                                        class="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 transition text-xs"
+                                        title="O'chirish">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 px-4 text-center">
+                            <div class="max-w-md mx-auto space-y-3">
+                                <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-2xl border border-rose-500/20">
+                                    <i class="fa-solid fa-clipboard-question"></i>
+                                </div>
+                                <h4 class="text-base font-bold text-white">Hech qanday shablon topilmadi</h4>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    Sifat nazorati (OTK) uchun hozircha brak sabablari shablonlari kiritilmagan yoki qidiruv natijasi bo'yicha ma'lumot chiqmadi.
+                                </p>
+                                <div class="pt-2 flex items-center justify-center gap-3">
+                                    <button onclick="openCreateModal()"
+                                            class="px-4 py-2 bg-gradient-to-r from-rose-500 to-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-md">
+                                        <i class="fa-solid fa-circle-plus mr-1"></i> Yangi Shablon Qo'shish
+                                    </button>
+                                    <form method="POST" action="{% url 'superadmin_defect_reason_seed_defaults' %}">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold border border-slate-700">
+                                            <i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1"></i> Namunalar Yuklash
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- QUICK SEED HELPER (IF TEMPLATES EXIST) -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-amber-400 text-sm"></i>
+            <span>Standart trikotaj tikuvchilik brak sabablarini (10 ta namuna) bir marta bosish orqali bazaga to'ldirishingiz mumkin.</span>
+        </div>
+        <form method="POST" action="{% url 'superadmin_defect_reason_seed_defaults' %}" onsubmit="return confirm('Mavjud bo\'lmagan barcha standart namunaviy shablonlar qo\'shiladi. Davom etasizmi?')">
+            {% csrf_token %}
+            <button type="submit"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Namunaviy Shablonlarni Yangilash / Yuklash
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: YANGI SHABLON YARATISH -->
+<!-- ========================================================================= -->
+<div id="newDefectReasonModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-8">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <i class="fa-solid fa-circle-plus"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white text-base">Yangi Brak Shablonini Yaratish</h3>
+                    <p class="text-xs text-slate-400">Sifat nazorati (OTK) uchun yangi sabab qo'shish</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCreateModal()" class="text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_defect_reason_create' %}" class="p-5 space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                    Brak / Nuqson Sababi Nomi <span class="text-rose-400">*</span>
+                </label>
+                <input type="text" name="name" required
+                       placeholder="Masalan: Chok qiyshiq tikilgan yoki to'lqinsimon"
+                       class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Shablon Kodi <small class="text-slate-500 font-normal lowercase">(ixtiyoriy)</small>
+                    </label>
+                    <input type="text" name="code"
+                           placeholder="Masalan: BRK-001 (bo'sh qolsa avtomatik)"
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 uppercase font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Tartib Raqami (#)
+                    </label>
+                    <input type="number" name="order" value="1" min="1"
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500 font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Bo'lim / Kategoriya
+                    </label>
+                    <select name="category"
+                            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500">
+                        {% for code, label in categories %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Turi (Oqibati)
+                    </label>
+                    <select name="defect_type"
+                            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500">
+                        {% for code, label in defect_types %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                    Batafsil Tavsif / Standart Talab <small class="text-slate-500 font-normal lowercase">(ixtiyoriy)</small>
+                </label>
+                <textarea name="description" rows="3"
+                          placeholder="Nuqson qanday holatda yuzaga keladi, qanday bartaraf qilinishi kerak..."
+                          class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"></textarea>
+            </div>
+
+            <div class="flex items-center gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                <input type="checkbox" id="create_is_active" name="is_active" value="1" checked
+                       class="w-4 h-4 rounded border-slate-700 text-rose-600 focus:ring-rose-500 bg-slate-900 cursor-pointer">
+                <label for="create_is_active" class="text-xs font-semibold text-slate-200 cursor-pointer">
+                    Shablon faol holatda saqlansin (OTK kontrolchilarida ko'rinadi)
+                </label>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeCreateModal()"
+                        class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                        class="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">
+                    <i class="fa-solid fa-check mr-1.5"></i> Saqlash va Yaratish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: SHABLONNI TAHRIRLASH -->
+<!-- ========================================================================= -->
+<div id="editDefectReasonModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-8">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white text-base">Shablonni Tahrirlash</h3>
+                    <p class="text-xs text-slate-400" id="edit-modal-subtitle">Shablon ma'lumotlarini o'zgartirish</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="editDefectReasonForm" method="POST" action="" class="p-5 space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                    Brak / Nuqson Sababi Nomi <span class="text-rose-400">*</span>
+                </label>
+                <input type="text" id="edit-name" name="name" required
+                       class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Shablon Kodi
+                    </label>
+                    <input type="text" id="edit-code" name="code"
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 uppercase font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Tartib Raqami (#)
+                    </label>
+                    <input type="number" id="edit-order" name="order" min="1"
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Bo'lim / Kategoriya
+                    </label>
+                    <select id="edit-category" name="category"
+                            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
+                        {% for code, label in categories %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                        Turi (Oqibati)
+                    </label>
+                    <select id="edit-defect-type" name="defect_type"
+                            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
+                        {% for code, label in defect_types %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                    Batafsil Tavsif / Standart Talab
+                </label>
+                <textarea id="edit-description" name="description" rows="3"
+                          class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
+            </div>
+
+            <div class="flex items-center gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                <input type="checkbox" id="edit-is-active" name="is_active" value="1"
+                       class="w-4 h-4 rounded border-slate-700 text-amber-500 focus:ring-amber-500 bg-slate-900 cursor-pointer">
+                <label for="edit-is-active" class="text-xs font-semibold text-slate-200 cursor-pointer">
+                    Shablon faol holatda bo'lsin (OTK kontrolchilarida ko'rinadi)
+                </label>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeEditModal()"
+                        class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                        class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">
+                    <i class="fa-solid fa-check mr-1.5"></i> O'zgarishlarni Saqlash
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: O'CHIRISHNI TASDIQLASH -->
+<!-- ========================================================================= -->
+<div id="deleteDefectReasonModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div class="p-6 text-center space-y-4">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-2xl border border-rose-500/20">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Shablonni O'chirish</h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Siz rostdan ham ushbu brak sababi shablonini o'chirib tashlamoqchimisiz?
+                </p>
+            </div>
+            <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono font-bold text-rose-300" id="delete-reason-target">
+                [BRK-001] Sabab nomi
+            </div>
+            <div class="pt-2 flex items-center justify-center gap-3">
+                <button type="button" onclick="closeDeleteModal()"
+                        class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+                    Bekor qilish
+                </button>
+                <form id="deleteDefectReasonForm" method="POST" action="">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/20 transition">
+                        <i class="fa-solid fa-trash-can mr-1.5"></i> Ha, O'chirilsin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Live filter rows on the client side
+    function clientFilterDefects(query) {
+        query = query.toLowerCase().trim();
+        const rows = document.querySelectorAll('.defect-row');
+        rows.forEach(row => {
+            const text = row.getAttribute('data-search') || '';
+            if (!query || text.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Create Modal
+    function openCreateModal() {
+        document.getElementById('newDefectReasonModal').classList.remove('hidden');
+    }
+    function closeCreateModal() {
+        document.getElementById('newDefectReasonModal').classList.add('hidden');
+    }
+
+    // Edit Modal
+    function openEditModal(data) {
+        const form = document.getElementById('editDefectReasonForm');
+        form.action = `/superadmin/control/defect-reasons/${data.id}/edit/`;
+        document.getElementById('edit-modal-subtitle').innerText = `Kod: ${data.code} • ${data.name}`;
+        document.getElementById('edit-name').value = data.name;
+        document.getElementById('edit-code').value = data.code;
+        document.getElementById('edit-order').value = data.order;
+        document.getElementById('edit-category').value = data.category;
+        document.getElementById('edit-defect-type').value = data.defect_type;
+        document.getElementById('edit-description').value = data.description || '';
+        document.getElementById('edit-is-active').checked = !!data.is_active;
+
+        document.getElementById('editDefectReasonModal').classList.remove('hidden');
+    }
+    function closeEditModal() {
+        document.getElementById('editDefectReasonModal').classList.add('hidden');
+    }
+
+    // Delete Modal
+    function openDeleteModal(id, code, name) {
+        const form = document.getElementById('deleteDefectReasonForm');
+        form.action = `/superadmin/control/defect-reasons/${id}/delete/`;
+        document.getElementById('delete-reason-target').innerText = `[${code}] ${name}`;
+        document.getElementById('deleteDefectReasonModal').classList.remove('hidden');
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteDefectReasonModal').classList.add('hidden');
+    }
+
+    // Quick toggle active via AJAX
+    async function toggleDefectActive(id, btn) {
+        try {
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            const res = await fetch(`/superadmin/control/defect-reasons/${id}/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === 'OK') {
+                    if (data.is_active) {
+                        btn.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25";
+                        btn.innerHTML = '<i class="fa-solid fa-check-circle text-[11px]"></i><span>Faol</span>';
+                    } else {
+                        btn.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700";
+                        btn.innerHTML = '<i class="fa-solid fa-circle-xmark text-[11px]"></i><span>Nofaol</span>';
+                    }
+                }
+            } else {
+                location.reload();
+            }
+        } catch (e) {
+            console.error(e);
+            location.reload();
+        }
+    }
+
+    // Close modals on Escape key
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeCreateModal();
+            closeEditModal();
+            closeDeleteModal();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog, DefectReason
 
 
 @admin.register(Customer)
@@ -128,3 +128,11 @@ class BoxQualityInspectionLogAdmin(admin.ModelAdmin):
     list_display = ['box', 'inspector', 'action_type', 'first_sort_qty', 'second_sort_qty', 'repair_qty', 'defect_qty', 'created_at']
     list_filter = ['action_type', 'created_at']
     search_fields = ['box__box_code', 'box__order__order_number', 'inspector__username']
+
+
+@admin.register(DefectReason)
+class DefectReasonAdmin(admin.ModelAdmin):
+    list_display = ['code', 'name', 'category', 'defect_type', 'order', 'is_active', 'created_at']
+    list_filter = ['category', 'defect_type', 'is_active']
+    search_fields = ['code', 'name', 'description']
+    ordering = ['order', 'id']

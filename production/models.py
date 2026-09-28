@@ -1076,6 +1076,91 @@ class BoxQualityInspectionLog(models.Model):
         return f"{self.box.box_code} ({self.get_action_type_display()}): 1-sort: {self.first_sort_qty}, 2-sort: {self.second_sort_qty}, Ta'mir: {self.repair_qty}, Brak: {self.defect_qty}"
 
 
+class DefectReason(models.Model):
+    """
+    Sifat Nazorati (OTK) uchun Brak / Nuqson sabablari shablonlari.
+    Super Admin tomonidan boshqariladi va kontrolchi tekshiruvda foydalanishi mumkin.
+    """
+    class Category(models.TextChoices):
+        SEWING = 'SEWING', 'Tikuvchilik (Chok / Tikuv)'
+        CUTTING = 'CUTTING', 'Bichuv (Kesim)'
+        FABRIC = 'FABRIC', 'Mato / Xomashyo'
+        IRONING = 'IRONING', 'Dazmol / Tozalash'
+        ACCESSORY = 'ACCESSORY', 'Furnitura / Aksessuarlar'
+        OTHER = 'OTHER', 'Boshqa nuqsonlar'
+
+    class DefectType(models.TextChoices):
+        REPAIRABLE = 'REPAIRABLE', "Tuzatsa bo'ladi (Ta'mirga yuborish)"
+        NON_REPAIRABLE = 'NON_REPAIRABLE', "Tuzatib bo'lmaydi (Brak / 2-sort)"
+        BOTH = 'BOTH', "Ikkala holat uchun ham"
+
+    code = models.CharField(
+        max_length=50,
+        unique=True,
+        blank=True,
+        verbose_name="Shablon Kodi"
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Brak / Nuqson Sababi"
+    )
+    category = models.CharField(
+        max_length=50,
+        choices=Category.choices,
+        default=Category.SEWING,
+        verbose_name="Bo'lim / Kategoriya"
+    )
+    defect_type = models.CharField(
+        max_length=20,
+        choices=DefectType.choices,
+        default=DefectType.REPAIRABLE,
+        verbose_name="Turi / Oqibati"
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name="Batafsil tavsif / Izoh"
+    )
+    order = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Tartib raqami"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Faol"
+    )
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_defect_reasons',
+        verbose_name="Yaratuvchi"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqt")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Yangilangan vaqt")
+
+    class Meta:
+        verbose_name = "Brak Sababi Shablon"
+        verbose_name_plural = "Brak Sabablari Shablonlari"
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"[{self.code}] {self.name}" if self.code else self.name
+
+    def save(self, *args, **kwargs):
+        if not self.code or not self.code.strip():
+            count = DefectReason.objects.count() + 1
+            candidate = f"BRK-{count:03d}"
+            idx = count
+            while DefectReason.objects.filter(code=candidate).exists():
+                idx += 1
+                candidate = f"BRK-{idx:03d}"
+            self.code = candidate
+        else:
+            self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)
+
+
 class Ticket(models.Model):
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Kutilmoqda'
