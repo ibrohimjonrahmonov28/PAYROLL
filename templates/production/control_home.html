@@ -218,6 +218,33 @@
                 </div>
             </div>
 
+            <!-- TA'MIRDAN QAYTISH BANNERI (Faqat ta'mirdan qaytgan qutilar uchun ko'rinadi) -->
+            <div id="repair-return-banner"
+                class="hidden bg-amber-500/15 border-2 border-amber-500/50 rounded-2xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs shadow-lg">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-wrench"></i>
+                    </div>
+                    <div>
+                        <strong class="text-amber-300 text-sm font-black uppercase tracking-wider block">
+                            TA'MIRDAN QAYTGAN QUTI
+                        </strong>
+                        <p class="text-slate-300 text-xs mt-0.5">
+                            Tikuvchilar tomonidan tuzatilgan mahsulotlar sifat nazoratiga qaytarildi.
+                        </p>
+                    </div>
+                </div>
+                <div class="bg-slate-950/80 border border-amber-500/30 px-3.5 py-1.5 rounded-xl text-right">
+                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Oldingi holat</span>
+                    <div class="flex items-center gap-2 mt-0.5 font-mono text-xs">
+                        <span class="text-emerald-400 font-bold">1-Sort: <span id="val-prev-first-sort">0</span></span>
+                        <span class="text-slate-600">•</span>
+                        <span class="text-amber-400 font-bold">2-Sort: <span id="val-prev-second-sort">0</span></span>
+                    </div>
+                </div>
+            </div>
+
             <!-- 2. ASOSIY SOHA: CHAPDA RASM, MARKAZDA SON VA UCHBURCHAKLAR, O'NGDA TASDIQLASH -->
             <div
                 class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex-1 flex flex-col justify-between gap-6 min-h-[420px]">
@@ -267,10 +294,10 @@
                             </span>
                         </button>
 
-                        <!-- O'RTA BLOK: Qutidagi son -->
-                        <div
+                        <!-- O'RTA BLOK: Qutidagi son / Ta'mirdan qaytayotgan son -->
+                        <div id="box-qty-container"
                             class="bg-slate-950 border-2 border-indigo-500/70 rounded-3xl p-5 sm:p-6 text-center shadow-2xl w-56 sm:w-72">
-                            <span class="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block">
+                            <span id="lbl-box-qty-title" class="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block">
                                 Qutidagi son
                             </span>
                             <div class="my-2">
@@ -280,6 +307,7 @@
                             <span class="text-xs text-slate-500 font-bold uppercase tracking-wider block">
                                 dona
                             </span>
+                            <span id="lbl-box-qty-hint" class="hidden text-[10px] text-amber-300 font-mono mt-1 font-bold block"></span>
                         </div>
 
                         <!-- UCHBURCHAK TUGMA: - 1 (PASTGA QARAGAN) -->
@@ -311,8 +339,8 @@
                     <!-- KATTA TUGMA: Tasdiqlash va qabul qilish (2-qadamga o'tish) -->
                     <button type="button" id="btn-confirm-accept" onclick="proceedToStep2()"
                         class="touch-btn px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-3xl text-base sm:text-xl shadow-2xl shadow-emerald-500/30 flex items-center gap-3 transition">
-                        <i class="fa-solid fa-circle-check text-2xl"></i>
-                        <span>Tasdiqlash va qabul qilish</span>
+                        <i class="fa-solid fa-circle-check text-2xl" id="btn-confirm-accept-icon"></i>
+                        <span id="btn-confirm-accept-text">Tasdiqlash va qabul qilish</span>
                     </button>
                 </div>
 
@@ -335,7 +363,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
+                            <span id="step2-badge-step" class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
                                 SARALASH</span>
                             <span class="text-slate-600 font-bold">•</span>
                             <span id="step2-header-box-title"
@@ -355,7 +383,7 @@
 
                 <div class="flex items-center gap-3">
                     <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl text-right">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan
+                        <span id="step2-qty-title" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan
                             son</span>
                         <div class="flex items-baseline justify-end gap-1">
                             <strong id="step2-header-total-qty"
@@ -376,9 +404,9 @@
                         <span
                             class="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-circle-check text-base"></i>
-                            <span>1-SORT (TAYYOR)</span>
+                            <span id="step2-first-sort-title">1-SORT (TAYYOR)</span>
                         </span>
-                        <span
+                        <span id="step2-first-sort-badge"
                             class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase">
                             STANDART
                         </span>
@@ -389,12 +417,12 @@
                             class="text-6xl sm:text-7xl font-black text-emerald-400 digital-font drop-shadow-md">
                             50
                         </div>
-                        <span class="text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-1 block">
+                        <span id="step2-first-sort-sub" class="text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-1 block">
                             dona tayyor mahsulot
                         </span>
                     </div>
 
-                    <div
+                    <div id="step2-first-sort-desc"
                         class="p-3 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl text-left text-xs text-emerald-300/90 leading-relaxed font-medium">
                         <i class="fa-solid fa-box-open mr-1 text-emerald-400"></i>
                         Nuqsonsiz toza kiyimlar. Qutiga solinib to'g'ridan-to'g'ri <strong>Upakovka (Qadoqlash)</strong>
@@ -409,9 +437,9 @@
                         <span
                             class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-triangle-exclamation text-base"></i>
-                            <span>2-SORT (BRAK)</span>
+                            <span id="step2-second-sort-title">2-SORT (BRAK)</span>
                         </span>
-                        <span
+                        <span id="step2-second-sort-badge"
                             class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase">
                             NUQSONLI
                         </span>
@@ -466,9 +494,9 @@
                         <span
                             class="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-wrench text-base"></i>
-                            <span>TA'MIR (QAYTA ISHLASH)</span>
+                            <span id="step2-repair-title">TA'MIR (QAYTA ISHLASH)</span>
                         </span>
-                        <span
+                        <span id="step2-repair-badge"
                             class="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase">
                             QAYTARILADI
                         </span>
@@ -503,7 +531,8 @@
 
                     <!-- Tanlangan ta'mir operatsiyalari ro'yxati (Badge / kartochkalar) -->
                     <div class="flex-1 flex flex-col justify-end">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
+                        <span
+                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
                             Ta'mir operatsiyalari va tikuvchilar:
                         </span>
                         <div id="step2-repair-items-list"
@@ -679,12 +708,14 @@
     <!-- ================================================================= -->
     <div id="repair-operations-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-        <div class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-rose-950/50 overflow-hidden">
+        <div
+            class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-rose-950/50 overflow-hidden">
 
             <!-- Modal Header -->
             <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-lg">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-lg">
                         <i class="fa-solid fa-wrench"></i>
                     </div>
                     <div>
@@ -698,10 +729,12 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span id="modal-repair-badge" class="px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black font-mono">
+                    <span id="modal-repair-badge"
+                        class="px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black font-mono">
                         #1 DONA TA'MIR
                     </span>
-                    <button type="button" onclick="cancelRepairModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">
+                    <button type="button" onclick="cancelRepairModal()"
+                        class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
@@ -709,9 +742,11 @@
 
             <!-- Modal Body: FAQAT OPERATSIYALAR RO'YXATI -->
             <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
-                <div class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 leading-relaxed font-semibold">
+                <div
+                    class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 leading-relaxed font-semibold">
                     <i class="fa-solid fa-circle-exclamation mr-1 text-rose-400"></i>
-                    Tikuvchi keyinchalik rad eta olmasligi uchun nuqson qaysi tikuvchining operatsiyasida ekanligini belgilang:
+                    Tikuvchi keyinchalik rad eta olmasligi uchun nuqson qaysi tikuvchining operatsiyasida ekanligini
+                    belgilang:
                 </div>
 
                 <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -742,7 +777,8 @@
 
                 <!-- Qo'shimcha ixtiyoriy izoh -->
                 <div class="flex items-center gap-2">
-                    <input type="text" id="modal-repair-notes" placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: chok ochilgan, ip uzilgan)..."
+                    <input type="text" id="modal-repair-notes"
+                        placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: chok ochilgan, ip uzilgan)..."
                         class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400">
                 </div>
 
@@ -855,6 +891,53 @@
                 <button type="button" onclick="closeResultModal()"
                     class="touch-btn w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-emerald-600/30 transition">
                     Keyingi qutiga o'tish (Enter)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. MODAL: ALLAQACHON QABUL QILINGAN QUTI -->
+    <div id="box-completed-modal"
+        class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 border-2 border-emerald-500/60 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl shadow-emerald-950/50 space-y-4">
+            <div
+                class="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-400 flex items-center justify-center text-3xl">
+                <i class="fa-solid fa-box-archive"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-black text-white uppercase tracking-wider">
+                    QUTI ALLAQACHON YOPILGAN!
+                </h3>
+                <p id="completed-modal-title" class="text-xs text-emerald-400 mt-1 font-bold font-mono">
+                    Quti #-- [------]
+                </p>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-left space-y-2 text-xs">
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>Zakaz / Model:</span>
+                    <strong id="completed-modal-order" class="text-white truncate max-w-[200px]">—</strong>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>1-Sort (Tayyor):</span>
+                    <strong id="completed-modal-first" class="text-emerald-400 font-mono text-sm">0 dona</strong>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>2-Sort (Brak):</span>
+                    <strong id="completed-modal-second" class="text-amber-400 font-mono text-sm">0 dona</strong>
+                </div>
+                <div class="flex justify-between items-center text-slate-300 border-t border-slate-800 pt-2">
+                    <span class="font-bold">Jami qabul qilingan:</span>
+                    <strong id="completed-modal-total" class="text-white font-mono text-sm">0 dona</strong>
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400 italic">
+                Ushbu qutining sifat nazorati yakunlangan va mahsulot Upakovkaga topshirilgan.
+            </p>
+            <div class="pt-2">
+                <button type="button" onclick="closeCompletedModal()"
+                    class="touch-btn w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-emerald-600/30 transition">
+                    Yangi quti skanerlash (Enter)
                 </button>
             </div>
         </div>
@@ -1000,7 +1083,11 @@
                     playSound('beep');
                     currentBox = data.box;
                     currentDefectReasons = data.defect_reasons || (data.box ? data.box.defect_reasons : []) || [];
-                    renderInspectionCard(currentBox);
+                    if (currentBox.mode === 'COMPLETED') {
+                        showCompletedBoxModal(currentBox);
+                    } else {
+                        renderInspectionCard(currentBox);
+                    }
                     clearScannerInput();
                 } else {
                     playSound('error');
@@ -1020,15 +1107,33 @@
             document.getElementById('step2-card').classList.add('hidden');
             document.getElementById('inspection-card').classList.remove('hidden');
 
+            const isRepair = (b.mode === 'REPAIR_RETURN');
+
             const headerSub = document.getElementById('header-step-indicator');
             if (headerSub) {
-                headerSub.innerText = "1 - qadam : Control stikerini scan qilgandan keyin";
+                headerSub.innerText = isRepair
+                    ? "Ta'mirdan qaytish : Qaytayotgan sonni tekshirish"
+                    : "1 - qadam : Control stikerini scan qilgandan keyin";
+            }
+
+            // TA'MIRDAN QAYTISH BANNERI
+            const banner = document.getElementById('repair-return-banner');
+            if (banner) {
+                if (isRepair) {
+                    banner.classList.remove('hidden');
+                    const el1 = document.getElementById('val-prev-first-sort');
+                    const el2 = document.getElementById('val-prev-second-sort');
+                    if (el1) el1.innerText = b.controlled_first_sort_qty || 0;
+                    if (el2) el2.innerText = b.controlled_second_sort_qty || 0;
+                } else {
+                    banner.classList.add('hidden');
+                }
             }
 
             // BLOK 1: ZAKAZ NOMI - Nomer
             document.getElementById('val-order-number').innerText = b.order_number || "—";
             document.getElementById('val-order-name').innerText = b.order_client || (b.order_number ? `Zakaz #${b.order_number}` : "Buyurtmachi");
-            document.getElementById('val-box-title').innerText = `Quti #${b.box_number} [${b.box_code}]`;
+            document.getElementById('val-box-title').innerText = `Quti #${b.box_number} [${b.box_code}]${isRepair ? ' • TA\'MIRDAN' : ''}`;
 
             // BLOK 2: ARTIKUL Model nomi
             document.getElementById('val-article-code').innerText = b.article_code || "N/A";
@@ -1049,9 +1154,50 @@
                 noImgEl.classList.remove('hidden');
             }
 
-            // QUTIDAGI SON
+            // QUTIDAGI / TA'MIRDAN QAYTAYOTGAN SON
             const qtyInput = document.getElementById('input-box-qty');
-            qtyInput.value = b.quantity || 50;
+            const qtyTitle = document.getElementById('lbl-box-qty-title');
+            const qtyHint = document.getElementById('lbl-box-qty-hint');
+
+            if (isRepair) {
+                if (qtyTitle) {
+                    qtyTitle.innerText = "Ta'mirdan qaytayotgan son";
+                    qtyTitle.className = "text-xs sm:text-sm font-black uppercase text-amber-400 tracking-widest block";
+                }
+                qtyInput.value = b.controlled_repair_qty || 1;
+                qtyInput.max = b.controlled_repair_qty || 999;
+                if (qtyHint) {
+                    qtyHint.innerText = `Ta'mirda bo'lgan: ${b.controlled_repair_qty} dona`;
+                    qtyHint.classList.remove('hidden');
+                }
+            } else {
+                if (qtyTitle) {
+                    qtyTitle.innerText = "Qutidagi son";
+                    qtyTitle.className = "text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block";
+                }
+                qtyInput.value = b.quantity || 50;
+                qtyInput.removeAttribute('max');
+                if (qtyHint) {
+                    qtyHint.classList.add('hidden');
+                }
+            }
+
+            // Tasdiqlash tugmasi
+            const btnAccept = document.getElementById('btn-confirm-accept');
+            const btnAcceptText = document.getElementById('btn-confirm-accept-text');
+            const btnAcceptIcon = document.getElementById('btn-confirm-accept-icon');
+
+            if (btnAccept && btnAcceptText) {
+                if (isRepair) {
+                    btnAcceptText.innerText = "Tasdiqlash va Ta'mirni Tekshirish";
+                    if (btnAcceptIcon) btnAcceptIcon.className = "fa-solid fa-wrench text-2xl";
+                    btnAccept.className = "touch-btn px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-600 hover:to-emerald-600 text-slate-950 font-black rounded-3xl text-base sm:text-xl shadow-2xl shadow-amber-500/30 flex items-center gap-3 transition cursor-pointer";
+                } else {
+                    btnAcceptText.innerText = "Tasdiqlash va qabul qilish";
+                    if (btnAcceptIcon) btnAcceptIcon.className = "fa-solid fa-circle-check text-2xl";
+                    btnAccept.className = "touch-btn px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-3xl text-base sm:text-xl shadow-2xl shadow-emerald-500/30 flex items-center gap-3 transition cursor-pointer";
+                }
+            }
         }
 
         // 1-qadamda sonni oshirish / kamaytirish
@@ -1059,6 +1205,10 @@
             const input = document.getElementById('input-box-qty');
             let val = (parseInt(input.value) || 0) + delta;
             if (val < 1) val = 1;
+            if (currentBox && currentBox.mode === 'REPAIR_RETURN') {
+                const maxVal = currentBox.controlled_repair_qty || 999;
+                if (val > maxVal) val = maxVal;
+            }
             input.value = val;
             playSound('beep');
         }
@@ -1067,6 +1217,10 @@
             const input = document.getElementById('input-box-qty');
             let val = parseInt(input.value) || 1;
             if (val < 1) val = 1;
+            if (currentBox && currentBox.mode === 'REPAIR_RETURN') {
+                const maxVal = currentBox.controlled_repair_qty || 999;
+                if (val > maxVal) val = maxVal;
+            }
             input.value = val;
         }
 
@@ -1074,17 +1228,22 @@
         function proceedToStep2() {
             if (!currentBox) return;
 
-            // 1. Operatsiyalar skanerlanganligini tekshirish
-            if (!currentBox.all_tickets_scanned || (currentBox.missing_operations && currentBox.missing_operations.length > 0)) {
-                playSound('error');
-                showUnscannedModal(currentBox.missing_operations.map(o => o.operation_name || o));
-                return;
+            const isRepair = (currentBox.mode === 'REPAIR_RETURN');
+
+            // 1. Operatsiyalar skanerlanganligini tekshirish (faqat INITIAL rejimda)
+            if (!isRepair) {
+                if (!currentBox.all_tickets_scanned || (currentBox.missing_operations && currentBox.missing_operations.length > 0)) {
+                    playSound('error');
+                    showUnscannedModal(currentBox.missing_operations.map(o => o.operation_name || o));
+                    return;
+                }
             }
 
             // 2. Step 1 dagi kiritilgan sonni tasdiqlash
-            currentVerifiedQty = parseInt(document.getElementById('input-box-qty').value) || currentBox.quantity;
+            const defaultQty = isRepair ? (currentBox.controlled_repair_qty || 1) : (currentBox.quantity || 50);
+            currentVerifiedQty = parseInt(document.getElementById('input-box-qty').value) || defaultQty;
             if (currentVerifiedQty < 1) {
-                alert("Qutidagi son kamida 1 dona bo'lishi shart!");
+                alert("Son kamida 1 dona bo'lishi shart!");
                 return;
             }
 
@@ -1094,10 +1253,58 @@
             defectItemsList = [];
             repairItemsList = [];
 
-            // 4. Step 2 ma'lumotlarini to'ldirish
+            // 4. Step 2 ma'lumotlari va sarlavhalarini to'ldirish
+            const headerSub = document.getElementById('header-step-indicator');
+            const stepBadge = document.getElementById('step2-badge-step');
+            const qtyTitle = document.getElementById('step2-qty-title');
+
+            if (isRepair) {
+                if (headerSub) headerSub.innerText = "Ta'mirdan qaytish : Sifat saralash va tekshirish";
+                if (stepBadge) {
+                    stepBadge.innerText = "TA'MIRDAN QAYTISH : SARALASH";
+                    stepBadge.className = "text-xs font-black text-amber-400 uppercase tracking-widest";
+                }
+                if (qtyTitle) qtyTitle.innerText = "Ta'mirdan qaytgan son";
+
+                document.getElementById('step2-first-sort-title').innerText = "1-SORT (TUZALGAN)";
+                document.getElementById('step2-first-sort-badge').innerText = "TUZALDI";
+                document.getElementById('step2-first-sort-sub').innerText = "dona tuzalib 1-sortga qo'shiladi";
+                document.getElementById('step2-first-sort-desc').innerHTML = `
+                    <i class="fa-solid fa-box-open mr-1 text-emerald-400"></i>
+                    Tikuvchilar tuzatgan toza ishlar. Hech qanday tugma bosish shart emas, <strong>avtomatik 1-sortga qo'shiladi</strong>.
+                `;
+
+                document.getElementById('step2-second-sort-title').innerText = "2-SORT (TUZATIB BO'LMAGAN)";
+                document.getElementById('step2-second-sort-badge').innerText = "BRAK";
+
+                document.getElementById('step2-repair-title').innerText = "QAYTA TA'MIR (TIKUVCHIGA)";
+                document.getElementById('step2-repair-badge').innerText = "QAYTA TA'MIR";
+            } else {
+                if (headerSub) headerSub.innerText = "2 - qadam : Sifat saralash (1-Sort, 2-Sort, Ta'mir)";
+                if (stepBadge) {
+                    stepBadge.innerText = "2-QADAM : SIFAT SARALASH";
+                    stepBadge.className = "text-xs font-black text-amber-400 uppercase tracking-widest";
+                }
+                if (qtyTitle) qtyTitle.innerText = "Qabul qilingan son";
+
+                document.getElementById('step2-first-sort-title').innerText = "1-SORT (TAYYOR)";
+                document.getElementById('step2-first-sort-badge').innerText = "STANDART";
+                document.getElementById('step2-first-sort-sub').innerText = "dona tayyor mahsulot";
+                document.getElementById('step2-first-sort-desc').innerHTML = `
+                    <i class="fa-solid fa-box-open mr-1 text-emerald-400"></i>
+                    Nuqsonsiz toza kiyimlar. Qutiga solinib to'g'ridan-to'g'ri <strong>Upakovka (Qadoqlash)</strong> bo'limiga topshiriladi.
+                `;
+
+                document.getElementById('step2-second-sort-title').innerText = "2-SORT (BRAK)";
+                document.getElementById('step2-second-sort-badge').innerText = "NUQSONLI";
+
+                document.getElementById('step2-repair-title').innerText = "TA'MIR (QAYTA ISHLASH)";
+                document.getElementById('step2-repair-badge').innerText = "QAYTARILADI";
+            }
+
             document.getElementById('step2-header-order').innerText = currentBox.order_number || "—";
             document.getElementById('step2-header-article').innerText = `${currentBox.article_code} • ${currentBox.article_name}`;
-            document.getElementById('step2-header-box-title').innerText = `Quti #${currentBox.box_number} [${currentBox.box_code}]`;
+            document.getElementById('step2-header-box-title').innerText = `Quti #${currentBox.box_number} [${currentBox.box_code}]${isRepair ? ' (Ta\'mir)' : ''}`;
             document.getElementById('step2-header-razmer').innerText = currentBox.razmer || "—";
             document.getElementById('step2-header-total-qty').innerText = currentVerifiedQty;
 
@@ -1109,11 +1316,6 @@
             document.getElementById('inspection-card').classList.add('hidden');
             document.getElementById('step2-card').classList.remove('hidden');
 
-            const headerSub = document.getElementById('header-step-indicator');
-            if (headerSub) {
-                headerSub.innerText = "2 - qadam : Sifat saralash (1-Sort, 2-Sort, Ta'mir)";
-            }
-
             playSound('success');
         }
 
@@ -1122,9 +1324,12 @@
             document.getElementById('step2-card').classList.add('hidden');
             document.getElementById('inspection-card').classList.remove('hidden');
 
+            const isRepair = (currentBox && currentBox.mode === 'REPAIR_RETURN');
             const headerSub = document.getElementById('header-step-indicator');
             if (headerSub) {
-                headerSub.innerText = "1 - qadam : Control stikerini scan qilgandan keyin";
+                headerSub.innerText = isRepair
+                    ? "Ta'mirdan qaytish : Qaytayotgan sonni tekshirish"
+                    : "1 - qadam : Control stikerini scan qilgandan keyin";
             }
         }
 
@@ -1252,8 +1457,8 @@
 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${isSelected
-                        ? 'bg-indigo-600/25 border-2 border-indigo-500 text-white shadow-md'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 text-slate-300'
+                    ? 'bg-indigo-600/25 border-2 border-indigo-500 text-white shadow-md'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 text-slate-300'
                     }`;
                 itemDiv.onclick = () => toggleModalOperation(t.id);
 
@@ -1291,8 +1496,8 @@
                 const isSelected = modalSelectedReasons.has(r.id);
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-2.5 select-none ${isSelected
-                        ? 'bg-amber-500/25 border-2 border-amber-500 text-white shadow-md'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40 text-slate-300'
+                    ? 'bg-amber-500/25 border-2 border-amber-500 text-white shadow-md'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40 text-slate-300'
                     }`;
                 itemDiv.onclick = () => toggleModalReason(r.id);
 
@@ -1543,16 +1748,14 @@
                 const workerUid = t.worker ? t.worker.uid : "";
 
                 const itemDiv = document.createElement('div');
-                itemDiv.className = `p-3 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${
-                    isSelected 
-                        ? 'bg-rose-600/25 border-2 border-rose-500 text-white shadow-md' 
+                itemDiv.className = `p-3 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${isSelected
+                        ? 'bg-rose-600/25 border-2 border-rose-500 text-white shadow-md'
                         : 'bg-slate-900/80 border-slate-800 hover:border-rose-500/40 text-slate-300'
-                }`;
+                    }`;
                 itemDiv.onclick = () => toggleModalRepairOperation(t.id);
 
                 itemDiv.innerHTML = `
-                    <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${
-                        isSelected ? 'bg-rose-500 text-white font-black' : 'border border-slate-700 text-transparent'
+                    <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${isSelected ? 'bg-rose-500 text-white font-black' : 'border border-slate-700 text-transparent'
                     }">
                         <i class="fa-solid fa-check"></i>
                     </div>
@@ -1716,6 +1919,8 @@
             if (el2) el2.innerText = secondSortQty;
             if (el3) el3.innerText = repairQty;
 
+            const isRepair = (currentBox && currentBox.mode === 'REPAIR_RETURN');
+
             // Submit tugmasini yangilash
             const btn = document.getElementById('btn-submit-step2');
             const icon = document.getElementById('btn-submit-step2-icon');
@@ -1725,11 +1930,15 @@
                 if (repairQty === 0) {
                     btn.className = "touch-btn px-8 sm:px-12 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl shadow-emerald-500/30 flex items-center gap-3 transition cursor-pointer";
                     icon.className = "fa-solid fa-circle-check text-2xl";
-                    text.innerText = "Yakunlash va Qutini Topshirish (Enter)";
+                    text.innerText = isRepair
+                        ? "Tugatish va Qutini Yopish (Enter)"
+                        : "Yakunlash va Qutini Topshirish (Enter)";
                 } else {
                     btn.className = "touch-btn px-8 sm:px-12 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-600 hover:to-rose-600 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl shadow-amber-500/30 flex items-center gap-3 transition cursor-pointer";
                     icon.className = "fa-solid fa-wrench text-2xl";
-                    text.innerText = `Ta'mirga Qaytarish va Saqlash (${repairQty} ta ta'mirga)`;
+                    text.innerText = isRepair
+                        ? `Qayta Ta'mirga Qaytarish (${repairQty} ta ta'mirda)`
+                        : `Ta'mirga Qaytarish va Saqlash (${repairQty} ta ta'mirga)`;
                 }
             }
         }
@@ -1741,11 +1950,15 @@
             const btn = document.getElementById('btn-submit-step2');
             if (btn) btn.disabled = true;
 
+            const isRepair = (currentBox.mode === 'REPAIR_RETURN');
+
             const payload = {
                 box_id: currentBox.id,
-                mode: 'INITIAL',
+                mode: isRepair ? 'REPAIR_RETURN' : 'INITIAL',
                 total_qty: currentVerifiedQty,
+                defect_qty: secondSortQty,
                 second_sort_qty: secondSortQty,
+                re_repair_qty: repairQty,
                 repair_qty: repairQty,
                 defect_details: defectItemsList,
                 repair_details: repairItemsList,
@@ -1767,10 +1980,18 @@
                 if (res.ok && data.status === 'OK') {
                     if (data.is_closed) {
                         playSound('success');
-                        showResultModal(`Quti #${currentBox.box_number} [${currentBox.box_code}] qabul qilindi! 1-Sort: ${payload.total_qty - secondSortQty} dona, 2-Sort: ${secondSortQty} dona.`);
+                        if (isRepair) {
+                            showResultModal(`Quti #${currentBox.box_number} [${currentBox.box_code}] ta'miri to'liq yakunlandi va quti yopildi! Jami 1-Sort: ${data.box.first_sort} dona, 2-Sort: ${data.box.second_sort} dona. Mahsulot Upakovkaga topshiriladi!`);
+                        } else {
+                            showResultModal(`Quti #${currentBox.box_number} [${currentBox.box_code}] qabul qilindi! 1-Sort: ${payload.total_qty - secondSortQty} dona, 2-Sort: ${secondSortQty} dona.`);
+                        }
                     } else {
                         playSound('beep');
-                        showResultModal(`Quti #${currentBox.box_number} ta'mirga yuborildi! Ta'mirga: ${repairQty} dona, 1-Sort: ${payload.total_qty - secondSortQty - repairQty} dona.`);
+                        if (isRepair) {
+                            showResultModal(`Quti #${currentBox.box_number} qayta ta'mirga yuborildi! Qayta ta'mirda: ${repairQty} dona, 1-Sortga qo'shildi: ${currentVerifiedQty - secondSortQty - repairQty} dona.`);
+                        } else {
+                            showResultModal(`Quti #${currentBox.box_number} ta'mirga yuborildi! Ta'mirga: ${repairQty} dona, 1-Sort: ${payload.total_qty - secondSortQty - repairQty} dona.`);
+                        }
                     }
 
                     // Bugungi hisoblagichni yangilash
@@ -1795,6 +2016,20 @@
         }
 
         // MODAL FUNKSIYALARI
+        function showCompletedBoxModal(b) {
+            document.getElementById('completed-modal-title').innerText = `Quti #${b.box_number} [${b.box_code}]`;
+            document.getElementById('completed-modal-order').innerText = `${b.order_number || ''} • ${b.article_name || ''}`;
+            document.getElementById('completed-modal-first').innerText = `${b.controlled_first_sort_qty || 0} dona`;
+            document.getElementById('completed-modal-second').innerText = `${b.controlled_second_sort_qty || 0} dona`;
+            document.getElementById('completed-modal-total').innerText = `${b.quantity || 0} dona`;
+            document.getElementById('box-completed-modal').classList.remove('hidden');
+            playSound('beep');
+        }
+        function closeCompletedModal() {
+            document.getElementById('box-completed-modal').classList.add('hidden');
+            focusScannerInput();
+        }
+
         function showPermissionDeniedModal(msg) {
             if (msg) document.getElementById('permission-denied-message').innerText = msg;
             document.getElementById('permission-denied-modal').classList.remove('hidden');
@@ -1850,6 +2085,15 @@
         // Global klaviatura boshqaruvi
         document.addEventListener('keydown', function (e) {
             // Modallar ochiq bo'lsa Enter yoki Escape bilan yopish
+            const compModal = document.getElementById('box-completed-modal');
+            if (compModal && !compModal.classList.contains('hidden')) {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.preventDefault();
+                    closeCompletedModal();
+                    return;
+                }
+            }
+
             const permModal = document.getElementById('permission-denied-modal');
             if (permModal && !permModal.classList.contains('hidden')) {
                 if (e.key === 'Enter' || e.key === 'Escape') {

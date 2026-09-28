@@ -181,6 +181,13 @@ def control_box_lookup_api(request):
             image_url = None
 
     is_repair_mode = (box.controlled_repair_qty > 0)
+    is_completed = (box.is_controlled and box.controlled_repair_qty == 0)
+    if is_repair_mode:
+        current_mode = 'REPAIR_RETURN'
+    elif is_completed:
+        current_mode = 'COMPLETED'
+    else:
+        current_mode = 'INITIAL'
 
     # Qutiga tegishli barcha biletlar va ularning tikuvchilari
     tickets_qs = box.tickets.exclude(status=Ticket.Status.CANCELLED).select_related(
@@ -249,7 +256,7 @@ def control_box_lookup_api(request):
             'controlled_second_sort_qty': box.controlled_second_sort_qty,
             'controlled_repair_qty': box.controlled_repair_qty,
             'controlled_defect_qty': box.controlled_defect_qty,
-            'mode': 'REPAIR_RETURN' if is_repair_mode else 'INITIAL',
+            'mode': current_mode,
             'tickets': tickets_data,
             'missing_operations': missing_operations,
             'total_tickets_count': total_tickets,
@@ -416,8 +423,8 @@ def control_submit_inspection_api(request):
             return JsonResponse({'status': 'ERROR', 'message': "Ushbu qutida ta'mirga ketgan ishlar mavjud emas!"}, status=400)
 
         try:
-            defect_qty = int(data.get('defect_qty', 0))
-            re_repair_qty = int(data.get('re_repair_qty', 0))
+            defect_qty = int(data.get('defect_qty', data.get('second_sort_qty', 0)))
+            re_repair_qty = int(data.get('re_repair_qty', data.get('repair_qty', 0)))
         except (ValueError, TypeError):
             return JsonResponse({'status': 'ERROR', 'message': "Sonlar to'g'ri formatda kiritilishi shart!"}, status=400)
 
@@ -448,6 +455,36 @@ def control_submit_inspection_api(request):
         ])
 
         # Jurnalga yozish
+        notes_lines = []
+        user_notes = data.get('notes', '')
+        if user_notes and str(user_notes).strip():
+            notes_lines.append(str(user_notes).strip())
+
+        defect_details = data.get('defect_details', [])
+        if defect_details and isinstance(defect_details, list):
+            notes_lines.append("--- TA'MIRDAN 2-SORTGA O'TGANLAR ---")
+            for idx, d in enumerate(defect_details, 1):
+                item_idx = d.get('item_number', idx)
+                ops = ", ".join(d.get('operation_names', [])) if d.get('operation_names') else "Tikishga aloqador emas"
+                reasons = ", ".join(d.get('reason_names', [])) if d.get('reason_names') else "Ko'rsatilmagan"
+                workers = ", ".join(d.get('workers', [])) if d.get('workers') else ""
+                worker_part = f" (Tikuvchi: {workers})" if workers else ""
+                custom_note = f" [{d.get('notes')}]" if d.get('notes') else ""
+                notes_lines.append(f"• #{item_idx} dona: Sabab: [{reasons}] | Operatsiya: [{ops}{worker_part}]{custom_note}")
+
+        repair_details = data.get('repair_details', [])
+        if repair_details and isinstance(repair_details, list):
+            notes_lines.append("--- QAYTA TA'MIRGA YUBORILGANLAR ---")
+            for idx, r in enumerate(repair_details, 1):
+                item_idx = r.get('item_number', idx)
+                ops = ", ".join(r.get('operation_names', [])) if r.get('operation_names') else "Noma'lum operatsiya"
+                workers = ", ".join(r.get('workers', [])) if r.get('workers') else ""
+                worker_part = f" (Tikuvchi: {workers})" if workers else ""
+                custom_note = f" [{r.get('notes')}]" if r.get('notes') else ""
+                notes_lines.append(f"• #{item_idx} dona: Operatsiya: [{ops}{worker_part}]{custom_note}")
+
+        final_notes = "\n".join(notes_lines)
+
         log = BoxQualityInspectionLog.objects.create(
             box=box,
             inspector=request.user,
@@ -457,7 +494,7 @@ def control_submit_inspection_api(request):
             second_sort_qty=defect_qty,
             repair_qty=re_repair_qty,
             defect_qty=defect_qty,
-            notes=data.get('notes', '')
+            notes=final_notes
         )
 
         if is_closed:

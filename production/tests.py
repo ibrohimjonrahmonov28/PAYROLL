@@ -1771,5 +1771,101 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.assertIn("Fotima Karimova", log.notes)
         self.assertIn("Tugma qiyshiq", log.notes)
 
+    def test_repair_return_cycle_until_closed_and_completed_mode(self):
+        import json
+        from django.urls import reverse
+        from production.models import BoxQualityInspectionLog
+        self.client.login(username="inspector_otk", password="password123")
+        lookup_url = reverse('control:api_lookup')
+        submit_url = reverse('control:api_submit')
+
+        # 1. Quti ta'mirda (3 dona ta'mirda)
+        self.box.quantity = 50
+        self.box.controlled_first_sort_qty = 45
+        self.box.controlled_second_sort_qty = 2
+        self.box.controlled_repair_qty = 3
+        self.box.is_controlled = False
+        self.box.status = Box.Status.IN_PROGRESS
+        self.box.save()
+
+        # Lookup REPAIR_RETURN rejimini qaytaradi
+        res_lookup = self.client.get(f"{lookup_url}?code=CONTROL:A9-777")
+        self.assertEqual(res_lookup.status_code, 200)
+        data_lookup = res_lookup.json()
+        self.assertEqual(data_lookup['box']['mode'], 'REPAIR_RETURN')
+        self.assertEqual(data_lookup['box']['controlled_repair_qty'], 3)
+
+        # 2. 1-marta ta'mirdan qaytish: 3 tadan 1 ta tuzaldi, 1 ta 2-sort, 1 ta qayta ta'mir
+        res_sub1 = self.client.post(
+            submit_url,
+            data=json.dumps({
+                'box_id': self.box.id,
+                'mode': 'REPAIR_RETURN',
+                'second_sort_qty': 1,
+                'repair_qty': 1,
+                'defect_details': [{
+                    'item_number': 1,
+                    'operation_names': ["Tugma qadash"],
+                    'reason_names': ["Mato ignadan yoki pichoqdan teshilgan"],
+                    'workers': ["Fotima Karimova"],
+                    'notes': "Tuzatib bo'lmadi"
+                }],
+                'repair_details': [{
+                    'item_number': 1,
+                    'operation_names': ["Bichish tekshiruvi"],
+                    'workers': ["Zuhra Karimova"],
+                    'notes': "Qayta tikish kerak"
+                }]
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_sub1.status_code, 200)
+        data_sub1 = res_sub1.json()
+        self.assertFalse(data_sub1['is_closed'])
+        self.assertEqual(data_sub1['repair_qty'], 1)
+
+        self.box.refresh_from_db()
+        self.assertFalse(self.box.is_controlled)
+        self.assertEqual(self.box.controlled_first_sort_qty, 46) # 45 + 1 tuzaldi
+        self.assertEqual(self.box.controlled_second_sort_qty, 3) # 2 + 1 nuqson
+        self.assertEqual(self.box.controlled_repair_qty, 1)
+
+        # Jurnal yozuvlarini tekshirish
+        log1 = BoxQualityInspectionLog.objects.filter(box=self.box).latest('created_at')
+        self.assertEqual(log1.action_type, BoxQualityInspectionLog.ActionType.REPAIR_RETURN)
+        self.assertIn("--- TA'MIRDAN 2-SORTGA O'TGANLAR ---", log1.notes)
+        self.assertIn("--- QAYTA TA'MIRGA YUBORILGANLAR ---", log1.notes)
+
+        # 3. 2-marta ta'mirdan qaytish: oxirgi 1 dona ham tuzaldi (0 nuqson, 0 ta'mir)
+        res_sub2 = self.client.post(
+            submit_url,
+            data=json.dumps({
+                'box_id': self.box.id,
+                'mode': 'REPAIR_RETURN',
+                'second_sort_qty': 0,
+                'repair_qty': 0,
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_sub2.status_code, 200)
+        data_sub2 = res_sub2.json()
+        self.assertTrue(data_sub2['is_closed'])
+        self.assertEqual(data_sub2['repair_qty'], 0)
+
+        self.box.refresh_from_db()
+        self.assertTrue(self.box.is_controlled)
+        self.assertEqual(self.box.status, Box.Status.COMPLETED)
+        self.assertEqual(self.box.controlled_first_sort_qty, 47) # 46 + 1 = 47
+        self.assertEqual(self.box.controlled_second_sort_qty, 3)
+        self.assertEqual(self.box.controlled_repair_qty, 0)
+        self.assertEqual(self.box.controlled_first_sort_qty + self.box.controlled_second_sort_qty, 50)
+
+        # 4. Yopilgan qutini qayta skanerlaganda COMPLETED rejimida chiqadi
+        res_lookup2 = self.client.get(f"{lookup_url}?code=CONTROL:A9-777")
+        self.assertEqual(res_lookup2.status_code, 200)
+        data_lookup2 = res_lookup2.json()
+        self.assertEqual(data_lookup2['box']['mode'], 'COMPLETED')
+
+
 
 
