@@ -82,9 +82,17 @@ def control_box_lookup_api(request):
     if not raw_code:
         return JsonResponse({'status': 'ERROR', 'message': "Iltimos, quti kodini kiriting yoki skaner qiling!"}, status=400)
 
-    # Prefikslarni tozalash (CONTROL:, BOX:, TICKET:, QUTI #, QUTI#, QUTI:, #)
+    # 0. Tikuvchi bilet kodi prefikslari (TICKET:, TK-) bo'lsa darhol bloklash
+    raw_upper = raw_code.upper()
+    if raw_upper.startswith('TICKET:') or raw_upper.startswith('TK-'):
+        return JsonResponse({
+            'status': 'PERMISSION_DENIED',
+            'message': "Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!"
+        }, status=403)
+
+    # Prefikslarni tozalash (CONTROL:, BOX:, QUTI #, QUTI#, QUTI:, #)
     cleaned = raw_code.upper()
-    for prefix in ['CONTROL:', 'BOX:', 'TICKET:', 'QUTI #', 'QUTI#', 'QUTI:', '#']:
+    for prefix in ['CONTROL:', 'BOX:', 'QUTI #', 'QUTI#', 'QUTI:', '#']:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):].strip()
 
@@ -105,13 +113,14 @@ def control_box_lookup_api(request):
     if not box:
         box = Box.objects.filter(box_code__iexact=cleaned).select_related('order', 'article').first()
 
-    # 4. Agar foydalanuvchi qutidagi mahsulot stikerini skaner qilgan bo'lsa (stiker_code yoki ticket_code)
+    # 4. Agar quti topilmagan bo'lsa, lekin kiritilgan kod biletga (operatsiyaga) tegishli bo'lsa:
+    # Kontrolchi operatsiya stikerini ura olmaydi — faqat CONTROL stiker yoki quti ID!
     if not box:
-        ticket = Ticket.objects.filter(
-            Q(stiker_code__iexact=cleaned) | Q(ticket_code__iexact=cleaned)
-        ).select_related('box', 'box__order', 'box__article').first()
-        if ticket:
-            box = ticket.box
+        if Ticket.objects.filter(Q(stiker_code__iexact=cleaned) | Q(ticket_code__iexact=cleaned)).exists():
+            return JsonResponse({
+                'status': 'PERMISSION_DENIED',
+                'message': "Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!"
+            }, status=403)
 
     if not box:
         return JsonResponse({

@@ -1590,8 +1590,8 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.client.login(username="inspector_otk", password="password123")
         lookup_url = reverse('control:api_lookup')
 
-        # 1. Box code bo'yicha qidiruv
-        res1 = self.client.get(f"{lookup_url}?code=A9-777")
+        # 1. Box code bo'yicha qidiruv (CONTROL stikeri yoki Quti kodi)
+        res1 = self.client.get(f"{lookup_url}?code=CONTROL:A9-777")
         self.assertEqual(res1.status_code, 200)
         data1 = res1.json()
         self.assertEqual(data1['status'], 'OK')
@@ -1601,11 +1601,22 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.assertEqual(data1['box']['missing_tickets_count'], 1)
         self.assertFalse(data1['box']['all_tickets_scanned'])
 
-        # 2. Tikuvchi stiker kodi bo'yicha qidiruv (mahsulot ustidagi stiker)
+        # 2. Quti ID / raqami bo'yicha qidiruv
+        res_id = self.client.get(f"{lookup_url}?code={self.box.id}")
+        self.assertEqual(res_id.status_code, 200)
+        self.assertEqual(res_id.json()['box']['box_code'], 'A9-777')
+
+        # 3. Tikuvchi stiker kodi bo'yicha qidiruv (operatsiya stikeri) — TAQIQLANISHI SHART!
         res2 = self.client.get(f"{lookup_url}?code=STK00002")
-        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.status_code, 403)
         data2 = res2.json()
-        self.assertEqual(data2['box']['box_code'], 'A9-777')
+        self.assertEqual(data2['status'], 'PERMISSION_DENIED')
+        self.assertIn("Sizda bunday huquq yo'q", data2['message'])
+
+        # 4. TK- prefiksli bilet kodi bo'yicha ham taqiqlanishi shart
+        res3 = self.client.get(f"{lookup_url}?code=TK-OTK-1")
+        self.assertEqual(res3.status_code, 403)
+        self.assertEqual(res3.json()['status'], 'PERMISSION_DENIED')
 
     def test_submit_blocked_when_operations_unscanned(self):
         import json
