@@ -1682,4 +1682,81 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.assertEqual(self.box.controlled_second_sort_qty, 1)
         self.assertEqual(self.box.status, Box.Status.COMPLETED)
 
+    def test_lookup_includes_defect_reasons(self):
+        from django.urls import reverse
+        self.client.login(username="inspector_otk", password="password123")
+        lookup_url = reverse('control:api_lookup')
+
+        res = self.client.get(f"{lookup_url}?code=CONTROL:A9-777")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('defect_reasons', data['box'])
+        self.assertTrue(len(data['box']['defect_reasons']) > 0)
+        reasons_names = [r['name'] for r in data['box']['defect_reasons']]
+        self.assertTrue(any("Mato" in name for name in reasons_names))
+
+    def test_submit_with_defect_details_recorded_in_notes(self):
+        import json
+        from django.urls import reverse
+        from production.models import BoxQualityInspectionLog
+        self.client.login(username="inspector_otk", password="password123")
+        submit_url = reverse('control:api_submit')
+
+        # Tickets scanned
+        self.t1.status = Ticket.Status.SCANNED
+        self.t1.worker = self.worker1
+        self.t1.save()
+        self.t2.status = Ticket.Status.SCANNED
+        self.t2.worker = self.worker2
+        self.t2.save()
+
+        # Submit 2-sort with defect reasons
+        res = self.client.post(
+            submit_url,
+            data=json.dumps({
+                'box_id': self.box.id,
+                'mode': 'INITIAL',
+                'total_qty': 50,
+                'second_sort_qty': 2,
+                'repair_qty': 3,
+                'defect_details': [
+                    {
+                        'item_number': 1,
+                        'operation_ids': [self.t1.id],
+                        'operation_names': ["Bichish tekshiruvi"],
+                        'workers': ["Zuhra Karimova"],
+                        'reason_ids': [1],
+                        'reason_names': ["Mato rangida dog' yoki yog' izlari"],
+                        'notes': "Old cho'ntak yonida dog'"
+                    },
+                    {
+                        'item_number': 2,
+                        'operation_ids': [],
+                        'operation_names': [],
+                        'workers': [],
+                        'reason_ids': [2],
+                        'reason_names': ["Mato ignadan yoki pichoqdan teshilgan"],
+                        'notes': ""
+                    }
+                ]
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertFalse(data['is_closed']) # repair_qty=3, so not closed
+
+        # Check inspection log
+        log = BoxQualityInspectionLog.objects.filter(box=self.box).latest('created_at')
+        self.assertEqual(log.first_sort_qty, 45) # 50 - 2 - 3
+        self.assertEqual(log.second_sort_qty, 2)
+        self.assertEqual(log.repair_qty, 3)
+        self.assertIn("--- 2-SORT SABABLARI ---", log.notes)
+        self.assertIn("Mato rangida dog'", log.notes)
+        self.assertIn("Bichish tekshiruvi", log.notes)
+        self.assertIn("Zuhra Karimova", log.notes)
+        self.assertIn("Mato ignadan yoki pichoqdan teshilgan", log.notes)
+
+
 

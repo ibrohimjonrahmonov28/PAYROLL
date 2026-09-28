@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
@@ -7,7 +8,45 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Sum, Q
 from accounts.models import User
-from production.models import Box, BoxQualityInspectionLog, Ticket
+from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason
+
+
+def _get_active_defect_reasons():
+    """
+    Faol nuqson sabablari shablonlarini qaytaradi.
+    Agar baza bo'sh bo'lsa, standart shablonlarni avtomatik yaratadi.
+    """
+    if not DefectReason.objects.exists():
+        default_templates = [
+            {'code': 'BRK-001', 'name': "Chok qiyshiq yoki to'lqinsimon", 'category': DefectReason.Category.SEWING, 'defect_type': DefectReason.DefectType.REPAIRABLE, 'order': 1},
+            {'code': 'BRK-002', 'name': "Chok qadami tashlab ketgan (propusk)", 'category': DefectReason.Category.SEWING, 'defect_type': DefectReason.DefectType.REPAIRABLE, 'order': 2},
+            {'code': 'BRK-003', 'name': "Ip uzilgan yoki tortilib qolgan", 'category': DefectReason.Category.SEWING, 'defect_type': DefectReason.DefectType.REPAIRABLE, 'order': 3},
+            {'code': 'BRK-004', 'name': "Detallar simmetriyasi buzilgan", 'category': DefectReason.Category.SEWING, 'defect_type': DefectReason.DefectType.REPAIRABLE, 'order': 4},
+            {'code': 'BRK-005', 'name': "Cho'ntak yoki yoqa qiyshiq o'rnatilgan", 'category': DefectReason.Category.SEWING, 'defect_type': DefectReason.DefectType.REPAIRABLE, 'order': 5},
+            {'code': 'BRK-006', 'name': "Mato ignadan yoki pichoqdan teshilgan", 'category': DefectReason.Category.FABRIC, 'defect_type': DefectReason.DefectType.NON_REPAIRABLE, 'order': 6},
+            {'code': 'BRK-007', 'name': "Mato rangida dog' yoki yog' izlari", 'category': DefectReason.Category.IRONING, 'defect_type': DefectReason.DefectType.NON_REPAIRABLE, 'order': 7},
+            {'code': 'BRK-008', 'name': "O'lcham / Razmer mos kelmaydi", 'category': DefectReason.Category.CUTTING, 'defect_type': DefectReason.DefectType.NON_REPAIRABLE, 'order': 8},
+            {'code': 'BRK-009', 'name': "Furnitura / Tugma noto'g'ri qadalgan", 'category': DefectReason.Category.ACCESSORY, 'defect_type': DefectReason.DefectType.REPAIRABLE, 'order': 9},
+            {'code': 'BRK-010', 'name': "Mato to'qilishi yoki rang tuslanishi", 'category': DefectReason.Category.FABRIC, 'defect_type': DefectReason.DefectType.NON_REPAIRABLE, 'order': 10},
+            {'code': 'BRK-011', 'name': "Boshqa tashqi nuqsonlar (tikishga aloqador emas)", 'category': DefectReason.Category.OTHER, 'defect_type': DefectReason.DefectType.NON_REPAIRABLE, 'order': 11},
+        ]
+        for item in default_templates:
+            if not DefectReason.objects.filter(code=item['code']).exists():
+                DefectReason.objects.create(**item)
+
+    reasons = DefectReason.objects.filter(is_active=True).order_by('order', 'id')
+    return [
+        {
+            'id': r.id,
+            'code': r.code,
+            'name': r.name,
+            'category': r.category,
+            'category_display': r.get_category_display(),
+            'defect_type': r.defect_type,
+            'description': r.description or '',
+        }
+        for r in reasons
+    ]
 
 
 def _is_control_authorized(user) -> bool:
@@ -217,7 +256,9 @@ def control_box_lookup_api(request):
             'scanned_tickets_count': scanned_count,
             'missing_tickets_count': missing_count,
             'all_tickets_scanned': all_tickets_scanned,
-        }
+            'defect_reasons': _get_active_defect_reasons(),
+        },
+        'defect_reasons': _get_active_defect_reasons(),
     })
 
 
@@ -304,6 +345,25 @@ def control_submit_inspection_api(request):
         ])
 
         # Jurnalga yozish
+        notes_lines = []
+        user_notes = data.get('notes', '')
+        if user_notes and str(user_notes).strip():
+            notes_lines.append(str(user_notes).strip())
+
+        defect_details = data.get('defect_details', [])
+        if defect_details and isinstance(defect_details, list):
+            notes_lines.append("--- 2-SORT SABABLARI ---")
+            for idx, d in enumerate(defect_details, 1):
+                item_idx = d.get('item_number', idx)
+                ops = ", ".join(d.get('operation_names', [])) if d.get('operation_names') else "Tikishga aloqador emas"
+                reasons = ", ".join(d.get('reason_names', [])) if d.get('reason_names') else "Ko'rsatilmagan"
+                workers = ", ".join(d.get('workers', [])) if d.get('workers') else ""
+                worker_part = f" (Tikuvchi: {workers})" if workers else ""
+                custom_note = f" [{d.get('notes')}]" if d.get('notes') else ""
+                notes_lines.append(f"• #{item_idx} dona: Sabab: [{reasons}] | Operatsiya: [{ops}{worker_part}]{custom_note}")
+
+        final_notes = "\n".join(notes_lines)
+
         log = BoxQualityInspectionLog.objects.create(
             box=box,
             inspector=request.user,
@@ -313,7 +373,7 @@ def control_submit_inspection_api(request):
             second_sort_qty=second_sort,
             repair_qty=repair_qty,
             defect_qty=0,
-            notes=data.get('notes', '')
+            notes=final_notes
         )
 
         if is_closed:
