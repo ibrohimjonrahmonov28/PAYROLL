@@ -23,6 +23,7 @@ def fix_cyrillic_layout(text: str) -> str:
     """Agar foydalanuvchi yoki skaner lotin o'rniga kirill klaviaturasida kiritgan bo'lsa, lotinga o'giradi."""
     if not text:
         return text
+    
     return text.translate(RU_TO_EN_TRANS)
 
 
@@ -49,16 +50,23 @@ def _get_request_param(request, *keys, default=''):
 
 def extract_worker_code(text: str) -> str:
     text = (text or '').strip()
-    if text.startswith('WORKER:'):
+    # Skaner klaviatura xatolarini to'g'rilash (masalan WX-RF skanerlarida + ni - ga o'girish)
+    if '+' in text:
+        text = re.sub(r'^(USER|WORKER)\+', r'\1:', text, flags=re.IGNORECASE)
+        text = text.replace('+', '-')
+    if text.upper().startswith('WORKER:'):
         return text[len('WORKER:'):].strip()
-    if text.startswith('USER:'):
+    if text.upper().startswith('USER:'):
         return text[len('USER:'):].strip()
     return text
 
 
 def extract_box_code(text: str) -> str:
     text = (text or '').strip()
-    text = re.sub(r'^(?:BOX[A-Z\.\s_]*:\s*)+', '', text, flags=re.IGNORECASE).strip()
+    if '+' in text:
+        text = re.sub(r'^(BOX|CONTROL|TICKET)\+', r'\1:', text, flags=re.IGNORECASE)
+        text = text.replace('+', '-')
+    text = re.sub(r'^(?:(?:BOX|CONTROL)[A-Z\.\s_]*:\s*)+', '', text, flags=re.IGNORECASE).strip()
     if text.startswith('TICKET:'):
         text = text[len('TICKET:'):].strip()
     ticket_match = re.search(r'-([A-Z0-9]{8})(?:-[A-Z0-9]+)?$', text)
@@ -69,9 +77,13 @@ def extract_box_code(text: str) -> str:
 
 def extract_ticket_code(text: str) -> str:
     text = (text or '').strip()
+    if '+' in text:
+        text = re.sub(r'^(TICKET|TK)\+', r'\1:', text, flags=re.IGNORECASE)
+        text = text.replace('+', '-')
     # Har xil skaner va klaviatura drayveri buzilishlarini tozalash (masalan: TICK. T:, TICKET:, TICK:)
     text = re.sub(r'^(?:TICK[A-Z\.\s_]*:\s*)+', '', text, flags=re.IGNORECASE).strip()
     return text
+
 
 
 def terminal_home_view(request):
@@ -290,6 +302,10 @@ def find_ticket_fast(raw_code: str) -> int | None:
     if not raw_str:
         return None
 
+    if '+' in raw_str:
+        raw_str = re.sub(r'^(TICKET|TK)\+', r'\1:', raw_str, flags=re.IGNORECASE)
+        raw_str = raw_str.replace('+', '-')
+
     clean_code = extract_ticket_code(raw_str).strip()
     if not clean_code:
         return None
@@ -433,6 +449,8 @@ def terminal_scan_ticket_api(request):
             box_match = Box.objects.filter(
                 models.Q(id=int(box_clean)) | models.Q(box_number=int(box_clean))
             ).only('id', 'box_number', 'box_code').first()
+        if not box_match and box_clean:
+            box_match = Box.objects.filter(box_code__iexact=box_clean).only('id', 'box_number', 'box_code').first()
 
         if box_match:
             return JsonResponse({

@@ -82,6 +82,11 @@ def control_box_lookup_api(request):
     if not raw_code:
         return JsonResponse({'status': 'ERROR', 'message': "Iltimos, quti kodini kiriting yoki skaner qiling!"}, status=400)
 
+    # Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish, masalan CONTROL+A9+1 yoki A9+1)
+    if '+' in raw_code:
+        raw_code = re.sub(r'^(CONTROL|BOX|TICKET|TK)\+', r'\1:', raw_code, flags=re.IGNORECASE)
+        raw_code = raw_code.replace('+', '-')
+
     # 0. Tikuvchi bilet kodi prefikslari (TICKET:, TK-) bo'lsa darhol bloklash
     raw_upper = raw_code.upper()
     if raw_upper.startswith('TICKET:') or raw_upper.startswith('TK-'):

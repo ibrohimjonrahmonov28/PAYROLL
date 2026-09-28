@@ -765,8 +765,13 @@
         async function handleScannerSubmit(e) {
             if (e) e.preventDefault();
             const input = document.getElementById('scanner-input');
-            const code = input.value.trim();
+            let code = input.value.trim();
             if (!code) return;
+
+            // Skaner klaviatura xatolarini to'g'rilash (+ ni - ga o'girish, masalan WX-RF)
+            if (code.includes('+')) {
+                code = code.replace(/^(CONTROL|BOX|TICKET|TK)\+/i, '$1:').replace(/\+/g, '-');
+            }
 
             playSound('beep');
 

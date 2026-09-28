@@ -280,4 +280,31 @@ class MasterWebTerminalTest(TestCase):
         self.assertEqual(res_box.status_code, 200)
         self.assertEqual(res_box.json()['status'], 'IS_BOX_CODE')
 
+    def test_scanner_plus_sign_mismatch_resilience(self):
+        """
+        WX-RF yoki boshqa skanerlarda klaviatura tili mos kelmagani sababli
+        - o'rniga + belgilari tushsa ham tizim xatosiz qabul qilishi kerak.
+        """
+        # 1. Xodimni "WORKER+W+050" yoki "W+050" orqali tanib olish
+        res_w1 = self.client.post(reverse('production:terminal_identify_worker'), {'code': "WORKER+W+050"})
+        self.assertEqual(res_w1.status_code, 200)
+        self.assertEqual(res_w1.json()['status'], 'OK')
+        self.assertEqual(res_w1.json()['worker']['id'], self.worker.id)
+
+        # 2. Biletni "TICKET+TK+ORD+TERM..." orqali skanerlash
+        mangled_ticket = self.ticket1.ticket_code.replace('-', '+')
+        res_t1 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': f"TICKET+{mangled_ticket}"})
+        self.assertEqual(res_t1.status_code, 200)
+        self.assertEqual(res_t1.json()['status'], 'OK')
+        self.assertEqual(res_t1.json()['scanned_ticket']['id'], self.ticket1.id)
+
+        # 3. Hash bilan "+3B6412" orqali skanerlash
+        self.client.post(reverse('production:terminal_remove_ticket'), {'ticket_id': self.ticket1.id})
+        hash_part = self.ticket1.ticket_code.split('-')[-1]
+        res_t2 = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': f"+{hash_part}"})
+        self.assertEqual(res_t2.status_code, 200)
+        self.assertEqual(res_t2.json()['status'], 'OK')
+        self.assertEqual(res_t2.json()['scanned_ticket']['id'], self.ticket1.id)
+
+
 

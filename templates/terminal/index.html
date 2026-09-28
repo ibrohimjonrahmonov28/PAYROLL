@@ -1066,6 +1066,12 @@
             let text = rawText.trim();
             if (!text) return;
 
+            // Agar skaner klaviatura xatosi tufayli - o'rniga + yuborgan bo'lsa (masalan WX-RF)
+            if (text.includes('+')) {
+                text = text.replace(/^(USER|WORKER|TICKET|TK|BOX|CONTROL)\+/i, '$1:');
+                text = text.replace(/\+/g, '-');
+            }
+
             // Skaner va klaviatura kiritishdagi prefixlarni tozalash va normallashtirish
             if (/^(?:TICK[A-Z\.\s_]*:\s*)/i.test(text)) {
                 text = text.replace(/^(?:TICK[A-Z\.\s_]*:\s*)/i, 'TICKET:');
