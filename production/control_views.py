@@ -198,6 +198,7 @@ def control_box_lookup_api(request):
             'box_code': box.box_code,
             'box_number': box.box_number,
             'order_number': box.order.order_number if box.order else "—",
+            'order_client': box.order.client_name if (box.order and box.order.client_name) else (box.order.customer.name if (box.order and box.order.customer) else ""),
             'article_code': art.code if art else "N/A",
             'article_name': art.name if art else "Model",
             'image_url': image_url,
