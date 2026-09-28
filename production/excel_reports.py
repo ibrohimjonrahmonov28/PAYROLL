@@ -41,10 +41,11 @@ def compact_ticket_ids(tickets, max_ranges=8) -> str:
     int_ids = []
     other_codes = []
     for t in tickets:
-        if t.id and isinstance(t.id, int):
-            int_ids.append(t.id)
-        elif t.stiker_code:
-            other_codes.append(str(t.stiker_code))
+        code_str = str(t.stiker_code) if t.stiker_code else (str(t.id) if t.id else "")
+        if code_str.isdigit():
+            int_ids.append(int(code_str))
+        elif code_str:
+            other_codes.append(code_str)
 
     int_ids.sort()
     ranges = []
@@ -122,7 +123,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
 
     # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, ushbu kunda skanerlangan barcha biletlar
     # narxlarini va jami summalarini eng so'nggi ratsenkalar bilan kafolatli qayta hisoblash:
-    ao_ids = daily_tickets.values_list('article_operation_id', flat=True).distinct()
+    ao_ids = list(daily_tickets.values_list('article_operation_id', flat=True).distinct())
     for ao in ArticleOperation.objects.filter(id__in=ao_ids):
         ao.sync_price_to_tickets()
 
@@ -219,13 +220,13 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     ws1.views.sheetView[0].showGridLines = True
 
     # Sarlavha
-    ws1.merge_cells("A1:K1")
+    ws1.merge_cells("A1:L1")
     ws1["A1"] = f"TERRY JAR — KUNLIK ISH HAQI VA STIKERLAR HISOBOTI ({target_date.strftime('%d.%m.%Y')})"
     ws1["A1"].font = font_title
     ws1["A1"].alignment = align_left
     ws1.row_dimensions[1].height = 26
 
-    ws1.merge_cells("A2:K2")
+    ws1.merge_cells("A2:L2")
     ws1["A2"] = f"Hisobot shakllantirilgan vaqt: {timezone.localtime().strftime('%d.%m.%Y %H:%M')} | Avtomatik Telegram eksport"
     ws1["A2"].font = font_subtitle
     ws1["A2"].alignment = align_left
@@ -235,6 +236,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         ("№", 5, align_center),
         ("Xodim UID", 13, align_center),
         ("F.I.SH", 26, align_left),
+        ("Patok", 12, align_center),
         ("Ishlagan Kunlari", 16, align_center),
         ("Tikilgan Ishlar (Operatsiyalar)", 32, align_wrap),
         ("Bugungi Ish Haqi (UZS)", 22, align_right),
@@ -264,6 +266,9 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     total_boxes_count = 0
     total_tickets_count = 0
 
+    # Patoklar bo'yicha xulosa (Sheet 3 uchun ma'lumot to'plash)
+    patok_summary = {}
+
     # Xodimlarni bugungi topgan puli bo'yicha kamayish tartibida saralaymiz
     def worker_sort_key(w):
         t_list = worker_tickets_map.get(w.id, [])
@@ -281,6 +286,30 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         today_e = sum(t.total_amount for t in w_tickets)
         days_w = days_worked_map.get(w.id, 0)
         yesterday_bal = yesterday_balances.get(w.id, Decimal('0.00'))
+
+        # Xodimning kun oxiridagi oxirgi turgan patogi (ekran raqami)
+        last_screen_num = None
+        for t in reversed(w_tickets):
+            if t.screen_number is not None:
+                last_screen_num = t.screen_number
+                break
+        patok_display = f"{last_screen_num}-Patok" if last_screen_num else "—"
+
+        # Patoklar xulosasi uchun jamlash
+        p_key = last_screen_num
+        if p_key not in patok_summary:
+            patok_summary[p_key] = {
+                'screen_number': p_key,
+                'patok_name': f"{p_key}-Patok" if p_key is not None else "Biriktirilmagan (Patoksiz)",
+                'workers_count': 0,
+                'workers_names': [],
+                'total_units': 0,
+                'total_earned': Decimal('0.00'),
+            }
+        patok_summary[p_key]['workers_count'] += 1
+        patok_summary[p_key]['workers_names'].append(w.full_name)
+        patok_summary[p_key]['total_units'] += today_u
+        patok_summary[p_key]['total_earned'] += today_e
 
         # Operatsiyalar xulosasi
         op_stats = {}
@@ -312,46 +341,50 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         c_name.alignment = align_left
         c_name.font = font_bold
 
-        ws1.cell(row=row_idx, column=4, value=days_w).alignment = align_center
+        c_patok = ws1.cell(row=row_idx, column=4, value=patok_display)
+        c_patok.alignment = align_center
+        c_patok.font = font_bold
 
-        c_ops = ws1.cell(row=row_idx, column=5, value=ops_display)
+        ws1.cell(row=row_idx, column=5, value=days_w).alignment = align_center
+
+        c_ops = ws1.cell(row=row_idx, column=6, value=ops_display)
         c_ops.alignment = align_wrap
 
-        c_today_e = ws1.cell(row=row_idx, column=6, value=float(today_e))
+        c_today_e = ws1.cell(row=row_idx, column=7, value=float(today_e))
         c_today_e.alignment = align_right
         c_today_e.number_format = '#,##0'
         if today_e > 0:
             c_today_e.font = font_green_bold
             c_today_e.fill = green_fill
 
-        c_yest = ws1.cell(row=row_idx, column=7, value=float(yesterday_bal))
+        c_yest = ws1.cell(row=row_idx, column=8, value=float(yesterday_bal))
         c_yest.alignment = align_right
         c_yest.number_format = '#,##0'
 
         # Joriy Balans formulasi: Kechagi Balans + Bugungi Ish Haqi
-        c_curr = ws1.cell(row=row_idx, column=8, value=f"=G{row_idx}+F{row_idx}")
+        c_curr = ws1.cell(row=row_idx, column=9, value=f"=H{row_idx}+G{row_idx}")
         c_curr.alignment = align_right
         c_curr.font = font_bold
         c_curr.number_format = '#,##0'
 
-        c_boxes = ws1.cell(row=row_idx, column=9, value=boxes_count)
+        c_boxes = ws1.cell(row=row_idx, column=10, value=boxes_count)
         c_boxes.alignment = align_center
         c_boxes.number_format = '#,##0'
 
-        c_t_cnt = ws1.cell(row=row_idx, column=10, value=len(w_tickets))
+        c_t_cnt = ws1.cell(row=row_idx, column=11, value=len(w_tickets))
         c_t_cnt.alignment = align_center
         c_t_cnt.number_format = '#,##0'
 
-        c_stikers = ws1.cell(row=row_idx, column=11, value=stikers_display)
+        c_stikers = ws1.cell(row=row_idx, column=12, value=stikers_display)
         c_stikers.alignment = align_wrap
 
-        for col_idx in range(1, 12):
+        for col_idx in range(1, 13):
             cell = ws1.cell(row=row_idx, column=col_idx)
             cell.border = thin_border
-            if col_idx != 6 or today_e == 0:
+            if col_idx != 7 or today_e == 0:
                 if current_fill.fill_type:
                     cell.fill = current_fill
-            if col_idx not in (2, 3, 6, 8):
+            if col_idx not in (2, 3, 4, 7, 9):
                 cell.font = font_regular
 
         total_today_units += today_u
@@ -363,44 +396,44 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         counter += 1
 
     # JAMI / TOTAL qatori
-    ws1.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
+    ws1.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=5)
     c_tot_label = ws1.cell(row=row_idx, column=1, value="JAMI / UMUMIY:")
     c_tot_label.font = font_bold
     c_tot_label.alignment = align_right
 
-    c_tot_ops = ws1.cell(row=row_idx, column=5, value=f"{total_today_units:,} ta".replace(",", " "))
+    c_tot_ops = ws1.cell(row=row_idx, column=6, value=f"{total_today_units:,} ta".replace(",", " "))
     c_tot_ops.font = font_bold
     c_tot_ops.alignment = align_right
 
-    c_tot_earned = ws1.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
+    c_tot_earned = ws1.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
     c_tot_earned.font = font_bold
     c_tot_earned.alignment = align_right
     c_tot_earned.number_format = '#,##0'
 
-    c_tot_yest = ws1.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
+    c_tot_yest = ws1.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
     c_tot_yest.font = font_bold
     c_tot_yest.alignment = align_right
     c_tot_yest.number_format = '#,##0'
 
-    c_tot_bal = ws1.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
+    c_tot_bal = ws1.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
     c_tot_bal.font = font_bold
     c_tot_bal.alignment = align_right
     c_tot_bal.number_format = '#,##0'
 
-    c_tot_b = ws1.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
+    c_tot_b = ws1.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
     c_tot_b.font = font_bold
     c_tot_b.alignment = align_center
     c_tot_b.number_format = '#,##0'
 
-    c_tot_t_cnt = ws1.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
+    c_tot_t_cnt = ws1.cell(row=row_idx, column=11, value=f"=SUM(K5:K{row_idx-1})")
     c_tot_t_cnt.font = font_bold
     c_tot_t_cnt.alignment = align_center
     c_tot_t_cnt.number_format = '#,##0'
 
-    ws1.cell(row=row_idx, column=11, value="")
+    ws1.cell(row=row_idx, column=12, value="")
 
     ws1.row_dimensions[row_idx].height = 24
-    for col_idx in range(1, 12):
+    for col_idx in range(1, 13):
         cell = ws1.cell(row=row_idx, column=col_idx)
         cell.fill = total_fill
         cell.border = thick_bottom_border
@@ -411,12 +444,12 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
     ws2 = wb.create_sheet(title="Skanerlangan Stikerlar")
     ws2.views.sheetView[0].showGridLines = True
 
-    ws2.merge_cells("A1:K1")
+    ws2.merge_cells("A1:M1")
     ws2["A1"] = f"KUN DAVOMIDA SKANERLANGAN BARCHA STIKERLAR (BILETLAR) TAFSILOTI — {target_date.strftime('%d.%m.%Y')}"
     ws2["A1"].font = font_title
     ws2["A1"].alignment = align_left
 
-    ws2.merge_cells("A2:K2")
+    ws2.merge_cells("A2:M2")
     ws2["A2"] = "Ushbu varaq orqali har qanday stiker ID si bo'yicha qaysi zakaz, model va operatsiya bajarilganini tekshirish mumkin."
     ws2["A2"].font = font_subtitle
     ws2["A2"].alignment = align_left
@@ -427,6 +460,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         ("Bilet Kodi", 22, align_center),
         ("Skanerlangan Vaqt", 16, align_center),
         ("Tikuvchi (F.I.SH)", 24, align_left),
+        ("Patok", 12, align_center),
         ("Zakaz #", 14, align_center),
         ("Quti #", 10, align_center),
         ("Model / Mahsulot", 26, align_left),
@@ -459,6 +493,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         ticket_code_val = t.ticket_code or "—"
         scan_time_str = timezone.localtime(t.scanned_at).strftime('%H:%M:%S') if t.scanned_at else "—"
         worker_name = t.worker.full_name if t.worker else "—"
+        patok_str = f"{t.screen_number}-Patok" if t.screen_number else "—"
         order_num = t.box.order.order_number if t.box and t.box.order else "—"
         box_num = f"#{t.box.box_number}" if t.box else "—"
         
@@ -477,29 +512,35 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         ws2.cell(row=row_idx2, column=3, value=ticket_code_val).alignment = align_center
         ws2.cell(row=row_idx2, column=4, value=scan_time_str).alignment = align_center
         ws2.cell(row=row_idx2, column=5, value=worker_name).alignment = align_left
-        ws2.cell(row=row_idx2, column=6, value=order_num).alignment = align_center
-        ws2.cell(row=row_idx2, column=7, value=box_num).alignment = align_center
-        ws2.cell(row=row_idx2, column=8, value=model_name).alignment = align_left
-        ws2.cell(row=row_idx2, column=9, value=op_name).alignment = align_left
 
-        c_q = ws2.cell(row=row_idx2, column=10, value=qty)
+        c_p_col = ws2.cell(row=row_idx2, column=6, value=patok_str)
+        c_p_col.alignment = align_center
+        c_p_col.font = font_bold
+
+        ws2.cell(row=row_idx2, column=7, value=order_num).alignment = align_center
+        ws2.cell(row=row_idx2, column=8, value=box_num).alignment = align_center
+        ws2.cell(row=row_idx2, column=9, value=model_name).alignment = align_left
+        ws2.cell(row=row_idx2, column=10, value=op_name).alignment = align_left
+
+        c_q = ws2.cell(row=row_idx2, column=11, value=qty)
         c_q.alignment = align_right
         c_q.number_format = '#,##0'
 
-        c_p = ws2.cell(row=row_idx2, column=11, value=float(price))
+        c_p = ws2.cell(row=row_idx2, column=12, value=float(price))
         c_p.alignment = align_right
         c_p.number_format = '#,##0'
 
-        c_t = ws2.cell(row=row_idx2, column=12, value=float(tot_amt))
+        c_t = ws2.cell(row=row_idx2, column=13, value=float(tot_amt))
         c_t.alignment = align_right
         c_t.number_format = '#,##0'
 
-        for col_idx in range(1, 13):
+        for col_idx in range(1, 14):
             c_node = ws2.cell(row=row_idx2, column=col_idx)
             c_node.border = thin_border
             if c_fill2.fill_type:
                 c_node.fill = c_fill2
-            c_node.font = font_regular
+            if col_idx != 6:
+                c_node.font = font_regular
 
         total_detail_units += qty
         total_detail_amount += tot_amt
@@ -508,25 +549,166 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         detail_counter += 1
 
     # Sheet 2 Jami qatori
-    ws2.merge_cells(start_row=row_idx2, start_column=1, end_row=row_idx2, end_column=9)
+    ws2.merge_cells(start_row=row_idx2, start_column=1, end_row=row_idx2, end_column=10)
     c_tot_label2 = ws2.cell(row=row_idx2, column=1, value="JAMI / BARCHASI:")
     c_tot_label2.font = font_bold
     c_tot_label2.alignment = align_right
 
-    c_tot_q2 = ws2.cell(row=row_idx2, column=10, value=total_detail_units)
+    c_tot_q2 = ws2.cell(row=row_idx2, column=11, value=total_detail_units)
     c_tot_q2.font = font_bold
     c_tot_q2.alignment = align_right
     c_tot_q2.number_format = '#,##0'
 
-    ws2.cell(row=row_idx2, column=11, value="")
+    ws2.cell(row=row_idx2, column=12, value="")
 
-    c_tot_amt2 = ws2.cell(row=row_idx2, column=12, value=float(total_detail_amount))
+    c_tot_amt2 = ws2.cell(row=row_idx2, column=13, value=float(total_detail_amount))
     c_tot_amt2.font = font_bold
     c_tot_amt2.alignment = align_right
     c_tot_amt2.number_format = '#,##0'
 
-    for col_idx in range(1, 13):
+    for col_idx in range(1, 14):
         c_node = ws2.cell(row=row_idx2, column=col_idx)
+        c_node.fill = total_fill
+        c_node.border = thick_bottom_border
+
+    # -------------------------------------------------------------
+    # 3-VARAQ: PATOKLAR (EKRANLAR) XULOSASI VA KUNLIK ISH HAQI
+    # -------------------------------------------------------------
+    ws3 = wb.create_sheet(title="Patoklar Xulosasi")
+    ws3.views.sheetView[0].showGridLines = True
+
+    ws3.merge_cells("A1:G1")
+    ws3["A1"] = f"PATOKLAR (EKRANLAR) BO'YICHA KUNLIK XULOSA VA ISH HAQI — {target_date.strftime('%d.%m.%Y')}"
+    ws3["A1"].font = font_title
+    ws3["A1"].alignment = align_left
+    ws3.row_dimensions[1].height = 26
+
+    ws3.merge_cells("A2:G2")
+    ws3["A2"] = "Har bir patok (ekran) kesimida kun davomida biriktirilgan faol xodimlar soni, tikilgan jami mahsulot va topilgan umumiy ish haqi"
+    ws3["A2"].font = font_subtitle
+    ws3["A2"].alignment = align_left
+    ws3.row_dimensions[2].height = 18
+
+    headers_ws3 = [
+        ("№", 5, align_center),
+        ("Patok (Ekran)", 18, align_center),
+        ("Faol Xodimlar Soni", 20, align_center),
+        ("Xodimlar (F.I.SH)", 45, align_wrap),
+        ("Tikilgan Mahsulot (Dona)", 24, align_right),
+        ("Jami Ish Haqi (UZS)", 24, align_right),
+        ("O'rtacha Ish Haqi / Xodim (UZS)", 26, align_right),
+    ]
+
+    header_row_ws3 = 4
+    ws3.row_dimensions[header_row_ws3].height = 24
+    for col_idx, (header_text, width, alignment) in enumerate(headers_ws3, 1):
+        cell = ws3.cell(row=header_row_ws3, column=col_idx, value=header_text)
+        cell.font = font_header
+        cell.fill = navy_fill
+        cell.alignment = align_center
+        cell.border = thin_border
+        col_letter = get_column_letter(col_idx)
+        ws3.column_dimensions[col_letter].width = width
+
+    sorted_patoks = sorted(
+        patok_summary.values(),
+        key=lambda p: (0 if p['screen_number'] is not None else 1, p['screen_number'] or 9999)
+    )
+
+    row_idx3 = 5
+    patok_counter = 1
+    tot_patok_workers = 0
+    tot_patok_units = 0
+    tot_patok_earned = Decimal('0.00')
+
+    for p_data in sorted_patoks:
+        is_zebra3 = (patok_counter % 2 == 0)
+        c_fill3 = zebra_fill if is_zebra3 else PatternFill(fill_type=None)
+
+        w_names_str = ", ".join(p_data['workers_names'])
+        w_cnt = p_data['workers_count']
+        u_cnt = p_data['total_units']
+        e_amt = p_data['total_earned']
+        avg_amt = (e_amt / w_cnt) if w_cnt > 0 else Decimal('0.00')
+
+        ws3.cell(row=row_idx3, column=1, value=patok_counter).alignment = align_center
+
+        c_pname = ws3.cell(row=row_idx3, column=2, value=p_data['patok_name'])
+        c_pname.alignment = align_center
+        c_pname.font = font_bold
+
+        c_wcnt = ws3.cell(row=row_idx3, column=3, value=w_cnt)
+        c_wcnt.alignment = align_center
+        c_wcnt.font = font_bold
+        c_wcnt.number_format = '#,##0'
+
+        c_wnames = ws3.cell(row=row_idx3, column=4, value=w_names_str)
+        c_wnames.alignment = align_wrap
+
+        c_u = ws3.cell(row=row_idx3, column=5, value=u_cnt)
+        c_u.alignment = align_right
+        c_u.font = font_bold
+        c_u.number_format = '#,##0'
+
+        c_e = ws3.cell(row=row_idx3, column=6, value=float(e_amt))
+        c_e.alignment = align_right
+        c_e.number_format = '#,##0'
+        if e_amt > 0:
+            c_e.font = font_green_bold
+            c_e.fill = green_fill
+
+        c_avg = ws3.cell(row=row_idx3, column=7, value=float(avg_amt))
+        c_avg.alignment = align_right
+        c_avg.font = font_bold
+        c_avg.number_format = '#,##0'
+
+        for col_idx in range(1, 8):
+            c_node = ws3.cell(row=row_idx3, column=col_idx)
+            c_node.border = thin_border
+            if col_idx != 6 or e_amt == 0:
+                if c_fill3.fill_type:
+                    c_node.fill = c_fill3
+            if col_idx not in (2, 3, 5, 6, 7):
+                c_node.font = font_regular
+
+        tot_patok_workers += w_cnt
+        tot_patok_units += u_cnt
+        tot_patok_earned += e_amt
+
+        row_idx3 += 1
+        patok_counter += 1
+
+    # Sheet 3 JAMI qatori
+    ws3.merge_cells(start_row=row_idx3, start_column=1, end_row=row_idx3, end_column=2)
+    c_tot_p_lbl = ws3.cell(row=row_idx3, column=1, value="JAMI / BARCHA PATOKLAR:")
+    c_tot_p_lbl.font = font_bold
+    c_tot_p_lbl.alignment = align_right
+
+    c_tot_w = ws3.cell(row=row_idx3, column=3, value=f"=SUM(C5:C{row_idx3-1})") if row_idx3 > 5 else ws3.cell(row=row_idx3, column=3, value=0)
+    c_tot_w.font = font_bold
+    c_tot_w.alignment = align_center
+    c_tot_w.number_format = '#,##0'
+
+    ws3.cell(row=row_idx3, column=4, value="")
+
+    c_tot_u3 = ws3.cell(row=row_idx3, column=5, value=f"=SUM(E5:E{row_idx3-1})") if row_idx3 > 5 else ws3.cell(row=row_idx3, column=5, value=0)
+    c_tot_u3.font = font_bold
+    c_tot_u3.alignment = align_right
+    c_tot_u3.number_format = '#,##0'
+
+    c_tot_e3 = ws3.cell(row=row_idx3, column=6, value=f"=SUM(F5:F{row_idx3-1})") if row_idx3 > 5 else ws3.cell(row=row_idx3, column=6, value=0)
+    c_tot_e3.font = font_bold
+    c_tot_e3.alignment = align_right
+    c_tot_e3.number_format = '#,##0'
+
+    c_tot_avg3 = ws3.cell(row=row_idx3, column=7, value=f"=IF(C{row_idx3}>0, F{row_idx3}/C{row_idx3}, 0)")
+    c_tot_avg3.font = font_bold
+    c_tot_avg3.alignment = align_right
+    c_tot_avg3.number_format = '#,##0'
+
+    ws3.row_dimensions[row_idx3].height = 24
+    for col_idx in range(1, 8):
+        c_node = ws3.cell(row=row_idx3, column=col_idx)
         c_node.fill = total_fill
         c_node.border = thick_bottom_border
 
@@ -602,13 +784,13 @@ def _build_day_sheet(
     active_count = len(worker_tickets_map)
 
     # 1. Sarlavha
-    ws.merge_cells("A1:K1")
+    ws.merge_cells("A1:L1")
     ws["A1"] = f"TERRY JAR — KUNLIK ISH HAQI VA STIKERLAR HISOBOTI ({target_date.strftime('%d.%m.%Y')})"
     ws["A1"].font = font_title
     ws["A1"].alignment = align_left
     ws.row_dimensions[1].height = 26
 
-    ws.merge_cells("A2:K2")
+    ws.merge_cells("A2:L2")
     ws["A2"] = (
         f"Sana: {target_date.strftime('%d.%m.%Y')} ({weekday_name}) | "
         f"Faol xodimlar: {active_count} nafar | "
@@ -619,11 +801,12 @@ def _build_day_sheet(
     ws["A2"].alignment = align_left
     ws.row_dimensions[2].height = 18
 
-    # 2. Jadval sarlavhalari (11 ta ustun)
+    # 2. Jadval sarlavhalari (12 ta ustun)
     headers = [
         ("№", 5, align_center),
         ("Xodim UID", 13, align_center),
         ("F.I.SH", 26, align_left),
+        ("Patok", 12, align_center),
         ("Ishlagan Kunlari", 16, align_center),
         ("Tikilgan Ishlar (Operatsiyalar)", 32, align_wrap),
         ("Bugungi Ish Haqi (UZS)", 22, align_right),
@@ -645,12 +828,12 @@ def _build_day_sheet(
 
     # Agar bu kunda hech qanday stiker urilmagan bo'lsa
     if not day_tickets:
-        ws.merge_cells("A5:K5")
+        ws.merge_cells("A5:L5")
         c_empty = ws.cell(row=5, column=1, value="Ushbu kunda tikuv operatsiyalari qayd etilmagan (Dam olish kuni yoki ish bo'lmagan).")
         c_empty.font = Font(name="Arial", size=10, italic=True, color="64748B")
         c_empty.alignment = align_center
         ws.row_dimensions[5].height = 30
-        for col in range(1, 12):
+        for col in range(1, 13):
             ws.cell(row=5, column=col).border = thin_border
         return ws
 
@@ -678,6 +861,14 @@ def _build_day_sheet(
         e = sum(t.total_amount for t in w_tickets)
         days_w = days_worked_map.get(w.id, 0) if days_worked_map else 1
         yesterday_bal = yesterday_balances.get(w.id, Decimal('0.00')) if yesterday_balances else Decimal('0.00')
+
+        # Xodimning kun oxiridagi oxirgi turgan patogi (ekran raqami)
+        last_screen_num = None
+        for t in reversed(w_tickets):
+            if t.screen_number is not None:
+                last_screen_num = t.screen_number
+                break
+        patok_display = f"{last_screen_num}-Patok" if last_screen_num else "—"
 
         # Operatsiyalar xulosasi
         op_stats = {}
@@ -709,46 +900,50 @@ def _build_day_sheet(
         c_name.alignment = align_left
         c_name.font = font_bold
 
-        ws.cell(row=row_idx, column=4, value=days_w).alignment = align_center
+        c_patok = ws.cell(row=row_idx, column=4, value=patok_display)
+        c_patok.alignment = align_center
+        c_patok.font = font_bold
 
-        c_ops = ws.cell(row=row_idx, column=5, value=ops_display)
+        ws.cell(row=row_idx, column=5, value=days_w).alignment = align_center
+
+        c_ops = ws.cell(row=row_idx, column=6, value=ops_display)
         c_ops.alignment = align_wrap
 
-        c_e = ws.cell(row=row_idx, column=6, value=float(e))
+        c_e = ws.cell(row=row_idx, column=7, value=float(e))
         c_e.alignment = align_right
         c_e.number_format = '#,##0'
         if e > 0:
             c_e.font = font_green_bold
             c_e.fill = green_fill
 
-        c_yest = ws.cell(row=row_idx, column=7, value=float(yesterday_bal))
+        c_yest = ws.cell(row=row_idx, column=8, value=float(yesterday_bal))
         c_yest.alignment = align_right
         c_yest.number_format = '#,##0'
 
         # Joriy Balans formulasi: Kechagi Balans + Bugungi Ish Haqi
-        c_curr = ws.cell(row=row_idx, column=8, value=f"=G{row_idx}+F{row_idx}")
+        c_curr = ws.cell(row=row_idx, column=9, value=f"=H{row_idx}+G{row_idx}")
         c_curr.alignment = align_right
         c_curr.font = font_bold
         c_curr.number_format = '#,##0'
 
-        c_boxes = ws.cell(row=row_idx, column=9, value=boxes_count)
+        c_boxes = ws.cell(row=row_idx, column=10, value=boxes_count)
         c_boxes.alignment = align_center
         c_boxes.number_format = '#,##0'
 
-        c_t_cnt = ws.cell(row=row_idx, column=10, value=len(w_tickets))
+        c_t_cnt = ws.cell(row=row_idx, column=11, value=len(w_tickets))
         c_t_cnt.alignment = align_center
         c_t_cnt.number_format = '#,##0'
 
-        c_st = ws.cell(row=row_idx, column=11, value=stikers_display)
+        c_st = ws.cell(row=row_idx, column=12, value=stikers_display)
         c_st.alignment = align_wrap
 
-        for col_idx in range(1, 12):
+        for col_idx in range(1, 13):
             cell = ws.cell(row=row_idx, column=col_idx)
             cell.border = thin_border
-            if col_idx != 6 or e == 0:
+            if col_idx != 7 or e == 0:
                 if c_fill.fill_type:
                     cell.fill = c_fill
-            if col_idx not in (2, 3, 6, 8):
+            if col_idx not in (2, 3, 4, 7, 9):
                 cell.font = font_regular
 
         total_u += u
@@ -760,44 +955,44 @@ def _build_day_sheet(
         counter += 1
 
     # JAMI / KUNLIK qatori
-    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=5)
     c_tot_label = ws.cell(row=row_idx, column=1, value="JAMI / KUNLIK:")
     c_tot_label.font = font_bold
     c_tot_label.alignment = align_right
 
-    c_tot_u = ws.cell(row=row_idx, column=5, value=f"{total_u:,} ta".replace(",", " "))
+    c_tot_u = ws.cell(row=row_idx, column=6, value=f"{total_u:,} ta".replace(",", " "))
     c_tot_u.font = font_bold
     c_tot_u.alignment = align_right
 
-    c_tot_e = ws.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
+    c_tot_e = ws.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
     c_tot_e.font = font_bold
     c_tot_e.alignment = align_right
     c_tot_e.number_format = '#,##0'
 
-    c_tot_yest = ws.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
+    c_tot_yest = ws.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
     c_tot_yest.font = font_bold
     c_tot_yest.alignment = align_right
     c_tot_yest.number_format = '#,##0'
 
-    c_tot_curr = ws.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
+    c_tot_curr = ws.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
     c_tot_curr.font = font_bold
     c_tot_curr.alignment = align_right
     c_tot_curr.number_format = '#,##0'
 
-    c_tot_b = ws.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
+    c_tot_b = ws.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
     c_tot_b.font = font_bold
     c_tot_b.alignment = align_center
     c_tot_b.number_format = '#,##0'
 
-    c_tot_t = ws.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
+    c_tot_t = ws.cell(row=row_idx, column=11, value=f"=SUM(K5:K{row_idx-1})")
     c_tot_t.font = font_bold
     c_tot_t.alignment = align_center
     c_tot_t.number_format = '#,##0'
 
-    ws.cell(row=row_idx, column=11, value="")
+    ws.cell(row=row_idx, column=12, value="")
 
     ws.row_dimensions[row_idx].height = 24
-    for col in range(1, 12):
+    for col in range(1, 13):
         c_n = ws.cell(row=row_idx, column=col)
         c_n.fill = total_fill
         c_n.border = thick_bottom_border
@@ -838,7 +1033,7 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
 
     # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, ushbu oyda skanerlangan barcha biletlar
     # narxlarini va jami summalarini eng so'nggi ratsenkalar bilan kafolatli qayta hisoblash:
-    ao_ids = month_tickets.values_list('article_operation_id', flat=True).distinct()
+    ao_ids = list(month_tickets.values_list('article_operation_id', flat=True).distinct())
     for ao in ArticleOperation.objects.filter(id__in=ao_ids):
         ao.sync_price_to_tickets()
 

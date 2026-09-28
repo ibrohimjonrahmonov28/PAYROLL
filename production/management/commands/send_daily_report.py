@@ -62,8 +62,11 @@ class Command(BaseCommand):
         # Agar lokal saqlash so'ralgan bo'lsa
         save_path = options.get('save_local')
         if save_path:
-            from production.excel_reports import generate_month_to_date_excel_report
-            excel_buf = generate_month_to_date_excel_report(target_date=target_date)
+            if with_backup:
+                from production.excel_reports import generate_month_to_date_excel_report
+                excel_buf = generate_month_to_date_excel_report(target_date=target_date)
+            else:
+                excel_buf = generate_daily_excel_report(target_date=target_date)
             with open(save_path, 'wb') as f:
                 f.write(excel_buf.getvalue())
             self.stdout.write(self.style.SUCCESS(f"Excel fayli lokal saqlandi: {save_path}"))

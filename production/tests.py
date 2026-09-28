@@ -1481,28 +1481,28 @@ class DailyExcelReportAndPricingSyncTest(TestCase):
         self.assertIn("Barcha Stikerlar", wb.sheetnames)
 
         ws_day = wb[day_sheet_name]
-        # 4-qatordagi 11 ta ustun sarlavhalari
+        # 4-qatordagi 12 ta ustun sarlavhalari
         expected_headers = [
-            "№", "Xodim UID", "F.I.SH", "Ishlagan Kunlari",
+            "№", "Xodim UID", "F.I.SH", "Patok", "Ishlagan Kunlari",
             "Tikilgan Ishlar (Operatsiyalar)", "Bugungi Ish Haqi (UZS)",
             "Kechagi Balans (UZS)", "Joriy Balans (UZS)",
             "Qutilar Soni", "Stikerlar Soni", "Skanerlangan Stikerlar"
         ]
-        actual_headers = [ws_day.cell(row=4, column=col).value for col in range(1, 12)]
+        actual_headers = [ws_day.cell(row=4, column=col).value for col in range(1, 13)]
         self.assertEqual(actual_headers, expected_headers)
 
         # 5-qatordagi xodim ma'lumotlari
         self.assertEqual(ws_day.cell(row=5, column=2).value, "TK-999")
         self.assertEqual(ws_day.cell(row=5, column=3).value, "Nodirbek Qodirov")
         # Operatsiyalar xulosasi
-        ops_cell_val = ws_day.cell(row=5, column=5).value
+        ops_cell_val = ws_day.cell(row=5, column=6).value
         self.assertIn("Dazmol", ops_cell_val)
         self.assertIn("Meto", ops_cell_val)
         # Bugungi ish haqi (UZS)
-        self.assertEqual(ws_day.cell(row=5, column=6).value, 110000.0)
-        # Joriy Balans formulasi: =G5+F5
-        formula_val = ws_day.cell(row=5, column=8).value
-        self.assertEqual(formula_val, "=G5+F5")
+        self.assertEqual(ws_day.cell(row=5, column=7).value, 110000.0)
+        # Joriy Balans formulasi: =H5+G5
+        formula_val = ws_day.cell(row=5, column=9).value
+        self.assertEqual(formula_val, "=H5+G5")
 
         # 1-varaq: Oylik Umumiy Tabel tekshiruvi (foydalanuvchi talabi bo'yicha 10 ta ustun)
         ws_month = wb["Oylik Umumiy Tabel"]

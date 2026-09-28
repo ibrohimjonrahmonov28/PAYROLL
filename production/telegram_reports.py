@@ -70,7 +70,10 @@ def send_daily_excel_report(target_date: datetime.date = None, chat_id: str = No
         f"👥 *Faol tikuvchilar:* {active_workers_count} nafar\n"
         f"👕 *Tikilgan jami mahsulot:* {total_units:,} dona\n"
         f"💰 *Bugungi hisoblangan ish haqi:* {total_earned:,.0f} UZS\n\n"
-        f"📁 *Barcha xodimlar va urilgan stikerlar ID lari tafsiloti ilova qilingan Excel faylda keltirilgan.*"
+        f"📋 *Excel fayl tarkibi:*\n"
+        f"1️⃣ *Xodimlar Kunlik Hisoboti* — Har bir xodimning oxirgi patogi (ekrani) va ish haqi\n"
+        f"2️⃣ *Skanerlangan Stikerlar* — Har bir stiker qaysi patokda urilgani\n"
+        f"3️⃣ *Patoklar Xulosasi* — Har bir patok bo'yicha jami ish haqi, tikilgan dona va xodimlar ro'yxati"
     ).replace(",", " ")
 
     # 4. Telegram Bot API orqali jo'natish

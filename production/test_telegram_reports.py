@@ -75,11 +75,12 @@ class TelegramDailyReportTest(TestCase):
             total_amount=Decimal('25000.00'),
             status=Ticket.Status.SCANNED,
             worker=self.worker,
-            scanned_at=timezone.now()
+            scanned_at=timezone.now(),
+            screen_number=12
         )
 
     def test_generate_daily_excel_report(self):
-        """Excel hisoboti to'g'ri shakllanadi va 2 ta varaqdan iborat bo'ladi"""
+        """Excel hisoboti to'g'ri shakllanadi va 3 ta varaqdan iborat bo'ladi (Patoklar xulosasi bilan)"""
         buf = generate_daily_excel_report(target_date=self.today)
         self.assertIsInstance(buf, io.BytesIO)
         
@@ -87,22 +88,27 @@ class TelegramDailyReportTest(TestCase):
         wb = openpyxl.load_workbook(buf)
         self.assertIn("Xodimlar Kunlik Hisoboti", wb.sheetnames)
         self.assertIn("Skanerlangan Stikerlar", wb.sheetnames)
+        self.assertIn("Patoklar Xulosasi", wb.sheetnames)
 
-        # 1-varaq tekshiruvi
+        # 1-varaq tekshiruvi: Xodim va uning oxirgi patogi (12-Patok)
         ws1 = wb["Xodimlar Kunlik Hisoboti"]
         found_worker = False
         found_sticker = False
+        found_patok_ws1 = False
         for row in ws1.iter_rows(values_only=True):
             if 'W-999' in row:
                 found_worker = True
+                if '12-Patok' in row:
+                    found_patok_ws1 = True
                 # Stiker kodi qatorda bo'lishi kerak
                 for cell_val in row:
                     if cell_val and 'STIK9999' in str(cell_val):
                         found_sticker = True
         self.assertTrue(found_worker, "Worker W-999 Excel 1-varaqda topilmadi")
+        self.assertTrue(found_patok_ws1, "12-Patok 1-varaqda xodim qatorida topilmadi")
         self.assertTrue(found_sticker, "Stiker kodi STIK9999 1-varaqda topilmadi")
 
-        # 2-varaq tekshiruvi
+        # 2-varaq tekshiruvi: Stiker va uning patogi
         ws2 = wb["Skanerlangan Stikerlar"]
         found_ticket_detail = False
         for row in ws2.iter_rows(values_only=True):
@@ -110,7 +116,19 @@ class TelegramDailyReportTest(TestCase):
                 found_ticket_detail = True
                 self.assertIn('Yoqa tikish', row)
                 self.assertIn('Dilshod Karimov', row)
+                self.assertIn('12-Patok', row)
         self.assertTrue(found_ticket_detail, "Stiker tafsiloti 2-varaqda topilmadi")
+
+        # 3-varaq tekshiruvi: Patoklar Xulosasi
+        ws3 = wb["Patoklar Xulosasi"]
+        found_patok_summary = False
+        for row in ws3.iter_rows(values_only=True):
+            if '12-Patok' in row:
+                found_patok_summary = True
+                self.assertIn('Dilshod Karimov', row[3])
+                self.assertEqual(row[4], 50)  # dona
+                self.assertEqual(row[5], 25000.0)  # summa
+        self.assertTrue(found_patok_summary, "12-Patok xulosasi 3-varaqda topilmadi")
 
     def test_send_daily_excel_report_no_credentials(self):
         """Token yoki chat_id berilmasa, xatolik xabari qaytishi kerak"""
