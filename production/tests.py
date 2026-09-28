@@ -1738,6 +1738,15 @@ class ControlQualityInspectionWorkflowTest(TestCase):
                         'reason_names': ["Mato ignadan yoki pichoqdan teshilgan"],
                         'notes': ""
                     }
+                ],
+                'repair_details': [
+                    {
+                        'item_number': 1,
+                        'operation_ids': [self.t2.id],
+                        'operation_names': ["Tugma qadash"],
+                        'workers': ["Fotima Karimova"],
+                        'notes': "Tugma qiyshiq"
+                    }
                 ]
             }),
             content_type='application/json'
@@ -1757,6 +1766,10 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.assertIn("Bichish tekshiruvi", log.notes)
         self.assertIn("Zuhra Karimova", log.notes)
         self.assertIn("Mato ignadan yoki pichoqdan teshilgan", log.notes)
+        self.assertIn("--- TA'MIR OPERATSIYALARI ---", log.notes)
+        self.assertIn("Tugma qadash", log.notes)
+        self.assertIn("Fotima Karimova", log.notes)
+        self.assertIn("Tugma qiyshiq", log.notes)
 
 
 

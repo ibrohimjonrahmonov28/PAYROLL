@@ -28,9 +28,12 @@
         }
 
         @keyframes pulse-glow {
-            0%, 100% {
+
+            0%,
+            100% {
                 box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
             }
+
             50% {
                 box-shadow: 0 0 30px rgba(99, 102, 241, 0.55);
             }
@@ -49,13 +52,16 @@
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
             <!-- Brand & Step Indicator -->
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center text-lg shadow-lg shadow-indigo-600/30">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center text-lg shadow-lg shadow-indigo-600/30">
                     <i class="fa-solid fa-clipboard-check"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-sm sm:text-base font-black text-white tracking-wide uppercase">SIFAT NAZORATI (OTK)</h1>
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        <h1 class="text-sm sm:text-base font-black text-white tracking-wide uppercase">SIFAT NAZORATI
+                            (OTK)</h1>
+                        <span
+                            class="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                             CONTROL
                         </span>
                     </div>
@@ -68,15 +74,18 @@
             <!-- Header Controls & Stats -->
             <div class="flex items-center gap-2 sm:gap-3">
                 <!-- Bugungi unikal qutilar -->
-                <div class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3.5 py-1.5 rounded-xl">
+                <div
+                    class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3.5 py-1.5 rounded-xl">
                     <i class="fa-solid fa-boxes-stacked text-xs text-amber-400"></i>
                     <span class="text-xs text-slate-400 font-bold">Bugun:</span>
-                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{ today_boxes_count }}</strong>
+                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{
+                        today_boxes_count }}</strong>
                     <span class="text-[10px] text-slate-500">quti</span>
                 </div>
 
                 <!-- Inspector -->
-                <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                <div
+                    class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
                     <i class="fa-solid fa-user-check text-emerald-400"></i>
                     <span class="font-bold text-slate-200">@{{ inspector.username }}</span>
                 </div>
@@ -105,7 +114,8 @@
         <section class="bg-slate-900 border-2 border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl">
             <form id="scanner-form" onsubmit="handleScannerSubmit(event)" class="flex items-center gap-2">
                 <div class="relative flex-1">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-400 text-base">
+                    <div
+                        class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-400 text-base">
                         <i class="fa-solid fa-barcode"></i>
                     </div>
                     <input type="text" id="scanner-input" autofocus autocomplete="off"
@@ -129,7 +139,8 @@
         <!-- ================================================================= -->
         <section id="standby-screen"
             class="bg-slate-900/80 border-2 border-dashed border-indigo-500/30 rounded-3xl p-8 sm:p-14 text-center my-auto shadow-2xl pulse-scanner">
-            <div class="w-24 h-24 mx-auto rounded-3xl bg-indigo-500/10 border-2 border-indigo-500/40 flex items-center justify-center text-4xl text-indigo-400 mb-4 shadow-inner">
+            <div
+                class="w-24 h-24 mx-auto rounded-3xl bg-indigo-500/10 border-2 border-indigo-500/40 flex items-center justify-center text-4xl text-indigo-400 mb-4 shadow-inner">
                 <i class="fa-solid fa-qrcode"></i>
             </div>
             <h2 class="text-xl sm:text-3xl font-black text-white uppercase tracking-wider">
@@ -139,7 +150,8 @@
                 Qutining ustidagi <strong class="text-amber-400">CONTROL:KOD</strong> stikerini skanerlang.
                 Model rasmi, zakaz nomi va qutidagi son avtomatik yuklanadi.
             </p>
-            <div class="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+            <div
+                class="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span>Skaner uskunasi tayyor holatda</span>
             </div>
@@ -153,40 +165,48 @@
             <!-- 1. YUQORI SARLAVHA (2 TA BLOK: ZAKAZ NOMI - Nomer VA ARTIKUL Model nomi) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <!-- BLOK 1: ZAKAZ NOMI - Nomer -->
-                <div class="bg-slate-900 border-2 border-slate-800 hover:border-amber-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-center">
+                <div
+                    class="bg-slate-900 border-2 border-slate-800 hover:border-amber-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-center">
                     <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest block">
                         ZAKAZ NOMI - Nomer
                     </span>
                     <div class="mt-1 flex items-baseline gap-2 flex-wrap">
-                        <h2 id="val-order-number" class="text-lg sm:text-2xl font-black text-amber-400 font-mono tracking-wide">
+                        <h2 id="val-order-number"
+                            class="text-lg sm:text-2xl font-black text-amber-400 font-mono tracking-wide">
                             ORD-0000
                         </h2>
                         <span class="text-slate-600 font-bold">•</span>
-                        <span id="val-order-name" class="text-sm sm:text-base font-bold text-white truncate max-w-[280px]">
+                        <span id="val-order-name"
+                            class="text-sm sm:text-base font-bold text-white truncate max-w-[280px]">
                             Zakaz Nomi
                         </span>
                     </div>
                     <div class="mt-1 flex items-center gap-2">
-                        <span id="val-box-title" class="text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+                        <span id="val-box-title"
+                            class="text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
                             Quti #-- [------]
                         </span>
                     </div>
                 </div>
 
                 <!-- BLOK 2: ARTIKUL Model nomi -->
-                <div class="bg-slate-900 border-2 border-slate-800 hover:border-purple-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-center">
+                <div
+                    class="bg-slate-900 border-2 border-slate-800 hover:border-purple-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-center">
                     <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest block">
                         ARTIKUL Model nomi
                     </span>
                     <div class="mt-1 flex items-baseline gap-2 flex-wrap">
-                        <h2 id="val-article-code" class="text-lg sm:text-2xl font-black text-purple-400 font-mono tracking-wide">
+                        <h2 id="val-article-code"
+                            class="text-lg sm:text-2xl font-black text-purple-400 font-mono tracking-wide">
                             ART-0000
                         </h2>
                         <span class="text-slate-600 font-bold">•</span>
-                        <span id="val-article-name" class="text-sm sm:text-base font-bold text-white truncate max-w-[280px]">
+                        <span id="val-article-name"
+                            class="text-sm sm:text-base font-bold text-white truncate max-w-[280px]">
                             Model Nomi
                         </span>
-                        <span class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-black font-mono">
+                        <span
+                            class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-black font-mono">
                             Razmer: <span id="val-razmer">--</span>
                         </span>
                     </div>
@@ -199,18 +219,22 @@
             </div>
 
             <!-- 2. ASOSIY SOHA: CHAPDA RASM, MARKAZDA SON VA UCHBURCHAKLAR, O'NGDA TASDIQLASH -->
-            <div class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex-1 flex flex-col justify-between gap-6 min-h-[420px]">
+            <div
+                class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex-1 flex flex-col justify-between gap-6 min-h-[420px]">
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center flex-1">
 
                     <!-- CHAPDA: RASM (MODEL RASMI) -->
                     <div class="lg:col-span-4 flex flex-col items-center justify-center">
-                        <div class="w-full max-w-[260px] aspect-square bg-slate-950 border-2 border-slate-800 rounded-3xl p-3 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative group">
+                        <div
+                            class="w-full max-w-[260px] aspect-square bg-slate-950 border-2 border-slate-800 rounded-3xl p-3 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative group">
                             <!-- Model haqiqiy rasmi -->
-                            <img id="val-product-img" src="" alt="Model" class="w-full h-full object-contain hidden rounded-2xl">
+                            <img id="val-product-img" src="" alt="Model"
+                                class="w-full h-full object-contain hidden rounded-2xl">
 
                             <!-- Rasm bo'lmaganda ko'rinadigan chiroyli placeholder -->
-                            <div id="val-product-no-img" class="flex flex-col items-center justify-center text-slate-700 gap-2">
+                            <div id="val-product-no-img"
+                                class="flex flex-col items-center justify-center text-slate-700 gap-2">
                                 <i class="fa-solid fa-shirt text-6xl text-slate-800"></i>
                                 <span class="text-sm font-black text-slate-600 uppercase tracking-widest mt-1">
                                     RASM
@@ -218,7 +242,8 @@
                                 <span class="text-[10px] text-slate-600 font-semibold">(Model rasmi yuklanmagan)</span>
                             </div>
 
-                            <span class="absolute top-2.5 left-2.5 px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                            <span
+                                class="absolute top-2.5 left-2.5 px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-wider">
                                 Model Rasmi
                             </span>
                         </div>
@@ -232,16 +257,19 @@
                             class="touch-btn group flex flex-col items-center justify-center w-52 sm:w-64 py-2.5 px-4 rounded-3xl bg-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition shadow-xl"
                             title="Sonni 1 taga oshirish">
                             <!-- Tepaga qaragan uchburchak SVG -->
-                            <svg class="w-16 h-8 text-emerald-400 fill-emerald-500/20 stroke-emerald-400 stroke-2 group-hover:fill-emerald-500/40 transition" viewBox="0 0 100 50">
+                            <svg class="w-16 h-8 text-emerald-400 fill-emerald-500/20 stroke-emerald-400 stroke-2 group-hover:fill-emerald-500/40 transition"
+                                viewBox="0 0 100 50">
                                 <polygon points="50,5 95,45 5,45" />
                             </svg>
-                            <span class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono mt-0.5 tracking-wider">
+                            <span
+                                class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono mt-0.5 tracking-wider">
                                 + 1
                             </span>
                         </button>
 
                         <!-- O'RTA BLOK: Qutidagi son -->
-                        <div class="bg-slate-950 border-2 border-indigo-500/70 rounded-3xl p-5 sm:p-6 text-center shadow-2xl w-56 sm:w-72">
+                        <div
+                            class="bg-slate-950 border-2 border-indigo-500/70 rounded-3xl p-5 sm:p-6 text-center shadow-2xl w-56 sm:w-72">
                             <span class="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block">
                                 Qutidagi son
                             </span>
@@ -262,7 +290,8 @@
                                 - 1
                             </span>
                             <!-- Pastga qaragan uchburchak SVG -->
-                            <svg class="w-16 h-8 text-rose-400 fill-rose-500/20 stroke-rose-400 stroke-2 group-hover:fill-rose-500/40 transition" viewBox="0 0 100 50">
+                            <svg class="w-16 h-8 text-rose-400 fill-rose-500/20 stroke-rose-400 stroke-2 group-hover:fill-rose-500/40 transition"
+                                viewBox="0 0 100 50">
                                 <polygon points="5,5 95,5 50,45" />
                             </svg>
                         </button>
@@ -297,32 +326,40 @@
         <section id="step2-card" class="hidden flex-1 flex flex-col gap-4">
 
             <!-- 1. YUQORI SARLAVHA & XULOSA KARTASI -->
-            <div class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between flex-wrap gap-3">
+            <div
+                class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between flex-wrap gap-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl shadow-inner">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl shadow-inner">
                         <i class="fa-solid fa-layer-group"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT SARALASH</span>
+                            <span class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
+                                SARALASH</span>
                             <span class="text-slate-600 font-bold">•</span>
-                            <span id="step2-header-box-title" class="text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">Quti #--</span>
+                            <span id="step2-header-box-title"
+                                class="text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">Quti
+                                #--</span>
                         </div>
                         <h2 class="text-base sm:text-lg font-black text-white mt-0.5">
                             <span id="step2-header-order" class="text-amber-400 font-mono">ORD-0000</span>
                             <span class="text-slate-500 mx-1">—</span>
                             <span id="step2-header-article" class="text-purple-300">Model</span>
                             <span class="text-slate-600 mx-1">•</span>
-                            <span class="text-xs font-mono text-slate-300">Razmer: <strong id="step2-header-razmer" class="text-white">--</strong></span>
+                            <span class="text-xs font-mono text-slate-300">Razmer: <strong id="step2-header-razmer"
+                                    class="text-white">--</strong></span>
                         </h2>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl text-right">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan son</span>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan
+                            son</span>
                         <div class="flex items-baseline justify-end gap-1">
-                            <strong id="step2-header-total-qty" class="text-2xl font-black text-white digital-font">50</strong>
+                            <strong id="step2-header-total-qty"
+                                class="text-2xl font-black text-white digital-font">50</strong>
                             <span class="text-xs text-slate-400">dona</span>
                         </div>
                     </div>
@@ -333,19 +370,23 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
 
                 <!-- BLOK 1: 1-SORT (TAYYOR MAHSULOT) -->
-                <div class="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 border-2 border-emerald-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative overflow-hidden">
+                <div
+                    class="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 border-2 border-emerald-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative overflow-hidden">
                     <div class="flex items-center justify-between pb-3 border-b border-emerald-500/30">
-                        <span class="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                        <span
+                            class="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-circle-check text-base"></i>
                             <span>1-SORT (TAYYOR)</span>
                         </span>
-                        <span class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase">
+                        <span
+                            class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase">
                             STANDART
                         </span>
                     </div>
 
                     <div class="my-6">
-                        <div id="step2-first-sort" class="text-6xl sm:text-7xl font-black text-emerald-400 digital-font drop-shadow-md">
+                        <div id="step2-first-sort"
+                            class="text-6xl sm:text-7xl font-black text-emerald-400 digital-font drop-shadow-md">
                             50
                         </div>
                         <span class="text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-1 block">
@@ -353,20 +394,25 @@
                         </span>
                     </div>
 
-                    <div class="p-3 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl text-left text-xs text-emerald-300/90 leading-relaxed font-medium">
+                    <div
+                        class="p-3 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl text-left text-xs text-emerald-300/90 leading-relaxed font-medium">
                         <i class="fa-solid fa-box-open mr-1 text-emerald-400"></i>
-                        Nuqsonsiz toza kiyimlar. Qutiga solinib to'g'ridan-to'g'ri <strong>Upakovka (Qadoqlash)</strong> bo'limiga topshiriladi.
+                        Nuqsonsiz toza kiyimlar. Qutiga solinib to'g'ridan-to'g'ri <strong>Upakovka (Qadoqlash)</strong>
+                        bo'limiga topshiriladi.
                     </div>
                 </div>
 
                 <!-- BLOK 2: 2-SORT (BRAK / NUQSONLI) -->
-                <div class="bg-gradient-to-br from-amber-950/50 via-slate-900 to-slate-950 border-2 border-amber-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative">
+                <div
+                    class="bg-gradient-to-br from-amber-950/50 via-slate-900 to-slate-950 border-2 border-amber-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative">
                     <div class="flex items-center justify-between pb-3 border-b border-amber-500/30">
-                        <span class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                        <span
+                            class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-triangle-exclamation text-base"></i>
                             <span>2-SORT (BRAK)</span>
                         </span>
-                        <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase">
+                        <span
+                            class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase">
                             NUQSONLI
                         </span>
                     </div>
@@ -381,10 +427,12 @@
                             </button>
 
                             <div class="min-w-[100px]">
-                                <div id="step2-second-sort" class="text-5xl sm:text-6xl font-black text-amber-400 digital-font">
+                                <div id="step2-second-sort"
+                                    class="text-5xl sm:text-6xl font-black text-amber-400 digital-font">
                                     0
                                 </div>
-                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
+                                <span
+                                    class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
                             </div>
 
                             <!-- Oshirish tugmasi: DARHOL SABABLAR OYNASI CHIQADI! -->
@@ -398,10 +446,12 @@
 
                     <!-- Tanlangan sabablar ro'yxati (Badge / kartochkalar) -->
                     <div class="flex-1 flex flex-col justify-end">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
+                        <span
+                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
                             Brak sabablari va operatsiyalar:
                         </span>
-                        <div id="step2-defect-items-list" class="max-h-36 overflow-y-auto space-y-1.5 text-left pr-1 min-h-[50px] bg-slate-950/70 p-2 rounded-2xl border border-slate-800">
+                        <div id="step2-defect-items-list"
+                            class="max-h-36 overflow-y-auto space-y-1.5 text-left pr-1 min-h-[50px] bg-slate-950/70 p-2 rounded-2xl border border-slate-800">
                             <span class="text-[11px] text-slate-600 italic block text-center py-2">
                                 Hali 2-sort qo'shilmadi (+ tugmasini bosing)
                             </span>
@@ -410,13 +460,16 @@
                 </div>
 
                 <!-- BLOK 3: TA'MIR (TIKUVCHIGA QAYTARISH) -->
-                <div class="bg-gradient-to-br from-rose-950/50 via-slate-900 to-slate-950 border-2 border-rose-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative">
+                <div
+                    class="bg-gradient-to-br from-rose-950/50 via-slate-900 to-slate-950 border-2 border-rose-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative">
                     <div class="flex items-center justify-between pb-3 border-b border-rose-500/30">
-                        <span class="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
+                        <span
+                            class="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-wrench text-base"></i>
                             <span>TA'MIR (QAYTA ISHLASH)</span>
                         </span>
-                        <span class="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase">
+                        <span
+                            class="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase">
                             QAYTARILADI
                         </span>
                     </div>
@@ -431,31 +484,42 @@
                             </button>
 
                             <div class="min-w-[100px]">
-                                <div id="step2-repair-qty" class="text-5xl sm:text-6xl font-black text-rose-400 digital-font">
+                                <div id="step2-repair-qty"
+                                    class="text-5xl sm:text-6xl font-black text-rose-400 digital-font">
                                     0
                                 </div>
-                                <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
+                                <span
+                                    class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
                             </div>
 
-                            <!-- Oshirish -->
+                            <!-- Oshirish: DARHOL OPERATSIYALAR OYNASI CHIQADI! -->
                             <button type="button" onclick="adjustRepairQty(+1)"
-                                class="touch-btn w-12 h-12 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border-2 border-rose-500 text-rose-300 font-black text-2xl flex items-center justify-center transition shadow-lg shadow-rose-500/20"
-                                title="Ta'mir sonini oshirish">
+                                class="touch-btn w-12 h-12 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border-2 border-rose-500 text-rose-300 font-black text-2xl flex items-center justify-center transition shadow-lg shadow-rose-500/20 animate-pulse"
+                                title="Ta'mir qo'shish va operatsiyasini tanlash">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="p-3 bg-rose-950/50 border border-rose-500/30 rounded-2xl text-left text-xs text-rose-300/90 leading-relaxed font-medium">
-                        <i class="fa-solid fa-arrow-rotate-left mr-1 text-rose-400"></i>
-                        Tuzatsa bo'ladigan choklar. Quti ta'mir bo'limiga qaytariladi va <strong>ish soni tizimda srazu kamayadi</strong>.
+                    <!-- Tanlangan ta'mir operatsiyalari ro'yxati (Badge / kartochkalar) -->
+                    <div class="flex-1 flex flex-col justify-end">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
+                            Ta'mir operatsiyalari va tikuvchilar:
+                        </span>
+                        <div id="step2-repair-items-list"
+                            class="max-h-36 overflow-y-auto space-y-1.5 text-left pr-1 min-h-[50px] bg-slate-950/70 p-2 rounded-2xl border border-slate-800">
+                            <span class="text-[11px] text-slate-600 italic block text-center py-2">
+                                Hali ta'mir qo'shilmadi (+ tugmasini bosing)
+                            </span>
+                        </div>
                     </div>
                 </div>
 
             </div>
 
             <!-- 3. QUYI AMALLAR QATORI (ORQAGA VA YAKUNIY TASDIQLASH) -->
-            <div class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 shadow-xl flex items-center justify-between gap-4 flex-wrap">
+            <div
+                class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 shadow-xl flex items-center justify-between gap-4 flex-wrap">
                 <!-- 1-qadamga qaytish -->
                 <button type="button" onclick="backToStep1()"
                     class="touch-btn px-5 py-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs sm:text-sm font-bold transition flex items-center gap-2">
@@ -480,12 +544,14 @@
     <!-- ================================================================= -->
     <div id="defect-reasons-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-        <div class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-amber-950/50 overflow-hidden">
+        <div
+            class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-amber-950/50 overflow-hidden">
 
             <!-- Modal Header -->
             <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg">
                         <i class="fa-solid fa-clipboard-question"></i>
                     </div>
                     <div>
@@ -499,10 +565,12 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span id="modal-defect-badge" class="px-3 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black font-mono">
+                    <span id="modal-defect-badge"
+                        class="px-3 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black font-mono">
                         #1 DONA
                     </span>
-                    <button type="button" onclick="cancelDefectModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">
+                    <button type="button" onclick="cancelDefectModal()"
+                        class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
@@ -514,7 +582,8 @@
                 <!-- CHAP USTUN: QUTIDAGI OPERATSIYALAR RO'YXATI -->
                 <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 flex flex-col">
                     <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
-                        <span class="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span
+                            class="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-list-check"></i>
                             <span>1. Qutidagi Operatsiyalar</span>
                         </span>
@@ -528,12 +597,14 @@
                     <!-- Maxsus tugma: Tikishga aloqasi yo'q -->
                     <button type="button" id="btn-modal-no-op" onclick="toggleModalNoOperation()"
                         class="mb-2.5 p-2.5 rounded-xl border border-dashed border-slate-700 hover:border-amber-500/50 bg-slate-900/60 text-slate-300 text-xs font-bold flex items-center gap-2 transition text-left">
-                        <div id="box-no-op-check" class="w-5 h-5 rounded-lg border border-slate-600 flex items-center justify-center text-xs text-transparent">
+                        <div id="box-no-op-check"
+                            class="w-5 h-5 rounded-lg border border-slate-600 flex items-center justify-center text-xs text-transparent">
                             <i class="fa-solid fa-check"></i>
                         </div>
                         <div>
                             <span class="text-amber-300 block">Tikishga / operatsiyaga aloqasi yo'q</span>
-                            <span class="text-[10px] text-slate-500 font-normal">Mato nuqsoni, dog', xomashyo yoki bichuv xatosi</span>
+                            <span class="text-[10px] text-slate-500 font-normal">Mato nuqsoni, dog', xomashyo yoki
+                                bichuv xatosi</span>
                         </div>
                     </button>
 
@@ -546,7 +617,8 @@
                 <!-- O'NG USTUN: SHABLONDAGI SABABLAR (DefectReason) -->
                 <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 flex flex-col">
                     <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
-                        <span class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span
+                            class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-tags"></i>
                             <span>2. Shablondagi Sabablar</span>
                         </span>
@@ -579,7 +651,8 @@
 
                 <!-- Qo'shimcha ixtiyoriy izoh -->
                 <div class="flex items-center gap-2">
-                    <input type="text" id="modal-defect-notes" placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: old cho'ntak yonida dog')..."
+                    <input type="text" id="modal-defect-notes"
+                        placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: old cho'ntak yonida dog')..."
                         class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
                 </div>
 
@@ -601,23 +674,117 @@
         </div>
     </div>
 
+    <!-- ================================================================= -->
+    <!-- MODAL: TA'MIR OPERATSIYASINI TANLASH (TIKUVCHI AYBI BILAN)        -->
+    <!-- ================================================================= -->
+    <div id="repair-operations-modal"
+        class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+        <div class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-rose-950/50 overflow-hidden">
+
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-wrench"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+                            Ta'mir Uchun Operatsiyani Tanlash
+                        </h3>
+                        <p class="text-[11px] text-rose-400 font-semibold" id="modal-repair-title-sub">
+                            Dona #1 uchun tuzatiladigan operatsiya
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span id="modal-repair-badge" class="px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-black font-mono">
+                        #1 DONA TA'MIR
+                    </span>
+                    <button type="button" onclick="cancelRepairModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body: FAQAT OPERATSIYALAR RO'YXATI -->
+            <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
+                <div class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 leading-relaxed font-semibold">
+                    <i class="fa-solid fa-circle-exclamation mr-1 text-rose-400"></i>
+                    Tikuvchi keyinchalik rad eta olmasligi uchun nuqson qaysi tikuvchining operatsiyasida ekanligini belgilang:
+                </div>
+
+                <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+                    <span class="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>Qutidagi Operatsiyalar (Tikuvchisi bilan)</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400">(Kerakli operatsiyani bosing)</span>
+                </div>
+
+                <!-- Operatsiyalar ro'yxati -->
+                <div id="modal-repair-operations-list" class="space-y-2 max-h-[340px] overflow-y-auto pr-1 flex-1">
+                    <!-- JS orqali to'ldiriladi -->
+                </div>
+            </div>
+
+            <!-- Modal Footer: Xulosa va Saqlash tugmalari -->
+            <div class="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-col gap-2.5">
+                <!-- Real-time xulosa -->
+                <div class="flex items-center justify-between text-xs flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-400 font-bold">Tanlangan operatsiya:</span>
+                        <span id="modal-repair-summary-text" class="text-white font-semibold">
+                            Operatsiyani tanlang
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Qo'shimcha ixtiyoriy izoh -->
+                <div class="flex items-center gap-2">
+                    <input type="text" id="modal-repair-notes" placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: chok ochilgan, ip uzilgan)..."
+                        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400">
+                </div>
+
+                <!-- Tugmalar -->
+                <div class="flex items-center justify-between gap-3 pt-1">
+                    <button type="button" onclick="cancelRepairModal()"
+                        class="touch-btn px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition">
+                        Bekor qilish
+                    </button>
+
+                    <button type="button" onclick="saveRepairModal()"
+                        class="touch-btn px-6 sm:px-8 py-2.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-wrench"></i>
+                        <span>Ta'mirni Biriktirish</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <!-- 3. MODAL: SIZDA BUNDAY HUQUQ YO'Q (TIKUVCHI STIKERI SKANERLANGANDA) -->
     <div id="permission-denied-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl shadow-rose-950/50 space-y-4">
-            <div class="w-16 h-16 mx-auto rounded-3xl bg-rose-500/10 border-2 border-rose-500/40 text-rose-500 flex items-center justify-center text-3xl shadow-inner">
+        <div
+            class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl shadow-rose-950/50 space-y-4">
+            <div
+                class="w-16 h-16 mx-auto rounded-3xl bg-rose-500/10 border-2 border-rose-500/40 text-rose-500 flex items-center justify-center text-3xl shadow-inner">
                 <i class="fa-solid fa-hand"></i>
             </div>
             <h3 class="text-xl font-black text-white tracking-wide uppercase">
                 SIZDA BUNDAY HUQUQ YO'Q!
             </h3>
             <p id="permission-denied-message" class="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-                Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!
+                Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki
+                Quti ID sini skanerlang!
             </p>
             <div class="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-left">
                 <p class="text-xs text-rose-300 leading-relaxed font-semibold">
                     <i class="fa-solid fa-circle-exclamation mr-1 text-rose-400"></i>
-                    Kontrolchi faqat qutidagi <strong>CONTROL</strong> stikerini yoki <strong>Quti ID</strong> sini tekshirishi mumkin. Tikuvchi stikerlarini skanerlash taqiqlanadi.
+                    Kontrolchi faqat qutidagi <strong>CONTROL</strong> stikerini yoki <strong>Quti ID</strong> sini
+                    tekshirishi mumkin. Tikuvchi stikerlarini skanerlash taqiqlanadi.
                 </p>
             </div>
             <div class="pt-2">
@@ -632,8 +799,10 @@
     <!-- 4. MODAL: QABUL QILIB BO'LMAYDI (OPERATSIYALAR HALI SKANERLANMAGAN) -->
     <div id="unscanned-warning-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-rose-500/80 rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl shadow-rose-950/60 space-y-4">
-            <div class="w-16 h-16 mx-auto rounded-3xl bg-rose-500/15 border-2 border-rose-500/50 text-rose-400 flex items-center justify-center text-3xl">
+        <div
+            class="bg-slate-900 border-2 border-rose-500/80 rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl shadow-rose-950/60 space-y-4">
+            <div
+                class="w-16 h-16 mx-auto rounded-3xl bg-rose-500/15 border-2 border-rose-500/50 text-rose-400 flex items-center justify-center text-3xl">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div>
@@ -651,9 +820,11 @@
                 <!-- JS orqali to'ldiriladi -->
             </div>
 
-            <div class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 text-left leading-relaxed font-semibold">
+            <div
+                class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 text-left leading-relaxed font-semibold">
                 <i class="fa-solid fa-circle-info mr-1 text-rose-400"></i>
-                Chunki agar ushbu operatsiyadan brak chiqsa, hech qaysi tikuvchini ayblab bo'lmaydi! Avval barcha operatsiya stikerlari tikuvchilar tomonidan urilishi shart.
+                Chunki agar ushbu operatsiyadan brak chiqsa, hech qaysi tikuvchini ayblab bo'lmaydi! Avval barcha
+                operatsiya stikerlari tikuvchilar tomonidan urilishi shart.
             </div>
 
             <div class="pt-2">
@@ -668,8 +839,10 @@
     <!-- 5. MODAL: MUVAFFAQIYATLI QABUL QILINGANLIK RESULT OYNSI -->
     <div id="inspection-result-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-emerald-500/60 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl shadow-emerald-950/50 space-y-4">
-            <div class="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-400 flex items-center justify-center text-3xl">
+        <div
+            class="bg-slate-900 border-2 border-emerald-500/60 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl shadow-emerald-950/50 space-y-4">
+            <div
+                class="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-400 flex items-center justify-center text-3xl">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
             <h3 class="text-xl font-black text-white uppercase tracking-wider">
@@ -695,12 +868,17 @@
         let secondSortQty = 0;
         let repairQty = 0;
         let defectItemsList = []; // Har bir 2-sort donasi uchun { item_number, operation_ids, operation_names, workers, reason_ids, reason_names, notes }
+        let repairItemsList = []; // Har bir ta'mir donasi uchun { item_number, operation_ids, operation_names, workers, notes }
 
-        // Modal holati
+        // 2-Sort Modal holati
         let modalSelectedOps = new Set();
         let modalSelectedReasons = new Set();
         let modalNoOperation = false;
         let modalEditingIndex = null;
+
+        // Ta'mir Modal holati
+        let modalRepairSelectedOps = new Set();
+        let modalRepairEditingIndex = null;
 
         let soundEnabled = true;
         let audioCtx = null;
@@ -914,6 +1092,7 @@
             secondSortQty = 0;
             repairQty = 0;
             defectItemsList = [];
+            repairItemsList = [];
 
             // 4. Step 2 ma'lumotlarini to'ldirish
             document.getElementById('step2-header-order').innerText = currentBox.order_number || "—";
@@ -924,6 +1103,7 @@
 
             recalcStep2Sorts();
             renderDefectItemsList();
+            renderRepairItemsList();
 
             // 5. Ekranlarni almashtirish
             document.getElementById('inspection-card').classList.add('hidden');
@@ -955,6 +1135,7 @@
             secondSortQty = 0;
             repairQty = 0;
             defectItemsList = [];
+            repairItemsList = [];
 
             document.getElementById('inspection-card').classList.add('hidden');
             document.getElementById('step2-card').classList.add('hidden');
@@ -1070,16 +1251,14 @@
                 const workerUid = t.worker ? t.worker.uid : "";
 
                 const itemDiv = document.createElement('div');
-                itemDiv.className = `p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${
-                    isSelected 
-                        ? 'bg-indigo-600/25 border-2 border-indigo-500 text-white shadow-md' 
+                itemDiv.className = `p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${isSelected
+                        ? 'bg-indigo-600/25 border-2 border-indigo-500 text-white shadow-md'
                         : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 text-slate-300'
-                }`;
+                    }`;
                 itemDiv.onclick = () => toggleModalOperation(t.id);
 
                 itemDiv.innerHTML = `
-                    <div class="w-5 h-5 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${
-                        isSelected ? 'bg-indigo-500 text-white font-black' : 'border border-slate-700 text-transparent'
+                    <div class="w-5 h-5 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${isSelected ? 'bg-indigo-500 text-white font-black' : 'border border-slate-700 text-transparent'
                     }">
                         <i class="fa-solid fa-check"></i>
                     </div>
@@ -1111,11 +1290,10 @@
             reasons.forEach(r => {
                 const isSelected = modalSelectedReasons.has(r.id);
                 const itemDiv = document.createElement('div');
-                itemDiv.className = `p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-2.5 select-none ${
-                    isSelected 
-                        ? 'bg-amber-500/25 border-2 border-amber-500 text-white shadow-md' 
+                itemDiv.className = `p-2.5 rounded-xl border transition cursor-pointer flex items-center gap-2.5 select-none ${isSelected
+                        ? 'bg-amber-500/25 border-2 border-amber-500 text-white shadow-md'
                         : 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40 text-slate-300'
-                }`;
+                    }`;
                 itemDiv.onclick = () => toggleModalReason(r.id);
 
                 let catBadgeClass = "bg-slate-800 text-slate-300";
@@ -1126,8 +1304,7 @@
                 else if (r.category === 'ACCESSORY') catBadgeClass = "bg-pink-500/20 text-pink-300 border border-pink-500/30";
 
                 itemDiv.innerHTML = `
-                    <div class="w-5 h-5 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${
-                        isSelected ? 'bg-amber-400 text-slate-950 font-black' : 'border border-slate-700 text-transparent'
+                    <div class="w-5 h-5 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${isSelected ? 'bg-amber-400 text-slate-950 font-black' : 'border border-slate-700 text-transparent'
                     }">
                         <i class="fa-solid fa-check"></i>
                     </div>
@@ -1299,17 +1476,232 @@
             }
         }
 
-        function adjustRepairQty(delta) {
-            let nextVal = repairQty + delta;
-            if (nextVal < 0) nextVal = 0;
-            if (currentVerifiedQty - secondSortQty - nextVal < 0) {
+        // =====================================================================
+        // TA'MIR OPERATSIYALARI MODALI
+        // =====================================================================
+        function openRepairModal(editIndex = null) {
+            if (!currentBox) return;
+
+            const remaining1Sort = currentVerifiedQty - secondSortQty - repairQty;
+            if (editIndex === null && remaining1Sort <= 0) {
                 playSound('error');
-                alert("Ta'mir soni umumiy sondan oshib ketishi mumkin emas!");
+                alert("Barcha ishlar saralab bo'lindi! 1-sort qolmadi.");
                 return;
             }
-            repairQty = nextVal;
-            recalcStep2Sorts();
+
+            modalRepairEditingIndex = editIndex;
+            modalRepairSelectedOps = new Set();
+
+            let itemNum = repairItemsList.length + 1;
+            let noteVal = '';
+
+            if (editIndex !== null && repairItemsList[editIndex]) {
+                const item = repairItemsList[editIndex];
+                itemNum = item.item_number || (editIndex + 1);
+                (item.operation_ids || []).forEach(id => modalRepairSelectedOps.add(id));
+                noteVal = item.notes || '';
+            }
+
+            document.getElementById('modal-repair-title-sub').innerText = `Dona #${itemNum} uchun tuzatiladigan operatsiya`;
+            document.getElementById('modal-repair-badge').innerText = `#${itemNum} DONA TA'MIR`;
+            document.getElementById('modal-repair-notes').value = noteVal;
+
+            renderModalRepairOperations();
+            updateModalRepairSummary();
+
+            document.getElementById('repair-operations-modal').classList.remove('hidden');
             playSound('beep');
+        }
+
+        function cancelRepairModal() {
+            document.getElementById('repair-operations-modal').classList.add('hidden');
+            modalRepairEditingIndex = null;
+        }
+
+        function toggleModalRepairOperation(ticketId) {
+            if (modalRepairSelectedOps.has(ticketId)) {
+                modalRepairSelectedOps.delete(ticketId);
+            } else {
+                modalRepairSelectedOps.add(ticketId);
+            }
+            renderModalRepairOperations();
+            updateModalRepairSummary();
+        }
+
+        function renderModalRepairOperations() {
+            const listEl = document.getElementById('modal-repair-operations-list');
+            listEl.innerHTML = '';
+
+            if (!currentBox || !currentBox.tickets || currentBox.tickets.length === 0) {
+                listEl.innerHTML = '<div class="text-xs text-slate-500 italic p-3 text-center">Operatsiyalar topilmadi.</div>';
+                return;
+            }
+
+            currentBox.tickets.forEach(t => {
+                const isSelected = modalRepairSelectedOps.has(t.id);
+                const workerName = t.worker ? t.worker.full_name : "Noma'lum";
+                const workerUid = t.worker ? t.worker.uid : "";
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `p-3 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${
+                    isSelected 
+                        ? 'bg-rose-600/25 border-2 border-rose-500 text-white shadow-md' 
+                        : 'bg-slate-900/80 border-slate-800 hover:border-rose-500/40 text-slate-300'
+                }`;
+                itemDiv.onclick = () => toggleModalRepairOperation(t.id);
+
+                itemDiv.innerHTML = `
+                    <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0 ${
+                        isSelected ? 'bg-rose-500 text-white font-black' : 'border border-slate-700 text-transparent'
+                    }">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div class="flex-1 truncate">
+                        <div class="text-sm font-black ${isSelected ? 'text-white' : 'text-slate-200'}">
+                            ${t.sequence}. ${t.operation_name}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                            <i class="fa-solid fa-user-tag text-rose-400"></i>
+                            <strong class="text-slate-200">${workerName}</strong>
+                            ${workerUid ? `<span class="font-mono text-slate-500">(${workerUid})</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                listEl.appendChild(itemDiv);
+            });
+        }
+
+        function updateModalRepairSummary() {
+            const summaryEl = document.getElementById('modal-repair-summary-text');
+            const opNames = [];
+
+            if (currentBox && currentBox.tickets) {
+                currentBox.tickets.forEach(t => {
+                    if (modalRepairSelectedOps.has(t.id)) {
+                        const w = t.worker ? ` (${t.worker.full_name.split(' ')[0]})` : '';
+                        opNames.push(`${t.operation_name}${w}`);
+                    }
+                });
+            }
+
+            if (opNames.length === 0) {
+                summaryEl.innerText = "Operatsiyani tanlang";
+                summaryEl.className = "text-slate-500 italic";
+            } else {
+                summaryEl.innerHTML = `<span class="text-rose-400 font-bold">[${opNames.join(", ")}]</span>`;
+                summaryEl.className = "text-white font-semibold";
+            }
+        }
+
+        function saveRepairModal() {
+            if (modalRepairSelectedOps.size === 0) {
+                playSound('error');
+                alert("Iltimos, nuqsonli operatsiyani tanlang! Tikuvchi rad eta olmasligi uchun operatsiya tanlanishi shart.");
+                return;
+            }
+
+            const opNames = [];
+            const workerNames = [];
+            if (currentBox && currentBox.tickets) {
+                currentBox.tickets.forEach(t => {
+                    if (modalRepairSelectedOps.has(t.id)) {
+                        opNames.push(t.operation_name);
+                        if (t.worker && t.worker.full_name) {
+                            workerNames.push(t.worker.full_name);
+                        }
+                    }
+                });
+            }
+
+            const customNote = document.getElementById('modal-repair-notes').value.trim();
+
+            const itemObj = {
+                item_number: modalRepairEditingIndex !== null ? (modalRepairEditingIndex + 1) : (repairItemsList.length + 1),
+                operation_ids: Array.from(modalRepairSelectedOps),
+                operation_names: opNames,
+                workers: workerNames,
+                notes: customNote
+            };
+
+            if (modalRepairEditingIndex !== null && repairItemsList[modalRepairEditingIndex]) {
+                repairItemsList[modalRepairEditingIndex] = itemObj;
+            } else {
+                repairItemsList.push(itemObj);
+            }
+
+            repairQty = repairItemsList.length;
+            recalcStep2Sorts();
+            renderRepairItemsList();
+
+            cancelRepairModal();
+            playSound('beep');
+        }
+
+        function removeRepairItem(idx) {
+            if (idx >= 0 && idx < repairItemsList.length) {
+                repairItemsList.splice(idx, 1);
+                repairItemsList.forEach((it, i) => {
+                    it.item_number = i + 1;
+                });
+                repairQty = repairItemsList.length;
+                recalcStep2Sorts();
+                renderRepairItemsList();
+                playSound('beep');
+            }
+        }
+
+        function renderRepairItemsList() {
+            const container = document.getElementById('step2-repair-items-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (repairItemsList.length === 0) {
+                container.innerHTML = `
+                    <span class="text-[11px] text-slate-600 italic block text-center py-2">
+                        Hali ta'mir qo'shilmadi (+ tugmasini bosing)
+                    </span>
+                `;
+                return;
+            }
+
+            repairItemsList.forEach((it, idx) => {
+                const opStr = (it.operation_names && it.operation_names.length > 0) ? it.operation_names.join(", ") : "Operatsiya";
+                const wStr = (it.workers && it.workers.length > 0) ? ` [${it.workers[0].split(' ')[0]}]` : "";
+
+                const row = document.createElement('div');
+                row.className = "p-2 bg-slate-900 border border-rose-500/30 rounded-xl flex items-center justify-between text-xs gap-2 group hover:border-rose-400 transition";
+                row.innerHTML = `
+                    <div class="truncate flex-1">
+                        <strong class="text-rose-400 font-mono">#${it.item_number}:</strong>
+                        <span class="text-white font-semibold ml-1">${opStr}</span>
+                        <span class="text-rose-300 ml-1 font-bold">${wStr}</span>
+                        ${it.notes ? `<span class="text-slate-500 text-[10px] ml-1 font-mono italic">(${it.notes})</span>` : ''}
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button type="button" onclick="openRepairModal(${idx})" class="w-7 h-7 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 flex items-center justify-center text-[10px]" title="Tahrirlash">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button type="button" onclick="removeRepairItem(${idx})" class="w-7 h-7 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 flex items-center justify-center text-[10px]" title="O'chirish">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function adjustRepairQty(delta) {
+            if (delta > 0) {
+                openRepairModal();
+            } else if (delta < 0) {
+                if (repairItemsList.length > 0) {
+                    repairItemsList.pop();
+                    repairQty = repairItemsList.length;
+                    recalcStep2Sorts();
+                    renderRepairItemsList();
+                    playSound('beep');
+                }
+            }
         }
 
         function recalcStep2Sorts() {
@@ -1356,6 +1748,7 @@
                 second_sort_qty: secondSortQty,
                 repair_qty: repairQty,
                 defect_details: defectItemsList,
+                repair_details: repairItemsList,
                 notes: ''
             };
 
@@ -1494,6 +1887,20 @@
                 if (e.key === 'Enter' && e.target.tagName !== 'INPUT') {
                     e.preventDefault();
                     saveDefectModal();
+                    return;
+                }
+            }
+
+            const repairModal = document.getElementById('repair-operations-modal');
+            if (repairModal && !repairModal.classList.contains('hidden')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelRepairModal();
+                    return;
+                }
+                if (e.key === 'Enter' && e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    saveRepairModal();
                     return;
                 }
             }

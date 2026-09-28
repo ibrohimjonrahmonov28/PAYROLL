@@ -362,6 +362,17 @@ def control_submit_inspection_api(request):
                 custom_note = f" [{d.get('notes')}]" if d.get('notes') else ""
                 notes_lines.append(f"• #{item_idx} dona: Sabab: [{reasons}] | Operatsiya: [{ops}{worker_part}]{custom_note}")
 
+        repair_details = data.get('repair_details', [])
+        if repair_details and isinstance(repair_details, list):
+            notes_lines.append("--- TA'MIR OPERATSIYALARI ---")
+            for idx, r in enumerate(repair_details, 1):
+                item_idx = r.get('item_number', idx)
+                ops = ", ".join(r.get('operation_names', [])) if r.get('operation_names') else "Noma'lum operatsiya"
+                workers = ", ".join(r.get('workers', [])) if r.get('workers') else ""
+                worker_part = f" (Tikuvchi: {workers})" if workers else ""
+                custom_note = f" [{r.get('notes')}]" if r.get('notes') else ""
+                notes_lines.append(f"• #{item_idx} dona: Operatsiya: [{ops}{worker_part}]{custom_note}")
+
         final_notes = "\n".join(notes_lines)
 
         log = BoxQualityInspectionLog.objects.create(
