@@ -1526,3 +1526,149 @@ class DailyExcelReportAndPricingSyncTest(TestCase):
         self.assertEqual(ws_month.cell(row=6, column=5).value, "=SUM(E5:E5)")
         self.assertEqual(ws_month.cell(row=6, column=10).value, "=SUM(J5:J5)")
 
+
+class ControlQualityInspectionWorkflowTest(TestCase):
+    def setUp(self):
+        import json
+        from django.urls import reverse
+        from accounts.models import Worker
+
+        self.control_user = User.objects.create_user(
+            username="inspector_otk", password="password123", role=User.Role.CONTROL
+        )
+        self.worker1 = Worker.objects.create(worker_id="TK-101", first_name="Zuhra", last_name="Karimova")
+        self.worker2 = Worker.objects.create(worker_id="TK-102", first_name="Fotima", last_name="Karimova")
+
+        self.article = Article.objects.create(code="ART-OTK-01", name="Palto Qishki")
+        self.op1 = Operation.objects.create(code="OP-01", name="Bichish tekshiruvi")
+        self.op2 = Operation.objects.create(code="OP-02", name="Tugma qadash")
+
+        self.art_op1 = ArticleOperation.objects.create(
+            article=self.article, operation=self.op1, price_per_unit=Decimal("1500.00"), sequence=1
+        )
+        self.art_op2 = ArticleOperation.objects.create(
+            article=self.article, operation=self.op2, price_per_unit=Decimal("2000.00"), sequence=2
+        )
+
+        self.order = Order.objects.create(order_number="ORD-OTK-99", article=self.article, total_quantity=50)
+        self.box = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            box_number=1,
+            box_code="A9-777",
+            quantity=50,
+            razmer="XXL"
+        )
+
+        # 2 tickets: 1 is scanned by worker1, 2 is pending (no worker)
+        self.t1 = Ticket.objects.create(
+            ticket_code="TK-OTK-1",
+            stiker_code="STK00001",
+            box=self.box,
+            article_operation=self.art_op1,
+            quantity=50,
+            price_per_unit=Decimal("1500.00"),
+            total_amount=Decimal("75000.00"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker1,
+            scanned_at=timezone.now()
+        )
+        self.t2 = Ticket.objects.create(
+            ticket_code="TK-OTK-2",
+            stiker_code="STK00002",
+            box=self.box,
+            article_operation=self.art_op2,
+            quantity=50,
+            price_per_unit=Decimal("2000.00"),
+            total_amount=Decimal("100000.00"),
+            status=Ticket.Status.PENDING,
+            worker=None
+        )
+
+    def test_lookup_by_box_code_and_by_stiker_code(self):
+        from django.urls import reverse
+        self.client.login(username="inspector_otk", password="password123")
+        lookup_url = reverse('control:api_lookup')
+
+        # 1. Box code bo'yicha qidiruv
+        res1 = self.client.get(f"{lookup_url}?code=A9-777")
+        self.assertEqual(res1.status_code, 200)
+        data1 = res1.json()
+        self.assertEqual(data1['status'], 'OK')
+        self.assertEqual(data1['box']['box_code'], 'A9-777')
+        self.assertEqual(data1['box']['total_tickets_count'], 2)
+        self.assertEqual(data1['box']['scanned_tickets_count'], 1)
+        self.assertEqual(data1['box']['missing_tickets_count'], 1)
+        self.assertFalse(data1['box']['all_tickets_scanned'])
+
+        # 2. Tikuvchi stiker kodi bo'yicha qidiruv (mahsulot ustidagi stiker)
+        res2 = self.client.get(f"{lookup_url}?code=STK00002")
+        self.assertEqual(res2.status_code, 200)
+        data2 = res2.json()
+        self.assertEqual(data2['box']['box_code'], 'A9-777')
+
+    def test_submit_blocked_when_operations_unscanned(self):
+        import json
+        from django.urls import reverse
+        self.client.login(username="inspector_otk", password="password123")
+        submit_url = reverse('control:api_submit')
+
+        # Egasi yo'q operatsiya (Tugma qadash) bo'lganda tasdiqlash bloklanishi shart!
+        res = self.client.post(
+            submit_url,
+            data=json.dumps({
+                'box_id': self.box.id,
+                'mode': 'INITIAL',
+                'total_qty': 50,
+                'second_sort_qty': 0,
+                'repair_qty': 0
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertEqual(data['status'], 'UNSCANNED_OPERATIONS')
+        self.assertIn("Tugma qadash", data['message'])
+        self.assertIn("hech qaysi tikuvchini ayblab bo'lmaydi", data['message'])
+
+        # Quti yopilmaganligini tekshirish
+        self.box.refresh_from_db()
+        self.assertFalse(self.box.is_controlled)
+
+    def test_submit_success_when_all_operations_scanned(self):
+        import json
+        from django.urls import reverse
+        self.client.login(username="inspector_otk", password="password123")
+        submit_url = reverse('control:api_submit')
+
+        # 2-operatsiyani ham tikuvchi skaner qildi
+        self.t2.status = Ticket.Status.SCANNED
+        self.t2.worker = self.worker2
+        self.t2.scanned_at = timezone.now()
+        self.t2.save()
+
+        # Endi tasdiqlash va real sonni to'g'irlash (masalan 48 dona, 1 ta 2-sort)
+        res = self.client.post(
+            submit_url,
+            data=json.dumps({
+                'box_id': self.box.id,
+                'mode': 'INITIAL',
+                'total_qty': 48,
+                'second_sort_qty': 1,
+                'repair_qty': 0
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertTrue(data['is_closed'])
+
+        self.box.refresh_from_db()
+        self.assertTrue(self.box.is_controlled)
+        self.assertEqual(self.box.quantity, 48)
+        self.assertEqual(self.box.controlled_first_sort_qty, 47)
+        self.assertEqual(self.box.controlled_second_sort_qty, 1)
+        self.assertEqual(self.box.status, Box.Status.COMPLETED)
+
+

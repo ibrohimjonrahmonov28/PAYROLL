@@ -5,9 +5,9 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from accounts.models import User
-from production.models import Box, BoxQualityInspectionLog
+from production.models import Box, BoxQualityInspectionLog, Ticket
 
 
 def _is_control_authorized(user) -> bool:
@@ -82,30 +82,41 @@ def control_box_lookup_api(request):
     if not raw_code:
         return JsonResponse({'status': 'ERROR', 'message': "Iltimos, quti kodini kiriting yoki skaner qiling!"}, status=400)
 
-    # Prefikslarni tozalash (CONTROL:, BOX:, TICKET:, QUTI #, #)
+    # Prefikslarni tozalash (CONTROL:, BOX:, TICKET:, QUTI #, QUTI#, QUTI:, #)
     cleaned = raw_code.upper()
     for prefix in ['CONTROL:', 'BOX:', 'TICKET:', 'QUTI #', 'QUTI#', 'QUTI:', '#']:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):].strip()
 
-    # Bazadan qidirish: avval indeksli aniq moslik (<0.1ms)
+    # Bazadan qidirish:
+    # 1. Aniq box_code moslik
     box = None
     if len(cleaned) == 8 and cleaned.isalnum():
         box = Box.objects.filter(box_code=cleaned).select_related('order', 'article').first()
 
+    # 2. Agar son bo'lsa ID yoki box_number
     if not box and cleaned.isdigit():
         num = int(cleaned)
         box = Box.objects.filter(id=num).select_related('order', 'article').first()
         if not box:
             box = Box.objects.filter(box_number=num).select_related('order', 'article').first()
 
+    # 3. Katta-kichik harf farqsiz box_code (masalan: a9-1, A9-1)
     if not box:
         box = Box.objects.filter(box_code__iexact=cleaned).select_related('order', 'article').first()
+
+    # 4. Agar foydalanuvchi qutidagi mahsulot stikerini skaner qilgan bo'lsa (stiker_code yoki ticket_code)
+    if not box:
+        ticket = Ticket.objects.filter(
+            Q(stiker_code__iexact=cleaned) | Q(ticket_code__iexact=cleaned)
+        ).select_related('box', 'box__order', 'box__article').first()
+        if ticket:
+            box = ticket.box
 
     if not box:
         return JsonResponse({
             'status': 'NOT_FOUND',
-            'message': f"'{raw_code}' kodi bo'yicha quti topilmadi! Qaytadan tekshirib ko'ring."
+            'message': f"«{raw_code}» kodi bo'yicha quti topilmadi! Qaytadan tekshirib ko'ring."
         }, status=404)
 
     art = box.target_article
@@ -117,6 +128,54 @@ def control_box_lookup_api(request):
             image_url = None
 
     is_repair_mode = (box.controlled_repair_qty > 0)
+
+    # Qutiga tegishli barcha biletlar va ularning tikuvchilari
+    tickets_qs = box.tickets.exclude(status=Ticket.Status.CANCELLED).select_related(
+        'article_operation__operation', 'worker'
+    ).order_by('article_operation__sequence', 'id')
+
+    tickets_data = []
+    missing_operations = []
+    for t in tickets_qs:
+        ao = t.article_operation
+        op_name = ao.operation.name if ao and ao.operation else f"Operatsiya #{t.id}"
+        op_seq = ao.sequence if ao else 1
+
+        is_scanned = (t.status == Ticket.Status.SCANNED and t.worker_id is not None)
+        worker_info = None
+        if is_scanned and t.worker:
+            w_uid = getattr(t.worker, 'worker_id', None) or (getattr(t.worker.user, 'uid', None) if getattr(t.worker, 'user', None) else None) or f"W-{t.worker.id}"
+            w_name = getattr(t.worker, 'full_name', None) or f"{getattr(t.worker, 'first_name', '')} {getattr(t.worker, 'last_name', '')}".strip() or f"Ishchi #{t.worker.id}"
+            worker_info = {
+                'id': t.worker.id,
+                'uid': w_uid,
+                'full_name': w_name,
+                'screen_number': t.screen_number,
+                'scanned_at': timezone.localtime(t.scanned_at).strftime("%d.%m %H:%M") if t.scanned_at else None,
+            }
+        else:
+            missing_operations.append({
+                'ticket_id': t.id,
+                'ticket_code': t.ticket_code,
+                'stiker_code': t.stiker_code or "",
+                'operation_name': op_name,
+                'sequence': op_seq,
+            })
+
+        tickets_data.append({
+            'id': t.id,
+            'ticket_code': t.ticket_code,
+            'stiker_code': t.stiker_code or "",
+            'sequence': op_seq,
+            'operation_name': op_name,
+            'is_scanned': is_scanned,
+            'worker': worker_info,
+        })
+
+    total_tickets = len(tickets_data)
+    missing_count = len(missing_operations)
+    scanned_count = total_tickets - missing_count
+    all_tickets_scanned = (missing_count == 0 and total_tickets > 0)
 
     return JsonResponse({
         'status': 'OK',
@@ -137,6 +196,12 @@ def control_box_lookup_api(request):
             'controlled_repair_qty': box.controlled_repair_qty,
             'controlled_defect_qty': box.controlled_defect_qty,
             'mode': 'REPAIR_RETURN' if is_repair_mode else 'INITIAL',
+            'tickets': tickets_data,
+            'missing_operations': missing_operations,
+            'total_tickets_count': total_tickets,
+            'scanned_tickets_count': scanned_count,
+            'missing_tickets_count': missing_count,
+            'all_tickets_scanned': all_tickets_scanned,
         }
     })
 
@@ -161,6 +226,31 @@ def control_submit_inspection_api(request):
     box = get_object_or_404(Box, id=box_id)
 
     if mode == 'INITIAL':
+        # Barcha operatsiyalar egasi borligini qat'iy tekshirish
+        unscanned_tickets = box.tickets.exclude(
+            status=Ticket.Status.CANCELLED
+        ).filter(
+            Q(status=Ticket.Status.PENDING) | Q(worker__isnull=True)
+        ).select_related('article_operation__operation')
+
+        if unscanned_tickets.exists():
+            missing_names = [
+                t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else f"Operatsiya #{t.id}"
+                for t in unscanned_tickets
+            ]
+            unique_missing = list(dict.fromkeys(missing_names))
+            missing_str = ", ".join(f"«{m}»" for m in unique_missing)
+            return JsonResponse({
+                'status': 'UNSCANNED_OPERATIONS',
+                'message': (
+                    f"Qabul qilib bo'lmaydi! Ushbu qutining quyidagi operatsiyasi(lari) hali skaner qilinmagan (egasi yo'q): "
+                    f"{missing_str}. "
+                    f"Chunki agar ushbu operatsiyadan brak chiqsa, hech qaysi tikuvchini ayblab bo'lmaydi! "
+                    f"Avval barcha stikerlar skanerlanishi shart."
+                ),
+                'missing_operations': unique_missing,
+            }, status=400)
+
         # Birlamchi tekshiruv
         try:
             total_qty = int(data.get('total_qty', box.quantity))
