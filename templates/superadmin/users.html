@@ -146,7 +146,7 @@
                 </form>
 
                 <!-- Birkalarni Chop Etish (A4) - asosiy tugma -->
-                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={% if badge_filter %}{{ badge_filter }}{% else %}unprinted{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={% if badge_filter %}{{ badge_filter }}{% elif unprinted_badges_count > 0 %}unprinted{% else %}all{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     target="_blank"
                     class="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2 whitespace-nowrap"
                     title="Chop etilmagan / berilmagan barcha birkalarni A4 qog'ozga joylab chop etish">
@@ -465,8 +465,9 @@
                             <button type="button"
                                 class="btn-edit-user px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-slate-700 transition"
                                 title="Tahrirlash" data-user-id="{{ u.id }}" data-username="{{ u.username|default:'' }}"
-                                data-first-name="{{ u.first_name|default:'' }}" data-last-name="{{ u.last_name|default:'' }}"
-                                data-email="{{ u.email|default:'' }}" data-role="{{ u.role }}" data-phone="{{ u.phone_number|default:'' }}"
+                                data-first-name="{{ u.first_name|default:'' }}"
+                                data-last-name="{{ u.last_name|default:'' }}" data-email="{{ u.email|default:'' }}"
+                                data-role="{{ u.role }}" data-phone="{{ u.phone_number|default:'' }}"
                                 data-tg-id="{{ u.telegram_user_id|default:'' }}" data-branch="{{ u.branch }}"
                                 onclick="openEditUserModalFromBtn(this)">
                                 <i class="fa-solid fa-pen-to-square"></i>

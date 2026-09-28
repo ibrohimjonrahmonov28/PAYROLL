@@ -434,9 +434,36 @@
             </div>
         </div>
         {% empty %}
-        <div class="no-print w-full py-20 text-center text-slate-400 bg-slate-900 rounded-3xl border border-slate-800">
-            <i class="fa-solid fa-id-badge text-5xl mb-4 text-slate-600"></i>
-            <p class="text-base font-bold text-white">Hech qanday foydalanuvchi topilmadi.</p>
+        <div
+            class="no-print w-full py-16 text-center text-slate-400 bg-slate-900 rounded-3xl border border-slate-800 px-6 shadow-2xl">
+            <i class="fa-solid fa-id-badge text-5xl mb-4 text-amber-400"></i>
+            <p class="text-lg font-black text-white mb-2">Ushbu filtr bo'yicha birkalar topilmadi</p>
+            {% if badge_status == 'unprinted' and total_all_badges_count > 0 %}
+            <p class="text-xs text-slate-400 max-w-lg mx-auto mb-6 leading-relaxed">
+                Barcha xodimlarning birkalari allaqachon avval chop etilgan (berilgan) bo'lishi mumkin.
+                Shanba kuni yoki avval chiqarilgan birkalarni qaytadan A4 formatda (har bir varaqqa 8 tadan) chop etish
+                uchun quyidagi tugmani bosing:
+            </p>
+            <div class="flex flex-wrap justify-center items-center gap-3">
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status=all{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                    class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group"></i> Barcha Xodimlar Birkalarini Ko'rish ({{
+                    total_all_badges_count }} ta)
+                </a>
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status=printed{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                    class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i> Avval Berilganlarni Ko'rish ({{ printed_badges_count }} ta)
+                </a>
+            </div>
+            {% else %}
+            <p class="text-xs text-slate-400 max-w-md mx-auto mb-4">
+                Filtr sozlamalarini o'zgartiring yoki "Barchasi" tugmasini bosing.
+            </p>
+            <a href="{% url 'superadmin_users_print_badges' %}?badge_status=all{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl text-xs font-bold transition">
+                <i class="fa-solid fa-layer-group"></i> Barcha Birkalarni Ko'rsatish
+            </a>
+            {% endif %}
         </div>
         {% endfor %}
     </div>

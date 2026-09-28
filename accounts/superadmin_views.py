@@ -680,7 +680,13 @@ def superadmin_users_print_badges(request):
     role_filter = request.GET.get('role', '').strip()
     ids_param = request.GET.get('ids', '').strip()
     batch = request.GET.get('batch', '').strip()
-    badge_status = request.GET.get('badge_status', 'unprinted').strip()  # unprinted (default), printed, all
+    badge_status_param = request.GET.get('badge_status')
+    if badge_status_param is not None:
+        badge_status = badge_status_param.strip()
+    else:
+        # Agar parametr berilmagan bo'lsa: chop etilmaganlar bo'lsa 'unprinted', bo'lmasa 'all'
+        has_unprinted = User.objects.filter(is_badge_printed=False).exists()
+        badge_status = 'unprinted' if has_unprinted else 'all'
 
     users_qs = User.objects.all()
     if batch == 'new':
