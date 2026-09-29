@@ -220,7 +220,8 @@ def superadmin_dashboard(request):
                 'earned_amount': m_info['earned_amount'],
             })
 
-    all_workers = list(Worker.objects.filter(is_active=True).select_related('user').order_by('worker_id'))
+    active_worker_ids = set(worker_models_dict.keys())
+    all_workers = list(Worker.objects.filter(id__in=active_worker_ids, is_active=True).select_related('user').order_by('worker_id'))
 
     worker_kpi_list = []
     above_norm_count = 0
@@ -269,6 +270,9 @@ def superadmin_dashboard(request):
     worker_kpi_list.sort(key=lambda x: (x['percentage'], x['earned_points']), reverse=True)
     avg_factory_kpi = round(total_pct_sum / active_norm_workers_count, 1) if active_norm_workers_count > 0 else 0.0
 
+    # Tizim yuklamasini kamaytirish uchun faqat TOP 20 ta eng yaxshi tikuvchini ko'rsatish
+    top_20_worker_kpi_list = worker_kpi_list[:20]
+
     return render(request, 'superadmin/dashboard.html', {
         'period': period,
         'today_str': today.strftime("%d.%m.%Y"),
@@ -285,7 +289,7 @@ def superadmin_dashboard(request):
         'workers_count': workers_count,
         'master_stats': master_stats,
         'screen_stats': screen_stats,
-        'worker_kpi_list': worker_kpi_list,
+        'worker_kpi_list': top_20_worker_kpi_list,
         'above_norm_count': above_norm_count,
         'below_norm_count': below_norm_count,
         'active_norm_workers_count': active_norm_workers_count,

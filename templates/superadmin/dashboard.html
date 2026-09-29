@@ -102,18 +102,17 @@
         </div>
     </div>
 
-    <!-- SECTION: Workers Daily Norm & Difficulty KPI Performance -->
+    <!-- SECTION: Workers Daily Norm & Difficulty KPI Performance (TOP 20) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-bullseye text-amber-400"></i> Tikuvchilarning Norma Bajarilishi (KPI &
-                    Reyting)
+                    <i class="fa-solid fa-trophy text-amber-400"></i> Tikuvchilarning Norma Bajarilishi (KPI &
+                    Reyting — Top 20)
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
                     Har bir modelning o'z umumiy normasi bo'yicha ball to'planadi (Formula:
-                    <code>dona &times; qiyinlik</code>) va chevarning barcha modellar bo'yicha umumiy foiz yig'indisi
-                    hisoblanadi.
+                    <code>dona &times; qiyinlik</code>). Tizim tezligi va qulaylik uchun eng yuqori ko'rsatkichli <strong>Top 20</strong> nafar tikuvchi reytingi.
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2.5">
@@ -145,8 +144,9 @@
                     placeholder="Tikuvchi qidirish..."
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
             </div>
-            <span class="text-xs text-slate-400 font-mono" id="kpi-count-badge">Jami: {{ worker_kpi_list|length }}
-                xodim</span>
+            <span class="text-xs text-amber-400 font-mono font-bold" id="kpi-count-badge">
+                Top {{ worker_kpi_list|length }} reyting (Jami: {{ active_norm_workers_count }} xodimdan)
+            </span>
         </div>
 
         <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
@@ -368,7 +368,7 @@
         });
         const badge = document.getElementById('kpi-count-badge');
         if (badge) {
-            badge.innerText = filter ? `Topildi: ${count} ta` : `Jami: ${rows.length} xodim`;
+            badge.innerText = filter ? `Topildi: ${count} ta` : `Top ${rows.length} reyting (Jami: {{ active_norm_workers_count }} xodimdan)`;
         }
     }
 
