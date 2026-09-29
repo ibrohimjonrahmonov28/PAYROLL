@@ -33,7 +33,7 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Brand & Logo -->
                 <div class="flex items-center gap-6">
-                    <a href="{% url 'norma_dashboard' %}" class="flex items-center gap-3">
+                    <a href="{% url 'norma_canvas' %}" class="flex items-center gap-3">
                         <div
                             class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-500/25">
                             <i class="fa-solid fa-brain"></i>
@@ -43,36 +43,16 @@
                                 TERRY JAR
                             </span>
                             <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mt-0.5">
-                                Norma Markazi (Miya)
+                                Norma Markazi (Doska)
                             </span>
                         </div>
                     </a>
 
-                    <!-- Navigation Links -->
+                    <!-- Navigation Links: Only Doska (DB Sxema) active -->
                     <nav class="hidden md:flex items-center gap-1.5">
-                        <a href="{% url 'norma_dashboard' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_dashboard' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
-                            <i class="fa-solid fa-chart-pie text-xs"></i> Jonli Monitoring
-                        </a>
                         <a href="{% url 'norma_canvas' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_canvas' %}bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30 font-black{% else %}text-indigo-400 hover:text-white hover:bg-slate-800/80{% endif %}">
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30 font-black">
                             <i class="fa-solid fa-diagram-project text-xs"></i> Doska (DB Sxema)
-                        </a>
-                        <a href="{% url 'norma_models_list' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name in 'norma_models_list norma_model_edit norma_model_operations' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
-                            <i class="fa-solid fa-layer-group text-xs"></i> Modellar & Normalar
-                        </a>
-                        <a href="{% url 'norma_operations_catalog' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_operations_catalog' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
-                            <i class="fa-solid fa-list-ol text-xs"></i> Operatsiyalar
-                        </a>
-                        <a href="{% url 'norma_workers' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_workers' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
-                            <i class="fa-solid fa-users text-xs"></i> Xodimlar Kesimi
-                        </a>
-                        <a href="{% url 'norma_history' %}"
-                            class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'norma_history' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800/80{% endif %}">
-                            <i class="fa-solid fa-clock-rotate-left text-xs"></i> Tarix & Hisobotlar
                         </a>
                     </nav>
                 </div>

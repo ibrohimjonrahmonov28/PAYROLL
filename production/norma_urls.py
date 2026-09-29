@@ -1,8 +1,10 @@
 from django.urls import path
+from django.shortcuts import redirect
 from . import norma_views
 
 urlpatterns = [
-    path('', norma_views.norma_dashboard, name='norma_dashboard'),
+    path('', lambda request: redirect('norma_canvas'), name='norma_index'),
+    path('dashboard/', norma_views.norma_dashboard, name='norma_dashboard'),
     path('canvas/', norma_views.norma_canvas_view, name='norma_canvas'),
     path('canvas/save/', norma_views.norma_canvas_save, name='norma_canvas_save'),
     path('models/', norma_views.norma_models_list, name='norma_models_list'),

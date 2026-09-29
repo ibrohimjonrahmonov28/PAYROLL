@@ -634,7 +634,9 @@
                 draggedTableElem.style.zIndex = '20';
             }
             if (hasTableMoved) {
+                updateCanvasDimensions();
                 savePositionsToStorage();
+                drawAllConnections();
             }
             isTableDragging = false;
             draggedTableElem = null;
@@ -728,8 +730,8 @@
     // Dynamically expand SVG layer and canvas world to encompass all tables
     function updateCanvasDimensions() {
         const tables = document.querySelectorAll('.db-table');
-        let maxX = 3600;
-        let maxY = 2800;
+        let maxX = 5000;
+        let maxY = 4000;
 
         tables.forEach(tbl => {
             const x = (parseFloat(tbl.style.left) || 0) + (tbl.offsetWidth || 260);
@@ -738,8 +740,8 @@
             if (y > maxY) maxY = y;
         });
 
-        const totalW = Math.ceil(maxX + 1000);
-        const totalH = Math.ceil(maxY + 1000);
+        const totalW = Math.ceil(maxX + 1500);
+        const totalH = Math.ceil(maxY + 1500);
 
         world.style.width = `${totalW}px`;
         world.style.height = `${totalH}px`;
@@ -1403,8 +1405,7 @@
                     const mgReadySources = [];
                     (mg.articles || []).forEach(art => {
                         const portArtOut = document.getElementById(`port-art-out-${orderId}-${art.id}`);
-                        const artHasOps = (art.operations && art.operations.length > 0) || art.is_ready;
-                        if (artHasOps && portArtOut) {
+                        if (portArtOut) {
                             mgReadySources.push({
                                 art: art,
                                 point: getPortCenter(portArtOut, worldRect)
@@ -1415,42 +1416,40 @@
                     if (portOpsIn && mgReadySources.length > 0) {
                         const pOpsIn = getPortCenter(portOpsIn, worldRect);
                         const sources = mgReadySources.map(s => s.point);
-                        const mergeX = pOpsIn.x - 35;
-                        const allBehind = sources.every(s => s.x <= mergeX);
 
-                        if (mgReadySources.length === 1 || !allBehind) {
-                            mgReadySources.forEach(s => {
-                                drawOrthogonalStep(wiresGroup, s.point.x, s.point.y, pOpsIn.x, pOpsIn.y, 'wire-path');
-                            });
+                        if (mgReadySources.length === 1) {
+                            const s = sources[0];
+                            drawOrthogonalStep(wiresGroup, s.x, s.y, pOpsIn.x, pOpsIn.y, 'wire-path');
                             drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
                         } else {
-                            const r = 10;
-                            const ys = sources.map(s => s.y);
-                            const minY = Math.min(...ys);
-                            const maxY = Math.max(...ys);
+                            const maxSourceX = Math.max(...sources.map(s => s.x));
+                            const minSourceY = Math.min(...sources.map(s => s.y));
+                            const maxSourceY = Math.max(...sources.map(s => s.y));
 
-                            sources.forEach(s => {
-                                const sx = s.point.x;
-                                const sy = s.point.y;
-                                let d = '';
-                                if (sy === minY && sy < pOpsIn.y) {
-                                    d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy + r}`;
-                                } else if (sy === maxY && sy > pOpsIn.y) {
-                                    d = `M ${sx} ${sy} L ${mergeX - r} ${sy} Q ${mergeX} ${sy}, ${mergeX} ${sy - r}`;
-                                } else {
-                                    d = `M ${sx} ${sy} L ${mergeX} ${sy}`;
-                                }
-                                drawSvgPath(wiresGroup, d, 'wire-path');
-                            });
+                            // If operations table is placed comfortably to the right of sources
+                            if (pOpsIn.x >= maxSourceX + 40) {
+                                const busX = Math.round(maxSourceX + 30);
 
-                            const trunkTop = minY < pOpsIn.y ? minY + r : pOpsIn.y;
-                            const trunkBot = maxY > pOpsIn.y ? maxY - r : pOpsIn.y;
-                            if (trunkBot > trunkTop) {
-                                drawSvgPath(wiresGroup, `M ${mergeX} ${trunkTop} L ${mergeX} ${trunkBot}`, 'wire-path');
+                                // 1. Short horizontal line from each article port to the vertical bus
+                                sources.forEach(s => {
+                                    drawSvgPath(wiresGroup, `M ${s.x} ${s.y} L ${busX} ${s.y}`, 'wire-path');
+                                });
+
+                                // 2. Solid vertical bus spanning from topmost to bottommost point (including target Y)
+                                const topY = Math.min(minSourceY, pOpsIn.y);
+                                const botY = Math.max(maxSourceY, pOpsIn.y);
+                                drawSvgPath(wiresGroup, `M ${busX} ${topY} L ${busX} ${botY}`, 'wire-path');
+
+                                // 3. Single clean horizontal stem from bus to operations table target port
+                                drawSvgPath(wiresGroup, `M ${busX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
+                                drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
+                            } else {
+                                // If operations table is moved behind or directly over the sources
+                                sources.forEach(s => {
+                                    drawOrthogonalStep(wiresGroup, s.x, s.y, pOpsIn.x, pOpsIn.y, 'wire-path');
+                                });
+                                drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
                             }
-
-                            drawSvgPath(wiresGroup, `M ${mergeX} ${pOpsIn.y} L ${pOpsIn.x} ${pOpsIn.y}`, 'wire-path');
-                            drawCrowsFoot(wiresGroup, pOpsIn.x, pOpsIn.y, 'wire-path');
                         }
                     }
 
