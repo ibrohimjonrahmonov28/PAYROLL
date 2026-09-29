@@ -711,7 +711,8 @@
     <!-- MODAL: REVOKE / CANCEL SCANNED TICKET (BILETNI BEKOR QILISH VA QAYTARISH) -->
     <div id="revoke-ticket-modal"
         class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+        <div
+            class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-rotate-left text-rose-400"></i>
@@ -729,7 +730,9 @@
                 <div class="flex gap-2">
                     <input type="text" id="revoke-ticket-input"
                         placeholder="Skanerlang yoki yozing (#LTFVLFJP, TK-..., #12)..."
-                        onkeydown="if(event.key==='Enter') executeRevokeTicketLookup()"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        spellcheck="false"
                         class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-rose-500">
                     <button onclick="executeRevokeTicketLookup()"
                         class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition">
@@ -926,14 +929,40 @@
             updateAutoEnterUI();
         }
 
+        function isAnyModalOpen() {
+            const modalIds = [
+                'worker-search-modal',
+                'patok-select-modal',
+                'box-lookup-modal',
+                'worker-balance-modal',
+                'revoke-ticket-modal'
+            ];
+            for (const id of modalIds) {
+                const el = document.getElementById(id);
+                if (el && !el.classList.contains('hidden')) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function keepScannerFocused() {
+            // Agar biron-bir modal ochiq bo'lsa, asosiy scanInput ga fokusni majburlab olib ketma!
+            if (isAnyModalOpen()) {
+                const revokeModal = document.getElementById('revoke-ticket-modal');
+                if (revokeModal && !revokeModal.classList.contains('hidden')) {
+                    const revokeInput = document.getElementById('revoke-ticket-input');
+                    if (revokeInput && document.activeElement !== revokeInput) {
+                        if (!document.activeElement || document.activeElement.tagName !== 'BUTTON') {
+                            revokeInput.focus();
+                        }
+                    }
+                }
+                return;
+            }
+
             const activeEl = document.activeElement;
-            const isModalInput = activeEl && (
-                activeEl.id === 'modal-worker-search-input' ||
-                activeEl.id === 'box-lookup-input' ||
-                activeEl.id === 'worker-balance-input'
-            );
-            if (!isModalInput && activeEl !== scanInput) {
+            if (activeEl !== scanInput) {
                 scanInput.focus();
             }
         }
@@ -1072,6 +1101,11 @@
             if (e.key === 'F2') {
                 e.preventDefault();
                 finalizeBatch();
+                return;
+            }
+
+            // AGAR BIRON-BIR MODAL OCHIQ BO'LSA, KLAVIATURA/SKANER BELGILARINI ORQADAGI SCANINPUT GA YO'NALTIRMA!
+            if (isAnyModalOpen()) {
                 return;
             }
 
@@ -1837,6 +1871,7 @@
         // 13. MODAL: REVOKE TICKET (BILETNI BEKOR QILISH VA QAYTARISH)
         // -------------------------------------------------------------
         let currentRevokeTicketId = null;
+        let revokeDebounceTimer = null;
 
         function openRevokeTicketModal(initialCode = '') {
             const modal = document.getElementById('revoke-ticket-modal');
@@ -1850,13 +1885,23 @@
                 input.value = '';
                 results.innerHTML = '<p class="text-slate-500 text-xs italic text-center py-6">Bilet shtrix-kodini skanerlang yoki kodini yozib Qidirishni bosing.</p>';
             }
-            input.focus();
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 50);
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 200);
         }
 
         function closeRevokeTicketModal() {
             document.getElementById('revoke-ticket-modal').classList.add('hidden');
             currentRevokeTicketId = null;
-            scanInput.focus();
+            clearTimeout(revokeDebounceTimer);
+            setTimeout(() => {
+                scanInput.focus();
+            }, 100);
         }
 
         function executeRevokeTicketLookup() {
@@ -2008,6 +2053,59 @@
                 });
         }
 
+        function initRevokeModalListeners() {
+            const revokeInputEl = document.getElementById('revoke-ticket-input');
+            const revokeModalEl = document.getElementById('revoke-ticket-modal');
+
+            if (revokeInputEl) {
+                revokeInputEl.addEventListener('keydown', (e) => {
+                    if (isEnterKey(e)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearTimeout(revokeDebounceTimer);
+                        executeRevokeTicketLookup();
+                    }
+                });
+
+                revokeInputEl.addEventListener('input', (e) => {
+                    if (
+                        e.inputType === 'insertLineBreak' ||
+                        (e.data && (e.data === '\n' || e.data === '\r')) ||
+                        revokeInputEl.value.includes('\n') ||
+                        revokeInputEl.value.includes('\r')
+                    ) {
+                        clearTimeout(revokeDebounceTimer);
+                        revokeInputEl.value = revokeInputEl.value.replace(/[\r\n\t]+/g, '').trim();
+                        executeRevokeTicketLookup();
+                        return;
+                    }
+
+                    clearTimeout(revokeDebounceTimer);
+                    const val = revokeInputEl.value.trim();
+                    if (val.length >= 3) {
+                        revokeDebounceTimer = setTimeout(() => {
+                            const curVal = revokeInputEl.value.trim();
+                            if (curVal.length >= 3) {
+                                executeRevokeTicketLookup();
+                            }
+                        }, 220);
+                    }
+                });
+            }
+
+            if (revokeModalEl) {
+                revokeModalEl.addEventListener('click', (e) => {
+                    const target = e.target;
+                    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+                        return;
+                    }
+                    if (revokeInputEl) {
+                        revokeInputEl.focus();
+                    }
+                });
+            }
+        }
+
         // -------------------------------------------------------------
         // 14. FULLSCREEN
         // -------------------------------------------------------------
@@ -2033,6 +2131,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initScreenSelection();
             updateAutoEnterUI();
+            initRevokeModalListeners();
             keepScannerFocused();
         });
     </script>
