@@ -236,7 +236,6 @@
                 <div>
                     <h4 id="status-banner-title" class="font-black text-base"></h4>
                     <p id="status-banner-desc" class="text-xs mt-0.5 whitespace-pre-line"></p>
-                    <div id="status-banner-action" class="mt-2.5 hidden"></div>
                 </div>
             </div>
             <button onclick="hideStatusBanner()" class="text-slate-400 hover:text-white p-1">
@@ -352,22 +351,17 @@
 
                 <div id="recent-scans-list" class="space-y-2 max-h-56 overflow-y-auto text-xs pr-1">
                     {% for sc in recent_scans %}
-                    <div id="recent-scan-{{ sc.id }}"
-                        class="p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between group hover:border-slate-700 transition">
+                    <div
+                        class="p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between">
                         <div class="min-w-0 pr-2">
                             <b class="text-slate-200 block truncate">{{ sc.article_operation.operation.name }}</b>
-                            <span class="text-[11px] text-slate-400">{{ sc.worker.full_name|default:"Xodim" }} • {{ sc.quantity }} dona</span>
+                            <span class="text-[11px] text-slate-400">{{ sc.worker.full_name|default:"Xodim" }} • {{
+                                sc.quantity }} dona</span>
                         </div>
-                        <div class="text-right flex-shrink-0 flex items-center gap-2">
-                            <div>
-                                <span class="text-emerald-400 font-mono font-bold block">+{{ sc.total_amount|floatformat:0 }}</span>
-                                <span class="text-[10px] text-slate-500">{{ sc.scanned_at|date:"H:i" }}</span>
-                            </div>
-                            <button type="button" onclick="confirmAndRevokeTicket({{ sc.id }}, '{{ sc.worker.full_name|escapejs }}', '{{ sc.article_operation.operation.name|escapejs }}')"
-                                class="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 flex items-center justify-center text-xs transition"
-                                title="Ushbu biletni bekor qilish (Qaytarish)">
-                                <i class="fa-solid fa-rotate-left"></i>
-                            </button>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-emerald-400 font-mono font-bold block">+{{ sc.total_amount|floatformat:0
+                                }}</span>
+                            <span class="text-[10px] text-slate-500">{{ sc.scanned_at|date:"H:i" }}</span>
                         </div>
                     </div>
                     {% empty %}
@@ -1246,18 +1240,7 @@
                         showStatusBanner('error', "BEKOR QILINGAN (ESKIRGAN) BILET!", data.message);
                     } else if (data.status === 'ALREADY_SCANNED') {
                         playErrorBuzz();
-                        let actionBtn = '';
-                        if (data.ticket_id && !data.is_frozen) {
-                            const escapedWorker = (data.worker_name || 'Xodim').replace(/'/g, "\\'");
-                            actionBtn = `
-                                <button type="button" onclick="confirmAndRevokeTicket(${data.ticket_id}, '${escapedWorker}')"
-                                    class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg flex items-center gap-2 transition hover:scale-105">
-                                    <i class="fa-solid fa-rotate-left"></i>
-                                    <span>${data.worker_name || 'Xodim'}dan bekor qilish va PENDING qilish</span>
-                                </button>
-                            `;
-                        }
-                        showStatusBanner('error', "DIQQAT: BILET ALLAQACHON QABUL QILINGAN!", data.message, actionBtn);
+                        showStatusBanner('error', "DIQQAT: BILET ALLAQACHON QABUL QILINGAN!", data.message);
                     } else if (data.status === 'DUPLICATE_IN_SESSION') {
                         playErrorBuzz();
                         showStatusBanner('error', "DUBLIKAT BILET", data.message);
@@ -1584,27 +1567,16 @@
         // -------------------------------------------------------------
         // 9. STATUS BANNER
         // -------------------------------------------------------------
-        function showStatusBanner(type, title, desc, actionHtml = '') {
+        function showStatusBanner(type, title, desc) {
             const container = document.getElementById('status-banner-container');
             const banner = document.getElementById('status-banner');
             const icon = document.getElementById('status-banner-icon');
             const titleEl = document.getElementById('status-banner-title');
             const descEl = document.getElementById('status-banner-desc');
-            const actionEl = document.getElementById('status-banner-action');
 
             container.classList.remove('hidden');
             titleEl.innerText = title;
             descEl.innerText = desc;
-
-            if (actionEl) {
-                if (actionHtml) {
-                    actionEl.innerHTML = actionHtml;
-                    actionEl.classList.remove('hidden');
-                } else {
-                    actionEl.innerHTML = '';
-                    actionEl.classList.add('hidden');
-                }
-            }
 
             if (type === 'success') {
                 banner.className = "p-4 rounded-2xl border text-sm font-bold flex items-center justify-between shadow-2xl bg-emerald-950/80 border-emerald-500/50 text-emerald-200";
@@ -1992,16 +1964,10 @@
                 });
         }
 
-        function confirmAndRevokeTicket(ticketId, workerName, opName = '') {
-            const desc = opName ? `'${opName}' biletini` : 'Ushbu biletni';
-            const wName = workerName || 'xodim';
-            if (!confirm(`Haqiqatan ham ${desc} ${wName} nomidan bekor qilib, qayta urish uchun 'Kutilmoqda' (PENDING) holatiga qaytarmoqchimisiz?`)) {
+        function executeRevokeTicket(ticketId) {
+            if (!confirm("Haqiqatan ham ushbu biletni xodim nomidan bekor qilib, 'Kutilmoqda' (PENDING) holatiga qaytarmoqchimisiz?")) {
                 return;
             }
-            executeRevokeTicket(ticketId);
-        }
-
-        function executeRevokeTicket(ticketId) {
             const formData = new FormData();
             formData.append('ticket_id', ticketId);
 
