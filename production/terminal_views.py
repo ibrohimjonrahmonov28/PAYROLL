@@ -328,8 +328,11 @@ def find_ticket_fast(raw_code: str) -> int | None:
         if ticket_id:
             return ticket_id
 
-    # 3. Raqamli Ticket ID bo'yicha (1042, #1042, ST-1042) - Primary Key Scan: ~0.05ms
-    if clean_no_prefix.isdigit():
+    # 3. Raqamli Ticket ID bo'yicha (FAQAT explicit # yoki ST- prefiksi bilan: masalan #1042, ST-1042)
+    # E'tibor bering: oddiy quruq raqam (masalan 12, 102) quti yoki son bo'lishi mumkinligi uchun
+    # Ticket ID sifatida qabul qilinmaydi!
+    has_explicit_id_prefix = bool(re.match(r'^(?:#|ST-|TK-ID:|st-|tk-id:)\s*\d+$', clean_code, flags=re.IGNORECASE))
+    if has_explicit_id_prefix and clean_no_prefix.isdigit():
         ticket_id = Ticket.objects.filter(id=int(clean_no_prefix)).values_list('id', flat=True).first()
         if ticket_id:
             return ticket_id
@@ -346,18 +349,20 @@ def find_ticket_fast(raw_code: str) -> int | None:
         if ticket_id:
             return ticket_id
 
-    # 5. Umumiyroq suffiks: masalan "Q0S13EZI-3B6412"
-    suffix_match = re.search(r'([A-Z0-9]{6,12}-[A-Z0-9]{4,10})$', clean_upper)
+    # 5. Aniq suffiks bo'yicha (masalan mangled skaner: "TK- -1-A9-1-3B6412" -> "1-A9-1-3B6412")
+    # Oxiri 6 xonali tasodifiy xesh bilan tugagan va kamida 10 belgidan iborat bo'lgan aniq suffiks
+    suffix_match = re.search(r'([A-Z0-9]+(?:-[A-Z0-9]+)*-[A-Z0-9]{6})$', clean_upper)
     if suffix_match:
         suffix = suffix_match.group(1)
-        ticket_id = Ticket.objects.filter(ticket_code__endswith=suffix).values_list('id', flat=True).first()
-        if ticket_id:
-            return ticket_id
+        if len(suffix) >= 10:
+            possible_ids = list(Ticket.objects.filter(ticket_code__endswith=suffix).values_list('id', flat=True)[:3])
+            if len(possible_ids) == 1:
+                return possible_ids[0]
 
-    # 6. Oxirgi 6 xonali bilet xeshi bo'yicha (masalan: "-3B6412" yoki "3B6412")
-    # FAQAT qisqa kod kiritilganda yoki to'liq TK- prefiksi bo'lmaganda (soxta dublikat xatolarini oldini olish uchun)
+    # 6. Oxirgi 6 xonali bilet xeshi bo'yicha (masalan: "-3B6412" yoki "+3B6412")
+    # FAQAT aniq "-" yoki "+" bilan boshlangan 6 xonali xesh bo'lsa
     if not clean_upper.startswith('TK-'):
-        hash_match = re.search(r'(?:^|-)([A-Z0-9]{6})$', clean_upper)
+        hash_match = re.search(r'(?:^[-+])([A-Z0-9]{6})$', clean_upper)
         if hash_match:
             t_hash = hash_match.group(1)
             possible_ids = list(Ticket.objects.filter(ticket_code__endswith=f"-{t_hash}").values_list('id', flat=True)[:5])
@@ -391,19 +396,18 @@ def find_ticket_fast(raw_code: str) -> int | None:
             if ticket_id:
                 return ticket_id
 
-    # 8. 100% kafolatlangan universal qidiruv (agar skaner yoki matn noaniq formatda kelgan bo'lsa)
+    # 8. Aniq moslik qidiruvi (FAQAT iexact - HECH QACHON icontains EMAS!)
     fallback_id = Ticket.objects.filter(
         models.Q(ticket_code__iexact=clean_code) |
-        models.Q(stiker_code__iexact=clean_code) |
-        models.Q(ticket_code__icontains=clean_code)
+        models.Q(stiker_code__iexact=clean_code)
     ).values_list('id', flat=True).first()
     if fallback_id:
         return fallback_id
 
-    if clean_no_prefix:
+    if clean_no_prefix and len(clean_no_prefix) >= 6:
         fallback_id = Ticket.objects.filter(
             models.Q(stiker_code__iexact=clean_no_prefix) |
-            models.Q(ticket_code__icontains=clean_no_prefix)
+            models.Q(ticket_code__iexact=clean_no_prefix)
         ).values_list('id', flat=True).first()
         if fallback_id:
             return fallback_id
@@ -495,6 +499,10 @@ def terminal_scan_ticket_api(request):
         master_name = ticket.scanned_by.get_full_name() or ticket.scanned_by.username if ticket.scanned_by else "Master"
         return JsonResponse({
             'status': 'ALREADY_SCANNED',
+            'ticket_id': ticket.id,
+            'ticket_code': ticket.ticket_code,
+            'worker_name': who,
+            'is_frozen': ticket.is_frozen,
             'message': f"⚠️ DIQQAT: Ushbu bilet allaqachon qabul qilingan!\n\n"
                        f"Operatsiya: {ticket.article_operation.operation.name}\n"
                        f"Xodim: {who}\n"
@@ -825,4 +833,180 @@ def terminal_reset_session_api(request):
     request.session.pop('terminal_pending_tickets', None)
     request.session.modified = True
     return JsonResponse({'status': 'OK', 'message': "Sessiya tozalandi"})
+
+
+@csrf_exempt
+@require_POST
+def terminal_revoke_ticket_api(request):
+    """
+    Adashib yoki xatolik sabab boshqa xodim nomiga urilgan biletni bekor qilish
+    va qaytadan 'Kutilmoqda' (PENDING) holatiga qaytarish.
+    Foydalanuvchi: Master, Superadmin, Admin, Manager.
+    """
+    raw_code = _get_request_param(request, 'ticket_id', 'id', 'ticket_code', 'code', 'scan_value')
+    if not raw_code:
+        return JsonResponse({'status': 'ERROR', 'message': "Bilet kodi yoki ID ko'rsatilmadi!"}, status=400)
+
+    raw_str = str(raw_code).strip()
+    ticket_id = None
+
+    if raw_str.isdigit():
+        ticket_id = int(raw_str)
+    else:
+        ticket_id = find_ticket_fast(raw_str)
+        if not ticket_id:
+            clean = extract_ticket_code(raw_str)
+            ticket_id = Ticket.objects.filter(
+                models.Q(ticket_code__iexact=clean) |
+                models.Q(stiker_code__iexact=clean)
+            ).values_list('id', flat=True).first()
+
+    if not ticket_id:
+        return JsonResponse({
+            'status': 'NOT_FOUND',
+            'message': f"❌ Bilet bazada topilmadi: '{raw_str}'"
+        }, status=404)
+
+    ticket = Ticket.objects.select_related(
+        'worker', 'scanned_by', 'article_operation__operation', 'box__order', 'box__article'
+    ).filter(id=ticket_id).first()
+
+    if not ticket:
+        return JsonResponse({'status': 'NOT_FOUND', 'message': "Bilet topilmadi!"}, status=404)
+
+    # 1. Bilet muzlatilganligini tekshirish (WorkerPayout)
+    if ticket.is_frozen:
+        return JsonResponse({
+            'status': 'IS_FROZEN',
+            'message': f"⚠️ DIQQAT: Ushbu bilet oylik to'lovi (WorkerPayout) bilan MUZLATILGAN (qulflangan)!\n\n"
+                       f"Uni bekor qilish uchun avval Buxgalteriya / Super Admin bo'limidan bog'langan oylik to'lovini bekor qilish zarur."
+        }, status=400)
+
+    # 2. Agar bilet allaqachon PENDING bo'lsa
+    if ticket.status == Ticket.Status.PENDING:
+        return JsonResponse({
+            'status': 'ALREADY_PENDING',
+            'message': f"ℹ️ Ushbu bilet ({ticket.ticket_code}) allaqachon 'Kutilmoqda' (PENDING) holatida!\n"
+                       f"U hech qaysi tikuvchi nomiga biriktirilmagan.",
+            'ticket': {
+                'id': ticket.id,
+                'ticket_code': ticket.ticket_code,
+                'status': ticket.status,
+            }
+        })
+
+    # 3. Oldingi ma'lumotlarni saqlash
+    prev_worker_name = ticket.worker.full_name if ticket.worker else "Noma'lum xodim"
+    prev_worker_id = ticket.worker.worker_id if ticket.worker else "—"
+    prev_screen = ticket.screen_number
+    op_name = ticket.article_operation.operation.name if ticket.article_operation else "Operatsiya"
+    box_num = ticket.box.box_number if ticket.box else "—"
+    order_num = ticket.box.order.order_number if ticket.box and ticket.box.order else "—"
+
+    with transaction.atomic():
+        ticket.status = Ticket.Status.PENDING
+        ticket.worker = None
+        ticket.scanned_at = None
+        ticket.scanned_by = None
+        ticket.screen_number = None
+        ticket.save(update_fields=['status', 'worker', 'scanned_at', 'scanned_by', 'screen_number'])
+
+        if ticket.box:
+            ticket.box.update_status_from_tickets()
+
+    # Keshni tozalash
+    if prev_screen:
+        cache.delete(f'screen_data_{prev_screen}')
+    cache.delete('today_worker_screens')
+    cache.delete('terminal_today_stats')
+
+    import logging
+    logger = logging.getLogger(__name__)
+    user_str = request.user.username if request.user.is_authenticated else "Anonymous/Terminal"
+    logger.warning(
+        f"[TICKET_REVOKED] Ticket #{ticket.id} ({ticket.ticket_code}) revoked from {prev_worker_name} ({prev_worker_id}) by {user_str}."
+    )
+
+    return JsonResponse({
+        'status': 'OK',
+        'message': f"✅ Bilet muvaffaqiyatli bekor qilindi!\n\n"
+                   f"Operatsiya: {op_name}\n"
+                   f"Buyurtma / Quti: {order_num} / Quti #{box_num}\n"
+                   f"Oldingi tikuvchi: {prev_worker_name} ({prev_worker_id})\n\n"
+                   f"👉 Bilet qaytadan 'Kutilmoqda' (PENDING) holatiga o'tkazildi. Endi uni to'g'ri xodim nomiga qayta skanerlashingiz mumkin.",
+        'ticket': {
+            'id': ticket.id,
+            'ticket_code': ticket.ticket_code,
+            'stiker_code': ticket.stiker_code or "",
+            'status': ticket.status,
+            'prev_worker_name': prev_worker_name,
+            'prev_worker_id': prev_worker_id,
+        }
+    })
+
+
+@require_GET
+def terminal_ticket_info_api(request):
+    """
+    Bilet ma'lumotlarini tezkor ko'rish (Bekor qilishdan oldin tekshirish uchun).
+    """
+    raw_code = request.GET.get('code') or request.GET.get('ticket_code') or request.GET.get('ticket_id') or ''
+    raw_str = raw_code.strip()
+    if not raw_str:
+        return JsonResponse({'status': 'ERROR', 'message': "Kod kiritilmadi!"}, status=400)
+
+    if raw_str.isdigit():
+        ticket_id = int(raw_str)
+    else:
+        ticket_id = find_ticket_fast(raw_str)
+        if not ticket_id:
+            clean = extract_ticket_code(raw_str)
+            ticket_id = Ticket.objects.filter(
+                models.Q(ticket_code__iexact=clean) |
+                models.Q(stiker_code__iexact=clean)
+            ).values_list('id', flat=True).first()
+
+    if not ticket_id:
+        return JsonResponse({'status': 'NOT_FOUND', 'message': f"❌ Bilet topilmadi: '{raw_str}'"}, status=404)
+
+    ticket = Ticket.objects.select_related(
+        'worker__user', 'scanned_by', 'article_operation__operation', 'article_operation__article',
+        'box__order', 'box__article'
+    ).filter(id=ticket_id).first()
+
+    if not ticket:
+        return JsonResponse({'status': 'NOT_FOUND', 'message': "Bilet topilmadi!"}, status=404)
+
+    current_tz = timezone.get_current_timezone()
+    scanned_at_str = ticket.scanned_at.astimezone(current_tz).strftime("%d.%m.%Y %H:%M:%S") if ticket.scanned_at else "—"
+    master_name = (ticket.scanned_by.get_full_name() or ticket.scanned_by.username) if ticket.scanned_by else "—"
+
+    return JsonResponse({
+        'status': 'OK',
+        'ticket': {
+            'id': ticket.id,
+            'ticket_code': ticket.ticket_code,
+            'stiker_code': ticket.stiker_code or "—",
+            'status': ticket.status,
+            'is_scanned': ticket.status == Ticket.Status.SCANNED,
+            'is_frozen': ticket.is_frozen,
+            'operation_name': ticket.article_operation.operation.name if ticket.article_operation else "—",
+            'model_name': ticket.box.article.name if (ticket.box and ticket.box.article) else (ticket.box.order.article.name if (ticket.box and ticket.box.order and ticket.box.order.article) else "—"),
+            'order_number': ticket.box.order.order_number if (ticket.box and ticket.box.order) else "—",
+            'box_number': ticket.box.box_number if ticket.box else "—",
+            'box_code': ticket.box.box_code if ticket.box else "—",
+            'razmer': ticket.box.razmer if ticket.box else "—",
+            'quantity': ticket.quantity,
+            'price_per_unit': float(ticket.price_per_unit),
+            'total_amount': float(ticket.total_amount),
+            'total_amount_formatted': f"{int(ticket.total_amount):,} UZS".replace(",", " "),
+            'worker_name': ticket.worker.full_name if ticket.worker else "—",
+            'worker_id': ticket.worker.worker_id if ticket.worker else "—",
+            'worker_uid': ticket.worker.user.uid if (ticket.worker and ticket.worker.user and ticket.worker.user.uid) else "—",
+            'scanned_at': scanned_at_str,
+            'scanned_by': master_name,
+            'screen_number': ticket.screen_number or "—",
+        }
+    })
+
 

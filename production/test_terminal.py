@@ -306,5 +306,92 @@ class MasterWebTerminalTest(TestCase):
         self.assertEqual(res_t2.json()['status'], 'OK')
         self.assertEqual(res_t2.json()['scanned_ticket']['id'], self.ticket1.id)
 
+    def test_revoke_scanned_ticket_and_revert_to_pending(self):
+        """
+        Adashib urilgan biletni xodim nomidan bekor qilish va PENDING ga qaytarish testi.
+        """
+        self.client.force_login(self.master)
+        self.client.post(reverse('production:terminal_identify_worker'), {'code': self.worker.worker_id})
+        self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': self.ticket1.ticket_code})
+        res_fin = self.client.post(reverse('production:terminal_finalize'), {'screen_number': 1})
+        self.assertEqual(res_fin.status_code, 200)
+
+        self.ticket1.refresh_from_db()
+        self.assertEqual(self.ticket1.status, Ticket.Status.SCANNED)
+        self.assertEqual(self.ticket1.worker, self.worker)
+
+        # 1. Bilet ma'lumotlarini info API orqali olish
+        res_info = self.client.get(reverse('production:terminal_ticket_info'), {'code': self.ticket1.ticket_code})
+        self.assertEqual(res_info.status_code, 200)
+        info_data = res_info.json()
+        self.assertEqual(info_data['status'], 'OK')
+        self.assertEqual(info_data['ticket']['worker_name'], self.worker.full_name)
+        self.assertTrue(info_data['ticket']['is_scanned'])
+
+        # 2. Biletni bekor qilish (Revoke)
+        res_rev = self.client.post(reverse('production:terminal_revoke_ticket'), {'ticket_id': self.ticket1.id})
+        self.assertEqual(res_rev.status_code, 200)
+        rev_data = res_rev.json()
+        self.assertEqual(rev_data['status'], 'OK')
+        self.assertIn("muvaffaqiyatli bekor qilindi", rev_data['message'])
+
+        # 3. Bazada tekshirish: PENDING bo'lgan, worker None bo'lgan
+        self.ticket1.refresh_from_db()
+        self.assertEqual(self.ticket1.status, Ticket.Status.PENDING)
+        self.assertIsNone(self.ticket1.worker)
+        self.assertIsNone(self.ticket1.scanned_at)
+        self.assertIsNone(self.ticket1.scanned_by)
+
+        # 4. Agar allaqachon PENDING bo'lgan biletni qayta bekor qilishga urinsa
+        res_rev_again = self.client.post(reverse('production:terminal_revoke_ticket'), {'ticket_id': self.ticket1.id})
+        self.assertEqual(res_rev_again.status_code, 200)
+        self.assertEqual(res_rev_again.json()['status'], 'ALREADY_PENDING')
+
+        # 5. Endi bu biletni boshqa xodim nomiga muammosiz urish mumkin
+        worker2_user = User.objects.create_user(username="worker2", first_name="Gulbahor", role=User.Role.USER)
+        worker2 = Worker.objects.create(worker_id="W-099", first_name="Gulbahor", user=worker2_user, is_active=True)
+
+        new_client = Client()
+        new_client.force_login(self.master)
+        new_client.post(reverse('production:terminal_identify_worker'), {'code': worker2.worker_id})
+        res_rescan = new_client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': self.ticket1.ticket_code})
+        self.assertEqual(res_rescan.status_code, 200)
+        self.assertEqual(res_rescan.json()['status'], 'OK')
+
+    def test_cannot_revoke_frozen_ticket(self):
+        """
+        Oylik to'lovi (WorkerPayout) bilan muzlatilgan bilet bekor qilinmasligi kerak.
+        """
+        self.ticket1.status = Ticket.Status.SCANNED
+        self.ticket1.worker = self.worker
+        self.ticket1.is_frozen = True
+        self.ticket1.save()
+
+        res = self.client.post(reverse('production:terminal_revoke_ticket'), {'ticket_id': self.ticket1.id})
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.json()['status'], 'IS_FROZEN')
+
+        self.ticket1.refresh_from_db()
+        self.assertEqual(self.ticket1.status, Ticket.Status.SCANNED)
+        self.assertEqual(self.ticket1.worker, self.worker)
+
+    def test_security_bare_digits_and_substring_do_not_match_ticket(self):
+        """
+        Xavfsizlik testi: quruq raqam (1, 12, 100) yoki uzuq-yuluq matn (ORD, MOD)
+        tasodifiy biletga bog'lanib ketmasligi kerak.
+        """
+        self.client.force_login(self.master)
+        self.client.post(reverse('production:terminal_identify_worker'), {'code': self.worker.worker_id})
+
+        # 1. Quruq raqam # belgisisiz
+        res_digit = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': str(self.ticket1.id)})
+        # Bilet deb olinmasligi kerak (yo quti kodi, yo NOT_FOUND bo'lishi kerak)
+        self.assertNotEqual(res_digit.json().get('status'), 'OK')
+
+        # 2. Tasodifiy qisqa substring (masalan "ORD")
+        res_sub = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': 'ORD'})
+        self.assertNotEqual(res_sub.json().get('status'), 'OK')
+
+
 
 

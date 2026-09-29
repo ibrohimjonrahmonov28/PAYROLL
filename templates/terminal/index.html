@@ -164,6 +164,13 @@
                 <span>Xodim Balansi</span>
             </button>
 
+            <button onclick="openRevokeTicketModal()"
+                class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/40 rounded-xl text-xs font-bold text-rose-300 transition flex items-center gap-1.5"
+                title="Adashib urilgan biletni xodim nomidan bekor qilish va qaytarish">
+                <i class="fa-solid fa-rotate-left text-rose-400"></i>
+                <span>Biletni Bekor Qilish</span>
+            </button>
+
             <!-- Fullscreen button -->
             <button onclick="toggleFullscreen()"
                 class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 transition"
@@ -229,6 +236,7 @@
                 <div>
                     <h4 id="status-banner-title" class="font-black text-base"></h4>
                     <p id="status-banner-desc" class="text-xs mt-0.5 whitespace-pre-line"></p>
+                    <div id="status-banner-action" class="mt-2.5 hidden"></div>
                 </div>
             </div>
             <button onclick="hideStatusBanner()" class="text-slate-400 hover:text-white p-1">
@@ -344,17 +352,22 @@
 
                 <div id="recent-scans-list" class="space-y-2 max-h-56 overflow-y-auto text-xs pr-1">
                     {% for sc in recent_scans %}
-                    <div
-                        class="p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between">
+                    <div id="recent-scan-{{ sc.id }}"
+                        class="p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between group hover:border-slate-700 transition">
                         <div class="min-w-0 pr-2">
                             <b class="text-slate-200 block truncate">{{ sc.article_operation.operation.name }}</b>
-                            <span class="text-[11px] text-slate-400">{{ sc.worker.full_name|default:"Xodim" }} • {{
-                                sc.quantity }} dona</span>
+                            <span class="text-[11px] text-slate-400">{{ sc.worker.full_name|default:"Xodim" }} • {{ sc.quantity }} dona</span>
                         </div>
-                        <div class="text-right flex-shrink-0">
-                            <span class="text-emerald-400 font-mono font-bold block">+{{ sc.total_amount|floatformat:0
-                                }}</span>
-                            <span class="text-[10px] text-slate-500">{{ sc.scanned_at|date:"H:i" }}</span>
+                        <div class="text-right flex-shrink-0 flex items-center gap-2">
+                            <div>
+                                <span class="text-emerald-400 font-mono font-bold block">+{{ sc.total_amount|floatformat:0 }}</span>
+                                <span class="text-[10px] text-slate-500">{{ sc.scanned_at|date:"H:i" }}</span>
+                            </div>
+                            <button type="button" onclick="confirmAndRevokeTicket({{ sc.id }}, '{{ sc.worker.full_name|escapejs }}', '{{ sc.article_operation.operation.name|escapejs }}')"
+                                class="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 flex items-center justify-center text-xs transition"
+                                title="Ushbu biletni bekor qilish (Qaytarish)">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
                         </div>
                     </div>
                     {% empty %}
@@ -701,6 +714,45 @@
         </div>
     </div>
 
+    <!-- MODAL: REVOKE / CANCEL SCANNED TICKET (BILETNI BEKOR QILISH VA QAYTARISH) -->
+    <div id="revoke-ticket-modal"
+        class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-left text-rose-400"></i>
+                    <span>Biletni Bekor Qilish (Qaytarish)</span>
+                </h3>
+                <button onclick="closeRevokeTicketModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-2">
+                <p class="text-xs text-slate-400">
+                    Adashib urilgan biletning shtrix-kodini skanerlang yoki kodini yozing:
+                </p>
+                <div class="flex gap-2">
+                    <input type="text" id="revoke-ticket-input"
+                        placeholder="Skanerlang yoki yozing (#LTFVLFJP, TK-..., #12)..."
+                        onkeydown="if(event.key==='Enter') executeRevokeTicketLookup()"
+                        class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-rose-500">
+                    <button onclick="executeRevokeTicketLookup()"
+                        class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Qidirish</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="revoke-ticket-results" class="flex-1 overflow-y-auto space-y-3 pt-1 pr-1">
+                <p class="text-slate-500 text-xs italic text-center py-6">
+                    Bilet shtrix-kodini skanerlang yoki qidiruv tugmasini bosing.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- AUDIO SYNTHESIZER (WEB AUDIO API) & APPLICATION JAVASCRIPT -->
     <script>
         // -------------------------------------------------------------
@@ -1018,6 +1070,7 @@
                 closeWorkerSearchModal();
                 closeBoxLookupModal();
                 closeWorkerBalanceModal();
+                closeRevokeTicketModal();
                 hideStatusBanner();
                 resetScanningSession();
                 return;
@@ -1032,7 +1085,8 @@
             const isModalInput = activeEl && (
                 activeEl.id === 'modal-worker-search-input' ||
                 activeEl.id === 'box-lookup-input' ||
-                activeEl.id === 'worker-balance-input'
+                activeEl.id === 'worker-balance-input' ||
+                activeEl.id === 'revoke-ticket-input'
             );
 
             if (!isModalInput) {
@@ -1192,7 +1246,18 @@
                         showStatusBanner('error', "BEKOR QILINGAN (ESKIRGAN) BILET!", data.message);
                     } else if (data.status === 'ALREADY_SCANNED') {
                         playErrorBuzz();
-                        showStatusBanner('error', "DIQQAT: BILET ALLAQACHON QABUL QILINGAN!", data.message);
+                        let actionBtn = '';
+                        if (data.ticket_id && !data.is_frozen) {
+                            const escapedWorker = (data.worker_name || 'Xodim').replace(/'/g, "\\'");
+                            actionBtn = `
+                                <button type="button" onclick="confirmAndRevokeTicket(${data.ticket_id}, '${escapedWorker}')"
+                                    class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg flex items-center gap-2 transition hover:scale-105">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>${data.worker_name || 'Xodim'}dan bekor qilish va PENDING qilish</span>
+                                </button>
+                            `;
+                        }
+                        showStatusBanner('error', "DIQQAT: BILET ALLAQACHON QABUL QILINGAN!", data.message, actionBtn);
                     } else if (data.status === 'DUPLICATE_IN_SESSION') {
                         playErrorBuzz();
                         showStatusBanner('error', "DUBLIKAT BILET", data.message);
@@ -1519,16 +1584,27 @@
         // -------------------------------------------------------------
         // 9. STATUS BANNER
         // -------------------------------------------------------------
-        function showStatusBanner(type, title, desc) {
+        function showStatusBanner(type, title, desc, actionHtml = '') {
             const container = document.getElementById('status-banner-container');
             const banner = document.getElementById('status-banner');
             const icon = document.getElementById('status-banner-icon');
             const titleEl = document.getElementById('status-banner-title');
             const descEl = document.getElementById('status-banner-desc');
+            const actionEl = document.getElementById('status-banner-action');
 
             container.classList.remove('hidden');
             titleEl.innerText = title;
             descEl.innerText = desc;
+
+            if (actionEl) {
+                if (actionHtml) {
+                    actionEl.innerHTML = actionHtml;
+                    actionEl.classList.remove('hidden');
+                } else {
+                    actionEl.innerHTML = '';
+                    actionEl.classList.add('hidden');
+                }
+            }
 
             if (type === 'success') {
                 banner.className = "p-4 rounded-2xl border text-sm font-bold flex items-center justify-between shadow-2xl bg-emerald-950/80 border-emerald-500/50 text-emerald-200";
@@ -1786,7 +1862,188 @@
         }
 
         // -------------------------------------------------------------
-        // 13. FULLSCREEN
+        // 13. MODAL: REVOKE TICKET (BILETNI BEKOR QILISH VA QAYTARISH)
+        // -------------------------------------------------------------
+        let currentRevokeTicketId = null;
+
+        function openRevokeTicketModal(initialCode = '') {
+            const modal = document.getElementById('revoke-ticket-modal');
+            const input = document.getElementById('revoke-ticket-input');
+            const results = document.getElementById('revoke-ticket-results');
+            modal.classList.remove('hidden');
+            if (initialCode) {
+                input.value = initialCode;
+                executeRevokeTicketLookup();
+            } else {
+                input.value = '';
+                results.innerHTML = '<p class="text-slate-500 text-xs italic text-center py-6">Bilet shtrix-kodini skanerlang yoki kodini yozib Qidirishni bosing.</p>';
+            }
+            input.focus();
+        }
+
+        function closeRevokeTicketModal() {
+            document.getElementById('revoke-ticket-modal').classList.add('hidden');
+            currentRevokeTicketId = null;
+            scanInput.focus();
+        }
+
+        function executeRevokeTicketLookup() {
+            const input = document.getElementById('revoke-ticket-input');
+            const code = input.value.trim();
+            if (!code) return;
+
+            const results = document.getElementById('revoke-ticket-results');
+            results.innerHTML = '<p class="text-slate-400 text-xs text-center py-6"><i class="fa-solid fa-spinner fa-spin text-rose-400"></i> Bilet qidirilmoqda...</p>';
+
+            fetch(`{% url 'production:terminal_ticket_info' %}?code=${encodeURIComponent(code)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        const t = data.ticket;
+                        currentRevokeTicketId = t.id;
+
+                        let statusBadge = '';
+                        if (t.status === 'SCANNED') {
+                            statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Urulgan (SCANNED)</span>';
+                        } else if (t.status === 'PENDING') {
+                            statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Kutilmoqda (PENDING)</span>';
+                        } else {
+                            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-400">${t.status}</span>`;
+                        }
+
+                        let actionSection = '';
+                        if (t.is_frozen) {
+                            actionSection = `
+                                <div class="p-3 bg-amber-950/60 border border-amber-500/50 rounded-2xl text-xs text-amber-200 flex items-center gap-2">
+                                    <i class="fa-solid fa-lock text-amber-400 text-base"></i>
+                                    <span>Ushbu bilet oylik to'lovi (WorkerPayout) bilan <b>muzlatilgan</b>. Uni bekor qilib bo'lmaydi!</span>
+                                </div>
+                            `;
+                        } else if (t.status === 'SCANNED') {
+                            actionSection = `
+                                <button type="button" onclick="executeRevokeTicket(${t.id})"
+                                    class="w-full py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black rounded-2xl text-xs sm:text-sm shadow-xl shadow-rose-950/50 transition flex items-center justify-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-rotate-left text-base"></i>
+                                    <span>USHBU BILETNI XODIMDAN BEKOR QILISH (PENDING GA QAYTARISH)</span>
+                                </button>
+                            `;
+                        } else if (t.status === 'PENDING') {
+                            actionSection = `
+                                <div class="p-3 bg-emerald-950/60 border border-emerald-500/50 rounded-2xl text-xs text-emerald-200 flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+                                    <span>Bu bilet hozirda <b>Kutilmoqda (PENDING)</b> holatida. Uni to'g'ri xodim nomiga bemalol skanerlashingiz mumkin.</span>
+                                </div>
+                            `;
+                        }
+
+                        results.innerHTML = `
+                            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-inner">
+                                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                                    <div>
+                                        <h4 class="text-sm font-bold text-white">${t.operation_name}</h4>
+                                        <p class="text-[11px] text-slate-400 font-mono mt-0.5">Bilet: ${t.ticket_code}</p>
+                                    </div>
+                                    ${statusBadge}
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Model / Zakaz</span>
+                                        <span class="font-bold text-slate-200 truncate block">${t.model_name || '—'}</span>
+                                        <span class="text-[11px] text-cyan-400 font-mono">${t.order_number} • Quti #${t.box_number}</span>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Soni va Ish Haqi</span>
+                                        <span class="font-bold text-amber-400 digital-font text-sm block">${t.quantity} dona</span>
+                                        <span class="text-[11px] text-emerald-400 font-mono">+${t.total_amount_formatted}</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-400">Biriktirilgan Tikuvchi:</span>
+                                        <b class="text-amber-300 font-bold">${t.worker_name} (${t.worker_id})</b>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-400">Qabul Qilgan Master:</span>
+                                        <span class="text-slate-200">${t.scanned_by}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-400">Skanerlangan Vaqti:</span>
+                                        <span class="text-slate-300 font-mono text-[11px]">${t.scanned_at}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-400">Patok (Ekran):</span>
+                                        <span class="text-cyan-300 font-bold">${t.screen_number}-patok</span>
+                                    </div>
+                                </div>
+
+                                <div class="pt-1">
+                                    ${actionSection}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        results.innerHTML = `<p class="text-rose-400 text-xs text-center py-6">${data.message || 'Bilet topilmadi'}</p>`;
+                    }
+                })
+                .catch(err => {
+                    results.innerHTML = `<p class="text-rose-400 text-xs text-center py-6">Xatolik: ${err.message || 'Aloqa uzildi'}</p>`;
+                });
+        }
+
+        function confirmAndRevokeTicket(ticketId, workerName, opName = '') {
+            const desc = opName ? `'${opName}' biletini` : 'Ushbu biletni';
+            const wName = workerName || 'xodim';
+            if (!confirm(`Haqiqatan ham ${desc} ${wName} nomidan bekor qilib, qayta urish uchun 'Kutilmoqda' (PENDING) holatiga qaytarmoqchimisiz?`)) {
+                return;
+            }
+            executeRevokeTicket(ticketId);
+        }
+
+        function executeRevokeTicket(ticketId) {
+            const formData = new FormData();
+            formData.append('ticket_id', ticketId);
+
+            fetch("{% url 'production:terminal_revoke_ticket' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        playSuccessBeep();
+                        showStatusBanner('success', "BILET BEKOR QILINDI!", data.message);
+
+                        closeRevokeTicketModal();
+
+                        const row = document.getElementById(`recent-scan-${ticketId}`);
+                        if (row) {
+                            row.style.opacity = '0.4';
+                            row.innerHTML = `<div class="p-2 text-rose-400 text-xs italic w-full text-center"><i class="fa-solid fa-rotate-left mr-1"></i> Bilet bekor qilindi (PENDING)</div>`;
+                            setTimeout(() => row.remove(), 2500);
+                        }
+
+                        if (currentWorker) {
+                            identifyWorker(currentWorker.worker_id);
+                        }
+                    } else {
+                        playErrorBuzz();
+                        showStatusBanner('error', "BEKOR QILIB BO'LMADI", data.message || "Xatolik yuz berdi.");
+                    }
+                })
+                .catch(err => {
+                    playErrorBuzz();
+                    showStatusBanner('error', "ALOQA XATOLIGI", "Xatolik: " + (err.message || "Serverga ulanib bo'lmadi."));
+                })
+                .finally(() => {
+                    scanInput.focus();
+                });
+        }
+
+        // -------------------------------------------------------------
+        // 14. FULLSCREEN
         // -------------------------------------------------------------
         function toggleFullscreen() {
             const doc = document;

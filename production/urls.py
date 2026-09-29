@@ -28,6 +28,8 @@ urlpatterns = [
     path('terminal/api/box-lookup/', terminal_views.terminal_box_lookup_api, name='terminal_box_lookup'),
     path('terminal/api/worker-balance/', terminal_views.terminal_worker_balance_api, name='terminal_worker_balance'),
     path('terminal/api/reset-session/', terminal_views.terminal_reset_session_api, name='terminal_reset_session'),
+    path('terminal/api/revoke-ticket/', terminal_views.terminal_revoke_ticket_api, name='terminal_revoke_ticket'),
+    path('terminal/api/ticket-info/', terminal_views.terminal_ticket_info_api, name='terminal_ticket_info'),
 
     # Sifat Nazorati (OTK / Control)
     path('control/', control_views.control_home_view, name='control_home'),
