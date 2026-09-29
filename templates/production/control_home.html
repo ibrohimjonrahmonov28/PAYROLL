@@ -297,7 +297,8 @@
                         <!-- O'RTA BLOK: Qutidagi son / Ta'mirdan qaytayotgan son -->
                         <div id="box-qty-container"
                             class="bg-slate-950 border-2 border-indigo-500/70 rounded-3xl p-5 sm:p-6 text-center shadow-2xl w-56 sm:w-72">
-                            <span id="lbl-box-qty-title" class="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block">
+                            <span id="lbl-box-qty-title"
+                                class="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block">
                                 Qutidagi son
                             </span>
                             <div class="my-2">
@@ -307,7 +308,8 @@
                             <span class="text-xs text-slate-500 font-bold uppercase tracking-wider block">
                                 dona
                             </span>
-                            <span id="lbl-box-qty-hint" class="hidden text-[10px] text-amber-300 font-mono mt-1 font-bold block"></span>
+                            <span id="lbl-box-qty-hint"
+                                class="hidden text-[10px] text-amber-300 font-mono mt-1 font-bold block"></span>
                         </div>
 
                         <!-- UCHBURCHAK TUGMA: - 1 (PASTGA QARAGAN) -->
@@ -363,7 +365,8 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span id="step2-badge-step" class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
+                            <span id="step2-badge-step"
+                                class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
                                 SARALASH</span>
                             <span class="text-slate-600 font-bold">•</span>
                             <span id="step2-header-box-title"
@@ -383,7 +386,8 @@
 
                 <div class="flex items-center gap-3">
                     <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl text-right">
-                        <span id="step2-qty-title" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan
+                        <span id="step2-qty-title"
+                            class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan
                             son</span>
                         <div class="flex items-baseline justify-end gap-1">
                             <strong id="step2-header-total-qty"
@@ -417,7 +421,8 @@
                             class="text-6xl sm:text-7xl font-black text-emerald-400 digital-font drop-shadow-md">
                             50
                         </div>
-                        <span id="step2-first-sort-sub" class="text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-1 block">
+                        <span id="step2-first-sort-sub"
+                            class="text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-1 block">
                             dona tayyor mahsulot
                         </span>
                     </div>
@@ -572,15 +577,15 @@
     <!-- MODAL: 2-SORT SABABLARI VA OPERATSIYALARI OYNASI                  -->
     <!-- ================================================================= -->
     <div id="defect-reasons-modal"
-        class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+        class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
         <div
-            class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-amber-950/50 overflow-hidden">
+            class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl w-full max-w-[98vw] 2xl:max-w-[1600px] h-[95vh] max-h-[95vh] flex flex-col shadow-2xl shadow-amber-950/50 overflow-hidden">
 
             <!-- Modal Header -->
-            <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
+            <div class="px-5 py-3 sm:py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <div
-                        class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg">
+                        class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg shadow-inner">
                         <i class="fa-solid fa-clipboard-question"></i>
                     </div>
                     <div>
@@ -605,61 +610,61 @@
                 </div>
             </div>
 
-            <!-- Modal Body (2 Ustun: Chapda Operatsiyalar, O'ngda Shablondagi Sabablar) -->
-            <div class="p-4 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Modal Body (2 Katta Ustun: Chapda Operatsiyalar, O'ngda Shablondagi Sabablar) -->
+            <div class="p-3 sm:p-4 overflow-hidden flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 min-h-0">
 
                 <!-- CHAP USTUN: QUTIDAGI OPERATSIYALAR RO'YXATI -->
-                <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 flex flex-col">
-                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                <div class="lg:col-span-6 bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3 sm:p-4 flex flex-col min-h-0">
+                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 flex-shrink-0">
                         <span
-                            class="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                            class="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-list-check"></i>
                             <span>1. Qutidagi Operatsiyalar</span>
                         </span>
-                        <span class="text-[10px] text-slate-400">(Ko'p tanlash mumkin)</span>
+                        <span class="text-[11px] text-slate-400 font-semibold">(Ko'p tanlash mumkin)</span>
                     </div>
 
-                    <p class="text-[11px] text-slate-400 mb-2">
+                    <p class="text-xs text-slate-400 mb-2 flex-shrink-0">
                         Nuqson qaysi tikuvchining ishida bo'lsa, ustiga bosing:
                     </p>
 
                     <!-- Maxsus tugma: Tikishga aloqasi yo'q -->
                     <button type="button" id="btn-modal-no-op" onclick="toggleModalNoOperation()"
-                        class="mb-2.5 p-2.5 rounded-xl border border-dashed border-slate-700 hover:border-amber-500/50 bg-slate-900/60 text-slate-300 text-xs font-bold flex items-center gap-2 transition text-left">
+                        class="mb-2.5 p-2.5 sm:p-3 rounded-xl border border-dashed border-slate-700 hover:border-amber-500/50 bg-slate-900/60 text-slate-300 text-xs sm:text-sm font-bold flex items-center gap-2.5 transition text-left flex-shrink-0">
                         <div id="box-no-op-check"
                             class="w-5 h-5 rounded-lg border border-slate-600 flex items-center justify-center text-xs text-transparent">
                             <i class="fa-solid fa-check"></i>
                         </div>
                         <div>
-                            <span class="text-amber-300 block">Tikishga / operatsiyaga aloqasi yo'q</span>
-                            <span class="text-[10px] text-slate-500 font-normal">Mato nuqsoni, dog', xomashyo yoki
+                            <span class="text-amber-300 block font-bold">Tikishga / operatsiyaga aloqasi yo'q</span>
+                            <span class="text-[11px] text-slate-500 font-normal">Mato nuqsoni, dog', xomashyo yoki
                                 bichuv xatosi</span>
                         </div>
                     </button>
 
-                    <!-- Operatsiyalar ro'yxati -->
-                    <div id="modal-operations-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1 flex-1">
+                    <!-- Operatsiyalar ro'yxati (2 ustunli sub-grid, hamma operatsiya bir vaqtda sig'adi!) -->
+                    <div id="modal-operations-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto pr-1 flex-1 min-h-0 content-start">
                         <!-- JS orqali to'ldiriladi -->
                     </div>
                 </div>
 
                 <!-- O'NG USTUN: SHABLONDAGI SABABLAR (DefectReason) -->
-                <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 flex flex-col">
-                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                <div class="lg:col-span-6 bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3 sm:p-4 flex flex-col min-h-0">
+                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 flex-shrink-0">
                         <span
-                            class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                            class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-tags"></i>
                             <span>2. Shablondagi Sabablar</span>
                         </span>
-                        <span class="text-[10px] text-slate-400">(Shablondan tanlang)</span>
+                        <span class="text-[11px] text-slate-400 font-semibold">(Shablondan tanlang)</span>
                     </div>
 
-                    <p class="text-[11px] text-slate-400 mb-2">
+                    <p class="text-xs text-slate-400 mb-2 flex-shrink-0">
                         Brak turini shablondan tanlang (mato, dog', bichuv, chok):
                     </p>
 
-                    <!-- Sabablar ro'yxati -->
-                    <div id="modal-reasons-list" class="space-y-1.5 max-h-[360px] overflow-y-auto pr-1 flex-1">
+                    <!-- Sabablar ro'yxati (2 ustunli sub-grid, barcha shablonlar bir vaqtda sig'adi!) -->
+                    <div id="modal-reasons-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto pr-1 flex-1 min-h-0 content-start">
                         <!-- JS orqali to'ldiriladi -->
                     </div>
                 </div>
@@ -667,9 +672,9 @@
             </div>
 
             <!-- Modal Footer: Xulosa va Saqlash tugmalari -->
-            <div class="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-col gap-2.5">
+            <div class="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-col gap-2.5 flex-shrink-0">
                 <!-- Real-time xulosa -->
-                <div class="flex items-center justify-between text-xs flex-wrap gap-2">
+                <div class="flex items-center justify-between text-xs sm:text-sm flex-wrap gap-2">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-400 font-bold">Tanlandi:</span>
                         <span id="modal-summary-text" class="text-white font-semibold">
@@ -682,19 +687,19 @@
                 <div class="flex items-center gap-2">
                     <input type="text" id="modal-defect-notes"
                         placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: old cho'ntak yonida dog')..."
-                        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+                        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
                 </div>
 
                 <!-- Tugmalar -->
                 <div class="flex items-center justify-between gap-3 pt-1">
                     <button type="button" onclick="cancelDefectModal()"
-                        class="touch-btn px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition">
+                        class="touch-btn px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition">
                         Bekor qilish
                     </button>
 
                     <button type="button" onclick="saveDefectModal()"
-                        class="touch-btn px-6 sm:px-8 py-2.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-600 hover:to-emerald-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-check"></i>
+                        class="touch-btn px-8 sm:px-12 py-3 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-600 hover:to-emerald-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-check text-base"></i>
                         <span>Saqlash va Tasdiqlash</span>
                     </button>
                 </div>
@@ -707,15 +712,15 @@
     <!-- MODAL: TA'MIR OPERATSIYASINI TANLASH (TIKUVCHI AYBI BILAN)        -->
     <!-- ================================================================= -->
     <div id="repair-operations-modal"
-        class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+        class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
         <div
-            class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl shadow-rose-950/50 overflow-hidden">
+            class="bg-slate-900 border-2 border-rose-500/60 rounded-3xl w-full max-w-[98vw] 2xl:max-w-[1600px] h-[95vh] max-h-[95vh] flex flex-col shadow-2xl shadow-rose-950/50 overflow-hidden">
 
             <!-- Modal Header -->
-            <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
+            <div class="px-5 py-3 sm:py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <div
-                        class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-lg">
+                        class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-lg shadow-inner">
                         <i class="fa-solid fa-wrench"></i>
                     </div>
                     <div>
@@ -741,32 +746,32 @@
             </div>
 
             <!-- Modal Body: FAQAT OPERATSIYALAR RO'YXATI -->
-            <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
+            <div class="p-3 sm:p-4 overflow-hidden flex-1 flex flex-col gap-3 min-h-0">
                 <div
-                    class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 leading-relaxed font-semibold">
-                    <i class="fa-solid fa-circle-exclamation mr-1 text-rose-400"></i>
+                    class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs sm:text-sm text-rose-300 leading-relaxed font-semibold flex-shrink-0">
+                    <i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i>
                     Tikuvchi keyinchalik rad eta olmasligi uchun nuqson qaysi tikuvchining operatsiyasida ekanligini
                     belgilang:
                 </div>
 
-                <div class="flex items-center justify-between pb-1 border-b border-slate-800">
-                    <span class="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                <div class="flex items-center justify-between pb-1 border-b border-slate-800 flex-shrink-0">
+                    <span class="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-list-check"></i>
                         <span>Qutidagi Operatsiyalar (Tikuvchisi bilan)</span>
                     </span>
-                    <span class="text-[10px] text-slate-400">(Kerakli operatsiyani bosing)</span>
+                    <span class="text-[11px] text-slate-400 font-semibold">(Kerakli operatsiyani bosing)</span>
                 </div>
 
-                <!-- Operatsiyalar ro'yxati -->
-                <div id="modal-repair-operations-list" class="space-y-2 max-h-[340px] overflow-y-auto pr-1 flex-1">
+                <!-- Operatsiyalar ro'yxati (3 ustunli grid, hamma operatsiya bir vaqtda sig'adi!) -->
+                <div id="modal-repair-operations-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 overflow-y-auto pr-1 flex-1 min-h-0 content-start">
                     <!-- JS orqali to'ldiriladi -->
                 </div>
             </div>
 
             <!-- Modal Footer: Xulosa va Saqlash tugmalari -->
-            <div class="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-col gap-2.5">
+            <div class="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-col gap-2.5 flex-shrink-0">
                 <!-- Real-time xulosa -->
-                <div class="flex items-center justify-between text-xs flex-wrap gap-2">
+                <div class="flex items-center justify-between text-xs sm:text-sm flex-wrap gap-2">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-400 font-bold">Tanlangan operatsiya:</span>
                         <span id="modal-repair-summary-text" class="text-white font-semibold">
@@ -779,19 +784,19 @@
                 <div class="flex items-center gap-2">
                     <input type="text" id="modal-repair-notes"
                         placeholder="Qo'shimcha izoh (ixtiyoriy, masalan: chok ochilgan, ip uzilgan)..."
-                        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400">
+                        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-400">
                 </div>
 
                 <!-- Tugmalar -->
                 <div class="flex items-center justify-between gap-3 pt-1">
                     <button type="button" onclick="cancelRepairModal()"
-                        class="touch-btn px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition">
+                        class="touch-btn px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition">
                         Bekor qilish
                     </button>
 
                     <button type="button" onclick="saveRepairModal()"
-                        class="touch-btn px-6 sm:px-8 py-2.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center gap-2 transition">
-                        <i class="fa-solid fa-wrench"></i>
+                        class="touch-btn px-8 sm:px-12 py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center gap-2 transition">
+                        <i class="fa-solid fa-wrench text-base"></i>
                         <span>Ta'mirni Biriktirish</span>
                     </button>
                 </div>
@@ -1467,14 +1472,14 @@
                     }">
                         <i class="fa-solid fa-check"></i>
                     </div>
-                    <div class="flex-1 truncate">
-                        <div class="text-xs font-black ${isSelected ? 'text-white' : 'text-slate-200'}">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-black truncate ${isSelected ? 'text-white' : 'text-slate-200'}">
                             ${t.sequence}. ${t.operation_name}
                         </div>
-                        <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                            <i class="fa-solid fa-user-tag text-indigo-400"></i>
-                            <span>${workerName}</span>
-                            ${workerUid ? `<span class="font-mono text-slate-500">(${workerUid})</span>` : ''}
+                        <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+                            <i class="fa-solid fa-user-tag text-indigo-400 shrink-0"></i>
+                            <span class="truncate">${workerName}</span>
+                            ${workerUid ? `<span class="font-mono text-slate-500 shrink-0">(${workerUid})</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -1513,11 +1518,11 @@
                     }">
                         <i class="fa-solid fa-check"></i>
                     </div>
-                    <div class="flex-1 flex items-center justify-between gap-2 flex-wrap">
-                        <span class="text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-200'}">
+                    <div class="flex-1 min-w-0 flex items-center justify-between gap-1.5">
+                        <span class="text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-slate-200'}">
                             ${r.name}
                         </span>
-                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${catBadgeClass}">
+                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase shrink-0 ${catBadgeClass}">
                             ${r.category_display || r.category}
                         </span>
                     </div>
@@ -1749,8 +1754,8 @@
 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `p-3 rounded-xl border transition cursor-pointer flex items-center gap-3 select-none ${isSelected
-                        ? 'bg-rose-600/25 border-2 border-rose-500 text-white shadow-md'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-rose-500/40 text-slate-300'
+                    ? 'bg-rose-600/25 border-2 border-rose-500 text-white shadow-md'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-rose-500/40 text-slate-300'
                     }`;
                 itemDiv.onclick = () => toggleModalRepairOperation(t.id);
 
@@ -1759,14 +1764,14 @@
                     }">
                         <i class="fa-solid fa-check"></i>
                     </div>
-                    <div class="flex-1 truncate">
-                        <div class="text-sm font-black ${isSelected ? 'text-white' : 'text-slate-200'}">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-black truncate ${isSelected ? 'text-white' : 'text-slate-200'}">
                             ${t.sequence}. ${t.operation_name}
                         </div>
-                        <div class="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                            <i class="fa-solid fa-user-tag text-rose-400"></i>
-                            <strong class="text-slate-200">${workerName}</strong>
-                            ${workerUid ? `<span class="font-mono text-slate-500">(${workerUid})</span>` : ''}
+                        <div class="text-xs text-slate-400 mt-1 flex items-center gap-2 truncate">
+                            <i class="fa-solid fa-user-tag text-rose-400 shrink-0"></i>
+                            <strong class="text-slate-200 truncate">${workerName}</strong>
+                            ${workerUid ? `<span class="font-mono text-slate-500 shrink-0">(${workerUid})</span>` : ''}
                         </div>
                     </div>
                 `;
