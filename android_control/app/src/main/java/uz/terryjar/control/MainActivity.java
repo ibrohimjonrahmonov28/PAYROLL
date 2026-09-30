@@ -198,10 +198,21 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         settings.setAllowContentAccess(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        settings.setSupportZoom(false);
-        settings.setBuiltInZoomControls(false);
+        settings.setTextZoom(100);
+        settings.setSupportZoom(true);
+        settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
+
+        // Planshet brauzeri (Chrome Tablet) kabi ko'rsatish
+        String defaultUa = settings.getUserAgentString();
+        if (defaultUa != null) {
+            String tabletUa = defaultUa.replace("; wv", "")
+                    .replace("Version/4.0 ", "")
+                    .replace("; Mobile", "")
+                    .replace("Mobile Safari", "Safari");
+            settings.setUserAgentString(tabletUa);
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
