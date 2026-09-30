@@ -163,13 +163,16 @@ def auto_generate_boxes_for_batch_item(
     batch_item,
     split_count: int = 1,
     box_capacity: int = None,
-    pastal_number: str = None
+    pastal_number: str = None,
+    box_count: int = None
 ) -> list[Box]:
     """
     Meto ishni tugatishi bilanoq avtomatik stikerlar va qutilarni generatsiya qilish:
     - Foydalanuvchi talabi:
       "U TUGATGANDA AVTOMATIK STIKERLAR GENERATISYA BOLADI VA STIKER CHIQARADIGAN ODAM OZI CHIQARADI VA TIKUVGA BERADI"
     """
+    if box_count is not None:
+        split_count = box_count
     order = batch_item.batch.order_item.order
     article = batch_item.batch.order_item.article
     size_name = batch_item.order_item_size.size_name
@@ -208,4 +211,9 @@ def auto_generate_boxes_for_batch_item(
     batch_item.status = batch_item.Status.METO_CONFIRMED
     batch_item.save(update_fields=['boxes_created_qty', 'status'])
     return boxes
+
+
+# Alias for backwards compatibility with tests
+auto_split_boxes_for_batch_item = auto_generate_boxes_for_batch_item
+
 

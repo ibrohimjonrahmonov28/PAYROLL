@@ -14,10 +14,10 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: #1e293b;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0f172a;
             color: #000;
-            line-height: 1.25;
+            line-height: 1.2;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -26,21 +26,21 @@
             position: sticky;
             top: 0;
             z-index: 50;
-            background-color: #0f172a;
+            background-color: #0b1120;
             border-bottom: 1px solid #334155;
-            padding: 12px 24px;
+            padding: 10px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
 
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 10px;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: 8px;
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
@@ -58,6 +58,15 @@
             background-color: #d97706;
         }
 
+        .btn-toggle {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        .btn-toggle:hover {
+            background-color: #2563eb;
+        }
+
         .btn-close {
             background-color: #334155;
             color: #f8fafc;
@@ -71,49 +80,63 @@
         .page-container {
             width: 210mm;
             min-height: 297mm;
-            padding: 12mm 15mm;
-            margin: 20px auto;
+            max-height: 297mm;
+            padding: 7mm 9mm;
+            margin: 15px auto;
             background: #ffffff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            overflow: hidden;
         }
 
         /* Header Card */
         .header-card {
-            border: 2px solid #000;
-            padding: 10px 14px;
+            border: 1.5px solid #000;
+            padding: 6px 10px;
             display: flex;
-            gap: 16px;
+            gap: 12px;
             align-items: stretch;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
+            background: #ffffff;
         }
 
         .photo-box {
-            width: 105px;
-            min-width: 105px;
-            height: 115px;
+            width: 90px;
+            min-width: 90px;
+            height: 95px;
             border: 1.5px solid #000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 4px;
+            padding: 3px;
             text-align: center;
             background: #ffffff;
         }
 
         .photo-box img {
             max-width: 100%;
-            max-height: 85px;
+            max-height: 72px;
             object-fit: contain;
         }
 
         .photo-box .placeholder-icon {
-            font-size: 42px;
-            color: #475569;
-            margin-bottom: 4px;
+            font-size: 38px;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+
+        .photo-box-title {
+            font-size: 9px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
         }
 
         .header-details {
@@ -124,40 +147,130 @@
         }
 
         .doc-title {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 1.5px solid #000;
-            padding-bottom: 4px;
-            margin-bottom: 6px;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .doc-title .date-badge {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: normal;
         }
 
         .meta-line {
-            font-size: 13px;
-            margin-bottom: 3px;
+            font-size: 11.5px;
+            line-height: 1.35;
         }
 
         .meta-line strong {
             font-weight: 800;
         }
 
-        /* Table */
-        .table-wrapper {
-            margin-bottom: 12px;
+        .pastal-badge {
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 900;
+            background: #fef3c7;
+            padding: 0 5px;
+            border: 1px solid #d97706;
+            border-radius: 3px;
         }
 
+        /* Size Summary Table */
+        .size-summary-card {
+            margin-bottom: 6px;
+        }
+
+        table.size-summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        table.size-summary-table th,
+        table.size-summary-table td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            vertical-align: middle;
+        }
+
+        table.size-summary-table th {
+            background-color: #f1f5f9;
+            font-weight: 900;
+            font-size: 11px;
+        }
+
+        table.size-summary-table .lbl {
+            background-color: #f8fafc;
+            font-weight: 800;
+            text-align: left;
+            width: 15%;
+            padding-left: 8px;
+        }
+
+        table.size-summary-table .qty-val {
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        table.size-summary-table .box-val {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        table.size-summary-table .total-col {
+            background-color: #e2e8f0;
+            font-weight: 900;
+            width: 18%;
+        }
+
+        /* Section Title Bar */
+        .section-title-bar {
+            border: 1.5px solid #000;
+            background-color: #e2e8f0;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .section-title-bar .badge {
+            font-size: 10.5px;
+            font-weight: 800;
+            font-family: monospace;
+            background: #ffffff;
+            border: 1px solid #000;
+            padding: 0 6px;
+            border-radius: 3px;
+        }
+
+        /* Boxes Tables */
         table.passport-table {
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid #000;
-            font-size: 12px;
+            border: 1.5px solid #000;
+            font-size: 10.5px;
         }
 
         table.passport-table th,
         table.passport-table td {
-            border: 1.5px solid #000;
-            padding: 6px 8px;
+            border: 1px solid #000;
+            padding: 2.5px 3px;
             vertical-align: middle;
         }
 
@@ -165,101 +278,130 @@
             background-color: #f1f5f9;
             font-weight: 900;
             text-align: center;
-            font-size: 12px;
+            font-size: 10px;
             text-transform: uppercase;
-            padding: 8px 6px;
+            padding: 4px 2px;
         }
 
-        .col-razmer {
-            width: 11%;
-            text-align: center;
-            font-size: 15px;
+        table.passport-table th.th-stage {
+            background-color: #e2e8f0;
             font-weight: 900;
+            font-size: 9.5px;
+            letter-spacing: 0.3px;
         }
 
-        .col-soni {
-            width: 12%;
-            text-align: center;
+        /* Multi-column layout */
+        .two-columns-container {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .col-table-wrapper {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Badges & Elements */
+        .box-code-badge {
+            font-family: monospace;
             font-weight: 800;
-            font-size: 13px;
+            font-size: 10.5px;
+            letter-spacing: 0.3px;
         }
 
-        .col-meto {
-            width: 15%;
-            text-align: center;
+        .box-num-badge {
+            font-size: 9px;
+            color: #475569;
             font-family: monospace;
-            font-weight: 700;
-            font-size: 12px;
-        }
-
-        .col-boxes {
-            width: 47%;
-            font-family: monospace;
-            font-size: 11.5px;
-            line-height: 1.35;
-        }
-
-        .col-check {
-            width: 5%;
-            text-align: center;
-            padding: 4px !important;
+            margin-left: 2px;
         }
 
         .checkbox-square {
-            width: 18px;
-            height: 18px;
-            border: 2px solid #000;
+            width: 13.5px;
+            height: 13.5px;
+            border: 1.5px solid #000;
             margin: 0 auto;
             background: #ffffff;
+            border-radius: 1.5px;
         }
 
-        /* Summary Bar */
-        .summary-bar {
-            border: 2px solid #000;
-            background-color: #f1f5f9;
-            padding: 8px 12px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 900;
-            margin-bottom: 16px;
-            letter-spacing: 0.5px;
+        /* Dynamic Compact Mode for 30+ boxes */
+        {% if total_boxes_count > 32 %}
+        table.passport-table th,
+        table.passport-table td {
+            padding: 1.8px 2px !important;
+            font-size: 9.5px !important;
         }
 
-        /* Signatures */
+        table.passport-table th {
+            padding: 2.5px 1px !important;
+            font-size: 9px !important;
+        }
+
+        .checkbox-square {
+            width: 11.5px !important;
+            height: 11.5px !important;
+        }
+
+        .box-code-badge {
+            font-size: 9.5px !important;
+        }
+        {% endif %}
+
+        /* Signatures Grid */
         .signatures-grid {
             border: 1.5px solid #000;
-            padding: 12px 16px;
+            padding: 6px 12px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px 28px;
-            font-size: 12px;
-            margin-bottom: 8px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 7px 18px;
+            font-size: 11px;
+            margin-top: 6px;
+            background: #ffffff;
         }
 
         .sig-item {
             display: flex;
             align-items: flex-end;
-            gap: 6px;
+            gap: 5px;
         }
 
         .sig-label {
             font-weight: 700;
             white-space: nowrap;
+            font-size: 10.5px;
         }
 
         .sig-line {
             flex: 1;
             border-bottom: 1.5px solid #000;
-            height: 14px;
+            height: 12px;
         }
 
         .footer-note {
-            font-size: 10px;
+            font-size: 9px;
             color: #64748b;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-top: 4px;
+            padding-top: 3px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .font-mono {
+            font-family: monospace;
+        }
+
+        .font-bold {
+            font-weight: 800;
         }
 
         /* Print Specifics */
@@ -269,33 +411,35 @@
                 color: #000 !important;
             }
 
-            .screen-toolbar {
+            .screen-toolbar, .no-print {
                 display: none !important;
             }
 
             .page-container {
                 width: 100% !important;
                 min-height: auto !important;
+                height: 100% !important;
+                max-height: 283mm !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 box-shadow: none !important;
+                overflow: hidden !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
             }
 
-            table.passport-table th {
-                background-color: #f1f5f9 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            .summary-bar {
-                background-color: #f1f5f9 !important;
+            table.size-summary-table th,
+            table.size-summary-table .total-col,
+            table.passport-table th,
+            .section-title-bar,
+            .pastal-badge {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
 
             @page {
                 size: A4 portrait;
-                margin: 10mm 12mm 10mm 12mm;
+                margin: 7mm 9mm 7mm 9mm;
             }
         }
     </style>
@@ -303,14 +447,20 @@
 
 <body>
 
-    <!-- Screen Controls (Chop etish tugmasi) -->
+    <!-- Screen Controls (Chop etish va Ustunlar boshqaruvi) -->
     <div class="screen-toolbar no-print">
-        <div style="color: white; font-size: 13px;">
-            <i class="fa-solid fa-file-lines text-amber-400 mr-2"></i>
-            <span>Pastal Pasporti (A4 Marshrut Varaqasi) — <strong>{{ batch.pastal_code|default:batch.name
-                    }}</strong></span>
+        <div style="color: white; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-file-lines text-amber-400"></i>
+            <span>Pastal Pasporti — <strong>{{ batch.pastal_code|default:batch.name }}</strong> ({{ order.order_number }})</span>
+            <span style="background: #1e293b; color: #94a3b8; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-family: monospace;">
+                {{ total_sizes_count }} razmer • {{ total_boxes_count }} quti • {{ total_qty }} dona
+            </span>
         </div>
         <div style="display: flex; gap: 10px;">
+            <button onclick="toggleColumnsLayout()" class="btn btn-toggle" id="btn-toggle-layout" title="1 yoki 2 ustunli ko'rinishga almashtirish">
+                <i class="fa-solid fa-table-columns"></i>
+                <span id="layout-toggle-text">{% if use_two_columns %}1 Ustunga O'tish{% else %}2 Ustunga O'tish{% endif %}</span>
+            </button>
             <button onclick="window.print()" class="btn btn-print">
                 <i class="fa-solid fa-print"></i> Chop Etish (A4)
             </button>
@@ -323,7 +473,7 @@
     <!-- A4 Document Body -->
     <div class="page-container">
         <div>
-            <!-- Header Section -->
+            <!-- 1. Header Card (Yuqori qism) -->
             <div class="header-card">
                 <div class="photo-box">
                     {% if article_image_url %}
@@ -331,37 +481,32 @@
                     {% else %}
                     <i class="fa-solid fa-shirt placeholder-icon"></i>
                     {% endif %}
-                    <div style="font-size: 10px; font-weight: 800; line-height: 1.1; margin-top: 4px;">
-                        {{ article.name|truncatechars:24 }}
+                    <div class="photo-box-title" title="{{ article.name }} ({{ article.code }})">
+                        {{ article.code }}
                     </div>
                 </div>
 
                 <div class="header-details">
-                    <div class="doc-title">PASTAL PASPORTI (A4 MARSHRUT VARAQASI)</div>
+                    <div class="doc-title">
+                        <span>PASTAL PASPORTI (A4 MARSHRUT VARAQASI)</span>
+                        <span class="date-badge">Sana: {{ batch.created_at|date:"d.m.Y" }}</span>
+                    </div>
 
                     <div class="meta-line">
                         <strong>Zakaz:</strong> {{ order.order_number }}
-                        <span style="color: #475569; margin-left: 6px;">(Mijoz: {{
-                            order.customer.name|default:order.client_name }})</span>
+                        <span style="color: #475569; margin-left: 6px;">(Mijoz: {{ order.customer.name|default:order.client_name }})</span>
+                        <span style="margin-left: 14px;"><strong>Kesim:</strong> #{{ batch.batch_number }}</span>
                     </div>
 
                     <div class="meta-line">
                         <strong>Pastal kodi:</strong>
-                        <span
-                            style="font-family: monospace; font-size: 14px; font-weight: 900; background: #fef3c7; padding: 1px 6px; border: 1px solid #f59e0b; border-radius: 4px;">
+                        <span class="pastal-badge">
                             PC: {{ batch.pastal_code|default:batch.name }}
                         </span>
                         {% if batch.partiya_number %}
                         <span style="margin-left: 8px;"><strong>Partiya:</strong> {{ batch.partiya_number }}</span>
                         {% endif %}
-                        <span style="margin-left: 8px; color: #475569;">(Kesim #{{ batch.batch_number }})</span>
-                    </div>
-
-                    <div class="meta-line">
-                        <strong>Artikul:</strong> <span style="font-family: monospace; font-weight: 800;">{{
-                            article.code }}</span>
-                        <span style="margin-left: 12px;"><strong>Model:</strong> {{ article.name }}{% if article.model
-                            %} ({{ article.model.name }}){% endif %}</span>
+                        <span style="margin-left: 14px;"><strong>Model:</strong> {{ article.name }}{% if article.model %} ({{ article.model.name }}){% endif %}</span>
                     </div>
 
                     <div class="meta-line">
@@ -377,92 +522,225 @@
                 </div>
             </div>
 
-            <!-- Table Section -->
-            <div class="table-wrapper">
-                <table class="passport-table">
+            <!-- 2. Razmerlar Xulosasi Jadvali (Size Summary Table) -->
+            <div class="size-summary-card">
+                <table class="size-summary-table">
                     <thead>
                         <tr>
-                            <th class="col-razmer">Razmer</th>
-                            <th class="col-soni">Soni</th>
-                            <th class="col-meto">Meto Oralig'i</th>
-                            <th class="col-boxes">Quti ID lari</th>
-                            <th class="col-check">
-                                <div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;">
-                                </div>
-                            </th>
-                            <th class="col-check">
-                                <div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;">
-                                </div>
-                            </th>
-                            <th class="col-check">
-                                <div class="checkbox-square" style="width: 14px; height: 14px; border-width: 1.5px;">
-                                </div>
-                            </th>
+                            <th class="lbl">Razmer</th>
+                            {% for s in size_summaries %}
+                            <th>{{ s.size_name }}</th>
+                            {% endfor %}
+                            <th class="total-col">JAMI</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for b_it in batch_items %}
                         <tr>
-                            <td class="col-razmer">{{ b_it.size_name }}</td>
-                            <td class="col-soni">{{ b_it.quantity }} dona</td>
-                            <td class="col-meto">{{ b_it.meto_range }}</td>
-                            <td class="col-boxes">{{ b_it.boxes_text }}</td>
-                            <td class="col-check">
-                                <div class="checkbox-square"></div>
+                            <td class="lbl">Soni (dona)</td>
+                            {% for s in size_summaries %}
+                            <td class="qty-val">{{ s.quantity }}</td>
+                            {% endfor %}
+                            <td class="total-col qty-val">{{ total_qty }} dona</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Qutilar</td>
+                            {% for s in size_summaries %}
+                            <td class="box-val">{{ s.boxes_count }} ta</td>
+                            {% endfor %}
+                            <td class="total-col box-val">{{ total_boxes_count }} ta quti</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 3. Marshrut Nazorati Sarlavhasi -->
+            <div class="section-title-bar">
+                <span>Qutilar Marshrut Varaqasi va Tekshiruv Bosqichlari (Meto • Sklad • Tekshirish • Patok)</span>
+                <span class="badge">{{ total_boxes_count }} TA QUTI</span>
+            </div>
+
+            <!-- 4. Qutilar Jadvali: IKKI USTUNLI KO'RINISH (Ko'p qutilar uchun optimal) -->
+            <div id="two-columns-section" class="{% if not use_two_columns %}hidden{% endif %}">
+                <div class="two-columns-container">
+                    <!-- Chap Ustun -->
+                    <div class="col-table-wrapper">
+                        <table class="passport-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 7%;">№</th>
+                                    <th style="width: 14%;">Razmer</th>
+                                    <th style="width: 33%;">Quti ID</th>
+                                    <th style="width: 14%;">Soni</th>
+                                    <th style="width: 8%;" class="th-stage" title="Meto bo'limi">METO</th>
+                                    <th style="width: 8%;" class="th-stage" title="Yarim tayyor sklad">SKLAD</th>
+                                    <th style="width: 8%;" class="th-stage" title="Sifat tekshiruvi (OTK)">TEKSH</th>
+                                    <th style="width: 8%;" class="th-stage" title="Tikuv patok masteri">PATOK</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bx in left_boxes %}
+                                <tr>
+                                    <td class="text-center font-mono font-bold">{{ bx.index }}</td>
+                                    <td class="text-center font-bold">{{ bx.size_name }}</td>
+                                    <td>
+                                        <span class="box-code-badge">{{ bx.box_code }}</span>
+                                        {% if bx.box_number and bx.box_number != '—' and bx.box_number|stringformat:"s" != bx.box_code %}
+                                        <span class="box-num-badge">#{{ bx.box_number }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center font-bold">{{ bx.quantity }} ta</td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- O'ng Ustun -->
+                    <div class="col-table-wrapper">
+                        <table class="passport-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 7%;">№</th>
+                                    <th style="width: 14%;">Razmer</th>
+                                    <th style="width: 33%;">Quti ID</th>
+                                    <th style="width: 14%;">Soni</th>
+                                    <th style="width: 8%;" class="th-stage" title="Meto bo'limi">METO</th>
+                                    <th style="width: 8%;" class="th-stage" title="Yarim tayyor sklad">SKLAD</th>
+                                    <th style="width: 8%;" class="th-stage" title="Sifat tekshiruvi (OTK)">TEKSH</th>
+                                    <th style="width: 8%;" class="th-stage" title="Tikuv patok masteri">PATOK</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bx in right_boxes %}
+                                <tr>
+                                    <td class="text-center font-mono font-bold">{{ bx.index }}</td>
+                                    <td class="text-center font-bold">{{ bx.size_name }}</td>
+                                    <td>
+                                        <span class="box-code-badge">{{ bx.box_code }}</span>
+                                        {% if bx.box_number and bx.box_number != '—' and bx.box_number|stringformat:"s" != bx.box_code %}
+                                        <span class="box-num-badge">#{{ bx.box_number }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center font-bold">{{ bx.quantity }} ta</td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                    <td class="text-center"><div class="checkbox-square"></div></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center" style="color: #64748b; padding: 10px;">—</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Qutilar Jadvali: BIR USTUNLI TO'LIQ KO'RINISH (Kam sonli qutilar uchun keng variant) -->
+            <div id="single-column-section" class="{% if use_two_columns %}hidden{% endif %}">
+                <table class="passport-table full-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">№</th>
+                            <th style="width: 11%;">Razmer</th>
+                            <th style="width: 25%;">Quti ID (Kod va Raqam)</th>
+                            <th style="width: 10%;">Soni</th>
+                            <th style="width: 17%;">Meto Oralig'i</th>
+                            <th style="width: 8%;" class="th-stage">1. METO</th>
+                            <th style="width: 8%;" class="th-stage">2. SKLAD</th>
+                            <th style="width: 8%;" class="th-stage">3. TEKSHIRISH</th>
+                            <th style="width: 8%;" class="th-stage">4. PATOK</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bx in all_boxes %}
+                        <tr>
+                            <td class="text-center font-mono font-bold">{{ bx.index }}</td>
+                            <td class="text-center font-bold" style="font-size: 12px;">{{ bx.size_name }}</td>
+                            <td>
+                                <span class="box-code-badge" style="font-size: 12px;">{{ bx.box_code }}</span>
+                                {% if bx.box_number and bx.box_number != '—' and bx.box_number|stringformat:"s" != bx.box_code %}
+                                <span class="box-num-badge" style="font-size: 10.5px;">(#{{ bx.box_number }})</span>
+                                {% endif %}
                             </td>
-                            <td class="col-check">
-                                <div class="checkbox-square"></div>
-                            </td>
-                            <td class="col-check">
-                                <div class="checkbox-square"></div>
-                            </td>
+                            <td class="text-center font-bold" style="font-size: 11.5px;">{{ bx.quantity }} dona</td>
+                            <td class="text-center font-mono" style="font-size: 11px;">{{ bx.meto_range }}</td>
+                            <td class="text-center"><div class="checkbox-square" style="width: 15px; height: 15px;"></div></td>
+                            <td class="text-center"><div class="checkbox-square" style="width: 15px; height: 15px;"></div></td>
+                            <td class="text-center"><div class="checkbox-square" style="width: 15px; height: 15px;"></div></td>
+                            <td class="text-center"><div class="checkbox-square" style="width: 15px; height: 15px;"></div></td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">
-                                Ushbu pastalda hali razmerlar va qutilar mavjud emas.
+                            <td colspan="9" style="text-align: center; padding: 15px; color: #64748b;">
+                                Ushbu pastalda hali qutilar mavjud emas.
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-
-            <!-- Total Summary Bar -->
-            <div class="summary-bar">
-                JAMI: {{ total_sizes_count }} ta razmer | {{ total_boxes_count }} ta quti | {{ total_qty }} dona
-            </div>
         </div>
 
-        <!-- Signatures & Footer Section -->
+        <!-- 6. Mas'ullar Imzosi & Pastki Qism (Signatures & Footer) -->
         <div>
             <div class="signatures-grid">
                 <div class="sig-item">
-                    <span class="sig-label">Bichuvchi (Kesimchi):</span>
+                    <span class="sig-label">1. Bichuvchi (Kesim):</span>
                     <span class="sig-line"></span>
                 </div>
                 <div class="sig-item">
-                    <span class="sig-label">Metochi:</span>
+                    <span class="sig-label">2. Meto Bo'limi:</span>
                     <span class="sig-line"></span>
                 </div>
                 <div class="sig-item">
-                    <span class="sig-label">Nazoratchi (OTK):</span>
+                    <span class="sig-label">3. Sklad (Ombor):</span>
                     <span class="sig-line"></span>
                 </div>
                 <div class="sig-item">
-                    <span class="sig-label">Tikuv Qabul Qildi:</span>
+                    <span class="sig-label">4. Tekshiruvchi (OTK):</span>
+                    <span class="sig-line"></span>
+                </div>
+                <div class="sig-item">
+                    <span class="sig-label">5. Patok Masteri:</span>
+                    <span class="sig-line"></span>
+                </div>
+                <div class="sig-item">
+                    <span class="sig-label">Qabul vaqti:</span>
                     <span class="sig-line"></span>
                 </div>
             </div>
 
             <div class="footer-note">
-                <span>TERRY JAR ERP • Ishlab chiqarish marshrut varaqasi</span>
-                <span>Chop etilgan vaqt: {% now "d.m.Y H:i" %}</span>
+                <span>TERRY JAR ERP • Pastal Pasporti va Marshrut Varaqasi</span>
+                <span>Chop etilgan sana va vaqt: {% now "d.m.Y H:i" %}</span>
             </div>
         </div>
     </div>
 
     <script>
+        function toggleColumnsLayout() {
+            const single = document.getElementById('single-column-section');
+            const twoCol = document.getElementById('two-columns-section');
+            const toggleText = document.getElementById('layout-toggle-text');
+
+            if (twoCol.classList.contains('hidden')) {
+                twoCol.classList.remove('hidden');
+                single.classList.add('hidden');
+                toggleText.innerText = "1 Ustunga O'tish";
+            } else {
+                twoCol.classList.add('hidden');
+                single.classList.remove('hidden');
+                toggleText.innerText = "2 Ustunga O'tish";
+            }
+        }
+
         // Agar URLda ?print=1 bo'lsa avtomatik print oynasini ochish
         if (window.location.search.includes('print=1')) {
             window.addEventListener('load', function () {

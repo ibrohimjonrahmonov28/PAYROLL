@@ -885,7 +885,8 @@ def pastal_passport_view(request, batch_id: int):
     order = batch.order_item.order
     article = batch.order_item.article
 
-    batch_items_data = []
+    size_summaries = []
+    all_boxes = []
     total_boxes_count = 0
     total_qty = 0
 
@@ -894,28 +895,57 @@ def pastal_passport_view(request, batch_id: int):
         total_boxes_count += len(boxes)
         qty = b_it.effective_quantity
         total_qty += qty
+        size_name = b_it.order_item_size.size_name
 
         # Meto oralig'i
         meto_range = "—"
         if b_it.meto_number_start and b_it.meto_number_end:
             meto_range = f"#{b_it.meto_number_start} — #{b_it.meto_number_end}"
         elif boxes and any(b.meto_range for b in boxes):
-            ranges = [b.meto_range for b in boxes if b.meto_range]
-            meto_range = ranges[0]
+            meto_range = next((b.meto_range for b in boxes if b.meto_range), "—")
 
-        # Qutilar ro'yxati (masalan: #161 (44), #162 (43), #163 (43))
-        boxes_display = [f"#{b.box_number} ({b.quantity})" for b in boxes]
-        boxes_text = ", ".join(boxes_display) if boxes_display else "—"
-
-        batch_items_data.append({
-            'size_name': b_it.order_item_size.size_name,
+        size_summaries.append({
+            'size_name': size_name,
             'quantity': qty,
+            'boxes_count': len(boxes),
             'meto_range': meto_range,
             'boxes': boxes,
-            'boxes_display': boxes_display,
-            'boxes_text': boxes_text,
-            'boxes_count': len(boxes),
         })
+
+        for b in boxes:
+            all_boxes.append({
+                'box_id': b.id,
+                'box_number': b.box_number,
+                'box_code': b.box_code or f"#{b.box_number}",
+                'size_name': size_name,
+                'quantity': b.quantity,
+                'meto_range': b.meto_range or meto_range,
+                'status': b.status,
+                'is_controlled': b.is_controlled,
+            })
+
+    # Agar qutilar hali bo'linmagan bo'lsa (faqat razmerlar kiritilgan bo'lsa)
+    if not all_boxes:
+        for idx, s in enumerate(size_summaries, start=1):
+            all_boxes.append({
+                'box_id': None,
+                'box_number': '—',
+                'box_code': "Quti bo'linmagan",
+                'size_name': s['size_name'],
+                'quantity': s['quantity'],
+                'meto_range': s['meto_range'],
+                'status': 'PENDING',
+                'is_controlled': False,
+                'is_placeholder': True,
+            })
+
+    for idx, bx in enumerate(all_boxes, start=1):
+        bx['index'] = idx
+
+    use_two_columns = len(all_boxes) > 14
+    half = (len(all_boxes) + 1) // 2
+    left_boxes = all_boxes[:half]
+    right_boxes = all_boxes[half:]
 
     # Model rasmi borligini tekshirish
     article_image_url = None
@@ -930,10 +960,15 @@ def pastal_passport_view(request, batch_id: int):
         'order': order,
         'article': article,
         'article_image_url': article_image_url,
-        'batch_items': batch_items_data,
-        'total_sizes_count': len(batch_items_data),
+        'size_summaries': size_summaries,
+        'all_boxes': all_boxes,
+        'use_two_columns': use_two_columns,
+        'left_boxes': left_boxes,
+        'right_boxes': right_boxes,
+        'total_sizes_count': len(size_summaries),
         'total_boxes_count': total_boxes_count,
         'total_qty': total_qty,
+        'batch_items': size_summaries,
     })
 
 
