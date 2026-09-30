@@ -15,9 +15,12 @@ class MasterTerminalAccessRestrictionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        path = request.path_info
+        if path.startswith('/apk') or path.startswith('/control/download-apk'):
+            return self.get_response(request)
+
         if request.user.is_authenticated and not request.user.is_superuser:
             if getattr(request.user, 'role', None) == User.Role.MASTER:
-                path = request.path_info
                 
                 # Master uchun ruxsat etilgan yo'llar
                 allowed_prefixes = (
