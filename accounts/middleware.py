@@ -87,6 +87,9 @@ class MasterTerminalAccessRestrictionMiddleware:
                 allowed_prefixes = (
                     '/control/',
                     '/control',
+                    '/production/control/',
+                    '/production/control',
+                    '/control/production/control/',
                     '/login/',
                     '/logout/',
                     '/accounts/login/',

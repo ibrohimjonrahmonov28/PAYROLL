@@ -307,25 +307,29 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         if (username.isEmpty() || password.isEmpty()) return;
 
-        if (url.contains("/login/") || url.contains("/accounts/login/")) {
+        if (url.contains("/login") || url.contains("/accounts/login")) {
             Log.i(TAG, "Login sahifasi aniqlandi. Avtomatik hisob ma'lumotlari kiritilmoqda...");
 
             final String js = "javascript:(function() {" +
                     "  try {" +
-                    "    var u = document.querySelector('input[name=\"username\"]') || document.querySelector('#id_username');" +
-                    "    var p = document.querySelector('input[name=\"password\"]') || document.querySelector('#id_password');" +
+                    "    var u = document.querySelector('input[name=\"username\"]') || document.querySelector('#id_username') || document.querySelector('#username');" +
+                    "    var p = document.querySelector('input[name=\"password\"]') || document.querySelector('#id_password') || document.querySelector('#password');" +
                     "    var f = document.querySelector('form');" +
                     "    if (u && p && f) {" +
                     "      u.value = " + escapeJs(username) + ";" +
                     "      p.value = " + escapeJs(password) + ";" +
                     "      u.dispatchEvent(new Event('input', { bubbles: true }));" +
                     "      p.dispatchEvent(new Event('input', { bubbles: true }));" +
-                    "      setTimeout(function() { f.submit(); }, 200);" +
+                    "      u.dispatchEvent(new Event('change', { bubbles: true }));" +
+                    "      p.dispatchEvent(new Event('change', { bubbles: true }));" +
+                    "      setTimeout(function() { f.submit(); }, 250);" +
                     "    }" +
                     "  } catch(e) { console.error('Auto login error:', e); }" +
                     "})();";
 
-            new Handler(Looper.getMainLooper()).postDelayed(new AutoLoginRunnable(webView, js), 300);
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(new AutoLoginRunnable(webView, js), 300);
+            handler.postDelayed(new AutoLoginRunnable(webView, js), 900);
         }
     }
 
@@ -360,12 +364,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private String getTargetUrl() {
         String base = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL).trim();
         if (!base.startsWith("http://") && !base.startsWith("https://")) {
-            base = "http://" + base;
+            base = "https://" + base;
         }
-        if (base.endsWith("/")) {
+        while (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        return base + "/production/control/";
+        if (base.endsWith("/control") || base.endsWith("/production/control")) {
+            return base + "/";
+        }
+        return base + "/control/";
     }
 
     public void loadControlSystem() {
