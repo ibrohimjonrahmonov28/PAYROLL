@@ -10,6 +10,15 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
 
+        html,
+        body {
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #080d1a;
@@ -25,6 +34,26 @@
 
         .touch-btn:active {
             transform: scale(0.96);
+        }
+
+        /* Ixcham ichki scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
         }
 
         @keyframes pulse-glow {
@@ -45,37 +74,39 @@
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+<body class="h-screen max-h-screen overflow-hidden flex flex-col bg-[#080d1a]">
 
     <!-- 1. TOP HEADER & NAVBAR -->
-    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 shadow-xl sticky top-0 z-40 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+    <header
+        class="bg-slate-900/95 border-b border-slate-800 px-3 sm:px-4 py-2 shadow-xl sticky top-0 z-40 backdrop-blur-md flex-shrink-0">
+        <div class="max-w-[1700px] mx-auto flex items-center justify-between gap-2 sm:gap-3">
             <!-- Brand & Step Indicator -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 sm:gap-3">
                 <div
-                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center text-lg shadow-lg shadow-indigo-600/30">
+                    class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center text-base sm:text-lg shadow-lg shadow-indigo-600/30 flex-shrink-0">
                     <i class="fa-solid fa-clipboard-check"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-sm sm:text-base font-black text-white tracking-wide uppercase">SIFAT NAZORATI
+                        <h1 class="text-xs sm:text-base font-black text-white tracking-wide uppercase">SIFAT NAZORATI
                             (OTK)</h1>
                         <span
-                            class="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            class="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                             CONTROL
                         </span>
                     </div>
-                    <p id="header-step-indicator" class="text-[11px] text-amber-400 font-bold uppercase tracking-wider">
-                        1 - qadam : Control stikerini scan qilgandan keyin
+                    <p id="header-step-indicator"
+                        class="text-[10px] sm:text-[11px] text-amber-400 font-bold uppercase tracking-wider leading-none mt-0.5">
+                        1 - qadam : Control stikerini scan qiling
                     </p>
                 </div>
             </div>
 
             <!-- Header Controls & Stats -->
-            <div class="flex items-center gap-2 sm:gap-3">
+            <div class="flex items-center gap-1.5 sm:gap-2.5">
                 <!-- Bugungi unikal qutilar -->
                 <div
-                    class="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3.5 py-1.5 rounded-xl">
+                    class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1 rounded-xl">
                     <i class="fa-solid fa-boxes-stacked text-xs text-amber-400"></i>
                     <span class="text-xs text-slate-400 font-bold">Bugun:</span>
                     <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{
@@ -85,21 +116,30 @@
 
                 <!-- Inspector -->
                 <div
-                    class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 sm:px-3 py-1 rounded-xl text-xs">
                     <i class="fa-solid fa-user-check text-emerald-400"></i>
-                    <span class="font-bold text-slate-200">@{{ inspector.username }}</span>
+                    <span class="font-bold text-slate-200 truncate max-w-[100px] sm:max-w-none">@{{ inspector.username }}</span>
                 </div>
 
                 <!-- Sound toggle -->
                 <button type="button" id="btn-toggle-sound" onclick="toggleSound()"
-                    class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm transition"
+                    class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs sm:text-sm transition flex-shrink-0"
                     title="Ovozni yoqish / o'chirish">
                     <i class="fa-solid fa-volume-high text-amber-400" id="sound-icon"></i>
                 </button>
 
+                <!-- TO'LIQ EKRAN (FULLSCREEN) TUGMASI (User talabi) -->
+                <button type="button" id="btn-fullscreen" onclick="toggleFullscreen()"
+                    class="touch-btn px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 flex-shrink-0"
+                    title="To'liq ekranga ochish / yopish (F11)">
+                    <i class="fa-solid fa-expand text-indigo-400" id="fullscreen-icon"></i>
+                    <span id="fullscreen-text" class="hidden sm:inline">To'liq Ekran</span>
+                </button>
+
                 <!-- Logout -->
                 <a href="{% url 'root_logout' %}"
-                    class="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1.5">
+                    class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0"
+                    title="Chiqish">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span class="hidden md:inline">Chiqish</span>
                 </a>
@@ -108,26 +148,26 @@
     </header>
 
     <!-- 2. MAIN CONTAINER -->
-    <main class="max-w-7xl mx-auto w-full p-3 sm:p-5 flex-1 flex flex-col justify-center gap-4">
+    <main class="max-w-7xl mx-auto w-full px-2.5 sm:px-4 py-2 flex-1 flex flex-col min-h-0 overflow-hidden justify-between gap-2 sm:gap-2.5">
 
         <!-- SKANER INPUT MAYDONI (Har doim faol, skaner fokuslangan) -->
-        <section class="bg-slate-900 border-2 border-indigo-500/30 rounded-2xl p-2.5 sm:p-3 shadow-xl">
+        <section class="bg-slate-900 border-2 border-indigo-500/30 rounded-2xl p-2 sm:p-2.5 shadow-lg flex-shrink-0">
             <form id="scanner-form" onsubmit="handleScannerSubmit(event)" class="flex items-center gap-2">
                 <div class="relative flex-1">
                     <div
-                        class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-400 text-base">
+                        class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-indigo-400 text-sm">
                         <i class="fa-solid fa-barcode"></i>
                     </div>
                     <input type="text" id="scanner-input" autofocus autocomplete="off"
                         placeholder="Qutidagi CONTROL stikerini yoki Quti ID sini skanerlang..."
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-11 pr-10 py-2.5 text-sm sm:text-base font-bold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 uppercase font-mono tracking-wider transition">
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 uppercase font-mono tracking-wider transition">
                     <button type="button" onclick="clearScannerInput()"
-                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-white text-sm">
+                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-500 hover:text-white text-xs">
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
                 </div>
                 <button type="submit"
-                    class="touch-btn px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs sm:text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 whitespace-nowrap transition">
+                    class="touch-btn px-3.5 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs sm:text-sm shadow-md shadow-indigo-600/30 flex items-center gap-1.5 whitespace-nowrap transition flex-shrink-0 active:scale-95">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>Skaner / Qidirish</span>
                 </button>
@@ -138,20 +178,20 @@
         <!-- STATE A: STANDBY (SKANER KUTILMOQDA) EKRANI                       -->
         <!-- ================================================================= -->
         <section id="standby-screen"
-            class="bg-slate-900/80 border-2 border-dashed border-indigo-500/30 rounded-3xl p-8 sm:p-14 text-center my-auto shadow-2xl pulse-scanner">
+            class="bg-slate-900/80 border-2 border-dashed border-indigo-500/30 rounded-3xl p-6 sm:p-10 text-center my-auto shadow-2xl pulse-scanner flex-1 flex flex-col items-center justify-center min-h-0">
             <div
-                class="w-24 h-24 mx-auto rounded-3xl bg-indigo-500/10 border-2 border-indigo-500/40 flex items-center justify-center text-4xl text-indigo-400 mb-4 shadow-inner">
+                class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-indigo-500/10 border-2 border-indigo-500/40 flex items-center justify-center text-3xl sm:text-4xl text-indigo-400 mb-3 shadow-inner">
                 <i class="fa-solid fa-qrcode"></i>
             </div>
-            <h2 class="text-xl sm:text-3xl font-black text-white uppercase tracking-wider">
+            <h2 class="text-lg sm:text-2xl font-black text-white uppercase tracking-wider">
                 1 - qadam : Control stikerini scan qiling
             </h2>
-            <p class="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-2 leading-relaxed">
+            <p class="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-1.5 leading-relaxed">
                 Qutining ustidagi <strong class="text-amber-400">CONTROL:KOD</strong> stikerini skanerlang.
                 Model rasmi, zakaz nomi va qutidagi son avtomatik yuklanadi.
             </p>
             <div
-                class="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                class="mt-3 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span>Skaner uskunasi tayyor holatda</span>
             </div>
@@ -160,30 +200,30 @@
         <!-- ================================================================= -->
         <!-- STATE B: 1-QADAM ASOSIY TEKSHIRUV EKRANI (USER CHIZMASI ASOSIDA)  -->
         <!-- ================================================================= -->
-        <section id="inspection-card" class="hidden flex-1 flex flex-col gap-4">
+        <section id="inspection-card" class="hidden flex-1 flex flex-col min-h-0 justify-between gap-2 sm:gap-2.5">
 
             <!-- 1. YUQORI SARLAVHA (2 TA BLOK: ZAKAZ NOMI - Nomer VA ARTIKUL Model nomi) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 flex-shrink-0">
                 <!-- BLOK 1: ZAKAZ NOMI - Nomer -->
                 <div
-                    class="bg-slate-900 border-2 border-slate-800 hover:border-amber-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-center">
-                    <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest block">
+                    class="bg-slate-900 border-2 border-slate-800 hover:border-amber-500/40 rounded-2xl p-2.5 sm:p-3 shadow-md flex flex-col justify-center">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
                         ZAKAZ NOMI - Nomer
                     </span>
-                    <div class="mt-1 flex items-baseline gap-2 flex-wrap">
+                    <div class="mt-0.5 flex items-baseline gap-2 flex-wrap">
                         <h2 id="val-order-number"
-                            class="text-lg sm:text-2xl font-black text-amber-400 font-mono tracking-wide">
+                            class="text-base sm:text-xl font-black text-amber-400 font-mono tracking-wide">
                             ORD-0000
                         </h2>
                         <span class="text-slate-600 font-bold">•</span>
                         <span id="val-order-name"
-                            class="text-sm sm:text-base font-bold text-white truncate max-w-[280px]">
+                            class="text-xs sm:text-sm font-bold text-white truncate max-w-[240px] sm:max-w-[280px]">
                             Zakaz Nomi
                         </span>
                     </div>
                     <div class="mt-1 flex items-center gap-2">
                         <span id="val-box-title"
-                            class="text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+                            class="text-[11px] font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
                             Quti #-- [------]
                         </span>
                     </div>
@@ -191,27 +231,27 @@
 
                 <!-- BLOK 2: ARTIKUL Model nomi -->
                 <div
-                    class="bg-slate-900 border-2 border-slate-800 hover:border-purple-500/40 rounded-2xl p-4 shadow-xl flex flex-col justify-center">
-                    <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest block">
+                    class="bg-slate-900 border-2 border-slate-800 hover:border-purple-500/40 rounded-2xl p-2.5 sm:p-3 shadow-md flex flex-col justify-center">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
                         ARTIKUL Model nomi
                     </span>
-                    <div class="mt-1 flex items-baseline gap-2 flex-wrap">
+                    <div class="mt-0.5 flex items-baseline gap-2 flex-wrap">
                         <h2 id="val-article-code"
-                            class="text-lg sm:text-2xl font-black text-purple-400 font-mono tracking-wide">
+                            class="text-base sm:text-xl font-black text-purple-400 font-mono tracking-wide">
                             ART-0000
                         </h2>
                         <span class="text-slate-600 font-bold">•</span>
                         <span id="val-article-name"
-                            class="text-sm sm:text-base font-bold text-white truncate max-w-[280px]">
+                            class="text-xs sm:text-sm font-bold text-white truncate max-w-[240px] sm:max-w-[280px]">
                             Model Nomi
                         </span>
                         <span
-                            class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-black font-mono">
+                            class="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-black font-mono">
                             Razmer: <span id="val-razmer">--</span>
                         </span>
                     </div>
                     <div class="mt-1 flex items-center gap-2">
-                        <span id="val-pastal-code" class="text-xs font-mono text-slate-400">
+                        <span id="val-pastal-code" class="text-[11px] font-mono text-slate-400">
                             Pastal: ---
                         </span>
                     </div>
@@ -220,24 +260,24 @@
 
             <!-- TA'MIRDAN QAYTISH BANNERI (Faqat ta'mirdan qaytgan qutilar uchun ko'rinadi) -->
             <div id="repair-return-banner"
-                class="hidden bg-amber-500/15 border-2 border-amber-500/50 rounded-2xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs shadow-lg">
-                <div class="flex items-center gap-3">
+                class="hidden bg-amber-500/15 border-2 border-amber-500/50 rounded-2xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-md flex-shrink-0">
+                <div class="flex items-center gap-2.5">
                     <div
-                        class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg shadow-inner">
+                        class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-sm shadow-inner flex-shrink-0">
                         <i class="fa-solid fa-wrench"></i>
                     </div>
                     <div>
-                        <strong class="text-amber-300 text-sm font-black uppercase tracking-wider block">
+                        <strong class="text-amber-300 text-xs sm:text-sm font-black uppercase tracking-wider block">
                             TA'MIRDAN QAYTGAN QUTI
                         </strong>
-                        <p class="text-slate-300 text-xs mt-0.5">
+                        <p class="text-slate-300 text-[11px] mt-0.5">
                             Tikuvchilar tomonidan tuzatilgan mahsulotlar sifat nazoratiga qaytarildi.
                         </p>
                     </div>
                 </div>
-                <div class="bg-slate-950/80 border border-amber-500/30 px-3.5 py-1.5 rounded-xl text-right">
-                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Oldingi holat</span>
-                    <div class="flex items-center gap-2 mt-0.5 font-mono text-xs">
+                <div class="bg-slate-950/80 border border-amber-500/30 px-3 py-1 rounded-xl text-right flex-shrink-0">
+                    <span class="text-[9px] text-slate-400 block font-bold uppercase">Oldingi holat</span>
+                    <div class="flex items-center gap-1.5 mt-0.5 font-mono text-xs">
                         <span class="text-emerald-400 font-bold">1-Sort: <span id="val-prev-first-sort">0</span></span>
                         <span class="text-slate-600">•</span>
                         <span class="text-amber-400 font-bold">2-Sort: <span id="val-prev-second-sort">0</span></span>
@@ -245,82 +285,82 @@
                 </div>
             </div>
 
-            <!-- 2. ASOSIY SOHA: CHAPDA RASM, MARKAZDA SON VA UCHBURCHAKLAR, O'NGDA TASDIQLASH -->
+            <!-- 2. ASOSIY SOHA: CHAPDA RASM, MARKAZDA SON VA UCHBURCHAKLAR -->
             <div
-                class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex-1 flex flex-col justify-between gap-6 min-h-[420px]">
+                class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-3 sm:p-4 shadow-xl flex-1 flex flex-col justify-between gap-3 min-h-0">
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center flex-1">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 items-center flex-1 min-h-0">
 
                     <!-- CHAPDA: RASM (MODEL RASMI) -->
-                    <div class="lg:col-span-4 flex flex-col items-center justify-center">
+                    <div class="lg:col-span-5 flex flex-col items-center justify-center h-full min-h-0">
                         <div
-                            class="w-full max-w-[260px] aspect-square bg-slate-950 border-2 border-slate-800 rounded-3xl p-3 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative group">
+                            class="w-full max-w-[210px] sm:max-w-[240px] max-h-[170px] sm:max-h-[210px] aspect-square bg-slate-950 border-2 border-slate-800 rounded-2xl p-2.5 flex flex-col items-center justify-center overflow-hidden shadow-xl relative group">
                             <!-- Model haqiqiy rasmi -->
                             <img id="val-product-img" src="" alt="Model"
-                                class="w-full h-full object-contain hidden rounded-2xl">
+                                class="w-full h-full object-contain hidden rounded-xl">
 
                             <!-- Rasm bo'lmaganda ko'rinadigan chiroyli placeholder -->
                             <div id="val-product-no-img"
-                                class="flex flex-col items-center justify-center text-slate-700 gap-2">
-                                <i class="fa-solid fa-shirt text-6xl text-slate-800"></i>
-                                <span class="text-sm font-black text-slate-600 uppercase tracking-widest mt-1">
+                                class="flex flex-col items-center justify-center text-slate-700 gap-1.5">
+                                <i class="fa-solid fa-shirt text-4xl sm:text-5xl text-slate-800"></i>
+                                <span class="text-xs font-black text-slate-600 uppercase tracking-widest mt-0.5">
                                     RASM
                                 </span>
-                                <span class="text-[10px] text-slate-600 font-semibold">(Model rasmi yuklanmagan)</span>
+                                <span class="text-[9px] text-slate-600 font-semibold">(Model rasmi yuklanmagan)</span>
                             </div>
 
                             <span
-                                class="absolute top-2.5 left-2.5 px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                class="absolute top-2 left-2 px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-md text-[9px] font-black text-slate-400 uppercase tracking-wider">
                                 Model Rasmi
                             </span>
                         </div>
                     </div>
 
                     <!-- MARKAZDA: UCHBURCHAK (+1), QUTIDAGI SON, UCHBURCHAK (-1) -->
-                    <div class="lg:col-span-8 flex flex-col items-center justify-center gap-3">
+                    <div class="lg:col-span-7 flex flex-col items-center justify-center gap-1.5 sm:gap-2">
 
                         <!-- UCHBURCHAK TUGMA: + 1 (TEPAGA QARAGAN) -->
                         <button type="button" onclick="adjustBoxQty(+1)"
-                            class="touch-btn group flex flex-col items-center justify-center w-52 sm:w-64 py-2.5 px-4 rounded-3xl bg-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition shadow-xl"
+                            class="touch-btn group flex flex-col items-center justify-center w-48 sm:w-56 py-1.5 sm:py-2 px-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition shadow-lg"
                             title="Sonni 1 taga oshirish">
                             <!-- Tepaga qaragan uchburchak SVG -->
-                            <svg class="w-16 h-8 text-emerald-400 fill-emerald-500/20 stroke-emerald-400 stroke-2 group-hover:fill-emerald-500/40 transition"
+                            <svg class="w-12 sm:w-14 h-5 sm:h-6 text-emerald-400 fill-emerald-500/20 stroke-emerald-400 stroke-2 group-hover:fill-emerald-500/40 transition"
                                 viewBox="0 0 100 50">
                                 <polygon points="50,5 95,45 5,45" />
                             </svg>
                             <span
-                                class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono mt-0.5 tracking-wider">
+                                class="text-xl sm:text-2xl font-black text-emerald-400 font-mono mt-0.5 tracking-wider">
                                 + 1
                             </span>
                         </button>
 
                         <!-- O'RTA BLOK: Qutidagi son / Ta'mirdan qaytayotgan son -->
                         <div id="box-qty-container"
-                            class="bg-slate-950 border-2 border-indigo-500/70 rounded-3xl p-5 sm:p-6 text-center shadow-2xl w-56 sm:w-72">
+                            class="bg-slate-950 border-2 border-indigo-500/70 rounded-2xl py-2 px-6 sm:px-8 text-center shadow-xl w-48 sm:w-56">
                             <span id="lbl-box-qty-title"
-                                class="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-widest block">
+                                class="text-[11px] sm:text-xs font-black uppercase text-indigo-400 tracking-widest block">
                                 Qutidagi son
                             </span>
-                            <div class="my-2">
+                            <div class="my-0.5">
                                 <input type="number" id="input-box-qty" min="1" value="50" onchange="validateQtyInput()"
-                                    class="w-full text-center bg-transparent border-0 text-5xl sm:text-6xl font-black text-white digital-font focus:outline-none focus:ring-0">
+                                    class="w-full text-center bg-transparent border-0 text-4xl sm:text-5xl font-black text-white digital-font focus:outline-none focus:ring-0 leading-tight">
                             </div>
-                            <span class="text-xs text-slate-500 font-bold uppercase tracking-wider block">
+                            <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">
                                 dona
                             </span>
                             <span id="lbl-box-qty-hint"
-                                class="hidden text-[10px] text-amber-300 font-mono mt-1 font-bold block"></span>
+                                class="hidden text-[10px] text-amber-300 font-mono mt-0.5 font-bold block"></span>
                         </div>
 
                         <!-- UCHBURCHAK TUGMA: - 1 (PASTGA QARAGAN) -->
                         <button type="button" onclick="adjustBoxQty(-1)"
-                            class="touch-btn group flex flex-col items-center justify-center w-52 sm:w-64 py-2.5 px-4 rounded-3xl bg-slate-950 border-2 border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10 active:scale-95 transition shadow-xl"
+                            class="touch-btn group flex flex-col items-center justify-center w-48 sm:w-56 py-1.5 sm:py-2 px-4 rounded-2xl bg-slate-950 border-2 border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10 active:scale-95 transition shadow-lg"
                             title="Sonni 1 taga kamaytirish">
-                            <span class="text-2xl sm:text-3xl font-black text-rose-400 font-mono mb-0.5 tracking-wider">
+                            <span class="text-xl sm:text-2xl font-black text-rose-400 font-mono mb-0.5 tracking-wider">
                                 - 1
                             </span>
                             <!-- Pastga qaragan uchburchak SVG -->
-                            <svg class="w-16 h-8 text-rose-400 fill-rose-500/20 stroke-rose-400 stroke-2 group-hover:fill-rose-500/40 transition"
+                            <svg class="w-12 sm:w-14 h-5 sm:h-6 text-rose-400 fill-rose-500/20 stroke-rose-400 stroke-2 group-hover:fill-rose-500/40 transition"
                                 viewBox="0 0 100 50">
                                 <polygon points="5,5 95,5 50,45" />
                             </svg>
@@ -330,18 +370,18 @@
                 </div>
 
                 <!-- 3. QUYI AMALLAR QATORI (O'NGDA: TASDIQLASH VA QABUL QILISH TUGMASI) -->
-                <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-800/80 flex-wrap">
+                <div class="flex items-center justify-between gap-3 pt-2.5 sm:pt-3 border-t border-slate-800/80 flex-shrink-0">
                     <!-- Yangi skaner / Bekor qilish -->
                     <button type="button" onclick="resetToStandby()"
-                        class="touch-btn px-5 py-3 rounded-2xl bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs sm:text-sm font-bold transition flex items-center gap-2">
+                        class="touch-btn px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs sm:text-sm font-bold transition flex items-center gap-2">
                         <i class="fa-solid fa-arrow-rotate-left"></i>
                         <span>Yangi quti skanerlash</span>
                     </button>
 
                     <!-- KATTA TUGMA: Tasdiqlash va qabul qilish (2-qadamga o'tish) -->
                     <button type="button" id="btn-confirm-accept" onclick="proceedToStep2()"
-                        class="touch-btn px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-3xl text-base sm:text-xl shadow-2xl shadow-emerald-500/30 flex items-center gap-3 transition">
-                        <i class="fa-solid fa-circle-check text-2xl" id="btn-confirm-accept-icon"></i>
+                        class="touch-btn px-6 sm:px-10 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-2xl text-sm sm:text-lg shadow-xl shadow-emerald-500/30 flex items-center gap-2.5 transition active:scale-95">
+                        <i class="fa-solid fa-circle-check text-xl sm:text-2xl" id="btn-confirm-accept-icon"></i>
                         <span id="btn-confirm-accept-text">Tasdiqlash va qabul qilish</span>
                     </button>
                 </div>
@@ -353,27 +393,27 @@
         <!-- ================================================================= -->
         <!-- STATE C: 2-QADAM SIFAT SARALASH (1-SORT, 2-SORT, TA'MIR) EKRANI   -->
         <!-- ================================================================= -->
-        <section id="step2-card" class="hidden flex-1 flex flex-col gap-4">
+        <section id="step2-card" class="hidden flex-1 flex flex-col min-h-0 justify-between gap-2 sm:gap-2.5">
 
             <!-- 1. YUQORI SARLAVHA & XULOSA KARTASI -->
             <div
-                class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between flex-wrap gap-3">
-                <div class="flex items-center gap-3">
+                class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-2.5 sm:p-3 shadow-xl flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2.5 sm:gap-3">
                     <div
-                        class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl shadow-inner">
+                        class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg sm:text-xl shadow-inner flex-shrink-0">
                         <i class="fa-solid fa-layer-group"></i>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                             <span id="step2-badge-step"
-                                class="text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
+                                class="text-[11px] sm:text-xs font-black text-amber-400 uppercase tracking-widest">2-QADAM : SIFAT
                                 SARALASH</span>
                             <span class="text-slate-600 font-bold">•</span>
                             <span id="step2-header-box-title"
-                                class="text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">Quti
+                                class="text-[11px] sm:text-xs font-mono font-bold text-indigo-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">Quti
                                 #--</span>
                         </div>
-                        <h2 class="text-base sm:text-lg font-black text-white mt-0.5">
+                        <h2 class="text-sm sm:text-base font-black text-white mt-0.5">
                             <span id="step2-header-order" class="text-amber-400 font-mono">ORD-0000</span>
                             <span class="text-slate-500 mx-1">—</span>
                             <span id="step2-header-article" class="text-purple-300">Model</span>
@@ -384,14 +424,13 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl text-right">
+                <div class="flex items-center gap-2">
+                    <div class="bg-slate-950 border border-slate-800 px-3 py-1 sm:py-1.5 rounded-xl text-right">
                         <span id="step2-qty-title"
-                            class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan
-                            son</span>
+                            class="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Qabul qilingan son</span>
                         <div class="flex items-baseline justify-end gap-1">
                             <strong id="step2-header-total-qty"
-                                class="text-2xl font-black text-white digital-font">50</strong>
+                                class="text-xl sm:text-2xl font-black text-white digital-font">50</strong>
                             <span class="text-xs text-slate-400">dona</span>
                         </div>
                     </div>
@@ -399,93 +438,90 @@
             </div>
 
             <!-- 2. 3 TA ASOSIY HISOB-KITOB BLOKI (1-SORT, 2-SORT, TA'MIR) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 flex-1 min-h-0">
 
                 <!-- BLOK 1: 1-SORT (TAYYOR MAHSULOT) -->
                 <div
-                    class="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 border-2 border-emerald-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative overflow-hidden">
-                    <div class="flex items-center justify-between pb-3 border-b border-emerald-500/30">
+                    class="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 border-2 border-emerald-500/70 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col justify-between text-center relative overflow-hidden min-h-0">
+                    <div class="flex items-center justify-between pb-2 border-b border-emerald-500/30 flex-shrink-0">
                         <span
-                            class="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fa-solid fa-circle-check text-base"></i>
+                            class="text-xs sm:text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-sm sm:text-base"></i>
                             <span id="step2-first-sort-title">1-SORT (TAYYOR)</span>
                         </span>
                         <span id="step2-first-sort-badge"
-                            class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase">
+                            class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] sm:text-[10px] font-black uppercase">
                             STANDART
                         </span>
                     </div>
 
-                    <div class="my-6">
+                    <div class="my-auto py-2">
                         <div id="step2-first-sort"
-                            class="text-6xl sm:text-7xl font-black text-emerald-400 digital-font drop-shadow-md">
+                            class="text-5xl sm:text-6xl font-black text-emerald-400 digital-font drop-shadow-md">
                             50
                         </div>
                         <span id="step2-first-sort-sub"
-                            class="text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-1 block">
+                            class="text-[11px] sm:text-xs text-emerald-400/80 font-bold uppercase tracking-wider mt-0.5 block">
                             dona tayyor mahsulot
                         </span>
                     </div>
 
                     <div id="step2-first-sort-desc"
-                        class="p-3 bg-emerald-950/50 border border-emerald-500/30 rounded-2xl text-left text-xs text-emerald-300/90 leading-relaxed font-medium">
+                        class="p-2 sm:p-2.5 bg-emerald-950/50 border border-emerald-500/30 rounded-xl text-left text-[11px] sm:text-xs text-emerald-300/90 leading-relaxed font-medium flex-shrink-0">
                         <i class="fa-solid fa-box-open mr-1 text-emerald-400"></i>
-                        Nuqsonsiz toza kiyimlar. Qutiga solinib to'g'ridan-to'g'ri <strong>Upakovka (Qadoqlash)</strong>
-                        bo'limiga topshiriladi.
+                        Nuqsonsiz toza kiyimlar. <strong>Upakovka (Qadoqlash)</strong> bo'limiga topshiriladi.
                     </div>
                 </div>
 
                 <!-- BLOK 2: 2-SORT (BRAK / NUQSONLI) -->
                 <div
-                    class="bg-gradient-to-br from-amber-950/50 via-slate-900 to-slate-950 border-2 border-amber-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative">
-                    <div class="flex items-center justify-between pb-3 border-b border-amber-500/30">
+                    class="bg-gradient-to-br from-amber-950/50 via-slate-900 to-slate-950 border-2 border-amber-500/70 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col justify-between text-center relative min-h-0">
+                    <div class="flex items-center justify-between pb-2 border-b border-amber-500/30 flex-shrink-0">
                         <span
-                            class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                            class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation text-sm sm:text-base"></i>
                             <span id="step2-second-sort-title">2-SORT (BRAK)</span>
                         </span>
                         <span id="step2-second-sort-badge"
-                            class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase">
+                            class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] sm:text-[10px] font-black uppercase">
                             NUQSONLI
                         </span>
                     </div>
 
-                    <div class="my-4">
-                        <div class="flex items-center justify-center gap-3">
-                            <!-- Kamaytirish tugmasi -->
-                            <button type="button" onclick="adjustSecondSort(-1)"
-                                class="touch-btn w-12 h-12 rounded-2xl bg-slate-950 border border-amber-500/40 hover:border-amber-400 text-amber-400 font-black text-2xl flex items-center justify-center transition shadow-lg"
-                                title="2-sort sonini kamaytirish">
-                                <i class="fa-solid fa-minus"></i>
-                            </button>
+                    <div class="my-auto py-1 flex items-center justify-center gap-3">
+                        <!-- Kamaytirish tugmasi -->
+                        <button type="button" onclick="adjustSecondSort(-1)"
+                            class="touch-btn w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-950 border border-amber-500/40 hover:border-amber-400 text-amber-400 font-black text-xl flex items-center justify-center transition shadow-md active:scale-95"
+                            title="2-sort sonini kamaytirish">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
 
-                            <div class="min-w-[100px]">
-                                <div id="step2-second-sort"
-                                    class="text-5xl sm:text-6xl font-black text-amber-400 digital-font">
-                                    0
-                                </div>
-                                <span
-                                    class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
+                        <div class="min-w-[80px] sm:min-w-[90px]">
+                            <div id="step2-second-sort"
+                                class="text-4xl sm:text-5xl font-black text-amber-400 digital-font">
+                                0
                             </div>
-
-                            <!-- Oshirish tugmasi: DARHOL SABABLAR OYNASI CHIQADI! -->
-                            <button type="button" onclick="adjustSecondSort(+1)"
-                                class="touch-btn w-12 h-12 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border-2 border-amber-500 text-amber-300 font-black text-2xl flex items-center justify-center transition shadow-lg shadow-amber-500/20 animate-pulse"
-                                title="2-sort qo'shish va sababini tanlash">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
+                            <span
+                                class="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
                         </div>
+
+                        <!-- Oshirish tugmasi -->
+                        <button type="button" onclick="adjustSecondSort(+1)"
+                            class="touch-btn w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border-2 border-amber-500 text-amber-300 font-black text-xl flex items-center justify-center transition shadow-md shadow-amber-500/20 active:scale-95 animate-pulse"
+                            title="2-sort qo'shish va sababini tanlash">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
                     </div>
 
-                    <!-- Tanlangan sabablar ro'yxati (Badge / kartochkalar) -->
-                    <div class="flex-1 flex flex-col justify-end">
+                    <!-- Tanlangan sabablar ro'yxati -->
+                    <div class="flex-1 flex flex-col justify-end min-h-0 mt-1">
                         <span
-                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
-                            Brak sabablari va operatsiyalar:
+                            class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block text-left flex-shrink-0">
+                            Brak sabablari:
                         </span>
                         <div id="step2-defect-items-list"
-                            class="max-h-36 overflow-y-auto space-y-1.5 text-left pr-1 min-h-[50px] bg-slate-950/70 p-2 rounded-2xl border border-slate-800">
-                            <span class="text-[11px] text-slate-600 italic block text-center py-2">
+                            class="max-h-24 sm:max-h-28 overflow-y-auto space-y-1 text-left pr-1 min-h-[44px] bg-slate-950/70 p-1.5 sm:p-2 rounded-xl border border-slate-800">
+                            <span class="text-[10px] sm:text-[11px] text-slate-600 italic block text-center py-1.5">
                                 Hali 2-sort qo'shilmadi (+ tugmasini bosing)
                             </span>
                         </div>
@@ -494,55 +530,53 @@
 
                 <!-- BLOK 3: TA'MIR (TIKUVCHIGA QAYTARISH) -->
                 <div
-                    class="bg-gradient-to-br from-rose-950/50 via-slate-900 to-slate-950 border-2 border-rose-500/70 rounded-3xl p-5 shadow-2xl flex flex-col justify-between text-center relative">
-                    <div class="flex items-center justify-between pb-3 border-b border-rose-500/30">
+                    class="bg-gradient-to-br from-rose-950/50 via-slate-900 to-slate-950 border-2 border-rose-500/70 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col justify-between text-center relative min-h-0">
+                    <div class="flex items-center justify-between pb-2 border-b border-rose-500/30 flex-shrink-0">
                         <span
-                            class="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fa-solid fa-wrench text-base"></i>
+                            class="text-xs sm:text-sm font-black text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <i class="fa-solid fa-wrench text-sm sm:text-base"></i>
                             <span id="step2-repair-title">TA'MIR (QAYTA ISHLASH)</span>
                         </span>
                         <span id="step2-repair-badge"
-                            class="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase">
+                            class="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] sm:text-[10px] font-black uppercase">
                             QAYTARILADI
                         </span>
                     </div>
 
-                    <div class="my-4">
-                        <div class="flex items-center justify-center gap-3">
-                            <!-- Kamaytirish -->
-                            <button type="button" onclick="adjustRepairQty(-1)"
-                                class="touch-btn w-12 h-12 rounded-2xl bg-slate-950 border border-rose-500/40 hover:border-rose-400 text-rose-400 font-black text-2xl flex items-center justify-center transition shadow-lg"
-                                title="Ta'mir sonini kamaytirish">
-                                <i class="fa-solid fa-minus"></i>
-                            </button>
+                    <div class="my-auto py-1 flex items-center justify-center gap-3">
+                        <!-- Kamaytirish -->
+                        <button type="button" onclick="adjustRepairQty(-1)"
+                            class="touch-btn w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-950 border border-rose-500/40 hover:border-rose-400 text-rose-400 font-black text-xl flex items-center justify-center transition shadow-md active:scale-95"
+                            title="Ta'mir sonini kamaytirish">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
 
-                            <div class="min-w-[100px]">
-                                <div id="step2-repair-qty"
-                                    class="text-5xl sm:text-6xl font-black text-rose-400 digital-font">
-                                    0
-                                </div>
-                                <span
-                                    class="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
+                        <div class="min-w-[80px] sm:min-w-[90px]">
+                            <div id="step2-repair-qty"
+                                class="text-4xl sm:text-5xl font-black text-rose-400 digital-font">
+                                0
                             </div>
-
-                            <!-- Oshirish: DARHOL OPERATSIYALAR OYNASI CHIQADI! -->
-                            <button type="button" onclick="adjustRepairQty(+1)"
-                                class="touch-btn w-12 h-12 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border-2 border-rose-500 text-rose-300 font-black text-2xl flex items-center justify-center transition shadow-lg shadow-rose-500/20 animate-pulse"
-                                title="Ta'mir qo'shish va operatsiyasini tanlash">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
+                            <span
+                                class="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider block">dona</span>
                         </div>
+
+                        <!-- Oshirish -->
+                        <button type="button" onclick="adjustRepairQty(+1)"
+                            class="touch-btn w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border-2 border-rose-500 text-rose-300 font-black text-xl flex items-center justify-center transition shadow-md shadow-rose-500/20 active:scale-95 animate-pulse"
+                            title="Ta'mir qo'shish va operatsiyasini tanlash">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
                     </div>
 
-                    <!-- Tanlangan ta'mir operatsiyalari ro'yxati (Badge / kartochkalar) -->
-                    <div class="flex-1 flex flex-col justify-end">
+                    <!-- Tanlangan ta'mir operatsiyalari ro'yxati -->
+                    <div class="flex-1 flex flex-col justify-end min-h-0 mt-1">
                         <span
-                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block text-left">
-                            Ta'mir operatsiyalari va tikuvchilar:
+                            class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block text-left flex-shrink-0">
+                            Ta'mir operatsiyalari:
                         </span>
                         <div id="step2-repair-items-list"
-                            class="max-h-36 overflow-y-auto space-y-1.5 text-left pr-1 min-h-[50px] bg-slate-950/70 p-2 rounded-2xl border border-slate-800">
-                            <span class="text-[11px] text-slate-600 italic block text-center py-2">
+                            class="max-h-24 sm:max-h-28 overflow-y-auto space-y-1 text-left pr-1 min-h-[44px] bg-slate-950/70 p-1.5 sm:p-2 rounded-xl border border-slate-800">
+                            <span class="text-[10px] sm:text-[11px] text-slate-600 italic block text-center py-1.5">
                                 Hali ta'mir qo'shilmadi (+ tugmasini bosing)
                             </span>
                         </div>
@@ -553,18 +587,18 @@
 
             <!-- 3. QUYI AMALLAR QATORI (ORQAGA VA YAKUNIY TASDIQLASH) -->
             <div
-                class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 shadow-xl flex items-center justify-between gap-4 flex-wrap">
+                class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-3 flex-shrink-0">
                 <!-- 1-qadamga qaytish -->
                 <button type="button" onclick="backToStep1()"
-                    class="touch-btn px-5 py-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs sm:text-sm font-bold transition flex items-center gap-2">
+                    class="touch-btn px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs sm:text-sm font-bold transition flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>1-qadamga qaytish</span>
                 </button>
 
                 <!-- Yakuniy Tasdiqlash Tugmasi (Dinamik) -->
                 <button type="button" id="btn-submit-step2" onclick="submitFinalInspection()"
-                    class="touch-btn px-8 sm:px-12 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl shadow-emerald-500/30 flex items-center gap-3 transition">
-                    <i class="fa-solid fa-circle-check text-2xl" id="btn-submit-step2-icon"></i>
+                    class="touch-btn px-6 sm:px-10 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-xl text-sm sm:text-base shadow-xl shadow-emerald-500/30 flex items-center gap-2.5 transition active:scale-95">
+                    <i class="fa-solid fa-circle-check text-xl sm:text-2xl" id="btn-submit-step2-icon"></i>
                     <span id="btn-submit-step2-text">Yakunlash va Qutini Topshirish (Enter)</span>
                 </button>
             </div>
@@ -2162,6 +2196,12 @@
                 }
             }
 
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+                return;
+            }
+
             if (e.key === 'Enter') {
                 const activeId = document.activeElement ? document.activeElement.id : '';
                 if (activeId === 'scanner-input') {
@@ -2183,6 +2223,56 @@
                 }
             }
         });
+
+        // =====================================================================
+        // TO'LIQ EKRAN (FULLSCREEN) FUNKSIYASI
+        // =====================================================================
+        function toggleFullscreen() {
+            const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+            if (!isFull) {
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) {
+                    docEl.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+                } else if (docEl.webkitRequestFullscreen) {
+                    docEl.webkitRequestFullscreen();
+                } else if (docEl.mozRequestFullScreen) {
+                    docEl.mozRequestFullScreen();
+                } else if (docEl.msRequestFullscreen) {
+                    docEl.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => console.log('Exit fullscreen error:', err));
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        function updateFullscreenUI() {
+            const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+            const icon = document.getElementById('fullscreen-icon');
+            const text = document.getElementById('fullscreen-text');
+            const btn = document.getElementById('btn-fullscreen');
+            if (icon) {
+                icon.className = isFull ? 'fa-solid fa-compress text-indigo-400' : 'fa-solid fa-expand text-indigo-400';
+            }
+            if (text) {
+                text.textContent = isFull ? 'Chiqish' : "To'liq Ekran";
+            }
+            if (btn) {
+                btn.title = isFull ? "To'liq ekrandan chiqish (F11 yoki Esc)" : "To'liq ekranga ochish (F11)";
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenUI);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+        document.addEventListener('mozfullscreenchange', updateFullscreenUI);
+        document.addEventListener('MSFullscreenChange', updateFullscreenUI);
     </script>
 </body>
 
