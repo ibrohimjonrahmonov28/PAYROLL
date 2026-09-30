@@ -755,10 +755,11 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertEqual(res_stk.status_code, 200)
         self.assertContains(res_stk, "#1-#90")
 
+        for b in boxes:
+            mark_url = reverse('sticker_mark_box_printed', kwargs={'box_id': b.id})
+            res_mark = self.client.post(mark_url, follow=True)
+            self.assertEqual(res_mark.status_code, 200)
         box_1 = boxes.first()
-        mark_url = reverse('sticker_mark_box_printed', kwargs={'box_id': box_1.id})
-        res_mark = self.client.post(mark_url, follow=True)
-        self.assertEqual(res_mark.status_code, 200)
         box_1.refresh_from_db()
         self.assertTrue(box_1.is_printed)
         b1_item_m.refresh_from_db()
@@ -821,7 +822,8 @@ class ManagerAndCuttingWorkflowTest(TestCase):
 
         batch_item.refresh_from_db()
         self.assertEqual(batch_item.status, CuttingBatchItem.Status.CUT_ENTERED)
-        self.assertEqual(batch_item.boxes.count(), 0)  # Unprinted boxes deleted!
+        self.assertEqual(batch_item.boxes.exclude(status=Box.Status.CANCELLED).count(), 0)  # Active boxes cancelled
+        self.assertEqual(batch_item.boxes.filter(status=Box.Status.CANCELLED).count(), 4)
 
         # 5. Re-confirm with 2 boxes
         res_reconf = self.client.post(confirm_url, {
@@ -832,7 +834,7 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         }, follow=True)
         self.assertEqual(res_reconf.status_code, 200)
         batch_item.refresh_from_db()
-        self.assertEqual(batch_item.boxes.count(), 2)
+        self.assertEqual(batch_item.boxes.exclude(status=Box.Status.CANCELLED).count(), 2)
 
         # 6. Test pastal-specific print and PDF
         print_pastal_url = reverse('production:order_print_all_stickers', kwargs={'order_id': order.id}) + "?pastal=P-99"
@@ -845,15 +847,16 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertEqual(res_pdf.status_code, 200)
         self.assertIn("PASTAL_P-99", res_pdf['Content-Disposition'])
 
-        # 7. When printed, reset is blocked!
-        box_to_print = batch_item.boxes.first()
-        box_to_print.is_printed = True
-        box_to_print.save(update_fields=['is_printed'])
+        # 7. When scanned by workers, reset is blocked!
+        box_to_scan = batch_item.boxes.exclude(status=Box.Status.CANCELLED).first()
+        ticket_to_scan = box_to_scan.tickets.first()
+        ticket_to_scan.status = Ticket.Status.SCANNED
+        ticket_to_scan.save(update_fields=['status'])
 
         res_reset_blocked = self.client.post(reset_url, follow=True)
         self.assertEqual(res_reset_blocked.status_code, 200)
-        self.assertContains(res_reset_blocked, "allaqachon chop etilgan")
-        self.assertEqual(batch_item.boxes.count(), 2)  # Not deleted!
+        self.assertContains(res_reset_blocked, "allaqachon skanerlangan")
+        self.assertEqual(batch_item.boxes.exclude(status=Box.Status.CANCELLED).count(), 2)  # Not changed!
 
     def test_sticker_lazy_load_by_pastal_and_batch_mark_printed(self):
         sticker_user = User.objects.create_user(username="sticker_lazy_user", password="password123", role=User.Role.STICKER)

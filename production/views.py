@@ -363,11 +363,19 @@ def order_print_all_stickers_view(request, order_id: int):
             selected_article = None
 
     selected_pastal = pastal_code
-    if batch_id and not selected_pastal:
+    if batch_id:
         try:
-            b_obj = CuttingBatch.objects.filter(id=int(batch_id)).first()
+            b_obj = CuttingBatch.objects.select_related('order_item__article').filter(id=int(batch_id)).first()
             if b_obj:
-                selected_pastal = b_obj.pastal_code or b_obj.name
+                if not selected_pastal:
+                    selected_pastal = b_obj.pastal_code or b_obj.name
+                if b_obj.order_item and b_obj.order_item.article:
+                    if b_obj.order_item.article.article_operations.count() == 0:
+                        messages.error(
+                            request,
+                            f"'{b_obj.order_item.article.name}' modeliga hali operatsiyalar biriktirilmagan! Avval operatsiyalarni qo'shing."
+                        )
+                        return redirect(f"/meto/orders/{order.id}/?open_batch={batch_id}")
         except (ValueError, TypeError):
             pass
 
@@ -397,6 +405,13 @@ def order_print_all_stickers_view(request, order_id: int):
             tickets_qs = tickets_qs.filter(box__cutting_batch_item__batch_id=int(batch_id))
         except (ValueError, TypeError):
             pass
+
+    if not tickets_qs.exists():
+        messages.warning(
+            request,
+            "Chop etish uchun birorta ham faol QR stiker (operatsiya bileti) topilmadi. Avval modelga operatsiyalarni biriktiring yoki qutilarni yarating."
+        )
+        return redirect(f"/meto/orders/{order.id}/")
 
     tickets = tickets_qs.select_related(
         'box', 'box__order', 'box__article', 'box__cutting_batch_item__batch', 'article_operation__operation', 'article_operation__article'

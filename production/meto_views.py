@@ -178,6 +178,7 @@ def meto_batch_items_view(request, batch_id: int):
     )
     order = batch.order_item.order
     article = batch.order_item.article
+    operations_count = article.article_operations.count() if article else 0
 
     batch_items_data = []
     for b_it in batch.items.all().order_by('order_item_size__id'):
@@ -209,6 +210,7 @@ def meto_batch_items_view(request, batch_id: int):
         'batch': batch,
         'order': order,
         'article': article,
+        'operations_count': operations_count,
         'batch_items': batch_items_data,
     })
 
@@ -380,6 +382,15 @@ def meto_generate_missing_boxes(request, batch_id: int):
         id=batch_id
     )
     order = batch.order_item.order
+    article = batch.order_item.article if batch.order_item else None
+    if article and ArticleOperation.objects.filter(article=article).count() == 0:
+        messages.error(
+            request,
+            f"Diqqat! '{article.name}' modeliga hali birorta ham operatsiya biriktirilmagan. "
+            f"Operatsiyalarsiz qutilar va stikerlar yaratib bo'lmaydi. Avval modelga operatsiyalarni qo'shing!"
+        )
+        return redirect(f"/meto/orders/{order.id}/?open_batch={batch.id}")
+
     created_boxes_total = 0
     pending_items_count = 0
 

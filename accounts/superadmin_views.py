@@ -1161,6 +1161,25 @@ def superadmin_payout_create(request):
                     created_by=request.user
                 )
 
+                auto_freeze = request.POST.get('auto_freeze') == '1' or payout_type == WorkerPayout.PayoutType.SALARY
+                if auto_freeze and month and year:
+                    try:
+                        m_int = int(month)
+                        y_int = int(year)
+                        now = timezone.now()
+                        worker.tickets.filter(
+                            status=Ticket.Status.SCANNED,
+                            scanned_at__year=y_int,
+                            scanned_at__month=m_int,
+                            is_frozen=False
+                        ).update(
+                            is_frozen=True,
+                            frozen_at=now,
+                            frozen_payout=payout
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
             messages.success(request, f"{worker.full_name} ga {int(payout.amount):,} UZS ({payout.get_payout_type_display()}) muvaffaqiyatli to'landi!")
 
         if month and year:

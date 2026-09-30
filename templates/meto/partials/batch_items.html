@@ -146,6 +146,7 @@
                         <i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Qutilar va stikerlar hali
                         yaratilmagan
                     </span>
+                    {% if operations_count > 0 %}
                     <form method="POST" action="{% url 'meto_generate_missing_boxes' batch.id %}">
                         {% csrf_token %}
                         <button type="submit"
@@ -153,6 +154,12 @@
                             Hozir Yaratish
                         </button>
                     </form>
+                    {% else %}
+                    <span
+                        class="px-2 py-1 rounded bg-rose-500/20 text-rose-300 font-bold text-[11px] flex items-center gap-1">
+                        <i class="fa-solid fa-ban text-[10px]"></i> Operatsiya biriktirilmagan
+                    </span>
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -167,6 +174,7 @@
                             <span class="text-emerald-400 font-black digital-font">{{ box.quantity }} dona</span>
                         </div>
                         <div class="flex items-center gap-1.5">
+                            {% if operations_count > 0 %}
                             <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"
                                 class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-[10px] transition flex items-center gap-1">
                                 <i class="fa-solid fa-print"></i> Chop Etish
@@ -175,6 +183,13 @@
                                 class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded text-[10px] transition flex items-center gap-1">
                                 <i class="fa-solid fa-file-pdf"></i> PDF
                             </a>
+                            {% else %}
+                            <span
+                                class="px-2 py-0.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1"
+                                title="Operatsiyalar biriktirilmagan">
+                                <i class="fa-solid fa-ban text-[9px]"></i> Operatsiya yo'q
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}

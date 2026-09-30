@@ -62,6 +62,37 @@
             </div>
         </div>
 
+        {% if item_data.operations_count == 0 %}
+        <!-- Operatsiyalar yo'qligi haqida ogohlantirish banneri -->
+        <div
+            class="p-4 rounded-2xl bg-rose-500/15 border-2 border-rose-500/40 flex items-center justify-between gap-4 flex-wrap shadow-lg">
+            <div class="flex items-center gap-3.5 text-rose-200">
+                <div
+                    class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-400 text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="font-black text-sm text-white flex items-center gap-2">
+                        <span>Operatsiyalar biriktirilmagan!</span>
+                        <span
+                            class="text-xs font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800">Chop
+                            etish yashirildi</span>
+                    </h4>
+                    <p class="text-xs text-rose-200/90 mt-0.5">
+                        Ushbu modelga texnologik operatsiyalar va narxlar biriktirilmaganligi sababli pastal
+                        stikerlarini chop etish bo'limi yashirildi. Avval operatsiyalarni kiriting.
+                    </p>
+                </div>
+            </div>
+            {% if request.user.role == 'superadmin' or request.user.is_superuser %}
+            <a href="{% url 'norma_canvas' %}" target="_blank"
+                class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-diagram-project"></i> Norma Canvas (Operatsiyalar)ga o'tish
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Pastallar Ro'yxati (Accordion / Lazy Loading) -->
         <div class="space-y-4">
             {% for b in item_data.batches %}
@@ -118,12 +149,20 @@
                     <div class="flex items-center gap-2 flex-wrap" onclick="event.stopPropagation()">
                         <!-- BITTA PASTALNI CHOP ETISH TUGMASI (User talabi) -->
                         {% if b.has_boxes %}
+                        {% if item_data.operations_count > 0 %}
                         <a href="{% url 'production:order_print_all_stickers' order.id %}?batch_id={{ b.id }}&pastal={{ b.pastal_code }}"
                             target="_blank"
                             class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-md"
                             title="Faqat ushbu pastal stikerlarini umumiy chop etish (65x45)">
                             <i class="fa-solid fa-print"></i> Pastalni Chop Etish (65x45)
                         </a>
+                        {% else %}
+                        <span
+                            class="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
+                            title="Modelga operatsiyalar biriktirilmaganligi sababli stiker chop etish yashirildi">
+                            <i class="fa-solid fa-ban text-rose-400"></i> Chop etish yopiq (Operatsiya yo'q)
+                        </span>
+                        {% endif %}
                         <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
                             class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
                             title="A4 Pastal Pasportini ko'rish va chop etish">
@@ -132,6 +171,7 @@
                         {% endif %}
 
                         {% if b.needs_boxes_generation and not b.has_pending %}
+                        {% if item_data.operations_count > 0 %}
                         <form method="POST" action="{% url 'meto_generate_missing_boxes' b.id %}" class="inline">
                             {% csrf_token %}
                             <button type="submit"
@@ -140,6 +180,13 @@
                                 <i class="fa-solid fa-boxes-stacked"></i> Qutilar va Stikerlarni Yaratish
                             </button>
                         </form>
+                        {% else %}
+                        <span
+                            class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-500 border border-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
+                            title="Operatsiyalar biriktirilmaganligi sababli qutilar yaratish bloklangan">
+                            <i class="fa-solid fa-lock text-slate-500"></i> Qutilar yaratish bloklangan
+                        </span>
+                        {% endif %}
                         {% endif %}
 
                         {% if b.has_pending %}
@@ -262,14 +309,15 @@
 
     // Agar URLda open_batch ko'rsatilgan bo'lsa, avtomatik ochish
     document.addEventListener('DOMContentLoaded', function () {
-        const openBatchId = {{ open_batch_id|default:"null" }};
-        if (openBatchId) {
-            toggleBatch(openBatchId);
-            const el = document.getElementById(`batch-card-${openBatchId}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+        const openBatchId = {{ open_batch_id|default: "null"
+    }};
+    if (openBatchId) {
+        toggleBatch(openBatchId);
+        const el = document.getElementById(`batch-card-${openBatchId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+    }
     });
 </script>
 {% endblock %}
