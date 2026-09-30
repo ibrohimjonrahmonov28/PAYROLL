@@ -590,7 +590,10 @@ def control_download_apk_view(request):
     from django.conf import settings
     from django.http import FileResponse, Http404
 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     candidate_paths = [
+        os.path.join(current_dir, 'terryjar_control.apk'),
+        os.path.join(settings.BASE_DIR, 'production', 'terryjar_control.apk'),
         os.path.join(settings.BASE_DIR, 'static', 'apk', 'terryjar_control.apk'),
         os.path.join(settings.BASE_DIR, 'staticfiles', 'apk', 'terryjar_control.apk'),
         os.path.join(settings.BASE_DIR, 'android_control', 'terryjar_control.apk'),
@@ -598,13 +601,16 @@ def control_download_apk_view(request):
     ]
 
     for p in candidate_paths:
-        if os.path.exists(p):
-            return FileResponse(
-                open(p, 'rb'),
+        if os.path.isfile(p):
+            file_handle = open(p, 'rb')
+            response = FileResponse(
+                file_handle,
                 as_attachment=True,
                 filename='terryjar_control.apk',
                 content_type='application/vnd.android.package-archive'
             )
+            response['Content-Length'] = os.path.getsize(p)
+            return response
 
     raise Http404("APK fayli topilmadi.")
 
