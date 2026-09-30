@@ -43,6 +43,7 @@ services:
       - ./production:/app/production
       - ./screens:/app/screens
       - ./templates:/app/templates
+      - ./android_control:/app/android_control:ro
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
