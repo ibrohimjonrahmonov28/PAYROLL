@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TERRY JAR — Sifat Nazorati</string>
+    <string name="server_url">Server Manzili (URL)</string>
+    <string name="server_url_hint">Masalan: http://192.168.1.100:8000</string>
+    <string name="username">OTK Logini</string>
+    <string name="username_hint">Masalan: control_patok1</string>
+    <string name="password">Parol</string>
+    <string name="password_hint">Parolni kiriting</string>
+    <string name="keep_screen_on">Ekranni doim yoniq saqlash</string>
+    <string name="auto_login">Avtomatik kirish (Auto-login)</string>
+    <string name="save">Saqlash va Ulanish</string>
+    <string name="cancel">Bekor qilish</string>
+    <string name="settings_title">Planshet Sozlamalari</string>
+    <string name="error_network_title">Tarmoqqa Ulanishda Xatolik</string>
+    <string name="error_network_msg">Server bilan aloqa o\'rnatilmadi. Iltimos, Wi-Fi tarmog\'i va server manzilini tekshiring.</string>
+    <string name="retry">Qayta Yuklash</string>
+    <string name="open_settings">Sozlamalar</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#0f172a</color>
+    <color name="colorPrimaryDark">#080d1a</color>
+    <color name="colorAccent">#6366f1</color>
+    <color name="backgroundDark">#080d1a</color>
+    <color name="textWhite">#f8fafc</color>
+    <color name="textMuted">#94a3b8</color>
+    <color name="buttonPrimary">#4f46e5</color>
+    <color name="buttonSuccess">#10b981</color>
+    <color name="errorRed">#ef4444</color>
+</resources>

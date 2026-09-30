@@ -193,6 +193,11 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/terminal/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+# Planshet va terminallar uchun doimiy sessiya (1 yil)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 yil (sekundlarda)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False   # Ilova yoki brauzer yopilganda sessiya o'chmasin
+SESSION_SAVE_EVERY_REQUEST = True        # Har bir so'rovda sessiya yangilanib tursin
+
 # Kunlik 100% dan oshganda avtomatik beriladigan bonus (UZS) (Hozircha bekor qilingan: 0)
 DAILY_BONUS_AMOUNT = 0
 

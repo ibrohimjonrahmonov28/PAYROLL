@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/backgroundDark">
+
+    <!-- Asosiy Web Interfeys -->
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:overScrollMode="never" />
+
+    <!-- Sahifa yuklanish chizig'i -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_gravity="top"
+        android:indeterminate="false"
+        android:max="100"
+        android:visibility="gone" />
+
+    <!-- Yashirin Sozlamalar nuqtasi (ekranning yuqori o'ng burchagiga 5 marta tez bosilganda ochiladi) -->
+    <View
+        android:id="@+id/secretSettingsTrigger"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_gravity="top|end"
+        android:background="#00000000"
+        android:clickable="true"
+        android:focusable="false" />
+
+    <!-- Tarmoq uzilganda yoki xatolik yuz berganda chiqadigan oyna -->
+    <LinearLayout
+        android:id="@+id/layoutError"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/backgroundDark"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚡"
+            android:textSize="64sp" />
+
+        <TextView
+            android:id="@+id/txtErrorTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/error_network_title"
+            android:textColor="@color/textWhite"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtErrorMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:maxWidth="500dp"
+            android:text="@string/error_network_msg"
+            android:textColor="@color/textMuted"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/txtTargetUrl"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/colorAccent"
+            android:textSize="14sp"
+            android:typeface="monospace" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnRetry"
+                android:layout_width="180dp"
+                android:layout_height="54dp"
+                android:background="@color/buttonPrimary"
+                android:text="@string/retry"
+                android:textColor="@color/textWhite"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="160dp"
+                android:layout_height="54dp"
+                android:layout_marginStart="16dp"
+                android:background="#334155"
+                android:text="@string/open_settings"
+                android:textColor="@color/textWhite"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
