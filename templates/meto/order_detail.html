@@ -75,12 +75,12 @@
                     <h4 class="font-black text-sm text-white flex items-center gap-2">
                         <span>Operatsiyalar biriktirilmagan!</span>
                         <span
-                            class="text-xs font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800">Chop
-                            etish yashirildi</span>
+                            class="text-xs font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800">Qutilar
+                            yaratish cheklangan</span>
                     </h4>
                     <p class="text-xs text-rose-200/90 mt-0.5">
-                        Ushbu modelga texnologik operatsiyalar va narxlar biriktirilmaganligi sababli pastal
-                        stikerlarini chop etish bo'limi yashirildi. Avval operatsiyalarni kiriting.
+                        Ushbu modelga texnologik operatsiyalar va narxlar biriktirilmagan. Qutilar va biletlar to'g'ri
+                        shakllanishi uchun avval operatsiyalarni kiriting.
                     </p>
                 </div>
             </div>
@@ -145,26 +145,11 @@
                         {% endif %}
                     </div>
 
-                    <!-- O'ng Tomon: Holati va Bitta Pastalni Chop Etish Tugmalari -->
+                    <!-- O'ng Tomon: Holati va Pastal Pasporti Tugmalari -->
                     <div class="flex items-center gap-2 flex-wrap" onclick="event.stopPropagation()">
-                        <!-- BITTA PASTALNI CHOP ETISH TUGMASI (User talabi) -->
                         {% if b.has_boxes %}
-                        {% if item_data.operations_count > 0 %}
-                        <a href="{% url 'production:order_print_all_stickers' order.id %}?batch_id={{ b.id }}&pastal={{ b.pastal_code }}"
-                            target="_blank"
-                            class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-md"
-                            title="Faqat ushbu pastal stikerlarini umumiy chop etish (65x45)">
-                            <i class="fa-solid fa-print"></i> Pastalni Chop Etish (65x45)
-                        </a>
-                        {% else %}
-                        <span
-                            class="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
-                            title="Modelga operatsiyalar biriktirilmaganligi sababli stiker chop etish yashirildi">
-                            <i class="fa-solid fa-ban text-rose-400"></i> Chop etish yopiq (Operatsiya yo'q)
-                        </span>
-                        {% endif %}
                         <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
-                            class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
                             title="A4 Pastal Pasportini ko'rish va chop etish">
                             <i class="fa-solid fa-file-lines"></i> Pasport (A4)
                         </a>

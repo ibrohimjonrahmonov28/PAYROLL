@@ -174,20 +174,17 @@
                             <span class="text-emerald-400 font-black digital-font">{{ box.quantity }} dona</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            {% if operations_count > 0 %}
-                            <a href="{% url 'production:box_print_stickers' box.id %}" target="_blank"
-                                class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-[10px] transition flex items-center gap-1">
-                                <i class="fa-solid fa-print"></i> Chop Etish
-                            </a>
-                            <a href="{% url 'production:box_download_stickers_pdf' box.id %}"
-                                class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded text-[10px] transition flex items-center gap-1">
-                                <i class="fa-solid fa-file-pdf"></i> PDF
-                            </a>
+                            {% if box.is_printed %}
+                            <span
+                                class="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold flex items-center gap-1"
+                                title="Stikerlar bo'limi tomonidan chop etilgan">
+                                <i class="fa-solid fa-circle-check text-[9px]"></i> Stiker chiqarilgan
+                            </span>
                             {% else %}
                             <span
-                                class="px-2 py-0.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1"
-                                title="Operatsiyalar biriktirilmagan">
-                                <i class="fa-solid fa-ban text-[9px]"></i> Operatsiya yo'q
+                                class="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-400 rounded text-[10px] font-medium flex items-center gap-1"
+                                title="Stikerlar bo'limida chop etilishi kutilmoqda">
+                                <i class="fa-solid fa-clock text-[9px]"></i> Stiker kutilmoqda
                             </span>
                             {% endif %}
                         </div>
