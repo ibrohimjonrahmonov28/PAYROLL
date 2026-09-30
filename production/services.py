@@ -217,3 +217,74 @@ def auto_generate_boxes_for_batch_item(
 auto_split_boxes_for_batch_item = auto_generate_boxes_for_batch_item
 
 
+# ==============================================================================
+# EKRANLAR VA PATOKLARNI QAYTA NOMLASH FUNKSIYALARI
+# Qoida:
+# 1 dan 13 gacha (13 ham) -> K1, K2, ..., K13
+# 14 va undan keyingilari -> U1, U2, U3, ... (U1 dan boshlab ketadi)
+# ==============================================================================
+
+def get_patok_code(screen_number: int | None) -> str:
+    """
+    Ekran / Patok raqamini yangi nomlash qoidasiga ko'ra kodga o'girish:
+    1 dan 13 gacha (13 ham) -> K1, K2, ..., K13
+    14 va undan keyingilari -> U1, U2, U3, ... (U1 dan boshlab ketadi)
+    """
+    if not screen_number:
+        return ""
+    try:
+        sn = int(screen_number)
+    except (ValueError, TypeError):
+        return ""
+    if sn < 1:
+        return ""
+    if sn <= 13:
+        return f"K{sn}"
+    else:
+        return f"U{sn - 13}"
+
+
+def get_patok_name(screen_number: int | None) -> str:
+    """
+    Ekran / Patok to'liq nomi: masalan, 'K1-Patok', 'K13-Patok', 'U1-Patok', ...
+    """
+    code = get_patok_code(screen_number)
+    return f"{code}-Patok" if code else ""
+
+
+def parse_patok_number(val) -> int | None:
+    """
+    K1..K13, U1..U27 yoki 1..40 ni screen_number (1..40) int ga aylantirish.
+    """
+    if val is None:
+        return None
+    val_str = str(val).strip().upper()
+    if not val_str:
+        return None
+
+    # Check K1..K13
+    if val_str.startswith('K'):
+        num_str = val_str[1:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if 1 <= num <= 13:
+                return num
+
+    # Check U1..U27
+    if val_str.startswith('U'):
+        num_str = val_str[1:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if num >= 1:
+                return 13 + num
+
+    # Check plain number (1..40)
+    if val_str.isdigit():
+        num = int(val_str)
+        if 1 <= num <= 40:
+            return num
+
+    return None
+
+
+

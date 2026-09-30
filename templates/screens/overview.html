@@ -58,7 +58,7 @@
             <!-- Screen Card Header -->
             <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <span class="text-sm font-black text-amber-400 flex items-center gap-1.5">
-                    <i class="fa-solid fa-tv text-xs"></i> {{ s.screen_number }}-PATOK
+                    <i class="fa-solid fa-tv text-xs"></i> {{ s.patok_code|default:s.screen_number }}-PATOK
                 </span>
                 <span
                     class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if s.active_workers_count > 0 %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800 text-slate-500{% endif %}">

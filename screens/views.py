@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, Value, Q
 from django.db.models.functions import Coalesce
 from production.models import Ticket, OrderItem, Operation
+from production.services import get_patok_code, get_patok_name, parse_patok_number
 from accounts.models import Worker
 from django.core.cache import cache
 
@@ -53,6 +54,10 @@ def get_screen_data(screen_number: int, target_date=None):
     if not screen_worker_ids:
         return {
             'screen_number': screen_number,
+            'screen_code': get_patok_code(screen_number),
+            'screen_name': get_patok_name(screen_number),
+            'patok_code': get_patok_code(screen_number),
+            'patok_name': get_patok_name(screen_number),
             'date_str': target_date.strftime("%d.%m.%Y"),
             'workers': [],
             'grand_total_earnings': 0,
@@ -255,6 +260,10 @@ def get_screen_data(screen_number: int, target_date=None):
 
     return {
         'screen_number': screen_number,
+        'screen_code': get_patok_code(screen_number),
+        'screen_name': get_patok_name(screen_number),
+        'patok_code': get_patok_code(screen_number),
+        'patok_name': get_patok_name(screen_number),
         'date_str': target_date.strftime("%d.%m.%Y"),
         'workers': workers_list,
         'grand_total_earnings': grand_total_earnings,
@@ -267,24 +276,27 @@ def get_screen_data(screen_number: int, target_date=None):
     }
 
 
-def screen_view(request, screen_number: int):
-    if not 1 <= screen_number <= MAX_SCREENS:
-        screen_number = 1
+def screen_view(request, screen_number=None, screen_identifier=None):
+    raw = screen_number if screen_number is not None else screen_identifier
+    parsed = parse_patok_number(raw)
+    sn = parsed if (parsed and 1 <= parsed <= MAX_SCREENS) else 1
 
-    data = get_screen_data(screen_number)
+    data = get_screen_data(sn)
     return render(request, 'screens/monitor.html', data)
 
 
-def screen_api_view(request, screen_number: int):
-    if not 1 <= screen_number <= MAX_SCREENS:
-        return JsonResponse({'error': f'Invalid screen number (must be 1-{MAX_SCREENS})'}, status=400)
+def screen_api_view(request, screen_number=None, screen_identifier=None):
+    raw = screen_number if screen_number is not None else screen_identifier
+    sn = parse_patok_number(raw)
+    if not sn or not 1 <= sn <= MAX_SCREENS:
+        return JsonResponse({'error': f'Invalid screen number or code (must be 1-{MAX_SCREENS}, K1-K13, U1-U27)'}, status=400)
 
-    cache_key = f"screen_api_data_{screen_number}"
+    cache_key = f"screen_api_data_{sn}"
     cached_data = cache.get(cache_key)
     if cached_data is not None:
         return JsonResponse(cached_data)
 
-    data = get_screen_data(screen_number)
+    data = get_screen_data(sn)
     cache.set(cache_key, data, timeout=10)
     return JsonResponse(data)
 

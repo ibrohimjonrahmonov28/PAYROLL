@@ -17,6 +17,7 @@ from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
 from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason
 from production.excel_reports import compact_ticket_ids
+from production.services import get_patok_code, get_patok_name
 
 
 def superadmin_required(view_func):
@@ -121,6 +122,8 @@ def superadmin_dashboard(request):
         stat = screen_map.get(s_num, {})
         screen_stats.append({
             'screen_number': s_num,
+            'screen_code': get_patok_code(s_num),
+            'patok_name': get_patok_name(s_num),
             'workers_count': stat.get('workers_count', 0),
             'units_count': stat.get('units_count', 0),
             'total_amount': stat.get('total_amount') or Decimal('0'),

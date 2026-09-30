@@ -15,6 +15,7 @@ except ImportError:
 
 from accounts.models import Worker, WorkerPayout
 from production.models import Ticket, ArticleOperation
+from production.services import get_patok_name, get_patok_code
 
 
 def compact_ticket_ids(tickets, max_ranges=8) -> str:
@@ -293,14 +294,14 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
             if t.screen_number is not None:
                 last_screen_num = t.screen_number
                 break
-        patok_display = f"{last_screen_num}-Patok" if last_screen_num else "—"
+        patok_display = get_patok_name(last_screen_num) if last_screen_num else "—"
 
         # Patoklar xulosasi uchun jamlash
         p_key = last_screen_num
         if p_key not in patok_summary:
             patok_summary[p_key] = {
                 'screen_number': p_key,
-                'patok_name': f"{p_key}-Patok" if p_key is not None else "Biriktirilmagan (Patoksiz)",
+                'patok_name': get_patok_name(p_key) if p_key is not None else "Biriktirilmagan (Patoksiz)",
                 'workers_count': 0,
                 'workers_names': [],
                 'total_units': 0,
@@ -493,7 +494,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         ticket_code_val = t.ticket_code or "—"
         scan_time_str = timezone.localtime(t.scanned_at).strftime('%H:%M:%S') if t.scanned_at else "—"
         worker_name = t.worker.full_name if t.worker else "—"
-        patok_str = f"{t.screen_number}-Patok" if t.screen_number else "—"
+        patok_str = get_patok_name(t.screen_number) if t.screen_number else "—"
         order_num = t.box.order.order_number if t.box and t.box.order else "—"
         box_num = f"#{t.box.box_number}" if t.box else "—"
         
@@ -868,7 +869,7 @@ def _build_day_sheet(
             if t.screen_number is not None:
                 last_screen_num = t.screen_number
                 break
-        patok_display = f"{last_screen_num}-Patok" if last_screen_num else "—"
+        patok_display = get_patok_name(last_screen_num) if last_screen_num else "—"
 
         # Operatsiyalar xulosasi
         op_stats = {}

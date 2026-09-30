@@ -110,12 +110,22 @@ class MasterTerminalAccessRestrictionMiddleware:
             elif getattr(request.user, 'role', None) == User.Role.SCREEN:
                 path = request.path_info
                 screen_num = request.user.assigned_screen_number or 1
+                from production.services import get_patok_code
+                p_code = get_patok_code(screen_num).lower()
 
                 exact_allowed_paths = (
                     f'/screens/{screen_num}/',
                     f'/screens/{screen_num}',
+                    f'/screens/{p_code}/',
+                    f'/screens/{p_code}',
+                    f'/screens/{p_code.upper()}/',
+                    f'/screens/{p_code.upper()}',
                     f'/screens/api/{screen_num}/',
                     f'/screens/api/{screen_num}',
+                    f'/screens/api/{p_code}/',
+                    f'/screens/api/{p_code}',
+                    f'/screens/api/{p_code.upper()}/',
+                    f'/screens/api/{p_code.upper()}',
                 )
                 allowed_prefixes = (
                     '/login/',

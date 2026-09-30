@@ -90,7 +90,7 @@ class TelegramDailyReportTest(TestCase):
         self.assertIn("Skanerlangan Stikerlar", wb.sheetnames)
         self.assertIn("Patoklar Xulosasi", wb.sheetnames)
 
-        # 1-varaq tekshiruvi: Xodim va uning oxirgi patogi (12-Patok)
+        # 1-varaq tekshiruvi: Xodim va uning oxirgi patogi (K12-Patok)
         ws1 = wb["Xodimlar Kunlik Hisoboti"]
         found_worker = False
         found_sticker = False
@@ -98,14 +98,14 @@ class TelegramDailyReportTest(TestCase):
         for row in ws1.iter_rows(values_only=True):
             if 'W-999' in row:
                 found_worker = True
-                if '12-Patok' in row:
+                if 'K12-Patok' in row:
                     found_patok_ws1 = True
                 # Stiker kodi qatorda bo'lishi kerak
                 for cell_val in row:
                     if cell_val and 'STIK9999' in str(cell_val):
                         found_sticker = True
         self.assertTrue(found_worker, "Worker W-999 Excel 1-varaqda topilmadi")
-        self.assertTrue(found_patok_ws1, "12-Patok 1-varaqda xodim qatorida topilmadi")
+        self.assertTrue(found_patok_ws1, "K12-Patok 1-varaqda xodim qatorida topilmadi")
         self.assertTrue(found_sticker, "Stiker kodi STIK9999 1-varaqda topilmadi")
 
         # 2-varaq tekshiruvi: Stiker va uning patogi
@@ -116,19 +116,19 @@ class TelegramDailyReportTest(TestCase):
                 found_ticket_detail = True
                 self.assertIn('Yoqa tikish', row)
                 self.assertIn('Dilshod Karimov', row)
-                self.assertIn('12-Patok', row)
+                self.assertIn('K12-Patok', row)
         self.assertTrue(found_ticket_detail, "Stiker tafsiloti 2-varaqda topilmadi")
 
         # 3-varaq tekshiruvi: Patoklar Xulosasi
         ws3 = wb["Patoklar Xulosasi"]
         found_patok_summary = False
         for row in ws3.iter_rows(values_only=True):
-            if '12-Patok' in row:
+            if 'K12-Patok' in row:
                 found_patok_summary = True
                 self.assertIn('Dilshod Karimov', row[3])
                 self.assertEqual(row[4], 50)  # dona
                 self.assertEqual(row[5], 25000.0)  # summa
-        self.assertTrue(found_patok_summary, "12-Patok xulosasi 3-varaqda topilmadi")
+        self.assertTrue(found_patok_summary, "K12-Patok xulosasi 3-varaqda topilmadi")
 
     def test_send_daily_excel_report_no_credentials(self):
         """Token yoki chat_id berilmasa, xatolik xabari qaytishi kerak"""

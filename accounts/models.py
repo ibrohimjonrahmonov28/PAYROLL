@@ -143,10 +143,16 @@ class User(AbstractUser):
     def assigned_screen_number(self):
         """
         SCREEN roli foydalanuvchisi uchun biriktirilgan ekran raqami (1..40).
-        Masalan, ekran1 -> 1, ..., ekran40 -> 40.
+        Masalan, ekran1 -> 1, ..., ekran40 -> 40, yoki k1 -> 1, u1 -> 14.
         """
         if self.role == self.Role.SCREEN:
             import re
+            u_clean = (self.username or '').strip().upper()
+            from production.services import parse_patok_number
+            parsed = parse_patok_number(u_clean)
+            if parsed and 1 <= parsed <= 40:
+                return parsed
+
             match = re.search(r'\d+', self.username or '')
             if match:
                 try:

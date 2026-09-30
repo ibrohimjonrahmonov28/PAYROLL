@@ -19,9 +19,11 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from accounts.views import login_view, logout_view
+from production.control_views import control_download_apk_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('apk/', control_download_apk_view, name='root_download_apk'),
     path('login/', login_view, name='root_login'),
     path('logout/', logout_view, name='root_logout'),
     path('', include('production.urls')),

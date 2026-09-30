@@ -581,3 +581,30 @@ def control_recent_inspections_api(request):
         'logs': data
     })
 
+
+def control_download_apk_view(request):
+    """
+    Sifat Nazorati (OTK / Control) plansheti uchun APK dasturini yuklab berish.
+    """
+    import os
+    from django.conf import settings
+    from django.http import FileResponse, Http404
+
+    candidate_paths = [
+        os.path.join(settings.BASE_DIR, 'static', 'apk', 'terryjar_control.apk'),
+        os.path.join(settings.BASE_DIR, 'staticfiles', 'apk', 'terryjar_control.apk'),
+        os.path.join(settings.BASE_DIR, 'android_control', 'terryjar_control.apk'),
+        os.path.join(settings.BASE_DIR, 'media', 'terryjar_control.apk'),
+    ]
+
+    for p in candidate_paths:
+        if os.path.exists(p):
+            return FileResponse(
+                open(p, 'rb'),
+                as_attachment=True,
+                filename='terryjar_control.apk',
+                content_type='application/vnd.android.package-archive'
+            )
+
+    raise Http404("APK fayli topilmadi.")
+

@@ -120,10 +120,16 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         # Check that large clock exists next to Terry Jar and Patok badge
         self.assertIn("live-clock", html)
         self.assertIn("TERRY JAR", html)
-        self.assertIn("1-PATOK", html)
+        self.assertIn("K1-PATOK", html)
 
         # Check that the stat label specifies Dazmol
         self.assertIn("Bugun Tikilgan (Dazmol)", html)
+
+        # View screen 14 -> must show U1-PATOK
+        res14 = self.client.get(reverse('screens:screen_view', args=[14]))
+        self.assertEqual(res14.status_code, 200)
+        html14 = res14.content.decode('utf-8')
+        self.assertIn("U1-PATOK", html14)
 
 
 class ScreenAccountAuthAndAccessRestrictionTest(TestCase):

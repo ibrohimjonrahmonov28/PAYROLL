@@ -112,7 +112,8 @@
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
                     Har bir modelning o'z umumiy normasi bo'yicha ball to'planadi (Formula:
-                    <code>dona &times; qiyinlik</code>). Tizim tezligi va qulaylik uchun eng yuqori ko'rsatkichli <strong>Top 20</strong> nafar tikuvchi reytingi.
+                    <code>dona &times; qiyinlik</code>). Tizim tezligi va qulaylik uchun eng yuqori ko'rsatkichli
+                    <strong>Top 20</strong> nafar tikuvchi reytingi.
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2.5">
@@ -334,7 +335,8 @@
                 {% for s in screen_stats %}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-black text-amber-400 digital-font">TV {{ s.screen_number }}</span>
+                        <span class="text-xs font-black text-amber-400 digital-font">{{
+                            s.patok_name|default:s.screen_number }}</span>
                         <span class="text-[10px] text-slate-500 font-mono">{{ s.workers_count }} xodim</span>
                     </div>
                     <div class="text-sm font-black text-emerald-400 digital-font">

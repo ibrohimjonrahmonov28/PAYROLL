@@ -122,7 +122,7 @@
                 class="flex items-center gap-2 bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition rounded-xl px-3 py-1.5 text-xs shadow-inner">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span class="font-bold text-slate-400">Patok:</span>
-                <span id="active-patok-display" class="font-black text-amber-400 digital-font text-sm">1-Patok</span>
+                <span id="active-patok-display" class="font-black text-amber-400 digital-font text-sm">K1-Patok</span>
                 <button type="button" onclick="openPatokModal()"
                     class="ml-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
                     title="Boshqa patokni tanlash">
@@ -484,7 +484,7 @@
                         <button id="finalize-btn" onclick="finalizeBatch()" disabled
                             class="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-slate-950 font-black rounded-xl text-sm shadow-xl transition flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed">
                             <i class="fa-solid fa-circle-check text-base"></i>
-                            <span id="finalize-btn-text">1-PATOK EKRANIGA UZATISH (ENTER)</span>
+                            <span id="finalize-btn-text">K1-PATOK EKRANIGA UZATISH (ENTER)</span>
                         </button>
                     </div>
                 </div>
@@ -559,11 +559,11 @@
                 <div class="flex items-center gap-2">
                     <div class="relative">
                         <i
-                            class="fa-solid fa-hashtag absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                        <input type="number" id="patok-quick-input" min="1" max="40" placeholder="Raqam: 1-40..."
+                            class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="patok-quick-input" placeholder="Qidirish: K1, U1, 1-40..."
                             oninput="filterPatokCards(this.value)"
                             onkeydown="if(event.key==='Enter') selectPatokByInput()"
-                            class="w-36 sm:w-44 pl-7 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-500">
+                            class="w-36 sm:w-44 pl-7 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold text-xs uppercase focus:outline-none focus:border-amber-500">
                     </div>
                     <button type="button" onclick="closePatokModal()"
                         class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition border border-slate-700">
@@ -577,7 +577,7 @@
                 <div id="patoks-grid-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-8 gap-2 sm:gap-2.5">
                     {% for p in patoks_data %}
                     <button type="button" onclick="selectPatok({{ p.number }})" id="patok-card-{{ p.number }}"
-                        data-patok="{{ p.number }}" class="patok-card group relative p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 text-center flex flex-col items-center justify-between
+                        data-patok="{{ p.number }}" data-code="{{ p.code }}" data-name="{{ p.name }}" class="patok-card group relative p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 text-center flex flex-col items-center justify-between
                         {% if p.is_active %}
                         bg-emerald-950/40 border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-900/50 shadow-lg shadow-emerald-950/40
                         {% else %}
@@ -597,7 +597,7 @@
                             <span
                                 class="text-xl sm:text-2xl font-black digital-font block leading-none
                                 {% if p.is_active %}text-emerald-400 group-hover:text-emerald-300{% else %}text-white group-hover:text-amber-400{% endif %}">
-                                {{ p.number }}
+                                {{ p.code }}
                             </span>
                             <span class="text-[10px] font-extrabold uppercase tracking-wider block mt-0.5
                                 {% if p.is_active %}text-emerald-300/80{% else %}text-slate-400{% endif %}">
@@ -1414,7 +1414,7 @@
                         const sm = data.summary;
                         showStatusBanner('success',
                             `✅ ${sm.total_amount_formatted} UZS QABUL QILINDI!`,
-                            `Tikuvchi: ${sm.worker_name} (${sm.worker_id})\n${sm.screen_number}-Patok Ekrani yangilandi: ${sm.tickets_count} ta bilet, ${sm.total_units} dona kiyim.`
+                            `Tikuvchi: ${sm.worker_name} (${sm.worker_id})\n${sm.screen_name || getPatokName(sm.screen_number)} Ekrani yangilandi: ${sm.tickets_count} ta bilet, ${sm.total_units} dona kiyim.`
                         );
 
                         prependRecentScanLog(sm.worker_name, sm.total_units, sm.total_amount_formatted);
@@ -1485,8 +1485,35 @@
         // -------------------------------------------------------------
         // 8. 40 TA PATOK (LINIYA) BOSHQARUVI & LOCALSTORAGE
         // -------------------------------------------------------------
+        function getPatokCode(num) {
+            num = parseInt(num, 10);
+            if (!num || num < 1) return 'K1';
+            if (num <= 13) return `K${num}`;
+            return `U${num - 13}`;
+        }
+
+        function getPatokName(num) {
+            return `${getPatokCode(num)}-Patok`;
+        }
+
+        function parsePatokInput(val) {
+            if (!val) return null;
+            val = String(val).trim().toUpperCase();
+            if (val.startsWith('K')) {
+                const n = parseInt(val.slice(1), 10);
+                if (!isNaN(n) && n >= 1 && n <= 13) return n;
+            }
+            if (val.startsWith('U')) {
+                const n = parseInt(val.slice(1), 10);
+                if (!isNaN(n) && n >= 1) return 13 + n;
+            }
+            const n = parseInt(val, 10);
+            if (!isNaN(n) && n >= 1 && n <= 40) return n;
+            return null;
+        }
+
         function getFinalizeBtnText() {
-            return `${selectedScreenNumber}-PATOK EKRANIGA UZATISH (ENTER)`;
+            return `${getPatokName(selectedScreenNumber).toUpperCase()} EKRANIGA UZATISH (ENTER)`;
         }
 
         function openPatokModal() {
@@ -1518,27 +1545,30 @@
             updatePatokDisplay(selectedScreenNumber);
             closePatokModal();
 
+            const pName = getPatokName(selectedScreenNumber);
             showStatusBanner('success',
-                `✅ ${selectedScreenNumber}-PATOK FAOL QILINDI`,
-                `Endi barcha skanerlangan biletlar ${selectedScreenNumber}-Patok monitoriga uzatiladi.`
+                `✅ ${pName.toUpperCase()} FAOL QILINDI`,
+                `Endi barcha skanerlangan biletlar ${pName} monitoriga uzatiladi.`
             );
         }
 
         function selectPatokByInput() {
             const input = document.getElementById('patok-quick-input');
             if (!input) return;
-            const val = parseInt(input.value.trim(), 10);
-            if (!isNaN(val) && val >= 1 && val <= 40) {
-                selectPatok(val);
+            const parsed = parsePatokInput(input.value);
+            if (parsed && parsed >= 1 && parsed <= 40) {
+                selectPatok(parsed);
             }
         }
 
         function filterPatokCards(query) {
-            query = (query || '').trim();
+            query = (query || '').trim().toUpperCase();
             const cards = document.querySelectorAll('.patok-card');
             cards.forEach(card => {
-                const num = card.getAttribute('data-patok');
-                if (!query || num.includes(query)) {
+                const num = card.getAttribute('data-patok') || '';
+                const code = (card.getAttribute('data-code') || '').toUpperCase();
+                const name = (card.getAttribute('data-name') || '').toUpperCase();
+                if (!query || num === query || code.includes(query) || name.includes(query)) {
                     card.style.display = '';
                 } else {
                     card.style.display = 'none';
@@ -1557,16 +1587,17 @@
         }
 
         function updatePatokDisplay(sc) {
+            const patokName = getPatokName(sc);
             const displayEl = document.getElementById('active-patok-display');
-            if (displayEl) displayEl.innerText = `${sc}-Patok`;
+            if (displayEl) displayEl.innerText = patokName;
 
             const footerEl = document.getElementById('footer-screen-name');
-            if (footerEl) footerEl.innerText = `${sc}-Patok Ekrani`;
+            if (footerEl) footerEl.innerText = `${patokName} Ekrani`;
 
             const monitorLink = document.getElementById('screen-monitor-link');
             if (monitorLink) {
                 monitorLink.href = `/screens/${sc}/`;
-                monitorLink.title = `${sc}-Patok televizorini ochish`;
+                monitorLink.title = `${patokName} televizorini ochish`;
             }
 
             const finalizeText = document.getElementById('finalize-btn-text');
@@ -1580,9 +1611,9 @@
             const urlParams = new URLSearchParams(window.location.search);
             const paramScreen = urlParams.get('screen') || urlParams.get('patok');
             if (paramScreen) {
-                const pNum = parseInt(paramScreen, 10);
-                if (!isNaN(pNum) && pNum >= 1 && pNum <= 40) {
-                    selectedScreenNumber = pNum;
+                const parsed = parsePatokInput(paramScreen);
+                if (parsed && parsed >= 1 && parsed <= 40) {
+                    selectedScreenNumber = parsed;
                     localStorage.setItem('master_terminal_screen', selectedScreenNumber);
                     sessionStorage.setItem('patok_modal_shown', 'true');
                 }
@@ -1989,7 +2020,7 @@
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <span class="text-slate-400">Patok (Ekran):</span>
-                                        <span class="text-cyan-300 font-bold">${t.screen_number}-patok</span>
+                                        <span class="text-cyan-300 font-bold">${t.screen_name || (t.screen_number ? getPatokName(t.screen_number) : '—')}</span>
                                     </div>
                                 </div>
 

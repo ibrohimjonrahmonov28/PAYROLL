@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from accounts.models import Worker, User
 from production.models import Ticket, Box, Order
+from production.services import get_patok_code, get_patok_name, parse_patok_number
 
 
 RU_TO_EN_TRANS = str.maketrans(
@@ -145,7 +146,8 @@ def terminal_home_view(request):
         st = screen_stats_map.get(sc, {'workers': 0, 'units': 0})
         patoks_data.append({
             'number': sc,
-            'name': f"{sc}-Patok",
+            'code': get_patok_code(sc),
+            'name': get_patok_name(sc),
             'workers_count': st['workers'],
             'units_count': st['units'],
             'is_active': (st['workers'] > 0 or st['units'] > 0)
@@ -619,7 +621,7 @@ def terminal_finalize_api(request):
 
     try:
         screen_raw = _get_request_param(request, 'screen_number', 'screen', default='1')
-        screen_number = int(screen_raw)
+        screen_number = parse_patok_number(screen_raw) or 1
         if screen_number < 1 or screen_number > 40:
             screen_number = 1
     except (ValueError, TypeError):
@@ -682,6 +684,8 @@ def terminal_finalize_api(request):
             'worker_name': worker.full_name,
             'worker_id': worker.worker_id,
             'screen_number': screen_number,
+            'screen_code': get_patok_code(screen_number),
+            'screen_name': get_patok_name(screen_number),
             'tickets_count': len(valid_tickets),
             'total_units': total_units,
             'total_amount': float(total_amount),
@@ -737,6 +741,8 @@ def terminal_box_lookup_api(request):
             'worker_name': t.worker.full_name if t.worker else "—",
             'scanned_at': timezone.localtime(t.scanned_at).strftime("%d.%m %H:%M") if t.scanned_at else "—",
             'screen_number': t.screen_number or "—",
+            'screen_code': t.patok_code or "—",
+            'screen_name': t.patok_name or "—",
         })
 
     model_name = box.article.name if box.article else (box.order.article.name if box.order.article else "—")
@@ -1006,6 +1012,8 @@ def terminal_ticket_info_api(request):
             'scanned_at': scanned_at_str,
             'scanned_by': master_name,
             'screen_number': ticket.screen_number or "—",
+            'screen_code': ticket.patok_code or "—",
+            'screen_name': ticket.patok_name or "—",
         }
     })
 

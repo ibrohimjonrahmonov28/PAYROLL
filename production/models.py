@@ -1315,6 +1315,19 @@ class Ticket(models.Model):
             return f"#{self.stiker_code}"
         return f"#{self.id}" if self.id else "#"
 
+    @property
+    def patok_code(self):
+        if not self.screen_number or self.screen_number < 1:
+            return ""
+        if self.screen_number <= 13:
+            return f"K{self.screen_number}"
+        return f"U{self.screen_number - 13}"
+
+    @property
+    def patok_name(self):
+        code = self.patok_code
+        return f"{code}-Patok" if code else ""
+
     def __str__(self):
         return f"{self.ticket_code} ({self.article_operation.operation.name}: {self.quantity} dona)"
 
