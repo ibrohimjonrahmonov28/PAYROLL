@@ -448,8 +448,19 @@
                         <label class="block text-xs font-bold text-slate-300 mb-1">
                             Pastal Kodi * <span class="text-rose-400 font-normal">(majburiy)</span>
                         </label>
-                        <input type="text" name="pastal_code" required placeholder="Masalan: P-01 yoki 1"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-mono shadow-inner">
+                        <div class="relative">
+                            <input type="text" name="pastal_code" id="add-pastal-code" required placeholder="Masalan: P-01 yoki 1" autocomplete="off"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 pr-8 text-xs text-white focus:outline-none focus:border-rose-500 font-mono shadow-inner transition">
+                            <span id="add-pastal-status-icon" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden text-xs"></span>
+                        </div>
+                        <p id="add-pastal-error" class="hidden text-[11px] text-rose-400 font-bold mt-1.5 flex items-center gap-1.5 animate-pulse">
+                            <i class="fa-solid fa-circle-exclamation text-xs"></i>
+                            <span id="add-pastal-error-text">Ushbu pastal kodi bu modelda allaqachon mavjud!</span>
+                        </p>
+                        <p id="add-pastal-success" class="hidden text-[11px] text-emerald-400 font-bold mt-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-xs"></i>
+                            <span>Ushbu pastal kodi kiritish uchun mos (band emas)</span>
+                        </p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">
@@ -501,7 +512,7 @@
                     class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
                     Bekor Qilish
                 </button>
-                <button type="submit"
+                <button type="submit" id="add-batch-submit-btn"
                     class="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition">
                     Saqlash (Meto Bo'limiga Uzatish)
                 </button>
@@ -535,8 +546,19 @@
                         <label class="block text-xs font-bold text-slate-300 mb-1">
                             Pastal Kodi * <span class="text-rose-400 font-normal">(majburiy)</span>
                         </label>
-                        <input type="text" name="pastal_code" id="edit-pastal-code" required
-                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                        <div class="relative">
+                            <input type="text" name="pastal_code" id="edit-pastal-code" required autocomplete="off"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 pr-8 text-xs text-white font-mono transition">
+                            <span id="edit-pastal-status-icon" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden text-xs"></span>
+                        </div>
+                        <p id="edit-pastal-error" class="hidden text-[11px] text-rose-400 font-bold mt-1.5 flex items-center gap-1.5 animate-pulse">
+                            <i class="fa-solid fa-circle-exclamation text-xs"></i>
+                            <span id="edit-pastal-error-text">Ushbu pastal kodi bu modelda allaqachon mavjud!</span>
+                        </p>
+                        <p id="edit-pastal-success" class="hidden text-[11px] text-emerald-400 font-bold mt-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-xs"></i>
+                            <span>Ushbu pastal kodi kiritish uchun mos (band emas)</span>
+                        </p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">Partiya Raqami</label>
@@ -590,7 +612,7 @@
                         class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
                         Bekor Qilish
                     </button>
-                    <button type="submit"
+                    <button type="submit" id="edit-batch-submit-btn"
                         class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">
                         O'zgarishlarni Saqlash
                     </button>
@@ -921,6 +943,243 @@
         }
     }
 
+    // Partiyalar ma'lumotlari keshi (Tezkor 0ms tekshiruv uchun)
+    const allBatchesCache = [
+        {% for b in all_batches_flat %}
+        {
+            id: {{ b.batch.id }},
+            itemId: '{{ b.item_id }}',
+            pastalCode: '{{ b.pastal_code|default:''|escapejs }}',
+            articleCode: '{{ b.article_code|escapejs }}'
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    let currentAddBatchContext = { itemId: '', artCode: '' };
+    let currentEditBatch = { id: null, name: '', pastal: '', artCode: '', itemId: '', qty: '' };
+    let pastalCheckAbortCtrl = null;
+
+    function checkPastalViaApi(itemId, pastalCode, excludeBatchId, callback) {
+        if (!itemId || !pastalCode) return;
+        if (pastalCheckAbortCtrl) {
+            pastalCheckAbortCtrl.abort();
+        }
+        pastalCheckAbortCtrl = new AbortController();
+
+        let url = `{% url 'api_cutting_check_pastal' %}?order_item_id=${encodeURIComponent(itemId)}&pastal_code=${encodeURIComponent(pastalCode)}`;
+        if (excludeBatchId) {
+            url += `&exclude_batch_id=${encodeURIComponent(excludeBatchId)}`;
+        }
+
+        fetch(url, { signal: pastalCheckAbortCtrl.signal })
+            .then(res => res.json())
+            .then(data => {
+                callback(data.exists, data.message);
+            })
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    console.error("Pastal tekshirish xatosi:", err);
+                }
+            });
+    }
+
+    function resetAddPastalValidation() {
+        const input = document.getElementById('add-pastal-code');
+        const errEl = document.getElementById('add-pastal-error');
+        const succEl = document.getElementById('add-pastal-success');
+        const iconEl = document.getElementById('add-pastal-status-icon');
+        const submitBtn = document.getElementById('add-batch-submit-btn');
+
+        if (!input) return;
+        input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/30', 'border-emerald-500', 'ring-emerald-500/30');
+        input.classList.add('border-slate-700');
+        if (errEl) errEl.classList.add('hidden');
+        if (succEl) succEl.classList.add('hidden');
+        if (iconEl) iconEl.classList.add('hidden');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function validateAddPastalCode() {
+        const input = document.getElementById('add-pastal-code');
+        const errEl = document.getElementById('add-pastal-error');
+        const errText = document.getElementById('add-pastal-error-text');
+        const succEl = document.getElementById('add-pastal-success');
+        const iconEl = document.getElementById('add-pastal-status-icon');
+        const submitBtn = document.getElementById('add-batch-submit-btn');
+
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val) {
+            resetAddPastalValidation();
+            return;
+        }
+
+        const itemId = currentAddBatchContext.itemId;
+        const artCode = currentAddBatchContext.artCode || '';
+
+        // 1. Tezkor sinxron kesh tekshiruvi (0 ms)
+        const duplicateInCache = allBatchesCache.some(b => 
+            String(b.itemId) === String(itemId) && 
+            b.pastalCode.trim().toLowerCase() === val.toLowerCase()
+        );
+
+        if (duplicateInCache) {
+            input.classList.remove('border-slate-700', 'border-emerald-500', 'ring-emerald-500/30');
+            input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/30');
+            if (errText) errText.innerText = `"${val}" pastal kodi bu modelda (${artCode}) allaqachon mavjud! Qayta kiritish mumkin emas.`;
+            if (errEl) errEl.classList.remove('hidden');
+            if (succEl) succEl.classList.add('hidden');
+            if (iconEl) {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-500 text-sm"></i>';
+                iconEl.classList.remove('hidden');
+            }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            return;
+        }
+
+        // 2. Server API Tekshiruvi
+        checkPastalViaApi(itemId, val, null, (exists, message) => {
+            if (input.value.trim().toLowerCase() !== val.toLowerCase()) return;
+            if (exists) {
+                input.classList.remove('border-slate-700', 'border-emerald-500', 'ring-emerald-500/30');
+                input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/30');
+                if (errText) errText.innerText = message || `"${val}" pastal kodi bu modelda (${artCode}) allaqachon mavjud!`;
+                if (errEl) errEl.classList.remove('hidden');
+                if (succEl) succEl.classList.add('hidden');
+                if (iconEl) {
+                    iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-500 text-sm"></i>';
+                    iconEl.classList.remove('hidden');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                input.classList.remove('border-slate-700', 'border-rose-500', 'ring-2', 'ring-rose-500/30');
+                input.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-500/30');
+                if (errEl) errEl.classList.add('hidden');
+                if (succEl) succEl.classList.remove('hidden');
+                if (iconEl) {
+                    iconEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>';
+                    iconEl.classList.remove('hidden');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        });
+    }
+
+    function resetEditPastalValidation() {
+        const input = document.getElementById('edit-pastal-code');
+        const errEl = document.getElementById('edit-pastal-error');
+        const succEl = document.getElementById('edit-pastal-success');
+        const iconEl = document.getElementById('edit-pastal-status-icon');
+        const submitBtn = document.getElementById('edit-batch-submit-btn');
+
+        if (!input) return;
+        input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/30', 'border-emerald-500', 'ring-emerald-500/30');
+        input.classList.add('border-slate-700');
+        if (errEl) errEl.classList.add('hidden');
+        if (succEl) succEl.classList.add('hidden');
+        if (iconEl) iconEl.classList.add('hidden');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function validateEditPastalCode() {
+        const input = document.getElementById('edit-pastal-code');
+        const errEl = document.getElementById('edit-pastal-error');
+        const errText = document.getElementById('edit-pastal-error-text');
+        const succEl = document.getElementById('edit-pastal-success');
+        const iconEl = document.getElementById('edit-pastal-status-icon');
+        const submitBtn = document.getElementById('edit-batch-submit-btn');
+
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val) {
+            resetEditPastalValidation();
+            return;
+        }
+
+        const batchId = currentEditBatch.id;
+        const itemId = currentEditBatch.itemId;
+        const originalPastal = (currentEditBatch.pastal || '').trim().toLowerCase();
+        const artCode = currentEditBatch.artCode || '';
+
+        // Agar o'zining avvalgi pastal kodi bo'lsa - to'g'ri hisoblanadi
+        if (val.toLowerCase() === originalPastal) {
+            resetEditPastalValidation();
+            return;
+        }
+
+        // 1. Tezkor sinxron kesh tekshiruvi (0 ms)
+        const duplicateInCache = allBatchesCache.some(b => 
+            String(b.id) !== String(batchId) &&
+            String(b.itemId) === String(itemId) && 
+            b.pastalCode.trim().toLowerCase() === val.toLowerCase()
+        );
+
+        if (duplicateInCache) {
+            input.classList.remove('border-slate-700', 'border-emerald-500', 'ring-emerald-500/30');
+            input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/30');
+            if (errText) errText.innerText = `"${val}" pastal kodi bu modelda (${artCode}) allaqachon mavjud! Qayta kiritish mumkin emas.`;
+            if (errEl) errEl.classList.remove('hidden');
+            if (succEl) succEl.classList.add('hidden');
+            if (iconEl) {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-500 text-sm"></i>';
+                iconEl.classList.remove('hidden');
+            }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            return;
+        }
+
+        // 2. Server API Tekshiruvi
+        checkPastalViaApi(itemId, val, batchId, (exists, message) => {
+            if (input.value.trim().toLowerCase() !== val.toLowerCase()) return;
+            if (exists) {
+                input.classList.remove('border-slate-700', 'border-emerald-500', 'ring-emerald-500/30');
+                input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/30');
+                if (errText) errText.innerText = message || `"${val}" pastal kodi bu modelda (${artCode}) allaqachon mavjud!`;
+                if (errEl) errEl.classList.remove('hidden');
+                if (succEl) succEl.classList.add('hidden');
+                if (iconEl) {
+                    iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-500 text-sm"></i>';
+                    iconEl.classList.remove('hidden');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                input.classList.remove('border-slate-700', 'border-rose-500', 'ring-2', 'ring-rose-500/30');
+                input.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-500/30');
+                if (errEl) errEl.classList.add('hidden');
+                if (succEl) succEl.classList.remove('hidden');
+                if (iconEl) {
+                    iconEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>';
+                    iconEl.classList.remove('hidden');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('cutting-search-input');
         if (searchInput) {
@@ -929,12 +1188,80 @@
                 filterCuttingData();
             }
         }
+
+        // Real-time Pastal kodi tekshiruvi tinglovchilari
+        const addPastalInput = document.getElementById('add-pastal-code');
+        if (addPastalInput) {
+            addPastalInput.addEventListener('input', validateAddPastalCode);
+            addPastalInput.addEventListener('blur', validateAddPastalCode);
+        }
+
+        const editPastalInput = document.getElementById('edit-pastal-code');
+        if (editPastalInput) {
+            editPastalInput.addEventListener('input', validateEditPastalCode);
+            editPastalInput.addEventListener('blur', validateEditPastalCode);
+        }
+
+        // Yangi partiya formasi jo'natilayotganda qo'shimcha to'siq
+        const addForm = document.getElementById('add-batch-form');
+        if (addForm) {
+            addForm.addEventListener('submit', function (e) {
+                const val = (document.getElementById('add-pastal-code').value || '').trim();
+                const itemId = currentAddBatchContext.itemId;
+                const artCode = currentAddBatchContext.artCode || '';
+                const duplicateInCache = allBatchesCache.some(b => 
+                    String(b.itemId) === String(itemId) && 
+                    b.pastalCode.trim().toLowerCase() === val.toLowerCase()
+                );
+                if (duplicateInCache) {
+                    e.preventDefault();
+                    validateAddPastalCode();
+                    document.getElementById('add-pastal-code').focus();
+                    alert(`"${val}" pastal kodi bu modelda (${artCode}) allaqachon mavjud! Iltimos, boshqa pastal kod kiriting.`);
+                    return false;
+                }
+            });
+        }
+
+        // Tahrirlash formasi jo'natilayotganda qo'shimcha to'siq
+        const editForm = document.getElementById('edit-batch-form');
+        if (editForm) {
+            editForm.addEventListener('submit', function (e) {
+                const val = (document.getElementById('edit-pastal-code').value || '').trim();
+                const batchId = currentEditBatch.id;
+                const itemId = currentEditBatch.itemId;
+                const originalPastal = (currentEditBatch.pastal || '').trim().toLowerCase();
+                const artCode = currentEditBatch.artCode || '';
+
+                if (val.toLowerCase() !== originalPastal) {
+                    const duplicateInCache = allBatchesCache.some(b => 
+                        String(b.id) !== String(batchId) &&
+                        String(b.itemId) === String(itemId) && 
+                        b.pastalCode.trim().toLowerCase() === val.toLowerCase()
+                    );
+                    if (duplicateInCache) {
+                        e.preventDefault();
+                        validateEditPastalCode();
+                        document.getElementById('edit-pastal-code').focus();
+                        alert(`"${val}" pastal kodi bu modelda (${artCode}) allaqachon mavjud! Iltimos, boshqa pastal kod kiriting.`);
+                        return false;
+                    }
+                }
+            });
+        }
     });
 
     function openAddBatchModal(itemId, artCode, batchName) {
+        currentAddBatchContext = { itemId: String(itemId), artCode: artCode };
         document.getElementById('modal-batch-title').innerText = batchName;
         document.getElementById('modal-art-code').innerText = artCode;
         document.getElementById('add-batch-form').action = `{% url 'cutting_dashboard' %}orders/{{ order.id }}/items/${itemId}/add-batch/`;
+
+        const addPastalInput = document.getElementById('add-pastal-code');
+        if (addPastalInput) {
+            addPastalInput.value = '';
+        }
+        resetAddPastalValidation();
 
         const sizesContainer = document.getElementById('modal-sizes-inputs');
         sizesContainer.innerHTML = '';
@@ -967,10 +1294,12 @@
         document.getElementById('add-batch-modal').classList.add('hidden');
     }
 
-    let currentEditBatch = { id: null, name: '', pastal: '', artCode: '', qty: '' };
-
-    function openEditBatchModal(batchId, batchName, cutterName, pastalCode, partiyaNumber, fabricWeight, fabricBatch, notes, items, artCode = '', totalQty = '') {
-        currentEditBatch = { id: batchId, name: batchName, pastal: pastalCode, artCode: artCode, qty: totalQty };
+    function openEditBatchModal(batchId, batchName, cutterName, pastalCode, partiyaNumber, fabricWeight, fabricBatch, notes, items, artCode = '', totalQty = '', itemId = '') {
+        if (!itemId) {
+            const found = allBatchesCache.find(b => String(b.id) === String(batchId));
+            itemId = found ? found.itemId : '';
+        }
+        currentEditBatch = { id: batchId, name: batchName, pastal: pastalCode || '', artCode: artCode, itemId: String(itemId), qty: totalQty };
         document.getElementById('edit-modal-title').innerText = batchName + ' ni Tahrirlash';
         document.getElementById('edit-batch-form').action = `{% url 'cutting_dashboard' %}orders/{{ order.id }}/batches/${batchId}/edit/`;
         document.getElementById('edit-cutter-name').value = cutterName || '';
@@ -979,6 +1308,7 @@
         document.getElementById('edit-fabric-weight').value = fabricWeight || '';
         document.getElementById('edit-fabric-batch').value = fabricBatch || '';
         document.getElementById('edit-notes').value = notes || '';
+        resetEditPastalValidation();
 
         const editSizesContainer = document.getElementById('edit-sizes-inputs');
         editSizesContainer.innerHTML = '';

@@ -381,6 +381,52 @@ def cutting_item_detail_view(request, order_id: int, order_item_id: int):
 
 
 @cutter_required
+def api_check_pastal_code(request):
+    """
+    Pastal kodi ushbu modelda (OrderItem) avval kiritilganligini real-time tekshirish API:
+    - order_item_id: qaysi artikul/model ekanligi
+    - pastal_code: tekshirilayotgan pastal kodi
+    - exclude_batch_id: tahrirlanayotgan partiya ID si (o'zini o'zi dublikat deb hisoblamasligi uchun)
+    """
+    order_item_id = request.GET.get('order_item_id')
+    pastal_code = request.GET.get('pastal_code', '').strip()
+    exclude_batch_id = request.GET.get('exclude_batch_id')
+
+    if not order_item_id or not pastal_code:
+        return JsonResponse({'exists': False, 'valid': True})
+
+    try:
+        order_item = OrderItem.objects.select_related('article').get(id=order_item_id)
+    except (OrderItem.DoesNotExist, ValueError):
+        return JsonResponse({'exists': False, 'valid': False, 'message': "Model topilmadi!"}, status=404)
+
+    qs = CuttingBatch.objects.filter(
+        order_item=order_item,
+        pastal_code__iexact=pastal_code
+    )
+
+    if exclude_batch_id:
+        try:
+            qs = qs.exclude(id=int(exclude_batch_id))
+        except (ValueError, TypeError):
+            pass
+
+    exists = qs.exists()
+    if exists:
+        return JsonResponse({
+            'exists': True,
+            'valid': False,
+            'message': f"'{pastal_code}' pastal kodi ushbu modelda ({order_item.article.code}) allaqachon mavjud! Qayta kiritish taqiqlanadi."
+        })
+    else:
+        return JsonResponse({
+            'exists': False,
+            'valid': True,
+            'message': "Bu pastal kodi kiritish uchun mos."
+        })
+
+
+@cutter_required
 def cutting_add_batch(request, order_id: int, order_item_id: int):
     """
     Yangi Kesim Partiyasi Kiritish (POST):
@@ -400,6 +446,14 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
     pastal_code = request.POST.get('pastal_code', '').strip()
     if not pastal_code:
         messages.error(request, "Pastal kodi kiritilishi majburiy!")
+        return redirect('cutting_order_detail', order_id=order_id)
+
+    # Bir model/artikul uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi
+    if CuttingBatch.objects.filter(order_item=order_item, pastal_code__iexact=pastal_code).exists():
+        messages.error(
+            request,
+            f"'{pastal_code}' pastal kodi ushbu artikulda ({order_item.article.code}) allaqachon mavjud! Bitta model uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi."
+        )
         return redirect('cutting_order_detail', order_id=order_id)
 
     partiya_number = request.POST.get('partiya_number', '').strip()
@@ -489,6 +543,14 @@ def cutting_edit_batch(request, order_id: int, batch_id: int):
         pastal_code = request.POST.get('pastal_code', '').strip()
         if not pastal_code:
             messages.error(request, "Pastal kodi kiritilishi majburiy!")
+            return redirect('cutting_order_detail', order_id=order.id)
+
+        # Bir model/artikul uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi (o'zidan tashqari)
+        if CuttingBatch.objects.filter(order_item=batch.order_item, pastal_code__iexact=pastal_code).exclude(id=batch.id).exists():
+            messages.error(
+                request,
+                f"'{pastal_code}' pastal kodi ushbu artikulda ({batch.order_item.article.code}) allaqachon mavjud! Bitta model uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi."
+            )
             return redirect('cutting_order_detail', order_id=order.id)
 
         partiya_number = request.POST.get('partiya_number', '').strip()

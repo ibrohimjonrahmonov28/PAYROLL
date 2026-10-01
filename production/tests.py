@@ -765,6 +765,91 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         b1_item_m.refresh_from_db()
         self.assertEqual(b1_item_m.status, CuttingBatchItem.Status.STICKERS_PRINTED)
 
+    def test_pastal_code_duplicate_validation_and_api(self):
+        order = Order.objects.create(order_number="ORD-DUP-01", customer=self.customer, client_name=self.customer.name)
+        art1 = Article.objects.create(code="ART-DUP-01", name="Shirt 1", model=self.model)
+        art2 = Article.objects.create(code="ART-DUP-02", name="Shirt 2", model=self.model)
+        item1 = OrderItem.objects.create(order=order, article=art1, quantity=100)
+        item2 = OrderItem.objects.create(order=order, article=art2, quantity=100)
+        s1 = OrderItemSize.objects.create(order_item=item1, size_name="L", planned_quantity=100)
+        s2 = OrderItemSize.objects.create(order_item=item2, size_name="L", planned_quantity=100)
+
+        self.client.login(username="cutter_user", password="password123")
+
+        # 1. API: Initial check for 'P-10' on item1 returns exists=False
+        check_url = reverse('api_cutting_check_pastal')
+        res_api_1 = self.client.get(check_url, {'order_item_id': item1.id, 'pastal_code': 'P-10'})
+        self.assertEqual(res_api_1.status_code, 200)
+        self.assertFalse(res_api_1.json()['exists'])
+        self.assertTrue(res_api_1.json()['valid'])
+
+        # 2. Add first batch with pastal_code 'P-10'
+        add_url_1 = reverse('cutting_add_batch', kwargs={'order_id': order.id, 'order_item_id': item1.id})
+        res_add_1 = self.client.post(add_url_1, {
+            'pastal_code': 'P-10',
+            f'size_qty_{s1.id}': '50',
+        }, follow=True)
+        self.assertEqual(res_add_1.status_code, 200)
+        self.assertEqual(CuttingBatch.objects.filter(order_item=item1, pastal_code='P-10').count(), 1)
+        b1 = CuttingBatch.objects.get(order_item=item1, pastal_code='P-10')
+
+        # 3. API: check 'P-10' and case-insensitive 'p-10' on item1 returns exists=True
+        res_api_dup = self.client.get(check_url, {'order_item_id': item1.id, 'pastal_code': 'p-10'})
+        self.assertEqual(res_api_dup.status_code, 200)
+        self.assertTrue(res_api_dup.json()['exists'])
+        self.assertFalse(res_api_dup.json()['valid'])
+        self.assertIn("allaqachon mavjud", res_api_dup.json()['message'])
+
+        # With exclude_batch_id=b1.id: returns exists=False (editing self)
+        res_api_exclude = self.client.get(check_url, {'order_item_id': item1.id, 'pastal_code': 'p-10', 'exclude_batch_id': b1.id})
+        self.assertEqual(res_api_exclude.status_code, 200)
+        self.assertFalse(res_api_exclude.json()['exists'])
+        self.assertTrue(res_api_exclude.json()['valid'])
+
+        # Different article (item2) allows 'P-10'
+        res_api_item2 = self.client.get(check_url, {'order_item_id': item2.id, 'pastal_code': 'P-10'})
+        self.assertEqual(res_api_item2.status_code, 200)
+        self.assertFalse(res_api_item2.json()['exists'])
+
+        # 4. Attempt to add duplicate pastal_code 'p-10' to item1 via POST -> BLOCKED!
+        res_add_dup = self.client.post(add_url_1, {
+            'pastal_code': 'p-10',
+            f'size_qty_{s1.id}': '20',
+        }, follow=True)
+        self.assertEqual(res_add_dup.status_code, 200)
+        self.assertContains(res_add_dup, "allaqachon mavjud! Bitta model uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi")
+        self.assertEqual(CuttingBatch.objects.filter(order_item=item1).count(), 1)
+
+        # 5. Add second batch with unique pastal_code 'P-20'
+        res_add_2 = self.client.post(add_url_1, {
+            'pastal_code': 'P-20',
+            f'size_qty_{s1.id}': '30',
+        }, follow=True)
+        self.assertEqual(res_add_2.status_code, 200)
+        self.assertEqual(CuttingBatch.objects.filter(order_item=item1).count(), 2)
+        b2 = CuttingBatch.objects.get(order_item=item1, pastal_code='P-20')
+
+        # 6. Edit b2: try to rename pastal to 'P-10' -> BLOCKED!
+        edit_url_b2 = reverse('cutting_edit_batch', kwargs={'order_id': order.id, 'batch_id': b2.id})
+        b2_it = b2.items.first()
+        res_edit_dup = self.client.post(edit_url_b2, {
+            'pastal_code': 'P-10',
+            f'size_qty_{b2_it.id}': '30',
+        }, follow=True)
+        self.assertEqual(res_edit_dup.status_code, 200)
+        self.assertContains(res_edit_dup, "allaqachon mavjud! Bitta model uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi")
+        b2.refresh_from_db()
+        self.assertEqual(b2.pastal_code, 'P-20')
+
+        # 7. Edit b2: keep 'P-20' -> ALLOWED
+        res_edit_ok = self.client.post(edit_url_b2, {
+            'pastal_code': 'P-20',
+            f'size_qty_{b2_it.id}': '35',
+        }, follow=True)
+        self.assertEqual(res_edit_ok.status_code, 200)
+        b2_it.refresh_from_db()
+        self.assertEqual(b2_it.quantity, 35)
+
     def test_meto_lazy_load_reset_and_pastal_print(self):
         # 1. Setup Order, Article, Operations, Batch
         meto_user = User.objects.create_user(username="meto_test_user", password="password123", role=User.Role.METO)

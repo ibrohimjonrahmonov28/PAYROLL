@@ -116,7 +116,7 @@
                     </span>
                     {% if b.can_edit %}
                     <button type="button"
-                        onclick="openEditBatchModal('{{ b.batch.id }}', '{{ b.name|escapejs }}', '{{ b.cutter_name|default:''|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ b.partiya_number|default:''|escapejs }}', '{{ b.fabric_weight_kg|default:'' }}', '{{ b.fabric_batch_code|default:''|escapejs }}', '{{ b.notes|default:''|escapejs }}', {{ b.items_json|safe }}, '{{ item.article.code|escapejs }}', '{{ b.total_quantity }}')"
+                        onclick="openEditBatchModal('{{ b.batch.id }}', '{{ b.name|escapejs }}', '{{ b.cutter_name|default:''|escapejs }}', '{{ b.pastal_code|default:''|escapejs }}', '{{ b.partiya_number|default:''|escapejs }}', '{{ b.fabric_weight_kg|default:'' }}', '{{ b.fabric_batch_code|default:''|escapejs }}', '{{ b.notes|default:''|escapejs }}', {{ b.items_json|safe }}, '{{ item.article.code|escapejs }}', '{{ b.total_quantity }}', '{{ item.id }}')"
                         class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1"
                         title="Sonlarni tahrirlash">
                         <i class="fa-solid fa-pen-to-square"></i> Tahrirlash
