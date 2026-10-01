@@ -3,20 +3,63 @@
 {% block title %}Tikim Jarayoni Statistikasi — Terry Jar{% endblock %}
 
 {% block page_header %}
-<div class="flex items-center gap-3">
-    <div
-        class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center text-lg shadow-lg">
-        <i class="fa-solid fa-chart-line"></i>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+        <div
+            class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center text-lg shadow-lg">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div>
+            <h2 class="text-base font-black text-white leading-tight">Tikim Jarayoni Statistikasi</h2>
+            <p class="text-xs text-slate-400">Zakazlar bo'yicha tikuv sexi, dazmol va sifat nazorati (OTK) hisoboti</p>
+        </div>
     </div>
-    <div>
-        <h2 class="text-base font-black text-white leading-tight">Tikim Jarayoni Statistikasi</h2>
-        <p class="text-xs text-slate-400">Zakazlar bo'yicha tikuv sexi, dazmol va sifat nazorati (OTK) hisoboti</p>
+
+    <!-- Navigation Fast Switcher -->
+    <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner">
+        <span
+            class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Tikim Statistikasi</span>
+        </span>
+        <a href="{% url 'production:sewing_statistics_repairs' %}"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-wrench text-amber-400"></i>
+            <span>Ta'mir Monitoringi</span>
+            {% if overall_kpis.total_in_repair_boxes > 0 %}
+            <span class="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px]">
+                {{ overall_kpis.total_in_repair_boxes }}
+            </span>
+            {% endif %}
+        </a>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- 10% BRAK OGOHLANTIRISH BANNERI -->
+    {% if overall_kpis.has_brak_warning %}
+    <div
+        class="bg-gradient-to-r from-rose-950/80 via-red-900/60 to-slate-900 border-2 border-rose-500/60 rounded-3xl p-4 shadow-xl flex items-center gap-3.5 animate-pulse">
+        <div
+            class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-xl flex-shrink-0">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <h4 class="text-sm font-black text-rose-300 uppercase tracking-wide">
+                🚨 DIQQAT OGOHLANTIRISH: Ayrim buyurtmalarda 2-sort (brak) darajasi 10% dan yuqori!
+            </h4>
+            <p class="text-xs text-rose-200/90 mt-0.5">
+                Sifat nazorati va masterlar bilan tikuv operatsiyalarini zudlik bilan tahlil qiling. Batafsil: <a
+                    href="{% url 'production:sewing_statistics_repairs' %}"
+                    class="underline font-bold text-white hover:text-amber-300">Ta'mir & Sifat Monitoringi
+                    bo'limida</a>.
+            </p>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -37,7 +80,8 @@
                 <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_planned }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-amber-400/80 font-mono font-bold mt-1 block">({{ overall_kpis.total_boxes }} ta quti)</span>
+            <span class="text-[10px] text-amber-400/80 font-mono font-bold mt-1 block">({{ overall_kpis.total_boxes }}
+                ta quti)</span>
         </div>
 
         <!-- KPI 3: Tikimga Kirgan -->
@@ -48,10 +92,12 @@
                 <i class="fa-solid fa-shirt text-cyan-400 text-xs"></i>
             </div>
             <div class="mt-2">
-                <span class="text-2xl font-black text-cyan-300 digital-font">{{ overall_kpis.total_entered_sewing }}</span>
+                <span class="text-2xl font-black text-cyan-300 digital-font">{{ overall_kpis.total_entered_sewing
+                    }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-cyan-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_entered_sewing_boxes }} ta qutida stiker urilgan</span>
+            <span class="text-[10px] text-cyan-400 font-mono font-bold mt-1 block">{{
+                overall_kpis.total_entered_sewing_boxes }} ta qutida stiker urilgan</span>
         </div>
 
         <!-- KPI 4: Dazmoldan O'tgan -->
@@ -65,7 +111,8 @@
                 <span class="text-2xl font-black text-indigo-300 digital-font">{{ overall_kpis.total_dazmol }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_dazmol_boxes }} ta quti yakunlangan</span>
+            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_dazmol_boxes
+                }} ta quti yakunlangan</span>
         </div>
 
         <!-- KPI 5: Kontrolda Kutmoqda -->
@@ -76,10 +123,12 @@
                 <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
             </div>
             <div class="mt-2">
-                <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_waiting_control }}</span>
+                <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_waiting_control
+                    }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-amber-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_waiting_control_boxes }} ta quti (OTK kutilmoqda)</span>
+            <span class="text-[10px] text-amber-400 font-mono font-bold mt-1 block">{{
+                overall_kpis.total_waiting_control_boxes }} ta quti (OTK kutilmoqda)</span>
         </div>
 
         <!-- KPI 6: 1-Sort / 2-Sort -->
@@ -90,13 +139,16 @@
                 <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-2">
-                <span class="text-2xl font-black text-emerald-400 digital-font">{{ overall_kpis.total_first_sort }}</span>
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ overall_kpis.total_first_sort
+                    }}</span>
                 <span class="text-[10px] text-emerald-500 font-bold uppercase">1-sort</span>
                 {% if overall_kpis.total_second_sort > 0 %}
-                <span class="text-xs text-rose-400 font-mono font-bold">({{ overall_kpis.total_second_sort }} 2-sort)</span>
+                <span class="text-xs text-rose-400 font-mono font-bold">({{ overall_kpis.total_second_sort }}
+                    2-sort)</span>
                 {% endif %}
             </div>
-            <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_controlled_boxes }} ta quti tekshirilgan</span>
+            <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block">{{
+                overall_kpis.total_controlled_boxes }} ta quti tekshirilgan</span>
         </div>
     </div>
 
@@ -221,7 +273,8 @@
                                 <span class="font-black text-indigo-300 digital-font text-sm">
                                     {{ item.dazmol_qty }} <small class="text-[10px] text-slate-400">ta</small>
                                 </span>
-                                <span class="text-[10px] text-indigo-400 font-mono mt-0.5">{{ item.dazmol_pct }}% ({{ item.dazmol_boxes }} quti)</span>
+                                <span class="text-[10px] text-indigo-400 font-mono mt-0.5">{{ item.dazmol_pct }}% ({{
+                                    item.dazmol_boxes }} quti)</span>
                             </div>
                         </td>
 
@@ -234,7 +287,8 @@
                                     <i class="fa-solid fa-clock text-[10px]"></i>
                                     {{ item.waiting_control_qty }} dona
                                 </span>
-                                <span class="text-[10px] text-amber-400 font-mono mt-0.5 font-bold">({{ item.waiting_control_boxes }} quti)</span>
+                                <span class="text-[10px] text-amber-400 font-mono mt-0.5 font-bold">({{
+                                    item.waiting_control_boxes }} quti)</span>
                             </div>
                             {% else %}
                             <span class="text-slate-600 font-mono">—</span>
@@ -259,7 +313,8 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <span class="text-[10px] text-slate-400 font-mono font-medium">({{ item.controlled_boxes }} quti)</span>
+                                <span class="text-[10px] text-slate-400 font-mono font-medium">({{ item.controlled_boxes
+                                    }} quti)</span>
                             </div>
                             {% else %}
                             <span class="text-slate-600 font-mono">—</span>

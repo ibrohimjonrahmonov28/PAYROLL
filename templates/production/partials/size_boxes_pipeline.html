@@ -19,15 +19,28 @@
                 class="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono font-bold">
                 Dazmoldan o'tgan: {{ summary.passed_dazmol_boxes }} ta quti ({{ summary.passed_dazmol_units }} dona)
             </span>
+            {% if summary.unreached_control_boxes > 0 %}
+            <span
+                class="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono font-bold">
+                Oraliqda: {{ summary.unreached_control_boxes }} ta quti ({{ summary.unreached_control_units }} dona)
+            </span>
+            {% endif %}
             {% if summary.waiting_control_boxes > 0 %}
             <span
                 class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold animate-pulse">
                 OTK kutmoqda: {{ summary.waiting_control_boxes }} ta quti ({{ summary.waiting_control_units }} dona)
             </span>
             {% endif %}
+            {% if summary.in_repair_boxes > 0 %}
+            <span
+                class="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono font-bold">
+                Ta'mirda: {{ summary.in_repair_boxes }} ta quti ({{ summary.in_repair_units }} dona)
+            </span>
+            {% endif %}
             <span
                 class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
-                OTK qabul: {{ summary.controlled_boxes }} ta quti (1-sort: {{ summary.first_sort_units }} ta{% if summary.second_sort_units > 0 %}, 2-sort: {{ summary.second_sort_units }} ta{% endif %})
+                OTK qabul: {{ summary.controlled_boxes }} ta quti (1-sort: {{ summary.first_sort_units }} ta{% if
+                summary.second_sort_units > 0 %}, 2-sort: {{ summary.second_sort_units }} ta{% endif %})
             </span>
         </div>
     </div>
@@ -103,10 +116,29 @@
                     {% endif %}
 
                     <!-- Sifat Nazorati (OTK / Control) Holati -->
-                    {% if b.is_waiting_control %}
+                    {% if b.is_in_repair %}
+                    {% if b.is_re_repair %}
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/50 text-[11px] font-black inline-flex items-center gap-1.5 animate-pulse shadow-sm">
+                        <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> {{ b.repair_cycles }}-marta
+                        Ta'mirda (Qayta!)
+                    </span>
+                    {% else %}
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-wrench text-[10px]"></i> 1-marta Ta'mirda ({{ b.repair_qty }} dona)
+                    </span>
+                    {% endif %}
+                    {% elif b.is_waiting_control %}
                     <span
                         class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black inline-flex items-center gap-1.5 animate-pulse shadow-sm">
                         <i class="fa-solid fa-clock text-[10px]"></i> Kontrolda Kutmoqda
+                    </span>
+                    {% elif b.unreached_control %}
+                    <span
+                        class="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-bold inline-flex items-center gap-1"
+                        title="Dazmoldan o'tgan, lekin hali kontrolda kutmayapti (oraliqda yetmagan)">
+                        <i class="fa-solid fa-truck text-[9px]"></i> Oraliqda (Yetmagan)
                     </span>
                     {% elif b.is_controlled %}
                     <div class="flex items-center gap-1">
@@ -122,11 +154,18 @@
                             2-sort: {{ b.second_sort_qty }} ta
                         </span>
                         {% endif %}
-                        {% if b.repair_qty > 0 %}
+                        {% if b.control_variance != 0 %}
                         <span
-                            class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold"
-                            title="Hozir ta'mirda">
-                            Ta'mir: {{ b.repair_qty }} ta
+                            class="px-2 py-0.5 rounded bg-slate-950 font-mono text-[10px] font-bold border border-slate-800 {% if b.control_variance > 0 %}text-cyan-400{% else %}text-rose-400{% endif %}"
+                            title="Nazorat sanagan farq">
+                            Farq: {% if b.control_variance > 0 %}+{{ b.control_variance }}{% else %}{{
+                            b.control_variance }}{% endif %}
+                        </span>
+                        {% endif %}
+                        {% if b.repair_cycles > 0 %}
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]"
+                            title="Jami {{ b.repair_cycles }} marta ta'mirga borgan">
+                            ({{ b.repair_cycles }} ta'mir)
                         </span>
                         {% endif %}
                     </div>
@@ -164,7 +203,25 @@
 
                 <!-- Right: Navbatdagi Operatsiya yoki OTK Holati -->
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                    {% if b.is_controlled %}
+                    {% if b.is_in_repair %}
+                    <span
+                        class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-wrench text-amber-400"></i> Hozir Ta'mir Jarayonida:
+                    </span>
+                    <div class="text-[11px] text-amber-300">
+                        Quti <strong>{{ b.repair_cycles }}-marta ta'mirga</strong> yuborilgan ({{ b.repair_qty }} dona
+                        ta'mirda). Tikuvchilar tomonidan tuzatilib qayta topshirilishi kutilmoqda.
+                    </div>
+                    {% elif b.unreached_control %}
+                    <span
+                        class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-truck text-amber-400"></i> Dazmoldan O'tgan (Oraliqda):
+                    </span>
+                    <div class="text-[11px] text-slate-300">
+                        Dazmol bosqichidan o'tgan, lekin <strong>sifat nazorati (OTK) stoliga yetib bormagan</strong>
+                        yoki qolgan stikerlar skaneri kutilmoqda.
+                    </div>
+                    {% elif b.is_controlled %}
                     <span
                         class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Sifat Nazorati (OTK) Qabul Qilgan:

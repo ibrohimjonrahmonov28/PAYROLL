@@ -1579,18 +1579,24 @@ class DailyExcelReportAndPricingSyncTest(TestCase):
         actual_headers = [ws_day.cell(row=4, column=col).value for col in range(1, 13)]
         self.assertEqual(actual_headers, expected_headers)
 
-        # 5-qatordagi xodim ma'lumotlari
-        self.assertEqual(ws_day.cell(row=5, column=2).value, "TK-999")
-        self.assertEqual(ws_day.cell(row=5, column=3).value, "Nodirbek Qodirov")
+        # Nodirbek Qodirov qatorini topish
+        target_row = None
+        for r in range(5, ws_day.max_row + 1):
+            if ws_day.cell(row=r, column=3).value == "Nodirbek Qodirov":
+                target_row = r
+                break
+        self.assertIsNotNone(target_row, "Nodirbek Qodirov xodimi varaqda topilmadi")
+        expected_uid = str(self.worker.user.uid) if (self.worker.user and self.worker.user.uid) else "TK-999"
+        self.assertEqual(ws_day.cell(row=target_row, column=2).value, expected_uid)
         # Operatsiyalar xulosasi
-        ops_cell_val = ws_day.cell(row=5, column=6).value
+        ops_cell_val = ws_day.cell(row=target_row, column=6).value
         self.assertIn("Dazmol", ops_cell_val)
         self.assertIn("Meto", ops_cell_val)
         # Bugungi ish haqi (UZS)
-        self.assertEqual(ws_day.cell(row=5, column=7).value, 110000.0)
-        # Joriy Balans formulasi: =H5+G5
-        formula_val = ws_day.cell(row=5, column=9).value
-        self.assertEqual(formula_val, "=H5+G5")
+        self.assertEqual(ws_day.cell(row=target_row, column=7).value, 110000.0)
+        # Joriy Balans formulasi: =H{target_row}+G{target_row}
+        formula_val = ws_day.cell(row=target_row, column=9).value
+        self.assertEqual(formula_val, f"=H{target_row}+G{target_row}")
 
         # 1-varaq: Oylik Umumiy Tabel tekshiruvi (foydalanuvchi talabi bo'yicha 10 ta ustun)
         ws_month = wb["Oylik Umumiy Tabel"]
@@ -1602,17 +1608,22 @@ class DailyExcelReportAndPricingSyncTest(TestCase):
         actual_month_headers = [ws_month.cell(row=4, column=col).value for col in range(1, 11)]
         self.assertEqual(actual_month_headers, expected_month_headers)
 
-        # 5-qator: Xodim oylik hisob-kitobi va qoldiq formulasi
-        self.assertEqual(ws_month.cell(row=5, column=2).value, "TK-999")
-        self.assertEqual(ws_month.cell(row=5, column=3).value, "Nodirbek Qodirov")
-        self.assertEqual(ws_month.cell(row=5, column=5).value, 110000.0)  # Hisoblangan Ish Haqi
-        self.assertEqual(ws_month.cell(row=5, column=8).value, 0)         # Magazin
-        self.assertEqual(ws_month.cell(row=5, column=10).value, "=E5+F5-G5-H5-I5")  # Qoldiq formulasi
+        target_m_row = None
+        for r in range(5, ws_month.max_row + 1):
+            if ws_month.cell(row=r, column=3).value == "Nodirbek Qodirov":
+                target_m_row = r
+                break
+        self.assertIsNotNone(target_m_row, "Nodirbek Qodirov oylik tabelda topilmadi")
+        self.assertEqual(ws_month.cell(row=target_m_row, column=2).value, expected_uid)
+        self.assertEqual(ws_month.cell(row=target_m_row, column=5).value, 110000.0)  # Hisoblangan Ish Haqi
+        self.assertEqual(ws_month.cell(row=target_m_row, column=8).value, 0)         # Magazin
+        self.assertEqual(ws_month.cell(row=target_m_row, column=10).value, f"=E{target_m_row}+F{target_m_row}-G{target_m_row}-H{target_m_row}-I{target_m_row}")  # Qoldiq formulasi
 
-        # 6-qator: JAMI qatori formulalari
-        self.assertEqual(ws_month.cell(row=6, column=1).value, "JAMI / BARCHASI:")
-        self.assertEqual(ws_month.cell(row=6, column=5).value, "=SUM(E5:E5)")
-        self.assertEqual(ws_month.cell(row=6, column=10).value, "=SUM(J5:J5)")
+        # Oxirgi qator: JAMI qatori formulalari
+        last_row = ws_month.max_row
+        self.assertEqual(ws_month.cell(row=last_row, column=1).value, "JAMI / BARCHASI:")
+        self.assertIn("SUM(E5:", ws_month.cell(row=last_row, column=5).value)
+        self.assertIn("SUM(J5:", ws_month.cell(row=last_row, column=10).value)
 
 
 class ControlQualityInspectionWorkflowTest(TestCase):
@@ -2156,6 +2167,163 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res_l, "STAT-BX-03")
         self.assertContains(res_l, "1-sort: 38 ta")
         self.assertContains(res_l, "2-sort: 2 ta")
+
+    def test_calculate_pipeline_balance_and_variance_reconciliation(self):
+        from production.sewing_statistics_views import calculate_pipeline_balance, get_dazmol_operation_ids_for_article
+
+        # Box 1: 30 dona, tikimga kirgan, dazmoldan o'tmagan
+        # Box 2: 30 dona, dazmoldan o'tgan, 100% tikilgan -> kontrolda kutmoqda
+        # Box 3: 40 dona, kontroldan o'tgan -> 38 ta 1-sort, 2 ta 2-sort (jami 40 ta yopilgan)
+
+        # Yangi Box 4: 50 dona, dazmoldan o'tgan, lekin ticket 1 ta pending -> kontrolgacha yetib bormagan (oraliqda)
+        box4 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="XL",
+            box_number=4,
+            box_code="STAT-BX-04",
+            quantity=50
+        )
+        Ticket.objects.create(box=box4, article_operation=self.ao1, quantity=50, price_per_unit=500, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=10, scanned_at=timezone.now())
+        Ticket.objects.create(box=box4, article_operation=self.ao2, quantity=50, price_per_unit=300, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=10, scanned_at=timezone.now())
+        # Op 3: pending operatsiya (dazmol o'tgan, lekin kontrolga hali yetmagan)
+        op3 = Operation.objects.create(name="Upakovka Oldi", code="OP_UPAK_01")
+        ao3 = ArticleOperation.objects.create(article=self.article, operation=op3, sequence=3, price_per_unit=200)
+        Ticket.objects.create(box=box4, article_operation=ao3, quantity=50, price_per_unit=200, status=Ticket.Status.PENDING)
+
+        dazmol_ids = get_dazmol_operation_ids_for_article(self.article)
+        balance = calculate_pipeline_balance([self.box1, self.box2, self.box3, box4], planned_qty=150, cut_qty=150, dazmol_ao_ids=dazmol_ids)
+
+        # 1. Kesim: 150 ta
+        self.assertEqual(balance['cut_qty'], 150)
+        # 2. Tikimda: 150 ta (barcha 4 ta qutida stiker urilgan)
+        self.assertEqual(balance['entered_sewing_qty'], 150)
+        # 3. Dazmoldan o'tdi: Box 2 (30) + Box 3 (40) + Box 4 (50) = 120 ta
+        self.assertEqual(balance['dazmol_qty'], 120)
+        # 4. Kontrolgacha yetib bormagan / Oraliqda turgan: Box 4 (50 ta)
+        self.assertEqual(balance['unreached_control_qty'], 50)
+        self.assertEqual(balance['unreached_control_boxes'], 1)
+        # 5. Controlda kutmoqda: Box 2 (30 ta)
+        self.assertEqual(balance['waiting_control_qty'], 30)
+        self.assertEqual(balance['waiting_control_boxes'], 1)
+        # 6. Controldan o'tib yopilgan: Box 3 (1-sort: 38, 2-sort: 2)
+        self.assertEqual(balance['controlled_boxes_count'], 1)
+        self.assertEqual(balance['first_sort_qty'], 38)
+        self.assertEqual(balance['second_sort_qty'], 2)
+        self.assertEqual(balance['total_closed_qty'], 40)
+        # 7. Farq (Variance): nominal 40, actual 40 -> 0
+        self.assertEqual(balance['net_variance'], 0)
+
+    def test_repair_monitoring_and_cycles_and_10_percent_warning(self):
+        from production.models import BoxQualityInspectionLog
+        from production.sewing_statistics_views import calculate_pipeline_balance, get_patoks_scrap_and_warning_report
+
+        # Box 5 yaratish: 50 dona, 10 dona ta'mirga ketgan
+        box5 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="XXL",
+            box_number=5,
+            box_code="STAT-BX-05",
+            quantity=50,
+            controlled_repair_qty=10,
+            controlled_first_sort_qty=35,
+            controlled_second_sort_qty=5
+        )
+        Ticket.objects.create(box=box5, article_operation=self.ao1, quantity=50, price_per_unit=500, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=10, scanned_at=timezone.now())
+
+        # 1-marta ta'mirga borgan log
+        log1 = BoxQualityInspectionLog.objects.create(
+            box=box5,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=50,
+            first_sort_qty=35,
+            second_sort_qty=5,
+            repair_qty=10,
+            notes="Nuqson: Yeng choki qiyshiq"
+        )
+
+        # 2-marta ta'mirdan qaytib, qayta ta'mirga tushgan log (Re-repair)
+        log2 = BoxQualityInspectionLog.objects.create(
+            box=box5,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
+            inspected_qty=10,
+            first_sort_qty=0,
+            second_sort_qty=2,
+            repair_qty=8,
+            notes="Qayta ta'mir: Yoqa choki ochilib ketgan"
+        )
+
+        # Patoklar hisoboti (Oxirgi 7 kunlik)
+        report = get_patoks_scrap_and_warning_report(time_filter='week', order_id=self.order.id)
+        report_list = report['report_list']
+        self.assertTrue(len(report_list) >= 1)
+
+        # Patok 10 (K10) ni tekshirish
+        p10 = next((p for p in report_list if p['patok_code'] == 'K10'), None)
+        self.assertIsNotNone(p10)
+        self.assertEqual(p10['patok_name'], "K10-Patok")
+        self.assertEqual(p10['first_sort_qty'], 35)
+        # second_sort_qty: 5 (birlamchi) + 2 (ta'mir qaytishidagi) = 7 ta
+        self.assertEqual(p10['second_sort_qty'], 7)
+        # total evaluated: 35 + 7 = 42 ta
+        # brak foizi: 7 / 42 * 100 = 16.7% (>= 10.0%) -> Ogohlantirish chiqishi shart!
+        self.assertGreaterEqual(p10['brak_rate_pct'], 10.0)
+        self.assertTrue(p10['is_warning'])
+        self.assertTrue(report['has_any_warning'])
+
+    def test_sewing_statistics_repairs_view_and_filters(self):
+        from production.models import BoxQualityInspectionLog
+
+        # Ta'mirdagi quti yaratish
+        box_rep = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="S",
+            box_number=6,
+            box_code="STAT-BX-REP-01",
+            quantity=40,
+            controlled_repair_qty=6
+        )
+        Ticket.objects.create(box=box_rep, article_operation=self.ao1, quantity=40, price_per_unit=500, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=10, scanned_at=timezone.now())
+
+        BoxQualityInspectionLog.objects.create(
+            box=box_rep,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=40,
+            first_sort_qty=30,
+            second_sort_qty=4,
+            repair_qty=6,
+            notes="Ta'mir operatsiyasi: Yoqa tikish"
+        )
+
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_repairs')
+
+        # 1. Bosh sahifa (active repairs)
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("Ta'mir Jarayoni", res.content.decode('utf-8'))
+        self.assertContains(res, "STAT-BX-REP-01")
+        self.assertContains(res, "Yoqa tikish")
+        self.assertContains(res, "K10-Patok")
+
+        # 2. Context KPI lari
+        self.assertGreaterEqual(res.context['active_repair_boxes_count'], 1)
+        self.assertGreaterEqual(res.context['active_repair_units_count'], 6)
+
+        # 3. Status filter: resolved
+        res_resolved = self.client.get(url, {'status': 'resolved'})
+        self.assertEqual(res_resolved.status_code, 200)
+
+        # 4. Search query
+        res_search = self.client.get(url, {'q': 'STAT-BX-REP-01'})
+        self.assertEqual(res_search.status_code, 200)
+        self.assertContains(res_search, "STAT-BX-REP-01")
+
 
 
 

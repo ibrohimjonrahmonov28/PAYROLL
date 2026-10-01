@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+
+{% block title %}Ta'mir Monitoringi va Sifat Nazorati — Tikim Statistikasi{% endblock %}
+
+{% block page_header %}
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+        <a href="{% url 'production:sewing_statistics_orders' %}"
+            class="w-10 h-10 rounded-2xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700 shadow-sm"
+            title="Tikim statistikasiga qaytish">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+            <div class="flex items-center gap-2">
+                <h1 class="text-xl font-black text-white tracking-tight flex items-center gap-2.5">
+                    <i class="fa-solid fa-wrench text-amber-400"></i>
+                    <span>Ta'mir Jarayoni & Sifat Monitoringi</span>
+                </h1>
+                <span
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    Sifat Nazorati (OTK)
+                </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+                Ta'mirdagi qutilar, qayta ta'mir monitoringi va patoklar bo'yicha haftalik sifat hisoboti
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation Fast Switcher & Time Filter -->
+    <div class="flex items-center gap-2 flex-wrap">
+        <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner">
+            <a href="{% url 'production:sewing_statistics_orders' %}"
+                class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-chart-line text-cyan-400"></i>
+                <span>Tikim Statistikasi</span>
+            </a>
+            <span
+                class="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-600 to-rose-600 text-white shadow-md flex items-center gap-1.5">
+                <i class="fa-solid fa-wrench"></i>
+                <span>Ta'mir Monitoringi</span>
+            </span>
+        </div>
+
+        <!-- Time Filter Dropdown / Buttons -->
+        <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 text-xs">
+            <a href="?time_filter=week{% if status_tab %}&status={{ status_tab }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-3 py-1.5 rounded-xl font-bold transition {% if time_filter == 'week' %}bg-slate-800 text-amber-300 border border-amber-500/30 shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                Oxirgi 7 kun
+            </a>
+            <a href="?time_filter=month{% if status_tab %}&status={{ status_tab }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-3 py-1.5 rounded-xl font-bold transition {% if time_filter == 'month' %}bg-slate-800 text-amber-300 border border-amber-500/30 shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                Oxirgi 30 kun
+            </a>
+            <a href="?time_filter=all{% if status_tab %}&status={{ status_tab }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-3 py-1.5 rounded-xl font-bold transition {% if time_filter == 'all' %}bg-slate-800 text-amber-300 border border-amber-500/30 shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                Barcha vaqt
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- 10% BRAK OGOHLANTIRISH BANNERI (AGAR BIROR PATOKDA >= 10% BRAK BO'LSA) -->
+    {% if has_any_warning %}
+    <div
+        class="bg-gradient-to-r from-rose-950/80 via-red-900/60 to-slate-900 border-2 border-rose-500/60 rounded-3xl p-5 shadow-2xl relative overflow-hidden animate-pulse">
+        <div class="flex items-start gap-4">
+            <div
+                class="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center flex-shrink-0 text-2xl shadow-inner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-base font-black text-rose-300 uppercase tracking-wide flex items-center gap-2">
+                    <span>🚨 DIQQAT: Sifat Nazorati Ogohlantirishi (10%+ Brak Aniqlangan!)</span>
+                </h3>
+                <p class="text-xs text-rose-200/90 leading-relaxed">
+                    Tanlangan davrda ayrim patoklarda sifat nazoratidan o'tgan ishlarning <strong>10% dan ortig'i 2-sort
+                        (brak)</strong> bo'ldi.
+                    Masterlar va sifat nazoratchilari zudlik bilan operatsiya va tikuv sifatini tekshirishi talab
+                    etiladi.
+                </p>
+                <div class="flex items-center gap-2 pt-1 flex-wrap">
+                    {% for p in patoks_report %}
+                    {% if p.is_warning %}
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-rose-950/90 border border-rose-500 text-rose-300 font-mono font-bold text-xs shadow">
+                        {{ p.patok_name }}: <strong>{{ p.brak_rate_pct }}% brak</strong> ({{ p.second_sort_qty }} ta
+                        2-sort / {{ p.total_units }} ta ish)
+                    </span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+        <!-- Hozir Ta'mirda -->
+        <div
+            class="bg-slate-900 border border-amber-500/40 rounded-2xl p-4 shadow-lg bg-gradient-to-b from-amber-950/30 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Hozir Ta'mirda</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black text-amber-300 digital-font">{{ active_repair_units_count }}</span>
+                <small class="text-xs text-slate-400 font-mono">dona</small>
+            </div>
+            <span class="text-[11px] text-amber-400 font-mono font-bold block mt-1">
+                ({{ active_repair_boxes_count }} ta qutida)
+            </span>
+        </div>
+
+        <!-- 1-marta Ta'mir -->
+        <div
+            class="bg-slate-900 border border-blue-500/30 rounded-2xl p-4 shadow-lg bg-gradient-to-b from-blue-950/20 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">1-marta Ta'mir</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black text-blue-300 digital-font">{{ first_time_repair_count }}</span>
+                <small class="text-xs text-slate-400 font-mono">quti</small>
+            </div>
+            <span class="text-[11px] text-slate-400 block mt-1">
+                Birlamchi tuzatishda
+            </span>
+        </div>
+
+        <!-- Qayta Ta'mir (2+ marta) -->
+        <div
+            class="bg-slate-900 border {% if re_repair_count > 0 %}border-rose-500/50 bg-gradient-to-b from-rose-950/30 to-transparent ring-1 ring-rose-500/30{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg">
+            <span
+                class="text-[10px] font-bold uppercase tracking-wider {% if re_repair_count > 0 %}text-rose-400{% else %}text-slate-400{% endif %} block">
+                Qayta Ta'mir (2+ marta)
+            </span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span
+                    class="text-2xl font-black {% if re_repair_count > 0 %}text-rose-400{% else %}text-white{% endif %} digital-font">{{
+                    re_repair_count }}</span>
+                <small class="text-xs text-slate-400 font-mono">quti</small>
+            </div>
+            <span
+                class="text-[11px] {% if re_repair_count > 0 %}text-rose-300 font-bold{% else %}text-slate-500{% endif %} block mt-1">
+                {% if re_repair_count > 0 %}⚠️ Qayta ta'mirga tushgan!{% else %}Qayta ta'mir yo'q{% endif %}
+            </span>
+        </div>
+
+        <!-- Tuzatilib Yopilgan -->
+        <div
+            class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Tuzatilgan &
+                Yopilgan</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ resolved_count }}</span>
+                <small class="text-xs text-slate-400 font-mono">quti</small>
+            </div>
+            <span class="text-[11px] text-emerald-400/80 block mt-1">
+                Muvaffaqiyatli qabul
+            </span>
+        </div>
+
+        <!-- Hafta davri indikatori -->
+        <div
+            class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg col-span-2 sm:col-span-4 lg:col-span-1 flex flex-col justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Filtr Davri</span>
+            <div class="mt-1">
+                <span class="text-base font-black text-white font-mono block">
+                    {% if time_filter == 'week' %}Oxirgi 7 kun{% elif time_filter == 'month' %}Oxirgi 30 kun{% else
+                    %}Barcha davr{% endif %}
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">
+                    Patoklar tahlili
+                </span>
+            </div>
+            <span class="text-[10px] text-cyan-400 font-mono block mt-1">
+                Jami {{ patoks_report|length }} ta patok faol
+            </span>
+        </div>
+    </div>
+
+    <!-- PATOKLAR BO'YICHA HAFTALIK SIFAT & 10% BRAK REYTINGI JADVALI -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-cyan-400"></i>
+                    <span>Masterlar / Patoklar Bo'yicha Sifat & Brak Reytingi</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Har hafta masterlar yopgan qutilar, kontroldan o'tgan umumiy ish, 1-sort, 2-sort va brak foizi
+                </p>
+            </div>
+            <span
+                class="text-xs font-mono px-3 py-1 bg-slate-950 rounded-xl border border-slate-800 text-slate-300 font-bold self-start sm:self-auto">
+                Ogohlantirish chegarasi: <strong class="text-rose-400">≥ 10.0% Brak</strong>
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <th class="py-3 px-3">Patok / Liniya</th>
+                        <th class="py-3 px-3 text-center">Tekshirilgan Quti</th>
+                        <th class="py-3 px-3 text-center">Jami Ish</th>
+                        <th class="py-3 px-3 text-center">1-Sort</th>
+                        <th class="py-3 px-3 text-center">2-Sort (Brak)</th>
+                        <th class="py-3 px-3 text-center">Hozir Ta'mirda</th>
+                        <th class="py-3 px-3">Brak Foizi & Holati</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 font-mono">
+                    {% for p in patoks_report %}
+                    <tr class="hover:bg-slate-800/40 transition {% if p.is_warning %}bg-rose-950/20{% endif %}">
+                        <td class="py-3 px-3 font-sans">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="px-2.5 py-1 rounded-lg bg-slate-950 border {% if p.is_warning %}border-rose-500/50 text-rose-300{% else %}border-slate-700 text-cyan-400{% endif %} font-mono font-black text-xs">
+                                    {{ p.patok_code }}
+                                </span>
+                                <strong class="text-white text-xs font-sans">{{ p.patok_name }}</strong>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 text-center text-slate-300">
+                            {{ p.boxes_count }} ta
+                        </td>
+                        <td class="py-3 px-3 text-center font-bold text-white">
+                            {{ p.total_units }}
+                        </td>
+                        <td class="py-3 px-3 text-center font-bold text-emerald-400">
+                            {{ p.first_sort_qty }}
+                        </td>
+                        <td
+                            class="py-3 px-3 text-center font-bold {% if p.second_sort_qty > 0 %}text-rose-400{% else %}text-slate-500{% endif %}">
+                            {{ p.second_sort_qty }}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if p.active_repair_units > 0 %}
+                            <span
+                                class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+                                {{ p.active_repair_units }} dona ({{ p.active_repair_boxes }} quti)
+                            </span>
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 font-sans">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-32 bg-slate-950 rounded-full h-2.5 border border-slate-800 overflow-hidden">
+                                    <div class="{% if p.is_warning %}bg-rose-500{% elif p.brak_rate_pct > 5 %}bg-amber-500{% else %}bg-emerald-500{% endif %} h-full rounded-full transition-all duration-300"
+                                        style="width: {{ p.brak_rate_pct }}%"></div>
+                                </div>
+                                <span
+                                    class="font-mono font-black text-xs {% if p.is_warning %}text-rose-400 animate-pulse{% elif p.brak_rate_pct > 5 %}text-amber-300{% else %}text-emerald-400{% endif %}">
+                                    {{ p.brak_rate_pct }}%
+                                </span>
+                                {% if p.is_warning %}
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                                    🚨 10%+ Brak!
+                                </span>
+                                {% else %}
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Normal
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-500 font-sans">
+                            Ushbu davrda sifat nazoratidan o'tgan ma'lumotlar mavjud emas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TA'MIR QUILARI REESTRI & FILTRLAR -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+        <!-- Sub-header & Status Tabs -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-800">
+            <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-amber-400"></i>
+                    <span>Ta'mir Qutilari Reestri</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Har bir qutining nuqson sababi, necha marta ta'mirga borgani va mas'ul tikuvchilari
+                </p>
+            </div>
+
+            <!-- Status Tabs -->
+            <div
+                class="flex items-center gap-1.5 flex-wrap bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
+                <a href="?status=active{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if status_tab == 'active' %}bg-amber-600 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-wrench text-[10px]"></i>
+                    <span>Hozir Ta'mirda ({{ active_repair_boxes_count }})</span>
+                </a>
+                <a href="?status=re_repair{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if status_tab == 're_repair' %}bg-rose-600 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+                    <span>Qayta Ta'mir ({{ re_repair_count }})</span>
+                </a>
+                <a href="?status=resolved{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if status_tab == 'resolved' %}bg-emerald-600 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-circle-check text-[10px]"></i>
+                    <span>Tuzatilganlar Tarixi ({{ resolved_count }})</span>
+                </a>
+                <a href="?status=all{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition {% if status_tab == 'all' %}bg-slate-800 text-white border border-slate-700{% else %}text-slate-400 hover:text-white{% endif %}">
+                    Barchasi
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <form method="GET"
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
+            <input type="hidden" name="status" value="{{ status_tab }}">
+            <input type="hidden" name="time_filter" value="{{ time_filter }}">
+
+            <!-- Search input -->
+            <div class="relative">
+                <i
+                    class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" name="q" value="{{ search_q }}" placeholder="Quti, zakaz, model, pastal..."
+                    class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <!-- Order filter -->
+            <div>
+                <select name="order_id"
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 transition">
+                    <option value="">Barcha Buyurtmalar</option>
+                    {% for ord in active_orders %}
+                    <option value="{{ ord.id }}" {% if order_id_filter==ord.id|stringformat:"s" %}selected{% endif %}>
+                        {{ ord.order_number }} ({{ ord.customer.name|default:ord.client_name }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Patok filter -->
+            <div>
+                <input type="text" name="patok" value="{{ patok_filter }}" placeholder="Patok (masalan: K10)..."
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <button type="submit"
+                    class="flex-1 py-2 px-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-filter"></i> Filtrlash
+                </button>
+                {% if search_q or order_id_filter or patok_filter %}
+                <a href="?status={{ status_tab }}&time_filter={{ time_filter }}"
+                    class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs transition border border-slate-700"
+                    title="Filtrlarni tozalash">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Repair Boxes Cards List -->
+        <div class="space-y-3 pt-2">
+            {% for b in repair_boxes %}
+            <div
+                class="bg-slate-950 border {% if b.is_re_repair %}border-rose-500/50 ring-1 ring-rose-500/20{% elif b.is_in_repair %}border-amber-500/40{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg space-y-3 hover:border-slate-700 transition">
+                <!-- Header row: Box code, badges, numbers -->
+                <div
+                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 font-mono font-black text-sm shadow-inner">
+                            {{ b.box_code }}
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-black text-white font-mono">Quti #{{ b.box_number }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                                    Jami: {{ b.quantity }} dona
+                                </span>
+                                <span
+                                    class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
+                                    Ta'mirda: {{ b.repair_qty }} dona
+                                </span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono">
+                                    Razmer: {{ b.razmer }}
+                                </span>
+                                {% if b.pastal_code and b.pastal_code != "—" %}
+                                <span
+                                    class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono border border-slate-800">
+                                    Pastal: {{ b.pastal_code }}
+                                </span>
+                                {% endif %}
+                                {% if b.meto_range and b.meto_range != "—" %}
+                                <span class="text-xs text-slate-400 font-mono">
+                                    Meto: <strong class="text-slate-300">{{ b.meto_range }}</strong>
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Repair Cycle Badges -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Repair Cycles Badge (1-marta vs 2+ marta Qayta ta'mir) -->
+                        {% if b.is_in_repair %}
+                        {% if b.is_re_repair %}
+                        <span
+                            class="px-3 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/50 text-xs font-black inline-flex items-center gap-1.5 animate-pulse shadow-sm">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>{{ b.repair_cycles }}-marta Ta'mirda (Qayta!)</span>
+                        </span>
+                        {% else %}
+                        <span
+                            class="px-3 py-1 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/40 text-xs font-bold inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-wrench"></i>
+                            <span>1-marta Ta'mirda</span>
+                        </span>
+                        {% endif %}
+                        {% elif b.is_resolved %}
+                        <span
+                            class="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Tuzatilib Yopilgan</span>
+                        </span>
+                        {% endif %}
+
+                        <!-- Patok Badge -->
+                        <span
+                            class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-amber-300 font-mono font-bold text-xs">
+                            <i class="fa-solid fa-location-dot text-slate-500 mr-1 text-[10px]"></i>{{ b.patok }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Model Info & Inspection Details -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
+                    <!-- Left: Model & Order -->
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Buyurtma &
+                            Model:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-cyan-400 font-mono font-bold">{{ b.order.order_number }}</span>
+                            <span class="text-slate-400">•</span>
+                            <span class="text-amber-400 font-mono font-bold">{{ b.article.code }}</span>
+                        </div>
+                        <span class="text-white text-xs block font-semibold truncate" title="{{ b.article.name }}">
+                            {{ b.article.name }}
+                        </span>
+                    </div>
+
+                    <!-- Middle: Inspector & Time -->
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sifat
+                            Nazoratchisi (OTK):</span>
+                        <div class="text-slate-200">
+                            <strong>{{ b.inspector_name }}</strong>
+                        </div>
+                        <span class="text-slate-400 text-[11px] font-mono block">
+                            Vaqti: {{ b.controlled_at }}
+                        </span>
+                    </div>
+
+                    <!-- Right: Jami ta'mir ko'riklari soni -->
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ta'mir
+                            Ko'riklari Tarixi:</span>
+                        <div class="text-slate-200">
+                            Jami <strong>{{ b.repair_cycles }} marta</strong> ta'mirga yuborilgan
+                        </div>
+                        <span class="text-slate-400 text-[11px] block">
+                            OTK qaydlari soni: {{ b.logs_count }} ta
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Nuqson sabablari va ta'mir qaydlari (Inspector Notes) -->
+                {% if b.notes %}
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-amber-900/30 text-xs">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-1">
+                        <i class="fa-solid fa-clipboard-list text-amber-400 mr-1"></i> Nuqson Tafsilotlari & Ta'mir
+                        Operatsiyalari:
+                    </span>
+                    <pre
+                        class="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-relaxed">{{ b.notes }}</pre>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div
+                class="py-12 bg-slate-950 border border-slate-800 rounded-2xl text-center text-slate-500 text-xs space-y-2">
+                <i class="fa-solid fa-circle-check text-4xl text-emerald-500/40 block"></i>
+                <span class="text-slate-400 font-bold block text-sm">Ushbu filtr bo'yicha ta'mirdagi qutilar
+                    topilmadi.</span>
+                <span class="text-slate-600 block text-xs">Ajoyib natija! Jarayonda ta'mir kutilayotgan ishlar
+                    yo'q.</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="flex items-center justify-between pt-4 border-t border-slate-800 text-xs text-slate-400">
+            <span>
+                Jami: <strong class="text-white">{{ page_obj.paginator.count }} ta</strong> quti (Sahifa {{
+                page_obj.number }} / {{ page_obj.paginator.num_pages }})
+            </span>
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_tab }}&time_filter={{ time_filter }}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition border border-slate-700">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> Oldingi
+                </a>
+                {% endif %}
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&status={{ status_tab }}&time_filter={{ time_filter }}{% if order_id_filter %}&order_id={{ order_id_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition border border-slate-700">
+                    Keyingi <i class="fa-solid fa-chevron-right ml-1"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
