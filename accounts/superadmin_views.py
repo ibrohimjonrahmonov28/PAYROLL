@@ -1325,31 +1325,59 @@ def superadmin_payroll_export_csv(request):
 @payroll_admin_required
 def superadmin_send_telegram_report(request):
     """
-    Superadmin panelidan turib xodimlar va stikerlar bo'yicha joriy oy boshidan hozirgacha
-    bo'lgan to'liq oylik Excel hisoboti va To'liq baza zaxira nusxasini (DB Backup)
+    Superadmin panelidan turib xodimlar va stikerlar bo'yicha joriy yoki tanlangan oy bo'yicha
+    to'liq oylik Excel hisoboti va To'liq baza zaxira nusxasini (DB Backup)
     Telegram guruhga yuborish.
     Gunicorn worker va veb sahifa qotib qolmasligi uchun jarayon orqa fonda (background thread) bajariladi.
     """
     import threading
     import logging
+    import calendar
     from django.db import connection
 
     chat_id = (request.POST.get('chat_id') or request.GET.get('chat_id') or '').strip() or None
     bot_token = (request.POST.get('bot_token') or request.GET.get('bot_token') or '').strip() or None
 
-    def _send_report_worker(c_id, b_token):
+    today = timezone.localdate()
+    year_val = request.POST.get('year') or request.GET.get('year')
+    month_val = request.POST.get('month') or request.GET.get('month')
+
+    if not (year_val and month_val):
+        referer = request.META.get('HTTP_REFERER', '')
+        if 'year=' in referer and 'month=' in referer:
+            import urllib.parse
+            parsed_url = urllib.parse.urlparse(referer)
+            params = urllib.parse.parse_qs(parsed_url.query)
+            if 'year' in params and 'month' in params:
+                year_val = params['year'][0]
+                month_val = params['month'][0]
+
+    target_date = None
+    if year_val and month_val:
+        try:
+            y = int(year_val)
+            m = int(month_val)
+            if y == today.year and m == today.month:
+                target_date = today
+            else:
+                last_day = calendar.monthrange(y, m)[1]
+                target_date = datetime.date(y, m, last_day)
+        except (ValueError, TypeError):
+            target_date = None
+
+    def _send_report_worker(c_id, b_token, t_date):
         logger = logging.getLogger('production.telegram_reports')
         try:
             from production.telegram_reports import send_month_to_date_telegram_report
             logger.info("Fonda oylik hisobot va DB backup yuborish boshlandi...")
-            res = send_month_to_date_telegram_report(chat_id=c_id, bot_token=b_token)
+            res = send_month_to_date_telegram_report(target_date=t_date, chat_id=c_id, bot_token=b_token)
             logger.info(f"Fonda hisobot natijasi: {res}")
         except Exception as exc:
             logger.error(f"Fonda hisobot yuborishda xatolik: {exc}", exc_info=True)
         finally:
             connection.close()
 
-    bg_thread = threading.Thread(target=_send_report_worker, args=(chat_id, bot_token), daemon=True)
+    bg_thread = threading.Thread(target=_send_report_worker, args=(chat_id, bot_token, target_date), daemon=True)
     bg_thread.start()
 
     messages.success(
@@ -1386,6 +1414,44 @@ def superadmin_download_daily_excel(request):
         return redirect('superadmin_payroll')
 
     filename = f"Kunlik_Hisobot_{target_date.strftime('%Y_%m_%d')}.xlsx"
+    response = HttpResponse(
+        excel_buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@payroll_admin_required
+def superadmin_download_monthly_excel(request):
+    """
+    Superadmin uchun oylik to'liq tabel va kunlik hisobotlarni brauzerda to'g'ridan-to'g'ri Excel (.xlsx) sifatida yuklab olish.
+    """
+    import calendar
+    today = timezone.localdate()
+    try:
+        y = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        y = today.year
+    try:
+        m = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        m = today.month
+
+    if y == today.year and m == today.month:
+        target_date = today
+    else:
+        last_day = calendar.monthrange(y, m)[1]
+        target_date = datetime.date(y, m, last_day)
+
+    try:
+        from production.excel_reports import generate_month_to_date_excel_report
+        excel_buffer = generate_month_to_date_excel_report(target_date=target_date)
+    except Exception as e:
+        messages.error(request, f"Oylik Excel fayl yaratishda xatolik: {str(e)}")
+        return redirect('superadmin_payroll')
+
+    filename = f"Oylik_Tabel_{y}_{m:02d}.xlsx"
     response = HttpResponse(
         excel_buffer.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

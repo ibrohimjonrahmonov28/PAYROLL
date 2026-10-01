@@ -18,6 +18,20 @@ from production.models import Ticket, ArticleOperation
 from production.services import get_patok_name, get_patok_code
 
 
+def get_clean_worker_uid(worker) -> str:
+    """
+    Xodimning bazadagi 6 xonali toza UID raqamini qaytaradi ('w' yoki 'W' prefikslarisiz).
+    Masalan: '670040' (W-002 o'rniga).
+    """
+    if not worker:
+        return "—"
+    if hasattr(worker, 'user') and worker.user and worker.user.uid:
+        return str(worker.user.uid).strip()
+    wid = str(getattr(worker, 'worker_id', '') or '').strip()
+    clean_id = wid.replace('W-', '').replace('w-', '').replace('W', '').replace('w', '').strip()
+    return clean_id if clean_id else wid
+
+
 def compact_ticket_ids(tickets, max_ranges=8) -> str:
     """
     Skanerlangan stikerlar ro'yxatini ixcham ko'rinishga keltiradi:
@@ -88,7 +102,303 @@ def compact_ticket_ids(tickets, max_ranges=8) -> str:
         return f"ID: {ids_part} (jami {total_count} ta)"
     elif boxes_part:
         return f"{boxes_part} (jami {total_count} ta stiker)"
-    return f"{total_count} ta stiker"
+def _build_monthly_tabel_sheet(
+    wb,
+    target_date: datetime.date,
+    sheet_title: str = "Oylik Umumiy Tabel",
+    insert_at_index: int = None,
+    existing_ws = None
+):
+    """
+    Oylik umumiy ish haqi va xodimlar tabeli varag'ini yaratadi:
+    № | Xodim UID | F.I.SH | Ishlagan Kunlari | Hisoblangan Ish Haqi (UZS) | Bonus (UZS) | Berilgan Avans (UZS) | Magazin (UZS) | To'langan Oylik (UZS) | To'lanishi Kerak Qoldiq (UZS)
+
+    Web `/superadmin/payroll` dagi jami hisoblangan ish haqi bilan 100% bir xil chiqadi.
+    Shu oyda kamida 1 ta stiker skanerlagan barcha xodimlar qamrab olinadi (oxirgi kuni ishlamaganlar ham).
+    """
+    if existing_ws is not None:
+        ws = existing_ws
+        ws.title = sheet_title
+    elif insert_at_index is not None:
+        ws = wb.create_sheet(title=sheet_title, index=insert_at_index)
+    else:
+        ws = wb.create_sheet(title=sheet_title)
+
+    ws.views.sheetView[0].showGridLines = True
+
+    selected_year = target_date.year
+    selected_month = target_date.month
+    start_of_month = target_date.replace(day=1)
+
+    # 1. Tanlangan oy bo'yicha (target_date gacha) barcha skanerlangan biletlar
+    month_tickets_qs = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__year=selected_year,
+        scanned_at__month=selected_month,
+        scanned_at__date__lte=target_date
+    )
+
+    # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, biletlar narxlarini eng so'nggi ratsenkalar bilan yangilash
+    ao_ids = list(month_tickets_qs.values_list('article_operation_id', flat=True).distinct())
+    for ao in ArticleOperation.objects.filter(id__in=ao_ids):
+        ao.sync_price_to_tickets()
+
+    # Biletlar bo'yicha xodimlar statistikasi (web bilan 100% bir xil)
+    worker_ticket_stats = month_tickets_qs.values('worker_id').annotate(
+        units=Sum('quantity'),
+        gross=Sum('total_amount'),
+        days_worked=Count('scanned_at__date', distinct=True)
+    )
+    worker_ticket_map = {item['worker_id']: item for item in worker_ticket_stats}
+
+    # 2. Tanlangan oy to'lovlari (target_date gacha)
+    month_payout_qs = WorkerPayout.objects.filter(
+        payout_date__year=selected_year,
+        payout_date__month=selected_month,
+        payout_date__lte=target_date
+    ).values('worker_id').annotate(
+        advances=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.ADVANCE)),
+        salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY)),
+        bonuses=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.BONUS)),
+    )
+    month_payout_map = {item['worker_id']: item for item in month_payout_qs}
+
+    # 3. Kunlik KPI bonuslari (agar tizimda belgilangan bo'lsa)
+    daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 0)
+    worker_daily_bonuses = {}
+    if daily_bonus_amount > 0:
+        tickets_list = list(month_tickets_qs.select_related('article_operation__article__model'))
+        tickets_by_worker = {}
+        for t in tickets_list:
+            tickets_by_worker.setdefault(t.worker_id, []).append(t)
+
+        for w_id, w_tickets in tickets_by_worker.items():
+            t_by_date = {}
+            for t in w_tickets:
+                if t.scanned_at:
+                    d = timezone.localtime(t.scanned_at).date()
+                    t_by_date.setdefault(d, []).append(t)
+
+            w_bonus_sum = Decimal('0.00')
+            for d, d_tickets in t_by_date.items():
+                model_stats = {}
+                for t in d_tickets:
+                    ao = t.article_operation
+                    art = ao.article if ao else None
+                    pmodel = art.model if art else None
+                    norm = (pmodel.daily_norm if (pmodel and pmodel.daily_norm) else (art.daily_norm if (art and art.daily_norm) else 1000)) or 1000
+                    diff = float(ao.difficulty) if (ao and ao.difficulty) else 1.0
+                    pts = t.quantity * diff
+                    m_key = f"m_{pmodel.id}" if pmodel else (f"art_{art.id}" if art else "0")
+                    if m_key not in model_stats:
+                        model_stats[m_key] = {'norm': norm, 'points': 0.0}
+                    model_stats[m_key]['points'] += pts
+
+                total_day_pct = Decimal('0.0')
+                for mk, mdata in model_stats.items():
+                    if mdata['norm'] > 0:
+                        total_day_pct += (Decimal(str(mdata['points'])) / Decimal(str(mdata['norm']))) * Decimal('100.0')
+
+                if total_day_pct > Decimal('100.0'):
+                    w_bonus_sum += Decimal(str(daily_bonus_amount))
+
+            if w_bonus_sum > 0:
+                worker_daily_bonuses[w_id] = w_bonus_sum
+
+    # 4. Barcha xodimlar: ushbu oyda bilet urgan, to'lov olgan yoki faol barcha xodimlar
+    relevant_worker_ids = set(worker_ticket_map.keys()) | set(month_payout_map.keys())
+    workers = list(Worker.objects.filter(
+        Q(id__in=relevant_worker_ids) | Q(is_active=True)
+    ).select_related('user').order_by('worker_id'))
+
+    navy_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    zebra_fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    total_fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    green_fill = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+
+    font_title = Font(name="Arial", size=15, bold=True, color="0F172A")
+    font_subtitle = Font(name="Arial", size=10, italic=True, color="475569")
+    font_header = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+    font_bold = Font(name="Arial", size=10, bold=True, color="0F172A")
+    font_regular = Font(name="Arial", size=10, color="0F172A")
+    font_green_bold = Font(name="Arial", size=10, bold=True, color="166534")
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+    thick_bottom_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='medium', color='0F172A')
+    )
+
+    align_center = Alignment(horizontal='center', vertical='center')
+    align_left = Alignment(horizontal='left', vertical='center')
+    align_right = Alignment(horizontal='right', vertical='center')
+
+    # Sarlavha
+    ws.merge_cells('A1:J1')
+    ws['A1'] = "TERRY JAR — OYLIK ISH HAQI VA XODIMLAR TABELI"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = align_left
+    ws.row_dimensions[1].height = 26
+
+    ws.merge_cells('A2:J2')
+    ws['A2'] = (
+        f"Davr: {start_of_month.strftime('%d.%m.%Y')} dan {target_date.strftime('%d.%m.%Y')} gacha | "
+        f"Shakllantirilgan vaqt: {timezone.localtime().strftime('%d.%m.%Y %H:%M')}"
+    )
+    ws['A2'].font = font_subtitle
+    ws['A2'].alignment = align_left
+    ws.row_dimensions[2].height = 18
+
+    headers = [
+        ("№", 5, align_center),
+        ("Xodim UID", 14, align_center),
+        ("F.I.SH", 28, align_left),
+        ("Ishlagan Kunlari", 16, align_center),
+        ("Hisoblangan Ish Haqi (UZS)", 24, align_right),
+        ("Bonus (UZS)", 18, align_right),
+        ("Berilgan Avans (UZS)", 22, align_right),
+        ("Magazin (UZS)", 18, align_right),
+        ("To'langan Oylik (UZS)", 22, align_right),
+        ("To'lanishi Kerak Qoldiq (UZS)", 26, align_right),
+    ]
+
+    header_row = 4
+    ws.row_dimensions[header_row].height = 24
+    for col_idx, (h_text, width, aln) in enumerate(headers, start=1):
+        cell = ws.cell(row=header_row, column=col_idx, value=h_text)
+        cell.font = font_header
+        cell.fill = navy_fill
+        cell.alignment = align_center
+        cell.border = thin_border
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    row_idx = 5
+    counter = 1
+    for w in workers:
+        t_stat = worker_ticket_map.get(w.id, {})
+        g = t_stat.get('gross') or Decimal('0.00')
+        days_w = t_stat.get('days_worked') or 0
+
+        p_stat = month_payout_map.get(w.id, {})
+        adv = p_stat.get('advances') or Decimal('0.00')
+        sal = p_stat.get('salaries') or Decimal('0.00')
+        bonus = (p_stat.get('bonuses') or Decimal('0.00')) + worker_daily_bonuses.get(w.id, Decimal('0.00'))
+
+        c_fill = zebra_fill if counter % 2 == 0 else white_fill
+
+        ws.cell(row=row_idx, column=1, value=counter).alignment = align_center
+
+        # Xodim UID — 6 xonali toza son (w yoki W prefikslarisiz)
+        clean_uid = get_clean_worker_uid(w)
+        c_uid = ws.cell(row=row_idx, column=2, value=clean_uid)
+        c_uid.alignment = align_center
+        c_uid.font = font_bold
+
+        c_name = ws.cell(row=row_idx, column=3, value=w.full_name)
+        c_name.alignment = align_left
+        c_name.font = font_bold
+
+        # Ishlagan kunlari (shu oyda kamida 1 ta stiker qilgan kunlar soni)
+        c_days = ws.cell(row=row_idx, column=4, value=days_w)
+        c_days.alignment = align_center
+
+        # Hisoblangan Ish Haqi
+        c_g = ws.cell(row=row_idx, column=5, value=float(g))
+        c_g.alignment = align_right
+        c_g.number_format = '#,##0'
+        if g > 0:
+            c_g.font = font_green_bold
+            c_g.fill = green_fill
+
+        # Bonus
+        c_bonus = ws.cell(row=row_idx, column=6, value=float(bonus))
+        c_bonus.alignment = align_right
+        c_bonus.number_format = '#,##0'
+
+        # Berilgan Avans
+        c_adv = ws.cell(row=row_idx, column=7, value=float(adv))
+        c_adv.alignment = align_right
+        c_adv.number_format = '#,##0'
+
+        # Magazin (UZS) - 0 kiritiladi, tahrirlanadigan sonli format
+        c_mag = ws.cell(row=row_idx, column=8, value=0)
+        c_mag.alignment = align_right
+        c_mag.number_format = '#,##0'
+
+        # To'langan Oylik
+        c_sal = ws.cell(row=row_idx, column=9, value=float(sal))
+        c_sal.alignment = align_right
+        c_sal.number_format = '#,##0'
+
+        # To'lanishi Kerak Qoldiq formulasi: =(E+F)-G-H-I
+        c_qoldiq = ws.cell(row=row_idx, column=10, value=f"=E{row_idx}+F{row_idx}-G{row_idx}-H{row_idx}-I{row_idx}")
+        c_qoldiq.alignment = align_right
+        c_qoldiq.font = font_bold
+        c_qoldiq.number_format = '#,##0'
+
+        for col_idx in range(1, 11):
+            c_node = ws.cell(row=row_idx, column=col_idx)
+            c_node.border = thin_border
+            if col_idx != 5 or g == 0:
+                if c_fill.fill_type:
+                    c_node.fill = c_fill
+            if col_idx not in (2, 3, 5, 10):
+                c_node.font = font_regular
+
+        row_idx += 1
+        counter += 1
+
+    # JAMI / BARCHASI qatori
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
+    c_tot_lbl = ws.cell(row=row_idx, column=1, value="JAMI / BARCHASI:")
+    c_tot_lbl.font = font_bold
+    c_tot_lbl.alignment = align_right
+
+    c_tot_g = ws.cell(row=row_idx, column=5, value=f"=SUM(E5:E{row_idx-1})")
+    c_tot_g.font = font_bold
+    c_tot_g.alignment = align_right
+    c_tot_g.number_format = '#,##0'
+
+    c_tot_bonus = ws.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
+    c_tot_bonus.font = font_bold
+    c_tot_bonus.alignment = align_right
+    c_tot_bonus.number_format = '#,##0'
+
+    c_tot_adv = ws.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
+    c_tot_adv.font = font_bold
+    c_tot_adv.alignment = align_right
+    c_tot_adv.number_format = '#,##0'
+
+    c_tot_mag = ws.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
+    c_tot_mag.font = font_bold
+    c_tot_mag.alignment = align_right
+    c_tot_mag.number_format = '#,##0'
+
+    c_tot_sal = ws.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
+    c_tot_sal.font = font_bold
+    c_tot_sal.alignment = align_right
+    c_tot_sal.number_format = '#,##0'
+
+    c_tot_qoldiq = ws.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
+    c_tot_qoldiq.font = font_bold
+    c_tot_qoldiq.alignment = align_right
+    c_tot_qoldiq.number_format = '#,##0'
+
+    ws.row_dimensions[row_idx].height = 24
+    for col_idx in range(1, 11):
+        c_node = ws.cell(row=row_idx, column=col_idx)
+        c_node.fill = total_fill
+        c_node.border = thick_bottom_border
+
+    return ws
 
 
 def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO:
@@ -172,7 +482,8 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
 
     days_worked_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__date__gte=start_of_month,
+        scanned_at__year=target_date.year,
+        scanned_at__month=target_date.month,
         scanned_at__date__lte=target_date
     ).values('worker_id').annotate(cnt=Count('scanned_at__date', distinct=True))
     days_worked_map = {item['worker_id']: item['cnt'] for item in days_worked_qs}
@@ -334,7 +645,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
 
         ws1.cell(row=row_idx, column=1, value=counter).alignment = align_center
 
-        c_uid = ws1.cell(row=row_idx, column=2, value=w.worker_id)
+        c_uid = ws1.cell(row=row_idx, column=2, value=get_clean_worker_uid(w))
         c_uid.alignment = align_center
         c_uid.font = font_bold
 
@@ -440,7 +751,12 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         cell.border = thick_bottom_border
 
     # -------------------------------------------------------------
-    # 2-VARAQ: BARCHA SKANERLANGAN STIKERLAR TAFSILOTI
+    # 2-VARAQ: OYLIK UMUMIY TABEL (OY BO'YICHA BARCHA XODIMLAR VA ISH HAQI)
+    # -------------------------------------------------------------
+    _build_monthly_tabel_sheet(wb, target_date=target_date, insert_at_index=1)
+
+    # -------------------------------------------------------------
+    # 3-VARAQ: BARCHA SKANERLANGAN STIKERLAR TAFSILOTI
     # -------------------------------------------------------------
     ws2 = wb.create_sheet(title="Skanerlangan Stikerlar")
     ws2.views.sheetView[0].showGridLines = True
@@ -573,7 +889,7 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         c_node.border = thick_bottom_border
 
     # -------------------------------------------------------------
-    # 3-VARAQ: PATOKLAR (EKRANLAR) XULOSASI VA KUNLIK ISH HAQI
+    # 4-VARAQ: PATOKLAR (EKRANLAR) XULOSASI VA KUNLIK ISH HAQI
     # -------------------------------------------------------------
     ws3 = wb.create_sheet(title="Patoklar Xulosasi")
     ws3.views.sheetView[0].showGridLines = True
@@ -893,7 +1209,7 @@ def _build_day_sheet(
 
         ws.cell(row=row_idx, column=1, value=counter).alignment = align_center
 
-        c_uid = ws.cell(row=row_idx, column=2, value=w.worker_id)
+        c_uid = ws.cell(row=row_idx, column=2, value=get_clean_worker_uid(w))
         c_uid.alignment = align_center
         c_uid.font = font_bold
 
@@ -1024,7 +1340,9 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     # 1. Oy boshidan beri skanerlangan barcha biletlar
     month_tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__range=(month_start_dt, month_end_dt)
+        scanned_at__year=target_date.year,
+        scanned_at__month=target_date.month,
+        scanned_at__date__lte=target_date
     ).select_related(
         'worker',
         'article_operation__operation',
@@ -1041,7 +1359,9 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     # Qayta yangilangan biletlarni yuklash
     month_tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__range=(month_start_dt, month_end_dt)
+        scanned_at__year=target_date.year,
+        scanned_at__month=target_date.month,
+        scanned_at__date__lte=target_date
     ).select_related(
         'worker',
         'article_operation__operation',
@@ -1185,156 +1505,14 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     # 9. To'langan Oylik (UZS)
     # 10. To'lanishi Kerak Qoldiq (UZS) - Formula: =(E+F)-G-H-I
     # -------------------------------------------------------------
-    ws1 = wb.active
-    ws1.title = "Oylik Umumiy Tabel"
-    ws1.views.sheetView[0].showGridLines = True
-
-    # Sarlavha
-    ws1.merge_cells('A1:J1')
-    c_title = ws1['A1']
-    c_title.value = "TERRY JAR — OYLIK ISH HAQI VA XODIMLAR TABELI"
-    c_title.font = font_title
-    c_title.alignment = align_left
-    ws1.row_dimensions[1].height = 26
-
-    ws1.merge_cells('A2:J2')
-    c_sub = ws1['A2']
-    c_sub.value = f"Davr: {start_of_month.strftime('%d.%m.%Y')} 00:00 dan {target_date.strftime('%d.%m.%Y')} {now.strftime('%H:%M')} gacha | Shakllantirilgan vaqt: {now.strftime('%d.%m.%Y %H:%M')}"
-    c_sub.font = font_subtitle
-    c_sub.alignment = align_left
-    ws1.row_dimensions[2].height = 18
-
-    headers1 = [
-        ("№", 5, align_center),
-        ("Xodim UID", 14, align_center),
-        ("F.I.SH", 28, align_left),
-        ("Ishlagan Kunlari", 16, align_center),
-        ("Hisoblangan Ish Haqi (UZS)", 24, align_right),
-        ("Bonus (UZS)", 18, align_right),
-        ("Berilgan Avans (UZS)", 22, align_right),
-        ("Magazin (UZS)", 18, align_right),
-        ("To'langan Oylik (UZS)", 22, align_right),
-        ("To'lanishi Kerak Qoldiq (UZS)", 26, align_right),
-    ]
-
-    ws1.row_dimensions[4].height = 24
-    for col_idx, (h_text, width, aln) in enumerate(headers1, start=1):
-        cell = ws1.cell(row=4, column=col_idx, value=h_text)
-        cell.font = font_header
-        cell.fill = navy_fill
-        cell.alignment = align_center
-        cell.border = thin_border
-        ws1.column_dimensions[get_column_letter(col_idx)].width = width
-
-    row_idx = 5
-    counter = 1
-    for w in workers:
-        t_stat = worker_ticket_map.get(w.id, {})
-        g = t_stat.get('gross') or Decimal('0.00')
-        days_w = t_stat.get('days_worked') or 0
-
-        p_stat = month_payout_map.get(w.id, {})
-        adv = p_stat.get('advances') or Decimal('0.00')
-        sal = p_stat.get('salaries') or Decimal('0.00')
-        bonus = (p_stat.get('bonuses') or Decimal('0.00')) + worker_daily_bonuses.get(w.id, Decimal('0.00'))
-
-        c_fill = zebra_fill if counter % 2 == 0 else white_fill
-
-        ws1.cell(row=row_idx, column=1, value=counter).alignment = align_center
-
-        c_uid = ws1.cell(row=row_idx, column=2, value=w.worker_id)
-        c_uid.alignment = align_center
-        c_uid.font = font_bold
-
-        c_name = ws1.cell(row=row_idx, column=3, value=w.full_name)
-        c_name.alignment = align_left
-        c_name.font = font_bold
-
-        ws1.cell(row=row_idx, column=4, value=days_w).alignment = align_center
-
-        c_g = ws1.cell(row=row_idx, column=5, value=float(g))
-        c_g.alignment = align_right
-        c_g.number_format = '#,##0'
-        if g > 0:
-            c_g.font = font_green_bold
-            c_g.fill = green_fill
-
-        c_bonus = ws1.cell(row=row_idx, column=6, value=float(bonus))
-        c_bonus.alignment = align_right
-        c_bonus.number_format = '#,##0'
-
-        c_adv = ws1.cell(row=row_idx, column=7, value=float(adv))
-        c_adv.alignment = align_right
-        c_adv.number_format = '#,##0'
-
-        # Magazin (UZS) - Excelda foydalanuvchi xarajatlarni to'g'ridan-to'g'ri kiritadi
-        c_mag = ws1.cell(row=row_idx, column=8, value=0)
-        c_mag.alignment = align_right
-        c_mag.number_format = '#,##0'
-
-        c_sal = ws1.cell(row=row_idx, column=9, value=float(sal))
-        c_sal.alignment = align_right
-        c_sal.number_format = '#,##0'
-
-        # To'lanishi Kerak Qoldiq formulasi: =(Ish Haqi + Bonus) - Avans - Magazin - To'langan Oylik
-        c_qoldiq = ws1.cell(row=row_idx, column=10, value=f"=E{row_idx}+F{row_idx}-G{row_idx}-H{row_idx}-I{row_idx}")
-        c_qoldiq.alignment = align_right
-        c_qoldiq.font = font_bold
-        c_qoldiq.number_format = '#,##0'
-
-        for col_idx in range(1, 11):
-            c_node = ws1.cell(row=row_idx, column=col_idx)
-            c_node.border = thin_border
-            if col_idx != 5 or g == 0:
-                if c_fill.fill_type:
-                    c_node.fill = c_fill
-            if col_idx not in (2, 3, 5, 10):
-                c_node.font = font_regular
-
-        row_idx += 1
-        counter += 1
-
-    # Jami / Barchasi qatori
-    ws1.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
-    c_tot_lbl = ws1.cell(row=row_idx, column=1, value="JAMI / BARCHASI:")
-    c_tot_lbl.font = font_bold
-    c_tot_lbl.alignment = align_right
-
-    c_tot_g = ws1.cell(row=row_idx, column=5, value=f"=SUM(E5:E{row_idx-1})")
-    c_tot_g.font = font_bold
-    c_tot_g.alignment = align_right
-    c_tot_g.number_format = '#,##0'
-
-    c_tot_bonus = ws1.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
-    c_tot_bonus.font = font_bold
-    c_tot_bonus.alignment = align_right
-    c_tot_bonus.number_format = '#,##0'
-
-    c_tot_adv = ws1.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
-    c_tot_adv.font = font_bold
-    c_tot_adv.alignment = align_right
-    c_tot_adv.number_format = '#,##0'
-
-    c_tot_mag = ws1.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
-    c_tot_mag.font = font_bold
-    c_tot_mag.alignment = align_right
-    c_tot_mag.number_format = '#,##0'
-
-    c_tot_sal = ws1.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
-    c_tot_sal.font = font_bold
-    c_tot_sal.alignment = align_right
-    c_tot_sal.number_format = '#,##0'
-
-    c_tot_qoldiq = ws1.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
-    c_tot_qoldiq.font = font_bold
-    c_tot_qoldiq.alignment = align_right
-    c_tot_qoldiq.number_format = '#,##0'
-
-    ws1.row_dimensions[row_idx].height = 24
-    for col_idx in range(1, 11):
-        c_node = ws1.cell(row=row_idx, column=col_idx)
-        c_node.fill = total_fill
-        c_node.border = thick_bottom_border
+    # -------------------------------------------------------------
+    # 1-VARAQ: XODIMLAR OYLIK TABELI (UMUMIY)
+    # -------------------------------------------------------------
+    _build_monthly_tabel_sheet(
+        wb=wb,
+        target_date=target_date,
+        existing_ws=wb.active
+    )
 
     # -------------------------------------------------------------
     # 2...N-VARAQLAR: KUNLIK HISOBOT VARAQLARI (01.MM dan BUGUN.MM gacha)
@@ -1415,7 +1593,7 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     ws2.row_dimensions[2].height = 18
 
     headers2 = [
-        "№", "Stiker ID", "Skanerlangan Vaqt", "Xodim ID", "Xodim F.I.SH",
+        "№", "Stiker ID", "Skanerlangan Vaqt", "Xodim UID", "Xodim F.I.SH",
         "Zakaz №", "Quti №", "Model", "Operatsiya",
         "Soni (dona)", "Narxi (UZS)", "Jami Summa (UZS)"
     ]
@@ -1435,7 +1613,7 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
 
     for t in month_tickets:
         scan_time_str = timezone.localtime(t.scanned_at).strftime("%d.%m.%Y %H:%M:%S") if t.scanned_at else "—"
-        worker_id = t.worker.worker_id if t.worker else "—"
+        worker_id = get_clean_worker_uid(t.worker) if t.worker else "—"
         worker_name = t.worker.full_name if t.worker else "Noma'lum"
 
         order_num = "—"

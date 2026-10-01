@@ -71,9 +71,10 @@ def send_daily_excel_report(target_date: datetime.date = None, chat_id: str = No
         f"👕 *Tikilgan jami mahsulot:* {total_units:,} dona\n"
         f"💰 *Bugungi hisoblangan ish haqi:* {total_earned:,.0f} UZS\n\n"
         f"📋 *Excel fayl tarkibi:*\n"
-        f"1️⃣ *Xodimlar Kunlik Hisoboti* — Har bir xodimning oxirgi patogi (ekrani) va ish haqi\n"
-        f"2️⃣ *Skanerlangan Stikerlar* — Har bir stiker qaysi patokda urilgani\n"
-        f"3️⃣ *Patoklar Xulosasi* — Har bir patok bo'yicha jami ish haqi, tikilgan dona va xodimlar ro'yxati"
+        f"1️⃣ *Xodimlar Kunlik Hisoboti* — Bugungi kunlik ish haqi va stikerlar\n"
+        f"2️⃣ *Oylik Umumiy Tabel* — Oy boshidan beri umumiy hisoblangan ish haqi, avans va qoldiqlar (Web bilan 100% bir xil)\n"
+        f"3️⃣ *Skanerlangan Stikerlar* — Bugungi barcha stikerlar tafsiloti va patogi\n"
+        f"4️⃣ *Patoklar Xulosasi* — Har bir patok bo'yicha jami ish haqi va tikilgan dona"
     ).replace(",", " ")
 
     # 4. Telegram Bot API orqali jo'natish
@@ -251,13 +252,20 @@ def send_full_db_backup(chat_id: str = None, bot_token: str = None) -> dict:
                 pass
 
 
-def send_month_to_date_telegram_report(chat_id: str = None, bot_token: str = None) -> dict:
+def send_month_to_date_telegram_report(target_date: datetime.date = None, chat_id: str = None, bot_token: str = None) -> dict:
     """
-    Joriy oy boshidan (1-kuni 00:00 dan) to hozirgacha bo'lgan to'liq oylik hisobotni (Excel)
+    Oy boshidan to ko'rsatilgan sanagacha (yoki oy oxirigacha) bo'lgan to'liq oylik hisobotni (Excel)
     va to'liq ma'lumotlar bazasi zaxira nusxasini (Full DB Backup .sql.gz) Telegram guruhga yuboruvchi funksiya.
     """
     now = timezone.localtime()
-    start_of_month = now.date().replace(day=1)
+    if target_date is None:
+        # Agar oyning 1-kuni bo'lsa (yangi oy boshlangan bo'lsa), o'tgan tugagan oy hisoboti olinadi!
+        if now.day == 1 and now.hour < 12:
+            target_date = now.date() - datetime.timedelta(days=1)
+        else:
+            target_date = now.date()
+
+    start_of_month = target_date.replace(day=1)
 
     if bot_token is not None:
         token = bot_token
@@ -282,23 +290,23 @@ def send_month_to_date_telegram_report(chat_id: str = None, bot_token: str = Non
         }
 
     # 1. Agregatsiya statistikasi (caption uchun)
-    tz = timezone.get_current_timezone()
-    month_start_dt = timezone.make_aware(datetime.datetime.combine(start_of_month, datetime.time.min), tz)
-    month_end_dt = now
-
     from production.models import Ticket
     from accounts.models import WorkerPayout
 
     month_tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__range=(month_start_dt, month_end_dt)
+        scanned_at__year=target_date.year,
+        scanned_at__month=target_date.month,
+        scanned_at__date__lte=target_date
     )
     total_units = month_tickets.aggregate(s=Sum('quantity'))['s'] or 0
     total_gross = month_tickets.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
     active_workers_count = month_tickets.values('worker_id').distinct().count()
 
     payouts = WorkerPayout.objects.filter(
-        payout_date__range=(start_of_month, now.date())
+        payout_date__year=target_date.year,
+        payout_date__month=target_date.month,
+        payout_date__lte=target_date
     ).aggregate(
         advances=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.ADVANCE)),
         salaries=Sum('amount', filter=Q(payout_type=WorkerPayout.PayoutType.SALARY))
@@ -310,24 +318,24 @@ def send_month_to_date_telegram_report(chat_id: str = None, bot_token: str = Non
     # 2. Excel faylni yaratish
     from production.excel_reports import generate_month_to_date_excel_report
     try:
-        excel_buffer = generate_month_to_date_excel_report(target_date=now.date())
+        excel_buffer = generate_month_to_date_excel_report(target_date=target_date)
     except Exception as e:
         return {
             'success': False,
             'message': f"Oylik Excel hisobotni shakllantirishda xatolik: {str(e)}"
         }
 
-    filename = f"Oylik_Hisobot_{now.strftime('%Y_%m')}_{now.strftime('%d_%H%M')}.xlsx"
+    filename = f"Oylik_Hisobot_{target_date.strftime('%Y_%m')}_{target_date.strftime('%d')}_{now.strftime('%H%M')}.xlsx"
 
     caption_text = (
         f"📊 *TERRY JAR — OYLIK ISH HAQI VA MONITORING HISOBOTI*\n"
-        f"📅 *Davr:* {start_of_month.strftime('%d.%m.%Y')} 00:00 — {now.strftime('%d.%m.%Y %H:%M')} (Oy boshidan hozirgacha)\n\n"
+        f"📅 *Davr:* {start_of_month.strftime('%d.%m.%Y')} — {target_date.strftime('%d.%m.%Y')} (Oylik umumiy tabel)\n\n"
         f"👥 *Faol tikuvchilar:* {active_workers_count} nafar\n"
         f"👕 *Tikilgan jami mahsulot:* {total_units:,} dona\n"
         f"💰 *Jami hisoblangan ish haqi:* {total_gross:,.0f} UZS\n"
         f"💵 *Berilgan avanslar:* {total_advances:,.0f} UZS\n"
         f"💳 *To'lanishi kerak qoldiq:* {total_payable:,.0f} UZS\n\n"
-        f"📁 *Excel faylda: 1-varaqda umumiy oylik tabel, keyingi varaqlarda esa oy boshidan to bugungacha har bir kun (01.{now.strftime('%m')} dan {now.strftime('%d.%m')} gacha) alohida listlarga yozilgan.*"
+        f"📁 *Excel faylda: 1-varaqda umumiy oylik tabel (Web bilan 100% bir xil), keyingi varaqlarda esa oy boshidan to {target_date.strftime('%d.%m')} gacha har bir kun alohida listlarga yozilgan.*"
     ).replace(",", " ")
 
     api_url = f"https://api.telegram.org/bot{token}/sendDocument"

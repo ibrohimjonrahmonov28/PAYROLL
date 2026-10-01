@@ -84,10 +84,10 @@
             </form>
 
             <!-- Telegram Month-to-date & DB Backup Trigger -->
-            <a href="{% url 'superadmin_send_telegram_report' %}"
-                onclick="return confirm('Joriy oy boshidan hozirgacha bo\'lgan oylik hisobot (Excel) va to\'liq baza zaxirasi (.sql.gz) Telegram guruhga yuborilsinmi?');"
+            <a href="{% url 'superadmin_send_telegram_report' %}?year={{ selected_year }}&month={{ selected_month }}"
+                onclick="return confirm('{{ selected_month }}-oy uchun oylik hisobot (Excel) va to\'liq baza zaxirasi (.sql.gz) Telegram guruhga yuborilsinmi?');"
                 class="px-4 py-2 bg-sky-950/60 hover:bg-sky-900/60 border border-sky-600/40 text-sky-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
-                title="Oy boshidan hozirgacha bo'lgan oylik Excel hisoboti va to'liq DB backupni Telegram guruhga yuborish">
+                title="Tanlangan oy uchun oylik Excel hisoboti va to'liq DB backupni Telegram guruhga yuborish">
                 <i class="fa-brands fa-telegram text-base text-sky-400"></i> Telegramga Oylik Hisobot va DB Backup
             </a>
 
@@ -96,6 +96,13 @@
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-teal-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
                 title="Bugungi kunlik hisobotni Excel (.xlsx) formatida yuklab olish">
                 <i class="fa-solid fa-file-arrow-down text-base text-teal-400"></i> Kunlik Excel
+            </a>
+
+            <!-- Direct Download Monthly Excel -->
+            <a href="{% url 'superadmin_download_monthly_excel' %}?year={{ selected_year }}&month={{ selected_month }}"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-300 font-bold text-xs rounded-xl transition flex items-center gap-2 shadow-sm"
+                title="Tanlangan oy uchun to'liq oylik tabel va kunlik hisobotlarni Excel (.xlsx) formatida yuklab olish">
+                <i class="fa-solid fa-file-excel text-base text-emerald-400"></i> Oylik Tabel (Excel)
             </a>
 
             {% if not is_branch_admin %}

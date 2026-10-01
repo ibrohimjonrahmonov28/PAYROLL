@@ -27,7 +27,14 @@ class TelegramDailyReportTest(TestCase):
         )
 
         # Worker
+        self.worker_user = User.objects.create_user(
+            username='worker999',
+            password='password123',
+            uid='999001',
+            role=User.Role.USER
+        )
         self.worker = Worker.objects.create(
+            user=self.worker_user,
             worker_id='W-999',
             first_name='Dilshod',
             last_name='Karimov',
@@ -87,6 +94,7 @@ class TelegramDailyReportTest(TestCase):
         # openpyxl bilan o'qib tekshirish
         wb = openpyxl.load_workbook(buf)
         self.assertIn("Xodimlar Kunlik Hisoboti", wb.sheetnames)
+        self.assertIn("Oylik Umumiy Tabel", wb.sheetnames)
         self.assertIn("Skanerlangan Stikerlar", wb.sheetnames)
         self.assertIn("Patoklar Xulosasi", wb.sheetnames)
 
@@ -96,7 +104,7 @@ class TelegramDailyReportTest(TestCase):
         found_sticker = False
         found_patok_ws1 = False
         for row in ws1.iter_rows(values_only=True):
-            if 'W-999' in row:
+            if '999001' in row or 'W-999' in row:
                 found_worker = True
                 if 'K12-Patok' in row:
                     found_patok_ws1 = True
@@ -104,9 +112,17 @@ class TelegramDailyReportTest(TestCase):
                 for cell_val in row:
                     if cell_val and 'STIK9999' in str(cell_val):
                         found_sticker = True
-        self.assertTrue(found_worker, "Worker W-999 Excel 1-varaqda topilmadi")
+        self.assertTrue(found_worker, "Worker UID Excel 1-varaqda topilmadi")
         self.assertTrue(found_patok_ws1, "K12-Patok 1-varaqda xodim qatorida topilmadi")
         self.assertTrue(found_sticker, "Stiker kodi STIK9999 1-varaqda topilmadi")
+
+        # 2-varaq tekshiruvi: Oylik Umumiy Tabel
+        ws_monthly = wb["Oylik Umumiy Tabel"]
+        found_worker_monthly = False
+        for row in ws_monthly.iter_rows(values_only=True):
+            if '999001' in row:
+                found_worker_monthly = True
+        self.assertTrue(found_worker_monthly, "Worker 999001 Oylik Umumiy Tabelda topilmadi")
 
         # 2-varaq tekshiruvi: Stiker va uning patogi
         ws2 = wb["Skanerlangan Stikerlar"]
@@ -171,10 +187,15 @@ class TelegramDailyReportTest(TestCase):
         """Superadmin panelidagi download va telegram jo'natish viewlari ishlaydi"""
         self.client.force_login(self.superadmin)
 
-        # Download view
+        # Download daily view
         res_dl = self.client.get(reverse('superadmin_download_daily_excel'))
         self.assertEqual(res_dl.status_code, 200)
         self.assertEqual(res_dl['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+        # Download monthly view
+        res_dl_m = self.client.get(reverse('superadmin_download_monthly_excel'))
+        self.assertEqual(res_dl_m.status_code, 200)
+        self.assertEqual(res_dl_m['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
         # Telegram report view (token yo'q bo'lsa ogohlantirish qaytadi)
         res_tg = self.client.get(reverse('superadmin_send_telegram_report'))
