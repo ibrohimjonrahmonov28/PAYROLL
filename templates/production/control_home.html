@@ -130,20 +130,18 @@
                 </button>
 
                 <!-- MASSHTAB (ZOOM) BOSHQARUVI -->
-                <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs gap-1.5 flex-shrink-0" title="Ekran masshtabi">
+                <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs gap-1.5 flex-shrink-0"
+                    title="Ekran masshtabi">
                     <span class="text-[11px] text-slate-400 font-bold hidden xl:inline">Masshtab:</span>
-                    <button type="button" onclick="changeZoom(-0.05)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-black flex items-center justify-center active:scale-90" title="Kichiklashtirish">-</button>
-                    <span id="zoom-label" class="font-black text-indigo-300 digital-font text-xs min-w-[34px] text-center">85%</span>
-                    <button type="button" onclick="changeZoom(0.05)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-black flex items-center justify-center active:scale-90" title="Kattalashtirish">+</button>
+                    <button type="button" onclick="changeZoom(-0.05)"
+                        class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-black flex items-center justify-center active:scale-90"
+                        title="Kichiklashtirish">-</button>
+                    <span id="zoom-label"
+                        class="font-black text-indigo-300 digital-font text-xs min-w-[34px] text-center">85%</span>
+                    <button type="button" onclick="changeZoom(0.05)"
+                        class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-black flex items-center justify-center active:scale-90"
+                        title="Kattalashtirish">+</button>
                 </div>
-
-                <!-- APK YUKLAB OLISH TUGMASI (Android dastur) -->
-                <a href="{% url 'control:download_apk' %}" target="_blank" download="terryjar_control.apk"
-                    class="touch-btn px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 hover:text-white border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 flex-shrink-0"
-                    title="Planshet uchun maxsus Android APK dasturini yuklab olish">
-                    <i class="fa-brands fa-android text-emerald-400 text-sm"></i>
-                    <span class="inline">APK</span>
-                </a>
 
                 <!-- TO'LIQ EKRAN (FULLSCREEN) TUGMASI (User talabi) -->
                 <button type="button" id="btn-fullscreen" onclick="toggleFullscreen()"
@@ -633,8 +631,7 @@
     <!-- ================================================================= -->
     <div id="defect-reasons-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950 flex flex-col w-full h-full p-0 m-0 overflow-hidden">
-        <div
-            class="bg-slate-900 w-full h-full flex flex-col overflow-hidden">
+        <div class="bg-slate-900 w-full h-full flex flex-col overflow-hidden">
 
             <!-- Modal Header -->
             <div
@@ -693,7 +690,8 @@
                             <i class="fa-solid fa-check"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <span class="text-amber-300 block font-black text-sm sm:text-base">Tikishga / operatsiyaga aloqasi yo'q</span>
+                            <span class="text-amber-300 block font-black text-sm sm:text-base">Tikishga / operatsiyaga
+                                aloqasi yo'q</span>
                         </div>
                     </button>
 
@@ -771,8 +769,7 @@
     <!-- ================================================================= -->
     <div id="repair-operations-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950 flex flex-col w-full h-full p-0 m-0 overflow-hidden">
-        <div
-            class="bg-slate-900 w-full h-full flex flex-col overflow-hidden">
+        <div class="bg-slate-900 w-full h-full flex flex-col overflow-hidden">
 
             <!-- Modal Header -->
             <div
@@ -1016,7 +1013,7 @@
         function applyZoom(zoom) {
             currentZoom = Math.min(Math.max(zoom, 0.50), 1.25);
             document.documentElement.style.zoom = currentZoom;
-            try { localStorage.setItem('control_zoom', currentZoom.toFixed(2)); } catch(e) {}
+            try { localStorage.setItem('control_zoom', currentZoom.toFixed(2)); } catch (e) { }
             const label = document.getElementById('zoom-label');
             if (label) {
                 label.innerText = Math.round(currentZoom * 100) + '%';
