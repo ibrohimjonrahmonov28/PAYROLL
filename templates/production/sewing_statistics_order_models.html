@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Modellar — Zakaz {{ order.order_number }} — Tikim Statistikasi{% endblock %}
+
+{% block page_header %}
+<div class="flex items-center gap-3">
+    <a href="{% url 'production:sewing_statistics_orders' %}"
+        class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700 shadow-sm"
+        title="Barcha buyurtmalarga qaytish">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <div class="flex items-center gap-2">
+            <h2 class="text-base font-black text-white leading-tight">Zakaz: <span class="text-cyan-400 font-mono">{{ order.order_number }}</span></h2>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {% if order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
+                {{ order.get_status_display }}
+            </span>
+        </div>
+        <p class="text-xs text-slate-400">
+            Mijoz: <strong class="text-white">{{ order.customer.name|default:order.client_name }}</strong>
+            {% if order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{ order.deadline|date:"d.m.Y" }}</span>{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Order Overview Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Jami Reja</span>
+            <span class="text-xl font-black text-amber-400 digital-font mt-1 block">{{ order_totals.planned }} <small class="text-[10px] text-slate-500">dona</small></span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Kesilgan</span>
+            <span class="text-xl font-black text-emerald-400 digital-font mt-1 block">{{ order_totals.cut }} <small class="text-[10px] text-slate-500">dona</small></span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Qutilarda</span>
+            <span class="text-xl font-black text-white digital-font mt-1 block">{{ order_totals.boxed }} <small class="text-[10px] text-slate-500">dona</small></span>
+        </div>
+        <div class="bg-slate-900 border border-cyan-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-cyan-950/20 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block">Tikimga Kirgan</span>
+            <span class="text-xl font-black text-cyan-300 digital-font mt-1 block">{{ order_totals.entered_sewing }} <small class="text-[10px] text-slate-500">dona</small></span>
+        </div>
+        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-indigo-950/20 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Dazmoldan O'tgan</span>
+            <span class="text-xl font-black text-indigo-300 digital-font mt-1 block">{{ order_totals.dazmol }} <small class="text-[10px] text-slate-500">dona</small></span>
+        </div>
+        <div class="bg-slate-900 border border-amber-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-amber-950/20 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Kontrolda Kutmoqda</span>
+            <span class="text-xl font-black text-amber-300 digital-font mt-1 block">{{ order_totals.waiting_control }} <small class="text-[10px] text-slate-500">dona</small></span>
+        </div>
+        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">1-Sort / 2-Sort</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-xl font-black text-emerald-400 digital-font">{{ order_totals.first_sort }}</span>
+                {% if order_totals.second_sort > 0 %}
+                <span class="text-xs text-rose-400 font-mono font-bold">/ {{ order_totals.second_sort }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Models List Title -->
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div>
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-shirt text-cyan-400"></i> Ushbu Buyurtmadagi Modellar
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Har bir modelning rasmi va tikuv-dazmol-kontrol jarayoni</p>
+        </div>
+        <span class="text-xs font-mono px-3 py-1 bg-slate-900 rounded-lg border border-slate-800 text-slate-300 font-bold">
+            Jami: {{ models_data|length }} xil model
+        </span>
+    </div>
+
+    <!-- Models Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for m in models_data %}
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
+            <!-- Model Image & Header -->
+            <div>
+                <div class="relative w-full h-48 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center mb-4 group">
+                    {% if m.article_image_url %}
+                    <img src="{{ m.article_image_url }}" alt="{{ m.article.name }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    {% else %}
+                    <div class="flex flex-col items-center justify-center text-slate-700">
+                        <i class="fa-solid fa-shirt text-5xl mb-2"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Rasm yuklanmagan</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Top badges -->
+                    <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                        <span class="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-amber-400 border border-amber-400/30 font-mono font-black text-xs shadow-md">
+                            {{ m.article.code }}
+                        </span>
+                        {% if m.model_name %}
+                        <span class="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-slate-300 border border-slate-700 text-[11px] font-semibold">
+                            {{ m.model_name }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="absolute bottom-2.5 right-2.5">
+                        <span class="px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 font-mono font-bold text-xs">
+                            Reja: {{ m.planned_qty }} dona
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Model Title -->
+                <h4 class="text-base font-black text-white leading-snug line-clamp-2" title="{{ m.article.name }}">
+                    {{ m.article.name }}
+                </h4>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Jami qutilar: <strong class="text-white font-mono">{{ m.boxes_count }} ta</strong> ({{ m.total_boxed_qty }} dona)
+                </p>
+            </div>
+
+            <!-- Pipeline Metrics Progress -->
+            <div class="space-y-3 pt-2 border-t border-slate-800/80 text-xs">
+                <!-- Tikimga Kirgan Bar -->
+                <div>
+                    <div class="flex items-center justify-between text-[11px] mb-1">
+                        <span class="text-slate-400 font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-scissors text-cyan-400 text-[10px]"></i> Tikimga Kirgan:
+                        </span>
+                        <span class="font-bold text-cyan-300 font-mono">
+                            {{ m.entered_sewing_qty }} / {{ m.planned_qty }} <small class="text-cyan-400">({{ m.sewing_pct }}%)</small>
+                        </span>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-800 overflow-hidden">
+                        <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500" style="width: {{ m.sewing_pct }}%"></div>
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-0.5 block">{{ m.entered_sewing_boxes }} ta qutida stiker urilgan</span>
+                </div>
+
+                <!-- 3 Columns Stats: Dazmol | Kontrol Kutmoqda | OTK Natijasi -->
+                <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Dazmol</span>
+                        <span class="text-sm font-black text-indigo-300 digital-font mt-1 block">{{ m.dazmol_qty }}</span>
+                        <span class="text-[9px] text-slate-500 block font-mono">o'tgan dona</span>
+                    </div>
+
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Kutmoqda</span>
+                        <span class="text-sm font-black text-amber-400 digital-font mt-1 block">{{ m.waiting_control_qty }}</span>
+                        <span class="text-[9px] text-slate-500 block font-mono">OTK kutilmoqda</span>
+                    </div>
+
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">1-Sort</span>
+                        <span class="text-sm font-black text-emerald-400 digital-font mt-1 block">{{ m.first_sort_qty }}</span>
+                        {% if m.second_sort_qty > 0 %}
+                        <span class="text-[9px] text-rose-400 block font-mono font-bold">{{ m.second_sort_qty }} (2-sort)</span>
+                        {% else %}
+                        <span class="text-[9px] text-slate-500 block font-mono">qabul qilingan</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Button: Razmerlar va Qutilar Statistikasi -->
+            <div class="pt-3 border-t border-slate-800">
+                <a href="{% url 'production:sewing_statistics_model_detail' order.id m.item.id %}"
+                    class="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center justify-center gap-2 group-hover:shadow-cyan-500/20">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Razmerlar va Qutilar Statistikasi</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-16 bg-slate-900 border border-slate-800 rounded-3xl text-center text-slate-500 text-xs">
+            <i class="fa-solid fa-shirt text-4xl text-slate-700 mb-3 block"></i>
+            Ushbu buyurtmada hali modellar kiritilmagan.
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

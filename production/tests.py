@@ -6,7 +6,7 @@ from .models import (
     Customer, ProductModel, OrderItemSize, CuttingBatch, CuttingBatchItem
 )
 from .services import allocate_ticket_quantities, generate_box_tickets
-from accounts.models import User
+from accounts.models import User, Worker
 
 
 class AllocationAlgorithmTest(TestCase):
@@ -1953,6 +1953,210 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.assertEqual(res_lookup2.status_code, 200)
         data_lookup2 = res_lookup2.json()
         self.assertEqual(data_lookup2['box']['mode'], 'COMPLETED')
+
+
+class SewingStatisticsFeatureTest(TestCase):
+    def setUp(self):
+        self.superadmin = User.objects.create_user(
+            username="superadmin_stat",
+            password="password123",
+            role=User.Role.SUPER_ADMIN
+        )
+        self.manager = User.objects.create_user(
+            username="manager_stat",
+            password="password123",
+            role=User.Role.MANAGER
+        )
+        self.cutter = User.objects.create_user(
+            username="cutter_stat",
+            password="password123",
+            role=User.Role.CUTTER
+        )
+        self.customer = Customer.objects.create(name="Stat Customer LLC")
+        self.model = ProductModel.objects.create(name="Stat Model")
+        self.article = Article.objects.create(
+            code="STAT-ART-01",
+            name="Polo Shirt Stat",
+            model=self.model,
+            daily_norm=200
+        )
+        # Operations: Op1 (Tikuv), Op2 (Dazmol)
+        self.op1 = Operation.objects.create(name="Bichim Tikish", code="OP_TIK_01")
+        self.op2 = Operation.objects.create(name="DAZMOL QILISH", code="OP_DAZMOL_01")
+        self.ao1 = ArticleOperation.objects.create(article=self.article, operation=self.op1, sequence=1, price_per_unit=500)
+        self.ao2 = ArticleOperation.objects.create(article=self.article, operation=self.op2, sequence=2, price_per_unit=300)
+
+        # Worker
+        self.worker = Worker.objects.create(first_name="Malika", last_name="Tikuvchi", worker_id="999111")
+
+        # Order & OrderItem
+        self.order = Order.objects.create(order_number="ORD-STAT-001", customer=self.customer, client_name=self.customer.name, status=Order.Status.IN_PROGRESS)
+        self.item = OrderItem.objects.create(order=self.order, article=self.article, quantity=100)
+        self.size_m = OrderItemSize.objects.create(order_item=self.item, size_name="M", planned_quantity=60)
+        self.size_l = OrderItemSize.objects.create(order_item=self.item, size_name="L", planned_quantity=40)
+
+        # Boxes for Size M:
+        # Box 1: 30 qty, 1 ticket scanned (sewing entered, not dazmol, not controlled)
+        self.box1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="M",
+            box_number=1,
+            box_code="STAT-BX-01",
+            quantity=30,
+            pastal_number="P-STAT-1"
+        )
+        self.t1_1 = Ticket.objects.create(box=self.box1, article_operation=self.ao1, quantity=30, price_per_unit=500, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=2, scanned_at=timezone.now())
+        self.t1_2 = Ticket.objects.create(box=self.box1, article_operation=self.ao2, quantity=30, price_per_unit=300, status=Ticket.Status.PENDING)
+
+        # Box 2: 30 qty, 2 tickets scanned (both Op1 and Op2 Dazmol scanned -> waiting control)
+        self.box2 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="M",
+            box_number=2,
+            box_code="STAT-BX-02",
+            quantity=30,
+            pastal_number="P-STAT-1"
+        )
+        self.t2_1 = Ticket.objects.create(box=self.box2, article_operation=self.ao1, quantity=30, price_per_unit=500, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=2, scanned_at=timezone.now())
+        self.t2_2 = Ticket.objects.create(box=self.box2, article_operation=self.ao2, quantity=30, price_per_unit=300, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=3, scanned_at=timezone.now())
+
+        # Box 3 for Size L: 40 qty, fully controlled (1-sort 38, 2-sort 2)
+        self.box3 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="L",
+            box_number=3,
+            box_code="STAT-BX-03",
+            quantity=40,
+            pastal_number="P-STAT-2",
+            is_controlled=True,
+            controlled_first_sort_qty=38,
+            controlled_second_sort_qty=2,
+            controlled_by=self.superadmin,
+            controlled_at=timezone.now(),
+            status=Box.Status.COMPLETED
+        )
+        self.t3_1 = Ticket.objects.create(box=self.box3, article_operation=self.ao1, quantity=40, price_per_unit=500, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=1, scanned_at=timezone.now())
+        self.t3_2 = Ticket.objects.create(box=self.box3, article_operation=self.ao2, quantity=40, price_per_unit=300, worker=self.worker, status=Ticket.Status.SCANNED, screen_number=1, scanned_at=timezone.now())
+
+    def test_permission_denied_for_regular_and_anonymous(self):
+        # Anonymous user redirected to login
+        res_anon = self.client.get(reverse('production:sewing_statistics_orders'))
+        self.assertEqual(res_anon.status_code, 302)
+
+        # Cutter redirected
+        self.client.login(username="cutter_stat", password="password123")
+        res_cutter = self.client.get(reverse('production:sewing_statistics_orders'))
+        self.assertEqual(res_cutter.status_code, 302)
+
+        # Manager allowed
+        self.client.login(username="manager_stat", password="password123")
+        res_mgr = self.client.get(reverse('production:sewing_statistics_orders'))
+        self.assertEqual(res_mgr.status_code, 200)
+
+        # Superadmin allowed
+        self.client.login(username="superadmin_stat", password="password123")
+        res_admin = self.client.get(reverse('production:sewing_statistics_orders'))
+        self.assertEqual(res_admin.status_code, 200)
+
+    def test_sewing_statistics_orders_view_kpis(self):
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_orders')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "ORD-STAT-001")
+        self.assertContains(res, "Stat Customer LLC")
+
+        # Context KPI checks
+        kpis = res.context['overall_kpis']
+        self.assertEqual(kpis['total_orders'], 1)
+        self.assertEqual(kpis['total_planned'], 100) # 60 M + 40 L
+        self.assertEqual(kpis['total_boxed'], 100)   # 30 + 30 + 40
+        self.assertEqual(kpis['total_entered_sewing'], 100) # all 3 boxes have >=1 scanned ticket
+        self.assertEqual(kpis['total_dazmol'], 70)   # box2 (30) + box3 (40)
+        self.assertEqual(kpis['total_waiting_control'], 30) # box2 is 100% scanned but not yet controlled
+        self.assertEqual(kpis['total_first_sort'], 38)
+        self.assertEqual(kpis['total_second_sort'], 2)
+
+    def test_sewing_statistics_order_models_view(self):
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_order_models', kwargs={'order_id': self.order.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "STAT-ART-01")
+        self.assertContains(res, "Polo Shirt Stat")
+
+        models_data = res.context['models_data']
+        self.assertEqual(len(models_data), 1)
+        m0 = models_data[0]
+        self.assertEqual(m0['planned_qty'], 100)
+        self.assertEqual(m0['entered_sewing_qty'], 100)
+        self.assertEqual(m0['dazmol_qty'], 70)
+        self.assertEqual(m0['waiting_control_qty'], 30)
+        self.assertEqual(m0['first_sort_qty'], 38)
+        self.assertEqual(m0['second_sort_qty'], 2)
+
+    def test_sewing_statistics_model_detail_view(self):
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_model_detail', kwargs={'order_id': self.order.id, 'order_item_id': self.item.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "STAT-ART-01")
+
+        sizes = res.context['sizes_breakdown']
+        self.assertEqual(len(sizes), 2)
+
+        # Find Size M and Size L
+        size_m_data = next(s for s in sizes if s['size_name'] == 'M')
+        self.assertEqual(size_m_data['planned_qty'], 60)
+        self.assertEqual(size_m_data['total_boxed_qty'], 60) # 2 boxes * 30
+        self.assertEqual(size_m_data['entered_sewing_qty'], 60)
+        self.assertEqual(size_m_data['dazmol_qty'], 30)      # only box2 reached dazmol
+        self.assertEqual(size_m_data['waiting_control_qty'], 30) # box2 is waiting control
+        self.assertEqual(size_m_data['first_sort_qty'], 0)
+
+        size_l_data = next(s for s in sizes if s['size_name'] == 'L')
+        self.assertEqual(size_l_data['planned_qty'], 40)
+        self.assertEqual(size_l_data['entered_sewing_qty'], 40)
+        self.assertEqual(size_l_data['dazmol_qty'], 40)
+        self.assertEqual(size_l_data['waiting_control_qty'], 0)
+        self.assertEqual(size_l_data['first_sort_qty'], 38)
+        self.assertEqual(size_l_data['second_sort_qty'], 2)
+
+    def test_api_sewing_statistics_size_boxes_html_and_json(self):
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:api_sewing_statistics_size_boxes')
+
+        # 1. HTML partial for Size M
+        res_html = self.client.get(url, {'order_item_id': self.item.id, 'size_name': 'M'})
+        self.assertEqual(res_html.status_code, 200)
+        self.assertContains(res_html, "STAT-BX-01")
+        self.assertContains(res_html, "STAT-BX-02")
+        self.assertContains(res_html, "Malika Tikuvchi")
+        self.assertContains(res_html, "Bichim Tikish")
+        self.assertContains(res_html, "DAZMOL QILISH")
+        self.assertContains(res_html, "Kontrolda Kutmoqda") # box 2 has this badge
+
+        # 2. JSON format for Size M
+        res_json = self.client.get(url, {'order_item_id': self.item.id, 'size_name': 'M', 'format': 'json'})
+        self.assertEqual(res_json.status_code, 200)
+        data = res_json.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(data['size_name'], 'M')
+        self.assertEqual(data['summary']['total_boxes'], 2)
+        self.assertEqual(data['summary']['entered_sewing_boxes'], 2)
+        self.assertEqual(data['summary']['passed_dazmol_boxes'], 1)
+        self.assertEqual(data['summary']['waiting_control_boxes'], 1)
+
+        # 3. HTML partial for Size L
+        res_l = self.client.get(url, {'order_item_id': self.item.id, 'size_name': 'L'})
+        self.assertEqual(res_l.status_code, 200)
+        self.assertContains(res_l, "STAT-BX-03")
+        self.assertContains(res_l, "1-sort: 38 ta")
+        self.assertContains(res_l, "2-sort: 2 ta")
+
 
 
 

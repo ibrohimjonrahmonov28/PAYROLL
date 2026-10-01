@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import terminal_views
 from . import control_views
+from . import sewing_statistics_views
 
 app_name = 'production'
 
@@ -33,4 +34,11 @@ urlpatterns = [
 
     # Sifat Nazorati (OTK / Control)
     path('control/', control_views.control_home_view, name='control_home'),
+
+    # Tikim Jarayoni Statistikasi (Umumiy Zakaz, Modellar va Razmerlar bo'yicha)
+    path('sewing-statistics/', sewing_statistics_views.sewing_statistics_orders_view, name='sewing_statistics_orders'),
+    path('sewing-statistics/orders/<int:order_id>/', sewing_statistics_views.sewing_statistics_order_models_view, name='sewing_statistics_order_models'),
+    path('sewing-statistics/orders/<int:order_id>/items/<int:order_item_id>/', sewing_statistics_views.sewing_statistics_model_detail_view, name='sewing_statistics_model_detail'),
+    path('sewing-statistics/api/size-boxes/', sewing_statistics_views.api_sewing_statistics_size_boxes, name='api_sewing_statistics_size_boxes'),
 ]
+

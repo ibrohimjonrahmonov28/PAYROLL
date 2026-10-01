@@ -51,6 +51,12 @@
                 <span>+ Yangi Zakaz Yaratish</span>
             </a>
 
+            <a href="{% url 'production:sewing_statistics_orders' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition {% if 'sewing_statistics' in request.resolver_match.url_name %}bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg{% else %}text-cyan-400 hover:bg-slate-800 hover:text-cyan-300{% endif %}">
+                <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                <span>Tikim Statistikasi</span>
+            </a>
+
             {% if request.user.is_superadmin %}
             <div class="pt-4 border-t border-slate-800 my-3">
                 <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Boshqa

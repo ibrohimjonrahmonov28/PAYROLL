@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ article.code }} — Razmerlar Statistikasi — Tikim Jarayoni{% endblock %}
+
+{% block page_header %}
+<div class="flex items-center gap-3">
+    <a href="{% url 'production:sewing_statistics_order_models' order.id %}"
+        class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700 shadow-sm"
+        title="Modellar ro'yxatiga qaytish">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <div class="flex items-center gap-2">
+            <h2 class="text-base font-black text-white leading-tight">
+                Model: <span class="text-amber-400 font-mono">{{ article.code }}</span>
+                <span class="text-slate-400 font-normal">({{ article.name }})</span>
+            </h2>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-cyan-400 border border-slate-700">
+                Zakaz: {{ order.order_number }}
+            </span>
+        </div>
+        <p class="text-xs text-slate-400">
+            Mijoz: <strong class="text-white">{{ order.customer.name|default:order.client_name }}</strong>
+            {% if order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{ order.deadline|date:"d.m.Y" }}</span>{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Model Top Banner & Overall KPI Cards -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6">
+        <!-- Model Info with Image -->
+        <div class="flex items-center gap-4 w-full lg:w-auto">
+            <div class="w-20 h-20 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {% if article_image_url %}
+                <img src="{{ article_image_url }}" alt="{{ article.name }}" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fa-solid fa-shirt text-3xl text-slate-700"></i>
+                {% endif %}
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono font-black">
+                        {{ article.code }}
+                    </span>
+                    {% if article.model %}
+                    <span class="text-xs text-slate-400 font-semibold">
+                        {{ article.model.name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-black text-white mt-1 leading-tight">{{ article.name }}</h3>
+                <span class="text-[11px] text-slate-400 mt-0.5 block">
+                    Kunlik norma: <strong class="text-cyan-400 font-mono">{{ article.daily_norm }} ball/dona</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- 6 Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full lg:w-auto flex-1">
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Jami Reja</span>
+                <span class="text-lg font-black text-amber-400 digital-font mt-0.5 block">{{ model_totals.planned }}</span>
+                <span class="text-[9px] text-slate-500 block font-mono">dona</span>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Kesilgan</span>
+                <span class="text-lg font-black text-emerald-400 digital-font mt-0.5 block">{{ model_totals.cut }}</span>
+                <span class="text-[9px] text-slate-500 block font-mono">{{ model_totals.cut_pct }}%</span>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-cyan-900/40 text-center bg-gradient-to-b from-cyan-950/20 to-transparent">
+                <span class="text-[10px] uppercase font-bold text-cyan-400 block">Tikimga Kirgan</span>
+                <span class="text-lg font-black text-cyan-300 digital-font mt-0.5 block">{{ model_totals.entered_sewing }}</span>
+                <span class="text-[9px] text-cyan-400/80 block font-mono">{{ model_totals.sewing_pct }}%</span>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-indigo-900/40 text-center bg-gradient-to-b from-indigo-950/20 to-transparent">
+                <span class="text-[10px] uppercase font-bold text-indigo-400 block">Dazmol</span>
+                <span class="text-lg font-black text-indigo-300 digital-font mt-0.5 block">{{ model_totals.dazmol }}</span>
+                <span class="text-[9px] text-indigo-400/80 block font-mono">{{ model_totals.dazmol_pct }}%</span>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-amber-900/40 text-center bg-gradient-to-b from-amber-950/20 to-transparent">
+                <span class="text-[10px] uppercase font-bold text-amber-400 block">OTK Kutmoqda</span>
+                <span class="text-lg font-black text-amber-300 digital-font mt-0.5 block">{{ model_totals.waiting_control }}</span>
+                <span class="text-[9px] text-amber-400/80 block font-mono">100% tikilgan</span>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-emerald-900/40 text-center bg-gradient-to-b from-emerald-950/20 to-transparent">
+                <span class="text-[10px] uppercase font-bold text-emerald-400 block">1-Sort / 2-Sort</span>
+                <div class="mt-0.5 flex items-baseline justify-center gap-1">
+                    <span class="text-lg font-black text-emerald-400 digital-font">{{ model_totals.first_sort }}</span>
+                    {% if model_totals.second_sort > 0 %}
+                    <span class="text-xs text-rose-400 font-mono font-bold">/ {{ model_totals.second_sort }}</span>
+                    {% endif %}
+                </div>
+                <span class="text-[9px] text-emerald-400/80 block font-mono">qabul qilingan</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Title & Instructions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+        <div>
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-ruler-combined text-cyan-400"></i> Razmerlar Bo'yicha Tikim Jarayoni
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">
+                Har bir razmer bo'yicha qancha tikimga kirgan, dazmoldan o'tgan va kontrolda kutayotganini ko'rish. 
+                <strong class="text-cyan-400">Qutilar tafsilotini ko'rish uchun razmer qatorini bosing.</strong>
+            </p>
+        </div>
+        <span class="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+            Jami: <strong class="text-white">{{ sizes_breakdown|length }} ta</strong> razmer
+        </span>
+    </div>
+
+    <!-- Sizes List (Each size as an interactive accordion row/card) -->
+    <div class="space-y-4">
+        {% for s in sizes_breakdown %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition hover:border-slate-700" id="size-card-{{ s.size_name|slugify }}">
+            <!-- Row Header (Clickable) -->
+            <div onclick="toggleSizeBoxes('{{ item.id }}', '{{ s.size_name|escapejs }}', '{{ s.size_name|slugify }}')"
+                class="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/50 transition select-none">
+                
+                <!-- Left: Size Name Badge & Qutilar -->
+                <div class="flex items-center gap-3 min-w-[180px]">
+                    <span class="w-12 h-12 rounded-xl bg-slate-950 border border-slate-700 text-cyan-400 font-mono font-black text-lg flex items-center justify-center shadow-inner">
+                        {{ s.size_name }}
+                    </span>
+                    <div>
+                        <span class="text-sm font-black text-white block">Razmer: {{ s.size_name }}</span>
+                        <span class="text-xs text-slate-400 font-mono">
+                            {{ s.boxes_count }} ta quti ({{ s.total_boxed_qty }} dona)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Middle: 5 Metrics Columns -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-1">
+                    <!-- Reja & Kesim -->
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reja / Kesim</span>
+                        <span class="text-sm font-black text-amber-400 digital-font mt-0.5 block">
+                            {{ s.planned_qty }} <small class="text-slate-500">/</small> <span class="text-emerald-400">{{ s.cut_qty }}</span>
+                        </span>
+                        <span class="text-[9px] text-slate-500 block font-mono">kesildi: {{ s.cut_pct }}%</span>
+                    </div>
+
+                    <!-- Tikimga Kirgan -->
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-cyan-900/30 text-center">
+                        <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">Tikimga Kirgan</span>
+                        <span class="text-sm font-black text-cyan-300 digital-font mt-0.5 block">
+                            {{ s.entered_sewing_qty }} <small class="text-slate-400">ta</small>
+                        </span>
+                        <span class="text-[9px] text-cyan-400 font-mono">
+                            {{ s.sewing_pct }}% ({{ s.entered_sewing_boxes }} quti)
+                        </span>
+                    </div>
+
+                    <!-- Dazmoldan O'tgan -->
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-indigo-900/30 text-center">
+                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Dazmol</span>
+                        <span class="text-sm font-black text-indigo-300 digital-font mt-0.5 block">
+                            {{ s.dazmol_qty }} <small class="text-slate-400">ta</small>
+                        </span>
+                        <span class="text-[9px] text-indigo-400 font-mono">
+                            {{ s.dazmol_pct }}%
+                        </span>
+                    </div>
+
+                    <!-- Kontrolda Kutmoqda -->
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-amber-900/30 text-center">
+                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">OTK Kutmoqda</span>
+                        {% if s.waiting_control_qty > 0 %}
+                        <span class="text-sm font-black text-amber-300 digital-font mt-0.5 block animate-pulse">
+                            {{ s.waiting_control_qty }} <small class="text-slate-400">ta</small>
+                        </span>
+                        <span class="text-[9px] text-amber-400/80 block font-mono">100% tikilgan</span>
+                        {% else %}
+                        <span class="text-sm font-bold text-slate-600 digital-font mt-0.5 block">—</span>
+                        <span class="text-[9px] text-slate-600 block font-mono">0 ta quti</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- 1-Sort / 2-Sort -->
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-emerald-900/30 text-center col-span-2 sm:col-span-1">
+                        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">1-Sort / 2-Sort</span>
+                        <div class="mt-0.5 flex items-baseline justify-center gap-1.5">
+                            <span class="text-sm font-black text-emerald-400 digital-font">{{ s.first_sort_qty }}</span>
+                            {% if s.second_sort_qty > 0 %}
+                            <span class="text-xs text-rose-400 font-mono font-bold">/ {{ s.second_sort_qty }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] text-emerald-400/80 block font-mono">{{ s.controlled_boxes }} ta quti</span>
+                    </div>
+                </div>
+
+                <!-- Right: Toggle Trigger Button -->
+                <div class="flex items-center gap-2 self-end lg:self-center">
+                    <button type="button"
+                        id="btn-toggle-{{ s.size_name|slugify }}"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold rounded-xl text-xs transition flex items-center gap-2 border border-slate-700 shadow">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span id="label-toggle-{{ s.size_name|slugify }}">Qutilarni Ko'rish</span>
+                        <i id="icon-toggle-{{ s.size_name|slugify }}" class="fa-solid fa-chevron-down text-[10px] transition-transform duration-300"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic AJAX Loaded Container for this size's boxes -->
+            <div id="size-boxes-container-{{ s.size_name|slugify }}"
+                class="hidden p-5 bg-slate-950 border-t border-slate-800/80 space-y-4">
+                <!-- Content will be loaded dynamically via AJAX -->
+            </div>
+        </div>
+        {% empty %}
+        <div class="py-12 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-500 text-xs">
+            Ushbu model uchun razmerlar kiritilmagan.
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- JavaScript for Dynamic Lazy-Loading of Size Boxes -->
+<script>
+    const loadedSizeBoxes = {};
+
+    function toggleSizeBoxes(itemId, sizeName, slug) {
+        const container = document.getElementById('size-boxes-container-' + slug);
+        const icon = document.getElementById('icon-toggle-' + slug);
+        const label = document.getElementById('label-toggle-' + slug);
+        const btn = document.getElementById('btn-toggle-' + slug);
+        const card = document.getElementById('size-card-' + slug);
+
+        if (!container) return;
+
+        const isHidden = container.classList.contains('hidden');
+
+        if (isHidden) {
+            container.classList.remove('hidden');
+            if (icon) icon.classList.add('rotate-180');
+            if (label) label.innerText = 'Yopish';
+            if (btn) {
+                btn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
+                btn.classList.remove('bg-slate-800', 'text-cyan-400');
+            }
+            if (card) {
+                card.classList.add('ring-2', 'ring-cyan-500/30');
+            }
+
+            // Agar avval yuklanmagan bo'lsa, bazadan yuklash
+            if (!loadedSizeBoxes[slug]) {
+                loadSizeBoxesFromDb(itemId, sizeName, slug);
+            }
+        } else {
+            container.classList.add('hidden');
+            if (icon) icon.classList.remove('rotate-180');
+            if (label) label.innerText = "Qutilarni Ko'rish";
+            if (btn) {
+                btn.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
+                btn.classList.add('bg-slate-800', 'text-cyan-400');
+            }
+            if (card) {
+                card.classList.remove('ring-2', 'ring-cyan-500/30');
+            }
+        }
+    }
+
+    function loadSizeBoxesFromDb(itemId, sizeName, slug) {
+        const container = document.getElementById('size-boxes-container-' + slug);
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="py-12 flex flex-col items-center justify-center text-slate-400 text-xs space-y-3">
+                <i class="fa-solid fa-circle-notch fa-spin text-cyan-400 text-2xl"></i>
+                <span class="font-bold text-white">«${sizeName}» razmeri qutilari va stikerlari bazadan yuklanmoqda...</span>
+                <span class="text-[11px] text-slate-500">Barcha operatsiyalar va oxirgi borgan nuqtalar hisoblanmoqda</span>
+            </div>
+        `;
+
+        const url = `{% url 'production:api_sewing_statistics_size_boxes' %}?order_item_id=${encodeURIComponent(itemId)}&size_name=${encodeURIComponent(sizeName)}`;
+
+        fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error("Server xatosi: " + res.status);
+                return res.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                loadedSizeBoxes[slug] = true;
+            })
+            .catch(err => {
+                console.error("Size boxes yuklashda xatolik:", err);
+                container.innerHTML = `
+                    <div class="p-6 bg-rose-950/40 border border-rose-800/80 rounded-2xl text-center text-rose-300 text-xs">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-400 text-xl mb-1 block"></i>
+                        Ma'lumotlarni yuklashda xatolik yuz berdi.
+                        <button type="button" onclick="loadSizeBoxesFromDb('${itemId}', '${sizeName}', '${slug}')"
+                            class="mt-2 inline-block px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Qayta urinish
+                        </button>
+                    </div>
+                `;
+            });
+    }
+
+    function toggleBoxOperationsTable(boxId) {
+        const table = document.getElementById('box-ops-table-' + boxId);
+        const icon = document.getElementById('box-ops-icon-' + boxId);
+        if (!table) return;
+
+        if (table.classList.contains('hidden')) {
+            table.classList.remove('hidden');
+            if (icon) icon.classList.add('rotate-180');
+        } else {
+            table.classList.add('hidden');
+            if (icon) icon.classList.remove('rotate-180');
+        }
+    }
+</script>
+{% endblock %}

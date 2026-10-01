@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Tikim Jarayoni Statistikasi — Terry Jar{% endblock %}
+
+{% block page_header %}
+<div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center text-lg shadow-lg">
+        <i class="fa-solid fa-chart-line"></i>
+    </div>
+    <div>
+        <h2 class="text-base font-black text-white leading-tight">Tikim Jarayoni Statistikasi</h2>
+        <p class="text-xs text-slate-400">Zakazlar bo'yicha tikuv sexi, dazmol va sifat nazorati (OTK) hisoboti</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- KPI 1 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jami Zakazlar</span>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-white digital-font">{{ overall_kpis.total_orders }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">ta</span>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-1 block">Filtrdagi buyurtmalar</span>
+        </div>
+
+        <!-- KPI 2 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jami Reja</span>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_planned }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-1 block">Buyurtmalar rejasi</span>
+        </div>
+
+        <!-- KPI 3: Tikimga Kirgan -->
+        <div class="bg-slate-900 border border-cyan-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-cyan-950/20 to-transparent">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Tikimga Kirgan</span>
+                <i class="fa-solid fa-shirt text-cyan-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-cyan-300 digital-font">{{ overall_kpis.total_entered_sewing }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
+            </div>
+            <span class="text-[10px] text-cyan-400/70 mt-1 block">Kamida 1 ta stikeri urilgan</span>
+        </div>
+
+        <!-- KPI 4: Dazmoldan O'tgan -->
+        <div class="bg-slate-900 border border-indigo-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/20 to-transparent">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Dazmoldan O'tgan</span>
+                <i class="fa-solid fa-soap text-indigo-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-indigo-300 digital-font">{{ overall_kpis.total_dazmol }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
+            </div>
+            <span class="text-[10px] text-indigo-400/70 mt-1 block">Yakuniy dazmol operatsiyasi</span>
+        </div>
+
+        <!-- KPI 5: Kontrolda Kutmoqda -->
+        <div class="bg-slate-900 border border-amber-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-amber-950/20 to-transparent">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Kontrolda Kutmoqda</span>
+                <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_waiting_control }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
+            </div>
+            <span class="text-[10px] text-amber-400/70 mt-1 block">Tikuv 100% (OTK kutilmoqda)</span>
+        </div>
+
+        <!-- KPI 6: 1-Sort / 2-Sort -->
+        <div class="bg-slate-900 border border-emerald-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/20 to-transparent">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK Qabul Qildi</span>
+                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ overall_kpis.total_first_sort }}</span>
+                <span class="text-[10px] text-emerald-500 font-bold uppercase">1-sort</span>
+                {% if overall_kpis.total_second_sort > 0 %}
+                <span class="text-xs text-rose-400 font-mono font-bold">({{ overall_kpis.total_second_sort }} 2-sort)</span>
+                {% endif %}
+            </div>
+            <span class="text-[10px] text-emerald-400/70 mt-1 block">Sifat nazoratidan o'tgan</span>
+        </div>
+    </div>
+
+    <!-- Filters, Status Tabs & Search Bar -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Status Tabs -->
+        <div class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start md:self-auto w-full md:w-auto">
+            <a href="?status=IN_PROGRESS{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'IN_PROGRESS' %}bg-cyan-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                <i class="fa-solid fa-spinner"></i> Jarayonda
+            </a>
+            <a href="?status=COMPLETED{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'COMPLETED' %}bg-emerald-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                <i class="fa-solid fa-circle-check"></i> Tugatilgan
+            </a>
+            <a href="?status=ALL{% if search_q %}&q={{ search_q }}{% endif %}"
+                class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'ALL' %}bg-slate-800 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                <i class="fa-solid fa-list"></i> Barchasi
+            </a>
+        </div>
+
+        <!-- Search Form -->
+        <form method="GET" class="relative w-full md:w-96">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+            <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz raqami, mijoz yoki artikul qidirish..."
+                class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner transition">
+            {% if search_q %}
+            <a href="?status={{ status_filter }}" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1" title="Tozalash">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Orders Table / List -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-cyan-400"></i> Buyurtmalar Bo'yicha Tikim Jarayoni
+            </h3>
+            <span class="text-xs text-slate-400 font-mono">Jami: {{ page_obj.paginator.count }} ta buyurtma</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 uppercase font-extrabold tracking-wider border-b border-slate-800 text-[11px]">
+                        <th class="py-3 px-4">Buyurtma (Zakaz)</th>
+                        <th class="py-3 px-3 text-center">Modellar</th>
+                        <th class="py-3 px-3 text-center">Jami Reja</th>
+                        <th class="py-3 px-3 text-center">Tikimga Kirgan</th>
+                        <th class="py-3 px-3 text-center">Dazmoldan O'tgan</th>
+                        <th class="py-3 px-3 text-center">Kontrolda Kutmoqda</th>
+                        <th class="py-3 px-3 text-center">OTK Natijasi</th>
+                        <th class="py-3 px-4 text-center">Harakat</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80 bg-slate-900/60">
+                    {% for item in orders_data %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <!-- Zakaz va Mijoz -->
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'production:sewing_statistics_order_models' item.order.id %}"
+                                    class="font-mono font-black text-cyan-400 hover:text-cyan-300 text-sm hover:underline">
+                                    {{ item.order.order_number }}
+                                </a>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {% if item.order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
+                                    {{ item.order.get_status_display }}
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 block mt-0.5">
+                                Mijoz: <strong class="text-white">{{ item.order.customer.name|default:item.order.client_name }}</strong>
+                                {% if item.order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{ item.order.deadline|date:"d.m.Y" }}</span>{% endif %}
+                            </span>
+                        </td>
+
+                        <!-- Modellar Soni -->
+                        <td class="py-3 px-3 text-center font-bold text-slate-200">
+                            <span class="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 font-mono">
+                                {{ item.models_count }} xil model
+                            </span>
+                        </td>
+
+                        <!-- Reja soni -->
+                        <td class="py-3 px-3 text-center font-black text-amber-400 digital-font text-sm">
+                            {{ item.total_planned }} <small class="text-[10px] text-slate-500">ta</small>
+                            <span class="text-[10px] text-slate-500 block font-normal">({{ item.boxes_count }} quti)</span>
+                        </td>
+
+                        <!-- Tikimga Kirgan -->
+                        <td class="py-3 px-3 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="font-black text-cyan-300 digital-font text-sm">
+                                    {{ item.entered_sewing_qty }} <small class="text-[10px] text-slate-400">ta</small>
+                                </span>
+                                <div class="w-20 bg-slate-950 rounded-full h-1.5 mt-1 border border-slate-800 overflow-hidden">
+                                    <div class="bg-cyan-500 h-full rounded-full" style="width: {{ item.entered_pct }}%"></div>
+                                </div>
+                                <span class="text-[10px] text-cyan-400 font-mono mt-0.5">{{ item.entered_pct }}% ({{ item.entered_sewing_boxes }} quti)</span>
+                            </div>
+                        </td>
+
+                        <!-- Dazmoldan O'tgan -->
+                        <td class="py-3 px-3 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="font-black text-indigo-300 digital-font text-sm">
+                                    {{ item.dazmol_qty }} <small class="text-[10px] text-slate-400">ta</small>
+                                </span>
+                                <span class="text-[10px] text-indigo-400 font-mono mt-0.5">{{ item.dazmol_pct }}%</span>
+                            </div>
+                        </td>
+
+                        <!-- Kontrolda Kutmoqda -->
+                        <td class="py-3 px-3 text-center">
+                            {% if item.waiting_control_qty > 0 %}
+                            <span class="px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg font-black digital-font text-xs inline-flex items-center gap-1.5 animate-pulse">
+                                <i class="fa-solid fa-clock text-[10px]"></i>
+                                {{ item.waiting_control_qty }} dona
+                            </span>
+                            {% else %}
+                            <span class="text-slate-600 font-mono">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- OTK Natijasi -->
+                        <td class="py-3 px-3 text-center">
+                            {% if item.first_sort_qty > 0 or item.second_sort_qty > 0 %}
+                            <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[11px]" title="1-sort (qabul)">
+                                    1: {{ item.first_sort_qty }}
+                                </span>
+                                {% if item.second_sort_qty > 0 %}
+                                <span class="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono font-bold text-[11px]" title="2-sort">
+                                    2: {{ item.second_sort_qty }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Harakat -->
+                        <td class="py-3 px-4 text-center">
+                            <a href="{% url 'production:sewing_statistics_order_models' item.order.id %}"
+                                class="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 shadow-md">
+                                <span>Modellar</span>
+                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500 text-xs">
+                            <i class="fa-solid fa-inbox text-3xl text-slate-600 mb-2 block"></i>
+                            Hech qanday buyurtma topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <div>
+                Sahifa <strong class="text-white">{{ page_obj.number }}</strong> / {{ page_obj.paginator.num_pages }}
+            </div>
+            <div class="flex items-center gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition font-bold">
+                    « Oldingi
+                </a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition font-bold">
+                    Keyingi »
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
