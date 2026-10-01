@@ -164,11 +164,16 @@ def sewing_statistics_orders_view(request):
         'total_orders': 0,
         'total_planned': 0,
         'total_boxed': 0,
+        'total_boxes': 0,
         'total_entered_sewing': 0,
+        'total_entered_sewing_boxes': 0,
         'total_dazmol': 0,
+        'total_dazmol_boxes': 0,
         'total_waiting_control': 0,
+        'total_waiting_control_boxes': 0,
         'total_first_sort': 0,
         'total_second_sort': 0,
+        'total_controlled_boxes': 0,
     }
 
     for ord_obj in orders_qs:
@@ -184,9 +189,12 @@ def sewing_statistics_orders_view(request):
         entered_sewing_qty = 0
         entered_sewing_boxes = 0
         dazmol_qty = 0
+        dazmol_boxes = 0
         waiting_control_qty = 0
+        waiting_control_boxes = 0
         first_sort_qty = 0
         second_sort_qty = 0
+        controlled_boxes = 0
 
         for b in boxes:
             dazmol_ids = article_dazmol_map.get(b.article_id, set())
@@ -198,11 +206,14 @@ def sewing_statistics_orders_view(request):
 
             if b_eval['has_passed_dazmol']:
                 dazmol_qty += b.quantity
+                dazmol_boxes += 1
 
             if b_eval['is_waiting_control']:
                 waiting_control_qty += b.quantity
+                waiting_control_boxes += 1
 
             if b.is_controlled:
+                controlled_boxes += 1
                 first_sort_qty += b.controlled_first_sort_qty
                 second_sort_qty += b.controlled_second_sort_qty
 
@@ -219,8 +230,11 @@ def sewing_statistics_orders_view(request):
             'entered_sewing_boxes': entered_sewing_boxes,
             'entered_pct': entered_pct,
             'dazmol_qty': dazmol_qty,
+            'dazmol_boxes': dazmol_boxes,
             'dazmol_pct': dazmol_pct,
             'waiting_control_qty': waiting_control_qty,
+            'waiting_control_boxes': waiting_control_boxes,
+            'controlled_boxes': controlled_boxes,
             'first_sort_qty': first_sort_qty,
             'second_sort_qty': second_sort_qty,
         })
@@ -228,11 +242,16 @@ def sewing_statistics_orders_view(request):
         overall_kpis['total_orders'] += 1
         overall_kpis['total_planned'] += total_planned
         overall_kpis['total_boxed'] += total_boxed
+        overall_kpis['total_boxes'] += len(boxes)
         overall_kpis['total_entered_sewing'] += entered_sewing_qty
+        overall_kpis['total_entered_sewing_boxes'] += entered_sewing_boxes
         overall_kpis['total_dazmol'] += dazmol_qty
+        overall_kpis['total_dazmol_boxes'] += dazmol_boxes
         overall_kpis['total_waiting_control'] += waiting_control_qty
+        overall_kpis['total_waiting_control_boxes'] += waiting_control_boxes
         overall_kpis['total_first_sort'] += first_sort_qty
         overall_kpis['total_second_sort'] += second_sort_qty
+        overall_kpis['total_controlled_boxes'] += controlled_boxes
 
     paginator = Paginator(orders_list, 15)
     page_number = request.GET.get('page')
@@ -284,11 +303,16 @@ def sewing_statistics_order_models_view(request, order_id: int):
         'planned': 0,
         'cut': 0,
         'boxed': 0,
+        'boxes_count': len(boxes),
         'entered_sewing': 0,
+        'entered_sewing_boxes': 0,
         'dazmol': 0,
+        'dazmol_boxes': 0,
         'waiting_control': 0,
+        'waiting_control_boxes': 0,
         'first_sort': 0,
         'second_sort': 0,
+        'controlled_boxes_count': 0,
     }
 
     for item in order.items.all():
@@ -302,7 +326,9 @@ def sewing_statistics_order_models_view(request, order_id: int):
         entered_sewing_qty = 0
         entered_sewing_boxes = 0
         dazmol_qty = 0
+        dazmol_boxes = 0
         waiting_control_qty = 0
+        waiting_control_boxes = 0
         first_sort_qty = 0
         second_sort_qty = 0
         repair_qty = 0
@@ -317,9 +343,11 @@ def sewing_statistics_order_models_view(request, order_id: int):
 
             if b_eval['has_passed_dazmol']:
                 dazmol_qty += b.quantity
+                dazmol_boxes += 1
 
             if b_eval['is_waiting_control']:
                 waiting_control_qty += b.quantity
+                waiting_control_boxes += 1
 
             if b.is_controlled:
                 controlled_boxes_count += 1
@@ -354,8 +382,10 @@ def sewing_statistics_order_models_view(request, order_id: int):
             'entered_sewing_boxes': entered_sewing_boxes,
             'sewing_pct': sewing_pct,
             'dazmol_qty': dazmol_qty,
+            'dazmol_boxes': dazmol_boxes,
             'dazmol_pct': dazmol_pct,
             'waiting_control_qty': waiting_control_qty,
+            'waiting_control_boxes': waiting_control_boxes,
             'first_sort_qty': first_sort_qty,
             'second_sort_qty': second_sort_qty,
             'repair_qty': repair_qty,
@@ -366,10 +396,14 @@ def sewing_statistics_order_models_view(request, order_id: int):
         order_totals['cut'] += cut_qty
         order_totals['boxed'] += total_boxed_qty
         order_totals['entered_sewing'] += entered_sewing_qty
+        order_totals['entered_sewing_boxes'] += entered_sewing_boxes
         order_totals['dazmol'] += dazmol_qty
+        order_totals['dazmol_boxes'] += dazmol_boxes
         order_totals['waiting_control'] += waiting_control_qty
+        order_totals['waiting_control_boxes'] += waiting_control_boxes
         order_totals['first_sort'] += first_sort_qty
         order_totals['second_sort'] += second_sort_qty
+        order_totals['controlled_boxes_count'] += controlled_boxes_count
 
     return render(request, 'production/sewing_statistics_order_models.html', {
         'order': order,
@@ -383,10 +417,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
     """
     3-BOSQICH: Tanlangan Modelning Razmerlar Bo'yicha To'liq Tikim Statistikasi
     - Har bir razmer bo'yicha:
-      * Reja, Kesilgan, Qutilardagi jami dona
+      * Reja, Kesilgan, Qutilardagi jami dona va qutilar soni
       * Tikimga kirgan dona va qutilar soni (kamida 1 stikeri urilgan)
-      * Dazmoldan o'tgan dona
-      * Kontrolda kutib turgan dona (100% tikilgan, OTK kutilmoqda)
+      * Dazmoldan o'tgan dona va qutilar soni
+      * Kontrolda kutib turgan dona va qutilar soni (100% tikilgan, OTK kutilmoqda)
       * Kontroldan o'tgan: 1-sort, 2-sort, Ta'mirda
     - Razmer qatori bosilganda pastdan real-time bazadan qutilar yuklanadi (AJAX)
     """
@@ -441,10 +475,13 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'entered_sewing': 0,
         'entered_boxes': 0,
         'dazmol': 0,
+        'dazmol_boxes': 0,
         'waiting_control': 0,
+        'waiting_control_boxes': 0,
         'first_sort': 0,
         'second_sort': 0,
         'repair': 0,
+        'controlled_boxes': 0,
     }
 
     for size_name in sorted_size_names:
@@ -459,7 +496,9 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         entered_sewing_qty = 0
         entered_sewing_boxes = 0
         dazmol_qty = 0
+        dazmol_boxes = 0
         waiting_control_qty = 0
+        waiting_control_boxes = 0
         first_sort_qty = 0
         second_sort_qty = 0
         repair_qty = 0
@@ -474,9 +513,11 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
 
             if b_eval['has_passed_dazmol']:
                 dazmol_qty += b.quantity
+                dazmol_boxes += 1
 
             if b_eval['is_waiting_control']:
                 waiting_control_qty += b.quantity
+                waiting_control_boxes += 1
 
             if b.is_controlled:
                 controlled_boxes += 1
@@ -499,8 +540,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'entered_sewing_boxes': entered_sewing_boxes,
             'sewing_pct': sewing_pct,
             'dazmol_qty': dazmol_qty,
+            'dazmol_boxes': dazmol_boxes,
             'dazmol_pct': dazmol_pct,
             'waiting_control_qty': waiting_control_qty,
+            'waiting_control_boxes': waiting_control_boxes,
             'first_sort_qty': first_sort_qty,
             'second_sort_qty': second_sort_qty,
             'repair_qty': repair_qty,
@@ -513,10 +556,13 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['entered_sewing'] += entered_sewing_qty
         model_totals['entered_boxes'] += entered_sewing_boxes
         model_totals['dazmol'] += dazmol_qty
+        model_totals['dazmol_boxes'] += dazmol_boxes
         model_totals['waiting_control'] += waiting_control_qty
+        model_totals['waiting_control_boxes'] += waiting_control_boxes
         model_totals['first_sort'] += first_sort_qty
         model_totals['second_sort'] += second_sort_qty
         model_totals['repair'] += repair_qty
+        model_totals['controlled_boxes'] += controlled_boxes
 
     model_totals['cut_pct'] = round((model_totals['cut'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
     model_totals['sewing_pct'] = round((model_totals['entered_sewing'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0

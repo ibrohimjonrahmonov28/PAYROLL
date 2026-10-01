@@ -1,7 +1,8 @@
 <!-- Size Boxes Pipeline Partial (Loaded dynamically via AJAX) -->
 <div class="space-y-4">
     <!-- Sub-header KPI mini stats for this specific size -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
             <span class="text-slate-300 font-bold">«{{ size_name }}» razmeri bo'yicha jami:</span>
@@ -10,19 +11,23 @@
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
-            <span class="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono font-bold">
+            <span
+                class="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono font-bold">
                 Tikimda: {{ summary.entered_sewing_boxes }} ta quti ({{ summary.entered_sewing_units }} dona)
             </span>
-            <span class="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono font-bold">
+            <span
+                class="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono font-bold">
                 Dazmoldan o'tgan: {{ summary.passed_dazmol_boxes }} ta quti ({{ summary.passed_dazmol_units }} dona)
             </span>
             {% if summary.waiting_control_boxes > 0 %}
-            <span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold animate-pulse">
+            <span
+                class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold animate-pulse">
                 OTK kutmoqda: {{ summary.waiting_control_boxes }} ta quti ({{ summary.waiting_control_units }} dona)
             </span>
             {% endif %}
-            <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
-                OTK qabul: 1-sort: {{ summary.first_sort_units }} ta{% if summary.second_sort_units > 0 %}, 2-sort: {{ summary.second_sort_units }} ta{% endif %}
+            <span
+                class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono font-bold">
+                OTK qabul: {{ summary.controlled_boxes }} ta quti (1-sort: {{ summary.first_sort_units }} ta{% if summary.second_sort_units > 0 %}, 2-sort: {{ summary.second_sort_units }} ta{% endif %})
             </span>
         </div>
     </div>
@@ -30,13 +35,15 @@
     <!-- Boxes List Grid -->
     <div class="space-y-3">
         {% for b in boxes_data %}
-        <div class="bg-slate-900/90 border {% if b.is_waiting_control %}border-amber-500/40 ring-1 ring-amber-500/20{% elif b.is_controlled %}border-emerald-500/30{% elif b.has_entered_sewing %}border-cyan-800/60{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow transition hover:border-slate-700 space-y-3">
-            
+        <div
+            class="bg-slate-900/90 border {% if b.is_waiting_control %}border-amber-500/40 ring-1 ring-amber-500/20{% elif b.is_controlled %}border-emerald-500/30{% elif b.has_entered_sewing %}border-cyan-800/60{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow transition hover:border-slate-700 space-y-3">
+
             <!-- Box Main Header Row -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <!-- Box Identification -->
                 <div class="flex items-center gap-3">
-                    <span class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-cyan-400 font-mono font-black text-sm shadow-inner">
+                    <span
+                        class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-cyan-400 font-mono font-black text-sm shadow-inner">
                         {{ b.box_code }}
                     </span>
                     <div>
@@ -46,7 +53,8 @@
                                 {{ b.quantity }} dona
                             </span>
                             {% if b.pastal_code and b.pastal_code != "—" %}
-                            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-950 text-slate-300 font-mono border border-slate-800">
+                            <span
+                                class="text-[11px] px-2 py-0.5 rounded bg-slate-950 text-slate-300 font-mono border border-slate-800">
                                 Pastal: {{ b.pastal_code }}
                             </span>
                             {% endif %}
@@ -63,47 +71,61 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <!-- Tikim Holati -->
                     {% if not b.has_entered_sewing %}
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-[11px] font-bold inline-flex items-center gap-1.5">
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-[11px] font-bold inline-flex items-center gap-1.5">
                         <i class="fa-solid fa-hourglass-start text-[10px]"></i> Tikimga Kirmagan
                     </span>
                     {% elif b.progress_pct == 100 %}
-                    <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold inline-flex items-center gap-1.5">
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold inline-flex items-center gap-1.5">
                         <i class="fa-solid fa-circle-check text-[10px]"></i> Tikuv 100% Tugagan
                     </span>
                     {% else %}
-                    <span class="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold inline-flex items-center gap-1.5">
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold inline-flex items-center gap-1.5">
                         <i class="fa-solid fa-scissors text-[10px]"></i> Tikilmoqda ({{ b.progress_pct }}%)
                     </span>
                     {% endif %}
 
                     <!-- Dazmol Holati -->
                     {% if b.has_passed_dazmol %}
-                    <span class="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold inline-flex items-center gap-1.5" title="Dazmol operatsiyasi skanerlangan">
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold inline-flex items-center gap-1.5"
+                        title="Dazmol operatsiyasi skanerlangan">
                         <i class="fa-solid fa-soap text-[10px]"></i> Dazmoldan O'tgan
                     </span>
                     {% else %}
-                    <span class="px-2 py-0.5 rounded-lg bg-slate-950 text-slate-500 border border-slate-800 text-[10px] font-medium" title="Hali dazmol qilinmagan">
+                    <span
+                        class="px-2 py-0.5 rounded-lg bg-slate-950 text-slate-500 border border-slate-800 text-[10px] font-medium"
+                        title="Hali dazmol qilinmagan">
                         Dazmol yo'q
                     </span>
                     {% endif %}
 
                     <!-- Sifat Nazorati (OTK / Control) Holati -->
                     {% if b.is_waiting_control %}
-                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black inline-flex items-center gap-1.5 animate-pulse shadow-sm">
+                    <span
+                        class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black inline-flex items-center gap-1.5 animate-pulse shadow-sm">
                         <i class="fa-solid fa-clock text-[10px]"></i> Kontrolda Kutmoqda
                     </span>
                     {% elif b.is_controlled %}
                     <div class="flex items-center gap-1">
-                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold" title="OTK 1-sort qabul qilgan">
+                        <span
+                            class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold"
+                            title="OTK 1-sort qabul qilgan">
                             1-sort: {{ b.first_sort_qty }} ta
                         </span>
                         {% if b.second_sort_qty > 0 %}
-                        <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-bold" title="2-sort">
+                        <span
+                            class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-bold"
+                            title="2-sort">
                             2-sort: {{ b.second_sort_qty }} ta
                         </span>
                         {% endif %}
                         {% if b.repair_qty > 0 %}
-                        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold" title="Hozir ta'mirda">
+                        <span
+                            class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold"
+                            title="Hozir ta'mirda">
                             Ta'mir: {{ b.repair_qty }} ta
                         </span>
                         {% endif %}
@@ -120,7 +142,8 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
                 <!-- Left: Oxirgi Bajarilgan Operatsiya -->
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span
+                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-location-dot text-cyan-400"></i> Qayergacha Borgan (Oxirgi Operatsiya):
                     </span>
                     {% if b.last_op %}
@@ -128,19 +151,22 @@
                         <strong class="text-white text-xs">{{ b.last_op.operation_name }}</strong>
                         <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
                             <span>Tikuvchi: <strong class="text-cyan-300">{{ b.last_op.worker_name }}</strong></span>
-                            <span>• Vaqti: <span class="text-slate-300 font-mono">{{ b.last_op.scanned_at }}</span></span>
+                            <span>• Vaqti: <span class="text-slate-300 font-mono">{{ b.last_op.scanned_at
+                                    }}</span></span>
                             <span>• <span class="text-amber-400 font-mono font-bold">{{ b.last_op.patok }}</span></span>
                         </div>
                     </div>
                     {% else %}
-                    <span class="text-slate-500 text-[11px] italic block">Birorta ham operatsiya skanerlanmagan (Tikim boshlanmagan).</span>
+                    <span class="text-slate-500 text-[11px] italic block">Birorta ham operatsiya skanerlanmagan (Tikim
+                        boshlanmagan).</span>
                     {% endif %}
                 </div>
 
                 <!-- Right: Navbatdagi Operatsiya yoki OTK Holati -->
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
                     {% if b.is_controlled %}
-                    <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span
+                        class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Sifat Nazorati (OTK) Qabul Qilgan:
                     </span>
                     <div class="text-[11px] text-slate-300">
@@ -148,18 +174,22 @@
                         <span class="ml-2 font-mono text-slate-400">({{ b.controlled_at }})</span>
                     </div>
                     {% elif b.is_waiting_control %}
-                    <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span
+                        class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Navbatdagi Bosqich:
                     </span>
                     <div class="text-[11px] text-amber-300">
-                        Barcha tikuv va dazmol operatsiyalari tugagan. <strong>Sifat nazorati (OTK) planshetida tekshirish kutilmoqda.</strong>
+                        Barcha tikuv va dazmol operatsiyalari tugagan. <strong>Sifat nazorati (OTK) planshetida
+                            tekshirish kutilmoqda.</strong>
                     </div>
                     {% elif b.next_op %}
-                    <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span
+                        class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-forward text-cyan-400"></i> Navbatdagi Kutilayotgan Operatsiya:
                     </span>
                     <div class="text-[11px] text-slate-300">
-                        №{{ b.next_op.sequence }} — <strong class="text-white">{{ b.next_op.operation_name }}</strong> (Hali skanerlanmagan)
+                        №{{ b.next_op.sequence }} — <strong class="text-white">{{ b.next_op.operation_name }}</strong>
+                        (Hali skanerlanmagan)
                     </div>
                     {% else %}
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jarayon:</span>
@@ -184,7 +214,8 @@
                     class="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 self-start sm:self-auto">
                     <i class="fa-solid fa-list-check text-cyan-400"></i>
                     <span>Operatsiyalar Tafsiloti</span>
-                    <i id="box-ops-icon-{{ b.box.id }}" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-300 ml-1"></i>
+                    <i id="box-ops-icon-{{ b.box.id }}"
+                        class="fa-solid fa-chevron-down text-[9px] transition-transform duration-300 ml-1"></i>
                 </button>
             </div>
 
@@ -193,7 +224,8 @@
                 <div class="overflow-x-auto rounded-xl border border-slate-800">
                     <table class="w-full text-left border-collapse text-[11px]">
                         <thead>
-                            <tr class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
+                            <tr
+                                class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                                 <th class="py-2 px-3 text-center w-12">#</th>
                                 <th class="py-2 px-3">Operatsiya Nomi</th>
                                 <th class="py-2 px-3 text-center">Dona Narxi</th>
@@ -205,14 +237,16 @@
                         </thead>
                         <tbody class="divide-y divide-slate-800/80 bg-slate-950/60">
                             {% for t in b.tickets %}
-                            <tr class="{% if t.is_scanned %}bg-emerald-950/20 text-emerald-200{% else %}text-slate-400{% endif %} hover:bg-slate-800/30 transition">
+                            <tr
+                                class="{% if t.is_scanned %}bg-emerald-950/20 text-emerald-200{% else %}text-slate-400{% endif %} hover:bg-slate-800/30 transition">
                                 <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">
                                     {{ t.sequence }}
                                 </td>
                                 <td class="py-2 px-3 font-semibold text-white">
                                     {{ t.operation_name }}
                                     {% if t.is_dazmol %}
-                                    <span class="ml-1 px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold">
+                                    <span
+                                        class="ml-1 px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold">
                                         Dazmol
                                     </span>
                                     {% endif %}

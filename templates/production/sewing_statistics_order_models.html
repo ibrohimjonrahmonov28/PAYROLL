@@ -11,14 +11,17 @@
     </a>
     <div>
         <div class="flex items-center gap-2">
-            <h2 class="text-base font-black text-white leading-tight">Zakaz: <span class="text-cyan-400 font-mono">{{ order.order_number }}</span></h2>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {% if order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
+            <h2 class="text-base font-black text-white leading-tight">Zakaz: <span class="text-cyan-400 font-mono">{{
+                    order.order_number }}</span></h2>
+            <span
+                class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {% if order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
                 {{ order.get_status_display }}
             </span>
         </div>
         <p class="text-xs text-slate-400">
             Mijoz: <strong class="text-white">{{ order.customer.name|default:order.client_name }}</strong>
-            {% if order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{ order.deadline|date:"d.m.Y" }}</span>{% endif %}
+            {% if order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{ order.deadline|date:"d.m.Y"
+                }}</span>{% endif %}
         </p>
     </div>
 </div>
@@ -40,20 +43,28 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Qutilarda</span>
             <span class="text-xl font-black text-white digital-font mt-1 block">{{ order_totals.boxed }} <small class="text-[10px] text-slate-500">dona</small></span>
+            <span class="text-[10px] text-slate-400 font-mono block mt-0.5 font-bold">({{ order_totals.boxes_count }} ta quti)</span>
         </div>
-        <div class="bg-slate-900 border border-cyan-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-cyan-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-cyan-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-cyan-950/20 to-transparent">
             <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block">Tikimga Kirgan</span>
             <span class="text-xl font-black text-cyan-300 digital-font mt-1 block">{{ order_totals.entered_sewing }} <small class="text-[10px] text-slate-500">dona</small></span>
+            <span class="text-[10px] text-cyan-400 font-mono block mt-0.5 font-bold">({{ order_totals.entered_sewing_boxes }} ta quti)</span>
         </div>
-        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-indigo-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-indigo-950/20 to-transparent">
             <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Dazmoldan O'tgan</span>
             <span class="text-xl font-black text-indigo-300 digital-font mt-1 block">{{ order_totals.dazmol }} <small class="text-[10px] text-slate-500">dona</small></span>
+            <span class="text-[10px] text-indigo-400 font-mono block mt-0.5 font-bold">({{ order_totals.dazmol_boxes }} ta quti)</span>
         </div>
-        <div class="bg-slate-900 border border-amber-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-amber-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-amber-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-amber-950/20 to-transparent">
             <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Kontrolda Kutmoqda</span>
             <span class="text-xl font-black text-amber-300 digital-font mt-1 block">{{ order_totals.waiting_control }} <small class="text-[10px] text-slate-500">dona</small></span>
+            <span class="text-[10px] text-amber-400 font-mono block mt-0.5 font-bold">({{ order_totals.waiting_control_boxes }} ta quti)</span>
         </div>
-        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent">
             <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">1-Sort / 2-Sort</span>
             <div class="mt-1 flex items-baseline gap-1.5">
                 <span class="text-xl font-black text-emerald-400 digital-font">{{ order_totals.first_sort }}</span>
@@ -61,6 +72,7 @@
                 <span class="text-xs text-rose-400 font-mono font-bold">/ {{ order_totals.second_sort }}</span>
                 {% endif %}
             </div>
+            <span class="text-[10px] text-emerald-400 font-mono block mt-0.5 font-bold">({{ order_totals.controlled_boxes_count }} ta quti)</span>
         </div>
     </div>
 
@@ -72,7 +84,8 @@
             </h3>
             <p class="text-xs text-slate-400 mt-0.5">Har bir modelning rasmi va tikuv-dazmol-kontrol jarayoni</p>
         </div>
-        <span class="text-xs font-mono px-3 py-1 bg-slate-900 rounded-lg border border-slate-800 text-slate-300 font-bold">
+        <span
+            class="text-xs font-mono px-3 py-1 bg-slate-900 rounded-lg border border-slate-800 text-slate-300 font-bold">
             Jami: {{ models_data|length }} xil model
         </span>
     </div>
@@ -80,33 +93,40 @@
     <!-- Models Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for m in models_data %}
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
+        <div
+            class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
             <!-- Model Image & Header -->
             <div>
-                <div class="relative w-full h-48 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center mb-4 group">
+                <div
+                    class="relative w-full h-56 bg-slate-950/80 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center p-2.5 mb-4 group">
                     {% if m.article_image_url %}
-                    <img src="{{ m.article_image_url }}" alt="{{ m.article.name }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    <img src="{{ m.article_image_url }}" alt="{{ m.article.name }}"
+                        class="max-h-full max-w-full w-auto h-auto object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-md">
                     {% else %}
                     <div class="flex flex-col items-center justify-center text-slate-700">
                         <i class="fa-solid fa-shirt text-5xl mb-2"></i>
-                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Rasm yuklanmagan</span>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">Rasm
+                            yuklanmagan</span>
                     </div>
                     {% endif %}
 
                     <!-- Top badges -->
                     <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-                        <span class="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-amber-400 border border-amber-400/30 font-mono font-black text-xs shadow-md">
+                        <span
+                            class="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-amber-400 border border-amber-400/30 font-mono font-black text-xs shadow-md">
                             {{ m.article.code }}
                         </span>
                         {% if m.model_name %}
-                        <span class="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-slate-300 border border-slate-700 text-[11px] font-semibold">
+                        <span
+                            class="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-slate-300 border border-slate-700 text-[11px] font-semibold">
                             {{ m.model_name }}
                         </span>
                         {% endif %}
                     </div>
 
                     <div class="absolute bottom-2.5 right-2.5">
-                        <span class="px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 font-mono font-bold text-xs">
+                        <span
+                            class="px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 font-mono font-bold text-xs">
                             Reja: {{ m.planned_qty }} dona
                         </span>
                     </div>
@@ -134,33 +154,42 @@
                         </span>
                     </div>
                     <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-800 overflow-hidden">
-                        <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500" style="width: {{ m.sewing_pct }}%"></div>
+                        <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
+                            style="width: {{ m.sewing_pct }}%"></div>
                     </div>
-                    <span class="text-[10px] text-slate-500 mt-0.5 block">{{ m.entered_sewing_boxes }} ta qutida stiker urilgan</span>
+                    <span class="text-[10px] text-cyan-400 font-mono font-bold mt-0.5 block">{{ m.entered_sewing_boxes }} ta qutida stiker urilgan</span>
                 </div>
 
                 <!-- 3 Columns Stats: Dazmol | Kontrol Kutmoqda | OTK Natijasi -->
                 <div class="grid grid-cols-3 gap-2 pt-1 text-center">
-                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between">
                         <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Dazmol</span>
-                        <span class="text-sm font-black text-indigo-300 digital-font mt-1 block">{{ m.dazmol_qty }}</span>
-                        <span class="text-[9px] text-slate-500 block font-mono">o'tgan dona</span>
+                        <div class="my-1">
+                            <span class="text-sm font-black text-indigo-300 digital-font block">{{ m.dazmol_qty }} dona</span>
+                            <span class="text-[10px] text-indigo-400 font-mono font-bold block">({{ m.dazmol_boxes }} quti)</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 block font-mono">o'tgan</span>
                     </div>
 
-                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between">
                         <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Kutmoqda</span>
-                        <span class="text-sm font-black text-amber-400 digital-font mt-1 block">{{ m.waiting_control_qty }}</span>
+                        <div class="my-1">
+                            <span class="text-sm font-black text-amber-400 digital-font block">{{ m.waiting_control_qty }} dona</span>
+                            <span class="text-[10px] text-amber-400 font-mono font-bold block">({{ m.waiting_control_boxes }} quti)</span>
+                        </div>
                         <span class="text-[9px] text-slate-500 block font-mono">OTK kutilmoqda</span>
                     </div>
 
-                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between">
                         <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">1-Sort</span>
-                        <span class="text-sm font-black text-emerald-400 digital-font mt-1 block">{{ m.first_sort_qty }}</span>
-                        {% if m.second_sort_qty > 0 %}
-                        <span class="text-[9px] text-rose-400 block font-mono font-bold">{{ m.second_sort_qty }} (2-sort)</span>
-                        {% else %}
-                        <span class="text-[9px] text-slate-500 block font-mono">qabul qilingan</span>
-                        {% endif %}
+                        <div class="my-1">
+                            <span class="text-sm font-black text-emerald-400 digital-font block">{{ m.first_sort_qty }}</span>
+                            {% if m.second_sort_qty > 0 %}
+                            <span class="text-[9px] text-rose-400 block font-mono font-bold">{{ m.second_sort_qty }} (2-sort)</span>
+                            {% endif %}
+                            <span class="text-[10px] text-emerald-400 font-mono font-bold block">({{ m.controlled_boxes_count }} quti)</span>
+                        </div>
+                        <span class="text-[9px] text-slate-500 block font-mono">qabul</span>
                     </div>
                 </div>
             </div>
@@ -176,7 +205,8 @@
             </div>
         </div>
         {% empty %}
-        <div class="col-span-full py-16 bg-slate-900 border border-slate-800 rounded-3xl text-center text-slate-500 text-xs">
+        <div
+            class="col-span-full py-16 bg-slate-900 border border-slate-800 rounded-3xl text-center text-slate-500 text-xs">
             <i class="fa-solid fa-shirt text-4xl text-slate-700 mb-3 block"></i>
             Ushbu buyurtmada hali modellar kiritilmagan.
         </div>

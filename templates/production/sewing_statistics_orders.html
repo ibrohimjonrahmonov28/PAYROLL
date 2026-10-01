@@ -4,7 +4,8 @@
 
 {% block page_header %}
 <div class="flex items-center gap-3">
-    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center text-lg shadow-lg">
+    <div
+        class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center text-lg shadow-lg">
         <i class="fa-solid fa-chart-line"></i>
     </div>
     <div>
@@ -36,11 +37,12 @@
                 <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_planned }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-slate-500 mt-1 block">Buyurtmalar rejasi</span>
+            <span class="text-[10px] text-amber-400/80 font-mono font-bold mt-1 block">({{ overall_kpis.total_boxes }} ta quti)</span>
         </div>
 
         <!-- KPI 3: Tikimga Kirgan -->
-        <div class="bg-slate-900 border border-cyan-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-cyan-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-cyan-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-cyan-950/20 to-transparent">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Tikimga Kirgan</span>
                 <i class="fa-solid fa-shirt text-cyan-400 text-xs"></i>
@@ -49,11 +51,12 @@
                 <span class="text-2xl font-black text-cyan-300 digital-font">{{ overall_kpis.total_entered_sewing }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-cyan-400/70 mt-1 block">Kamida 1 ta stikeri urilgan</span>
+            <span class="text-[10px] text-cyan-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_entered_sewing_boxes }} ta qutida stiker urilgan</span>
         </div>
 
         <!-- KPI 4: Dazmoldan O'tgan -->
-        <div class="bg-slate-900 border border-indigo-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-indigo-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/20 to-transparent">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Dazmoldan O'tgan</span>
                 <i class="fa-solid fa-soap text-indigo-400 text-xs"></i>
@@ -62,11 +65,12 @@
                 <span class="text-2xl font-black text-indigo-300 digital-font">{{ overall_kpis.total_dazmol }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-indigo-400/70 mt-1 block">Yakuniy dazmol operatsiyasi</span>
+            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_dazmol_boxes }} ta quti yakunlangan</span>
         </div>
 
         <!-- KPI 5: Kontrolda Kutmoqda -->
-        <div class="bg-slate-900 border border-amber-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-amber-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-amber-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-amber-950/20 to-transparent">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Kontrolda Kutmoqda</span>
                 <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
@@ -75,11 +79,12 @@
                 <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_waiting_control }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-amber-400/70 mt-1 block">Tikuv 100% (OTK kutilmoqda)</span>
+            <span class="text-[10px] text-amber-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_waiting_control_boxes }} ta quti (OTK kutilmoqda)</span>
         </div>
 
         <!-- KPI 6: 1-Sort / 2-Sort -->
-        <div class="bg-slate-900 border border-emerald-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/20 to-transparent">
+        <div
+            class="bg-slate-900 border border-emerald-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/20 to-transparent">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK Qabul Qildi</span>
                 <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
@@ -91,14 +96,16 @@
                 <span class="text-xs text-rose-400 font-mono font-bold">({{ overall_kpis.total_second_sort }} 2-sort)</span>
                 {% endif %}
             </div>
-            <span class="text-[10px] text-emerald-400/70 mt-1 block">Sifat nazoratidan o'tgan</span>
+            <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_controlled_boxes }} ta quti tekshirilgan</span>
         </div>
     </div>
 
     <!-- Filters, Status Tabs & Search Bar -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
         <!-- Status Tabs -->
-        <div class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start md:self-auto w-full md:w-auto">
+        <div
+            class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start md:self-auto w-full md:w-auto">
             <a href="?status=IN_PROGRESS{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'IN_PROGRESS' %}bg-cyan-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                 <i class="fa-solid fa-spinner"></i> Jarayonda
@@ -116,11 +123,15 @@
         <!-- Search Form -->
         <form method="GET" class="relative w-full md:w-96">
             <input type="hidden" name="status" value="{{ status_filter }}">
-            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-            <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz raqami, mijoz yoki artikul qidirish..."
+            <i
+                class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+            <input type="text" name="q" value="{{ search_q }}"
+                placeholder="Zakaz raqami, mijoz yoki artikul qidirish..."
                 class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner transition">
             {% if search_q %}
-            <a href="?status={{ status_filter }}" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1" title="Tozalash">
+            <a href="?status={{ status_filter }}"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1"
+                title="Tozalash">
                 <i class="fa-solid fa-xmark"></i>
             </a>
             {% endif %}
@@ -139,7 +150,8 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                    <tr class="bg-slate-950 text-slate-400 uppercase font-extrabold tracking-wider border-b border-slate-800 text-[11px]">
+                    <tr
+                        class="bg-slate-950 text-slate-400 uppercase font-extrabold tracking-wider border-b border-slate-800 text-[11px]">
                         <th class="py-3 px-4">Buyurtma (Zakaz)</th>
                         <th class="py-3 px-3 text-center">Modellar</th>
                         <th class="py-3 px-3 text-center">Jami Reja</th>
@@ -160,13 +172,16 @@
                                     class="font-mono font-black text-cyan-400 hover:text-cyan-300 text-sm hover:underline">
                                     {{ item.order.order_number }}
                                 </a>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {% if item.order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase {% if item.order.status == 'COMPLETED' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{% endif %}">
                                     {{ item.order.get_status_display }}
                                 </span>
                             </div>
                             <span class="text-[11px] text-slate-400 block mt-0.5">
-                                Mijoz: <strong class="text-white">{{ item.order.customer.name|default:item.order.client_name }}</strong>
-                                {% if item.order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{ item.order.deadline|date:"d.m.Y" }}</span>{% endif %}
+                                Mijoz: <strong class="text-white">{{
+                                    item.order.customer.name|default:item.order.client_name }}</strong>
+                                {% if item.order.deadline %} • Muddat: <span class="text-amber-400 font-mono">{{
+                                    item.order.deadline|date:"d.m.Y" }}</span>{% endif %}
                             </span>
                         </td>
 
@@ -180,7 +195,8 @@
                         <!-- Reja soni -->
                         <td class="py-3 px-3 text-center font-black text-amber-400 digital-font text-sm">
                             {{ item.total_planned }} <small class="text-[10px] text-slate-500">ta</small>
-                            <span class="text-[10px] text-slate-500 block font-normal">({{ item.boxes_count }} quti)</span>
+                            <span class="text-[10px] text-slate-500 block font-normal">({{ item.boxes_count }}
+                                quti)</span>
                         </td>
 
                         <!-- Tikimga Kirgan -->
@@ -189,10 +205,13 @@
                                 <span class="font-black text-cyan-300 digital-font text-sm">
                                     {{ item.entered_sewing_qty }} <small class="text-[10px] text-slate-400">ta</small>
                                 </span>
-                                <div class="w-20 bg-slate-950 rounded-full h-1.5 mt-1 border border-slate-800 overflow-hidden">
-                                    <div class="bg-cyan-500 h-full rounded-full" style="width: {{ item.entered_pct }}%"></div>
+                                <div
+                                    class="w-20 bg-slate-950 rounded-full h-1.5 mt-1 border border-slate-800 overflow-hidden">
+                                    <div class="bg-cyan-500 h-full rounded-full" style="width: {{ item.entered_pct }}%">
+                                    </div>
                                 </div>
-                                <span class="text-[10px] text-cyan-400 font-mono mt-0.5">{{ item.entered_pct }}% ({{ item.entered_sewing_boxes }} quti)</span>
+                                <span class="text-[10px] text-cyan-400 font-mono mt-0.5">{{ item.entered_pct }}% ({{
+                                    item.entered_sewing_boxes }} quti)</span>
                             </div>
                         </td>
 
@@ -202,17 +221,21 @@
                                 <span class="font-black text-indigo-300 digital-font text-sm">
                                     {{ item.dazmol_qty }} <small class="text-[10px] text-slate-400">ta</small>
                                 </span>
-                                <span class="text-[10px] text-indigo-400 font-mono mt-0.5">{{ item.dazmol_pct }}%</span>
+                                <span class="text-[10px] text-indigo-400 font-mono mt-0.5">{{ item.dazmol_pct }}% ({{ item.dazmol_boxes }} quti)</span>
                             </div>
                         </td>
 
                         <!-- Kontrolda Kutmoqda -->
                         <td class="py-3 px-3 text-center">
                             {% if item.waiting_control_qty > 0 %}
-                            <span class="px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg font-black digital-font text-xs inline-flex items-center gap-1.5 animate-pulse">
-                                <i class="fa-solid fa-clock text-[10px]"></i>
-                                {{ item.waiting_control_qty }} dona
-                            </span>
+                            <div class="flex flex-col items-center">
+                                <span
+                                    class="px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg font-black digital-font text-xs inline-flex items-center gap-1.5 animate-pulse">
+                                    <i class="fa-solid fa-clock text-[10px]"></i>
+                                    {{ item.waiting_control_qty }} dona
+                                </span>
+                                <span class="text-[10px] text-amber-400 font-mono mt-0.5 font-bold">({{ item.waiting_control_boxes }} quti)</span>
+                            </div>
                             {% else %}
                             <span class="text-slate-600 font-mono">—</span>
                             {% endif %}
@@ -221,15 +244,22 @@
                         <!-- OTK Natijasi -->
                         <td class="py-3 px-3 text-center">
                             {% if item.first_sort_qty > 0 or item.second_sort_qty > 0 %}
-                            <div class="flex items-center justify-center gap-1.5 flex-wrap">
-                                <span class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[11px]" title="1-sort (qabul)">
-                                    1: {{ item.first_sort_qty }}
-                                </span>
-                                {% if item.second_sort_qty > 0 %}
-                                <span class="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono font-bold text-[11px]" title="2-sort">
-                                    2: {{ item.second_sort_qty }}
-                                </span>
-                                {% endif %}
+                            <div class="flex flex-col items-center gap-0.5">
+                                <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                    <span
+                                        class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[11px]"
+                                        title="1-sort (qabul)">
+                                        1: {{ item.first_sort_qty }}
+                                    </span>
+                                    {% if item.second_sort_qty > 0 %}
+                                    <span
+                                        class="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono font-bold text-[11px]"
+                                        title="2-sort">
+                                        2: {{ item.second_sort_qty }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="text-[10px] text-slate-400 font-mono font-medium">({{ item.controlled_boxes }} quti)</span>
                             </div>
                             {% else %}
                             <span class="text-slate-600 font-mono">—</span>
