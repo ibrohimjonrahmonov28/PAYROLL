@@ -12,6 +12,7 @@ Ushbu bot mahsulotlar tikuv patogiga chiqishidan oldin:
 import logging
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from asgiref.sync import sync_to_async
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -27,6 +28,8 @@ from production.passport_bot_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+async_verify_pastal_for_sewing = sync_to_async(verify_pastal_for_sewing, thread_sensitive=False)
 
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -79,7 +82,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not raw_text:
         return
 
-    result = verify_pastal_for_sewing(raw_text)
+    result = await async_verify_pastal_for_sewing(raw_text)
     await update.message.reply_text(result['message'], parse_mode='Markdown')
 
 
@@ -111,7 +114,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Aniqlangan har bir QR kodni tekshirish (odatda 1 ta)
     for code in decoded_codes[:2]:
-        result = verify_pastal_for_sewing(code)
+        result = await async_verify_pastal_for_sewing(code)
         await update.message.reply_text(result['message'], parse_mode='Markdown')
 
 
@@ -143,8 +146,20 @@ async def document_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     for code in decoded_codes[:2]:
-        result = verify_pastal_for_sewing(code)
+        result = await async_verify_pastal_for_sewing(code)
         await update.message.reply_text(result['message'], parse_mode='Markdown')
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Xatoliklarni ushlash va log qilish"""
+    logger.error("Exception while handling an update:", exc_info=context.error)
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text(
+                "⚠️ So'rovni qayta ishlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring."
+            )
+        except Exception:
+            pass
 
 
 class Command(BaseCommand):
@@ -181,6 +196,7 @@ class Command(BaseCommand):
                 app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
                 app.add_handler(MessageHandler(filters.Document.IMAGE, document_handler))
                 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+                app.add_error_handler(error_handler)
 
                 self.stdout.write(self.style.SUCCESS("✅ Bot muvaffaqiyatli ishga tushdi! Xabarlar kutilmoqda... (Ctrl+C to'xtatish)"))
                 app.run_polling(drop_pending_updates=True)
