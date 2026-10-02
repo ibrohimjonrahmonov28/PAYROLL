@@ -255,3 +255,87 @@ class PassportVerificationTestCase(TestCase):
         # Qutilar o'zgarmasligi va bekor bo'lmasligi kerak
         active_boxes = self.batch_item_m.boxes.exclude(status=Box.Status.CANCELLED)
         self.assertTrue(active_boxes.exists())
+
+    def test_verify_order_cancelled_rejected(self):
+        """Zakaz holati CANCELLED (Bekor qilingan) bo'lsa: PATOKKA BERIB BO'LMAYDI"""
+        self.order.status = Order.Status.CANCELLED
+        self.order.save(update_fields=['status'])
+
+        # Pasport kodi orqali
+        res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'ORDER_CANCELLED')
+        self.assertIn("BEKOR QILINGAN", res['message'])
+
+        # Quti stikeri orqali
+        first_box = self.boxes_m[0]
+        res_box = verify_pastal_for_sewing(f"CONTROL:{first_box.box_code}")
+        self.assertFalse(res_box['can_release'])
+        self.assertEqual(res_box['status_code'], 'ORDER_CANCELLED')
+
+        # Ticket orqali
+        tkt = first_box.tickets.first()
+        res_tkt = verify_pastal_for_sewing(f"TICKET:{tkt.ticket_code}")
+        self.assertFalse(res_tkt['can_release'])
+        self.assertEqual(res_tkt['status_code'], 'ORDER_CANCELLED')
+
+    def test_verify_order_archived_or_completed_rejected(self):
+        """Zakaz ARXIVLANGAN yoki TUGATILGAN bo'lsa tikuvga berish taqiqlanadi"""
+        self.order.status = Order.Status.ARCHIVED
+        self.order.save(update_fields=['status'])
+        res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'ORDER_ARCHIVED')
+
+        self.order.status = Order.Status.COMPLETED
+        self.order.save(update_fields=['status'])
+        res2 = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res2['can_release'])
+        self.assertEqual(res2['status_code'], 'ORDER_COMPLETED')
+
+    def test_verify_partially_cancelled_pastal_rejected(self):
+        """Pastalda 1 ta quti bekor qilingan (re-split yoki qisman atmen) bo'lsa: BLOKLANADI"""
+        cancelled_box = self.boxes_m[0]
+        cancelled_box.status = Box.Status.CANCELLED
+        cancelled_box.save(update_fields=['status'])
+        cancelled_box.tickets.update(status=Ticket.Status.CANCELLED)
+
+        # Pasport orqali tekshirish
+        res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'PARTIALLY_CANCELLED')
+        self.assertIn("ATMEN BO'LGAN) QUTILAR BOR", res['message'])
+
+    def test_verify_frozen_ticket_rejected(self):
+        """Muzlatilgan (is_frozen=True) stiker bo'lsa: PATOKKA BERIB BO'LMAYDI"""
+        tkt = self.boxes_m[0].tickets.first()
+        tkt.is_frozen = True
+        tkt.save(update_fields=['is_frozen'])
+
+        res = verify_pastal_for_sewing(f"TICKET:{tkt.ticket_code}")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'FROZEN_TICKET')
+        self.assertIn("MUZLATILGAN", res['message'])
+
+    def test_manager_order_cancel_cascades_to_boxes_and_tickets(self):
+        """Menejer zakazni CANCELLED qilganda barcha quti va biletlar CANCELLED bo'lishi kerak"""
+        from django.test import RequestFactory
+        from production.manager_views import manager_order_update_status
+        from accounts.models import User
+
+        factory = RequestFactory()
+        req = factory.post(f"/manager/orders/{self.order.id}/status/", {'status': Order.Status.CANCELLED})
+        mgr = User.objects.create_superuser('mgr_user', 'mgr@example.com', 'mgrpass')
+        req.user = mgr
+
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        setattr(req, 'session', {})
+        setattr(req, '_messages', FallbackStorage(req))
+
+        manager_order_update_status(req, self.order.id)
+
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.CANCELLED)
+        # Barcha qutilar va biletlar CANCELLED bo'lishi kerak
+        self.assertEqual(self.order.boxes.exclude(status=Box.Status.CANCELLED).count(), 0)
+        self.assertEqual(Ticket.objects.filter(box__order=self.order, status=Ticket.Status.PENDING).count(), 0)

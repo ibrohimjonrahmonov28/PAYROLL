@@ -20,6 +20,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .models import (
+    Order,
     Box,
     Ticket,
     CuttingBatch,
@@ -230,6 +231,31 @@ def resolve_code_to_entity(raw_code: str):
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
             return batch, box, ticket, 'TICKET_ID', str(num)
 
+    # 9. BOX: yoki QUTI: prefiksi
+    if raw.upper().startswith(('BOX:', 'QUTI:')):
+        bx_clean = raw.split(':', 1)[1].strip()
+        box = Box.objects.select_related(
+            'order__customer',
+            'article__model',
+            'cutting_batch_item__batch'
+        ).filter(box_code__iexact=bx_clean).first()
+        if box:
+            batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            return batch, box, None, 'BOX_CODE', bx_clean
+
+    # 10. Zakaz raqami (masalan: ORD-101, ZAK-001, ORDER:ZAK-001)
+    cand_ord_num = raw
+    if cand_ord_num.upper().startswith(('ORDER:', 'ZAKAZ:')):
+        cand_ord_num = cand_ord_num.split(':', 1)[1].strip()
+    cand_order = Order.objects.filter(order_number__iexact=cand_ord_num).first()
+    if cand_order:
+        b_first = CuttingBatch.objects.select_related(
+            'order_item__order__customer',
+            'order_item__article__model'
+        ).filter(order_item__order=cand_order).first()
+        bx_first = cand_order.boxes.first()
+        return b_first, bx_first, None, 'ORDER_NUMBER', cand_order.order_number
+
     return None, None, None, 'UNKNOWN', raw
 
 
@@ -237,11 +263,13 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
     """
     Asosiy tekshiruv algoritmi:
     Har bir quti va stikerni bittalab tekshiradi:
-    1. Atmen bo'lgan/bekor qilinganlik
-    2. Operatsiya narxlari va summalar to'liqligi
-    3. Tikuvga berishga ruxsat
+    1. Zakaz holati (CANCELLED, ARCHIVED, DRAFT, COMPLETED)
+    2. Atmen bo'lgan/bekor qilingan qutilar yoki stikerlar
+    3. Meto bo'limi holati (CUT_ENTERED qaytarilganlar)
+    4. Operatsiya narxlari va summalar to'liqligi
+    5. Tikuvga berishga ruxsat
     """
-    clean_input = str(raw_code or '').strip()
+    clean_input = str(raw_code or '').strip('`"\' \t\r\n')
     if not clean_input:
         return {
             'success': False,
@@ -305,7 +333,92 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         }
 
     # --------------------------------------------------------------------------
-    # 2. AGAR SKANERLANGAN ALOHIDA QUTI YOKI TICKET BEKOR QILINGAN BO'LSA
+    # 2. ZAKAZ HOLATI TEKSHIRUVI (Menejer / Admin tomonidan bekor qilinganmi?)
+    # --------------------------------------------------------------------------
+    order = None
+    if batch and batch.order_item and batch.order_item.order:
+        order = batch.order_item.order
+    elif scanned_box and scanned_box.order:
+        order = scanned_box.order
+    elif scanned_ticket and scanned_ticket.box and scanned_ticket.box.order:
+        order = scanned_ticket.box.order
+
+    if order:
+        if order.status == Order.Status.CANCELLED:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'ORDER_CANCELLED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU ZAKAZ TIZIMDA BEKOR QILINGAN (ATMEN BO'LGAN)!*\n\n"
+                    f"📋 *Zakaz:* {order.order_number}\n"
+                    f"👤 *Mijoz:* {order.customer.name if (order.customer and hasattr(order.customer, 'name')) else getattr(order, 'client_name', '—')}\n"
+                    f"❌ *Holati:* BEKOR QILINDI (CANCELLED)\n\n"
+                    f"❗ *Ushbu zakazga tegishli barcha partiya va stikerlar o'z kuchini yo'qotgan!*\n"
+                    f"Tikuv patogiga tarqatish qat'iyan man etiladi.\n\n"
+                    f"🔄 Yangilash yoki ma'lumot olish uchun *menejer yoki stikerchiga murojaat qiling*."
+                ),
+                'details': {'order_id': order.id, 'order_status': order.status}
+            }
+
+        if order.status == Order.Status.ARCHIVED:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'ORDER_ARCHIVED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU ZAKAZ ARXIVLANGAN (YOPILGAN)!*\n\n"
+                    f"📋 *Zakaz:* {order.order_number}\n"
+                    f"📁 *Holati:* ARXIVLANGAN (ARCHIVED)\n\n"
+                    f"❗ *Eski yoki arxivlangan zakaz stikerlarini tikuvga kiritish taqiqlanadi!*\n\n"
+                    f"🔄 Ma'lumot olish uchun *menejerga murojaat qiling*."
+                ),
+                'details': {'order_id': order.id, 'order_status': order.status}
+            }
+
+        if order.status == Order.Status.COMPLETED:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'ORDER_COMPLETED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU ZAKAZ ALLAQACHON TUGATILGAN (COMPLETED)!*\n\n"
+                    f"📋 *Zakaz:* {order.order_number}\n"
+                    f"🏁 *Holati:* TUGATILDI (COMPLETED)\n\n"
+                    f"❗ *Bajarilgan zakaz stikerlarini qaytadan tikuv patogiga tarqatish taqiqlanadi!*\n\n"
+                    f"🔄 Ma'lumot olish uchun *menejerga murojaat qiling*."
+                ),
+                'details': {'order_id': order.id, 'order_status': order.status}
+            }
+
+        if order.status == Order.Status.DRAFT:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'ORDER_DRAFT',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU ZAKAZ HALI TAYYORLANMOQDA (DRAFT / QORALAMA)!*\n\n"
+                    f"📋 *Zakaz:* {order.order_number}\n"
+                    f"📝 *Holati:* DRAFT (Tasdiqlanmagan)\n\n"
+                    f"❗ *Ushbu zakazga ishlab chiqarishga hali ruxsat berilmagan!*"
+                ),
+                'details': {'order_id': order.id, 'order_status': order.status}
+            }
+
+    # --------------------------------------------------------------------------
+    # 3. AGAR SKANERLANGAN ALOHIDA QUTI YOKI TICKET BEKOR QILINGAN / MUZLATILGAN BO'LSA
     # --------------------------------------------------------------------------
     if scanned_box and scanned_box.status == Box.Status.CANCELLED:
         return {
@@ -319,7 +432,7 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"⚠️ *USHBU QUTI TIZIMDA BEKOR QILINGAN (ATMEN BO'LGAN)!*\n\n"
                 f"📦 *Quti:* {scanned_box.display_code} ({scanned_box.quantity} dona)\n"
                 f"📏 *Razmer:* {scanned_box.razmer or '—'}\n"
-                f"📋 *Zakaz:* {scanned_box.order.order_number}\n"
+                f"📋 *Zakaz:* {scanned_box.order.order_number if scanned_box.order else '—'}\n"
                 f"🏷 *Pastal:* {scanned_box.pastal_number or '—'}\n"
                 f"❌ *Holati:* BEKOR QILINGAN (CANCELLED)\n\n"
                 f"❗ *Ushbu quti va uning stikerlari eskirgan (Meto yoki Kesimda qayta taqsimlangan)!*\n"
@@ -329,28 +442,72 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             'details': {'box_id': scanned_box.id, 'status': scanned_box.status}
         }
 
-    if scanned_ticket and scanned_ticket.status == Ticket.Status.CANCELLED:
-        return {
-            'success': False,
-            'can_release': False,
-            'status_code': 'CANCELLED',
-            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
-            'message': (
-                f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ *USHBU STIKER BEKOR QILINGAN (ATMEN BO'LGAN / ESKIRGAN)!*\n\n"
-                f"🎫 *Stiker ID:* #{scanned_ticket.stiker_code or scanned_ticket.id}\n"
-                f"⚙️ *Operatsiya:* {scanned_ticket.article_operation.operation.name if scanned_ticket.article_operation else '—'}\n"
-                f"📦 *Quti:* {scanned_ticket.box.display_code}\n"
-                f"❌ *Holati:* BEKOR QILINGAN (CANCELLED)\n\n"
-                f"❗ *Ushbu stiker bekor qilingan! Tikuv patogiga tarqatish taqiqlanadi.*\n\n"
-                f"🔄 Yangilash uchun *stikerchiga murojaat qiling*."
-            ),
-            'details': {'ticket_id': scanned_ticket.id, 'status': scanned_ticket.status}
-        }
+    if scanned_ticket:
+        if scanned_ticket.status == Ticket.Status.CANCELLED or (scanned_ticket.box and scanned_ticket.box.status == Box.Status.CANCELLED):
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'CANCELLED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU STIKER BEKOR QILINGAN (ATMEN BO'LGAN / ESKIRGAN)!*\n\n"
+                    f"🎫 *Stiker ID:* #{scanned_ticket.stiker_code or scanned_ticket.id}\n"
+                    f"⚙️ *Operatsiya:* {scanned_ticket.article_operation.operation.name if scanned_ticket.article_operation else '—'}\n"
+                    f"📦 *Quti:* {scanned_ticket.box.display_code if scanned_ticket.box else '—'}\n"
+                    f"❌ *Holati:* BEKOR QILINGAN (CANCELLED)\n\n"
+                    f"❗ *Ushbu stiker bekor qilingan! Tikuv patogiga tarqatish taqiqlanadi.*\n\n"
+                    f"🔄 Yangilash uchun *stikerchiga murojaat qiling*."
+                ),
+                'details': {'ticket_id': scanned_ticket.id, 'status': scanned_ticket.status}
+            }
+
+        if getattr(scanned_ticket, 'is_frozen', False):
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'FROZEN_TICKET',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU STIKER MUZLATILGAN (QULFLANGAN)!*\n\n"
+                    f"🎫 *Stiker ID:* #{scanned_ticket.stiker_code or scanned_ticket.id}\n"
+                    f"📦 *Quti:* {scanned_ticket.box.display_code if scanned_ticket.box else '—'}\n"
+                    f"🔒 *Holati:* MUZLATILGAN (IS_FROZEN)\n\n"
+                    f"❗ *Ushbu stiker bo'yicha hisob-kitoblar vaqtinchalik to'xtatilgan!*\n"
+                    f"Tikuv patogiga tarqatish taqiqlanadi.\n\n"
+                    f"🔄 Ma'lumot olish uchun *menejerga murojaat qiling*."
+                ),
+                'details': {'ticket_id': scanned_ticket.id}
+            }
 
     # --------------------------------------------------------------------------
-    # 3. PASTALNI VA BARCHA QUTILARNI TO'PLASH
+    # 4. METO HOLATI TEKSHIRUVI (Meto tasdiqlaganmi yoki qaytarilganmi?)
+    # --------------------------------------------------------------------------
+    if batch:
+        batch_items = list(batch.items.all())
+        if batch_items and all(bi.status == CuttingBatchItem.Status.CUT_ENTERED for bi in batch_items):
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'METO_NOT_CONFIRMED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU PASTAL METO TOMONIDAN TASDIQLANMAGAN (YOKI QAYTARILGAN)!*\n\n"
+                    f"📋 *Pastal:* {batch.name or '—'} ({batch.pastal_code or '—'})\n"
+                    f"✂️ *Holati:* Kesim kiritilgan, lekin Meto hali qutilarni tasdiqlamagan yoki qaytargan.\n\n"
+                    f"❗ *Tikuv patogiga tarqatish taqiqlanadi!*\n\n"
+                    f"🔄 Yangilash uchun *Meto bo'limiga yoki stikerchiga murojaat qiling*."
+                ),
+                'details': {'batch_id': batch.id}
+            }
+
+    # --------------------------------------------------------------------------
+    # 5. PASTALNI VA BARCHA QUTILARNI TO'PLASH
     # --------------------------------------------------------------------------
     if not batch and scanned_box:
         if scanned_box.cutting_batch_item and scanned_box.cutting_batch_item.batch:
@@ -376,7 +533,23 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 pastal_number=batch.pastal_code
             )
     elif scanned_box:
-        boxes_query = Q(id=scanned_box.id)
+        if scanned_box.pastal_number and scanned_box.order:
+            boxes_query = Q(
+                order=scanned_box.order,
+                article=scanned_box.target_article,
+                pastal_number=scanned_box.pastal_number
+            )
+        else:
+            boxes_query = Q(id=scanned_box.id)
+    elif scanned_ticket and scanned_ticket.box:
+        if scanned_ticket.box.pastal_number and scanned_ticket.box.order:
+            boxes_query = Q(
+                order=scanned_ticket.box.order,
+                article=scanned_ticket.box.target_article,
+                pastal_number=scanned_ticket.box.pastal_number
+            )
+        else:
+            boxes_query = Q(id=scanned_ticket.box_id)
 
     all_related_boxes = list(Box.objects.filter(boxes_query).distinct().order_by('box_number'))
 
@@ -399,28 +572,51 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         }
 
     # --------------------------------------------------------------------------
-    # 4. CHUQUR TEKSHIRUV: HAR BIR QUTI VA STIKERNI BITTALAB TEKSHIRISH
+    # 6. CHUQUR TEKSHIRUV: HAR BIR QUTI VA STIKERNI BITTALAB TEKSHIRISH
     # --------------------------------------------------------------------------
     cancelled_boxes = [b for b in all_related_boxes if b.status == Box.Status.CANCELLED]
     active_boxes = [b for b in all_related_boxes if b.status != Box.Status.CANCELLED]
 
-    # Agar barcha qutilar bekor qilingan bo'lsa
-    if len(active_boxes) == 0 and len(cancelled_boxes) > 0:
-        return {
-            'success': False,
-            'can_release': False,
-            'status_code': 'CANCELLED',
-            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
-            'message': (
-                f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ *USHBU ISH TO'LIQ ATMEN BO'LGAN (Bekor qilingan)!*\n\n"
-                f"Tizimda ushbu pastalning barcha {len(cancelled_boxes)} ta qutisi bekor qilingan.\n"
-                f"❗ *Eski stikerlarni tikuv patogiga berish qat'iyan man etiladi!*\n\n"
-                f"🔄 Yangilash uchun *stikerchiga (meto/kesimga) murojaat qiling*."
-            ),
-            'details': {'cancelled_boxes_count': len(cancelled_boxes)}
-        }
+    if len(cancelled_boxes) > 0:
+        if len(active_boxes) == 0:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'CANCELLED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU ISH TO'LIQ ATMEN BO'LGAN (Bekor qilingan)!*\n\n"
+                    f"Tizimda ushbu pastalning barcha {len(cancelled_boxes)} ta qutisi bekor qilingan.\n"
+                    f"❗ *Eski stikerlarni tikuv patogiga berish qat'iyan man etiladi!*\n\n"
+                    f"🔄 Yangilash uchun *stikerchiga (meto/kesimga) murojaat qiling*."
+                ),
+                'details': {'cancelled_boxes_count': len(cancelled_boxes)}
+            }
+        else:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'PARTIALLY_CANCELLED',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU PASTALDA BEKOR QILINGAN (ATMEN BO'LGAN) QUTILAR BOR!*\n\n"
+                    f"❌ Bekor qilingan qutilar: {len(cancelled_boxes)} ta\n"
+                    f"✅ Yangi aktiv qutilar: {len(active_boxes)} ta\n\n"
+                    f"❗ *Pastal Meto yoki Kesimda o'zgartirilgan yoki qayta taqsimlangan!*\n"
+                    f"Qo'lingizdagi eski qog'oz pasport yoki eski stikerlar o'z kuchini yo'qotgan.\n"
+                    f"Eski stikerlar tikuvchilar tomonidan urilsa tizim 'ATMEN' xatosini beradi.\n\n"
+                    f"🔄 *NIMA QILISH KERAK:*\n"
+                    f"Stikerchiga murojaat qiling, faqat yangi pasport va yangi aktiv stikerlarni olib, patokka tarqating!"
+                ),
+                'details': {
+                    'cancelled_boxes_count': len(cancelled_boxes),
+                    'active_boxes_count': len(active_boxes)
+                }
+            }
 
     # Barcha aktiv qutilarning biletlarini tekshirish
     all_tickets = list(Ticket.objects.select_related(
@@ -462,6 +658,25 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"🔄 Yangilash uchun *stikerchiga murojaat qiling*."
             ),
             'details': {'cancelled_tickets_count': len(cancelled_tickets)}
+        }
+
+    # Biletlar orasida muzlatilganlari bormi?
+    frozen_tickets = [t for t in all_tickets if getattr(t, 'is_frozen', False)]
+    if len(frozen_tickets) > 0:
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'FROZEN_TICKETS',
+            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+            'message': (
+                f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⚠️ *USHBU PASTALDA {len(frozen_tickets)} TA STIKER MUZLATILGAN (QULFLANGAN)!*\n\n"
+                f"Biletlar ma'muriyat tomonidan muzlatilgan (salary freeze yoki nazoratda).\n"
+                f"❗ *Patokka berish qat'iyan man etiladi!*\n\n"
+                f"🔄 Ma'lumot olish uchun *menejerga murojaat qiling*."
+            ),
+            'details': {'frozen_tickets_count': len(frozen_tickets)}
         }
 
     # --------------------------------------------------------------------------

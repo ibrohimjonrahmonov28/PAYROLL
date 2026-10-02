@@ -121,7 +121,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DB_ENGINE = os.getenv('DB_ENGINE', 'django.db.backends.sqlite3').strip()
 
-if DB_ENGINE == 'django.db.backends.postgresql' or os.getenv('DB_NAME'):
+if os.getenv('USE_SQLITE') == '1':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+elif DB_ENGINE == 'django.db.backends.postgresql' or os.getenv('DB_NAME'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',

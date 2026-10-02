@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Max
-from .models import Customer, ProductModel, Article, Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, OperationGroup
+from .models import Customer, ProductModel, Article, Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, OperationGroup, Box, Ticket
 
 
 def manager_required(view_func):
@@ -357,6 +357,9 @@ def manager_order_update_status(request, order_id: int):
         if new_status in dict(Order.Status.choices):
             order.status = new_status
             order.save(update_fields=['status'])
+            if new_status == Order.Status.CANCELLED:
+                order.boxes.exclude(status=Box.Status.CANCELLED).update(status=Box.Status.CANCELLED)
+                Ticket.objects.filter(box__order=order, status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
             messages.success(request, f"'{order.order_number}' zakazi holati '{order.get_status_display()}' ga o'zgartirildi.")
         else:
             messages.error(request, "Noto'g'ri zakaz holati tanlandi!")

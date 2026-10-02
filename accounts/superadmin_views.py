@@ -15,7 +15,7 @@ from django.db import transaction
 from django.conf import settings
 from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
-from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason
+from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Box, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason
 from production.excel_reports import compact_ticket_ids
 from production.services import get_patok_code, get_patok_name
 
@@ -2149,6 +2149,9 @@ def superadmin_order_edit(request, order_id: int):
         if status in dict(Order.Status.choices):
             order.status = status
         order.save()
+        if order.status == Order.Status.CANCELLED:
+            order.boxes.exclude(status=Box.Status.CANCELLED).update(status=Box.Status.CANCELLED)
+            Ticket.objects.filter(box__order=order, status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
         messages.success(request, f"'{order.order_number}' zakazi ma'lumotlari yangilandi.")
     return redirect('superadmin_order_detail', order_id=order.id)
 
