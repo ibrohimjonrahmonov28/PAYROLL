@@ -40,6 +40,7 @@ media/
 staticfiles/
 *.pdf
 *.sql
+*.dump
 
 # IDEs & OS
 .DS_Store

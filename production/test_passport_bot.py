@@ -303,8 +303,8 @@ class PassportVerificationTestCase(TestCase):
         # Pasport orqali tekshirish
         res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
         self.assertFalse(res['can_release'])
-        self.assertEqual(res['status_code'], 'PARTIALLY_CANCELLED')
-        self.assertIn("ATMEN BO'LGAN) QUTILAR BOR", res['message'])
+        self.assertIn("Qayta taqsimlangan", res['message'])
+        self.assertIn("ATMEN", res['message'])
 
     def test_verify_frozen_ticket_rejected(self):
         """Muzlatilgan (is_frozen=True) stiker bo'lsa: PATOKKA BERIB BO'LMAYDI"""

@@ -421,6 +421,25 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
     # 3. AGAR SKANERLANGAN ALOHIDA QUTI YOKI TICKET BEKOR QILINGAN / MUZLATILGAN BO'LSA
     # --------------------------------------------------------------------------
     if scanned_box and scanned_box.status == Box.Status.CANCELLED:
+        # Ushbu razmer bo'yicha yangi to'g'ri aktiv qutilarni topish
+        active_replacement_boxes = []
+        if scanned_box.cutting_batch_item:
+            active_replacement_boxes = list(scanned_box.cutting_batch_item.boxes.exclude(status=Box.Status.CANCELLED).order_by('box_number'))
+        elif scanned_box.order and scanned_box.pastal_number and scanned_box.razmer:
+            active_replacement_boxes = list(Box.objects.filter(
+                order=scanned_box.order,
+                pastal_number=scanned_box.pastal_number,
+                razmer=scanned_box.razmer
+            ).exclude(status=Box.Status.CANCELLED).order_by('box_number'))
+
+        replacement_info = ""
+        if active_replacement_boxes:
+            box_range_str = f"#{active_replacement_boxes[0].box_number} dan #{active_replacement_boxes[-1].box_number} gacha" if len(active_replacement_boxes) > 1 else f"#{active_replacement_boxes[0].box_number}"
+            replacement_info = (
+                f"\n👉 *Ushbu razmer ({scanned_box.razmer}) uchun tizimdagi YANGI TO'G'RI QUTILAR:*\n"
+                f"• {box_range_str} (jami {len(active_replacement_boxes)} ta quti)\n"
+            )
+
         return {
             'success': False,
             'can_release': False,
@@ -429,21 +448,35 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             'message': (
                 f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ *USHBU QUTI TIZIMDA BEKOR QILINGAN (ATMEN BO'LGAN)!*\n\n"
-                f"📦 *Quti:* {scanned_box.display_code} ({scanned_box.quantity} dona)\n"
+                f"⚠️ *USHBU QUTI / STIKER TIZIMDA BEKOR QILINGAN (ATMEN BO'LGAN)!*\n\n"
+                f"📦 *Quti:* #{scanned_box.box_number} ({scanned_box.display_code}) | {scanned_box.quantity} dona\n"
                 f"📏 *Razmer:* {scanned_box.razmer or '—'}\n"
                 f"📋 *Zakaz:* {scanned_box.order.order_number if scanned_box.order else '—'}\n"
                 f"🏷 *Pastal:* {scanned_box.pastal_number or '—'}\n"
-                f"❌ *Holati:* BEKOR QILINGAN (CANCELLED)\n\n"
-                f"❗ *Ushbu quti va uning stikerlari eskirgan (Meto yoki Kesimda qayta taqsimlangan)!*\n"
-                f"Tikuv patogiga berish qat'iyan man etiladi.\n\n"
-                f"🔄 Yangilash uchun *stikerchiga murojaat qiling*."
+                f"❌ *Holati:* BEKOR QILINDI (CANCELLED)\n\n"
+                f"❗ *Sababi:* Ushbu razmer Meto yoki Kesim bo'limida qayta taqsimlangan. Qo'lingizdagi qog'oz stiker eskirgan va bekor bo'lgan! Tikuvchilar buni ekranda ura olmaydi.\n"
+                f"{replacement_info}\n"
+                f"🔄 *NIMA QILISH KERAK:*\n"
+                f"Ushbu eski stikerni tikuvga bermang! Stikerchiga murojaat qilib, yuqoridagi yangi to'g'ri qutilar stikerlarini oling!"
             ),
             'details': {'box_id': scanned_box.id, 'status': scanned_box.status}
         }
 
     if scanned_ticket:
         if scanned_ticket.status == Ticket.Status.CANCELLED or (scanned_ticket.box and scanned_ticket.box.status == Box.Status.CANCELLED):
+            bx = scanned_ticket.box
+            active_replacement_boxes = []
+            if bx and bx.cutting_batch_item:
+                active_replacement_boxes = list(bx.cutting_batch_item.boxes.exclude(status=Box.Status.CANCELLED).order_by('box_number'))
+
+            replacement_info = ""
+            if active_replacement_boxes:
+                box_range_str = f"#{active_replacement_boxes[0].box_number} dan #{active_replacement_boxes[-1].box_number} gacha" if len(active_replacement_boxes) > 1 else f"#{active_replacement_boxes[0].box_number}"
+                replacement_info = (
+                    f"\n👉 *Ushbu razmer ({bx.razmer if bx else '—'}) uchun tizimdagi YANGI TO'G'RI QUTILAR:*\n"
+                    f"• {box_range_str} (jami {len(active_replacement_boxes)} ta quti)\n"
+                )
+
             return {
                 'success': False,
                 'can_release': False,
@@ -455,10 +488,13 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                     f"⚠️ *USHBU STIKER BEKOR QILINGAN (ATMEN BO'LGAN / ESKIRGAN)!*\n\n"
                     f"🎫 *Stiker ID:* #{scanned_ticket.stiker_code or scanned_ticket.id}\n"
                     f"⚙️ *Operatsiya:* {scanned_ticket.article_operation.operation.name if scanned_ticket.article_operation else '—'}\n"
-                    f"📦 *Quti:* {scanned_ticket.box.display_code if scanned_ticket.box else '—'}\n"
-                    f"❌ *Holati:* BEKOR QILINGAN (CANCELLED)\n\n"
-                    f"❗ *Ushbu stiker bekor qilingan! Tikuv patogiga tarqatish taqiqlanadi.*\n\n"
-                    f"🔄 Yangilash uchun *stikerchiga murojaat qiling*."
+                    f"📦 *Quti:* #{bx.box_number if bx else '—'} ({bx.display_code if bx else '—'})\n"
+                    f"📏 *Razmer:* {bx.razmer if bx else '—'}\n"
+                    f"❌ *Holati:* BEKOR QILINDI (CANCELLED)\n\n"
+                    f"❗ *Ushbu stiker bekor qilingan! Tikuv patogiga tarqatish taqiqlanadi.*\n"
+                    f"{replacement_info}\n"
+                    f"🔄 *NIMA QILISH KERAK:*\n"
+                    f"Stikerchiga murojaat qiling va faqat yangi stikerlarni chiqarib oling!"
                 ),
                 'details': {'ticket_id': scanned_ticket.id, 'status': scanned_ticket.status}
             }
@@ -577,46 +613,152 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
     cancelled_boxes = [b for b in all_related_boxes if b.status == Box.Status.CANCELLED]
     active_boxes = [b for b in all_related_boxes if b.status != Box.Status.CANCELLED]
 
+    # Model va Zakaz ma'lumotlari
+    order = batch.order_item.order if (batch and batch.order_item) else (scanned_box.order if scanned_box else all_related_boxes[0].order)
+    customer_name = order.customer.name if (order and order.customer and hasattr(order.customer, 'name')) else getattr(order, 'client_name', '—')
+    article = (batch.order_item.article if (batch and batch.order_item) else None) or (scanned_box.target_article if scanned_box else all_related_boxes[0].target_article)
+    pastal_code = (batch.pastal_code if batch else None) or (scanned_box.pastal_number if scanned_box else all_related_boxes[0].pastal_number) or '—'
+    cutter_name = batch.cutter_name if (batch and batch.cutter_name) else '—'
+    batch_num = batch.batch_number if batch else '—'
+
+    # Razmerlar bo'yicha tahlil tayyorlash
+    size_reports = []
+    problematic_sizes = []
+    if batch:
+        for item in batch.items.all().order_by('order_item_size__id'):
+            s_name = item.order_item_size.size_name
+            c_b = list(item.boxes.filter(status=Box.Status.CANCELLED).order_by('box_number'))
+            a_b = list(item.boxes.exclude(status=Box.Status.CANCELLED).order_by('box_number'))
+
+            if c_b:
+                problematic_sizes.append(s_name)
+                c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
+                a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
+                size_reports.append(
+                    f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
+                    f"   • Eski atmen qutilar: {c_range} ({len(c_b)} ta quti ATMEN ❌)\n"
+                    f"   • Yangi to'g'ri qutilar: {a_range} ({len(a_b)} ta quti ✅)"
+                )
+            else:
+                a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
+                size_reports.append(
+                    f"✅ *Razmer {s_name}* ({item.quantity} dona, {len(a_b)} ta quti):\n"
+                    f"   • Qutilar: {a_range} (Hammasi to'g'ri ✅)"
+                )
+
+    # 6.A: AGAR BARCHA QUTILAR BEKOR BO'LGAN BO'LSA
+    if len(active_boxes) == 0 and len(cancelled_boxes) > 0:
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'CANCELLED',
+            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+            'message': (
+                f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⚠️ *USHBU ISH TO'LIQ ATMEN BO'LGAN (Bekor qilingan)!*\n\n"
+                f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
+                f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
+                f"🏷 *Pastal kodi:* {pastal_code}\n\n"
+                f"Tizimda ushbu pastalning barcha {len(cancelled_boxes)} ta qutisi bekor qilingan.\n"
+                f"❗ *Eski stikerlarni tikuv patogiga berish qat'iyan man etiladi!*\n\n"
+                f"🔄 Yangilash uchun *stikerchiga (meto/kesimga) murojaat qiling*."
+            ),
+            'details': {'cancelled_boxes_count': len(cancelled_boxes)}
+        }
+
+    # 6.B: AGAR FOYDALANUVCHI ALOHIDA AKTIV QUTI / STIKERNI SKANERLAGAN BO'LSA
+    is_single_box_scan = (scanned_box is not None and res_type in ['BOX_CODE', 'TICKET_CODE', 'STIKER_CODE', 'BOX_ID', 'TICKET_ID'])
+    if is_single_box_scan and scanned_box.status != Box.Status.CANCELLED:
+        # Alohida aktiv qutining stikerlari narxini tekshirish
+        single_box_tickets = list(scanned_box.tickets.select_related('article_operation__operation').all())
+        box_zero_prices = [t for t in single_box_tickets if t.price_per_unit is None or t.price_per_unit <= Decimal('0.00')]
+        if box_zero_prices:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'MISSING_PRICE',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU QUTIDA NARX VA SUMMALAR KIRITILMAGAN!*\n\n"
+                    f"📦 *Quti:* #{scanned_box.box_number} ({scanned_box.display_code})\n"
+                    f"📏 *Razmer:* {scanned_box.razmer}\n"
+                    f"❗ Tikuvchilarga ish haqi yozilishi uchun narxlar kiritilishi shart!\n\n"
+                    f"🔄 Stikerchi yoki texnologga murojaat qiling."
+                ),
+                'details': {'box_id': scanned_box.id}
+            }
+
+        box_total_val = sum((t.total_amount or Decimal('0.00')) for t in single_box_tickets)
+        re_split_note = ""
+        if len(cancelled_boxes) > 0:
+            re_split_note = (
+                f"\nℹ️ *Eslatma:* Ushbu pastalning ba'zi boshqa razmerlarida qayta taqsimlangan eski qutilar bor. "
+                f"Lekin siz skanerlagan #{scanned_box.box_number}-quti — YANGI VA TO'G'RI ✅.\n"
+            )
+
+        return {
+            'success': True,
+            'can_release': True,
+            'status_code': 'APPROVED',
+            'title': "✅ PATOKKA BERISH MUMKIN!",
+            'message': (
+                f"✅ *USHBU QUTI VA STIKER TO'G'RI: AKTIV!*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"📦 *Quti:* #{scanned_box.box_number} ({scanned_box.display_code}) | {scanned_box.quantity} dona\n"
+                f"📏 *Razmer:* {scanned_box.razmer}\n"
+                f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
+                f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
+                f"🏷 *Pastal:* {pastal_code}\n\n"
+                f"💰 *Operatsiyalar va narxlar (100% to'g'ri):*\n"
+                f"• Barcha {len(single_box_tickets)} ta operatsiya narxi mavjud ✅\n"
+                f"• Qutining umumiy tikuv summasi: {box_total_val:,.0f} UZS\n"
+                f"{re_split_note}\n"
+                f"🛡 *Holati:* Ushbu quti to'liq AKTIV va tasdiqlangan.\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🟢 *USHBU QUTINI TIKUV PATOGIGA BERISHGA RUXSAT ETILADI!*"
+            ).replace(",", " "),
+            'details': {
+                'box_number': scanned_box.box_number,
+                'box_code': scanned_box.box_code,
+                'razmer': scanned_box.razmer,
+                'quantity': scanned_box.quantity
+            }
+        }
+
+    # 6.C: PASPORT SKANERLANGANDA VA PASTALDA BEKOR BO'LGAN QUTILAR MAVJUD BO'LSA
     if len(cancelled_boxes) > 0:
-        if len(active_boxes) == 0:
-            return {
-                'success': False,
-                'can_release': False,
-                'status_code': 'CANCELLED',
-                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
-                'message': (
-                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"⚠️ *USHBU ISH TO'LIQ ATMEN BO'LGAN (Bekor qilingan)!*\n\n"
-                    f"Tizimda ushbu pastalning barcha {len(cancelled_boxes)} ta qutisi bekor qilingan.\n"
-                    f"❗ *Eski stikerlarni tikuv patogiga berish qat'iyan man etiladi!*\n\n"
-                    f"🔄 Yangilash uchun *stikerchiga (meto/kesimga) murojaat qiling*."
-                ),
-                'details': {'cancelled_boxes_count': len(cancelled_boxes)}
+        sizes_str = "\n\n".join(size_reports) if size_reports else f"• Bekor bo'lgan qutilar: {len(cancelled_boxes)} ta"
+        prob_str = ", ".join(problematic_sizes) if problematic_sizes else "ba'zi razmerlar"
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'PARTIALLY_CANCELLED',
+            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+            'message': (
+                f"🚫 *PATOKKA BERIB BO'LMAYDI! (Qayta taqsimlangan razmerlar bor)*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
+                f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
+                f"🏷 *Pastal kodi:* {pastal_code} | ✂️ *Kesim:* #{batch_num}\n\n"
+                f"📊 *RAZMERLAR BO'YICHA HOLAT:*\n"
+                f"{sizes_str}\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⚠️ *DIQQAT: Tizimda {prob_str} bo'yicha eski qutilar bekor qilingan!*\n\n"
+                f"👉 *QO'LINGIZDAGI PASPORT VA STIKERLARNI TEKSHIRING:*\n"
+                f"1. Agar qo'lingizdagi qog'oz pasportda yuqoridagi *ESKI bekor bo'lgan* qutilar yozilgan bo'lsa — bu ESKI pasport! Eski stikerlarni tikuv patogiga BERMANG ❌!\n"
+                f"2. Agar qo'lingizda *YANGI to'g'ri* qutilar bo'lsa — bu to'g'ri ✅!\n"
+                f"3. Muammoli razmerlar ({prob_str}) uchun stikerchidan yangi stiker va yangi pasport oling.\n"
+                f"4. Razmerlar hal bo'lgach, yangi pasportni botga qayta tashlang. Hammasi to'g'ri bo'lsa darhol yashil ruxsat beriladi!"
+            ),
+            'details': {
+                'cancelled_boxes_count': len(cancelled_boxes),
+                'active_boxes_count': len(active_boxes),
+                'problematic_sizes': problematic_sizes
             }
-        else:
-            return {
-                'success': False,
-                'can_release': False,
-                'status_code': 'PARTIALLY_CANCELLED',
-                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
-                'message': (
-                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"⚠️ *USHBU PASTALDA BEKOR QILINGAN (ATMEN BO'LGAN) QUTILAR BOR!*\n\n"
-                    f"❌ Bekor qilingan qutilar: {len(cancelled_boxes)} ta\n"
-                    f"✅ Yangi aktiv qutilar: {len(active_boxes)} ta\n\n"
-                    f"❗ *Pastal Meto yoki Kesimda o'zgartirilgan yoki qayta taqsimlangan!*\n"
-                    f"Qo'lingizdagi eski qog'oz pasport yoki eski stikerlar o'z kuchini yo'qotgan.\n"
-                    f"Eski stikerlar tikuvchilar tomonidan urilsa tizim 'ATMEN' xatosini beradi.\n\n"
-                    f"🔄 *NIMA QILISH KERAK:*\n"
-                    f"Stikerchiga murojaat qiling, faqat yangi pasport va yangi aktiv stikerlarni olib, patokka tarqating!"
-                ),
-                'details': {
-                    'cancelled_boxes_count': len(cancelled_boxes),
-                    'active_boxes_count': len(active_boxes)
-                }
-            }
+        }
 
     # Barcha aktiv qutilarning biletlarini tekshirish
     all_tickets = list(Ticket.objects.select_related(
