@@ -252,15 +252,75 @@ def get_patok_name(screen_number: int | None) -> str:
     return f"{code}-Patok" if code else ""
 
 
+def get_patok_login(screen_number: int | None) -> str:
+    """
+    Ekran / Patok foydalanuvchisi logini:
+    1 dan 13 gacha -> patokk1, patokk2, ..., patokk13
+    14 va undan keyingilari -> patoku1, patoku2, ..., patoku27
+    """
+    if not screen_number:
+        return ""
+    try:
+        sn = int(screen_number)
+    except (ValueError, TypeError):
+        return ""
+    if sn < 1:
+        return ""
+    if sn <= 13:
+        return f"patokk{sn}"
+    else:
+        return f"patoku{sn - 13}"
+
+
 def parse_patok_number(val) -> int | None:
     """
-    K1..K13, U1..U27 yoki 1..40 ni screen_number (1..40) int ga aylantirish.
+    K1..K13, U1..U27, patokk1..patokk13, patoku1..patoku27 yoki 1..40 ni screen_number (1..40) int ga aylantirish.
     """
     if val is None:
         return None
     val_str = str(val).strip().upper()
     if not val_str:
         return None
+
+    # Check PATOKK1..PATOKK13 (masalan: patokk3 -> 3)
+    if val_str.startswith('PATOKK'):
+        num_str = val_str[6:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if 1 <= num <= 13:
+                return num
+
+    # Check PATOKU1..PATOKU27 (masalan: patoku1 -> 14)
+    if val_str.startswith('PATOKU'):
+        num_str = val_str[6:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if num >= 1:
+                return 13 + num
+
+    # Check EKRANK1..EKRANK13
+    if val_str.startswith('EKRANK'):
+        num_str = val_str[6:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if 1 <= num <= 13:
+                return num
+
+    # Check EKRANU1..EKRANU27
+    if val_str.startswith('EKRANU'):
+        num_str = val_str[6:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if num >= 1:
+                return 13 + num
+
+    # Check EKRAN1..EKRAN40
+    if val_str.startswith('EKRAN'):
+        num_str = val_str[5:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if 1 <= num <= 40:
+                return num
 
     # Check K1..K13
     if val_str.startswith('K'):

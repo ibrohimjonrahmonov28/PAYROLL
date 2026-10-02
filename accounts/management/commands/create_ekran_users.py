@@ -33,30 +33,39 @@ class Command(BaseCommand):
         created_count = 0
         updated_count = 0
 
-        self.stdout.write(self.style.NOTICE(f"1 dan {count} gacha bo'lgan Ekran (SCREEN) hisoblarini yaratish boshlandi..."))
+        from production.services import get_patok_login, get_patok_name
+
+        self.stdout.write(self.style.NOTICE(f"1 dan {count} gacha bo'lgan Patok/Ekran (SCREEN) hisoblarini yaratish boshlandi..."))
 
         for i in range(1, count + 1):
-            username = f"ekran{i}"
-            first_name = f"{i}-Ekran"
+            new_username = get_patok_login(i)
+            first_name = get_patok_name(i)
             last_name = "Monitor"
 
-            user, created = User.objects.get_or_create(
-                username=username,
-                defaults={
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'role': User.Role.SCREEN,
-                    'is_active': True,
-                    'is_staff': False,
-                    'is_superuser': False,
-                }
-            )
+            # 1. Eski 'ekran{i}' mavjud bo'lsa, yangi loginga o'tkazish
+            old_username = f"ekran{i}"
+            user = User.objects.filter(username=new_username).first()
+            if not user:
+                user = User.objects.filter(username=old_username).first()
+                if user:
+                    user.username = new_username
+                    user.save(update_fields=['username'])
+                    self.stdout.write(self.style.WARNING(f"  ~ Eski login ko'chirildi: {old_username} -> {new_username}"))
 
-            if created:
+            if not user:
+                user = User.objects.create(
+                    username=new_username,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role=User.Role.SCREEN,
+                    is_active=True,
+                    is_staff=False,
+                    is_superuser=False,
+                )
                 user.set_password(password)
                 user.save()
                 created_count += 1
-                self.stdout.write(self.style.SUCCESS(f"  + Yaratildi: {username} (Parol: {password}, UID: {user.uid})"))
+                self.stdout.write(self.style.SUCCESS(f"  + Yaratildi: {new_username} ({first_name}, Parol: {password}, UID: {user.uid})"))
             else:
                 updated = False
                 if user.role != User.Role.SCREEN:
@@ -77,11 +86,11 @@ class Command(BaseCommand):
                 if updated:
                     user.save()
                     updated_count += 1
-                    self.stdout.write(self.style.WARNING(f"  ~ Yangilandi: {username} (Rol: SCREEN, Parol: {password})"))
+                    self.stdout.write(self.style.WARNING(f"  ~ Yangilandi: {new_username} ({first_name}, Parol: {password})"))
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"\nTayyor! Jami: {count} ta ekran hisobi. Yaratildi: {created_count} ta, Yangilandi: {updated_count} ta. Parol: '{password}'"
+                f"\nTayyor! Jami: {count} ta patok hisobi. Yaratildi: {created_count} ta, Yangilandi: {updated_count} ta. Parol: '{password}'"
             )
         )
 

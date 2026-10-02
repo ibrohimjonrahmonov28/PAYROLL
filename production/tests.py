@@ -2324,6 +2324,86 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertEqual(res_search.status_code, 200)
         self.assertContains(res_search, "STAT-BX-REP-01")
 
+    def test_patok_logins_and_inline_repair_boxes_details(self):
+        """Patok loginlari (patokk1..patokk13, patoku1..patoku27) va ta'mirdagi qutilar batafsil tafsiloti tekshiruvi"""
+        from production.models import BoxQualityInspectionLog
+        from production.services import get_patok_login, parse_patok_number
+        from production.sewing_statistics_views import get_patoks_scrap_and_warning_report
+
+        # 1. Login nomlash funksiyalari
+        self.assertEqual(get_patok_login(1), "patokk1")
+        self.assertEqual(get_patok_login(10), "patokk10")
+        self.assertEqual(get_patok_login(13), "patokk13")
+        self.assertEqual(get_patok_login(14), "patoku1")
+        self.assertEqual(get_patok_login(15), "patoku2")
+        self.assertEqual(get_patok_login(40), "patoku27")
+
+        # 2. Parsing tekshiruvi
+        self.assertEqual(parse_patok_number("patokk1"), 1)
+        self.assertEqual(parse_patok_number("patokk10"), 10)
+        self.assertEqual(parse_patok_number("patokk13"), 13)
+        self.assertEqual(parse_patok_number("patoku1"), 14)
+        self.assertEqual(parse_patok_number("patoku27"), 40)
+        self.assertEqual(parse_patok_number("EKRAN1"), 1)
+        self.assertEqual(parse_patok_number("K10"), 10)
+        self.assertEqual(parse_patok_number("U1"), 14)
+
+        # Ta'mirdagi test qutisi yaratish (K10 uchun)
+        box_rep = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="S",
+            box_number=106,
+            box_code="STAT-BX-REP-10",
+            quantity=40,
+            controlled_repair_qty=6
+        )
+        Ticket.objects.create(
+            box=box_rep,
+            article_operation=self.ao1,
+            quantity=40,
+            price_per_unit=500,
+            worker=self.worker,
+            status=Ticket.Status.SCANNED,
+            screen_number=10,
+            scanned_at=timezone.now()
+        )
+        BoxQualityInspectionLog.objects.create(
+            box=box_rep,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=40,
+            first_sort_qty=30,
+            second_sort_qty=4,
+            repair_qty=6,
+            notes="Ta'mir operatsiyasi: Yoqa tikish"
+        )
+
+        # 3. Hisobotda repair_boxes va patok_login mavjudligi
+        rep = get_patoks_scrap_and_warning_report(time_filter='all')
+        self.assertTrue(len(rep['report_list']) > 0)
+        
+        # K10 patokini tekshiramiz
+        k10_item = next((item for item in rep['report_list'] if item['patok_code'] == 'K10'), None)
+        self.assertIsNotNone(k10_item)
+        self.assertEqual(k10_item['patok_login'], "patokk10")
+        self.assertGreaterEqual(len(k10_item['repair_boxes']), 1)
+        
+        rb = k10_item['repair_boxes'][0]
+        self.assertEqual(rb['repair_qty'], 6)
+        self.assertIn("Stat Model", rb['model_name'])
+        self.assertGreaterEqual(rb['repair_cycles'], 1)
+        self.assertIn("Yoqa tikish", rb['notes'])
+
+        # 4. Web sahifada login va batafsil drawer ko'rinishi
+        self.client.login(username="superadmin_stat", password="password123")
+        res = self.client.get(reverse('production:sewing_statistics_repairs'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "patokk10")
+        self.assertContains(res, "patok-drawer-K10")
+        self.assertContains(res, "Batafsil")
+
+
 
 
 

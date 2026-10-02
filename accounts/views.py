@@ -41,6 +41,16 @@ def login_view(request):
                 candidate = User.objects.filter(
                     Q(username__iexact=username) | Q(uid=username) | Q(phone_number=username)
                 ).first()
+                if not candidate:
+                    from production.services import parse_patok_number, get_patok_login
+                    parsed_sn = parse_patok_number(username)
+                    if parsed_sn:
+                        new_login = get_patok_login(parsed_sn)
+                        old_login = f"ekran{parsed_sn}"
+                        candidate = User.objects.filter(
+                            Q(username__iexact=new_login) | Q(username__iexact=old_login)
+                        ).first()
+
                 if candidate and candidate.check_password(password):
                     user = candidate
                     user.backend = 'django.contrib.auth.backends.ModelBackend'

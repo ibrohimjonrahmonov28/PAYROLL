@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from accounts.models import User
 from production.models import Order, OrderItem, Box, Ticket, ArticleOperation, BoxQualityInspectionLog
-from production.services import get_patok_name, get_patok_code
+from production.services import get_patok_name, get_patok_code, get_patok_login
 
 
 def manager_or_superadmin_required(view_func):
@@ -352,7 +352,9 @@ def get_patoks_scrap_and_warning_report(time_filter='week', order_id=None):
     # Hozirgi kunda faol ta'mirda turgan qutilarni ham patoklar bo'yicha bog'laymiz
     active_repairs_qs = Box.objects.filter(
         controlled_repair_qty__gt=0
-    ).exclude(status=Box.Status.CANCELLED).prefetch_related('tickets')
+    ).exclude(status=Box.Status.CANCELLED).select_related(
+        'order', 'article__model'
+    ).prefetch_related('tickets', 'quality_inspection_logs')
     if order_id:
         active_repairs_qs = active_repairs_qs.filter(order_id=order_id)
 
@@ -370,10 +372,48 @@ def get_patoks_scrap_and_warning_report(time_filter='week', order_id=None):
                 'repair_qty': 0,
                 'defect_qty': 0,
                 'closed_qty': 0,
+                'active_repair_boxes': 0,
+                'active_repair_units': 0,
+                'repair_boxes': [],
             }
         ps = patok_stats[p_code]
         ps['active_repair_boxes'] = ps.get('active_repair_boxes', 0) + 1
         ps['active_repair_units'] = ps.get('active_repair_units', 0) + b.controlled_repair_qty
+
+        logs = list(b.quality_inspection_logs.all())
+        repair_logs = [l for l in logs if (l.repair_qty or 0) > 0]
+        repair_cycles = len(repair_logs)
+        latest_repair_log = repair_logs[0] if repair_logs else (logs[0] if logs else None)
+        notes = (latest_repair_log.notes or "").strip() if latest_repair_log else ""
+
+        model_name = ""
+        if b.article and b.article.model:
+            model_name = b.article.model.name
+        elif b.article:
+            model_name = b.article.name
+        elif b.target_article and b.target_article.model:
+            model_name = b.target_article.model.name
+        elif b.target_article:
+            model_name = b.target_article.name
+        else:
+            model_name = "Model"
+
+        box_info = {
+            'id': b.id,
+            'box_number': b.box_number,
+            'box_code': b.display_code,
+            'order_number': b.order.order_number if b.order else "",
+            'model_name': model_name,
+            'article_code': b.article.code if b.article else (b.target_article.code if b.target_article else ""),
+            'razmer': b.razmer or "—",
+            'pastal_code': b.pastal_code or "—",
+            'quantity': b.quantity,
+            'repair_qty': b.controlled_repair_qty,
+            'repair_cycles': repair_cycles,
+            'is_re_repair': (repair_cycles >= 2),
+            'notes': notes,
+        }
+        ps.setdefault('repair_boxes', []).append(box_info)
 
     report_list = []
     has_any_warning = False
@@ -392,6 +432,7 @@ def get_patoks_scrap_and_warning_report(time_filter='week', order_id=None):
             'screen_number': data['screen_number'],
             'patok_code': data['patok_code'],
             'patok_name': data['patok_name'],
+            'patok_login': get_patok_login(data['screen_number']),
             'boxes_count': boxes_count,
             'total_units': total_eval,
             'first_sort_qty': data['first_sort_qty'],
@@ -400,6 +441,7 @@ def get_patoks_scrap_and_warning_report(time_filter='week', order_id=None):
             'repair_qty': data['repair_qty'],
             'active_repair_boxes': data.get('active_repair_boxes', 0),
             'active_repair_units': data.get('active_repair_units', 0),
+            'repair_boxes': data.get('repair_boxes', []),
             'brak_rate_pct': brak_rate_pct,
             'is_warning': is_warning,
         })
