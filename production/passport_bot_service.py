@@ -622,8 +622,11 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
     batch_num = batch.batch_number if batch else '—'
 
     # Razmerlar bo'yicha tahlil tayyorlash
-    size_reports = []
+    clean_reports = []
+    cancelled_reports = []
     problematic_sizes = []
+    clean_sizes = []
+
     if batch:
         for item in batch.items.all().order_by('order_item_size__id'):
             s_name = item.order_item_size.size_name
@@ -634,16 +637,17 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 problematic_sizes.append(s_name)
                 c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
-                size_reports.append(
+                cancelled_reports.append(
                     f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
                     f"   • Eski atmen qutilar: {c_range} ({len(c_b)} ta quti ATMEN ❌)\n"
                     f"   • Yangi to'g'ri qutilar: {a_range} ({len(a_b)} ta quti ✅)"
                 )
             else:
+                clean_sizes.append(s_name)
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
-                size_reports.append(
+                clean_reports.append(
                     f"✅ *Razmer {s_name}* ({item.quantity} dona, {len(a_b)} ta quti):\n"
-                    f"   • Qutilar: {a_range} (Hammasi to'g'ri ✅)"
+                    f"   • Qutilar: {a_range} (To'liq to'g'ri ✅)"
                 )
 
     # 6.A: AGAR BARCHA QUTILAR BEKOR BO'LGAN BO'LSA
@@ -682,16 +686,15 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 'message': (
                     f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
                     f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"⚠️ *USHBU QUTIDA NARX VA SUMMALAR KIRITILMAGAN!*\n\n"
+                    f"⚠️ *USHBU QUTIDA OPERATSIYA NARXLARI KIRITILMAGAN!*\n\n"
                     f"📦 *Quti:* #{scanned_box.box_number} ({scanned_box.display_code})\n"
                     f"📏 *Razmer:* {scanned_box.razmer}\n"
-                    f"❗ Tikuvchilarga ish haqi yozilishi uchun narxlar kiritilishi shart!\n\n"
+                    f"❗ Tikuvchilarga ish haqi yozilishi uchun operatsiya narxlari kiritilishi shart!\n\n"
                     f"🔄 Stikerchi yoki texnologga murojaat qiling."
                 ),
                 'details': {'box_id': scanned_box.id}
             }
 
-        box_total_val = sum((t.total_amount or Decimal('0.00')) for t in single_box_tickets)
         re_split_note = ""
         if len(cancelled_boxes) > 0:
             re_split_note = (
@@ -712,14 +715,13 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
                 f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
                 f"🏷 *Pastal:* {pastal_code}\n\n"
-                f"💰 *Operatsiyalar va narxlar (100% to'g'ri):*\n"
-                f"• Barcha {len(single_box_tickets)} ta operatsiya narxi mavjud ✅\n"
-                f"• Qutining umumiy tikuv summasi: {box_total_val:,.0f} UZS\n"
+                f"⚙️ *Operatsiyalar va narxlar (100% to'g'ri):*\n"
+                f"• Barcha {len(single_box_tickets)} ta operatsiya narxi to'liq kiritilgan ✅\n"
                 f"{re_split_note}\n"
                 f"🛡 *Holati:* Ushbu quti to'liq AKTIV va tasdiqlangan.\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
                 f"🟢 *USHBU QUTINI TIKUV PATOGIGA BERISHGA RUXSAT ETILADI!*"
-            ).replace(",", " "),
+            ),
             'details': {
                 'box_number': scanned_box.box_number,
                 'box_code': scanned_box.box_code,
@@ -730,32 +732,56 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
 
     # 6.C: PASPORT SKANERLANGANDA VA PASTALDA BEKOR BO'LGAN QUTILAR MAVJUD BO'LSA
     if len(cancelled_boxes) > 0:
-        sizes_str = "\n\n".join(size_reports) if size_reports else f"• Bekor bo'lgan qutilar: {len(cancelled_boxes)} ta"
         prob_str = ", ".join(problematic_sizes) if problematic_sizes else "ba'zi razmerlar"
+        clean_str = ", ".join(clean_sizes) if clean_sizes else "boshqa razmerlar"
+
+        clean_section = ""
+        if clean_reports:
+            clean_section = (
+                f"🟢 *QOLGANLARI YAXSHI — TIKUVGA BERAVERING:*\n"
+                + "\n".join(clean_reports)
+                + "\n\n"
+            )
+
+        cancelled_section = ""
+        if cancelled_reports:
+            cancelled_section = (
+                f"🔴 *FAQAT SHULAR ATMEN BO'LGAN (O'zgargan):*\n"
+                + "\n".join(cancelled_reports)
+                + "\n\n"
+            )
+
+        advice_clean = ""
+        if clean_sizes:
+            advice_clean = f"1. *Qolgan yaxshi razmerlar ({clean_str})* stikerlarini aslo tashlab yubormang! Ularni tikuv patogiga chiqarib ishni davom ettiravering ✅.\n"
+
+        advice_prob = f"2. *Faqat atmen bo'lgan razmerlar ({prob_str})* uchun stikerchidan yangi stiker va yangi pasport oling ❌.\n" if clean_sizes else "1. Bekor bo'lgan stikerlarni tikuvga bermang. Yangi stikerlar oling.\n"
+        advice_save = f"3. Shunda ortiqcha qog'oz va stiker sarfi kam bo'ladi, to'g'ri razmerlar esa to'xtab qolmasdan tikilaveradi!" if clean_sizes else "2. Yangi stikerlar chiqarilgach botga qayta tashlang."
+
         return {
             'success': False,
             'can_release': False,
             'status_code': 'PARTIALLY_CANCELLED',
-            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+            'title': "⚠️ AYRIM RAZMERLAR ATMEN BO'LGAN (Qolganlari yaxshi)",
             'message': (
-                f"🚫 *PATOKKA BERIB BO'LMAYDI! (Qayta taqsimlangan razmerlar bor)*\n"
+                f"⚠️ *DIQQAT: AYRIM RAZMERLAR QAYTA TAQSIMLANGAN!*\n"
+                f"*(Qolgan razmerlar yaxshi, faqat o'zgarganlarini almashtiring)*\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
                 f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
                 f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
                 f"🏷 *Pastal kodi:* {pastal_code} | ✂️ *Kesim:* #{batch_num}\n\n"
-                f"📊 *RAZMERLAR BO'YICHA HOLAT:*\n"
-                f"{sizes_str}\n\n"
+                f"{clean_section}"
+                f"{cancelled_section}"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ *DIQQAT: Tizimda {prob_str} bo'yicha eski qutilar bekor qilingan!*\n\n"
-                f"👉 *QO'LINGIZDAGI PASPORT VA STIKERLARNI TEKSHIRING:*\n"
-                f"1. Agar qo'lingizdagi qog'oz pasportda yuqoridagi *ESKI bekor bo'lgan* qutilar yozilgan bo'lsa — bu ESKI pasport! Eski stikerlarni tikuv patogiga BERMANG ❌!\n"
-                f"2. Agar qo'lingizda *YANGI to'g'ri* qutilar bo'lsa — bu to'g'ri ✅!\n"
-                f"3. Muammoli razmerlar ({prob_str}) uchun stikerchidan yangi stiker va yangi pasport oling.\n"
-                f"4. Razmerlar hal bo'lgach, yangi pasportni botga qayta tashlang. Hammasi to'g'ri bo'lsa darhol yashil ruxsat beriladi!"
+                f"💡 *SARFNI VA VAQTNI TEJASH UCHUN:*\n"
+                f"{advice_clean}"
+                f"{advice_prob}"
+                f"{advice_save}"
             ),
             'details': {
                 'cancelled_boxes_count': len(cancelled_boxes),
                 'active_boxes_count': len(active_boxes),
+                'clean_sizes': clean_sizes,
                 'problematic_sizes': problematic_sizes
             }
         }
@@ -860,11 +886,11 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             'message': (
                 f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ *OPERATSIYA NARXLARI VA SUMMASI BELGILANMAGAN!*\n\n"
+                f"⚠️ *OPERATSIYA NARXLARI BELGILANMAGAN!*\n\n"
                 f"📋 *Model:* {target_art.name if target_art else '—'} ({target_art.code if target_art else '—'})\n"
                 f"📦 *Qutilar soni:* {len(active_boxes)} ta\n\n"
-                f"❌ *Narxi 0 so'm bo'lgan operatsiyalar:*\n"
-                f"{op_list_str if op_list_str else '• Biletlar summasi 0 UZS'}\n\n"
+                f"❌ *Narxi belgilanmagan operatsiyalar:*\n"
+                f"{op_list_str if op_list_str else '• Operatsiyalarga narx kiritilmagan'}\n\n"
                 f"❗ *Narxi kiritilmagan stikerlar bilan tikuvga berilsa, tikuvchilarga ish haqi yozilmaydi!*\n"
                 f"Tikuv patogiga tarqatish qat'iyan man etiladi.\n\n"
                 f"🔄 Narxlarni to'g'irlash uchun *stikerchi yoki texnologga murojaat qiling*."
@@ -926,11 +952,9 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         f"🔢 *Jami mahsulot:* {total_units:,} dona\n\n"
         f"📊 *Razmerlar va qutilar taqsimoti:*\n"
         f"{sizes_text}\n\n"
-        f"💰 *Operatsiyalar va narxlar (100% to'g'ri):*\n"
+        f"⚙️ *Operatsiyalar va narxlar (100% to'g'ri):*\n"
         f"• Tekshirilgan jami stikerlar: {total_tickets_count} ta\n"
-        f"• Barcha qutilardagi barcha stikerlar narxi va summasi mavjud ✅\n"
-        f"• 1 dona kiyim tikuv qiymati: {unit_total_price:,.0f} UZS\n"
-        f"• Partiyaning umumiy tikuv qiymati: {total_batch_amount:,.0f} UZS\n"
+        f"• Barcha qutilardagi barcha stikerlar operatsiya narxlari to'liq kiritilgan ✅\n"
         f"{in_progress_notice}\n"
         f"🛡 *Holati:* Barcha {total_boxes_count} ta quti to'liq AKTIV, bekor qilingan (atmen) qutilar yo'q.\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"

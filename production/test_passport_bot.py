@@ -303,7 +303,7 @@ class PassportVerificationTestCase(TestCase):
         # Pasport orqali tekshirish
         res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
         self.assertFalse(res['can_release'])
-        self.assertIn("Qayta taqsimlangan", res['message'])
+        self.assertIn("QAYTA TAQSIMLANGAN", res['message'])
         self.assertIn("ATMEN", res['message'])
 
     def test_verify_frozen_ticket_rejected(self):
