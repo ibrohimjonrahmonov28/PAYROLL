@@ -221,7 +221,9 @@
                                 </span>
                                 <strong class="text-white text-xs font-sans">{{ p.patok_name }}</strong>
                                 {% if p.patok_login %}
-                                <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-amber-400 font-mono font-semibold" title="Tizimga kirish logini">
+                                <span
+                                    class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-amber-400 font-mono font-semibold"
+                                    title="Tizimga kirish logini">
                                     {{ p.patok_login }}
                                 </span>
                                 {% endif %}
@@ -251,7 +253,8 @@
                                 <button type="button"
                                     onclick="togglePatokRepairs('patok-drawer-{{ p.patok_code }}', this)"
                                     class="px-2.5 py-1 bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm">
-                                    <i class="fa-solid fa-chevron-down transition-transform duration-200 text-[10px]"></i>
+                                    <i
+                                        class="fa-solid fa-chevron-down transition-transform duration-200 text-[10px]"></i>
                                     <span>Batafsil ({{ p.repair_boxes|length }})</span>
                                 </button>
                                 {% endif %}
@@ -288,25 +291,33 @@
 
                     {% if p.repair_boxes %}
                     <!-- INLINE ACCORDION: PATOK BO'YICHA TA'MIRDA TURGAN QUTILAR TAFSILOTI -->
-                    <tr id="patok-drawer-{{ p.patok_code }}" class="hidden bg-slate-950/95 border-b border-slate-800/90">
+                    <tr id="patok-drawer-{{ p.patok_code }}"
+                        class="hidden bg-slate-950/95 border-b border-slate-800/90">
                         <td colspan="7" class="p-3.5 sm:p-4">
-                            <div class="bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4 space-y-3.5 shadow-xl">
+                            <div
+                                class="bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4 space-y-3.5 shadow-xl">
                                 <!-- Drawer Sub-Header -->
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-800">
+                                <div
+                                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-800">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs border border-amber-500/30">
+                                        <div
+                                            class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs border border-amber-500/30">
                                             <i class="fa-solid fa-wrench"></i>
                                         </div>
                                         <div>
                                             <div class="flex items-center gap-2">
-                                                <strong class="text-sm font-black text-amber-300">{{ p.patok_name }}</strong>
-                                                <span class="text-xs font-mono text-slate-400">({{ p.patok_login }})</span>
-                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                <strong class="text-sm font-black text-amber-300">{{ p.patok_name
+                                                    }}</strong>
+                                                <span class="text-xs font-mono text-slate-400">({{ p.patok_login
+                                                    }})</span>
+                                                <span
+                                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                                     Ta'mirdagi Qutilar
                                                 </span>
                                             </div>
                                             <p class="text-[11px] text-slate-400">
-                                                Ushbu patokda hozir jami <strong>{{ p.active_repair_boxes }} ta quti</strong> ({{ p.active_repair_units }} dona) tuzatish jarayonida
+                                                Ushbu patokda hozir jami <strong>{{ p.active_repair_boxes }} ta
+                                                    quti</strong> ({{ p.active_repair_units }} dona) tuzatish jarayonida
                                             </p>
                                         </div>
                                     </div>
@@ -320,11 +331,14 @@
                                 <!-- Box Cards Grid -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                                     {% for rb in p.repair_boxes %}
-                                    <div class="bg-slate-950 border {% if rb.is_re_repair %}border-rose-500/50 bg-gradient-to-b from-rose-950/20 to-transparent ring-1 ring-rose-500/30{% else %}border-amber-500/30 hover:border-amber-500/60{% endif %} rounded-2xl p-3.5 space-y-2.5 transition shadow">
+                                    <div
+                                        class="bg-slate-950 border {% if rb.is_re_repair %}border-rose-500/50 bg-gradient-to-b from-rose-950/20 to-transparent ring-1 ring-rose-500/30{% else %}border-amber-500/30 hover:border-amber-500/60{% endif %} rounded-2xl p-3.5 space-y-2.5 transition shadow">
                                         <!-- Card Top: Box Code & Re-repair status -->
-                                        <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                                        <div
+                                            class="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
                                             <div class="flex items-center gap-2 min-w-0">
-                                                <span class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 font-mono font-black text-xs">
+                                                <span
+                                                    class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 font-mono font-black text-xs">
                                                     {{ rb.box_code }}
                                                 </span>
                                                 <span class="text-xs font-black text-white font-mono truncate">
@@ -334,12 +348,14 @@
 
                                             <!-- Necha marta qaytgani nishoni -->
                                             {% if rb.is_re_repair %}
-                                            <span class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase flex items-center gap-1 flex-shrink-0 animate-pulse">
+                                            <span
+                                                class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black uppercase flex items-center gap-1 flex-shrink-0 animate-pulse">
                                                 <i class="fa-solid fa-triangle-exclamation"></i>
                                                 <span>{{ rb.repair_cycles }}-marta qaytgan</span>
                                             </span>
                                             {% else %}
-                                            <span class="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-bold uppercase flex items-center gap-1 flex-shrink-0">
+                                            <span
+                                                class="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-bold uppercase flex items-center gap-1 flex-shrink-0">
                                                 <i class="fa-solid fa-wrench"></i>
                                                 <span>1-marta qaytgan</span>
                                             </span>
@@ -349,24 +365,33 @@
                                         <!-- Card Middle: Model, Razmer, Zakaz, Donasi -->
                                         <div class="space-y-1.5 text-xs">
                                             <div class="flex items-center justify-between text-slate-200">
-                                                <span class="font-bold text-white truncate max-w-[170px]" title="{{ rb.model_name }}">
-                                                    <i class="fa-solid fa-shirt text-slate-500 mr-1"></i>{{ rb.model_name }}
+                                                <span class="font-bold text-white truncate max-w-[170px]"
+                                                    title="{{ rb.model_name }}">
+                                                    <i class="fa-solid fa-shirt text-slate-500 mr-1"></i>{{
+                                                    rb.model_name }}
                                                 </span>
-                                                <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-purple-300 font-mono font-bold text-[11px]">
+                                                <span
+                                                    class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-purple-300 font-mono font-bold text-[11px]">
                                                     {{ rb.razmer }}
                                                 </span>
                                             </div>
 
                                             <div class="flex items-center justify-between text-[11px] text-slate-400">
-                                                <span>Zakaz: <strong class="text-cyan-400 font-mono">{{ rb.order_number }}</strong></span>
+                                                <span>Zakaz: <strong class="text-cyan-400 font-mono">{{ rb.order_number
+                                                        }}</strong></span>
                                                 {% if rb.pastal_code and rb.pastal_code != "—" %}
-                                                <span class="text-slate-400 font-mono">Pastal: <strong class="text-slate-200">{{ rb.pastal_code }}</strong></span>
+                                                <span class="text-slate-400 font-mono">Pastal: <strong
+                                                        class="text-slate-200">{{ rb.pastal_code }}</strong></span>
                                                 {% endif %}
                                             </div>
 
-                                            <div class="flex items-center justify-between pt-1 border-t border-slate-900 text-xs">
-                                                <span class="text-slate-400">Qutidagi jami: <strong class="text-slate-200 font-mono">{{ rb.quantity }} dona</strong></span>
-                                                <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30 text-[11px]">
+                                            <div
+                                                class="flex items-center justify-between pt-1 border-t border-slate-900 text-xs">
+                                                <span class="text-slate-400">Qutidagi jami: <strong
+                                                        class="text-slate-200 font-mono">{{ rb.quantity }}
+                                                        dona</strong></span>
+                                                <span
+                                                    class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30 text-[11px]">
                                                     Ta'mirda: {{ rb.repair_qty }} dona
                                                 </span>
                                             </div>
@@ -375,8 +400,10 @@
                                         <!-- Card Bottom: Nuqson sabablari (Notes) -->
                                         {% if rb.notes %}
                                         <div class="pt-1.5 border-t border-slate-900">
-                                            <div class="text-[11px] text-amber-200/90 font-sans italic bg-amber-950/30 border border-amber-900/40 rounded-xl p-2 flex items-start gap-1.5 leading-snug">
-                                                <i class="fa-solid fa-clipboard-list text-amber-400 text-xs mt-0.5 flex-shrink-0"></i>
+                                            <div
+                                                class="text-[11px] text-amber-200/90 font-sans italic bg-amber-950/30 border border-amber-900/40 rounded-xl p-2 flex items-start gap-1.5 leading-snug">
+                                                <i
+                                                    class="fa-solid fa-clipboard-list text-amber-400 text-xs mt-0.5 flex-shrink-0"></i>
                                                 <span class="line-clamp-2">{{ rb.notes }}</span>
                                             </div>
                                         </div>
@@ -656,17 +683,17 @@
 </div>
 
 <script>
-function togglePatokRepairs(drawerId, btn) {
-    const el = document.getElementById(drawerId);
-    if (!el) return;
-    const isHidden = el.classList.contains('hidden');
-    el.classList.toggle('hidden');
-    if (btn) {
-        const icon = btn.querySelector('i');
-        if (icon) {
-            icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    function togglePatokRepairs(drawerId, btn) {
+        const el = document.getElementById(drawerId);
+        if (!el) return;
+        const isHidden = el.classList.contains('hidden');
+        el.classList.toggle('hidden');
+        if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
         }
     }
-}
 </script>
 {% endblock %}

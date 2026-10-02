@@ -42,14 +42,24 @@ def login_view(request):
                     Q(username__iexact=username) | Q(uid=username) | Q(phone_number=username)
                 ).first()
                 if not candidate:
-                    from production.services import parse_patok_number, get_patok_login
+                    from production.services import parse_patok_number, get_patok_login, get_screen_login
                     parsed_sn = parse_patok_number(username)
                     if parsed_sn:
-                        new_login = get_patok_login(parsed_sn)
-                        old_login = f"ekran{parsed_sn}"
-                        candidate = User.objects.filter(
-                            Q(username__iexact=new_login) | Q(username__iexact=old_login)
-                        ).first()
+                        u_upper = username.upper()
+                        if u_upper.startswith('EKRAN'):
+                            # SCREEN roli: ekrank2 yoki ekran2 -> SCREEN
+                            scr_login = get_screen_login(parsed_sn)
+                            old_scr = f"ekran{parsed_sn}"
+                            candidate = User.objects.filter(role=User.Role.SCREEN).filter(
+                                Q(username__iexact=scr_login) | Q(username__iexact=old_scr)
+                            ).first()
+                        elif u_upper.startswith('PATOK'):
+                            # CONTROL roli: patokk2 yoki patok2 -> CONTROL
+                            ctl_login = get_patok_login(parsed_sn)
+                            old_ctl = f"patok{parsed_sn}"
+                            candidate = User.objects.filter(role=User.Role.CONTROL).filter(
+                                Q(username__iexact=ctl_login) | Q(username__iexact=old_ctl)
+                            ).first()
 
                 if candidate and candidate.check_password(password):
                     user = candidate

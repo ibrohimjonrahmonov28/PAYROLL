@@ -33,24 +33,30 @@ class Command(BaseCommand):
         created_count = 0
         updated_count = 0
 
-        from production.services import get_patok_login, get_patok_name
+        from production.services import get_screen_login, get_patok_code
 
-        self.stdout.write(self.style.NOTICE(f"1 dan {count} gacha bo'lgan Patok/Ekran (SCREEN) hisoblarini yaratish boshlandi..."))
+        self.stdout.write(self.style.NOTICE(f"1 dan {count} gacha bo'lgan Sex Ekran / Monitor (SCREEN) hisoblarini yaratish boshlandi..."))
 
         for i in range(1, count + 1):
-            new_username = get_patok_login(i)
-            first_name = get_patok_name(i)
+            new_username = get_screen_login(i)
+            p_code = get_patok_code(i)
+            first_name = f"{p_code}-Ekran"
             last_name = "Monitor"
 
-            # 1. Eski 'ekran{i}' mavjud bo'lsa, yangi loginga o'tkazish
+            # 1. Mavjud SCREEN foydalanuvchisini topish (yangi login, eski 'ekran{i}' yoki vaqtincha 'patokk{i}')
             old_username = f"ekran{i}"
-            user = User.objects.filter(username=new_username).first()
+            temp_username = f"patokk{i}" if i <= 13 else f"patoku{i - 13}"
+
+            user = User.objects.filter(role=User.Role.SCREEN, username=new_username).first()
             if not user:
-                user = User.objects.filter(username=old_username).first()
-                if user:
-                    user.username = new_username
-                    user.save(update_fields=['username'])
-                    self.stdout.write(self.style.WARNING(f"  ~ Eski login ko'chirildi: {old_username} -> {new_username}"))
+                user = User.objects.filter(role=User.Role.SCREEN, username=temp_username).first()
+            if not user:
+                user = User.objects.filter(role=User.Role.SCREEN, username=old_username).first()
+            if user and user.username != new_username:
+                prev_name = user.username
+                user.username = new_username
+                user.save(update_fields=['username'])
+                self.stdout.write(self.style.WARNING(f"  ~ SCREEN login ko'chirildi: {prev_name} -> {new_username}"))
 
             if not user:
                 user = User.objects.create(

@@ -254,7 +254,7 @@ def get_patok_name(screen_number: int | None) -> str:
 
 def get_patok_login(screen_number: int | None) -> str:
     """
-    Ekran / Patok foydalanuvchisi logini:
+    Patok Sifat Nazorati (CONTROL) foydalanuvchisi logini:
     1 dan 13 gacha -> patokk1, patokk2, ..., patokk13
     14 va undan keyingilari -> patoku1, patoku2, ..., patoku27
     """
@@ -270,6 +270,26 @@ def get_patok_login(screen_number: int | None) -> str:
         return f"patokk{sn}"
     else:
         return f"patoku{sn - 13}"
+
+
+def get_screen_login(screen_number: int | None) -> str:
+    """
+    Sex Ekran / Monitor (SCREEN) foydalanuvchisi logini:
+    1 dan 13 gacha -> ekrank1, ekrank2, ..., ekrank13
+    14 va undan keyingilari -> ekranu1, ekranu2, ..., ekranu27
+    """
+    if not screen_number:
+        return ""
+    try:
+        sn = int(screen_number)
+    except (ValueError, TypeError):
+        return ""
+    if sn < 1:
+        return ""
+    if sn <= 13:
+        return f"ekrank{sn}"
+    else:
+        return f"ekranu{sn - 13}"
 
 
 def parse_patok_number(val) -> int | None:
@@ -316,6 +336,14 @@ def parse_patok_number(val) -> int | None:
 
     # Check EKRAN1..EKRAN40
     if val_str.startswith('EKRAN'):
+        num_str = val_str[5:]
+        if num_str.isdigit():
+            num = int(num_str)
+            if 1 <= num <= 40:
+                return num
+
+    # Check PATOK1..PATOK40 (eski patok1..patok40)
+    if val_str.startswith('PATOK'):
         num_str = val_str[5:]
         if num_str.isdigit():
             num = int(num_str)
