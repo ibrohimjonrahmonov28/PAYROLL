@@ -241,14 +241,14 @@ def meto_reset_item(request, item_id: int):
     if has_scanned:
         messages.error(
             request,
-            f"'{batch_item.order_item_size.size_name}' razmeri bo'yicha operatsiyalar tikuvchilar tomonidan allaqachon skanerlangan! "
-            f"Ushbu qutilarni o'zgartirib bo'lmaydi."
+            f"🚫 MUMKIN EMAS! '{batch_item.order_item_size.size_name}' razmeri bo'yicha stikerlar tikuvchilar tomonidan allaqachon skanerlangan va ish haqi yozilgan! "
+            f"Ushbu qutilarni o'zgartirish yoki bekor qilish qat'iyan taqiqlanadi."
         )
         return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 
     with transaction.atomic():
         # Qutilarni o'chirmasdan, BEKOR QILINDI (CANCELLED) holatiga o'tkazish
-        # Agar eski stikerlar chop etilgan bo'lsa, skanerda "Eskirgan/Bekor qilingan" deb aniq ko'rsatiladi
+        # Agar eski stikerlar chop etilgan bo'lsa, Telegram bot va skanerda "Bekor qilingan (Atmen)" deb to'xtatadi
         active_boxes = batch_item.boxes.exclude(status=Box.Status.CANCELLED)
         cancelled_count = active_boxes.count()
         for b in active_boxes:
@@ -260,11 +260,12 @@ def meto_reset_item(request, item_id: int):
         batch_item.status = CuttingBatchItem.Status.CUT_ENTERED
         batch_item.save(update_fields=['boxes_created_qty', 'status'])
 
-    messages.success(
+    messages.warning(
         request,
-        f"'{batch_item.order_item_size.size_name}' razmeri qutilari qaytadan taqsimlash uchun ochildi! "
-        f"Oldingi {cancelled_count} ta quti bekor qilindi (agar eski stikerlar chop etilgan bo'lsa, "
-        f"skanerda ular 'Bekor qilingan (Eskirgan)' deb ko'rsatiladi)."
+        f"⚠️ QATTIQ OGOHLANTIRISH: '{batch_item.order_item_size.size_name}' razmeri qutilari qaytadan taqsimlash uchun bekor qilindi! "
+        f"Tikuvda hali bironta ham stiker urilmaganligi sababli ruxsat berildi. "
+        f"Oldingi {cancelled_count} ta quti va barcha stikerlari TIZIMDA BEKOR QILINDI (ATMEN BO'LDI). "
+        f"Telegram bot va skaner ushbu stikerlarni 'ATMEN BO'LGAN' deb to'xtatadi. YANGI STIKER VA PASPORT CHIQARISH SHART!"
     )
     return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 
@@ -276,6 +277,8 @@ def meto_confirm_item(request, item_id: int):
     - Foydalanuvchi talabi:
       "KEYIN ULAR KERAKLI RASMERLARNI DETALINI YIGIB ANIQ BOLGAN SONNI KIRITADI VA TUGATADI ISHNI STIKER CHIQARISHGA BERADI
        U TUGATGANDA AVTOMATIK STIKERLAR GENERATISYA BOLADI VA STIKER CHIQARADIGAN ODAM OZI CHIQARADI VA TIKUVGA BERADI"
+    - Agar stikerlar allaqachon skanerlangan bo'lsa: QAT'IYAN TAQIQLANADI!
+    - Agar skanerlanmagan bo'lsa va soni o'zgarsa: Eski stikerlar bekor qilinadi va QATTIQ OGOHLANTIRISH beriladi.
     """
     if request.method != 'POST':
         return redirect('meto_dashboard')
@@ -291,6 +294,16 @@ def meto_confirm_item(request, item_id: int):
     order = batch_item.batch.order_item.order
     article = batch_item.batch.order_item.article
     size_name = batch_item.order_item_size.size_name
+
+    # 1. Agar avvalgi qutilardan biron-bir stiker tikuvchilar tomonidan urilgan bo'lsa -> BLOKLASH!
+    has_scanned = batch_item.boxes.filter(tickets__status=Ticket.Status.SCANNED).exists()
+    if has_scanned:
+        messages.error(
+            request,
+            f"🚫 MUMKIN EMAS! '{size_name}' razmeri bo'yicha stikerlar tikuvchilar tomonidan allaqachon skanerlangan va ish haqi yozilgan! "
+            f"Sonini o'zgartirish yoki qayta tasdiqlash qat'iyan taqiqlanadi."
+        )
+        return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
 
     real_qty_str = request.POST.get('real_quantity', '').strip()
     meto_start = request.POST.get('meto_number_start', '').strip()
@@ -335,6 +348,15 @@ def meto_confirm_item(request, item_id: int):
     worker_name = meto_worker or (request.user.get_full_name() or request.user.username)
 
     with transaction.atomic():
+        # Agar avval faol qutilar bo'lsa (qayta tasdiqlash/soni o'zgarishi holatida), ularni bekor qilish
+        active_prev_boxes = list(batch_item.boxes.exclude(status=Box.Status.CANCELLED))
+        cancelled_prev_count = len(active_prev_boxes)
+        if cancelled_prev_count > 0:
+            for b in active_prev_boxes:
+                b.status = Box.Status.CANCELLED
+                b.save(update_fields=['status'])
+                b.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+
         batch_item.real_quantity = real_qty
         batch_item.meto_number_start = meto_start
         batch_item.meto_number_end = meto_end
@@ -343,6 +365,7 @@ def meto_confirm_item(request, item_id: int):
         batch_item.meto_completed_at = timezone.now()
         batch_item.meto_completed_by = request.user
         batch_item.status = CuttingBatchItem.Status.METO_CONFIRMED
+        batch_item.boxes_created_qty = 0
         batch_item.save()
 
         # AVTOMATIK STIKERLAR VA QUTILARNI GENERATSIYA QILISH
@@ -361,6 +384,13 @@ def meto_confirm_item(request, item_id: int):
             f"Razmer [{size_name}]: Meto tasdiqlandi (Aniq son: {real_qty} dona, Meto #{meto_start}-#{meto_end}). "
             f"Biroq ushbu artikulda hali operatsiyalar (narxlar) kiritilmagan, shuning uchun QR stikerlar hali hosil bo'lmadi! "
             f"Iltimos, avval modelga operatsiyalarni qo'shing."
+        )
+    elif cancelled_prev_count > 0:
+        messages.warning(
+            request,
+            f"⚠️ QATTIQ OGOHLANTIRISH: Razmer [{size_name}] soni o'zgartirildi (Aniq son: {real_qty} dona, {len(boxes)} ta yangi quti)! "
+            f"Tikuvda hali skaner qilinmagani sababli ruxsat berildi. Oldingi {cancelled_prev_count} ta quti va barcha stikerlari TIZIMDA BEKOR QILINDI (ATMEN BO'LDI). "
+            f"Telegram bot va skaner eski stikerlarni 'ATMEN BO'LGAN' deb to'xtatadi. YANGI PASPORT VA STIKERLAR CHIQARISH SHART!"
         )
     else:
         messages.success(

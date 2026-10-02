@@ -1383,3 +1383,37 @@ class DailyModelProgress(models.Model):
 
     def __str__(self):
         return f"{self.date} | {self.product_model.code} - {self.completed_units}/{self.daily_norm} ({self.total_percentage}%)"
+
+
+class CancelledBatchLog(models.Model):
+    """
+    Bekor qilingan (atmen bo'lgan) Kesim Partiyalari jurnali.
+    Telegram bot yoki skaner eskirgan/bekor qilingan pastal va stikerlarni
+    aniqlab, tikuvga chiqib ketishining oldini olish uchun xizmat qiladi.
+    """
+    batch_id = models.PositiveIntegerField(db_index=True, verbose_name="Kesim Partiya ID")
+    batch_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="Kesim Raqami")
+    pastal_code = models.CharField(max_length=100, blank=True, verbose_name="Pastal Kodi")
+    order_number = models.CharField(max_length=100, blank=True, verbose_name="Zakaz Raqami")
+    article_code = models.CharField(max_length=100, blank=True, verbose_name="Artikul")
+    cancelled_boxes_count = models.PositiveIntegerField(default=0, verbose_name="Bekor qilingan qutilar soni")
+    cancelled_tickets_count = models.PositiveIntegerField(default=0, verbose_name="Bekor qilingan stikerlar soni")
+    reason = models.TextField(blank=True, verbose_name="Bekor qilish sababi")
+    cancelled_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='cancelled_batches',
+        verbose_name="Bekor qiluvchi"
+    )
+    cancelled_at = models.DateTimeField(auto_now_add=True, verbose_name="Bekor qilingan vaqt")
+
+    class Meta:
+        verbose_name = "Bekor Qilingan Pastal Jurnali"
+        verbose_name_plural = "Bekor Qilingan Pastallar Jurnali"
+        ordering = ['-cancelled_at']
+
+    def __str__(self):
+        return f"Bekor qilingan Pastal #{self.batch_id} (Pastal: {self.pastal_code or '—'}, Zakaz: {self.order_number})"
+

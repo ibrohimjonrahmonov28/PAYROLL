@@ -139,6 +139,44 @@
             width: 100%;
         }
 
+        .header-qr-box {
+            width: 95px;
+            min-width: 95px;
+            border: 1.5px solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3px;
+            text-align: center;
+            background: #ffffff;
+        }
+
+        .header-qr-box img {
+            width: 68px;
+            height: 68px;
+            object-fit: contain;
+        }
+
+        .header-qr-label {
+            font-size: 8px;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 1px;
+            line-height: 1.1;
+        }
+
+        .header-qr-code {
+            font-size: 7.5px;
+            font-weight: 700;
+            color: #475569;
+            font-family: monospace;
+            line-height: 1.1;
+            margin-top: 1px;
+        }
+
         .header-details {
             flex: 1;
             display: flex;
@@ -532,6 +570,15 @@
                         </span>
                         {% endif %}
                     </div>
+                </div>
+
+                <!-- Telegram Bot & Tizim QR Tekshiruv Kodi -->
+                <div class="header-qr-box">
+                    {% if pastal_qr_data_uri %}
+                    <img src="{{ pastal_qr_data_uri }}" alt="Pastal QR Code">
+                    {% endif %}
+                    <div class="header-qr-label">BOT TEKSHIRUVI</div>
+                    <div class="header-qr-code">PASTAL:{{ batch.id }}</div>
                 </div>
             </div>
 

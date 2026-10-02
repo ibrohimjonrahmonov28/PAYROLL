@@ -48,4 +48,6 @@ staticfiles/
 *.swp
 *.swo
 .gemini/
-
+*.tar.gz
+qr_codes/
+env

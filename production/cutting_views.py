@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max, Sum
 from django.http import JsonResponse
-from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket
+from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket, CancelledBatchLog
 
 
 def cutter_required(view_func):
@@ -629,37 +629,51 @@ def cutting_delete_batch(request, order_id: int, batch_id: int):
     if scanned_tickets_count > 0:
         messages.error(
             request,
-            f"'{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {scanned_tickets_count} ta operatsiya "
-            f"tikuvchilar tomonidan allaqachon skanerlangan va ish haqi hisoblangan! Ushbu partiyani o'chirib bo'lmaydi."
+            f"🚫 MUMKIN EMAS! '{batch.name}' (Pastal: {batch.pastal_code or '—'}) bo'yicha {scanned_tickets_count} ta operatsiya "
+            f"tikuvchilar tomonidan allaqachon skanerlangan va ish haqi hisoblangan! Ushbu partiyani o'chirish yoki bekor qilish qat'iyan taqiqlanadi."
         )
         return redirect('cutting_order_detail', order_id=order_id)
 
     batch_name = batch.name
     pastal_code = batch.pastal_code or "—"
     article_code = batch.order_item.article.code
+    batch_id_num = batch.id
+    batch_number_val = batch.batch_number
 
     with transaction.atomic():
         cancelled_boxes_count = related_boxes.count()
         total_tickets_cancelled = Ticket.objects.filter(box__in=related_boxes).count()
 
         # Bog'liq barcha qutilar va biletlarni o'chirib yubormasdan, BEKOR QILINDI (CANCELLED) deb belgilash
-        # Shunda qog'oz stiker skanerlanganda "Bu pastal o'chirilgan" deb to'g'ri xabar beradi
+        # Shunda Telegram bot yoki skaner "Bu ish atmen bo'lgan" deb to'xtatadi
         for b in related_boxes:
             b.status = Box.Status.CANCELLED
             b.save(update_fields=['status'])
             b.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
+        # Telegram bot va tizim tekshiruvi uchun bekor qilinganlar jurnaliga yozish
+        CancelledBatchLog.objects.create(
+            batch_id=batch_id_num,
+            batch_number=batch_number_val,
+            pastal_code=pastal_code if pastal_code != "—" else "",
+            order_number=order.order_number,
+            article_code=article_code,
+            cancelled_boxes_count=cancelled_boxes_count,
+            cancelled_tickets_count=total_tickets_cancelled,
+            reason="Kesim bo'limida bekor qilindi (o'chirildi)",
+            cancelled_by=request.user if request.user.is_authenticated else None
+        )
+
         # Batch va unga tegishli barcha Meto/Kesim bandlarini o'chirish
         batch.delete()
 
-    msg = (
-        f"'{article_code}' artikulidan '{batch_name}' (Pastal: {pastal_code}) muvaffaqiyatli o'chirildi! "
-        f"Meto bo'limidagi unga oid barcha hisoblar bekor qilindi."
+    messages.warning(
+        request,
+        f"⚠️ QATTIQ OGOHLANTIRISH: '{article_code}' artikulidan '{batch_name}' (Pastal: {pastal_code}) bekor qilindi! "
+        f"Tikuvda hali bironta ham stiker urilmaganligi sababli o'chirishga ruxsat berildi. "
+        f"Unga tegishli {cancelled_boxes_count} ta quti va {total_tickets_cancelled} ta QR stiker TIZIMDA BEKOR QILINDI (ATMEN BO'LDI). "
+        f"Telegram bot va skaner ushbu stikerlarni 'ATMEN BO'LGAN' deb to'xtatadi. Eski pasport va stikerlar o'z kuchini yo'qotdi!"
     )
-    if cancelled_boxes_count > 0:
-        msg += f" Unga tegishli {cancelled_boxes_count} ta quti va {total_tickets_cancelled} ta QR stiker bekor qilindi (agar qog'oz stiker skanerlansa, tizim 'Bekor qilingan pastal' deb ogohlantiradi)."
-
-    messages.success(request, msg)
     return redirect('cutting_order_detail', order_id=order_id)
 
 

@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Q, F, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch, CuttingBatchItem
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch, CuttingBatchItem, _generate_qr_data_uri
 from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets
 from accounts.models import Worker
 
@@ -970,11 +970,14 @@ def pastal_passport_view(request, batch_id: int):
         except Exception:
             article_image_url = None
 
+    pastal_qr_data_uri = _generate_qr_data_uri(f"PASTAL:{batch.id}", box_size=6, border=1)
+
     return render(request, 'production/pastal_passport.html', {
         'batch': batch,
         'order': order,
         'article': article,
         'article_image_url': article_image_url,
+        'pastal_qr_data_uri': pastal_qr_data_uri,
         'size_summaries': size_summaries,
         'all_boxes': all_boxes,
         'use_two_columns': use_two_columns,

@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pastal va Stikerlarni Tekshirish (Nazorat) — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl shadow-inner">
+                <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                    Pastal va Stikerlarni Tekshirish
+                    <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold px-2.5 py-0.5 rounded-full">Sifat Nazorati</span>
+                </h1>
+                <p class="text-sm text-slate-400 mt-0.5">Tikuv patogiga berishdan oldin pastal va barcha qutilarni to'liq tekshirish</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="https://t.me/terry_passport_bot" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 font-bold text-xs transition-all">
+                <i class="fa-brands fa-telegram text-base"></i>
+                Telegram Bot
+            </a>
+        </div>
+    </div>
+
+    <!-- Search / Scanner Input Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl mb-8">
+        <form method="GET" action="" id="verifyForm">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                QR Kod, Pasport yoki Stiker Kodini Skanerlang:
+            </label>
+            <div class="relative flex items-center">
+                <div class="absolute left-4 text-slate-500 text-lg">
+                    <i class="fa-solid fa-barcode"></i>
+                </div>
+                <input type="text" name="q" id="codeInput" value="{{ query }}" autofocus placeholder="Masalan: PASTAL:12 yoki TICKET:TK-... yoki #489DA37F yoki A9-234"
+                    class="w-full bg-slate-950 border-2 border-slate-700 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 rounded-xl py-3.5 pl-12 pr-28 text-white placeholder-slate-500 font-mono text-base transition-all">
+                <button type="submit" class="absolute right-2 px-5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm tracking-wide transition-all shadow-md">
+                    Tekshirish
+                </button>
+            </div>
+        </form>
+        <p class="text-xs text-slate-500 mt-2.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-amber-500"></i>
+            USB skaner quroli bilan to'g'ridan-to'g'ri o'qitishingiz mumkin (Enter avtomatik tekshiradi).
+        </p>
+    </div>
+
+    <!-- Natija Bloki -->
+    {% if result %}
+        {% if result.can_release %}
+            <!-- APPROVED CARD -->
+            <div class="bg-gradient-to-b from-emerald-950/40 to-slate-900 border-2 border-emerald-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-3xl shadow-lg shrink-0">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-black text-xs uppercase tracking-wider mb-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            TASDIQLANDI
+                        </div>
+                        <h2 class="text-2xl font-black text-white tracking-tight">PATOKKA BERISH MUMKIN!</h2>
+                        <p class="text-sm text-emerald-300/80">Barcha qutilar va stikerlar bittalab tekshirildi: to'liq aktiv, narxlar to'g'ri va xatolik yo'q.</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/60 border border-emerald-500/20 rounded-xl p-5 mb-6 text-sm text-slate-300 leading-relaxed font-mono whitespace-pre-line">{{ result.message }}</div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-emerald-500/20">
+                    <span class="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        Xavfsizlik tekshiruvidan 100% o'tdi
+                    </span>
+                    <button onclick="document.getElementById('codeInput').value=''; document.getElementById('codeInput').focus();" class="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all">
+                        Keyingi pastalni skanerlash
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <!-- REJECTED CARD -->
+            <div class="bg-gradient-to-b from-rose-950/40 to-slate-900 border-2 border-rose-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 text-3xl shadow-lg shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-400 font-black text-xs uppercase tracking-wider mb-1.5">
+                            BLOKLANDI
+                        </div>
+                        <h2 class="text-2xl font-black text-white tracking-tight">PATOKKA BERIB BO'LMAYDI!</h2>
+                        <p class="text-sm text-rose-300/80">Ushbu ishda muammo aniqlandi. Tikuv patogiga tarqatish qat'iyan man etiladi!</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/60 border border-rose-500/20 rounded-xl p-5 mb-6 text-sm text-slate-300 leading-relaxed font-mono whitespace-pre-line">{{ result.message }}</div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-rose-500/20">
+                    <span class="text-xs text-rose-400 font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-ban"></i>
+                        Yangilash uchun stikerchiga murojaat qiling
+                    </span>
+                    <button onclick="document.getElementById('codeInput').value=''; document.getElementById('codeInput').focus();" class="px-4 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold transition-all">
+                        Boshqa kodni skanerlash
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog, DefectReason
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog, DefectReason, CancelledBatchLog
 
 
 @admin.register(Customer)
@@ -136,3 +136,12 @@ class DefectReasonAdmin(admin.ModelAdmin):
     list_filter = ['category', 'defect_type', 'is_active']
     search_fields = ['code', 'name', 'description']
     ordering = ['order', 'id']
+
+
+@admin.register(CancelledBatchLog)
+class CancelledBatchLogAdmin(admin.ModelAdmin):
+    list_display = ['batch_id', 'pastal_code', 'order_number', 'article_code', 'cancelled_boxes_count', 'cancelled_tickets_count', 'cancelled_by', 'cancelled_at']
+    list_filter = ['cancelled_at']
+    search_fields = ['batch_id', 'pastal_code', 'order_number', 'article_code', 'reason']
+    ordering = ['-cancelled_at']
+

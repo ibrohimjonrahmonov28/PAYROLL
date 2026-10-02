@@ -3,6 +3,7 @@ from . import views
 from . import terminal_views
 from . import control_views
 from . import sewing_statistics_views
+from . import passport_views
 
 app_name = 'production'
 
@@ -41,5 +42,10 @@ urlpatterns = [
     path('sewing-statistics/orders/<int:order_id>/', sewing_statistics_views.sewing_statistics_order_models_view, name='sewing_statistics_order_models'),
     path('sewing-statistics/orders/<int:order_id>/items/<int:order_item_id>/', sewing_statistics_views.sewing_statistics_model_detail_view, name='sewing_statistics_model_detail'),
     path('sewing-statistics/api/size-boxes/', sewing_statistics_views.api_sewing_statistics_size_boxes, name='api_sewing_statistics_size_boxes'),
+
+    # Pastal Pasporti va Stikerlarni Tekshirish (Web & Webhook)
+    path('passport-checker/', passport_views.passport_checker_web_view, name='passport_checker'),
+    path('passport-checker/api/', passport_views.passport_checker_api, name='passport_checker_api'),
+    path('passport-bot/webhook/', passport_views.passport_telegram_webhook, name='passport_telegram_webhook'),
 ]
 

@@ -20,11 +20,13 @@ from django.contrib import admin
 from django.urls import path, include
 from accounts.views import login_view, logout_view
 from production.control_views import control_download_apk_view
+from production.passport_views import passport_telegram_webhook
 
 from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('bot/passport-webhook/', passport_telegram_webhook, name='root_passport_webhook'),
     path('apk/', control_download_apk_view, name='root_download_apk'),
     path('login/', login_view, name='root_login'),
     path('logout/', logout_view, name='root_logout'),

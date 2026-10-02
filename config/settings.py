@@ -205,6 +205,10 @@ DAILY_BONUS_AMOUNT = 0
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or os.getenv('BOT_TOKEN', '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg')
 TELEGRAM_REPORT_CHAT_ID = os.getenv('TELEGRAM_REPORT_CHAT_ID', '-1004374345556')
 
+# Telegram Pastal & Sticker Quality Verification Bot
+TELEGRAM_PASSPORT_BOT_TOKEN = os.getenv('TELEGRAM_PASSPORT_BOT_TOKEN') or os.getenv('PASSPORT_BOT_TOKEN', '8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU')
+
+
 # Console Logging to see 500 errors in docker compose logs web
 LOGGING = {
     'version': 1,
