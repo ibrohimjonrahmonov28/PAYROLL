@@ -20,6 +20,7 @@ services:
         max-file: "3"
 
   web:
+    image: payroll-web
     build:
       context: .
       dockerfile: Dockerfile
@@ -61,6 +62,7 @@ services:
         max-file: "3"
 
   passport_bot:
+    image: payroll-web
     build:
       context: .
       dockerfile: Dockerfile
