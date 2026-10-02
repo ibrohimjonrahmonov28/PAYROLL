@@ -168,16 +168,26 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR("TELEGRAM_PASSPORT_BOT_TOKEN topilmadi!"))
             return
 
-        self.stdout.write(self.style.SUCCESS("🤖 TERRY JAR — Pastal Tekshiruv Boti ishga tushmoqda..."))
-        self.stdout.write(f"Token: {token[:12]}...{token[-5:]}")
+        import time
+        while True:
+            try:
+                self.stdout.write(self.style.SUCCESS("🤖 TERRY JAR — Pastal Tekshiruv Boti ishga tushmoqda..."))
+                self.stdout.write(f"Token: {token[:12]}...{token[-5:]}")
 
-        app = ApplicationBuilder().token(token).build()
+                app = ApplicationBuilder().token(token).build()
 
-        app.add_handler(CommandHandler("start", start_handler))
-        app.add_handler(CommandHandler("help", help_handler))
-        app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
-        app.add_handler(MessageHandler(filters.Document.IMAGE, document_handler))
-        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+                app.add_handler(CommandHandler("start", start_handler))
+                app.add_handler(CommandHandler("help", help_handler))
+                app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
+                app.add_handler(MessageHandler(filters.Document.IMAGE, document_handler))
+                app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
-        self.stdout.write(self.style.SUCCESS("✅ Bot muvaffaqiyatli ishga tushdi! Xabarlar kutilmoqda... (Ctrl+C to'xtatish)"))
-        app.run_polling()
+                self.stdout.write(self.style.SUCCESS("✅ Bot muvaffaqiyatli ishga tushdi! Xabarlar kutilmoqda... (Ctrl+C to'xtatish)"))
+                app.run_polling(drop_pending_updates=True)
+                break
+            except (KeyboardInterrupt, SystemExit):
+                self.stdout.write("Bot to'xtatildi.")
+                break
+            except Exception as e:
+                self.stderr.write(self.style.ERROR(f"Botda xatolik yuz berdi: {e}. 5 soniyadan so'ng qayta uriniladi..."))
+                time.sleep(5)
