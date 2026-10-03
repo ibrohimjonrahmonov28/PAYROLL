@@ -230,6 +230,10 @@ class Command(BaseCommand):
         updated_count = 0
         with transaction.atomic():
             for curr, new_tk, new_st in matched_updates:
+                # Xavfsizlik: agar yangi stiker_code boshqa faol biletda band bo'lsa (ehtimoli 0 ga yaqin), o'tkazib yuborish
+                if new_st and Ticket.objects.filter(stiker_code=new_st).exclude(id=curr.id).exists():
+                    self.stdout.write(self.style.WARNING(f"   ⚠️ Diqqat: {new_st} kodi boshqa biletda band, o'tkazib yuborildi."))
+                    continue
                 curr.ticket_code = new_tk
                 curr.stiker_code = new_st
                 curr.save(update_fields=['ticket_code', 'stiker_code'])
