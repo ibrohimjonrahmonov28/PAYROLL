@@ -1346,9 +1346,20 @@ class Ticket(models.Model):
             self.ticket_code = f"TK-{self.box.order.order_number}-{self.box.box_number}-{self.box.box_code}-{random_part}"
         if not self.stiker_code and not self.pk:
             self.stiker_code = generate_unique_stiker_code()
-        if not self.price_per_unit:
+
+        # Daxlsizlik: Mavjud biletning ticket_code va stiker_code si tasodifan yo'qotilmasligi uchun:
+        if self.pk and not getattr(self, '_allow_code_override', False):
+            orig_vals = Ticket.objects.filter(pk=self.pk).values('ticket_code', 'stiker_code').first()
+            if orig_vals:
+                if not self.ticket_code:
+                    self.ticket_code = orig_vals['ticket_code']
+                if not self.stiker_code:
+                    self.stiker_code = orig_vals['stiker_code']
+
+        if not self.price_per_unit and self.article_operation:
             self.price_per_unit = self.article_operation.price_per_unit
-        self.total_amount = Decimal(self.quantity) * self.price_per_unit
+        if self.quantity and self.price_per_unit is not None:
+            self.total_amount = Decimal(self.quantity) * self.price_per_unit
         
         super().save(*args, **kwargs)
 

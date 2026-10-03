@@ -946,11 +946,14 @@ def norma_canvas_save(request):
             }, status=400)
 
         with transaction.atomic():
-            # Hali skanerlanmagan (PENDING) biletlar bo'lsa, ularni tozalash
-            Ticket.objects.filter(article_operation__in=article_ops).delete()
-
-            # Artikul operatsiyalarini o'chirish
-            article_ops.delete()
+            # Chop etilgan qog'oz stikerlar va biletlar daxlsizligi: ularni o'chirmasdan bekor qilamiz
+            for ao in article_ops:
+                if not ao.tickets.exists():
+                    ao.delete()
+                else:
+                    ao.is_active = False
+                    ao.save(update_fields=['is_active'])
+                    ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
             # Operatsiyalar guruhini ham uzish
             articles.update(operation_group=None)
