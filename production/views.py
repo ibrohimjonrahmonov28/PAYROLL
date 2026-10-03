@@ -8,7 +8,7 @@ from django.db.models import Sum, Count, Q, F, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch, CuttingBatchItem, _generate_qr_data_uri
-from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets
+from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets, ensure_box_tickets_fresh
 from accounts.models import Worker
 
 
@@ -309,6 +309,9 @@ def box_print_stickers_view(request, box_id: int):
         Box.objects.exclude(status=Box.Status.CANCELLED).select_related('order', 'article'), 
         id=box_id
     )
+    # Stikerlar chop etilishidan avval doimo narxlar matritsasining eng so'nggi holatini tekshirish va yangilash
+    ensure_box_tickets_fresh(box)
+
     tickets = box.tickets.exclude(status=Ticket.Status.CANCELLED).select_related(
         'article_operation__operation', 'article_operation__article', 'box__order', 'box__article'
     ).order_by('article_operation__sequence', 'split_index')
@@ -378,6 +381,33 @@ def order_print_all_stickers_view(request, order_id: int):
                         return redirect(f"/meto/orders/{order.id}/?open_batch={batch_id}")
         except (ValueError, TypeError):
             pass
+
+    # Chop etish uchun mo'ljallangan barcha qutilarni aniqlash va
+    # ularning stikerlarini Narxlar matritsasidagi eng so'nggi holat bilan yangilash:
+    target_boxes_qs = Box.objects.filter(order=order).exclude(status=Box.Status.CANCELLED)
+    if selected_article:
+        target_boxes_qs = target_boxes_qs.filter(
+            Q(article=selected_article) |
+            Q(cutting_batch_item__batch__order_item__article=selected_article)
+        )
+    if box_id:
+        try:
+            target_boxes_qs = target_boxes_qs.filter(id=int(box_id))
+        except (ValueError, TypeError):
+            pass
+    if pastal_code:
+        target_boxes_qs = target_boxes_qs.filter(
+            Q(pastal_number=pastal_code) |
+            Q(cutting_batch_item__batch__pastal_code=pastal_code)
+        )
+    if batch_id:
+        try:
+            target_boxes_qs = target_boxes_qs.filter(cutting_batch_item__batch_id=int(batch_id))
+        except (ValueError, TypeError):
+            pass
+
+    for t_box in target_boxes_qs:
+        ensure_box_tickets_fresh(t_box)
 
     tickets_qs = Ticket.objects.filter(
         box__order=order
@@ -495,7 +525,8 @@ def box_download_stickers_100x60_pdf(request, box_id: int):
     """Bitta qutidagi barcha biletlarni 100x60 mm stiker PDF formatida yuklab olish"""
     from .sticker_generator import generate_box_stickers_100x60_pdf
     box = get_object_or_404(Box.objects.select_related('order', 'article'), id=box_id)
-    tickets = box.tickets.all().select_related(
+    ensure_box_tickets_fresh(box)
+    tickets = box.tickets.exclude(status=Ticket.Status.CANCELLED).select_related(
         'article_operation__operation', 'article_operation__article', 'box__order', 'box__article'
     ).order_by('article_operation__sequence', 'split_index')
 
@@ -526,6 +557,30 @@ def order_download_all_stickers_100x60_pdf(request, order_id: int):
     article_id = request.GET.get('article_id')
     pastal_code = request.GET.get('pastal', '').strip()
     batch_id = request.GET.get('batch_id', '').strip()
+
+    target_boxes_qs = Box.objects.filter(order=order).exclude(status=Box.Status.CANCELLED)
+    if article_id:
+        try:
+            target_boxes_qs = target_boxes_qs.filter(
+                Q(article_id=int(article_id)) |
+                Q(cutting_batch_item__batch__order_item__article_id=int(article_id))
+            )
+        except (ValueError, TypeError):
+            pass
+    if pastal_code:
+        target_boxes_qs = target_boxes_qs.filter(
+            Q(pastal_number=pastal_code) |
+            Q(cutting_batch_item__batch__pastal_code=pastal_code)
+        )
+    if batch_id:
+        try:
+            target_boxes_qs = target_boxes_qs.filter(cutting_batch_item__batch_id=int(batch_id))
+        except (ValueError, TypeError):
+            pass
+
+    for t_box in target_boxes_qs:
+        ensure_box_tickets_fresh(t_box)
+
     tickets_qs = Ticket.objects.filter(
         box__order=order
     ).exclude(

@@ -300,28 +300,36 @@ def sticker_mark_batch_printed(request, order_id: int, batch_id: int):
 @sticker_required
 def sticker_regenerate_tickets(request, order_id: int):
     """
-    Operatsiyalar kiritilgandan so'ng, stikeri yo'q qutilar uchun barcha QR biletlarni generatsiya qilish:
+    Operatsiyalar kiritilgandan yoki narxlar o'zgargandan so'ng, qutilar uchun QR biletlarni yangilash / generatsiya qilish:
     """
     order = get_object_or_404(Order, id=order_id)
-    boxes = order.boxes.all()
+    boxes = order.boxes.exclude(status=Box.Status.CANCELLED)
     created_tickets_count = 0
 
     from .services import generate_box_tickets
 
     with transaction.atomic():
+        # Avval buyurtmaga tegishli modellarni matritsa bilan sinxronlash
+        for item in order.items.select_related('article__operation_group'):
+            if item.article and item.article.operation_group:
+                item.article.sync_operations_from_group(sync_unscanned_boxes=False)
+        if order.article and order.article.operation_group:
+            order.article.sync_operations_from_group(sync_unscanned_boxes=False)
+
         for box in boxes:
-            if box.tickets.count() == 0:
+            # Agar qutidagi birorta ham stiker hali skanerlanmagan bo'lsa, uni to'liq yangilaymiz
+            if not box.tickets.filter(status=Ticket.Status.SCANNED).exists():
                 tickets = generate_box_tickets(box)
                 created_tickets_count += len(tickets)
 
     if created_tickets_count > 0:
-        messages.success(request, f"Muvaffaqiyatli! Jami {created_tickets_count} ta QR stiker generatsiya qilindi va chop etishga tayyor!")
+        messages.success(request, f"Muvaffaqiyatli! Jami {created_tickets_count} ta QR stiker Narxlar matritsasidagi oxirgi holat bo'yicha qayta generatsiya qilindi va chop etishga tayyor!")
     else:
         has_ops = any(it.article and it.article.article_operations.exists() for it in order.items.all())
         if not has_ops:
-            messages.error(request, "Stikerlar generatsiya qilinmadi, chunki ushbu modelga hali operatsiyalar biriktirilmagan! Avval operatsiyalarni qo'shing yoki boshqa modeldan nusxalang.")
+            messages.error(request, "Stikerlar generatsiya qilinmadi, chunki ushbu modelga hali operatsiyalar biriktirilmagan! Avval operatsiyalarni qo'shing yoki Narxlar matritsasidan guruh biriktiring.")
         else:
-            messages.info(request, "Barcha qutilarda allaqachon stikerlar mavjud.")
+            messages.info(request, "Barcha qutilarda stikerlar skanerlangan yoki allaqachon so'nggi holatda.")
 
     return redirect('sticker_order_boxes', order_id=order.id)
 

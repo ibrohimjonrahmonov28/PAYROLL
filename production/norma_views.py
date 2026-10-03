@@ -835,11 +835,16 @@ def norma_canvas_save(request):
                             'difficulty': c_op['difficulty'],
                         }
                     )
-                # Faqat biletlarga bog'lanmagan ortiqcha operatsiyalarni o'chirish
+                # Ortiqcha operatsiyalarni tozalash:
+                # Agar biletlar skanerlanmagan bo'lsa, ularni tozalab, ortiqcha operatsiyani o'chiramiz
                 to_delete = art.article_operations.exclude(operation_id__in=keep_op_ids)
                 for ao in to_delete:
-                    if not ao.tickets.exists():
+                    if not ao.tickets.filter(status=Ticket.Status.SCANNED).exists():
+                        ao.tickets.all().delete()
                         ao.delete()
+
+                # Skanerlanmagan qutilarning biletlarini yangilangan operatsiyalarga moslab qayta tuzish
+                art.sync_box_tickets_if_unscanned()
 
                 if art.model:
                     models_to_sync.add(art.model)
@@ -863,7 +868,7 @@ def norma_canvas_save(request):
                 if assigned_group:
                     for art in articles:
                         art.operation_group = assigned_group
-                        art.save(update_fields=['operation_group'])
+                        art.save()
 
         # Nechta bilet narxi yangilanganini hisoblash
         total_synced_tickets = Ticket.objects.filter(

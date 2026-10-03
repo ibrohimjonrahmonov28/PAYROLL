@@ -8,6 +8,7 @@ import functools
 from decimal import Decimal
 import qrcode
 from django.db import models
+from django.db.models import Q
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from accounts.models import Worker, User
@@ -152,7 +153,12 @@ class Article(models.Model):
         qutilarning biletlarini joriy operatsiyalar ro'yxatiga 1-ga-1 moslab qayta generatsiya qilish.
         """
         from .services import generate_box_tickets
-        boxes_qs = Box.objects.filter(article=self).exclude(status=Box.Status.CANCELLED)
+        boxes_qs = Box.objects.filter(
+            Q(article=self) |
+            Q(cutting_batch_item__batch__order_item__article=self) |
+            Q(order__article=self) |
+            Q(order__items__article=self)
+        ).distinct().exclude(status=Box.Status.CANCELLED)
         if order:
             boxes_qs = boxes_qs.filter(order=order)
 
@@ -989,6 +995,8 @@ class Box(models.Model):
     def target_article(self):
         if self.article:
             return self.article
+        if self.cutting_batch_item and self.cutting_batch_item.batch and self.cutting_batch_item.batch.order_item:
+            return self.cutting_batch_item.batch.order_item.article
         if self.order and self.order.article:
             return self.order.article
         if self.order and self.order.items.exists():

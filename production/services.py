@@ -39,22 +39,46 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
     """
     Quti uchun barcha operatsiyalarni ko'rsatilgan splitlar bo'yicha biletlarga (stikerlarga) ajratish.
     operation_splits: {article_operation_id: split_count}
-    Agar split ko'rsatilmagan bo'lsa, default = 1 ta bilet (qutining to'liq miqdori).
+    Agar split ko'rsatilmagan bo'lsa, mavjud biletlardagi splitlar saqlanadi yoki default = 1 ta bilet.
     """
-    if operation_splits is None:
-        operation_splits = {}
-
-    # Mavjud generatsiya qilinmagan eski biletlarni tozalash (agar pending bo'lsa)
-    box.tickets.filter(status=Ticket.Status.PENDING).delete()
+    if box.status == Box.Status.CANCELLED:
+        return []
 
     article = box.target_article
     if not article:
         return []
 
+    # Har safar stiker yaratilganda / yangilanganda Narxlar matritsasidagi eng so'nggi ma'lumotlar bilan sinxronlash
+    if article.operation_group:
+        article.sync_operations_from_group(sync_unscanned_boxes=False)
+
+    # Agar operation_splits berilmagan bo'lsa, qutida avval bo'lgan split konfiguratsiyasini saqlab qolish
+    if operation_splits is None:
+        operation_splits = {}
+        for t in box.tickets.all():
+            if t.article_operation_id and t.total_splits > 1:
+                operation_splits[t.article_operation_id] = max(
+                    operation_splits.get(t.article_operation_id, 1),
+                    t.total_splits
+                )
+
+    # Mavjud biletlarni tozalash:
+    # Agar bironta ham bilet skanerlanmagan bo'lsa, barchasini tozalab yangidan yaratish
+    has_scanned = box.tickets.filter(status=Ticket.Status.SCANNED).exists()
+    if not has_scanned:
+        box.tickets.exclude(status=Ticket.Status.CANCELLED).delete()
+    else:
+        # Agar qisman skanerlangan bo'lsa, faqat kutilayotgan (PENDING) biletlarni tozalaymiz
+        box.tickets.filter(status=Ticket.Status.PENDING).delete()
+
     article_ops = article.article_operations.all().order_by('sequence', 'id')
     created_tickets = []
 
     for art_op in article_ops:
+        # Agar bu operatsiya allaqachon skanerlangan bo'lsa, uni qayta yaratmaymiz
+        if has_scanned and box.tickets.filter(article_operation=art_op, status=Ticket.Status.SCANNED).exists():
+            continue
+
         split_count = int(operation_splits.get(art_op.id, 1))
         if split_count < 1:
             split_count = 1
@@ -78,6 +102,40 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
     return created_tickets
 
 
+def ensure_box_tickets_fresh(box: Box) -> None:
+    """
+    Qutidagi stikerlar eng so'nggi narxlar matritsasiga to'liq mosligini tekshiradi va
+    agar narxlar yoki operatsiyalar o'zgargan bo'lsa, avtomatik yangilaydi (agar hali skanerlanmagan bo'lsa).
+    """
+    if box.status == Box.Status.CANCELLED:
+        return
+    art = box.target_article
+    if not art:
+        return
+    if box.tickets.filter(status=Ticket.Status.SCANNED).exists():
+        return
+
+    if art.operation_group:
+        art.sync_operations_from_group(sync_unscanned_boxes=False)
+
+    existing_tickets = list(box.tickets.exclude(status=Ticket.Status.CANCELLED))
+    art_ops = list(art.article_operations.all().order_by('sequence', 'id'))
+
+    if len(existing_tickets) != len(art_ops):
+        generate_box_tickets(box)
+        return
+
+    existing_op_map = {t.article_operation_id: t.price_per_unit for t in existing_tickets}
+    needs_refresh = False
+    for ao in art_ops:
+        if ao.id not in existing_op_map or existing_op_map[ao.id] != ao.price_per_unit:
+            needs_refresh = True
+            break
+
+    if needs_refresh:
+        generate_box_tickets(box)
+
+
 @transaction.atomic
 def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1, razmer: str = None, pastal_number: str = '') -> list[Box]:
     """
@@ -91,6 +149,9 @@ def create_box_with_tickets(order: Order, article, quantity: int, count: int = 1
 
     if not article:
         article = order.article or (order.items.first().article if order.items.exists() else None)
+
+    if article and article.operation_group:
+        article.sync_operations_from_group(sync_unscanned_boxes=False)
 
     max_box = order.boxes.aggregate(max_num=Max('box_number'))['max_num'] or 0
     next_number = max_box + 1
@@ -132,6 +193,9 @@ def create_boxes_for_order(
     """
     if not article:
         article = order.article or (order.items.first().article if order.items.exists() else None)
+
+    if article and article.operation_group:
+        article.sync_operations_from_group(sync_unscanned_boxes=False)
 
     max_box = order.boxes.aggregate(max_num=Max('box_number'))['max_num'] or 0
     next_number = max_box + 1

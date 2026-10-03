@@ -3,7 +3,8 @@ from django.test import TestCase
 from django.utils import timezone
 from .models import (
     Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket,
-    Customer, ProductModel, OrderItemSize, CuttingBatch, CuttingBatchItem
+    Customer, ProductModel, OrderItemSize, CuttingBatch, CuttingBatchItem,
+    OperationGroup, OperationGroupItem
 )
 from .services import allocate_ticket_quantities, generate_box_tickets
 from accounts.models import User, Worker
@@ -2404,8 +2405,77 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res, "Batafsil")
 
 
+class PricingMatrixAutoSyncStickerTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_superuser('test_matrix_admin', 'admin@test.com', 'pass123')
+        self.client.login(username='test_matrix_admin', password='pass123')
+        
+        self.customer = Customer.objects.create(name="Matrix Test Customer")
+        self.group = OperationGroup.objects.create(name="Guruh 100 Test")
+        
+        self.op1 = Operation.objects.create(code="OP1", name="Op Birinchi", order_number=1)
+        self.op2 = Operation.objects.create(code="OP2", name="Op Ikkinchi", order_number=2)
+        self.op3 = Operation.objects.create(code="OP3", name="Op Uchinchi", order_number=3)
+        self.op4 = Operation.objects.create(code="OP4", name="Op To'rtinchi", order_number=4)
+        
+        self.gi1 = OperationGroupItem.objects.create(group=self.group, operation=self.op1, sequence=1, price_per_unit=Decimal('100.00'))
+        self.gi2 = OperationGroupItem.objects.create(group=self.group, operation=self.op2, sequence=2, price_per_unit=Decimal('200.00'))
+        self.gi3 = OperationGroupItem.objects.create(group=self.group, operation=self.op3, sequence=3, price_per_unit=Decimal('300.00'))
+        
+        self.article = Article.objects.create(code="ART-TEST-MX", name="Artikul Test", operation_group=self.group)
+        self.order = Order.objects.create(order_number="ORD-MX-1", customer=self.customer, article=self.article, total_quantity=100)
 
-
-
+    def test_pricing_matrix_auto_sync_on_print_and_create(self):
+        # 1. Quti va stikerlar yaratiladi
+        from production.services import create_box_with_tickets, ensure_box_tickets_fresh
+        boxes = create_box_with_tickets(order=self.order, article=self.article, quantity=50, count=1)
+        self.assertEqual(len(boxes), 1)
+        box = boxes[0]
+        
+        # Boshlang'ich biletlar: 3 ta (100, 200, 300)
+        tickets = list(box.tickets.order_by('article_operation__sequence'))
+        self.assertEqual(len(tickets), 3)
+        self.assertEqual(tickets[0].price_per_unit, Decimal('100.00'))
+        self.assertEqual(tickets[1].price_per_unit, Decimal('200.00'))
+        self.assertEqual(tickets[2].price_per_unit, Decimal('300.00'))
+        
+        # 2. Narxlar matritsasida o'zgarish bo'ladi:
+        # Op1 narxi 150 ga ko'tariladi
+        self.gi1.price_per_unit = Decimal('150.00')
+        self.gi1.save()
+        
+        # Op3 o'chiriladi
+        self.gi3.delete()
+        self.group.sync_to_articles()
+        
+        # Op4 qo'shiladi
+        OperationGroupItem.objects.create(group=self.group, operation=self.op4, sequence=3, price_per_unit=Decimal('450.00'))
+        
+        # 3. Chop etish sahifasi ochilganda avtomatik eng so'nggi matritsaga 1-ga-1 moslashini tekshirish
+        res_box_print = self.client.get(reverse('production:box_print_stickers', kwargs={'box_id': box.id}))
+        self.assertEqual(res_box_print.status_code, 200)
+        
+        # Qutidagi yangilangan biletlarni tekshirish
+        box.refresh_from_db()
+        updated_tickets = list(box.tickets.exclude(status=Ticket.Status.CANCELLED).order_by('article_operation__sequence'))
+        self.assertEqual(len(updated_tickets), 3)
+        
+        # Op1 narxi 150 bo'lishi kerak
+        self.assertEqual(updated_tickets[0].article_operation.operation, self.op1)
+        self.assertEqual(updated_tickets[0].price_per_unit, Decimal('150.00'))
+        
+        # Op2 narxi 200
+        self.assertEqual(updated_tickets[1].article_operation.operation, self.op2)
+        self.assertEqual(updated_tickets[1].price_per_unit, Decimal('200.00'))
+        
+        # Op3 butunlay yo'qolgan, o'rniga Op4 (450) kelgan
+        self.assertEqual(updated_tickets[2].article_operation.operation, self.op4)
+        self.assertEqual(updated_tickets[2].price_per_unit, Decimal('450.00'))
+        
+        # 4. Buyurtma bo'yicha barcha stikerlarni chop etish sahifasida ham xuddi shunday
+        res_order_print = self.client.get(reverse('production:order_print_all_stickers', kwargs={'order_id': self.order.id}))
+        self.assertEqual(res_order_print.status_code, 200)
+        self.assertContains(res_order_print, "Op To&#x27;rtinchi")
+        self.assertNotContains(res_order_print, "Op Uchinchi")
 
 
