@@ -35,7 +35,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-payroll_secure_pass}
       DB_HOST: db
       DB_PORT: 5432
-      BOT_TOKEN: ${BOT_TOKEN:-}
+      BOT_TOKEN: ${BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
+      TELEGRAM_REPORT_CHAT_ID: ${TELEGRAM_REPORT_CHAT_ID:--1004374345556}
       PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://terryjar.uz,https://www.terryjar.uz,https://tezol.shop,https://www.tezol.shop,https://34.156.34.148,http://34.156.34.148,https://91.99.181.42,http://91.99.181.42}
       BONUS: ${BONUS:-0}
@@ -77,7 +78,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-payroll_secure_pass}
       DB_HOST: db
       DB_PORT: 5432
-      BOT_TOKEN: ${BOT_TOKEN:-}
+      BOT_TOKEN: ${BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
+      TELEGRAM_REPORT_CHAT_ID: ${TELEGRAM_REPORT_CHAT_ID:--1004374345556}
       PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU}
     volumes:
       - ./config:/app/config
@@ -93,6 +95,45 @@ services:
         condition: service_started
     command: >
       sh -c "sleep 5 && python manage.py run_passport_bot"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  scheduler:
+    image: payroll-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-ip7pd902uilruyv}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: ${DB_NAME:-payroll_db}
+      DB_USER: ${DB_USER:-payroll_user}
+      DB_PASSWORD: ${DB_PASSWORD:-payroll_secure_pass}
+      DB_HOST: db
+      DB_PORT: 5432
+      BOT_TOKEN: ${BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
+      TELEGRAM_REPORT_CHAT_ID: ${TELEGRAM_REPORT_CHAT_ID:--1004374345556}
+      PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU}
+    volumes:
+      - ./config:/app/config
+      - ./accounts:/app/accounts
+      - ./production:/app/production
+      - ./screens:/app/screens
+      - ./templates:/app/templates
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    command: >
+      sh -c "sleep 10 && python manage.py run_scheduler"
     logging:
       driver: "json-file"
       options:
