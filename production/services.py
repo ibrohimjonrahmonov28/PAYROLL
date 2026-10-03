@@ -439,4 +439,83 @@ def parse_patok_number(val) -> int | None:
     return None
 
 
+def close_boxes_as_controlled(
+    boxes_qs,
+    user=None,
+    mark_printed: bool = True,
+    note: str = "Avvalgi (stiker chiqarilmagan / controlsiz) partiya avtomatik yopildi"
+) -> dict:
+    """
+    Stiker chop etilmagan yoki avvalgi (OTK tizimi bo'lmagan davrdagi)
+    qutilarni to'liq Sifat Nazorati (OTK)dan 1-sort qilib yopish.
+    """
+    from django.utils import timezone
+    from .models import Box, BoxQualityInspectionLog, Ticket
+
+    now = timezone.now()
+    boxes = list(boxes_qs.select_related('order', 'article'))
+    if not boxes:
+        return {'closed_count': 0, 'closed_units': 0, 'box_ids': []}
+
+    closed_count = 0
+    closed_units = 0
+    box_ids = []
+    logs_to_create = []
+
+    with transaction.atomic():
+        for box in boxes:
+            box.is_controlled = True
+            box.controlled_at = box.controlled_at or now
+            box.controlled_by = user or box.controlled_by
+            box.controlled_first_sort_qty = box.quantity
+            box.controlled_second_sort_qty = 0
+            box.controlled_defect_qty = 0
+            box.controlled_repair_qty = 0
+            box.status = Box.Status.COMPLETED
+
+            update_fields = [
+                'is_controlled', 'controlled_at', 'controlled_by',
+                'controlled_first_sort_qty', 'controlled_second_sort_qty',
+                'controlled_defect_qty', 'controlled_repair_qty', 'status'
+            ]
+
+            if mark_printed and not box.is_printed:
+                box.is_printed = True
+                box.printed_at = box.printed_at or box.created_at or now
+                update_fields.extend(['is_printed', 'printed_at'])
+
+            box.save(update_fields=update_fields)
+
+            # Agar qutida qolib ketgan hali skanerlanmagan biletlar bo'lsa
+            # ularni bekor qilingan (CANCELLED) deb belgilaymiz, toki kelajakda xatolik bilan urilmasin
+            box.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+
+            logs_to_create.append(
+                BoxQualityInspectionLog(
+                    box=box,
+                    inspector=user,
+                    action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+                    inspected_qty=box.quantity,
+                    first_sort_qty=box.quantity,
+                    second_sort_qty=0,
+                    repair_qty=0,
+                    defect_qty=0,
+                    notes=note
+                )
+            )
+            closed_count += 1
+            closed_units += box.quantity
+            box_ids.append(box.id)
+
+        if logs_to_create:
+            BoxQualityInspectionLog.objects.bulk_create(logs_to_create)
+
+    return {
+        'closed_count': closed_count,
+        'closed_units': closed_units,
+        'box_ids': box_ids,
+    }
+
+
+
 

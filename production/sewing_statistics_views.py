@@ -6,6 +6,7 @@ from django.db.models import Q, Prefetch
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from accounts.models import User
@@ -520,6 +521,7 @@ def sewing_statistics_orders_view(request):
         'total_unreached_control_boxes': 0,
         'total_waiting_control': 0,
         'total_waiting_control_boxes': 0,
+        'total_unprinted_boxes': 0,
         'total_in_repair': 0,
         'total_in_repair_boxes': 0,
         'total_first_sort': 0,
@@ -552,8 +554,13 @@ def sewing_statistics_orders_view(request):
         first_sort_qty = 0
         second_sort_qty = 0
         controlled_boxes = 0
+        unprinted_boxes_count = 0
 
         for b in boxes:
+            if not b.is_printed and not b.is_controlled:
+                unprinted_boxes_count += 1
+                overall_kpis['total_unprinted_boxes'] += 1
+
             dazmol_ids = article_dazmol_map.get(b.article_id, set())
             b_eval = evaluate_box_progress(b, dazmol_ids)
 
@@ -611,6 +618,7 @@ def sewing_statistics_orders_view(request):
             'in_repair_qty': in_repair_qty,
             'in_repair_boxes': in_repair_boxes,
             'controlled_boxes': controlled_boxes,
+            'unprinted_boxes_count': unprinted_boxes_count,
             'first_sort_qty': first_sort_qty,
             'second_sort_qty': second_sort_qty,
             'brak_rate_pct': ord_brak_pct,
@@ -698,6 +706,7 @@ def sewing_statistics_order_models_view(request, order_id: int):
         'unreached_control_boxes': 0,
         'waiting_control': 0,
         'waiting_control_boxes': 0,
+        'unprinted_boxes_count': sum(1 for b in boxes if not b.is_printed and not b.is_controlled),
         'in_repair': 0,
         'in_repair_boxes': 0,
         're_repair': 0,
@@ -1370,3 +1379,66 @@ def sewing_statistics_repairs_view(request):
         'has_any_warning': patoks_report['has_any_warning'],
         'active_orders': active_orders,
     })
+
+
+@manager_or_superadmin_required
+@require_POST
+def sewing_statistics_close_order_unprinted_boxes_view(request, order_id: int):
+    """
+    Bitta buyurtma bo'yicha stiker chop etilmagan (yoki avvalgi) qutilarni OTK sifat nazoratidan 1-sort qilib yopish.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    boxes = order.boxes.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False, is_printed=False)
+
+    # Agar stiker chiqarilmagan bo'lmasa, lekin barcha tikilgan va kutayotgan qutilar bo'lsa:
+    close_all_waiting = request.POST.get('close_all_waiting') == '1'
+    if close_all_waiting or not boxes.exists():
+        boxes = order.boxes.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False)
+
+    from .services import close_boxes_as_controlled
+    result = close_boxes_as_controlled(
+        boxes,
+        user=request.user,
+        mark_printed=True,
+        note=f"Zakaz #{order.order_number}: Avvalgi (stiker chiqarilmagan / controlsiz) partiya yopildi"
+    )
+
+    if result['closed_count'] > 0:
+        messages.success(
+            request,
+            f"✅ Muvaffaqiyatli! Zakaz #{order.order_number} bo'yicha {result['closed_count']} ta quti "
+            f"({result['closed_units']} dona) OTK sifat nazoratidan 1-sort qilib to'liq yopildi!"
+        )
+    else:
+        messages.info(request, "Ushbu buyurtmada yopilishi kerak bo'lgan ochiq qutilar topilmadi.")
+
+    return redirect('production:sewing_statistics_order_models', order_id=order.id)
+
+
+@manager_or_superadmin_required
+@require_POST
+def sewing_statistics_close_all_unprinted_boxes_view(request):
+    """
+    Barcha buyurtmalar bo'yicha stiker chop etilmagan (is_printed=False) va OTK o'tmagan qutilarni to'liq yopish.
+    """
+    boxes = Box.objects.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False, is_printed=False)
+
+    from .services import close_boxes_as_controlled
+    result = close_boxes_as_controlled(
+        boxes,
+        user=request.user,
+        mark_printed=True,
+        note="Tizimdagi barcha avvalgi stiker chiqarilmagan partiyalar avtomatik yopildi"
+    )
+
+    if result['closed_count'] > 0:
+        messages.success(
+            request,
+            f"✅ Muvaffaqiyatli! Jami {result['closed_count']} ta stiker chiqarilmagan quti "
+            f"({result['closed_units']} dona) OTK sifat nazoratidan 1-sort qilib to'liq yopildi!"
+        )
+    else:
+        messages.info(request, "Tizimda stiker chop etilmagan ochiq qutilar mavjud emas.")
+
+    return redirect('production:sewing_statistics_orders')
+

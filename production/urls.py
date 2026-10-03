@@ -38,8 +38,10 @@ urlpatterns = [
 
     # Tikim Jarayoni Statistikasi (Umumiy Zakaz, Modellar va Razmerlar bo'yicha)
     path('sewing-statistics/', sewing_statistics_views.sewing_statistics_orders_view, name='sewing_statistics_orders'),
+    path('sewing-statistics/close-all-unprinted/', sewing_statistics_views.sewing_statistics_close_all_unprinted_boxes_view, name='sewing_statistics_close_all_unprinted_boxes'),
     path('sewing-statistics/repairs/', sewing_statistics_views.sewing_statistics_repairs_view, name='sewing_statistics_repairs'),
     path('sewing-statistics/orders/<int:order_id>/', sewing_statistics_views.sewing_statistics_order_models_view, name='sewing_statistics_order_models'),
+    path('sewing-statistics/orders/<int:order_id>/close-unprinted/', sewing_statistics_views.sewing_statistics_close_order_unprinted_boxes_view, name='sewing_statistics_close_order_unprinted_boxes'),
     path('sewing-statistics/orders/<int:order_id>/items/<int:order_item_id>/', sewing_statistics_views.sewing_statistics_model_detail_view, name='sewing_statistics_model_detail'),
     path('sewing-statistics/api/size-boxes/', sewing_statistics_views.api_sewing_statistics_size_boxes, name='api_sewing_statistics_size_boxes'),
 

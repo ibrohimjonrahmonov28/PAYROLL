@@ -39,6 +39,37 @@
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
 
+    <!-- STIKER CHOP ETILMAGAN / ESKI QUTILARDAGI OTK KUTILMOQDA BANNERI -->
+    {% if overall_kpis.total_unprinted_boxes > 0 %}
+    <div
+        class="bg-gradient-to-r from-amber-950/80 via-slate-900 to-slate-900 border border-amber-500/50 rounded-3xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div
+                class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-black text-amber-300">
+                    Eski buyurtmalarda stiker chop etilmagan {{ overall_kpis.total_unprinted_boxes }} ta quti OTK sifat nazoratini kutmoqda
+                </h4>
+                <p class="text-xs text-slate-300 mt-0.5">
+                    Avval tizimda sifat nazorati (OTK) bo'lmagan davrda kiritilgan qutilar. Ularni barchasini 1-sort qilib nazoratdan o'tkazish (yopish) mumkin.
+                </p>
+            </div>
+        </div>
+        <form method="POST" action="{% url 'production:sewing_statistics_close_all_unprinted_boxes' %}"
+            onsubmit="return confirm('Haqiqatan ham barcha stiker chop etilmagan {{ overall_kpis.total_unprinted_boxes }} ta qutini OTK nazoratidan 1-sort qilib yopishni tasdiqlaysizmi?');"
+            class="flex-shrink-0">
+            {% csrf_token %}
+            <button type="submit"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs transition flex items-center gap-2 shadow-lg cursor-pointer">
+                <i class="fa-solid fa-check-double"></i>
+                <span>Barchasini OTKdan Yopish</span>
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- 10% BRAK OGOHLANTIRISH BANNERI -->
     {% if overall_kpis.has_brak_warning %}
     <div

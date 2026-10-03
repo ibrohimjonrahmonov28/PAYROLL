@@ -28,8 +28,32 @@
         </div>
     </div>
 
-    <!-- Right Header Actions: Repairs Link -->
+    <!-- Right Header Actions: Repairs Link & Close Unprinted Boxes -->
     <div class="flex items-center gap-2">
+        {% if order_totals.unprinted_boxes_count > 0 %}
+        <form method="POST" action="{% url 'production:sewing_statistics_close_order_unprinted_boxes' order.id %}"
+            onsubmit="return confirm('Ushbu buyurtmadagi stiker chop etilmagan {{ order_totals.unprinted_boxes_count }} ta qutini OTK sifat nazoratidan 1-sort qilib to\'liq yopishni tasdiqlaysizmi?');"
+            class="inline">
+            {% csrf_token %}
+            <button type="submit"
+                class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-lg cursor-pointer">
+                <i class="fa-solid fa-clipboard-check"></i>
+                <span>Stikersiz qutilarni OTKdan yopish ({{ order_totals.unprinted_boxes_count }} ta)</span>
+            </button>
+        </form>
+        {% elif order_totals.waiting_control_boxes > 0 and order.status == 'COMPLETED' %}
+        <form method="POST" action="{% url 'production:sewing_statistics_close_order_unprinted_boxes' order.id %}"
+            onsubmit="return confirm('Ushbu tugatilgan buyurtmadagi qolgan {{ order_totals.waiting_control_boxes }} ta qutini OTK sifat nazoratidan 1-sort qilib to\'liq yopishni tasdiqlaysizmi?');"
+            class="inline">
+            {% csrf_token %}
+            <input type="hidden" name="close_all_waiting" value="1">
+            <button type="submit"
+                class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-lg cursor-pointer">
+                <i class="fa-solid fa-clipboard-check"></i>
+                <span>OTK kutayotganlarni yopish ({{ order_totals.waiting_control_boxes }} ta)</span>
+            </button>
+        </form>
+        {% endif %}
         <a href="{% url 'production:sewing_statistics_repairs' %}?order_id={{ order.id }}"
             class="px-3.5 py-2 rounded-xl bg-slate-900 border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-white font-bold text-xs transition flex items-center gap-2 shadow-lg">
             <i class="fa-solid fa-wrench text-amber-400"></i>

@@ -2566,3 +2566,76 @@ class PricingMatrixAutoSyncStickerTests(TestCase):
         self.assertEqual(box.controlled_first_sort_qty, 48)
 
 
+class CloseUnprintedBoxesTests(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        from django.core.management import call_command
+        self.user = User.objects.create_superuser(
+            username='admin_unprinted',
+            password='admin_password123',
+            role=User.Role.SUPER_ADMIN
+        )
+        self.client.login(username='admin_unprinted', password='admin_password123')
+
+        self.art = Article.objects.create(code="ART-LEGACY", name="Eski Model")
+        self.op1 = Operation.objects.create(code="OP-LEG1", name="Tikish 1")
+        self.ao1 = ArticleOperation.objects.create(article=self.art, operation=self.op1, price_per_unit=Decimal("500"), sequence=1)
+
+        self.order = Order.objects.create(order_number="ORD-LEGACY-01", total_quantity=100)
+        self.box1 = Box.objects.create(order=self.order, article=self.art, box_number=1, quantity=50, is_printed=False, is_controlled=False)
+        self.box2 = Box.objects.create(order=self.order, article=self.art, box_number=2, quantity=50, is_printed=False, is_controlled=False)
+
+        # Qutilarga bilet yaratamiz
+        generate_box_tickets(self.box1)
+        generate_box_tickets(self.box2)
+
+    def test_close_boxes_as_controlled_service(self):
+        from production.services import close_boxes_as_controlled
+        boxes = Box.objects.filter(id__in=[self.box1.id, self.box2.id])
+        res = close_boxes_as_controlled(boxes, user=self.user)
+
+        self.assertEqual(res['closed_count'], 2)
+        self.assertEqual(res['closed_units'], 100)
+
+        self.box1.refresh_from_db()
+        self.assertTrue(self.box1.is_controlled)
+        self.assertTrue(self.box1.is_printed)
+        self.assertEqual(self.box1.controlled_first_sort_qty, 50)
+        self.assertEqual(self.box1.controlled_second_sort_qty, 0)
+        self.assertEqual(self.box1.status, Box.Status.COMPLETED)
+        self.assertEqual(self.box1.quality_inspection_logs.count(), 1)
+
+    def test_management_command_close_unprinted_boxes(self):
+        from django.core.management import call_command
+        import io
+        out = io.StringIO()
+        call_command('close_unprinted_boxes', order_id=self.order.id, yes=True, stdout=out)
+        self.assertIn("Muvaffaqiyatli", out.getvalue())
+
+        self.box1.refresh_from_db()
+        self.box2.refresh_from_db()
+        self.assertTrue(self.box1.is_controlled)
+        self.assertTrue(self.box2.is_controlled)
+
+    def test_views_close_order_unprinted_boxes(self):
+        url = reverse('production:sewing_statistics_close_order_unprinted_boxes', args=[self.order.id])
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 302)
+
+        self.box1.refresh_from_db()
+        self.box2.refresh_from_db()
+        self.assertTrue(self.box1.is_controlled)
+        self.assertTrue(self.box2.is_controlled)
+
+    def test_views_close_all_unprinted_boxes(self):
+        url = reverse('production:sewing_statistics_close_all_unprinted_boxes')
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 302)
+
+        self.box1.refresh_from_db()
+        self.box2.refresh_from_db()
+        self.assertTrue(self.box1.is_controlled)
+        self.assertTrue(self.box2.is_controlled)
+
+
+
