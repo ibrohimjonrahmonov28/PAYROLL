@@ -2642,4 +2642,72 @@ class CloseUnprintedBoxesTests(TestCase):
         self.assertTrue(self.box2.is_controlled)
 
 
+class RestoreStickersFromBackupTests(TestCase):
+    def test_restore_stickers_from_backup_command(self):
+        import os, io, tempfile
+        from django.core.management import call_command
+
+        art = Article.objects.create(code="ART-RESTORE", name="Tiklash Modeli")
+        op1 = Operation.objects.create(code="OP-R1", name="Op R1")
+        op2 = Operation.objects.create(code="OP-R2", name="Op R2")
+        ao1 = ArticleOperation.objects.create(article=art, operation=op1, price_per_unit=Decimal("200"), sequence=1)
+        ao2 = ArticleOperation.objects.create(article=art, operation=op2, price_per_unit=Decimal("300"), sequence=2)
+
+        order = Order.objects.create(order_number="ORD-RESTORE-99", total_quantity=50)
+        box = Box.objects.create(order=order, article=art, box_number=1, quantity=50)
+
+        # 1. Asl biletlar
+        t1 = Ticket.objects.create(
+            box=box, article_operation=ao1, quantity=50, split_index=1, total_splits=1,
+            ticket_code="TK-ORIGINAL-OP1", stiker_code="ORIGOP11", price_per_unit=Decimal("200")
+        )
+        t2 = Ticket.objects.create(
+            box=box, article_operation=ao2, quantity=50, split_index=1, total_splits=1,
+            ticket_code="TK-ORIGINAL-OP2", stiker_code="ORIGOP22", price_per_unit=Decimal("300")
+        )
+
+        # 2. Keyinroq kodlar adashib yangilanib qoldi deylik:
+        t1.ticket_code = "TK-NEW-WRONG-1"
+        t1.stiker_code = "WRONG001"
+        t1.save()
+        t2.ticket_code = "TK-NEW-WRONG-2"
+        t2.stiker_code = "WRONG002"
+        t2.save()
+
+        # 3. Zaxira nusxasi (SQL formatida)
+        dump_content = (
+            "COPY public.production_ticket (id, ticket_code, quantity, split_index, total_splits, "
+            "price_per_unit, total_amount, status, screen_number, scanned_at, qr_code_image, "
+            "article_operation_id, box_id, scanned_by_id, worker_id, stiker_code) FROM stdin;\n"
+            f"101\tTK-ORIGINAL-OP1\t50\t1\t1\t200.00\t10000.00\tPENDING\t\\N\t\\N\t\t{ao1.id}\t{box.id}\t\\N\t\\N\tORIGOP11\n"
+            f"102\tTK-ORIGINAL-OP2\t50\t1\t1\t300.00\t15000.00\tPENDING\t\\N\t\\N\t\t{ao2.id}\t{box.id}\t\\N\t\\N\tORIGOP22\n"
+            "\\.\n"
+        )
+        with tempfile.NamedTemporaryFile('w', suffix='.sql', delete=False) as tf:
+            tf.write(dump_content)
+            temp_path = tf.name
+
+        try:
+            # A) Dry-run tekshiruvi: bazaga tegilmasligi kerak
+            out_dry = io.StringIO()
+            call_command('restore_stickers_from_backup', dump_file=temp_path, dry_run=True, stdout=out_dry)
+            t1.refresh_from_db()
+            self.assertEqual(t1.stiker_code, "WRONG001")
+
+            # B) Haqiqiy tiklash
+            out = io.StringIO()
+            call_command('restore_stickers_from_backup', dump_file=temp_path, yes=True, stdout=out)
+            self.assertIn("MUVAFFAQIShIYATLI", out.getvalue())
+
+            t1.refresh_from_db()
+            t2.refresh_from_db()
+            self.assertEqual(t1.ticket_code, "TK-ORIGINAL-OP1")
+            self.assertEqual(t1.stiker_code, "ORIGOP11")
+            self.assertEqual(t2.ticket_code, "TK-ORIGINAL-OP2")
+            self.assertEqual(t2.stiker_code, "ORIGOP22")
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+
 
