@@ -392,6 +392,37 @@ class MasterWebTerminalTest(TestCase):
         res_sub = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': 'ORD'})
         self.assertNotEqual(res_sub.json().get('status'), 'OK')
 
+    def test_terminal_scans_ticket_with_latest_matrix_price_even_if_changed_after_print(self):
+        """
+        Foydalanuvchi talabi:
+        Stikerlar chop etilib, tikuvga chiqqanidan keyin narxlar matritsasida narx o'zgarsa:
+        Stiker ID va QR kodlar aslo o'zgarmasdan qoladi, lekin terminalda skanerlanganda
+        avtomatik tarzda eng oxirgi yangi narx bo'yicha hisoblanishi kerak.
+        """
+        self.client.force_login(self.master)
+        self.client.post(reverse('production:terminal_identify_worker'), {'code': self.worker.worker_id})
 
+        # 1. Biletning asl narxi: 1500 UZS
+        self.assertEqual(self.ticket1.price_per_unit, Decimal('1500.00'))
+        orig_code = self.ticket1.ticket_code
+        orig_stiker = self.ticket1.stiker_code
 
+        # 2. Keyinroq matritsada operatsiya narxi 2500 UZS ga o'zgardi deylik:
+        # ArticleOperation narxi yangilandi:
+        ArticleOperation.objects.filter(id=self.art_op1.id).update(price_per_unit=Decimal('2500.00'))
 
+        # 3. Tikuvchi qo'lidagi qog'oz stikerni (eski QR / stiker kodini) terminalga uradi:
+        res = self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': orig_code})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+
+        # 4. Kodlar mutlaqo o'zgarmasdan saqlangan:
+        self.ticket1.refresh_from_db()
+        self.assertEqual(self.ticket1.ticket_code, orig_code)
+        self.assertEqual(self.ticket1.stiker_code, orig_stiker)
+
+        # 5. Narx esa eng oxirgi yangi narx (2500 UZS) bo'yicha hisoblangan:
+        self.assertEqual(self.ticket1.price_per_unit, Decimal('2500.00'))
+        self.assertEqual(self.ticket1.total_amount, Decimal(self.ticket1.quantity) * Decimal('2500.00'))
+        self.assertEqual(data['scanned_ticket']['price_per_unit'], 2500.0)

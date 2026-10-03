@@ -531,6 +531,14 @@ def terminal_scan_ticket_api(request):
             'message': f"⚠️ Ushbu bilet ({ticket.ticket_code}) joriy ro'yxatga allaqachon qo'shilgan!"
         })
 
+    # 2.5. Har doim matritsadagi eng so'nggi narx bilan yangilash (In-place update):
+    # Agar bilet hali muzlatilmagan bo'lsa va matritsada narx o'zgargan bo'lsa,
+    # stiker kodi o'zgarmaydi, lekin xodimga eng oxirgi yangi narx hisoblanadi!
+    if not ticket.is_frozen and ticket.article_operation and ticket.price_per_unit != ticket.article_operation.price_per_unit:
+        ticket.price_per_unit = ticket.article_operation.price_per_unit
+        ticket.total_amount = Decimal(ticket.quantity) * ticket.article_operation.price_per_unit
+        ticket.save(update_fields=['price_per_unit', 'total_amount'])
+
     # Sessiyaga qo'shish
     pending_ids.append(ticket.id)
     request.session['terminal_pending_tickets'] = pending_ids
