@@ -1847,11 +1847,12 @@ def superadmin_pricing(request):
         # 4. GURUHDAN OPERATSIYANI O'CHIRISH
         elif action == 'delete_group_item':
             item_id = request.POST.get('item_id')
-            item = get_object_or_404(OperationGroupItem, id=item_id)
+            group = item.group
             group_name = item.group.name
             op_name = item.operation.name
             item.delete()
-            messages.success(request, f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi.")
+            group.sync_to_articles()
+            messages.success(request, f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi va bog'langan artikullarda yangilandi.")
             return redirect('superadmin_pricing')
 
         # 5. GURUHNI TO'LIQ O'CHIRISH

@@ -109,11 +109,16 @@ class Article(models.Model):
     def total_unit_rate(self):
         return sum(ao.price_per_unit for ao in self.article_operations.all())
 
-    def sync_operations_from_group(self):
-        """Guruhga tegishli barcha operatsiyalarni ushbu artikulga biriktirish / yangilash"""
+    def sync_operations_from_group(self, sync_unscanned_boxes=True):
+        """Guruhga tegishli barcha operatsiyalarni ushbu artikulga biriktirish / yangilash va ortiqchalarini tozalash"""
         if not self.operation_group:
             return
-        for item in self.operation_group.items.select_related('operation').all():
+
+        group_items = list(self.operation_group.items.select_related('operation').all().order_by('sequence', 'id'))
+        keep_op_ids = set()
+
+        for item in group_items:
+            keep_op_ids.add(item.operation_id)
             ao = self.article_operations.filter(operation=item.operation).first()
             if ao:
                 ao.price_per_unit = item.price_per_unit
@@ -128,6 +133,32 @@ class Article(models.Model):
                     sequence=item.sequence,
                     difficulty=item.difficulty
                 )
+
+        # Guruhdan olib tashlangan eski operatsiyalarni tozalash:
+        # Faqat bironta ham bileti SKANERLANMAGAN operatsiyalarni o'chirish
+        obsolete_aos = self.article_operations.exclude(operation_id__in=keep_op_ids)
+        for old_ao in obsolete_aos:
+            if not old_ao.tickets.filter(status='SCANNED').exists():
+                old_ao.tickets.all().delete()
+                old_ao.delete()
+
+        # Agar qutilardagi biletlar hali bironta ham skanerlanmagan bo'lsa, ularni qayta generatsiya qilish
+        if sync_unscanned_boxes:
+            self.sync_box_tickets_if_unscanned()
+
+    def sync_box_tickets_if_unscanned(self, order=None):
+        """
+        Agar qutilardagi biletlar hali bironta ham skanerlanmagan bo'lsa,
+        qutilarning biletlarini joriy operatsiyalar ro'yxatiga 1-ga-1 moslab qayta generatsiya qilish.
+        """
+        from .services import generate_box_tickets
+        boxes_qs = Box.objects.filter(article=self).exclude(status=Box.Status.CANCELLED)
+        if order:
+            boxes_qs = boxes_qs.filter(order=order)
+
+        for box in boxes_qs:
+            if not box.tickets.filter(status=Ticket.Status.SCANNED).exists():
+                generate_box_tickets(box)
 
     def sync_operations_from_model(self):
         """Modelga tegishli barcha operatsiyalarni ushbu artikulga nusxalash"""
@@ -318,25 +349,11 @@ class OperationGroupItem(models.Model):
             return str(self.difficulty)
 
     def save(self, *args, **kwargs):
-        is_existing = self.pk is not None
         super().save(*args, **kwargs)
-        # Guruhdagi operatsiya narxi o'zgarsa, ushbu guruhga ulangan barcha artikullarda
-        # tegishli ArticleOperation narxi yangilanadi va barcha biletlar qayta hisoblanadi
+        # Guruhdagi operatsiya narxi yoki tartibi o'zgarsa, ushbu guruhga ulangan barcha artikullarda
+        # to'liq sinxronlash amalga oshiriladi
         for art in self.group.articles.all():
-            ao = ArticleOperation.objects.filter(article=art, operation=self.operation).first()
-            if ao:
-                ao.price_per_unit = self.price_per_unit
-                ao.sequence = self.sequence
-                ao.difficulty = self.difficulty
-                ao.save()
-            else:
-                ArticleOperation.objects.create(
-                    article=art,
-                    operation=self.operation,
-                    price_per_unit=self.price_per_unit,
-                    sequence=self.sequence,
-                    difficulty=self.difficulty
-                )
+            art.sync_operations_from_group()
 
     def __str__(self):
         return f"{self.group.name} -> {self.operation.name} ({self.price_per_unit:,.0f} UZS)"
