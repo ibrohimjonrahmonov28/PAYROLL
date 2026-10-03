@@ -62,23 +62,18 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
                     t.total_splits
                 )
 
-    # Mavjud biletlarni tozalash:
-    # Agar bironta ham bilet skanerlanmagan bo'lsa, barchasini tozalab yangidan yaratish
-    has_scanned = box.tickets.filter(status=Ticket.Status.SCANNED).exists()
-    if not has_scanned:
-        box.tickets.exclude(status=Ticket.Status.CANCELLED).delete()
-    else:
-        # Agar qisman skanerlangan bo'lsa, faqat kutilayotgan (PENDING) biletlarni tozalaymiz
-        box.tickets.filter(status=Ticket.Status.PENDING).delete()
+    article_ops = list(article.article_operations.filter(is_active=True).order_by('sequence', 'id'))
+    active_ao_ids = {ao.id for ao in article_ops}
 
-    article_ops = article.article_operations.filter(is_active=True).order_by('sequence', 'id')
-    created_tickets = []
+    # 1. Faol bo'lmagan yoki guruhdan olib tashlangan operatsiyalar biletlarini bekor qilish (DELETE EMAS, CANCELLED!):
+    box.tickets.exclude(article_operation_id__in=active_ao_ids).filter(
+        status=Ticket.Status.PENDING
+    ).update(status=Ticket.Status.CANCELLED)
 
+    result_tickets = []
+
+    # 2. Har bir faol operatsiya bo'yicha biletlarni tekshirish / saqlab qolish / yaratish:
     for art_op in article_ops:
-        # Agar bu operatsiya allaqachon skanerlangan bo'lsa, uni qayta yaratmaymiz
-        if has_scanned and box.tickets.filter(article_operation=art_op, status=Ticket.Status.SCANNED).exists():
-            continue
-
         split_count = int(operation_splits.get(art_op.id, 1))
         if split_count < 1:
             split_count = 1
@@ -86,20 +81,55 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
         allocations = allocate_ticket_quantities(box.quantity, split_count)
         total_splits = len(allocations)
 
-        for index, qty in enumerate(allocations, start=1):
-            ticket = Ticket(
-                box=box,
-                article_operation=art_op,
-                quantity=qty,
-                split_index=index,
-                total_splits=total_splits,
-                price_per_unit=art_op.price_per_unit,
-                status=Ticket.Status.PENDING
-            )
-            ticket.save()
-            created_tickets.append(ticket)
+        # Keraksiz split biletlarni bekor qilish (agar split kamaygan bo'lsa)
+        box.tickets.filter(
+            article_operation=art_op,
+            split_index__gt=total_splits,
+            status=Ticket.Status.PENDING
+        ).update(status=Ticket.Status.CANCELLED)
 
-    return created_tickets
+        for index, qty in enumerate(allocations, start=1):
+            existing_ticket = box.tickets.filter(
+                article_operation=art_op,
+                split_index=index
+            ).first()
+
+            if existing_ticket:
+                # Mavjud biletni yangilaymiz, LEKIN uning ticket_code va stiker_code sini SAQLAB QOLAMIZ!
+                fields_to_update = []
+                if existing_ticket.quantity != qty:
+                    existing_ticket.quantity = qty
+                    fields_to_update.append('quantity')
+                if existing_ticket.total_splits != total_splits:
+                    existing_ticket.total_splits = total_splits
+                    fields_to_update.append('total_splits')
+                if existing_ticket.price_per_unit != art_op.price_per_unit:
+                    existing_ticket.price_per_unit = art_op.price_per_unit
+                    existing_ticket.total_amount = Decimal(qty) * art_op.price_per_unit
+                    fields_to_update.extend(['price_per_unit', 'total_amount'])
+                if existing_ticket.status == Ticket.Status.CANCELLED and box.status != Box.Status.COMPLETED:
+                    existing_ticket.status = Ticket.Status.PENDING
+                    fields_to_update.append('status')
+
+                if fields_to_update:
+                    existing_ticket.save(update_fields=fields_to_update)
+
+                result_tickets.append(existing_ticket)
+            else:
+                # Yangi bilet yaratish (avval bo'lmagan yangi operatsiya)
+                ticket = Ticket(
+                    box=box,
+                    article_operation=art_op,
+                    quantity=qty,
+                    split_index=index,
+                    total_splits=total_splits,
+                    price_per_unit=art_op.price_per_unit,
+                    status=Ticket.Status.PENDING
+                )
+                ticket.save()
+                result_tickets.append(ticket)
+
+    return result_tickets
 
 
 def ensure_box_tickets_fresh(box: Box) -> None:

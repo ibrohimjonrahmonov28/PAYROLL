@@ -147,9 +147,14 @@ class Article(models.Model):
         # Faqat bironta ham bileti SKANERLANMAGAN operatsiyalarni o'chirish
         obsolete_aos = self.article_operations.exclude(operation_id__in=keep_op_ids)
         for old_ao in obsolete_aos:
-            if not old_ao.tickets.filter(status='SCANNED').exists():
-                old_ao.tickets.all().delete()
+            if not old_ao.tickets.exists():
                 old_ao.delete()
+            else:
+                # Agar biletlari bo'lsa (chop etilgan yoki skanerlangan), ularni o'chirmaymiz,
+                # faqat kutilayotgan biletlarni CANCELLED qilib, operatsiyani nofaol qilamiz:
+                old_ao.is_active = False
+                old_ao.save(update_fields=['is_active'])
+                old_ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
         # Agar qutilardagi biletlar hali bironta ham skanerlanmagan bo'lsa, ularni qayta generatsiya qilish
         if sync_unscanned_boxes:

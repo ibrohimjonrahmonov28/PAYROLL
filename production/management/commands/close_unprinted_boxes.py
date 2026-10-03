@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.db.models import Q
-from production.models import Box, Order
+from production.models import Box
 from production.services import close_boxes_as_controlled
 
 

@@ -2460,15 +2460,19 @@ class PricingMatrixAutoSyncStickerTests(TestCase):
         updated_tickets = list(box.tickets.exclude(status=Ticket.Status.CANCELLED).order_by('article_operation__sequence'))
         self.assertEqual(len(updated_tickets), 3)
         
-        # Op1 narxi 150 bo'lishi kerak
+        # Op1 narxi 150 bo'lishi kerak va stiker_code saqlanib qolishi shart!
         self.assertEqual(updated_tickets[0].article_operation.operation, self.op1)
         self.assertEqual(updated_tickets[0].price_per_unit, Decimal('150.00'))
+        self.assertEqual(updated_tickets[0].stiker_code, tickets[0].stiker_code)
+        self.assertEqual(updated_tickets[0].ticket_code, tickets[0].ticket_code)
         
-        # Op2 narxi 200
+        # Op2 narxi 200 va stiker_code saqlanib qolishi shart!
         self.assertEqual(updated_tickets[1].article_operation.operation, self.op2)
         self.assertEqual(updated_tickets[1].price_per_unit, Decimal('200.00'))
+        self.assertEqual(updated_tickets[1].stiker_code, tickets[1].stiker_code)
+        self.assertEqual(updated_tickets[1].ticket_code, tickets[1].ticket_code)
         
-        # Op3 butunlay yo'qolgan, o'rniga Op4 (450) kelgan
+        # Op3 bekor qilingan (CANCELLED), o'rniga Op4 (450) kelgan
         self.assertEqual(updated_tickets[2].article_operation.operation, self.op4)
         self.assertEqual(updated_tickets[2].price_per_unit, Decimal('450.00'))
         
