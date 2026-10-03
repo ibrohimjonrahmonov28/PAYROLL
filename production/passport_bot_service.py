@@ -28,6 +28,7 @@ from .models import (
     CancelledBatchLog,
     ArticleOperation
 )
+from .services import ensure_box_tickets_fresh, generate_box_tickets
 
 
 def decode_qr_from_image_bytes(image_bytes: bytes) -> list[str]:
@@ -317,6 +318,25 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                     ),
                     'details': {'cancelled_log_id': cancelled_log.id}
                 }
+
+        cand_clean = clean_input.lstrip('#').strip().upper()
+        if (len(cand_clean) == 8 and cand_clean.isalnum()) or clean_input.upper().startswith('TK-'):
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'NOT_FOUND',
+                'title': "❌ Stiker bazada topilmadi",
+                'message': (
+                    f"❌ *USHBU STIKER TIZIMDA TOPILMADI:* `{clean_input}`\n\n"
+                    f"⚠️ *DIQQAT:* Ushbu qog'oz stikerni tikuv patogiga chiqarmang! "
+                    f"Agar tikuvchi buni Zebra terminaliga ursa, '❌ Bilet bazada topilmadi' xatosi beradi va ish haqi yoza olmaydi.\n\n"
+                    f"📋 *Mumkin bo'lgan sabablar:*\n"
+                    f"1. Kesim yoki Meto bo'limida ushbu quti bekor qilinib, qaytadan boshqa qutilarga taqsimlangan bo'lishi mumkin.\n"
+                    f"2. Qog'oz stiker xato yoki eskirgan partiyadan qolib ketgan.\n\n"
+                    f"👉 *Tekshirish uchun:* Qutidagi A4 Pasportning asosiy QR kodini botga yuboring yoki Quti kodini (masalan: `A1-105`) kiriting."
+                ),
+                'details': {'code': clean_input}
+            }
 
         # Umumiy topilmadi xabari
         return {
@@ -674,8 +694,59 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
     # 6.B: AGAR FOYDALANUVCHI ALOHIDA AKTIV QUTI / STIKERNI SKANERLAGAN BO'LSA
     is_single_box_scan = (scanned_box is not None and res_type in ['BOX_CODE', 'TICKET_CODE', 'STIKER_CODE', 'BOX_ID', 'TICKET_ID'])
     if is_single_box_scan and scanned_box.status != Box.Status.CANCELLED:
-        # Alohida aktiv qutining stikerlari narxini tekshirish
-        single_box_tickets = list(scanned_box.tickets.select_related('article_operation__operation').all())
+        single_box_tickets = list(scanned_box.tickets.select_related('article_operation__operation').filter(
+            status__in=[Ticket.Status.PENDING, Ticket.Status.SCANNED]
+        ))
+        
+        target_art = scanned_box.target_article
+        expected_ops_count = ArticleOperation.objects.filter(article=target_art, is_active=True).count() if target_art else 0
+
+        # 1. Biletlar umuman generatsiya qilinmagan bo'lsa
+        if not single_box_tickets:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'NO_TICKETS',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU QUTIDA HALI BILETLAR GENERATSIYA QILINMAGAN!*\n\n"
+                    f"📦 *Quti:* #{scanned_box.box_number} ({scanned_box.display_code})\n"
+                    f"📏 *Razmer:* {scanned_box.razmer or '—'}\n"
+                    f"❗ Ushbu quti uchun stikerlar bazada yo'q! Agar tikuvga berilsa, Zebra terminalida '❌ Bilet bazada topilmadi' xatosi beradi.\n\n"
+                    f"🔄 Stikerchiga murojaat qilib, ushbu qutiga biletlarni to'liq generatsiya qiling va chop eting."
+                ),
+                'details': {'box_id': scanned_box.id}
+            }
+
+        # 2. Qutidagi biletlar model operatsiyalariga nisbatan kam (chala) bo'lsa
+        if expected_ops_count > 0 and len(single_box_tickets) < expected_ops_count:
+            return {
+                'success': False,
+                'can_release': False,
+                'status_code': 'INCOMPLETE_BOX_TICKETS',
+                'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+                'message': (
+                    f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ *USHBU QUTIDA OPERATSIYA BILETLARI TO'LIQ EMAS!*\n\n"
+                    f"📦 *Quti:* #{scanned_box.box_number} ({scanned_box.display_code})\n"
+                    f"📏 *Razmer:* {scanned_box.razmer or '—'}\n"
+                    f"📊 *Biletlar:* {len(single_box_tickets)} ta (kerakli: {expected_ops_count} ta)\n"
+                    f"❗ Ayrim operatsiyalar uchun biletlar bazada yo'q. Tikuvda '❌ Bilet topilmadi' xatosi chiqmasligi uchun avval biletlarni to'liq generatsiya qiling.\n\n"
+                    f"🔄 Stikerchiga murojaat qiling."
+                ),
+                'details': {'box_id': scanned_box.id, 'tickets_count': len(single_box_tickets), 'expected_count': expected_ops_count}
+            }
+
+        # 3. Biletlarda stiker_code bo'sh bo'lmasligini ta'minlash
+        from production.models import generate_unique_stiker_code
+        for t in single_box_tickets:
+            if not t.stiker_code:
+                t.stiker_code = generate_unique_stiker_code()
+                t.save(update_fields=['stiker_code'])
+
         box_zero_prices = [t for t in single_box_tickets if t.price_per_unit is None or t.price_per_unit <= Decimal('0.00')]
         if box_zero_prices:
             return {
@@ -716,7 +787,8 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
                 f"🏷 *Pastal:* {pastal_code}\n\n"
                 f"⚙️ *Operatsiyalar va narxlar (100% to'g'ri):*\n"
-                f"• Barcha {len(single_box_tickets)} ta operatsiya narxi to'liq kiritilgan ✅\n"
+                f"• Barcha {len(single_box_tickets)} ta operatsiya biletlari bazada mavjud va narxi to'liq kiritilgan ✅\n"
+                f"• Har bir stiker unikal ID ga ega (Tikuvda 'Topilmadi' xatosi bo'lmaydi) ✅\n"
                 f"{re_split_note}\n"
                 f"🛡 *Holati:* Ushbu quti to'liq AKTIV va tasdiqlangan.\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
@@ -807,6 +879,38 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"🔄 Stikerlar chiqarish uchun *stikerchiga murojaat qiling*."
             ),
             'details': {}
+        }
+
+    # Har bir aktiv qutida operatsiyalar to'liqligini tekshirish:
+    expected_ops_count = ArticleOperation.objects.filter(article=article, is_active=True).count() if article else 0
+    incomplete_boxes = []
+    from production.models import generate_unique_stiker_code
+    for b in active_boxes:
+        b_tickets = [t for t in all_tickets if t.box_id == b.id and t.status in [Ticket.Status.PENDING, Ticket.Status.SCANNED]]
+        if expected_ops_count > 0 and len(b_tickets) < expected_ops_count:
+            incomplete_boxes.append((b, len(b_tickets), expected_ops_count))
+        for t in b_tickets:
+            if not t.stiker_code:
+                t.stiker_code = generate_unique_stiker_code()
+                t.save(update_fields=['stiker_code'])
+
+    if incomplete_boxes:
+        inc_str = "\n".join([f"• Quti #{bx.box_number} ({bx.display_code}): {act} ta bilet (kerakli: {exp} ta)" for bx, act, exp in incomplete_boxes[:5]])
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'INCOMPLETE_BOX_TICKETS',
+            'title': "🚫 PATOKKA BERIB BO'LMAYDI!",
+            'message': (
+                f"🚫 *PATOKKA BERIB BO'LMAYDI!*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⚠️ *AYRIM QUTILARDAGI BILETLAR TO'LIQ EMAS!*\n\n"
+                f"Tikuvchilar operatsiyalarni skaner qilganda '❌ Bilet bazada topilmadi' xatosi chiqmasligi uchun har bir qutida barcha operatsiyalar biletlari mavjud bo'lishi shart.\n\n"
+                f"❌ *Chala qutilar ({len(incomplete_boxes)} ta):*\n"
+                f"{inc_str}\n\n"
+                f"🔄 Stikerchiga murojaat qilib, ushbu qutilarga biletlarni to'liq generatsiya qiling!"
+            ),
+            'details': {'incomplete_boxes_count': len(incomplete_boxes)}
         }
 
     # Biletlar orasida CANCELLED (atmen bo'lganlari) bormi?
@@ -959,9 +1063,10 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         f"🔢 *Jami mahsulot:* {total_units:,} dona\n\n"
         f"📊 *Razmerlar va qutilar taqsimoti:*\n"
         f"{sizes_text}\n\n"
-        f"⚙️ *Operatsiyalar va narxlar (100% to'g'ri):*\n"
+        f"⚙️ *Operatsiyalar va stikerlar (100% to'g'ri):*\n"
         f"• Tekshirilgan jami stikerlar: {total_tickets_count} ta\n"
-        f"• Barcha qutilardagi barcha stikerlar operatsiya narxlari to'liq kiritilgan ✅\n"
+        f"• Barcha qutilardagi barcha stikerlar bazada to'liq mavjud (Tikuvda 'Topilmadi' xatosi bo'lmaydi) ✅\n"
+        f"• Barcha operatsiyalar narxlari to'liq kiritilgan ✅\n"
         f"{in_progress_notice}\n"
         f"🛡 *Holati:* Barcha {total_boxes_count} ta quti to'liq AKTIV, bekor qilingan (atmen) qutilar yo'q.\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"

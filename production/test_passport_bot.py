@@ -339,3 +339,37 @@ class PassportVerificationTestCase(TestCase):
         # Barcha qutilar va biletlar CANCELLED bo'lishi kerak
         self.assertEqual(self.order.boxes.exclude(status=Box.Status.CANCELLED).count(), 0)
         self.assertEqual(Ticket.objects.filter(box__order=self.order, status=Ticket.Status.PENDING).count(), 0)
+
+    def test_verify_incomplete_box_tickets_rejected(self):
+        """Qutida operatsiyalar biletlari chala bo'lsa: PATOKKA BERIB BO'LMAYDI"""
+        # op2 bileti o'chirilgan holat
+        tkt = self.boxes_m[0].tickets.filter(article_operation=self.art_op2).first()
+        tkt.delete()
+
+        res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'INCOMPLETE_BOX_TICKETS')
+        self.assertIn("BILETLAR TO'LIQ EMAS", res['message'])
+
+    def test_verify_empty_box_tickets_rejected_for_single_box(self):
+        """Biletlari umuman yo'q quti tekshirilganda: NO_TICKETS"""
+        empty_box = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item_m,
+            box_number=99,
+            box_code="E99-999",
+            quantity=50
+        )
+        res = verify_pastal_for_sewing(f"BOX:{empty_box.box_code}")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'NO_TICKETS')
+        self.assertIn("HALI BILETLAR GENERATSIYA QILINMAGAN", res['message'])
+
+    def test_verify_unknown_sticker_candidate_diagnostic(self):
+        """Noma'lum 8 xonali stiker kodi kiritilganda aniq ogohlantirish berish"""
+        res = verify_pastal_for_sewing("#UNKNOWN8")
+        self.assertFalse(res['can_release'])
+        self.assertEqual(res['status_code'], 'NOT_FOUND')
+        self.assertIn("USHBU STIKER TIZIMDA TOPILMADI", res['message'])
+        self.assertIn("tikuv patogiga chiqarmang", res['message'])
