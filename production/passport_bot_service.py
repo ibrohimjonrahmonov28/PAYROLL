@@ -810,7 +810,14 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         }
 
     # Biletlar orasida CANCELLED (atmen bo'lganlari) bormi?
-    cancelled_tickets = [t for t in all_tickets if t.status == Ticket.Status.CANCELLED]
+    # Eslatma: To'xtatilgan operatsiyalar (is_active=False) butun qutining patokka chiqishini to'xtatmaydi
+    cancelled_tickets = [
+        t for t in all_tickets 
+        if t.status == Ticket.Status.CANCELLED and (
+            t.box.status == Box.Status.CANCELLED or 
+            (t.article_operation and t.article_operation.is_active)
+        )
+    ]
     if len(cancelled_tickets) > 0:
         return {
             'success': False,

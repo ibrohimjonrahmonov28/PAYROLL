@@ -131,16 +131,24 @@
                             <th class="py-3 px-4">Operatsiya Nomi</th>
                             <th class="py-3 px-3 text-center">Qiyinlik</th>
                             <th class="py-3 px-6 text-right">Dona Narxi (UZS)</th>
-                            <th class="py-3 px-4 text-right w-44">Amallar</th>
+                            <th class="py-3 px-3 text-center">Holati</th>
+                            <th class="py-3 px-4 text-right w-64">Amallar</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/60 text-slate-300">
                         {% for item in group.items.all %}
-                        <tr class="hover:bg-slate-800/30 transition">
+                        <tr class="hover:bg-slate-800/30 transition {% if not item.is_active %}opacity-60 bg-rose-950/15{% endif %}">
                             <td class="py-3 px-3 text-center font-mono text-slate-500 text-sm font-bold">{{
                                 item.sequence }}</td>
                             <td class="py-3 px-4 font-mono font-bold text-amber-400">{{ item.operation.code }}</td>
-                            <td class="py-3 px-4 font-bold text-white text-sm">{{ item.operation.name }}</td>
+                            <td class="py-3 px-4 font-bold text-white text-sm">
+                                {% if not item.is_active %}
+                                    <span class="line-through text-slate-400">{{ item.operation.name }}</span>
+                                    <span class="ml-1 text-[10px] text-rose-400 font-normal italic">(bajarilmaydi)</span>
+                                {% else %}
+                                    {{ item.operation.name }}
+                                {% endif %}
+                            </td>
                             <td class="py-3 px-3 text-center">
                                 <span
                                     class="px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60 text-indigo-400 font-mono font-bold text-xs">
@@ -151,22 +159,60 @@
                                 {{ item.price_per_unit|floatformat:0 }} <span
                                     class="text-xs text-slate-500 font-normal">so'm</span>
                             </td>
+                            <td class="py-3 px-3 text-center">
+                                {% if item.is_active %}
+                                    <span class="px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 font-bold text-[10px] inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Faol
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-800/80 text-rose-300 font-bold text-[10px] inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-ban text-[9px]"></i> To'xtatilgan
+                                    </span>
+                                {% endif %}
+                            </td>
                             <td class="py-3 px-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    {% if item.is_active %}
+                                    <form method="POST" action="{% url 'superadmin_pricing' %}"
+                                        onsubmit="return confirm('DIQQAT: Ushbu operatsiyani TO\'XTATMOQCHIMISIZ?\n\n- Ushbu operatsiyaning barcha skanerlanmagan stikerlari BEKOR QILINADI (ATMEN);\n- Tikuvchilar ushbu stikerni ura olmaydi;\n- Control (sifat nazorati) ushbu operatsiyani talab qilmaydi!');"
+                                        class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="toggle_group_item_status">
+                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                        <button type="submit"
+                                            class="px-2 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 font-bold text-xs rounded-lg border border-amber-800/60 transition flex items-center gap-1 cursor-pointer"
+                                            title="Operatsiyani to'xtatish (Bekor qilish)">
+                                            <i class="fa-solid fa-pause text-[10px]"></i> To'xtatish
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{% url 'superadmin_pricing' %}"
+                                        onsubmit="return confirm('Ushbu operatsiyani QAYTA FAOL QILMOQCHIMISIZ?\n\n- Barcha skanerlanmagan qutilarga ushbu operatsiya biletlari qayta tiklanadi.');"
+                                        class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="toggle_group_item_status">
+                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                        <button type="submit"
+                                            class="px-2 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 font-bold text-xs rounded-lg border border-emerald-800/60 transition flex items-center gap-1 cursor-pointer"
+                                            title="Operatsiyani qayta yoqish">
+                                            <i class="fa-solid fa-play text-[10px]"></i> Qayta yoqish
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                     <button
                                         onclick="openEditItemModal({{ item.id }}, '{{ group.name|escapejs }}', '{{ item.operation.name|escapejs }}', {{ item.price_per_unit }}, {{ item.sequence }}, '{{ item.difficulty_display }}')"
-                                        class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
-                                        <i class="fa-solid fa-pen text-[10px]"></i> Narxni o'zgartirish
+                                        class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-pen text-[10px]"></i> Tahrirlash
                                     </button>
                                     <form method="POST" action="{% url 'superadmin_pricing' %}"
-                                        onsubmit="return confirm('Ushbu operatsiyani guruhdan olib tashlamoqchimisiz?');"
+                                        onsubmit="return confirm('Ushbu operatsiyani guruhdan butunlay olib tashlamoqchimisiz?');"
                                         class="inline">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="delete_group_item">
                                         <input type="hidden" name="item_id" value="{{ item.id }}">
                                         <button type="submit"
                                             class="p-1.5 text-slate-500 hover:text-rose-400 transition"
-                                            title="Olib tashlash">
+                                            title="Butunlay o'chirish">
                                             <i class="fa-solid fa-trash-can text-xs"></i>
                                         </button>
                                     </form>
@@ -175,7 +221,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="py-8 text-center text-slate-500 italic">
+                            <td colspan="7" class="py-8 text-center text-slate-500 italic">
                                 Bu guruhda hozircha operatsiyalar yo'q. Yuqoridagi "+ Operatsiya qo'shish" tugmasi
                                 orqali qo'shing.
                             </td>

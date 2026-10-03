@@ -2478,4 +2478,91 @@ class PricingMatrixAutoSyncStickerTests(TestCase):
         self.assertContains(res_order_print, "Op To&#x27;rtinchi")
         self.assertNotContains(res_order_print, "Op Uchinchi")
 
+    def test_deactivate_operation_and_control_pass(self):
+        import json
+        from production.services import create_box_with_tickets
+        boxes = create_box_with_tickets(order=self.order, article=self.article, quantity=50, count=1)
+        box = boxes[0]
+        self.assertEqual(box.tickets.count(), 3)
+        
+        t1 = box.tickets.get(article_operation__operation=self.op1)
+        t2 = box.tickets.get(article_operation__operation=self.op2)
+        t3 = box.tickets.get(article_operation__operation=self.op3)
+        
+        worker1 = Worker.objects.create(worker_id="WRK-MX-1", first_name="Zulxumor", last_name="Tikuvchi", is_active=True)
+        worker2 = Worker.objects.create(worker_id="WRK-MX-2", first_name="Malohat", last_name="Dazmolchi", is_active=True)
+        
+        # Op1 va Op2 skanerlandi
+        t1.worker = worker1
+        t1.status = Ticket.Status.SCANNED
+        t1.scanned_at = timezone.now()
+        t1.save()
+        
+        t2.worker = worker2
+        t2.status = Ticket.Status.SCANNED
+        t2.scanned_at = timezone.now()
+        t2.save()
+        
+        # Op3 skanerlanmadi (chunki xatolik bilan qo'shilgan, ish bajarilmaydi)
+        # 1. To'xtatishdan avval Control tekshiruvi: Op3 yo'qligi uchun bloklashi kerak
+        res_lookup_before = self.client.get(reverse('control:api_lookup') + f"?code={box.box_code}")
+        self.assertEqual(res_lookup_before.status_code, 200)
+        data_before = res_lookup_before.json()['box']
+        self.assertFalse(data_before['all_tickets_scanned'])
+        self.assertEqual(len(data_before['missing_operations']), 1)
+        self.assertEqual(data_before['missing_operations'][0]['operation_name'], self.op3.name)
+        
+        # 2. Superadmin Op3 ni to'xtatadi (toggle_group_item_status)
+        res_toggle = self.client.post(reverse('superadmin_pricing'), {
+            'action': 'toggle_group_item_status',
+            'item_id': self.gi3.id,
+        })
+        self.assertEqual(res_toggle.status_code, 302)
+        
+        self.gi3.refresh_from_db()
+        self.assertFalse(self.gi3.is_active)
+        
+        # Qutidagi t3 stikeri avtomatik CANCELLED bo'lishi kerak
+        t3.refresh_from_db()
+        self.assertEqual(t3.status, Ticket.Status.CANCELLED)
+        
+        # 3. Tikuvchi ushbu to'xtatilgan stikerni skanerlashga uringanda bloklanishi kerak
+        session = self.client.session
+        session['terminal_worker_id'] = worker1.id
+        session.save()
+
+        res_scan_disabled = self.client.post(reverse('production:terminal_scan_ticket'), {
+            'code': t3.ticket_code
+        })
+        self.assertEqual(res_scan_disabled.json()['status'], 'CANCELLED_TICKET')
+        self.assertIn("TO'XTATILGAN", res_scan_disabled.json()['message'])
+        
+        # 4. Endi Control (OTK) ushbu qutini skaner qilganda faqat faol operatsiyalarni tekshiradi
+        res_lookup_after = self.client.get(reverse('control:api_lookup') + f"?code={box.box_code}")
+        self.assertEqual(res_lookup_after.status_code, 200)
+        data_after = res_lookup_after.json()['box']
+        self.assertTrue(data_after['all_tickets_scanned'])
+        self.assertEqual(len(data_after['missing_operations']), 0)
+        
+        # 5. Control tasdiqlaganda (submit) to'siqsiz muvaffaqiyatli qabul qilinishi kerak
+        res_submit = self.client.post(
+            reverse('control:api_submit'),
+            data=json.dumps({
+                'box_id': box.id,
+                'mode': 'INITIAL',
+                'first_sort_qty': 48,
+                'second_sort_qty': 2,
+                'defect_qty': 0,
+                'repair_qty': 0,
+                'defects': [],
+                'repairs': [],
+                'notes': "Op3 to'xtatilgan quti qabul qilindi"
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_submit.status_code, 200)
+        box.refresh_from_db()
+        self.assertTrue(box.is_controlled)
+        self.assertEqual(box.controlled_first_sort_qty, 48)
+
 

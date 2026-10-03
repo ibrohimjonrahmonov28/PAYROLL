@@ -190,7 +190,7 @@ def control_box_lookup_api(request):
         current_mode = 'INITIAL'
 
     # Qutiga tegishli barcha biletlar va ularning tikuvchilari
-    tickets_qs = box.tickets.exclude(status=Ticket.Status.CANCELLED).select_related(
+    tickets_qs = box.tickets.all().select_related(
         'article_operation__operation', 'worker'
     ).order_by('article_operation__sequence', 'id')
 
@@ -201,7 +201,9 @@ def control_box_lookup_api(request):
         op_name = ao.operation.name if ao and ao.operation else f"Operatsiya #{t.id}"
         op_seq = ao.sequence if ao else 1
 
-        is_scanned = (t.status == Ticket.Status.SCANNED and t.worker_id is not None)
+        is_disabled_op = bool(ao and not ao.is_active)
+        is_cancelled = bool(t.status == Ticket.Status.CANCELLED or is_disabled_op)
+        is_scanned = bool(t.status == Ticket.Status.SCANNED and t.worker_id is not None)
         worker_info = None
         if is_scanned and t.worker:
             w_uid = getattr(t.worker, 'worker_id', None) or (getattr(t.worker.user, 'uid', None) if getattr(t.worker, 'user', None) else None) or f"W-{t.worker.id}"
@@ -213,7 +215,8 @@ def control_box_lookup_api(request):
                 'screen_number': t.screen_number,
                 'scanned_at': timezone.localtime(t.scanned_at).strftime("%d.%m %H:%M") if t.scanned_at else None,
             }
-        else:
+        elif not is_cancelled:
+            # Faqat faol va bekor qilinmagan operatsiyalar yetishmayapti deb hisoblanadi
             missing_operations.append({
                 'ticket_id': t.id,
                 'ticket_code': t.ticket_code,
@@ -229,12 +232,15 @@ def control_box_lookup_api(request):
             'sequence': op_seq,
             'operation_name': op_name,
             'is_scanned': is_scanned,
+            'is_cancelled': is_cancelled,
+            'is_disabled_op': is_disabled_op,
             'worker': worker_info,
         })
 
-    total_tickets = len(tickets_data)
+    active_tickets = [t for t in tickets_data if not t['is_cancelled']]
+    total_tickets = len(active_tickets)
     missing_count = len(missing_operations)
-    scanned_count = total_tickets - missing_count
+    scanned_count = sum(1 for t in active_tickets if t['is_scanned'])
     all_tickets_scanned = (missing_count == 0 and total_tickets > 0)
 
     return JsonResponse({
@@ -289,9 +295,11 @@ def control_submit_inspection_api(request):
     box = get_object_or_404(Box, id=box_id)
 
     if mode == 'INITIAL':
-        # Barcha operatsiyalar egasi borligini qat'iy tekshirish
+        # Barcha faol operatsiyalar egasi borligini qat'iy tekshirish (to'xtatilgan yoki bekor qilinganlar talab qilinmaydi)
         unscanned_tickets = box.tickets.exclude(
             status=Ticket.Status.CANCELLED
+        ).exclude(
+            article_operation__is_active=False
         ).filter(
             Q(status=Ticket.Status.PENDING) | Q(worker__isnull=True)
         ).select_related('article_operation__operation')

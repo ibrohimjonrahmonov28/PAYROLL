@@ -1531,6 +1531,7 @@
             }
 
             currentBox.tickets.forEach(t => {
+                if (t.is_cancelled) return;
                 const isSelected = modalSelectedOps.has(t.id);
                 const workerName = t.worker ? t.worker.full_name : "Noma'lum";
                 const workerUid = t.worker ? t.worker.uid : "";
@@ -1813,6 +1814,7 @@
             }
 
             currentBox.tickets.forEach(t => {
+                if (t.is_cancelled) return;
                 const isSelected = modalRepairSelectedOps.has(t.id);
                 const workerName = t.worker ? t.worker.full_name : "Noma'lum";
                 const workerUid = t.worker ? t.worker.uid : "";

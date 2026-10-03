@@ -1844,6 +1844,20 @@ def superadmin_pricing(request):
                 messages.info(request, f"'{op.name}' operatsiyasi '{group.name}' guruhida mavjud edi — uning narxi {price:,.0f} UZS va tartibi yangilandi.")
             return redirect('superadmin_pricing')
 
+        # 3.1 OPERATSIYANI TO'XTATISH / BEKOR QILISH YOKI QAYTA FAOL QILISH
+        elif action == 'toggle_group_item_status':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(OperationGroupItem, id=item_id)
+            item.is_active = not item.is_active
+            item.save()
+            status_text = "qayta faollashtirildi" if item.is_active else "to'xtatildi (bekor qilindi)"
+            messages.success(
+                request,
+                f"'{item.operation.name}' operatsiyasi muvaffaqiyatli {status_text}! "
+                f"Barcha skanerlanmagan stikerlar avtomatik yangilandi va Control sifat nazorati talabidan chiqarildi."
+            )
+            return redirect('superadmin_pricing')
+
         # 4. GURUHDAN OPERATSIYANI O'CHIRISH
         elif action == 'delete_group_item':
             item_id = request.POST.get('item_id')

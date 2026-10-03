@@ -480,11 +480,23 @@ def terminal_scan_ticket_api(request):
         'box__order', 'box__article', 'article_operation__operation', 'worker', 'scanned_by'
     ).get(id=ticket_id)
 
-    # 0. Bekor qilingan / eskirgan bilet tekshiruvi:
-    if ticket.status == Ticket.Status.CANCELLED or (ticket.box and ticket.box.status == Box.Status.CANCELLED):
+    # 0. Bekor qilingan / to'xtatilgan / eskirgan bilet tekshiruvi:
+    is_disabled_op = bool(ticket.article_operation and not ticket.article_operation.is_active)
+    if ticket.status == Ticket.Status.CANCELLED or (ticket.box and ticket.box.status == Box.Status.CANCELLED) or is_disabled_op:
         op_name = ticket.article_operation.operation.name if ticket.article_operation else "Operatsiya"
         razmer_str = f", Razmer: {ticket.box.razmer}" if ticket.box and ticket.box.razmer else ""
         box_num_str = f"Quti #{ticket.box.box_number}" if ticket.box else ""
+
+        if is_disabled_op:
+            return JsonResponse({
+                'status': 'CANCELLED_TICKET',
+                'message': f"🚫 DIQQAT: USHBU OPERATSIYA TO'XTATILGAN (BEKOR QILINGAN)!\n\n"
+                           f"Operatsiya: {op_name}\n"
+                           f"{box_num_str}{razmer_str}\n\n"
+                           f"Sababi: Ushbu operatsiya modeldan olib tashlangan va bekor qilingan.\n"
+                           f"Ushbu ish bajarilmaydi, stikerni urish shart emas va ish haqi hisoblanmaydi!"
+            })
+
         return JsonResponse({
             'status': 'CANCELLED_TICKET',
             'message': f"⚠️ DIQQAT: USHBU BILET BEKOR QILINGAN (ESKIRGAN)!\n\n"

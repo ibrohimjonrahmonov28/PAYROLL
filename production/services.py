@@ -71,7 +71,7 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
         # Agar qisman skanerlangan bo'lsa, faqat kutilayotgan (PENDING) biletlarni tozalaymiz
         box.tickets.filter(status=Ticket.Status.PENDING).delete()
 
-    article_ops = article.article_operations.all().order_by('sequence', 'id')
+    article_ops = article.article_operations.filter(is_active=True).order_by('sequence', 'id')
     created_tickets = []
 
     for art_op in article_ops:
@@ -119,7 +119,7 @@ def ensure_box_tickets_fresh(box: Box) -> None:
         art.sync_operations_from_group(sync_unscanned_boxes=False)
 
     existing_tickets = list(box.tickets.exclude(status=Ticket.Status.CANCELLED))
-    art_ops = list(art.article_operations.all().order_by('sequence', 'id'))
+    art_ops = list(art.article_operations.filter(is_active=True).order_by('sequence', 'id'))
 
     if len(existing_tickets) != len(art_ops):
         generate_box_tickets(box)

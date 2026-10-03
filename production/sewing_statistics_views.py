@@ -69,7 +69,10 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
     - last_scanned: oxirgi skanerlangan operatsiya (qayergacha borgan)
     - next_pending: navbatdagi kutilayotgan operatsiya
     """
-    tickets = [t for t in box.tickets.all() if t.status != Ticket.Status.CANCELLED]
+    tickets = [
+        t for t in box.tickets.all() 
+        if t.status != Ticket.Status.CANCELLED and (not t.article_operation or t.article_operation.is_active)
+    ]
     total_tickets = len(tickets)
     scanned_tickets = [t for t in tickets if t.status == Ticket.Status.SCANNED]
     scanned_count = len(scanned_tickets)

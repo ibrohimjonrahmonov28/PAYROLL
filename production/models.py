@@ -125,15 +125,23 @@ class Article(models.Model):
                 ao.price_per_unit = item.price_per_unit
                 ao.sequence = item.sequence
                 ao.difficulty = item.difficulty
+                ao.is_active = item.is_active
                 ao.save()
             else:
-                ArticleOperation.objects.create(
+                ao = ArticleOperation.objects.create(
                     article=self,
                     operation=item.operation,
                     price_per_unit=item.price_per_unit,
                     sequence=item.sequence,
-                    difficulty=item.difficulty
+                    difficulty=item.difficulty,
+                    is_active=item.is_active
                 )
+
+            # Agar operatsiya to'xtatilgan bo'lsa (is_active=False), uning barcha skanerlanmagan biletlarini bekor qilish:
+            if not item.is_active:
+                ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+            else:
+                ao.tickets.filter(status=Ticket.Status.CANCELLED, box__status=Box.Status.CREATED).update(status=Ticket.Status.PENDING)
 
         # Guruhdan olib tashlangan eski operatsiyalarni tozalash:
         # Faqat bironta ham bileti SKANERLANMAGAN operatsiyalarni o'chirish
@@ -256,6 +264,7 @@ class ProductModelOperation(models.Model):
     )
     sequence = models.PositiveIntegerField(default=1, verbose_name="Ketma-ketlik tartibi")
     difficulty = models.FloatField(default=1.0, verbose_name="Qiyinlik darajasi / koeffitsienti")
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faol / To'xtatilgan")
 
     class Meta:
         verbose_name = "Model operatsiyasi va narxi"
@@ -337,6 +346,7 @@ class OperationGroupItem(models.Model):
     )
     sequence = models.PositiveIntegerField(default=1, verbose_name="Ketma-ketlik tartibi")
     difficulty = models.FloatField(default=1.0, verbose_name="Qiyinlik darajasi / koeffitsienti")
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faol / To'xtatilgan")
 
     class Meta:
         verbose_name = "Guruh operatsiyasi va narxi"
@@ -376,6 +386,7 @@ class ArticleOperation(models.Model):
     )
     sequence = models.PositiveIntegerField(default=1, verbose_name="Ketma-ketlik tartibi")
     difficulty = models.FloatField(default=1.0, verbose_name="Qiyinlik darajasi / koeffitsienti")
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faol / To'xtatilgan")
 
     class Meta:
         verbose_name = "Artikul operatsiyasi va narxi"
@@ -394,6 +405,15 @@ class ArticleOperation(models.Model):
             return f"{val:g}"
         except Exception:
             return str(self.difficulty)
+
+    def set_active(self, is_active: bool):
+        """Operatsiyani to'xtatish yoki qayta yoqish va uning biletlarini sinxronlash"""
+        self.is_active = is_active
+        self.save(update_fields=['is_active'])
+        if not is_active:
+            self.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+        else:
+            self.tickets.filter(status=Ticket.Status.CANCELLED, box__status=Box.Status.CREATED).update(status=Ticket.Status.PENDING)
 
     def sync_price_to_tickets(self):
         """
