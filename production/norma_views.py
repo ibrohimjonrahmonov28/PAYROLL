@@ -392,7 +392,14 @@ def norma_model_delete_operation(request, model_id: int, mo_id: int):
         mo = get_object_or_404(ProductModelOperation, id=mo_id, model=pm)
         op_name = mo.operation.name
         with transaction.atomic():
-            ArticleOperation.objects.filter(article__model=pm, operation=mo.operation).delete()
+            aos = ArticleOperation.objects.filter(article__model=pm, operation=mo.operation)
+            for ao in aos:
+                if not ao.tickets.exists():
+                    ao.delete()
+                else:
+                    ao.is_active = False
+                    ao.save(update_fields=['is_active'])
+                    ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
             mo.delete()
         messages.success(request, f"'{op_name}' operatsiyasi modeldan olib tashlandi.")
     return redirect('norma_model_operations', model_id=pm.id)
@@ -835,13 +842,15 @@ def norma_canvas_save(request):
                             'difficulty': c_op['difficulty'],
                         }
                     )
-                # Ortiqcha operatsiyalarni tozalash:
-                # Agar biletlar skanerlanmagan bo'lsa, ularni tozalab, ortiqcha operatsiyani o'chiramiz
+                # Ortiqcha operatsiyalarni tozalash (DELETE EMAS, xavfsiz to'xtatish!):
                 to_delete = art.article_operations.exclude(operation_id__in=keep_op_ids)
                 for ao in to_delete:
-                    if not ao.tickets.filter(status=Ticket.Status.SCANNED).exists():
-                        ao.tickets.all().delete()
+                    if not ao.tickets.exists():
                         ao.delete()
+                    else:
+                        ao.is_active = False
+                        ao.save(update_fields=['is_active'])
+                        ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
                 # Skanerlanmagan qutilarning biletlarini yangilangan operatsiyalarga moslab qayta tuzish
                 art.sync_box_tickets_if_unscanned()
@@ -1073,11 +1082,15 @@ def norma_canvas_save(request):
                             'difficulty': c_op['difficulty'],
                         }
                     )
-                # Faqat biletlarga bog'lanmagan ortiqcha operatsiyalarni o'chirish
+                # Ortiqcha operatsiyalarni tozalash (DELETE EMAS, xavfsiz to'xtatish!):
                 to_delete = art.article_operations.exclude(operation_id__in=keep_op_ids)
                 for ao in to_delete:
                     if not ao.tickets.exists():
                         ao.delete()
+                    else:
+                        ao.is_active = False
+                        ao.save(update_fields=['is_active'])
+                        ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
             for pm in models_to_sync:
                 for op_obj, c_op in op_objs:
