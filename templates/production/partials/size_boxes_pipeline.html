@@ -285,6 +285,7 @@
                                 class="bg-slate-950 text-slate-400 uppercase font-bold tracking-wider border-b border-slate-800">
                                 <th class="py-2 px-3 text-center w-12">#</th>
                                 <th class="py-2 px-3">Operatsiya Nomi</th>
+                                <th class="py-2 px-3 text-center">QR / Stiker ID</th>
                                 <th class="py-2 px-3 text-center">Dona Narxi</th>
                                 <th class="py-2 px-3 text-center">Holati</th>
                                 <th class="py-2 px-3">Tikuvchi (Bajaruvchi)</th>
@@ -307,6 +308,19 @@
                                         Dazmol
                                     </span>
                                     {% endif %}
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <div class="inline-flex items-center gap-1.5 justify-center">
+                                        {% if t.qr_code_url %}
+                                        <button type="button"
+                                            onclick="openSizeBoxQrModal('{{ t.qr_code_url }}', '{{ t.operation_name|escapejs }}', '{{ t.stiker_id }}', '{{ t.ticket_code }}', '{{ b.box_code }}', '{{ b.box_number }}')"
+                                            class="p-1 bg-white hover:bg-slate-100 rounded-lg shadow-sm border border-slate-700 transition transform hover:scale-110 flex items-center justify-center flex-shrink-0 cursor-pointer"
+                                            title="Katta QR kodni ko'rish va terminalda skanerlash">
+                                            <img src="{{ t.qr_code_url }}" alt="QR" class="w-6 h-6 object-contain">
+                                        </button>
+                                        {% endif %}
+                                        <span class="font-mono text-cyan-400 font-bold text-[11px]">{{ t.stiker_id }}</span>
+                                    </div>
                                 </td>
                                 <td class="py-2 px-3 text-center font-mono text-slate-400">
                                     {{ t.price_per_unit }} UZS
@@ -334,7 +348,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="py-4 text-center text-slate-500">
+                                <td colspan="8" class="py-4 text-center text-slate-500">
                                     Operatsiyalar ro'yxati mavjud emas.
                                 </td>
                             </tr>
@@ -352,3 +366,61 @@
         {% endfor %}
     </div>
 </div>
+
+<!-- QR PREVIEW MODAL FOR SIZE BOXES PIPELINE -->
+<div id="size-box-qr-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-center animate-in fade-in zoom-in duration-200">
+        <!-- Close Button -->
+        <button type="button" onclick="closeSizeBoxQrModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition">
+            <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+
+        <h3 id="sb-modal-op-name" class="text-base font-black text-white pr-8">Operatsiya Nomi</h3>
+        <p id="sb-modal-box-info" class="text-xs text-slate-400 mt-1 font-mono">QUTI #0 [00000000]</p>
+
+        <!-- White QR Card for High Scanner Contrast -->
+        <div class="bg-white p-3.5 rounded-2xl shadow-xl border border-slate-600 inline-flex flex-col items-center justify-center my-4">
+            <img id="sb-modal-qr-img" src="" alt="QR Kod" class="w-40 h-40 object-contain rounded">
+            <span id="sb-modal-stiker-id" class="text-slate-900 font-mono font-black text-sm mt-2 tracking-wider">#00000000</span>
+        </div>
+
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs mb-3 text-left">
+            <span class="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Bilet Kodi:</span>
+            <span id="sb-modal-ticket-code" class="font-mono text-cyan-300 font-bold break-all select-all"></span>
+        </div>
+
+        <div class="text-[11px] text-emerald-400 flex items-center justify-center gap-1.5 font-medium mb-4">
+            <i class="fa-solid fa-barcode text-sm"></i>
+            <span>Zebra terminali ekrandan bevosita skanerlay oladi</span>
+        </div>
+
+        <button type="button" onclick="closeSizeBoxQrModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+            Yopish
+        </button>
+    </div>
+</div>
+
+<script>
+    if (typeof openSizeBoxQrModal === 'undefined') {
+        window.openSizeBoxQrModal = function(qrUrl, opName, stikerId, ticketCode, boxCode, boxNum) {
+            document.getElementById('sb-modal-op-name').innerText = opName;
+            document.getElementById('sb-modal-box-info').innerText = `QUTI #${boxNum} [${boxCode}]`;
+            document.getElementById('sb-modal-qr-img').src = qrUrl;
+            document.getElementById('sb-modal-stiker-id').innerText = stikerId;
+            document.getElementById('sb-modal-ticket-code').innerText = ticketCode || stikerId;
+            document.getElementById('size-box-qr-modal').classList.remove('hidden');
+        };
+
+        window.closeSizeBoxQrModal = function() {
+            const modal = document.getElementById('size-box-qr-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('size-box-qr-modal');
+            if (modal && e.target === modal) {
+                closeSizeBoxQrModal();
+            }
+        });
+    }
+</script>

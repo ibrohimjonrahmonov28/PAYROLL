@@ -199,6 +199,7 @@
                             <div class="flex flex-col items-center group cursor-pointer"
                                 onclick="openStickerModal({{ t.id }})" data-ticket-id="{{ t.id }}"
                                 data-stiker-code="{{ t.stiker_code }}" data-stiker-id="{{ t.stiker_id }}"
+                                data-ticket-code="{{ t.ticket_code }}" data-qr-url="{{ t.qr_code_url }}"
                                 data-op-name="{{ t.op_name }}" data-is-scanned="{{ t.is_scanned|yesno:'true,false' }}"
                                 data-worker-name="{{ t.worker_name }}" data-worker-id="{{ t.worker_id }}"
                                 data-worker-uid="{{ t.worker_uid }}" data-scanned-at="{{ t.scanned_at_formatted }}"
@@ -239,8 +240,9 @@
                                         {{ t.op_name }}
                                     </span>
                                     <span
-                                        class="block text-[10px] font-mono {% if t.is_scanned %}text-slate-400{% else %}text-rose-400/70{% endif %}">
-                                        {{ t.stiker_id }}
+                                        class="inline-flex items-center gap-1 text-[10px] font-mono {% if t.is_scanned %}text-slate-400{% else %}text-rose-400/70{% endif %}">
+                                        <i class="fa-solid fa-qrcode text-[9px] text-cyan-400"></i>
+                                        <span>{{ t.stiker_id }}</span>
                                     </span>
                                 </div>
                             </div>
@@ -340,10 +342,31 @@
         <!-- Body Details -->
         <div class="space-y-4">
 
-            <!-- Status Card -->
-            <div id="modal-status-banner"
-                class="p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between">
-                <!-- Status text injected via JS -->
+            <!-- QR Code Section & Status Banner -->
+            <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <!-- QR Code Box (Black on White for instant barcode scanner readability) -->
+                <div class="bg-white p-2.5 rounded-2xl shadow-xl border border-slate-600 flex flex-col items-center justify-center flex-shrink-0">
+                    <img id="modal-qr-img" src="" alt="QR Kod" class="w-32 h-32 sm:w-36 sm:h-36 object-contain rounded">
+                    <span id="modal-qr-code-text" class="text-slate-900 font-mono font-black text-xs mt-1.5 tracking-wider">#00000000</span>
+                </div>
+
+                <div class="flex-1 space-y-2.5 text-center sm:text-left w-full">
+                    <div id="modal-status-banner"
+                        class="p-3 rounded-xl border text-xs font-bold flex items-center justify-between">
+                        <!-- Status text injected via JS -->
+                    </div>
+                    <div class="text-xs text-slate-300 space-y-1">
+                        <div class="text-slate-400 text-[11px] font-semibold flex items-center gap-1 justify-center sm:justify-start">
+                            <i class="fa-solid fa-ticket text-cyan-400"></i>
+                            <span>Bilet kodi:</span>
+                        </div>
+                        <div id="modal-ticket-code" class="font-mono text-xs text-cyan-300 font-bold break-all bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800 select-all"></div>
+                        <div class="text-[10px] text-emerald-400 flex items-center gap-1.5 justify-center sm:justify-start pt-1 font-medium">
+                            <i class="fa-solid fa-barcode text-xs"></i>
+                            <span>Zebra terminali va skanerlar ekrandan bevosita o'qiy oladi</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Detail Grid -->
@@ -411,6 +434,9 @@
 
         const isScanned = el.getAttribute('data-is-scanned') === 'true';
         const stikerId = el.getAttribute('data-stiker-id');
+        const stikerCode = el.getAttribute('data-stiker-code');
+        const ticketCode = el.getAttribute('data-ticket-code');
+        const qrUrl = el.getAttribute('data-qr-url');
         const opName = el.getAttribute('data-op-name');
         const workerName = el.getAttribute('data-worker-name');
         const workerId = el.getAttribute('data-worker-id');
@@ -427,6 +453,17 @@
 
         document.getElementById('modal-op-name').innerText = opName;
         document.getElementById('modal-stiker-id').innerText = stikerId;
+        document.getElementById('modal-qr-code-text').innerText = stikerId;
+        document.getElementById('modal-ticket-code').innerText = ticketCode || stikerId;
+
+        const qrImg = document.getElementById('modal-qr-img');
+        if (qrUrl) {
+            qrImg.src = qrUrl;
+            qrImg.parentElement.classList.remove('hidden');
+        } else {
+            qrImg.parentElement.classList.add('hidden');
+        }
+
         document.getElementById('modal-box-info').innerText = `QUTI #${boxNum} [${boxCode}]`;
         document.getElementById('modal-order-num').innerText = orderNum;
         document.getElementById('modal-article').innerText = article || "—";

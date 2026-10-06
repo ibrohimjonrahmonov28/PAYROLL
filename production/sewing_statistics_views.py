@@ -1136,6 +1136,10 @@ def api_sewing_statistics_size_boxes(request):
 
             tickets_list.append({
                 'id': t.id,
+                'stiker_id': t.stiker_id,
+                'stiker_code': t.stiker_code,
+                'ticket_code': t.ticket_code,
+                'qr_code_url': t.qr_code_data_uri,
                 'sequence': t.article_operation.sequence if t.article_operation else 1,
                 'operation_name': t.article_operation.operation.name if t.article_operation else "—",
                 'price_per_unit': t.article_operation.price_per_unit if t.article_operation else 0,
