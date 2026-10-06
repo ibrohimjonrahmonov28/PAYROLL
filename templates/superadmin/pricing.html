@@ -204,18 +204,12 @@
                                         class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
                                         <i class="fa-solid fa-pen text-[10px]"></i> Tahrirlash
                                     </button>
-                                    <form method="POST" action="{% url 'superadmin_pricing' %}"
-                                        onsubmit="return confirm('Ushbu operatsiyani guruhdan butunlay olib tashlamoqchimisiz?');"
-                                        class="inline">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="delete_group_item">
-                                        <input type="hidden" name="item_id" value="{{ item.id }}">
-                                        <button type="submit"
-                                            class="p-1.5 text-slate-500 hover:text-rose-400 transition"
-                                            title="Butunlay o'chirish">
-                                            <i class="fa-solid fa-trash-can text-xs"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                        onclick="openDeleteItemModal({{ item.id }}, '{{ group.name|escapejs }}', '{{ item.operation.name|escapejs }}')"
+                                        class="p-1.5 text-slate-500 hover:text-rose-400 transition cursor-pointer"
+                                        title="Operatsiyani o'chirish">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -533,6 +527,7 @@
                     raqami</label>
                 <input type="number" name="sequence" id="edit-modal-seq" required min="1"
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white font-mono text-sm focus:outline-none focus:border-amber-500">
+                <p class="text-[10px] text-slate-500 mt-1">Tartib raqamini o'zgartirsangiz, boshqa operatsiyalar avtomatik 1 tadan surilib qayta tartiblanadi.</p>
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
@@ -686,6 +681,7 @@
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tartib</label>
                     <input type="number" name="sequence" value="1" required min="1"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white font-mono text-sm focus:outline-none focus:border-amber-500">
+                    <p class="text-[10px] text-slate-500 mt-1">Masalan, 7 kiritsangiz, mavjud 7 va undan keyingilari avtomatik 1 tadan pastga suriladi.</p>
                 </div>
             </div>
 
@@ -906,7 +902,81 @@
     </div>
 </div>
 
+<!-- Modal: Delete Group Item -->
+<div id="delete-item-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-trash-can text-rose-500"></i> Operatsiyani O'chirish
+            </h3>
+            <button type="button" onclick="closeDeleteItemModal()"
+                class="text-slate-400 hover:text-white cursor-pointer p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_pricing' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_group_item">
+            <input type="hidden" name="item_id" id="del-modal-item-id">
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Guruh</span>
+                    <span id="del-modal-group-name" class="text-sm font-bold text-amber-400 block mt-0.5"></span>
+                </div>
+                <div class="pt-2 border-t border-slate-900">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Operatsiya</span>
+                    <span id="del-modal-op-name" class="text-base font-bold text-white block mt-0.5"></span>
+                </div>
+            </div>
+
+            <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="delete_from_catalog" id="del-modal-from-catalog" value="1" checked
+                        class="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 cursor-pointer">
+                    <div>
+                        <span class="text-xs font-bold text-white block">Umumiy katalogdan ham butunlay o'chirish</span>
+                        <span class="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">
+                            Agar stikerlar chiqarilmagan bo'lsa va boshqa guruhlarda ishlatilmayotgan bo'lsa, operatsiyani bazadan to'liq o'chiradi.
+                        </span>
+                    </div>
+                </label>
+            </div>
+
+            <div class="text-[11px] text-slate-400 flex items-center gap-1.5 px-1">
+                <i class="fa-solid fa-circle-info text-amber-400"></i>
+                <span>Guruhdagi qolgan operatsiyalar tartib raqami (1, 2, 3...) avtomatik qayta tartiblanadi.</span>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button type="button" onclick="closeDeleteItemModal()"
+                    class="px-4 py-2 border border-slate-700 rounded-xl text-xs font-bold text-slate-400 hover:text-white cursor-pointer transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-trash-can text-xs"></i> O'chirish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    function openDeleteItemModal(itemId, groupName, opName) {
+        document.getElementById('del-modal-item-id').value = itemId;
+        document.getElementById('del-modal-group-name').textContent = groupName;
+        document.getElementById('del-modal-op-name').textContent = opName;
+        document.getElementById('del-modal-from-catalog').checked = true;
+        document.getElementById('delete-item-modal').classList.remove('hidden');
+    }
+
+    function closeDeleteItemModal() {
+        document.getElementById('delete-item-modal').classList.add('hidden');
+    }
+
     function openCatalogOpsModal() {
         document.getElementById('catalog-ops-list-modal').classList.remove('hidden');
         const inp = document.getElementById('catalog-modal-search-input');
@@ -962,30 +1032,7 @@
 
             const data = await response.json();
             if (response.ok && data.success) {
-                // 1. Remove row from catalog modal table
-                const modalRow = document.getElementById(`catalog-modal-row-${opId}`);
-                if (modalRow) modalRow.remove();
-
-                // 2. Remove row from create-group table if present
-                const createChk = document.getElementById(`chk-op-${opId}`);
-                if (createChk) {
-                    const createRow = createChk.closest('tr');
-                    if (createRow) createRow.remove();
-                    updateCreateSelectedCount();
-                }
-
-                // 3. Remove option from add-op select dropdown
-                const selectOpt = document.querySelector(`#add-op-select option[value="${opId}"]`);
-                if (selectOpt) selectOpt.remove();
-
-                // 4. Update count badges
-                const remaining = document.querySelectorAll('.catalog-modal-row').length;
-                const badge = document.getElementById('catalog-modal-count-badge');
-                if (badge) badge.innerText = `${remaining} ta`;
-                const topbarCount = document.getElementById('topbar-ops-count');
-                if (topbarCount) topbarCount.innerText = `${remaining}`;
-
-                alert(data.message || `«${opName}» operatsiyasi muvaffaqiyatli o'chirildi!`);
+                window.location.reload();
             } else {
                 alert(data.error || "Operatsiyani o'chirishda xatolik yuz berdi!");
                 if (btnEl) {

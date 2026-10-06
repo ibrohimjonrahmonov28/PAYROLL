@@ -331,6 +331,40 @@ class OperationGroup(models.Model):
     def total_unit_rate(self):
         return sum((item.price_per_unit or Decimal('0.00')) for item in self.items.all())
 
+    def reorder_items(self, target_item=None, desired_seq=None):
+        """
+        Guruhdagi operatsiyalar ketma-ketlik tartibini (sequence) to'liq to'g'rilash (1, 2, 3...).
+        Agar target_item va desired_seq berilgan bo'lsa:
+        - target_item ushbu desired_seq o'rniga qo'yiladi.
+        - desired_seq va undan keyingi barcha elementlar 1 tadan pastga suriladi (7 bo'lsa 8, 8 bo'lsa 9...).
+        - Hech qanday takroriy (dublikat) tartib raqam yoki oraliqdagi bo'shliq qolmaydi.
+        - Guruhga ulangan barcha artikullar bilan sinxronlanadi.
+        """
+        from django.db import transaction
+        with transaction.atomic():
+            if target_item and desired_seq is not None:
+                try:
+                    desired_seq = max(1, int(desired_seq))
+                except (ValueError, TypeError):
+                    desired_seq = 1
+
+                other_items = list(self.items.exclude(id=target_item.id).order_by('sequence', 'id'))
+                target_idx = desired_seq - 1
+                if target_idx >= len(other_items):
+                    ordered_list = other_items + [target_item]
+                else:
+                    ordered_list = other_items[:target_idx] + [target_item] + other_items[target_idx:]
+            else:
+                ordered_list = list(self.items.all().order_by('sequence', 'id'))
+
+            for new_seq, it in enumerate(ordered_list, start=1):
+                if it.sequence != new_seq:
+                    OperationGroupItem.objects.filter(id=it.id).update(sequence=new_seq)
+                    it.sequence = new_seq
+
+        # Ulangan artikullarga yangilangan tartibni sinxronlash
+        self.sync_to_articles()
+
     def sync_to_articles(self):
         """Ushbu guruhga ulangan barcha artikullarga operatsiyalarni sinxronlash"""
         for art in self.articles.all():

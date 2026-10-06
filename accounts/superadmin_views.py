@@ -1599,7 +1599,10 @@ def superadmin_pricing(request):
                 return redirect('superadmin_pricing')
 
             try:
+                affected_groups = list(OperationGroup.objects.filter(items__operation=op).distinct())
                 op.delete()
+                for grp in affected_groups:
+                    grp.reorder_items()
                 suc_msg = f"'{op_name}' operatsiyasi katalogdan muvaffaqiyatli o'chirildi."
                 if is_ajax:
                     return JsonResponse({'success': True, 'message': suc_msg, 'operation_id': op_id})
@@ -1741,6 +1744,7 @@ def superadmin_pricing(request):
                     )
                     added_count += 1
 
+            group.reorder_items()
             messages.success(request, f"'{group.name}' operatsiyalar guruhi muvaffaqiyatli yaratildi ({added_count} ta operatsiya bilan).")
             return redirect('superadmin_pricing')
 
@@ -1772,6 +1776,7 @@ def superadmin_pricing(request):
         elif action == 'update_group_item':
             item_id = request.POST.get('item_id')
             item = get_object_or_404(OperationGroupItem, id=item_id)
+            group = item.group
             price = request.POST.get('price_per_unit')
             seq = request.POST.get('sequence')
             diff = request.POST.get('difficulty')
@@ -1781,9 +1786,10 @@ def superadmin_pricing(request):
                     item.price_per_unit = Decimal(price.strip().replace(' ', '').replace(',', '.') or '0')
                 except Exception:
                     pass
+            new_seq = None
             if seq:
                 try:
-                    item.sequence = int(seq)
+                    new_seq = int(seq)
                 except Exception:
                     pass
             if diff:
@@ -1793,9 +1799,14 @@ def superadmin_pricing(request):
                     pass
 
             item.save()  # Bu avtomatik ravishda barcha bog'liq artikullar va biletlarni yangilaydi
+            if new_seq is not None:
+                group.reorder_items(target_item=item, desired_seq=new_seq)
+            else:
+                group.reorder_items()
+
             messages.success(
                 request, 
-                f"'{item.group.name}' guruhi -> '{item.operation.name}' narxi {item.price_per_unit:,.0f} UZS ga o'zgartirildi va barcha joyda yangilandi!"
+                f"'{item.group.name}' guruhi -> '{item.operation.name}' yangilandi (narxi {item.price_per_unit:,.0f} UZS, tartibi #{item.sequence}) va barcha joyda yangilandi!"
             )
             return redirect('superadmin_pricing')
 
@@ -1838,10 +1849,12 @@ def superadmin_pricing(request):
                     'difficulty': diff,
                 }
             )
+            group.reorder_items(target_item=item, desired_seq=seq)
+
             if created:
-                messages.success(request, f"'{op.name}' operatsiyasi '{group.name}' guruhiga qo'shildi ({price:,.0f} UZS).")
+                messages.success(request, f"'{op.name}' operatsiyasi '{group.name}' guruhiga #{item.sequence} tartibda qo'shildi ({price:,.0f} UZS). Pastdagi operatsiyalar avtomatik surildi.")
             else:
-                messages.info(request, f"'{op.name}' operatsiyasi '{group.name}' guruhida mavjud edi — uning narxi {price:,.0f} UZS va tartibi yangilandi.")
+                messages.info(request, f"'{op.name}' operatsiyasi '{group.name}' guruhida #{item.sequence} tartib raqamiga yangilandi.")
             return redirect('superadmin_pricing')
 
         # 3.1 OPERATSIYANI TO'XTATISH / BEKOR QILISH YOKI QAYTA FAOL QILISH
@@ -1861,12 +1874,42 @@ def superadmin_pricing(request):
         # 4. GURUHDAN OPERATSIYANI O'CHIRISH
         elif action == 'delete_group_item':
             item_id = request.POST.get('item_id')
+            item = get_object_or_404(OperationGroupItem, id=item_id)
             group = item.group
-            group_name = item.group.name
-            op_name = item.operation.name
+            group_name = group.name
+            op = item.operation
+            op_name = op.name
+            delete_from_catalog = request.POST.get('delete_from_catalog') == '1'
+
             item.delete()
-            group.sync_to_articles()
-            messages.success(request, f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi va bog'langan artikullarda yangilandi.")
+            group.reorder_items()
+
+            if delete_from_catalog:
+                tickets_count = Ticket.objects.filter(article_operation__operation=op).count()
+                other_groups_count = OperationGroupItem.objects.filter(operation=op).count()
+
+                if tickets_count > 0:
+                    messages.warning(
+                        request,
+                        f"'{op_name}' guruhdan olib tashlandi, ammo katalogdan o'chirilmadi, chunki tizimda unga tegishli {tickets_count} ta bilet mavjud."
+                    )
+                elif other_groups_count > 0:
+                    messages.info(
+                        request,
+                        f"'{op_name}' ushbu guruhdan olib tashlandi, ammo boshqa {other_groups_count} ta guruhda mavjud bo'lgani uchun katalogda saqlandi."
+                    )
+                else:
+                    try:
+                        op.delete()
+                        messages.success(
+                            request,
+                            f"'{op_name}' operatsiyasi guruhdan ham, umumiy katalogdan ham butunlay o'chirildi."
+                        )
+                        return redirect('superadmin_pricing')
+                    except Exception as e:
+                        messages.warning(request, f"Katalogdan o'chirishda xatolik yuz berdi: {e}")
+
+            messages.success(request, f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi va qolgan operatsiyalar tartib raqamlari qayta tartiblandi.")
             return redirect('superadmin_pricing')
 
         # 5. GURUHNI TO'LIQ O'CHIRISH

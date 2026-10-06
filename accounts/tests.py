@@ -1742,6 +1742,122 @@ class SuperAdminDefectReasonsTest(TestCase):
         self.assertTrue(DefectReason.objects.filter(code="BRK-001").exists())
 
 
+class OperationGroupSequenceAndDeletionTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username="pricing_admin",
+            password="testpass123",
+            role=User.Role.SUPER_ADMIN
+        )
+        self.client.login(username="pricing_admin", password="testpass123")
+
+        from production.models import OperationGroup, OperationGroupItem
+        self.group = OperationGroup.objects.create(name="Test Ko'ylak Guruhi")
+        self.article = Article.objects.create(code="ART-SEQ-01", name="Seq Test Art", operation_group=self.group)
+
+        # 10 ta operatsiya yaratamiz: sequence 1..10
+        self.ops = []
+        for i in range(1, 11):
+            op = Operation.objects.create(code=f"OP-{i:02d}", name=f"Operatsiya {i}")
+            self.ops.append(op)
+            OperationGroupItem.objects.create(
+                group=self.group,
+                operation=op,
+                sequence=i,
+                price_per_unit=Decimal("500.00")
+            )
+        self.article.sync_operations_from_group()
+
+    def test_insert_operation_at_sequence_shifts_subsequent_items(self):
+        """7-o'ringa yangi operatsiya qo'shilganda, 7 va undan keyingilar 1 tadan pastga surilishi kerak."""
+        url = reverse('superadmin_pricing')
+        new_op_name = "Yangi O'rtadagi Operatsiya"
+        res = self.client.post(url, {
+            'action': 'add_op_to_group',
+            'group_id': self.group.id,
+            'new_op_name': new_op_name,
+            'sequence': '7',
+            'price_per_unit': '750',
+            'difficulty': '1.0',
+        })
+        self.assertEqual(res.status_code, 302)
+
+        items = list(self.group.items.all().order_by('sequence'))
+        self.assertEqual(len(items), 11)
+
+        # Tartib raqamlar ketma-ket 1 dan 11 gacha bo'lishi kerak
+        seqs = [it.sequence for it in items]
+        self.assertEqual(seqs, list(range(1, 12)))
+
+        # 7-o'rindagi operatsiya aynan yangi qo'shilgan bo'lishi kerak
+        item_at_7 = items[6]
+        self.assertEqual(item_at_7.sequence, 7)
+        self.assertEqual(item_at_7.operation.name, new_op_name)
+
+        # Oldingi 7-operatsiya (OP-07) 8-o'ringa o'tgan bo'lishi kerak
+        item_at_8 = items[7]
+        self.assertEqual(item_at_8.sequence, 8)
+        self.assertEqual(item_at_8.operation.code, "OP-07")
+
+        # Oldingi 10-operatsiya (OP-10) 11-o'ringa o'tgan bo'lishi kerak
+        item_at_11 = items[10]
+        self.assertEqual(item_at_11.sequence, 11)
+        self.assertEqual(item_at_11.operation.code, "OP-10")
+
+        # Artikul bilan ham sinxronlanganini tekshiramiz
+        art_ops = list(self.article.article_operations.all().order_by('sequence'))
+        art_seqs = [ao.sequence for ao in art_ops]
+        self.assertEqual(art_seqs, list(range(1, 12)))
+        self.assertEqual(art_ops[6].operation.name, new_op_name)
+
+    def test_delete_group_item_and_delete_from_catalog_completely(self):
+        """Biletlar bo'lmaganda guruhdan va katalogdan butunlay o'chirish."""
+        url = reverse('superadmin_pricing')
+        item_to_delete = self.group.items.get(sequence=7)
+        op_id = item_to_delete.operation.id
+
+        res = self.client.post(url, {
+            'action': 'delete_group_item',
+            'item_id': item_to_delete.id,
+            'delete_from_catalog': '1'
+        })
+        self.assertEqual(res.status_code, 302)
+
+        # Guruhdagi element o'chirilgan bo'lishi kerak
+        self.assertEqual(self.group.items.count(), 9)
+        # Qolgan elementlar 1 dan 9 gacha tartiblangan bo'lishi kerak (oraliqda teshik bo'lmasligi kerak)
+        remaining_seqs = list(self.group.items.values_list('sequence', flat=True).order_by('sequence'))
+        self.assertEqual(remaining_seqs, list(range(1, 10)))
+
+        # Katalogdagi operatsiya ham butunlay yo'q qilingan bo'lishi kerak
+        self.assertFalse(Operation.objects.filter(id=op_id).exists())
+
+    def test_delete_group_item_protected_when_tickets_exist(self):
+        """Agar biletlar mavjud bo'lsa, guruhdan olib tashlanadi, lekin katalogdagi operatsiya o'chirilmaydi."""
+        url = reverse('superadmin_pricing')
+        item = self.group.items.get(sequence=3)
+        op = item.operation
+        ao = self.article.article_operations.get(operation=op)
+
+        order = Order.objects.create(order_number="ORD-DEL-TEST", total_quantity=50)
+        box = Box.objects.create(order=order, article=self.article, box_number=1, quantity=50)
+        Ticket.objects.create(box=box, article_operation=ao, quantity=50)
+
+        res = self.client.post(url, {
+            'action': 'delete_group_item',
+            'item_id': item.id,
+            'delete_from_catalog': '1'
+        })
+        self.assertEqual(res.status_code, 302)
+
+        # Guruhdan olib tashlandi
+        self.assertFalse(self.group.items.filter(id=item.id).exists())
+        # Ammo katalogda saqlanib qoldi, chunki bilet bor
+        self.assertTrue(Operation.objects.filter(id=op.id).exists())
+
+
+
 
 
 
