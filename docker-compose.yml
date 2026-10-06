@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     environment:
       SECRET_KEY: ${SECRET_KEY:-django-insecure-ip7pd902uilruyv}
-      DEBUG: ${DEBUG:-False}
+      DEBUG: "False"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       DB_ENGINE: django.db.backends.postgresql
       DB_NAME: ${DB_NAME:-payroll_db}
@@ -70,7 +70,7 @@ services:
     restart: unless-stopped
     environment:
       SECRET_KEY: ${SECRET_KEY:-django-insecure-ip7pd902uilruyv}
-      DEBUG: ${DEBUG:-False}
+      DEBUG: "False"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       DB_ENGINE: django.db.backends.postgresql
       DB_NAME: ${DB_NAME:-payroll_db}
@@ -109,7 +109,7 @@ services:
     restart: unless-stopped
     environment:
       SECRET_KEY: ${SECRET_KEY:-django-insecure-ip7pd902uilruyv}
-      DEBUG: ${DEBUG:-False}
+      DEBUG: "False"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       DB_ENGINE: django.db.backends.postgresql
       DB_NAME: ${DB_NAME:-payroll_db}
