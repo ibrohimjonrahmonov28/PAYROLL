@@ -509,6 +509,78 @@ class BoxPipelineStatisticsTest(TestCase):
         self.assertEqual(data['status'], "SCANNED")
         self.assertEqual(data['screen_number'], 2)
 
+    def test_statistics_filter_by_article_pastal_and_unscanned(self):
+        # Create Article 2 with Pastal 202
+        art2 = Article.objects.create(code="ART-STAT-02", name="Qizil Futbolka", model=self.model)
+        ao2_1 = ArticleOperation.objects.create(article=art2, operation=self.op1, price_per_unit=Decimal("500"), sequence=1)
+
+        # Box A for Art 2: Pastal 202, unscanned (0 scanned tickets)
+        box_unscanned = Box.objects.create(
+            order=self.order,
+            article=art2,
+            box_number=10,
+            quantity=40,
+            razmer="S",
+            pastal_number="202"
+        )
+        Ticket.objects.create(
+            box=box_unscanned,
+            article_operation=ao2_1,
+            quantity=40,
+            price_per_unit=Decimal("500"),
+            status=Ticket.Status.PENDING
+        )
+
+        # Box B for Art 2: Pastal 202, scanned (1 scanned ticket)
+        box_scanned = Box.objects.create(
+            order=self.order,
+            article=art2,
+            box_number=11,
+            quantity=40,
+            razmer="M",
+            pastal_number="202"
+        )
+        Ticket.objects.create(
+            box=box_scanned,
+            article_operation=ao2_1,
+            quantity=40,
+            price_per_unit=Decimal("500"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_by=self.user,
+            scanned_at=timezone.now()
+        )
+
+        # 1. Filter by article_id and pastal -> defaults to unscanned_only=True
+        url = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&pastal=202"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, box_unscanned.box_code)
+        self.assertNotContains(res, box_scanned.box_code)
+        self.assertNotContains(res, self.box.box_code)
+
+        # 2. Filter with status=UNSCANNED explicitly
+        url_unscanned = reverse('production:statistics_pipeline') + "?status=UNSCANNED"
+        res_unscanned = self.client.get(url_unscanned)
+        self.assertEqual(res_unscanned.status_code, 200)
+        self.assertContains(res_unscanned, box_unscanned.box_code)
+        self.assertNotContains(res_unscanned, box_scanned.box_code)
+
+        # 3. Filter with unscanned_only=0 (user explicitly shows all for that pastal)
+        url_all = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&pastal=202&unscanned_only=0&status=ALL"
+        res_all = self.client.get(url_all)
+        self.assertEqual(res_all.status_code, 200)
+        self.assertContains(res_all, box_unscanned.box_code)
+        self.assertContains(res_all, box_scanned.box_code)
+
+        # 4. Check context variables
+        self.assertIn('articles_list', res.context)
+        self.assertIn('pastals_by_article_json', res.context)
+        self.assertIn('unscanned_boxes_count', res.context)
+        self.assertEqual(res.context['selected_pastal'], "202")
+        self.assertEqual(res.context['selected_article_id'], str(art2.id))
+        self.assertTrue(res.context['unscanned_only'])
+
 
 class ManagerAndCuttingWorkflowTest(TestCase):
     def setUp(self):

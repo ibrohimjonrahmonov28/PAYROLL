@@ -721,6 +721,23 @@ def box_pipeline_statistics_view(request):
     """
     q = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', 'ALL').strip().upper()
+    article_id = request.GET.get('article_id', '').strip()
+    pastal = request.GET.get('pastal', '').strip()
+    unscanned_param = request.GET.get('unscanned_only')
+
+    # Umuman skan qilinmagan qutilar filtri:
+    # 1. status=UNSCANNED parametri berilganda
+    # 2. unscanned_only=1 parametri berilganda
+    # 3. Foydalanuvchi artikul yoki pastal tanlaganda, va boshqa maxsus status belgilanmagan bo'lsa
+    if status_filter == 'UNSCANNED':
+        unscanned_only = True
+    elif unscanned_param is not None:
+        unscanned_only = (unscanned_param in ('1', 'true', 'True', 'on'))
+    elif (article_id or pastal) and status_filter in ('', 'ALL'):
+        unscanned_only = True
+    else:
+        unscanned_only = False
+
     clean_q = q.lstrip('#').strip()
 
     ordered_tickets = Ticket.objects.select_related(
@@ -736,7 +753,8 @@ def box_pipeline_statistics_view(request):
     ).select_related(
         'order__customer',
         'order__article',
-        'article__model'
+        'article__model',
+        'cutting_batch_item__batch__order_item__article'
     ).prefetch_related(
         'order__items__article',
         Prefetch('tickets', queryset=ordered_tickets, to_attr='prefetched_tickets')
@@ -776,7 +794,34 @@ def box_pipeline_statistics_view(request):
                 box_filter |= Q(box_number=int(clean_q))
             boxes_qs = boxes_qs.filter(box_filter)
 
-    if status_filter == Box.Status.COMPLETED:
+    # 1. Artikul bo'yicha filtr
+    if article_id:
+        try:
+            art_id_int = int(article_id)
+            boxes_qs = boxes_qs.filter(
+                Q(article_id=art_id_int) |
+                Q(cutting_batch_item__batch__order_item__article_id=art_id_int) |
+                Q(order__article_id=art_id_int) |
+                Q(order__items__article_id=art_id_int)
+            ).distinct()
+        except (ValueError, TypeError):
+            pass
+
+    # 2. Pastal kodi bo'yicha filtr
+    if pastal:
+        pastal_clean = pastal.strip()
+        pastal_filter_q = (
+            Q(pastal_number__iexact=pastal_clean) |
+            Q(cutting_batch_item__batch__pastal_code__iexact=pastal_clean)
+        )
+        if pastal_clean.isdigit():
+            pastal_filter_q |= Q(cutting_batch_item__batch__batch_number=int(pastal_clean))
+        boxes_qs = boxes_qs.filter(pastal_filter_q).distinct()
+
+    # 3. Holat / Skanerlanmagan qutilar filtri
+    if unscanned_only or status_filter == 'UNSCANNED':
+        boxes_qs = boxes_qs.filter(annotated_scanned_tickets=0).exclude(status=Box.Status.CANCELLED)
+    elif status_filter == Box.Status.COMPLETED:
         boxes_qs = boxes_qs.filter(
             Q(status=Box.Status.COMPLETED) | Q(annotated_total_tickets__gt=0, annotated_scanned_tickets=F('annotated_total_tickets'))
         )
@@ -792,12 +837,71 @@ def box_pipeline_statistics_view(request):
     # Tezkor bitta agregatsiya so'rovi (1ms)
     counts = Box.objects.aggregate(
         total=Count('id'),
+        created=Count('id', filter=Q(status=Box.Status.CREATED)),
         in_prog=Count('id', filter=Q(status=Box.Status.IN_PROGRESS)),
         comp=Count('id', filter=Q(status=Box.Status.COMPLETED))
     )
     total_boxes_count = counts['total'] or 0
+    unscanned_boxes_count = counts['created'] or 0
     in_progress_boxes_count = counts['in_prog'] or 0
     completed_boxes_count = counts['comp'] or 0
+
+    # Artikul va Pastallar ro'yxati (filtrlash dropdownlari uchun)
+    articles_list = list(Article.objects.only('id', 'code', 'name').order_by('code', 'name'))
+
+    box_pastal_rows = Box.objects.exclude(pastal_number='').values(
+        'article_id',
+        'cutting_batch_item__batch__order_item__article_id',
+        'order__article_id',
+        'pastal_number'
+    ).distinct()
+
+    batch_pastal_rows = CuttingBatch.objects.exclude(
+        Q(pastal_code='') & Q(batch_number=0)
+    ).values(
+        'order_item__article_id',
+        'pastal_code',
+        'batch_number'
+    ).distinct()
+
+    pastals_by_article = {}
+    all_pastals = set()
+
+    def _add_pastal(art_id, p_code):
+        if not p_code:
+            return
+        p_clean = str(p_code).strip()
+        if not p_clean:
+            return
+        all_pastals.add(p_clean)
+        if art_id:
+            key = str(art_id)
+            if key not in pastals_by_article:
+                pastals_by_article[key] = set()
+            pastals_by_article[key].add(p_clean)
+
+    for row in box_pastal_rows:
+        art_id = row['article_id'] or row['cutting_batch_item__batch__order_item__article_id'] or row['order__article_id']
+        _add_pastal(art_id, row['pastal_number'])
+
+    for row in batch_pastal_rows:
+        art_id = row['order_item__article_id']
+        p_code = row['pastal_code'] or (str(row['batch_number']) if row['batch_number'] else "")
+        _add_pastal(art_id, p_code)
+
+    def _sort_key(val):
+        return (0, int(val)) if val.isdigit() else (1, val.lower())
+
+    sorted_all_pastals = sorted(all_pastals, key=_sort_key)
+    serializable_pastals_by_article = {
+        k: sorted(list(v), key=_sort_key)
+        for k, v in pastals_by_article.items()
+    }
+
+    if article_id and str(article_id) in serializable_pastals_by_article:
+        available_pastals = serializable_pastals_by_article[str(article_id)]
+    else:
+        available_pastals = sorted_all_pastals
 
     paginator = Paginator(boxes_qs, 20)
     page_number = request.GET.get('page', 1)
@@ -861,7 +965,17 @@ def box_pipeline_statistics_view(request):
         'page_obj': page_obj,
         'q': q,
         'status_filter': status_filter,
+        'article_id': article_id,
+        'selected_article_id': str(article_id) if article_id else '',
+        'pastal': pastal,
+        'selected_pastal': pastal,
+        'unscanned_only': unscanned_only,
+        'articles_list': articles_list,
+        'available_pastals': available_pastals,
+        'all_pastals_json': json.dumps(sorted_all_pastals),
+        'pastals_by_article_json': json.dumps(serializable_pastals_by_article),
         'total_boxes_count': total_boxes_count,
+        'unscanned_boxes_count': unscanned_boxes_count,
         'in_progress_boxes_count': in_progress_boxes_count,
         'completed_boxes_count': completed_boxes_count,
         'highlighted_ticket_id': highlighted_ticket_id,

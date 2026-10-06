@@ -31,67 +31,126 @@
 
         <!-- KPI Pill Counters -->
         <div class="flex items-center gap-2 overflow-x-auto">
-            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center flex-shrink-0">
+            <a href="?status=ALL" class="bg-slate-950 hover:bg-slate-800/80 border border-slate-800 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
                 <span class="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Jami Qutilar</span>
-                <span class="text-lg font-black text-white digital-font">{{ total_boxes_count }}</span>
-            </div>
-            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center flex-shrink-0">
+                <span class="text-base font-black text-white digital-font">{{ total_boxes_count }}</span>
+            </a>
+            <a href="?status=UNSCANNED&unscanned_only=1" class="bg-slate-950 hover:bg-slate-800/80 border border-rose-500/30 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition group">
+                <span class="text-[10px] text-rose-400 uppercase font-black tracking-wider block group-hover:text-rose-300">Skan qilinmagan</span>
+                <span class="text-base font-black text-rose-400 digital-font">{{ unscanned_boxes_count }}</span>
+            </a>
+            <a href="?status=IN_PROGRESS" class="bg-slate-950 hover:bg-slate-800/80 border border-slate-800 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
                 <span class="text-[10px] text-amber-400 uppercase font-black tracking-wider block">Jarayonda</span>
-                <span class="text-lg font-black text-amber-400 digital-font">{{ in_progress_boxes_count }}</span>
-            </div>
-            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center flex-shrink-0">
+                <span class="text-base font-black text-amber-400 digital-font">{{ in_progress_boxes_count }}</span>
+            </a>
+            <a href="?status=COMPLETED" class="bg-slate-950 hover:bg-slate-800/80 border border-slate-800 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
                 <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block">Bajarildi</span>
-                <span class="text-lg font-black text-emerald-400 digital-font">{{ completed_boxes_count }}</span>
-            </div>
+                <span class="text-base font-black text-emerald-400 digital-font">{{ completed_boxes_count }}</span>
+            </a>
         </div>
     </div>
 
     <!-- SEARCH & FILTER TOOLBAR -->
-    <div
-        class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <!-- Search Form -->
-        <form method="GET" action="{% url 'production:statistics_pipeline' %}"
-            class="w-full md:max-w-xl flex items-center gap-2">
-            <div class="relative flex-1">
-                <input type="text" name="q" value="{{ q }}"
-                    placeholder="Stiker ID (#8K2X9P7A), Quti ID (5N0Y8LOR), Zakaz yoki Artikul..."
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium transition">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-xs text-slate-500"></i>
-                {% if q %}
-                <a href="{% url 'production:statistics_pipeline' %}"
-                    class="absolute right-3 top-3 text-slate-400 hover:text-white" title="Tozalash">
-                    <i class="fa-solid fa-xmark"></i>
-                </a>
-                {% endif %}
-            </div>
-            <input type="hidden" name="status" value="{{ status_filter }}">
-            <button type="submit"
-                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl transition shadow-lg shadow-blue-600/20 flex items-center gap-2">
-                <i class="fa-solid fa-search"></i>
-                <span>Qidirish</span>
-            </button>
-        </form>
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+        <form id="statistics-filter-form" method="GET" action="{% url 'production:statistics_pipeline' %}" class="space-y-4">
+            <!-- Row 1: Search, Article Select, Pastal Select, Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                <!-- Search input (4 cols) -->
+                <div class="md:col-span-4 relative">
+                    <input type="text" name="q" value="{{ q }}"
+                        placeholder="Stiker ID (#8K2X9P7A), Quti ID, Zakaz..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-10 pr-8 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium transition">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-slate-500"></i>
+                    {% if q %}
+                    <a href="?{% if selected_article_id %}article_id={{ selected_article_id }}&{% endif %}{% if selected_pastal %}pastal={{ selected_pastal }}&{% endif %}{% if unscanned_only %}unscanned_only=1&{% endif %}{% if status_filter %}status={{ status_filter }}{% endif %}"
+                        class="absolute right-3 top-2.5 text-slate-400 hover:text-white" title="Qidiruvni tozalash">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </a>
+                    {% endif %}
+                </div>
 
-        <!-- Status Filter Tabs -->
-        <div
-            class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
-            <a href="?status=ALL{% if q %}&q={{ q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'ALL' %}bg-blue-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                Barchasi
-            </a>
-            <a href="?status=IN_PROGRESS{% if q %}&q={{ q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'IN_PROGRESS' %}bg-amber-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                Jarayonda
-            </a>
-            <a href="?status=COMPLETED{% if q %}&q={{ q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'COMPLETED' %}bg-emerald-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                Bajarilgan
-            </a>
-            <a href="?status=CREATED{% if q %}&q={{ q }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 {% if status_filter == 'CREATED' %}bg-slate-700 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                Yangi
-            </a>
-        </div>
+                <!-- Article Dropdown (3 cols) -->
+                <div class="md:col-span-3 relative">
+                    <select name="article_id" id="filter-article-select"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-9 pr-7 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium transition appearance-none cursor-pointer">
+                        <option value="">-- Barcha artikullar --</option>
+                        {% for art in articles_list %}
+                        <option value="{{ art.id }}" {% if selected_article_id == art.id|stringformat:'s' %}selected{% endif %}>
+                            {{ art.code }} — {{ art.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <i class="fa-solid fa-shirt absolute left-3.5 top-3 text-xs text-blue-400"></i>
+                    <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-500 pointer-events-none"></i>
+                </div>
+
+                <!-- Pastal Dropdown (3 cols) -->
+                <div class="md:col-span-3 relative">
+                    <select name="pastal" id="filter-pastal-select"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-9 pr-7 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium transition appearance-none cursor-pointer">
+                        <option value="">-- Barcha pastallar --</option>
+                        {% for p in available_pastals %}
+                        <option value="{{ p }}" {% if selected_pastal == p %}selected{% endif %}>
+                            Pastal: {{ p }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <i class="fa-solid fa-layer-group absolute left-3.5 top-3 text-xs text-indigo-400"></i>
+                    <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-500 pointer-events-none"></i>
+                </div>
+
+                <!-- Submit & Clear Buttons (2 cols) -->
+                <div class="md:col-span-2 flex items-center gap-2">
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-2xl transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-filter text-xs"></i>
+                        <span>Filtrlash</span>
+                    </button>
+                    {% if q or selected_article_id or selected_pastal or unscanned_only or status_filter != 'ALL' %}
+                    <a href="{% url 'production:statistics_pipeline' %}"
+                        class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl transition flex items-center justify-center"
+                        title="Barcha filtrlarni tozalash">
+                        <i class="fa-solid fa-rotate-left text-xs"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Row 2: "Umuman skan bo'lmaganlar" Checkbox & Status Tabs -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+                <!-- Checkbox toggle: Faqat umuman skan bo'lmaganlar (0 ta skan) -->
+                <label class="inline-flex items-center gap-2.5 cursor-pointer bg-slate-950/80 hover:bg-slate-950 border {% if unscanned_only %}border-rose-500/40 ring-1 ring-rose-500/20{% else %}border-slate-800{% endif %} px-3.5 py-2 rounded-2xl transition select-none">
+                    <input type="checkbox" name="unscanned_only" value="1" id="filter-unscanned-checkbox"
+                        {% if unscanned_only %}checked{% endif %}
+                        class="w-4 h-4 rounded text-rose-500 bg-slate-900 border-slate-700 focus:ring-0 cursor-pointer"
+                        onchange="document.getElementById('statistics-filter-form').submit()">
+                    <span class="text-xs font-bold {% if unscanned_only %}text-rose-400{% else %}text-slate-300{% endif %} flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full {% if unscanned_only %}bg-rose-500 animate-pulse{% else %}bg-slate-600{% endif %}"></span>
+                        Faqat umuman skan bo'lmagan qutilar (0 ta skan)
+                    </span>
+                </label>
+
+                <!-- Status Filter Tabs -->
+                <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-2xl border border-slate-800 overflow-x-auto">
+                    <a href="?status=ALL{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if status_filter == 'ALL' and not unscanned_only %}bg-blue-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                        Barchasi
+                    </a>
+                    <a href="?status=UNSCANNED&unscanned_only=1{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if unscanned_only or status_filter == 'UNSCANNED' %}bg-rose-600 text-white shadow shadow-rose-600/30{% else %}text-slate-400 hover:text-rose-400{% endif %}">
+                        <i class="fa-solid fa-hourglass-start mr-1"></i> Skan qilinmagan (0 ta)
+                    </a>
+                    <a href="?status=IN_PROGRESS{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if status_filter == 'IN_PROGRESS' and not unscanned_only %}bg-amber-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                        Jarayonda
+                    </a>
+                    <a href="?status=COMPLETED{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if status_filter == 'COMPLETED' and not unscanned_only %}bg-emerald-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                        Bajarilgan
+                    </a>
+                </div>
+            </div>
+        </form>
     </div>
 
     <!-- BOXES PIPELINE LIST -->
@@ -133,27 +192,32 @@
                             </span>
                             {% else %}
                             <span
-                                class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                                Yaratildi
+                                class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                                <i class="fa-solid fa-hourglass-start mr-1"></i> Skan qilinmagan (0 ta)
                             </span>
                             {% endif %}
                         </div>
 
                         <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
-                            <span><strong class="text-slate-300">Zakaz:</strong> {{ item.box.order.order_number
-                                }}</span>
+                            <span><strong class="text-slate-300">Zakaz:</strong> {{ item.box.order.order_number }}</span>
                             {% if item.box.order.client_name %}
                             <span class="text-slate-500">•</span>
                             <span><strong class="text-slate-300">Mijoz:</strong> {{ item.box.order.client_name }}</span>
                             {% endif %}
                             {% if item.target_article %}
                             <span class="text-slate-500">•</span>
-                            <span><strong class="text-slate-300">Model:</strong> {{ item.target_article.name }} ({{
-                                item.target_article.code }})</span>
+                            <span><strong class="text-slate-300">Model:</strong> {{ item.target_article.name }} ({{ item.target_article.code }})</span>
                             {% endif %}
                             {% if item.box.razmer %}
                             <span class="text-slate-500">•</span>
                             <span class="text-amber-400 font-bold">Razmer: {{ item.box.razmer }}</span>
+                            {% endif %}
+                            {% if item.box.pastal_code %}
+                            <span class="text-slate-500">•</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-layer-group text-[10px]"></i>
+                                <span>Pastal: {{ item.box.pastal_code }}</span>
+                            </span>
                             {% endif %}
                         </div>
                     </div>
@@ -269,14 +333,16 @@
             <p class="text-xs text-slate-400 max-w-md mx-auto">
                 {% if q %}
                 "{{ q }}" bo'yicha hech narsa topilmadi. Qidiruv so'zini tekshirib qaytadan urinib ko'ring.
+                {% elif selected_pastal or selected_article_id %}
+                Tanlangan filtrlar bo'yicha {% if unscanned_only %}hali skan qilinmagan{% endif %} qutilar mavjud emas.
                 {% else %}
                 Hozircha tizimda ishlab chiqarish qutilari mavjud emas.
                 {% endif %}
             </p>
-            {% if q %}
+            {% if q or selected_pastal or selected_article_id or unscanned_only or status_filter != 'ALL' %}
             <a href="{% url 'production:statistics_pipeline' %}"
                 class="mt-4 inline-block px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
-                Barcha qutilarni ko'rish
+                <i class="fa-solid fa-rotate-left mr-1"></i> Barcha filtrlarni tozalash
             </a>
             {% endif %}
         </div>
@@ -293,14 +359,14 @@
         </div>
         <div class="flex items-center gap-1.5">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if unscanned_only %}&unscanned_only=1{% endif %}"
                 class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
                 <i class="fa-solid fa-chevron-left mr-1"></i> Oldingi
             </a>
             {% endif %}
 
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if unscanned_only %}&unscanned_only=1{% endif %}"
                 class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition">
                 Keyingi <i class="fa-solid fa-chevron-right ml-1"></i>
             </a>
@@ -514,6 +580,53 @@
             closeStickerModal();
         }
     });
+
+    // Artikul va Pastal dinamik bog'langan filtri
+    const pastalsByArticle = {{ pastals_by_article_json|safe }};
+    const allPastals = {{ all_pastals_json|safe }};
+
+    const articleSelect = document.getElementById('filter-article-select');
+    const pastalSelect = document.getElementById('filter-pastal-select');
+    const unscannedChk = document.getElementById('filter-unscanned-checkbox');
+    const filterForm = document.getElementById('statistics-filter-form');
+
+    if (articleSelect && pastalSelect) {
+        articleSelect.addEventListener('change', function () {
+            const artId = this.value;
+            const currentPastal = pastalSelect.value;
+            let pastals = [];
+            if (artId && pastalsByArticle[artId]) {
+                pastals = pastalsByArticle[artId];
+            } else if (!artId) {
+                pastals = allPastals;
+            }
+
+            pastalSelect.innerHTML = '<option value="">-- Barcha pastallar --</option>';
+            pastals.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = `Pastal: ${p}`;
+                if (p === currentPastal) opt.selected = true;
+                pastalSelect.appendChild(opt);
+            });
+
+            if (currentPastal && !pastals.includes(currentPastal)) {
+                pastalSelect.value = '';
+            }
+        });
+
+        pastalSelect.addEventListener('change', function () {
+            if (this.value) {
+                // Pastal tanlanganda avtomatik ravishda umuman skan bo'lmagan qutilar chiqadi
+                if (unscannedChk) {
+                    unscannedChk.checked = true;
+                }
+                if (filterForm) {
+                    filterForm.submit();
+                }
+            }
+        });
+    }
 
     // Agar search bo'yicha highlighted ticket bo'lsa, avtomatik modalni ochish
     {% if highlighted_ticket_id %}
