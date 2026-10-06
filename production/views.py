@@ -723,18 +723,15 @@ def box_pipeline_statistics_view(request):
     status_filter = request.GET.get('status', 'ALL').strip().upper()
     article_id = request.GET.get('article_id', '').strip()
     pastal = request.GET.get('pastal', '').strip()
+    razmer = request.GET.get('razmer', '').strip()
     unscanned_param = request.GET.get('unscanned_only')
 
-    # Umuman skan qilinmagan qutilar filtri:
-    # 1. status=UNSCANNED parametri berilganda
-    # 2. unscanned_only=1 parametri berilganda
-    # 3. Foydalanuvchi artikul yoki pastal tanlaganda, va boshqa maxsus status belgilanmagan bo'lsa
+    # Umuman skan qilinmagan qutilar filtri FAQAT foydalanuvchi o'zi belgilaganda ishlaydi.
+    # Boshqa payt aralashib ketmasligi uchun avtomatik yoqilmaydi.
     if status_filter == 'UNSCANNED':
         unscanned_only = True
     elif unscanned_param is not None:
         unscanned_only = (unscanned_param in ('1', 'true', 'True', 'on'))
-    elif (article_id or pastal) and status_filter in ('', 'ALL'):
-        unscanned_only = True
     else:
         unscanned_only = False
 
@@ -818,7 +815,12 @@ def box_pipeline_statistics_view(request):
             pastal_filter_q |= Q(cutting_batch_item__batch__batch_number=int(pastal_clean))
         boxes_qs = boxes_qs.filter(pastal_filter_q).distinct()
 
-    # 3. Holat / Skanerlanmagan qutilar filtri
+    # 3. Razmer (O'lcham) bo'yicha filtr
+    if razmer:
+        razmer_clean = razmer.strip()
+        boxes_qs = boxes_qs.filter(razmer__iexact=razmer_clean).distinct()
+
+    # 4. Holat / Skanerlanmagan qutilar filtri (Faqat belgilanganda!)
     if unscanned_only or status_filter == 'UNSCANNED':
         boxes_qs = boxes_qs.filter(annotated_scanned_tickets=0).exclude(status=Box.Status.CANCELLED)
     elif status_filter == Box.Status.COMPLETED:
@@ -903,6 +905,59 @@ def box_pipeline_statistics_view(request):
     else:
         available_pastals = sorted_all_pastals
 
+    # Razmerlar ro'yxati (filtrlash dropdownlari uchun)
+    box_size_rows = Box.objects.exclude(razmer__isnull=True).exclude(razmer='').values(
+        'article_id',
+        'cutting_batch_item__batch__order_item__article_id',
+        'order__article_id',
+        'razmer'
+    ).distinct()
+
+    sizes_by_article = {}
+    all_sizes = set()
+
+    SIZE_ORDER = {
+        'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5,
+        '2XL': 6, 'XXL': 6, '3XL': 7, 'XXXL': 7,
+        '4XL': 8, 'XXXXL': 8, '5XL': 9, '6XL': 10
+    }
+
+    def _size_sort_key(s):
+        s_clean = str(s).strip().upper()
+        if s_clean in SIZE_ORDER:
+            return (0, SIZE_ORDER[s_clean], s_clean)
+        if s_clean.isdigit():
+            return (1, int(s_clean), s_clean)
+        return (2, 0, s_clean)
+
+    def _add_size(art_id, s_val):
+        if not s_val:
+            return
+        s_clean = str(s_val).strip()
+        if not s_clean:
+            return
+        all_sizes.add(s_clean)
+        if art_id:
+            key = str(art_id)
+            if key not in sizes_by_article:
+                sizes_by_article[key] = set()
+            sizes_by_article[key].add(s_clean)
+
+    for row in box_size_rows:
+        art_id = row['article_id'] or row['cutting_batch_item__batch__order_item__article_id'] or row['order__article_id']
+        _add_size(art_id, row['razmer'])
+
+    sorted_all_sizes = sorted(all_sizes, key=_size_sort_key)
+    serializable_sizes_by_article = {
+        k: sorted(list(v), key=_size_sort_key)
+        for k, v in sizes_by_article.items()
+    }
+
+    if article_id and str(article_id) in serializable_sizes_by_article:
+        available_sizes = serializable_sizes_by_article[str(article_id)]
+    else:
+        available_sizes = sorted_all_sizes
+
     paginator = Paginator(boxes_qs, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
@@ -969,11 +1024,16 @@ def box_pipeline_statistics_view(request):
         'selected_article_id': str(article_id) if article_id else '',
         'pastal': pastal,
         'selected_pastal': pastal,
+        'razmer': razmer,
+        'selected_razmer': razmer,
         'unscanned_only': unscanned_only,
         'articles_list': articles_list,
         'available_pastals': available_pastals,
         'all_pastals_json': json.dumps(sorted_all_pastals),
         'pastals_by_article_json': json.dumps(serializable_pastals_by_article),
+        'available_sizes': available_sizes,
+        'all_sizes_json': json.dumps(sorted_all_sizes),
+        'sizes_by_article_json': json.dumps(serializable_sizes_by_article),
         'total_boxes_count': total_boxes_count,
         'unscanned_boxes_count': unscanned_boxes_count,
         'in_progress_boxes_count': in_progress_boxes_count,

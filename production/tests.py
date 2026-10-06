@@ -551,35 +551,52 @@ class BoxPipelineStatisticsTest(TestCase):
             scanned_at=timezone.now()
         )
 
-        # 1. Filter by article_id and pastal -> defaults to unscanned_only=True
+        # 1. Filter by article_id and pastal (unscanned_only is NOT forced, shows all boxes of that article and pastal)
         url = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&pastal=202"
         res = self.client.get(url)
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, box_unscanned.box_code)
-        self.assertNotContains(res, box_scanned.box_code)
-        self.assertNotContains(res, self.box.box_code)
+        self.assertContains(res, box_scanned.box_code) # Not filtered out because user didn't check unscanned!
+        self.assertNotContains(res, self.box.box_code) # self.box is ART-STAT-01
 
-        # 2. Filter with status=UNSCANNED explicitly
-        url_unscanned = reverse('production:statistics_pipeline') + "?status=UNSCANNED"
+        # 2. Filter with unscanned_only=1 explicitly checked
+        url_unscanned = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&pastal=202&unscanned_only=1"
         res_unscanned = self.client.get(url_unscanned)
         self.assertEqual(res_unscanned.status_code, 200)
         self.assertContains(res_unscanned, box_unscanned.box_code)
         self.assertNotContains(res_unscanned, box_scanned.box_code)
 
-        # 3. Filter with unscanned_only=0 (user explicitly shows all for that pastal)
-        url_all = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&pastal=202&unscanned_only=0&status=ALL"
-        res_all = self.client.get(url_all)
-        self.assertEqual(res_all.status_code, 200)
-        self.assertContains(res_all, box_unscanned.box_code)
-        self.assertContains(res_all, box_scanned.box_code)
+        # 3. Filter with status=UNSCANNED explicitly
+        url_status_unscanned = reverse('production:statistics_pipeline') + "?status=UNSCANNED"
+        res_status = self.client.get(url_status_unscanned)
+        self.assertEqual(res_status.status_code, 200)
+        self.assertContains(res_status, box_unscanned.box_code)
+        self.assertNotContains(res_status, box_scanned.box_code)
 
-        # 4. Check context variables
+        # 4. Filter by razmer="S"
+        url_size_s = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&razmer=S"
+        res_s = self.client.get(url_size_s)
+        self.assertEqual(res_s.status_code, 200)
+        self.assertContains(res_s, box_unscanned.box_code)
+        self.assertNotContains(res_s, box_scanned.box_code)
+
+        # 5. Filter by razmer="M"
+        url_size_m = reverse('production:statistics_pipeline') + f"?article_id={art2.id}&razmer=M"
+        res_m = self.client.get(url_size_m)
+        self.assertEqual(res_m.status_code, 200)
+        self.assertContains(res_m, box_scanned.box_code)
+        self.assertNotContains(res_m, box_unscanned.box_code)
+
+        # 6. Check context variables
         self.assertIn('articles_list', res.context)
         self.assertIn('pastals_by_article_json', res.context)
+        self.assertIn('available_sizes', res.context)
+        self.assertIn('sizes_by_article_json', res.context)
         self.assertIn('unscanned_boxes_count', res.context)
         self.assertEqual(res.context['selected_pastal'], "202")
         self.assertEqual(res.context['selected_article_id'], str(art2.id))
-        self.assertTrue(res.context['unscanned_only'])
+        self.assertFalse(res.context['unscanned_only']) # Unscanned is False by default!
+        self.assertTrue(res_unscanned.context['unscanned_only']) # Only True when explicitly requested!
 
 
 class ManagerAndCuttingWorkflowTest(TestCase):
