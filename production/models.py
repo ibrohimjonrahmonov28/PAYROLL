@@ -14,7 +14,7 @@ from django.utils import timezone
 from accounts.models import Worker, User
 
 
-@functools.lru_cache(maxsize=10000)
+@functools.lru_cache(maxsize=1000)
 def _generate_qr_data_uri(data_str: str, box_size: int = 8, border: int = 1) -> str:
     """
     Xotirada (RAM) LRU-keshlangan Base64 QR-kod.

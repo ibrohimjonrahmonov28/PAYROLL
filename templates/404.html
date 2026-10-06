@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}404 — Sahifa topilmadi | Terry Jar{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-6 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+        <div class="w-20 h-20 rounded-2xl bg-amber-500/10 text-amber-400 mx-auto flex items-center justify-center text-4xl border border-amber-500/20">
+            <i class="fa-solid fa-compass"></i>
+        </div>
+        <div class="space-y-2">
+            <h1 class="text-3xl font-black text-white tracking-tight">404</h1>
+            <h2 class="text-lg font-bold text-slate-200">Sahifa topilmadi</h2>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                Siz qidirayotgan sahifa ko'chirilgan, o'chirilgan yoki manzili noto'g'ri kiritilgan bo'lishi mumkin.
+            </p>
+        </div>
+        <div class="pt-2">
+            <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition">
+                <i class="fa-solid fa-house"></i> Bosh sahifaga qaytish
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
