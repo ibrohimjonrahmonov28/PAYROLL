@@ -1540,6 +1540,47 @@ class NormaCanvasTest(TestCase):
         self.assertEqual(self.model.daily_norm, 0)
         self.assertEqual(self.order_item.norm, 0)
 
+    def test_save_operations_with_group_template(self):
+        import json
+        from django.urls import reverse
+        from production.models import OperationGroup, OperationGroupItem
+
+        group = OperationGroup.objects.create(name="Shablon 1")
+        op1 = Operation.objects.create(code="SHAB-01", name="Shablon Op 1")
+        op2 = Operation.objects.create(code="SHAB-02", name="Shablon Op 2")
+        OperationGroupItem.objects.create(group=group, operation=op1, sequence=1, price_per_unit=Decimal('600.00'))
+        OperationGroupItem.objects.create(group=group, operation=op2, sequence=2, price_per_unit=Decimal('900.00'))
+
+        # Quti va unga tegishli bilet yaratish
+        box = Box.objects.create(order=self.order, article=self.article, box_number=10, quantity=50)
+
+        payload = {
+            'action': 'save_operations',
+            'article_ids': [self.article.id],
+            'group_id': group.id,
+            'operations': [
+                {'sequence': 1, 'name': op1.name, 'code': op1.code, 'price': 600, 'difficulty': 1.0},
+                {'sequence': 2, 'name': op2.name, 'code': op2.code, 'price': 900, 'difficulty': 1.0},
+            ]
+        }
+        res = self.client.post(
+            reverse('norma_canvas_save'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['group_id'], group.id)
+
+        self.article.refresh_from_db()
+        self.assertEqual(self.article.operation_group_id, group.id)
+        self.assertEqual(self.article.article_operations.count(), 2)
+
+        # Qutida biletlar to'g'ri yaratilganini tekshirish
+        box.refresh_from_db()
+        self.assertEqual(box.tickets.filter(status=Ticket.Status.PENDING).count(), 2)
+
 
 class DailyExcelReportAndPricingSyncTest(TestCase):
     def setUp(self):

@@ -48,10 +48,6 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
     if not article:
         return []
 
-    # Har safar stiker yaratilganda / yangilanganda Narxlar matritsasidagi eng so'nggi ma'lumotlar bilan sinxronlash
-    if article.operation_group:
-        article.sync_operations_from_group(sync_unscanned_boxes=False)
-
     # Agar operation_splits berilmagan bo'lsa, qutida avval bo'lgan split konfiguratsiyasini saqlab qolish
     if operation_splits is None:
         operation_splits = {}

@@ -817,15 +817,20 @@ def norma_canvas_save(request):
         with transaction.atomic():
             op_objs = []
             for c_op in cleaned_operations:
-                op_obj, _ = Operation.objects.get_or_create(
-                    name__iexact=c_op['name'],
-                    defaults={
-                        'code': c_op['code'],
-                        'name': c_op['name'],
-                        'default_difficulty': c_op['difficulty'],
-                        'order_number': c_op['sequence'],
-                    }
-                )
+                op_obj = Operation.objects.filter(name__iexact=c_op['name']).first()
+                if not op_obj:
+                    base_code = c_op['code'] or c_op['name'].upper()[:50]
+                    cand_code = base_code
+                    c_idx = 1
+                    while Operation.objects.filter(code=cand_code).exists():
+                        cand_code = f"{base_code[:45]}_{c_idx}"
+                        c_idx += 1
+                    op_obj = Operation.objects.create(
+                        code=cand_code,
+                        name=c_op['name'],
+                        default_difficulty=c_op['difficulty'],
+                        order_number=c_op['sequence'],
+                    )
                 op_objs.append((op_obj, c_op))
 
             keep_op_ids = [op_obj.id for op_obj, _ in op_objs]
@@ -877,7 +882,7 @@ def norma_canvas_save(request):
                 if assigned_group:
                     for art in articles:
                         art.operation_group = assigned_group
-                        art.save()
+                        art.save(update_fields=['operation_group'])
 
         # Nechta bilet narxi yangilanganini hisoblash
         total_synced_tickets = Ticket.objects.filter(
@@ -946,9 +951,10 @@ def norma_canvas_save(request):
             }, status=400)
 
         with transaction.atomic():
-            # Chop etilgan qog'oz stikerlar va biletlar daxlsizligi: ularni o'chirmasdan bekor qilamiz
+            # Chop etilgan qog'oz stikerlar va biletlar daxlsizligi:
             for ao in article_ops:
-                if not ao.tickets.exists():
+                if not ao.tickets.filter(status=Ticket.Status.SCANNED).exists():
+                    ao.tickets.all().delete()
                     ao.delete()
                 else:
                     ao.is_active = False

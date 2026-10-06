@@ -2211,9 +2211,13 @@
             btnSaveNorma.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...`;
         }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
+
         try {
             const response = await fetch("{% url 'norma_canvas_save' %}", {
                 method: "POST",
+                signal: controller.signal,
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRFToken": CSRF_TOKEN,
@@ -2225,6 +2229,7 @@
                     group_id: document.getElementById('group-template-select')?.value || null,
                 })
             });
+            clearTimeout(timeoutId);
 
             let result = {};
             try {
@@ -2287,8 +2292,13 @@
             }
 
         } catch (err) {
+            clearTimeout(timeoutId);
             console.error("Save operations error:", err);
-            errorText.innerText = err.message || "Server bilan bog'lanishda xatolik yuz berdi!";
+            if (err.name === 'AbortError') {
+                errorText.innerText = "So'rov vaqti tugadi (35s). Server band yoki javob bermadi.";
+            } else {
+                errorText.innerText = err.message || "Server bilan bog'lanishda xatolik yuz berdi!";
+            }
             errorBanner.classList.remove('hidden');
             if (btnSaveOnly) {
                 btnSaveOnly.disabled = false;

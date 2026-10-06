@@ -163,14 +163,12 @@ class Article(models.Model):
     def sync_box_tickets_if_unscanned(self, order=None):
         """
         Agar qutilardagi biletlar hali bironta ham skanerlanmagan bo'lsa,
-        qutilarning biletlarini joriy operatsiyalar ro'yxatiga 1-ga-1 moslab qayta generatsiya qilish.
+        ushbu artikulga tegishli qutilarning biletlarini joriy operatsiyalar ro'yxatiga 1-ga-1 moslab qayta generatsiya qilish.
         """
         from .services import generate_box_tickets
         boxes_qs = Box.objects.filter(
             Q(article=self) |
-            Q(cutting_batch_item__batch__order_item__article=self) |
-            Q(order__article=self) |
-            Q(order__items__article=self)
+            Q(cutting_batch_item__batch__order_item__article=self)
         ).distinct().exclude(status=Box.Status.CANCELLED)
         if order:
             boxes_qs = boxes_qs.filter(order=order)
