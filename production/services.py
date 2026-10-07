@@ -3,7 +3,7 @@ Production business logic and SRS Ticket Allocation Algorithm.
 """
 from decimal import Decimal
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from .models import Box, Order, Ticket, ArticleOperation
 
 
@@ -86,13 +86,16 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
 
         for index, qty in enumerate(allocations, start=1):
             existing_ticket = box.tickets.filter(
-                article_operation=art_op,
+                Q(article_operation=art_op) | Q(article_operation__operation=art_op.operation),
                 split_index=index
             ).first()
 
             if existing_ticket:
                 # Mavjud biletni yangilaymiz, LEKIN uning ticket_code va stiker_code sini SAQLAB QOLAMIZ!
                 fields_to_update = []
+                if existing_ticket.article_operation_id != art_op.id:
+                    existing_ticket.article_operation = art_op
+                    fields_to_update.append('article_operation')
                 if existing_ticket.quantity != qty:
                     existing_ticket.quantity = qty
                     fields_to_update.append('quantity')
@@ -130,33 +133,53 @@ def generate_box_tickets(box: Box, operation_splits: dict[int, int] = None) -> l
 
 def ensure_box_tickets_fresh(box: Box) -> None:
     """
-    Qutidagi stikerlar eng so'nggi narxlar matritsasiga to'liq mosligini tekshiradi va
-    agar narxlar yoki operatsiyalar o'zgargan bo'lsa, avtomatik yangilaydi (agar hali skanerlanmagan bo'lsa).
+    Qutidagi stikerlar narxlarini tekshiradi va eng so'nggi narxlarga moslaydi.
+    OLTIN QOIDA: Chop etilgan qutining biletlari va kodlari HECH QACHON qayta generatsiya qilinmaydi!
+    Faqat hali chop etilmagan qutilar birinchi chop etishdan oldin matritsaga sinxronlanadi.
     """
     if box.status == Box.Status.CANCELLED:
         return
     art = box.target_article
     if not art:
         return
+
+    # 1. Agar qutida biletlar hali umuman yo'q bo'lsa -> bir marta yaratish:
+    if not box.tickets.exists():
+        generate_box_tickets(box)
+        return
+
+    # 2. Agar quti allaqachon skanerlangan bo'lsa -> o'zgartirish taqiqlanadi:
     if box.tickets.filter(status=Ticket.Status.SCANNED).exists():
         return
 
+    # 3. Agar quti allaqachon chop etilgan bo'lsa (is_printed == True):
+    # Qog'oz stikerlar allaqachon sexda. Ularning tarkibi va kodlari DAXLSIZ!
+    # Faqat narx o'zgargan bo'lsa, mavjud kutilayotgan biletlar narxini yangilaymiz:
+    if box.is_printed:
+        for t in box.tickets.filter(status=Ticket.Status.PENDING).select_related('article_operation'):
+            if t.article_operation and t.price_per_unit != t.article_operation.price_per_unit:
+                t.price_per_unit = t.article_operation.price_per_unit
+                t.total_amount = Decimal(t.quantity) * t.price_per_unit
+                t.save(update_fields=['price_per_unit', 'total_amount'])
+        return
+
+    # 4. Agar quti hali chop etilmagan bo'lsa (is_printed == False):
+    # Birinchi marta chop etishdan oldin matritsaga moslaymiz (mavjud biletlar kodlari saqlanadi):
     if art.operation_group:
         art.sync_operations_from_group(sync_unscanned_boxes=False)
 
     existing_tickets = list(box.tickets.exclude(status=Ticket.Status.CANCELLED))
     art_ops = list(art.article_operations.filter(is_active=True).order_by('sequence', 'id'))
 
-    if len(existing_tickets) != len(art_ops):
-        generate_box_tickets(box)
-        return
-
-    existing_op_map = {t.article_operation_id: t.price_per_unit for t in existing_tickets}
     needs_refresh = False
-    for ao in art_ops:
-        if ao.id not in existing_op_map or existing_op_map[ao.id] != ao.price_per_unit:
-            needs_refresh = True
-            break
+    if len(existing_tickets) != len(art_ops):
+        needs_refresh = True
+    else:
+        existing_op_map = {t.article_operation_id: t.price_per_unit for t in existing_tickets}
+        for ao in art_ops:
+            if ao.id not in existing_op_map or existing_op_map[ao.id] != ao.price_per_unit:
+                needs_refresh = True
+                break
 
     if needs_refresh:
         generate_box_tickets(box)

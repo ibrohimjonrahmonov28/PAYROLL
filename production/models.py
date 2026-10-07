@@ -8,7 +8,7 @@ import functools
 from decimal import Decimal
 import qrcode
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, F
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from accounts.models import Worker, User
@@ -110,7 +110,7 @@ class Article(models.Model):
     def total_unit_rate(self):
         return sum(ao.price_per_unit for ao in self.article_operations.all())
 
-    def sync_operations_from_group(self, sync_unscanned_boxes=True):
+    def sync_operations_from_group(self, sync_unscanned_boxes=False):
         """Guruhga tegishli barcha operatsiyalarni ushbu artikulga biriktirish / yangilash va ortiqchalarini tozalash"""
         if not self.operation_group:
             return
@@ -137,33 +137,36 @@ class Article(models.Model):
                     is_active=item.is_active
                 )
 
-            # Agar operatsiya to'xtatilgan bo'lsa (is_active=False), uning barcha skanerlanmagan biletlarini bekor qilish:
+            # Agar operatsiya to'xtatilgan bo'lsa (is_active=False), uning skanerlanmagan biletlarini bekor qilish:
             if not item.is_active:
                 ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
             else:
-                ao.tickets.filter(status=Ticket.Status.CANCELLED, box__status=Box.Status.CREATED).update(status=Ticket.Status.PENDING)
+                # Agar narx o'zgargan bo'lsa, mavjud PENDING biletlarning narxini yangilaymiz (KODLARI DAXLSIZ!)
+                ao.tickets.filter(status=Ticket.Status.PENDING).update(
+                    price_per_unit=item.price_per_unit,
+                    total_amount=F('quantity') * item.price_per_unit
+                )
 
         # Guruhdan olib tashlangan eski operatsiyalarni tozalash:
-        # Faqat bironta ham bileti SKANERLANMAGAN operatsiyalarni o'chirish
+        # Biletlari bor operatsiyalarni o'chirmasdan nofaol qilamiz
         obsolete_aos = self.article_operations.exclude(operation_id__in=keep_op_ids)
         for old_ao in obsolete_aos:
             if not old_ao.tickets.exists():
                 old_ao.delete()
             else:
-                # Agar biletlari bo'lsa (chop etilgan yoki skanerlangan), ularni o'chirmaymiz,
-                # faqat kutilayotgan biletlarni CANCELLED qilib, operatsiyani nofaol qilamiz:
                 old_ao.is_active = False
                 old_ao.save(update_fields=['is_active'])
-                old_ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+                # Faqat hali chop etilmagan qutilarda bekor qilish
+                old_ao.tickets.filter(status=Ticket.Status.PENDING, box__is_printed=False).update(status=Ticket.Status.CANCELLED)
 
-        # Agar qutilardagi biletlar hali bironta ham skanerlanmagan bo'lsa, ularni qayta generatsiya qilish
+        # Agar maxsus chaqirilsa, biletlari yo'q qutilar uchun yaratish
         if sync_unscanned_boxes:
             self.sync_box_tickets_if_unscanned()
 
     def sync_box_tickets_if_unscanned(self, order=None):
         """
-        Agar qutilardagi biletlar hali bironta ham skanerlanmagan bo'lsa,
-        ushbu artikulga tegishli qutilarning biletlarini joriy operatsiyalar ro'yxatiga 1-ga-1 moslab qayta generatsiya qilish.
+        Faqat biletlari hali umuman yaratilmagan qutilar uchun biletlarni bir marta yaratish.
+        Mavjud biletlari bor qutilar (ayniqsa chop etilganlar) mutlaq daxlsiz qoladi.
         """
         from .services import generate_box_tickets
         boxes_qs = Box.objects.filter(
@@ -174,7 +177,8 @@ class Article(models.Model):
             boxes_qs = boxes_qs.filter(order=order)
 
         for box in boxes_qs:
-            if not box.tickets.filter(status=Ticket.Status.SCANNED).exists():
+            # Agar qutida biletlar allaqachon mavjud bo'lsa, unga TEGILMAYDI!
+            if not box.tickets.exists():
                 generate_box_tickets(box)
 
     def sync_operations_from_model(self):
@@ -1414,14 +1418,16 @@ class Ticket(models.Model):
         if not self.stiker_code and not self.pk:
             self.stiker_code = generate_unique_stiker_code()
 
-        # Daxlsizlik: Mavjud biletning ticket_code va stiker_code si tasodifan yo'qotilmasligi uchun:
+        # Daxlsizlik: Mavjud biletning ticket_code va stiker_code si yo'qotilmasligi uchun:
         if self.pk and not getattr(self, '_allow_code_override', False):
-            orig_vals = Ticket.objects.filter(pk=self.pk).values('ticket_code', 'stiker_code').first()
+            orig_vals = Ticket.objects.filter(pk=self.pk).values('ticket_code', 'stiker_code', 'box_id').first()
             if orig_vals:
                 if not self.ticket_code:
                     self.ticket_code = orig_vals['ticket_code']
                 if not self.stiker_code:
                     self.stiker_code = orig_vals['stiker_code']
+                if not self.box_id:
+                    self.box_id = orig_vals['box_id']
 
         if not self.price_per_unit and self.article_operation:
             self.price_per_unit = self.article_operation.price_per_unit

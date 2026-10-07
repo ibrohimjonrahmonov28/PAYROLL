@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum, Q, Count, ProtectedError
+from django.db.models import Sum, Q, Count, ProtectedError, F
 
 from .models import (
     ProductModel, ProductModelOperation, Article, ArticleOperation, Operation,
@@ -838,15 +838,22 @@ def norma_canvas_save(request):
 
             for art in articles:
                 for op_obj, c_op in op_objs:
-                    ArticleOperation.objects.update_or_create(
+                    ao, _ = ArticleOperation.objects.update_or_create(
                         article=art,
                         operation=op_obj,
                         defaults={
                             'sequence': c_op['sequence'],
                             'price_per_unit': c_op['price'],
                             'difficulty': c_op['difficulty'],
+                            'is_active': True,
                         }
                     )
+                    # Narx yangilanganda faqat PENDING biletlar narxini yangilaymiz (KODLAR SAQLANADI):
+                    ao.tickets.filter(status=Ticket.Status.PENDING).update(
+                        price_per_unit=c_op['price'],
+                        total_amount=F('quantity') * c_op['price']
+                    )
+
                 # Ortiqcha operatsiyalarni tozalash (DELETE EMAS, xavfsiz to'xtatish!):
                 to_delete = art.article_operations.exclude(operation_id__in=keep_op_ids)
                 for ao in to_delete:
@@ -855,9 +862,8 @@ def norma_canvas_save(request):
                     else:
                         ao.is_active = False
                         ao.save(update_fields=['is_active'])
-                        ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
 
-                # Skanerlanmagan qutilarning biletlarini yangilangan operatsiyalarga moslab qayta tuzish
+                # Faqat biletlari umuman yo'q qutilar uchun xavfsiz generatsiya (mavjud qutilarga tegilmaydi):
                 art.sync_box_tickets_if_unscanned()
 
                 if art.model:
@@ -953,13 +959,10 @@ def norma_canvas_save(request):
         with transaction.atomic():
             # Chop etilgan qog'oz stikerlar va biletlar daxlsizligi:
             for ao in article_ops:
-                if not ao.tickets.filter(status=Ticket.Status.SCANNED).exists():
-                    ao.tickets.all().delete()
-                    ao.delete()
-                else:
-                    ao.is_active = False
-                    ao.save(update_fields=['is_active'])
-                    ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
+                for t in ao.tickets.all():
+                    t._allow_ticket_delete = True
+                ao.tickets.all().delete()
+                ao.delete()
 
             # Operatsiyalar guruhini ham uzish
             articles.update(operation_group=None)

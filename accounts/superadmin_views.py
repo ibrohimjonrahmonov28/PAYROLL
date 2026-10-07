@@ -12,6 +12,7 @@ from django.db.models import Sum, Count, Q, F, FloatField, ExpressionWrapper, Va
 from django.db.models.functions import Coalesce
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
+from django.urls import reverse
 from django.conf import settings
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
 from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Box, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason, ControlSetting
