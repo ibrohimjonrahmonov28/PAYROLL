@@ -460,16 +460,35 @@ def get_patoks_scrap_and_warning_report(time_filter='week', order_id=None):
     }
 
 
+def natural_size_sort_key(s):
+    s_clean = str(s).strip().upper()
+    try:
+        return (0, float(s_clean), s_clean)
+    except ValueError:
+        order_map = {
+            'XXS': 1, '2XS': 1, 'XS': 2, 'S': 3, 'M': 4, 'L': 5,
+            'XL': 6, '2XL': 7, 'XXL': 7, '3XL': 8, 'XXXL': 8,
+            '4XL': 9, '5XL': 10, '6XL': 11, 'STANDART': 50, 'UNIVERSAL': 51
+        }
+        return (1, order_map.get(s_clean, 99), s_clean)
+
+
 @manager_or_superadmin_required
 def sewing_statistics_daily_view(request):
     """
-    KUNLIK TIKIM STATISTIKASI (Patoklar bo'yicha):
+    KUNLIK TIKIM STATISTIKASI (DESKTOP EXECUTIVE DASHBOARD):
     - Har bir patok (K1..K13, U1..U27)
-    - Qilayotgan zakazi va model nomi (2 ta va undan ortiq bo'lishi ham mumkin)
-    - Kunlik qancha dazmol qildi soni
-    - Bugun shu qilayotgan modellari qanchasi kontroldan o'tdi (1-sort / 2-sort)
-    - Qanchasi hali kutmoqda (OTK kutilmoqda)
-    - 'Batafsil' bo'limida kunlik bajarilgan operatsiyalar ro'yxati (nechtadan qilinyapti, ism-familiyasiz)
+    - Zakaz(lar) va Modellar yaxlitlangan ko'rinishi
+    - Tikayotgan pastallar (shu kunniki) va pastal statusi (hamma qutilar yopilganda pastal yopildi)
+    - Kunlik dazmol (shu kunniki)
+    - Shu pastallardan bugun kontroldan o'tgani (1-sort / 2-sort)
+    - Kontrolda kutayotgan quti va donalar
+    - Ta'mir / Brak ko'rsatkichlari
+    - BATAFSIL BO'LIMI:
+      * Pastal bo'yicha to'liq pipeline balansi (tikimda, dazmoldan o'tdi, kontrolda kutmoqda, o'tdi, yopildi)
+      * RAZMERLAR KESIMIDA TA'MIR VA MATO BALANSI JADVALI:
+        (Tikimga kirdi, dazmoldan o'tdi, kontrolda kutmoqda, 1-sort, 2-sort, ta'mir, brak, qayta tikish / mato ehtiyoji)
+      * Bajarilgan operatsiyalar ro'yxati (ism-familiyasiz)
     """
     from datetime import datetime
     date_str = request.GET.get('date', '').strip()
@@ -486,64 +505,88 @@ def sewing_statistics_daily_view(request):
     search_q = request.GET.get('q', '').strip()
     show_all_patoks = request.GET.get('all', '0') == '1'
 
-    # Barcha ushbu kunda skanerlangan biletlar (patok biriktirilgan)
+    # 1. Shu kunda skanerlangan barcha biletlar
     tickets_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__date=selected_date,
         screen_number__isnull=False
     ).select_related(
         'box__order__customer',
-        'box__article',
+        'box__article__model',
+        'box__cutting_batch_item__batch',
         'article_operation__operation',
         'article_operation__article'
     ).order_by('screen_number', 'article_operation__sequence', 'id')
 
-    # Biletlarni patoklar (screen_number) bo'yicha guruhlaymiz
-    tickets_by_screen = {}
-    all_box_ids = set()
-    for t in tickets_qs:
-        sn = t.screen_number
-        tickets_by_screen.setdefault(sn, []).append(t)
-        all_box_ids.add(t.box_id)
+    tickets_list = list(tickets_qs)
 
-    # Shu kuni tekshirilgan ushbu qutilarning Sifat Nazorati (OTK) loglari
+    # Screen / Patok bo'yicha biletlarni guruhlash
+    tickets_by_screen = {}
+    today_box_ids = set()
+    for t in tickets_list:
+        tickets_by_screen.setdefault(t.screen_number, []).append(t)
+        today_box_ids.add(t.box_id)
+
+    # Shu kuni ishlangan qutilarni keshlaymiz
+    today_boxes_dict = {
+        b.id: b for b in Box.objects.filter(id__in=today_box_ids).select_related(
+            'order__customer', 'article__model', 'cutting_batch_item__batch'
+        )
+    }
+
+    # Faol pastal kodlari
+    active_pastal_codes = {b.pastal_code for b in today_boxes_dict.values() if b.pastal_code}
+
+    # Barcha ushbu pastallarga tegishli qutilarni bitta tezkor so'rovda olamiz
+    all_pastal_boxes = list(
+        Box.objects.filter(pastal_number__in=active_pastal_codes).select_related(
+            'order__customer', 'article__model', 'cutting_batch_item__batch'
+        )
+    )
+    boxes_by_pastal = {}
+    all_pbox_ids = []
+    for b in all_pastal_boxes:
+        pcode = b.pastal_code
+        if pcode:
+            boxes_by_pastal.setdefault(pcode, []).append(b)
+            all_pbox_ids.append(b.id)
+
+    # Dazmoldan o'tgan qutilar ID to'plami
+    dazmol_box_ids_set = set(
+        Ticket.objects.filter(
+            box_id__in=all_pbox_ids,
+            status=Ticket.Status.SCANNED
+        ).filter(
+            Q(article_operation__operation__name__icontains='DAZMOL') |
+            Q(article_operation__operation__code__icontains='DAZMOL')
+        ).values_list('box_id', flat=True).distinct()
+    )
+
+    # Shu kuni tekshirilgan Sifat Nazorati (OTK) loglari
     inspection_logs = BoxQualityInspectionLog.objects.filter(
-        box_id__in=all_box_ids,
+        box_id__in=today_box_ids,
         created_at__date=selected_date
     )
     logs_by_box = {}
     for log in inspection_logs:
         logs_by_box.setdefault(log.box_id, []).append(log)
 
-    # Barcha qutilarning to'liq ma'lumoti
-    boxes_dict = {
-        b.id: b for b in Box.objects.filter(id__in=all_box_ids).select_related('order__customer', 'article')
-    }
-
-    # Barcha modellar uchun dazmol operatsiyalari ID to'plamini keshlaymiz
-    article_dazmol_cache = {}
-
-    def get_article_dazmol_set(art):
-        if not art:
-            return set()
-        if art.id not in article_dazmol_cache:
-            article_dazmol_cache[art.id] = get_dazmol_operation_ids_for_article(art)
-        return article_dazmol_cache[art.id]
-
     active_screens = sorted(tickets_by_screen.keys())
     screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
 
     patoks_data = []
 
-    # KPI summary
+    # KPI hisoblagichlari
     total_active_patoks = len(active_screens)
     total_daily_dazmol_qty = 0
     total_daily_controlled_qty = 0
     total_daily_first_sort = 0
     total_daily_second_sort = 0
     total_daily_waiting_qty = 0
+    total_daily_repair_qty = 0
     total_daily_scanned_ops_qty = 0
     all_worked_orders = set()
+    all_worked_pastals = set()
 
     for sn in screens_to_process:
         p_code = get_patok_code(sn)
@@ -555,166 +598,257 @@ def sewing_statistics_daily_view(request):
         t_list = tickets_by_screen.get(sn, [])
         is_active = len(t_list) > 0
 
-        # Modellar va Zakazlar guruhlash
-        models_dict = {}
-        operations_dict = {}
-        patok_box_ids = set()
+        # Ushbu patokning bugungi qutilari
+        sn_box_ids = {t.box_id for t in t_list}
+        sn_today_boxes = [today_boxes_dict[bid] for bid in sn_box_ids if bid in today_boxes_dict]
 
-        dazmol_qty = 0
-        dazmol_box_ids = set()
+        # Zakazlar va Modellarni yaxlitlash
+        orders_dict = {}
+        models_dict = {}
+        sn_pastal_codes_set = set()
+
+        for b in sn_today_boxes:
+            if b.order:
+                all_worked_orders.add(b.order.order_number)
+                orders_dict[b.order_id] = {
+                    'order_id': b.order_id,
+                    'order_number': b.order.order_number,
+                    'customer_name': (b.order.customer.name if b.order.customer else (b.order.client_name or "")) or "",
+                }
+            art = b.target_article or b.article
+            if art:
+                m_name = (art.name or (art.model.name if art.model else "—"))
+                models_dict[art.id] = {
+                    'article_id': art.id,
+                    'article_code': art.code or "",
+                    'model_name': m_name,
+                    'order_number': b.order.order_number if b.order else "—",
+                }
+            pcode = b.pastal_code
+            if pcode:
+                sn_pastal_codes_set.add(pcode)
+                all_worked_pastals.add(pcode)
+
+        sn_pastal_codes = sorted(list(sn_pastal_codes_set))
+
+        # Kunlik dazmolni aniqlash
+        sn_dazmol_qty = 0
+        sn_dazmol_box_ids = set()
+        operations_map = {}
 
         for t in t_list:
-            patok_box_ids.add(t.box_id)
-            box = t.box
-            order = box.order if box else None
-            article = (t.article_operation.article if t.article_operation else None) or (box.article if box else None)
-
-            if order:
-                all_worked_orders.add(order.order_number)
-
-            model_key = (order.id if order else 0, article.id if article else 0)
-            if model_key not in models_dict:
-                models_dict[model_key] = {
-                    'order_id': order.id if order else None,
-                    'order_number': order.order_number if order else "—",
-                    'customer_name': (order.customer.name if order and order.customer else (order.client_name if order else "")) or "",
-                    'model_name': (article.name if article else "—"),
-                    'article_code': article.code if article else "",
-                    'scanned_qty': 0,
-                    'dazmol_qty': 0,
-                    'controlled_qty': 0,
-                    'waiting_qty': 0,
-                    'box_ids': set(),
-                }
-            m_entry = models_dict[model_key]
-            m_entry['scanned_qty'] += t.quantity
-            m_entry['box_ids'].add(t.box_id)
-
-            # Dazmol tekshiruvi
-            is_dazmol = False
-            if t.article_operation and t.article_operation.operation:
-                op_name = t.article_operation.operation.name.upper()
-                op_code = (t.article_operation.operation.code or '').upper()
-                if 'DAZMOL' in op_name or 'DAZMOL' in op_code:
-                    is_dazmol = True
-            if not is_dazmol and article:
-                dazmol_ids = get_article_dazmol_set(article)
-                if t.article_operation_id in dazmol_ids:
-                    is_dazmol = True
+            ao = t.article_operation
+            op_name = ao.operation.name.upper() if ao and ao.operation else ""
+            op_code = (ao.operation.code or "").upper() if ao and ao.operation else ""
+            is_dazmol = ('DAZMOL' in op_name or 'DAZMOL' in op_code)
 
             if is_dazmol:
-                dazmol_qty += t.quantity
-                dazmol_box_ids.add(t.box_id)
-                m_entry['dazmol_qty'] += t.quantity
+                sn_dazmol_qty += t.quantity
+                sn_dazmol_box_ids.add(t.box_id)
 
-            # Operatsiyalar ro'yxati (Batafsil uchun, ism-familiyasiz)
-            ao = t.article_operation
             if ao and ao.operation:
                 op_id = ao.id
-                if op_id not in operations_dict:
-                    operations_dict[op_id] = {
+                if op_id not in operations_map:
+                    box = today_boxes_dict.get(t.box_id)
+                    operations_map[op_id] = {
                         'operation_id': op_id,
                         'sequence': ao.sequence,
                         'operation_name': ao.operation.name,
                         'operation_code': ao.operation.code or "",
-                        'order_number': order.order_number if order else "—",
-                        'model_name': article.name if article else "—",
+                        'order_number': box.order.order_number if box and box.order else "—",
+                        'model_name': (box.target_article.name if box and box.target_article else (box.article.name if box and box.article else "—")),
                         'is_dazmol': is_dazmol,
                         'total_quantity': 0,
                         'tickets_count': 0,
                     }
-                operations_dict[op_id]['total_quantity'] += t.quantity
-                operations_dict[op_id]['tickets_count'] += 1
+                operations_map[op_id]['total_quantity'] += t.quantity
+                operations_map[op_id]['tickets_count'] += 1
 
-        # Qutilar bo'yicha Kontrol va Kutmoqda hisoblash
-        controlled_qty = 0
-        first_sort_qty = 0
-        second_sort_qty = 0
-        controlled_boxes_count = 0
-        waiting_qty = 0
-        waiting_boxes_count = 0
+        # Kunlik OTK, Kutmoqda, Ta'mir hisoblash
+        sn_controlled_qty = 0
+        sn_first_sort_qty = 0
+        sn_second_sort_qty = 0
+        sn_waiting_qty = 0
+        sn_repair_qty = 0
+        sn_defect_qty = 0
 
-        for bid in patok_box_ids:
-            box = boxes_dict.get(bid)
+        for bid in sn_box_ids:
+            box = today_boxes_dict.get(bid)
             if not box:
                 continue
 
-            # Ushbu quti bugun tekshirilganmi?
             b_logs = logs_by_box.get(bid, [])
             if b_logs:
-                controlled_boxes_count += 1
                 for l in b_logs:
-                    first_sort_qty += l.first_sort_qty
-                    second_sort_qty += l.second_sort_qty
-                    c_sum = (l.first_sort_qty + l.second_sort_qty)
-                    controlled_qty += c_sum
-                    m_key = (box.order_id, box.article_id)
-                    if m_key in models_dict:
-                        models_dict[m_key]['controlled_qty'] += c_sum
+                    sn_first_sort_qty += l.first_sort_qty
+                    sn_second_sort_qty += l.second_sort_qty
+                    sn_controlled_qty += (l.first_sort_qty + l.second_sort_qty)
+                    sn_repair_qty += l.repair_qty
+                    sn_defect_qty += l.defect_qty
             elif box.is_controlled and box.controlled_at and box.controlled_at.date() == selected_date:
-                controlled_boxes_count += 1
-                first_sort_qty += box.controlled_first_sort_qty
-                second_sort_qty += box.controlled_second_sort_qty
-                c_sum = (box.controlled_first_sort_qty + box.controlled_second_sort_qty)
-                controlled_qty += c_sum
-                m_key = (box.order_id, box.article_id)
-                if m_key in models_dict:
-                    models_dict[m_key]['controlled_qty'] += c_sum
+                sn_first_sort_qty += box.controlled_first_sort_qty
+                sn_second_sort_qty += box.controlled_second_sort_qty
+                sn_controlled_qty += (box.controlled_first_sort_qty + box.controlled_second_sort_qty)
+                sn_repair_qty += box.controlled_repair_qty
+                sn_defect_qty += box.controlled_defect_qty
 
-            # Hali kontrolda kutmoqdami?
             if not box.is_controlled and box.controlled_repair_qty == 0:
-                waiting_qty += box.quantity
-                waiting_boxes_count += 1
-                m_key = (box.order_id, box.article_id)
-                if m_key in models_dict:
-                    models_dict[m_key]['waiting_qty'] += box.quantity
+                sn_waiting_qty += box.quantity
 
-        # Operatsiyalarni ketma-ketlik bo'yicha saralash
-        sorted_operations = sorted(
-            operations_dict.values(),
-            key=lambda o: (o['order_number'], o['sequence'], o['operation_name'])
-        )
+        # PASTALLAR VA RAZMERLAR KESIMIDA CHUQUR HISOB-KITOB
+        pastals_detail_list = []
+        all_patok_pastals_closed = (len(sn_pastal_codes) > 0)
 
-        models_list = list(models_dict.values())
-        for m in models_list:
-            m['boxes_count'] = len(m['box_ids'])
+        for pcode in sn_pastal_codes:
+            p_boxes = boxes_by_pastal.get(pcode, [])
+            total_p_boxes = len(p_boxes)
+            closed_p_boxes = len([b for b in p_boxes if b.is_controlled])
+            is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes)
+            if not is_pastal_closed:
+                all_patok_pastals_closed = False
+
+            first_b = p_boxes[0] if p_boxes else None
+            p_order_num = first_b.order.order_number if first_b and first_b.order else "—"
+            p_model_name = (first_b.target_article.name if first_b and first_b.target_article else (first_b.article.name if first_b and first_b.article else "—"))
+
+            p_total_qty = sum(b.quantity for b in p_boxes)
+            p_first_sort = sum(b.controlled_first_sort_qty for b in p_boxes)
+            p_second_sort = sum(b.controlled_second_sort_qty for b in p_boxes)
+            p_repair = sum(b.controlled_repair_qty for b in p_boxes)
+            p_defect = sum(b.controlled_defect_qty for b in p_boxes)
+            p_dazmol = sum(b.quantity for b in p_boxes if b.id in dazmol_box_ids_set)
+            p_waiting = sum(b.quantity for b in p_boxes if (not b.is_controlled) and (b.controlled_repair_qty == 0) and (b.id in dazmol_box_ids_set))
+
+            # Bugungi kunlik dazmol va OTK shu pastal uchun
+            p_today_dazmol = sum(t.quantity for t in t_list if t.box and t.box.pastal_code == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else '')))
+
+            # RAZMERLAR KESIMIDA GURUHLASH (Mato buyurtmasi uchun!)
+            sizes_dict = {}
+            for b in p_boxes:
+                sz = b.razmer or "Standart"
+                if sz not in sizes_dict:
+                    sizes_dict[sz] = {
+                        'size': sz,
+                        'boxes_count': 0,
+                        'closed_boxes': 0,
+                        'total_qty': 0,
+                        'dazmol_qty': 0,
+                        'waiting_qty': 0,
+                        'first_sort': 0,
+                        'second_sort': 0,
+                        'repair': 0,
+                        'defect': 0,
+                    }
+                sd = sizes_dict[sz]
+                sd['boxes_count'] += 1
+                if b.is_controlled:
+                    sd['closed_boxes'] += 1
+                sd['total_qty'] += b.quantity
+                if b.id in dazmol_box_ids_set:
+                    sd['dazmol_qty'] += b.quantity
+                if not b.is_controlled and b.controlled_repair_qty == 0 and b.id in dazmol_box_ids_set:
+                    sd['waiting_qty'] += b.quantity
+                sd['first_sort'] += b.controlled_first_sort_qty
+                sd['second_sort'] += b.controlled_second_sort_qty
+                sd['repair'] += b.controlled_repair_qty
+                sd['defect'] += b.controlled_defect_qty
+
+            sizes_breakdown = []
+            for sz in sorted(sizes_dict.keys(), key=natural_size_sort_key):
+                sd = sizes_dict[sz]
+                # Defitsit / Qayta tikish yoki mato buyurtmasi ehtiyoji:
+                deficit = sd['repair'] + sd['defect'] + sd['second_sort']
+                is_sz_closed = (sd['closed_boxes'] == sd['boxes_count'] and sd['boxes_count'] > 0)
+                sizes_breakdown.append({
+                    'size': sd['size'],
+                    'boxes_count': sd['boxes_count'],
+                    'closed_boxes': sd['closed_boxes'],
+                    'is_closed': is_sz_closed,
+                    'total_qty': sd['total_qty'],
+                    'dazmol_qty': sd['dazmol_qty'],
+                    'waiting_qty': sd['waiting_qty'],
+                    'first_sort': sd['first_sort'],
+                    'second_sort': sd['second_sort'],
+                    'repair': sd['repair'],
+                    'defect': sd['defect'],
+                    'deficit_qty': deficit,
+                })
+
+            pastals_detail_list.append({
+                'pastal_code': pcode,
+                'order_number': p_order_num,
+                'model_name': p_model_name,
+                'total_boxes': total_p_boxes,
+                'closed_boxes': closed_p_boxes,
+                'is_closed': is_pastal_closed,
+                'total_qty': p_total_qty,
+                'dazmol_qty': p_dazmol,
+                'today_dazmol_qty': p_today_dazmol,
+                'waiting_qty': p_waiting,
+                'first_sort_qty': p_first_sort,
+                'second_sort_qty': p_second_sort,
+                'repair_qty': p_repair,
+                'defect_qty': p_defect,
+                'deficit_qty': (p_repair + p_defect + p_second_sort),
+                'sizes': sizes_breakdown,
+            })
 
         # Qidiruv filtri
         if search_q:
-            q_upper = search_q.upper()
+            q_u = search_q.upper()
             matches_search = (
-                any(q_upper in m['order_number'].upper() or q_upper in m['model_name'].upper() for m in models_list)
-                or (q_upper in p_name.upper()) or (q_upper in p_code.upper())
+                (q_u in p_name.upper()) or (q_u in p_code.upper())
+                or any(q_u in o['order_number'].upper() for o in orders_dict.values())
+                or any(q_u in m['model_name'].upper() for m in models_dict.values())
+                or any(q_u in p['pastal_code'].upper() for p in pastals_detail_list)
             )
             if not matches_search:
                 continue
 
         patok_scanned_sum = sum(t.quantity for t in t_list)
 
-        total_daily_dazmol_qty += dazmol_qty
-        total_daily_controlled_qty += controlled_qty
-        total_daily_first_sort += first_sort_qty
-        total_daily_second_sort += second_sort_qty
-        total_daily_waiting_qty += waiting_qty
+        total_daily_dazmol_qty += sn_dazmol_qty
+        total_daily_controlled_qty += sn_controlled_qty
+        total_daily_first_sort += sn_first_sort_qty
+        total_daily_second_sort += sn_second_sort_qty
+        total_daily_waiting_qty += sn_waiting_qty
+        total_daily_repair_qty += sn_repair_qty
         total_daily_scanned_ops_qty += patok_scanned_sum
+
+        sorted_ops = sorted(
+            operations_map.values(),
+            key=lambda o: (o['order_number'], o['sequence'], o['operation_name'])
+        )
 
         patoks_data.append({
             'screen_number': sn,
             'patok_code': p_code,
             'patok_name': p_name,
             'is_active': is_active,
-            'models': models_list,
-            'models_count': len(models_list),
-            'dazmol_qty': dazmol_qty,
-            'dazmol_boxes_count': len(dazmol_box_ids),
-            'controlled_qty': controlled_qty,
-            'first_sort_qty': first_sort_qty,
-            'second_sort_qty': second_sort_qty,
-            'controlled_boxes_count': controlled_boxes_count,
-            'waiting_qty': waiting_qty,
-            'waiting_boxes_count': waiting_boxes_count,
-            'operations': sorted_operations,
-            'operations_count': len(sorted_operations),
+            'orders': list(orders_dict.values()),
+            'models': list(models_dict.values()),
+            'pastals': pastals_detail_list,
+            'pastals_count': len(pastals_detail_list),
+            'all_pastals_closed': all_patok_pastals_closed if is_active else False,
+            'dazmol_qty': sn_dazmol_qty,
+            'daily_dazmol_qty': sn_dazmol_qty,
+            'dazmol_boxes_count': len(sn_dazmol_box_ids),
+            'daily_dazmol_boxes_count': len(sn_dazmol_box_ids),
+            'controlled_qty': sn_controlled_qty,
+            'daily_controlled_qty': sn_controlled_qty,
+            'first_sort_qty': sn_first_sort_qty,
+            'daily_first_sort_qty': sn_first_sort_qty,
+            'second_sort_qty': sn_second_sort_qty,
+            'daily_second_sort_qty': sn_second_sort_qty,
+            'waiting_qty': sn_waiting_qty,
+            'daily_waiting_qty': sn_waiting_qty,
+            'repair_qty': sn_repair_qty,
+            'daily_repair_qty': sn_repair_qty,
+            'defect_qty': sn_defect_qty,
+            'daily_defect_qty': sn_defect_qty,
+            'models_count': len(models_dict),
+            'operations': sorted_ops,
+            'operations_count': len(sorted_ops),
             'scanned_ops_qty': patok_scanned_sum,
             'tickets_count': len(t_list),
         })
@@ -736,11 +870,13 @@ def sewing_statistics_daily_view(request):
         'kpis': {
             'active_patoks': total_active_patoks,
             'total_orders': len(all_worked_orders),
+            'total_pastals': len(all_worked_pastals),
             'dazmol_qty': total_daily_dazmol_qty,
             'controlled_qty': total_daily_controlled_qty,
             'first_sort_qty': total_daily_first_sort,
             'second_sort_qty': total_daily_second_sort,
             'waiting_qty': total_daily_waiting_qty,
+            'repair_qty': total_daily_repair_qty,
             'scanned_ops_qty': total_daily_scanned_ops_qty,
         }
     }
