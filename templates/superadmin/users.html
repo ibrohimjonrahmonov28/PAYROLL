@@ -114,6 +114,10 @@
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'CONTROL' %}bg-indigo-500 text-white shadow-sm font-black{% else %}text-slate-400 hover:text-indigo-400{% endif %}">
                     <i class="fa-solid fa-clipboard-check mr-1"></i> Kontrolchi ({{ controllers_count }})
                 </a>
+                <a href="{% url 'superadmin_users' %}?role=PLAN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'PLAN' %}bg-emerald-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
+                    <i class="fa-solid fa-calendar-day mr-1"></i> Plan ({{ plan_count }})
+                </a>
                 <a href="{% url 'superadmin_users' %}?role=ADMIN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'ADMIN' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
                     <i class="fa-solid fa-user-shield mr-1"></i> Admin ({{ admins_count }})
@@ -385,6 +389,11 @@
                                     class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-clipboard-check text-[11px]"></i> Kontrolchi
                                 </span>
+                                {% elif u.role == 'PLAN' %}
+                                <span
+                                    class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-calendar-day text-[11px]"></i> Plan (Reja)
+                                </span>
                                 {% else %}
                                 <span
                                     class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
@@ -644,6 +653,7 @@
                         <option value="USER" selected>👤 Oddiy User (Xodim / Tikuvchi)</option>
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
+                        <option value="PLAN">📊 Plan (Rejalashtirish / Tikim Statistikasi)</option>
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin (To'liq huquq)</option>
@@ -741,6 +751,7 @@
                         <option value="USER">👤 Oddiy User (Xodim / Tikuvchi)</option>
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
+                        <option value="PLAN">📊 Plan (Rejalashtirish / Tikim Statistikasi)</option>
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin (To'liq huquq)</option>
@@ -855,6 +866,18 @@
                                 class="fa-solid fa-clipboard-check mr-1"></i>
                             Kontrolchi (Sifat Nazorati)</strong>
                         <span class="text-[11px] text-slate-400">Tayyor ishlarni tekshirish, 1/2-sort va ta'mir</span>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="role" value="PLAN" id="role-radio-plan"
+                        class="text-emerald-500 focus:ring-0">
+                    <div>
+                        <strong class="text-sm font-bold text-emerald-400 block"><i
+                                class="fa-solid fa-calendar-day mr-1"></i>
+                            Plan (Rejalashtirish)</strong>
+                        <span class="text-[11px] text-slate-400">Kunlik tikim va patoklar statistikasini kuzatish</span>
                     </div>
                 </label>
 
@@ -1127,6 +1150,9 @@
             document.getElementById('role-radio-master').checked = true;
         } else if (currentRole === 'CONTROL') {
             document.getElementById('role-radio-control').checked = true;
+        } else if (currentRole === 'PLAN') {
+            const rPlan = document.getElementById('role-radio-plan');
+            if (rPlan) rPlan.checked = true;
         } else {
             document.getElementById('role-radio-user').checked = true;
         }

@@ -33,6 +33,7 @@ class User(AbstractUser):
         MASTER = 'MASTER', 'Master'
         CONTROL = 'CONTROL', 'Kontrolchi (Sifat Nazorati)'
         SCREEN = 'SCREEN', 'Ekran (Monitor)'
+        PLAN = 'PLAN', 'Plan (Rejalashtirish)'
         USER = 'USER', 'Oddiy User'
 
     username = models.CharField(
@@ -135,6 +136,9 @@ class User(AbstractUser):
 
     def is_branch_admin(self):
         return self.role == self.Role.BRANCH_ADMIN
+
+    def is_planner(self):
+        return self.role == self.Role.PLAN or self.is_superadmin()
 
     def can_access_payroll(self):
         return self.is_superadmin() or self.role == self.Role.BRANCH_ADMIN

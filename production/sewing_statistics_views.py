@@ -15,7 +15,7 @@ from production.services import get_patok_name, get_patok_code, get_patok_login
 
 
 def manager_or_superadmin_required(view_func):
-    """Faqat Superadmin va Menejerlar uchun ruxsat tekshiruvi"""
+    """Superadmin, Menejerlar va Plan roli uchun ruxsat tekshiruvi"""
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -24,8 +24,9 @@ def manager_or_superadmin_required(view_func):
         is_mgr = getattr(request.user, 'is_manager', lambda: False)() or request.user.role in [
             User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER
         ]
-        if not (is_super or is_mgr):
-            messages.error(request, "Ushbu sahifaga faqat Superadmin va Menejerlar kira oladi!")
+        is_plan = (getattr(request.user, 'role', None) == User.Role.PLAN)
+        if not (is_super or is_mgr or is_plan):
+            messages.error(request, "Ushbu sahifaga faqat Superadmin, Menejer va Plan hisoblari kira oladi!")
             return redirect('root_login')
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -460,11 +461,379 @@ def get_patoks_scrap_and_warning_report(time_filter='week', order_id=None):
 
 
 @manager_or_superadmin_required
+def sewing_statistics_daily_view(request):
+    """
+    KUNLIK TIKIM STATISTIKASI (Patoklar bo'yicha):
+    - Har bir patok (K1..K13, U1..U27)
+    - Qilayotgan zakazi va model nomi (2 ta va undan ortiq bo'lishi ham mumkin)
+    - Kunlik qancha dazmol qildi soni
+    - Bugun shu qilayotgan modellari qanchasi kontroldan o'tdi (1-sort / 2-sort)
+    - Qanchasi hali kutmoqda (OTK kutilmoqda)
+    - 'Batafsil' bo'limida kunlik bajarilgan operatsiyalar ro'yxati (nechtadan qilinyapti, ism-familiyasiz)
+    """
+    from datetime import datetime
+    date_str = request.GET.get('date', '').strip()
+    selected_date = None
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = None
+    if not selected_date:
+        selected_date = timezone.localdate()
+
+    patok_filter = request.GET.get('patok', '').strip().upper()
+    search_q = request.GET.get('q', '').strip()
+    show_all_patoks = request.GET.get('all', '0') == '1'
+
+    # Barcha ushbu kunda skanerlangan biletlar (patok biriktirilgan)
+    tickets_qs = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__date=selected_date,
+        screen_number__isnull=False
+    ).select_related(
+        'box__order__customer',
+        'box__article',
+        'article_operation__operation',
+        'article_operation__article'
+    ).order_by('screen_number', 'article_operation__sequence', 'id')
+
+    # Biletlarni patoklar (screen_number) bo'yicha guruhlaymiz
+    tickets_by_screen = {}
+    all_box_ids = set()
+    for t in tickets_qs:
+        sn = t.screen_number
+        tickets_by_screen.setdefault(sn, []).append(t)
+        all_box_ids.add(t.box_id)
+
+    # Shu kuni tekshirilgan ushbu qutilarning Sifat Nazorati (OTK) loglari
+    inspection_logs = BoxQualityInspectionLog.objects.filter(
+        box_id__in=all_box_ids,
+        created_at__date=selected_date
+    )
+    logs_by_box = {}
+    for log in inspection_logs:
+        logs_by_box.setdefault(log.box_id, []).append(log)
+
+    # Barcha qutilarning to'liq ma'lumoti
+    boxes_dict = {
+        b.id: b for b in Box.objects.filter(id__in=all_box_ids).select_related('order__customer', 'article')
+    }
+
+    # Barcha modellar uchun dazmol operatsiyalari ID to'plamini keshlaymiz
+    article_dazmol_cache = {}
+
+    def get_article_dazmol_set(art):
+        if not art:
+            return set()
+        if art.id not in article_dazmol_cache:
+            article_dazmol_cache[art.id] = get_dazmol_operation_ids_for_article(art)
+        return article_dazmol_cache[art.id]
+
+    active_screens = sorted(tickets_by_screen.keys())
+    screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
+
+    patoks_data = []
+
+    # KPI summary
+    total_active_patoks = len(active_screens)
+    total_daily_dazmol_qty = 0
+    total_daily_controlled_qty = 0
+    total_daily_first_sort = 0
+    total_daily_second_sort = 0
+    total_daily_waiting_qty = 0
+    total_daily_scanned_ops_qty = 0
+    all_worked_orders = set()
+
+    for sn in screens_to_process:
+        p_code = get_patok_code(sn)
+        p_name = get_patok_name(sn)
+
+        if patok_filter and (patok_filter != p_code and patok_filter not in p_name.upper()):
+            continue
+
+        t_list = tickets_by_screen.get(sn, [])
+        is_active = len(t_list) > 0
+
+        # Modellar va Zakazlar guruhlash
+        models_dict = {}
+        operations_dict = {}
+        patok_box_ids = set()
+
+        dazmol_qty = 0
+        dazmol_box_ids = set()
+
+        for t in t_list:
+            patok_box_ids.add(t.box_id)
+            box = t.box
+            order = box.order if box else None
+            article = (t.article_operation.article if t.article_operation else None) or (box.article if box else None)
+
+            if order:
+                all_worked_orders.add(order.order_number)
+
+            model_key = (order.id if order else 0, article.id if article else 0)
+            if model_key not in models_dict:
+                models_dict[model_key] = {
+                    'order_id': order.id if order else None,
+                    'order_number': order.order_number if order else "—",
+                    'customer_name': (order.customer.name if order and order.customer else (order.client_name if order else "")) or "",
+                    'model_name': (article.name if article else "—"),
+                    'article_code': article.code if article else "",
+                    'scanned_qty': 0,
+                    'dazmol_qty': 0,
+                    'controlled_qty': 0,
+                    'waiting_qty': 0,
+                    'box_ids': set(),
+                }
+            m_entry = models_dict[model_key]
+            m_entry['scanned_qty'] += t.quantity
+            m_entry['box_ids'].add(t.box_id)
+
+            # Dazmol tekshiruvi
+            is_dazmol = False
+            if t.article_operation and t.article_operation.operation:
+                op_name = t.article_operation.operation.name.upper()
+                op_code = (t.article_operation.operation.code or '').upper()
+                if 'DAZMOL' in op_name or 'DAZMOL' in op_code:
+                    is_dazmol = True
+            if not is_dazmol and article:
+                dazmol_ids = get_article_dazmol_set(article)
+                if t.article_operation_id in dazmol_ids:
+                    is_dazmol = True
+
+            if is_dazmol:
+                dazmol_qty += t.quantity
+                dazmol_box_ids.add(t.box_id)
+                m_entry['dazmol_qty'] += t.quantity
+
+            # Operatsiyalar ro'yxati (Batafsil uchun, ism-familiyasiz)
+            ao = t.article_operation
+            if ao and ao.operation:
+                op_id = ao.id
+                if op_id not in operations_dict:
+                    operations_dict[op_id] = {
+                        'operation_id': op_id,
+                        'sequence': ao.sequence,
+                        'operation_name': ao.operation.name,
+                        'operation_code': ao.operation.code or "",
+                        'order_number': order.order_number if order else "—",
+                        'model_name': article.name if article else "—",
+                        'is_dazmol': is_dazmol,
+                        'total_quantity': 0,
+                        'tickets_count': 0,
+                    }
+                operations_dict[op_id]['total_quantity'] += t.quantity
+                operations_dict[op_id]['tickets_count'] += 1
+
+        # Qutilar bo'yicha Kontrol va Kutmoqda hisoblash
+        controlled_qty = 0
+        first_sort_qty = 0
+        second_sort_qty = 0
+        controlled_boxes_count = 0
+        waiting_qty = 0
+        waiting_boxes_count = 0
+
+        for bid in patok_box_ids:
+            box = boxes_dict.get(bid)
+            if not box:
+                continue
+
+            # Ushbu quti bugun tekshirilganmi?
+            b_logs = logs_by_box.get(bid, [])
+            if b_logs:
+                controlled_boxes_count += 1
+                for l in b_logs:
+                    first_sort_qty += l.first_sort_qty
+                    second_sort_qty += l.second_sort_qty
+                    c_sum = (l.first_sort_qty + l.second_sort_qty)
+                    controlled_qty += c_sum
+                    m_key = (box.order_id, box.article_id)
+                    if m_key in models_dict:
+                        models_dict[m_key]['controlled_qty'] += c_sum
+            elif box.is_controlled and box.controlled_at and box.controlled_at.date() == selected_date:
+                controlled_boxes_count += 1
+                first_sort_qty += box.controlled_first_sort_qty
+                second_sort_qty += box.controlled_second_sort_qty
+                c_sum = (box.controlled_first_sort_qty + box.controlled_second_sort_qty)
+                controlled_qty += c_sum
+                m_key = (box.order_id, box.article_id)
+                if m_key in models_dict:
+                    models_dict[m_key]['controlled_qty'] += c_sum
+
+            # Hali kontrolda kutmoqdami?
+            if not box.is_controlled and box.controlled_repair_qty == 0:
+                waiting_qty += box.quantity
+                waiting_boxes_count += 1
+                m_key = (box.order_id, box.article_id)
+                if m_key in models_dict:
+                    models_dict[m_key]['waiting_qty'] += box.quantity
+
+        # Operatsiyalarni ketma-ketlik bo'yicha saralash
+        sorted_operations = sorted(
+            operations_dict.values(),
+            key=lambda o: (o['order_number'], o['sequence'], o['operation_name'])
+        )
+
+        models_list = list(models_dict.values())
+        for m in models_list:
+            m['boxes_count'] = len(m['box_ids'])
+
+        # Qidiruv filtri
+        if search_q:
+            q_upper = search_q.upper()
+            matches_search = (
+                any(q_upper in m['order_number'].upper() or q_upper in m['model_name'].upper() for m in models_list)
+                or (q_upper in p_name.upper()) or (q_upper in p_code.upper())
+            )
+            if not matches_search:
+                continue
+
+        patok_scanned_sum = sum(t.quantity for t in t_list)
+
+        total_daily_dazmol_qty += dazmol_qty
+        total_daily_controlled_qty += controlled_qty
+        total_daily_first_sort += first_sort_qty
+        total_daily_second_sort += second_sort_qty
+        total_daily_waiting_qty += waiting_qty
+        total_daily_scanned_ops_qty += patok_scanned_sum
+
+        patoks_data.append({
+            'screen_number': sn,
+            'patok_code': p_code,
+            'patok_name': p_name,
+            'is_active': is_active,
+            'models': models_list,
+            'models_count': len(models_list),
+            'dazmol_qty': dazmol_qty,
+            'dazmol_boxes_count': len(dazmol_box_ids),
+            'controlled_qty': controlled_qty,
+            'first_sort_qty': first_sort_qty,
+            'second_sort_qty': second_sort_qty,
+            'controlled_boxes_count': controlled_boxes_count,
+            'waiting_qty': waiting_qty,
+            'waiting_boxes_count': waiting_boxes_count,
+            'operations': sorted_operations,
+            'operations_count': len(sorted_operations),
+            'scanned_ops_qty': patok_scanned_sum,
+            'tickets_count': len(t_list),
+        })
+
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+    is_today = (selected_date == timezone.localdate())
+
+    context = {
+        'selected_date': selected_date,
+        'selected_date_str': selected_date.isoformat(),
+        'prev_date_str': prev_date.isoformat(),
+        'next_date_str': next_date.isoformat(),
+        'is_today': is_today,
+        'patok_filter': patok_filter,
+        'search_q': search_q,
+        'show_all_patoks': show_all_patoks,
+        'patoks_data': patoks_data,
+        'kpis': {
+            'active_patoks': total_active_patoks,
+            'total_orders': len(all_worked_orders),
+            'dazmol_qty': total_daily_dazmol_qty,
+            'controlled_qty': total_daily_controlled_qty,
+            'first_sort_qty': total_daily_first_sort,
+            'second_sort_qty': total_daily_second_sort,
+            'waiting_qty': total_daily_waiting_qty,
+            'scanned_ops_qty': total_daily_scanned_ops_qty,
+        }
+    }
+    return render(request, 'production/sewing_statistics_daily.html', context)
+
+
+@manager_or_superadmin_required
+def api_sewing_statistics_daily_operations(request):
+    """
+    Patok bo'yicha kunlik bajarilgan operatsiyalar ro'yxatini qaytarish (ism-familiyasiz)
+    """
+    from datetime import datetime
+    from production.services import parse_patok_number
+    date_str = request.GET.get('date', '').strip()
+    selected_date = None
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = None
+    if not selected_date:
+        selected_date = timezone.localdate()
+
+    screen_param = request.GET.get('screen_number') or request.GET.get('patok')
+    sn = parse_patok_number(screen_param)
+    if not sn:
+        return JsonResponse({'status': 'ERROR', 'message': "Patok raqami noto'g'ri"}, status=400)
+
+    tickets = Ticket.objects.filter(
+        screen_number=sn,
+        status=Ticket.Status.SCANNED,
+        scanned_at__date=selected_date
+    ).select_related(
+        'box__order',
+        'box__article',
+        'article_operation__operation',
+        'article_operation__article'
+    ).order_by('article_operation__sequence', 'id')
+
+    operations_map = {}
+    for t in tickets:
+        ao = t.article_operation
+        if not ao or not ao.operation:
+            continue
+        box = t.box
+        order = box.order if box else None
+        article = ao.article or (box.article if box else None)
+        op_id = ao.id
+        if op_id not in operations_map:
+            op_name = ao.operation.name
+            op_code = ao.operation.code or ""
+            is_dazmol = ('DAZMOL' in op_name.upper() or 'DAZMOL' in op_code.upper())
+            operations_map[op_id] = {
+                'operation_id': op_id,
+                'sequence': ao.sequence,
+                'operation_name': op_name,
+                'operation_code': op_code,
+                'order_number': order.order_number if order else "—",
+                'model_name': article.name if article else "—",
+                'is_dazmol': is_dazmol,
+                'total_quantity': 0,
+                'tickets_count': 0,
+            }
+        operations_map[op_id]['total_quantity'] += t.quantity
+        operations_map[op_id]['tickets_count'] += 1
+
+    ops_list = sorted(
+        operations_map.values(),
+        key=lambda x: (x['order_number'], x['sequence'], x['operation_name'])
+    )
+
+    return JsonResponse({
+        'status': 'OK',
+        'screen_number': sn,
+        'patok_code': get_patok_code(sn),
+        'patok_name': get_patok_name(sn),
+        'date': selected_date.isoformat(),
+        'operations': ops_list,
+        'total_units': sum(o['total_quantity'] for o in ops_list),
+        'operations_count': len(ops_list),
+    })
+
+
+@manager_or_superadmin_required
 def sewing_statistics_orders_view(request):
     """
     1-BOSQICH: Zakazlar Ro'yxati (Tikim Jarayoni Statistikasi Bosh Sahifasi)
     - Har bir zakaz bo'yicha umumiy reja, tikimga kirgan dona, dazmol, kontrolda kutayotgan, 1-sort, 2-sort
     """
+    # Agar PLAN roli bo'lsa va maxsus ?view=orders belgilanmagan bo'lsa, kunlik patoklar sahifasiga yo'naltirish
+    if getattr(request.user, 'role', None) == User.Role.PLAN and request.GET.get('view') != 'orders':
+        return redirect('production:sewing_statistics_daily')
+
     status_filter = request.GET.get('status', 'IN_PROGRESS').strip()
     search_q = request.GET.get('q', '').strip()
 
@@ -1391,6 +1760,10 @@ def sewing_statistics_close_order_unprinted_boxes_view(request, order_id: int):
     """
     Bitta buyurtma bo'yicha stiker chop etilmagan (yoki avvalgi) qutilarni OTK sifat nazoratidan 1-sort qilib yopish.
     """
+    if getattr(request.user, 'role', None) == User.Role.PLAN:
+        messages.error(request, "Plan hisobi faqat ma'lumotlarni ko'rish huquqiga ega!")
+        return redirect('production:sewing_statistics_daily')
+
     order = get_object_or_404(Order, id=order_id)
     boxes = order.boxes.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False, is_printed=False)
 
@@ -1425,6 +1798,10 @@ def sewing_statistics_close_all_unprinted_boxes_view(request):
     """
     Barcha buyurtmalar bo'yicha stiker chop etilmagan (is_printed=False) va OTK o'tmagan qutilarni to'liq yopish.
     """
+    if getattr(request.user, 'role', None) == User.Role.PLAN:
+        messages.error(request, "Plan hisobi faqat ma'lumotlarni ko'rish huquqiga ega!")
+        return redirect('production:sewing_statistics_daily')
+
     boxes = Box.objects.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False, is_printed=False)
 
     from .services import close_boxes_as_controlled

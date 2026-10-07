@@ -21,6 +21,8 @@ def login_view(request):
             return redirect('manager_dashboard')
         if getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN:
             return redirect('superadmin_payroll')
+        if getattr(request.user, 'role', None) == User.Role.PLAN:
+            return redirect('production:sewing_statistics_daily')
         if request.user.is_superadmin():
             return redirect('superadmin_dashboard')
         return redirect('production:order_list')
@@ -80,6 +82,8 @@ def login_view(request):
                     return redirect('production:terminal_home')
                 if user.role == User.Role.BRANCH_ADMIN:
                     return redirect('superadmin_payroll')
+                if user.role == User.Role.PLAN:
+                    return redirect('production:sewing_statistics_daily')
                 
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)

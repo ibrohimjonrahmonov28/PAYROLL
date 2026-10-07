@@ -578,6 +578,7 @@ def superadmin_users(request):
     masters_count = User.objects.filter(role=User.Role.MASTER).count()
     controllers_count = User.objects.filter(role=User.Role.CONTROL).count()
     screens_count = User.objects.filter(role=User.Role.SCREEN).count()
+    plan_count = User.objects.filter(role=User.Role.PLAN).count()
     admins_count = User.objects.filter(role=User.Role.ADMIN).count()
     superadmins_count = User.objects.filter(role=User.Role.SUPER_ADMIN).count()
     unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
@@ -593,6 +594,7 @@ def superadmin_users(request):
         'masters_count': masters_count,
         'controllers_count': controllers_count,
         'screens_count': screens_count,
+        'plan_count': plan_count,
         'admins_count': admins_count,
         'superadmins_count': superadmins_count,
         'unprinted_badges_count': unprinted_badges_count,

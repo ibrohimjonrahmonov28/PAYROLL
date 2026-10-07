@@ -193,5 +193,34 @@ class MasterTerminalAccessRestrictionMiddleware:
 
                     return redirect('superadmin_payroll')
 
+            elif getattr(request.user, 'role', None) == User.Role.PLAN:
+                path = request.path_info
+                allowed_prefixes = (
+                    '/sewing-statistics/',
+                    '/sewing-statistics',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes)
+                if not is_allowed:
+                    is_ajax = (
+                        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                        'application/json' in request.headers.get('accept', '') or
+                        request.content_type == 'application/json' or
+                        '/api/' in path
+                    )
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'FORBIDDEN',
+                            'message': "Ruxsat etilmagan! Plan (Rejalashtirish) hisobi faqat Tikim Statistikasi sahifasidan foydalana oladi."
+                        }, status=403)
+
+                    return redirect('production:sewing_statistics_daily')
+
         return self.get_response(request)
 

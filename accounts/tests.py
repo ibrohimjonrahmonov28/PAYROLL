@@ -1923,6 +1923,40 @@ class SuperAdminControlSettingToggleTest(TestCase):
         self.assertIn('control_setting', res.context)
 
 
+class PlanRoleAccessTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.plan_user = User.objects.create_user(
+            username="plan_test_user",
+            password="testpassword123",
+            role=User.Role.PLAN
+        )
+
+    def test_plan_user_login_redirect(self):
+        res = self.client.post(reverse('accounts:login'), {
+            'username': 'plan_test_user',
+            'password': 'testpassword123'
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertIn(reverse('production:sewing_statistics_daily'), res.url)
+
+    def test_plan_user_middleware_restrictions(self):
+        self.client.login(username="plan_test_user", password="testpassword123")
+        
+        # Ruxsat etilgan: /sewing-statistics/daily/
+        res_ok = self.client.get(reverse('production:sewing_statistics_daily'))
+        self.assertEqual(res_ok.status_code, 200)
+
+        # Taqiqlangan: /terminal/, /orders/
+        res_terminal = self.client.get(reverse('production:terminal_home'))
+        self.assertEqual(res_terminal.status_code, 302)
+        self.assertIn(reverse('production:sewing_statistics_daily'), res_terminal.url)
+
+        res_orders = self.client.get(reverse('production:order_list'))
+        self.assertEqual(res_orders.status_code, 302)
+        self.assertIn(reverse('production:sewing_statistics_daily'), res_orders.url)
+
+
 
 
 

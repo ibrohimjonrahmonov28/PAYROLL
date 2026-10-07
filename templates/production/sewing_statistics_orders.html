@@ -16,11 +16,16 @@
     </div>
 
     <!-- Navigation Fast Switcher -->
-    <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner">
+    <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner flex-wrap">
+        <a href="{% url 'production:sewing_statistics_daily' %}"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-day text-emerald-400"></i>
+            <span>Kunlik Patoklar</span>
+        </a>
         <span
             class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md flex items-center gap-1.5">
-            <i class="fa-solid fa-chart-line"></i>
-            <span>Tikim Statistikasi</span>
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Zakazlar Bo'yicha</span>
         </span>
         <a href="{% url 'production:sewing_statistics_repairs' %}"
             class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
@@ -40,7 +45,7 @@
 <div class="max-w-7xl mx-auto space-y-6">
 
     <!-- STIKER CHOP ETILMAGAN / ESKI QUTILARDAGI OTK KUTILMOQDA BANNERI -->
-    {% if overall_kpis.total_unprinted_boxes > 0 %}
+    {% if overall_kpis.total_unprinted_boxes > 0 and request.user.role != 'PLAN' %}
     <div
         class="bg-gradient-to-r from-amber-950/80 via-slate-900 to-slate-900 border border-amber-500/50 rounded-3xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3.5">

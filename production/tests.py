@@ -2324,6 +2324,81 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res_l, "1-sort: 38 ta")
         self.assertContains(res_l, "2-sort: 2 ta")
 
+    def test_plan_user_role_and_permissions(self):
+        plan_user = User.objects.create_user(
+            username="planner_user",
+            password="password123",
+            role=User.Role.PLAN
+        )
+        self.client.login(username="planner_user", password="password123")
+
+        # 1. Kunlik patoklar sahifasiga kirishga to'liq ruxsat (200 OK)
+        res_daily = self.client.get(reverse('production:sewing_statistics_daily'))
+        self.assertEqual(res_daily.status_code, 200)
+
+        # 2. Zakazlar sahifasiga kirganda avtomatik kunlikka yo'naltirish (agar maxsus view=orders ko'rsatilmagan bo'lsa)
+        res_orders = self.client.get(reverse('production:sewing_statistics_orders'))
+        self.assertEqual(res_orders.status_code, 302)
+        self.assertIn(reverse('production:sewing_statistics_daily'), res_orders.url)
+
+        # 3. Middleware orqali boshqa bo'limlarga (/orders/, /terminal/) kirish qat'iy cheklanadi
+        res_orders_list = self.client.get(reverse('production:order_list'))
+        self.assertEqual(res_orders_list.status_code, 302)
+        self.assertIn(reverse('production:sewing_statistics_daily'), res_orders_list.url)
+
+        # 4. Plan foydalanuvchisi qutilarni yopish (o'zgartirish) huquqiga ega emas (faqat ma'lumot oladi)
+        res_close = self.client.post(reverse('production:sewing_statistics_close_all_unprinted_boxes'))
+        self.assertEqual(res_close.status_code, 302)
+        self.assertIn(reverse('production:sewing_statistics_daily'), res_close.url)
+
+    def test_sewing_statistics_daily_view_data(self):
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_daily')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        self.assertIn('patoks_data', res.context)
+        self.assertIn('kpis', res.context)
+
+        patoks = res.context['patoks_data']
+        # 1, 2, 3 ekranlarda bugun skanerlangan biletlar bor
+        p_screens = {p['screen_number']: p for p in patoks}
+        self.assertIn(1, p_screens)
+        self.assertIn(2, p_screens)
+        self.assertIn(3, p_screens)
+
+        # K1-Patok (screen 1): box3 (40 dona) tikilgan va Dazmol (40 dona)
+        k1 = p_screens[1]
+        self.assertEqual(k1['patok_code'], 'K1')
+        self.assertEqual(k1['patok_name'], 'K1-Patok')
+        self.assertEqual(k1['dazmol_qty'], 40)
+        self.assertEqual(k1['controlled_qty'], 40)
+        self.assertEqual(k1['first_sort_qty'], 38)
+        self.assertEqual(k1['second_sort_qty'], 2)
+
+        # Modellar ro'yxati tekshiruvi (ORD-STAT-001 va Polo Shirt Stat)
+        self.assertTrue(len(k1['models']) >= 1)
+        m0 = k1['models'][0]
+        self.assertEqual(m0['order_number'], 'ORD-STAT-001')
+        self.assertEqual(m0['model_name'], 'Polo Shirt Stat')
+
+        # Batafsil operatsiyalar ro'yxati (ism familiyasiz)
+        self.assertTrue(len(k1['operations']) >= 2)
+        op_names = [o['operation_name'] for o in k1['operations']]
+        self.assertIn('Bichim Tikish', op_names)
+        self.assertIn('DAZMOL QILISH', op_names)
+
+    def test_api_sewing_statistics_daily_operations(self):
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:api_sewing_statistics_daily_operations')
+        res = self.client.get(url, {'screen_number': 1})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(data['patok_code'], 'K1')
+        self.assertTrue(len(data['operations']) >= 2)
+        self.assertTrue(data['total_units'] > 0)
+
     def test_calculate_pipeline_balance_and_variance_reconciliation(self):
         from production.sewing_statistics_views import calculate_pipeline_balance, get_dazmol_operation_ids_for_article
 

@@ -29,11 +29,16 @@
 
     <!-- Navigation Fast Switcher & Time Filter -->
     <div class="flex items-center gap-2 flex-wrap">
-        <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner">
-            <a href="{% url 'production:sewing_statistics_orders' %}"
+        <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner flex-wrap">
+            <a href="{% url 'production:sewing_statistics_daily' %}"
                 class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-chart-line text-cyan-400"></i>
-                <span>Tikim Statistikasi</span>
+                <i class="fa-solid fa-calendar-day text-emerald-400"></i>
+                <span>Kunlik Patoklar</span>
+            </a>
+            <a href="{% url 'production:sewing_statistics_orders' %}?view=orders"
+                class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-layer-group text-cyan-400"></i>
+                <span>Zakazlar Bo'yicha</span>
             </a>
             <span
                 class="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-600 to-rose-600 text-white shadow-md flex items-center gap-1.5">

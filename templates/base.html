@@ -39,6 +39,7 @@
 
         <!-- Navigation Links -->
         <nav class="p-4 space-y-2 flex-1">
+            {% if request.user.role != 'PLAN' %}
             <a href="{% url 'production:order_list' %}"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if 'order' in request.resolver_match.url_name or request.resolver_match.url_name == 'dashboard' %}bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-boxes-stacked w-5 text-center text-base"></i>
@@ -49,6 +50,13 @@
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.url_name == 'statistics_pipeline' %}bg-blue-600 text-white font-black shadow-lg shadow-blue-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-diagram-project w-5 text-center text-blue-400 text-base"></i>
                 <span>Qutilar Statistikasi</span>
+            </a>
+            {% endif %}
+
+            <a href="{% url 'production:sewing_statistics_daily' %}"
+                class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.url_name == 'sewing_statistics_daily' %}bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black shadow-lg shadow-emerald-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-calendar-day w-5 text-center text-emerald-400 text-base"></i>
+                <span>Kunlik Tikim (Patoklar)</span>
             </a>
 
             <a href="{% url 'production:sewing_statistics_orders' %}"
@@ -63,7 +71,7 @@
                 <span>Ta'mir Monitoringi</span>
             </a>
 
-            {% if request.user.is_authenticated and request.user.role != 'ADMIN' %}
+            {% if request.user.is_authenticated and request.user.role != 'ADMIN' and request.user.role != 'PLAN' %}
             <a href="{% url 'production:terminal_home' %}"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/30 transition shadow-sm">
                 <i class="fa-solid fa-barcode w-5 text-center text-emerald-400 text-base"></i>
@@ -131,7 +139,7 @@
                     <strong class="text-slate-200 block truncate text-xs">{{ request.user.username }}</strong>
                     <span class="text-[10px] text-amber-400 font-semibold uppercase">
                         {% if request.user.role == 'SUPER_ADMIN' %}Super Admin{% elif request.user.role == 'ADMIN'
-                        %}Orders Admin{% elif request.user.role == 'MASTER' %}Master{% else %}Foydalanuvchi{% endif %}
+                        %}Orders Admin{% elif request.user.role == 'PLAN' %}Plan (Reja){% elif request.user.role == 'MASTER' %}Master{% else %}Foydalanuvchi{% endif %}
                     </span>
                 </div>
             </div>
