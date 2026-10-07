@@ -4,7 +4,10 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from accounts.models import User, Worker, WorkerPayout, DailyWorkerClosing
-from production.models import Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, ProductModel, DefectReason
+from production.models import (
+    Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem,
+    ProductModel, DefectReason, ControlSetting
+)
 
 
 class SuperAdminPanelTest(TestCase):
@@ -1855,6 +1858,70 @@ class OperationGroupSequenceAndDeletionTest(TestCase):
         self.assertFalse(self.group.items.filter(id=item.id).exists())
         # Ammo katalogda saqlanib qoldi, chunki bilet bor
         self.assertTrue(Operation.objects.filter(id=op.id).exists())
+
+
+class SuperAdminControlSettingToggleTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username="super_otk_test",
+            password="testpassword123",
+            role=User.Role.SUPER_ADMIN
+        )
+        self.master = User.objects.create_user(
+            username="master_otk_test",
+            password="testpassword123",
+            role=User.Role.MASTER
+        )
+        self.toggle_url = reverse('superadmin_toggle_require_all_operations_scanned')
+        self.page_url = reverse('superadmin_defect_reasons')
+
+    def test_superadmin_toggle_permission_denied_for_non_superadmin(self):
+        self.client.login(username="master_otk_test", password="testpassword123")
+        res = self.client.post(self.toggle_url)
+        # Should redirect or return 403
+        self.assertNotEqual(res.status_code, 200)
+
+    def test_superadmin_toggle_setting_cycle(self):
+        self.client.login(username="super_otk_test", password="testpassword123")
+
+        # Initial state should be False
+        setting = ControlSetting.get_settings()
+        self.assertFalse(setting.require_all_operations_scanned)
+
+        # 1-marta bosganda True bo'ladi
+        res1 = self.client.post(self.toggle_url)
+        self.assertEqual(res1.status_code, 302)
+        setting.refresh_from_db()
+        self.assertTrue(setting.require_all_operations_scanned)
+
+        # 2-marta bosganda yana False bo'ladi
+        res2 = self.client.post(self.toggle_url)
+        self.assertEqual(res2.status_code, 302)
+        setting.refresh_from_db()
+        self.assertFalse(setting.require_all_operations_scanned)
+
+    def test_superadmin_toggle_via_ajax_json(self):
+        self.client.login(username="super_otk_test", password="testpassword123")
+        setting = ControlSetting.get_settings()
+        setting.require_all_operations_scanned = False
+        setting.save()
+
+        res = self.client.post(
+            self.toggle_url,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['require_all_operations_scanned'])
+
+    def test_defect_reasons_page_renders_setting(self):
+        self.client.login(username="super_otk_test", password="testpassword123")
+        res = self.client.get(self.page_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('control_setting', res.context)
+
 
 
 

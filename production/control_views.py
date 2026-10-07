@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Sum, Q
 from accounts.models import User
-from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason
+from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason, ControlSetting
 
 
 def _get_active_defect_reasons():
@@ -242,6 +242,7 @@ def control_box_lookup_api(request):
     missing_count = len(missing_operations)
     scanned_count = sum(1 for t in active_tickets if t['is_scanned'])
     all_tickets_scanned = (missing_count == 0 and total_tickets > 0)
+    require_all_ops = ControlSetting.is_all_operations_required()
 
     return JsonResponse({
         'status': 'OK',
@@ -269,6 +270,7 @@ def control_box_lookup_api(request):
             'scanned_tickets_count': scanned_count,
             'missing_tickets_count': missing_count,
             'all_tickets_scanned': all_tickets_scanned,
+            'require_all_operations_scanned': require_all_ops,
             'defect_reasons': _get_active_defect_reasons(),
         },
         'defect_reasons': _get_active_defect_reasons(),
@@ -295,32 +297,33 @@ def control_submit_inspection_api(request):
     box = get_object_or_404(Box, id=box_id)
 
     if mode == 'INITIAL':
-        # Barcha faol operatsiyalar egasi borligini qat'iy tekshirish (to'xtatilgan yoki bekor qilinganlar talab qilinmaydi)
-        unscanned_tickets = box.tickets.exclude(
-            status=Ticket.Status.CANCELLED
-        ).exclude(
-            article_operation__is_active=False
-        ).filter(
-            Q(status=Ticket.Status.PENDING) | Q(worker__isnull=True)
-        ).select_related('article_operation__operation')
+        # Barcha faol operatsiyalar egasi borligini qat'iy tekshirish (faqat agar sozlamada yoqilgan bo'lsa)
+        if ControlSetting.is_all_operations_required():
+            unscanned_tickets = box.tickets.exclude(
+                status=Ticket.Status.CANCELLED
+            ).exclude(
+                article_operation__is_active=False
+            ).filter(
+                Q(status=Ticket.Status.PENDING) | Q(worker__isnull=True)
+            ).select_related('article_operation__operation')
 
-        if unscanned_tickets.exists():
-            missing_names = [
-                t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else f"Operatsiya #{t.id}"
-                for t in unscanned_tickets
-            ]
-            unique_missing = list(dict.fromkeys(missing_names))
-            missing_str = ", ".join(f"«{m}»" for m in unique_missing)
-            return JsonResponse({
-                'status': 'UNSCANNED_OPERATIONS',
-                'message': (
-                    f"Qabul qilib bo'lmaydi! Ushbu qutining quyidagi operatsiyasi(lari) hali skaner qilinmagan (egasi yo'q): "
-                    f"{missing_str}. "
-                    f"Chunki agar ushbu operatsiyadan brak chiqsa, hech qaysi tikuvchini ayblab bo'lmaydi! "
-                    f"Avval barcha stikerlar skanerlanishi shart."
-                ),
-                'missing_operations': unique_missing,
-            }, status=400)
+            if unscanned_tickets.exists():
+                missing_names = [
+                    t.article_operation.operation.name if (t.article_operation and t.article_operation.operation) else f"Operatsiya #{t.id}"
+                    for t in unscanned_tickets
+                ]
+                unique_missing = list(dict.fromkeys(missing_names))
+                missing_str = ", ".join(f"«{m}»" for m in unique_missing)
+                return JsonResponse({
+                    'status': 'UNSCANNED_OPERATIONS',
+                    'message': (
+                        f"Qabul qilib bo'lmaydi! Ushbu qutining quyidagi operatsiyasi(lari) hali skaner qilinmagan (egasi yo'q): "
+                        f"{missing_str}. "
+                        f"Chunki agar ushbu operatsiyadan brak chiqsa, hech qaysi tikuvchini ayblab bo'lmaydi! "
+                        f"Avval barcha stikerlar skanerlanishi shart."
+                    ),
+                    'missing_operations': unique_missing,
+                }, status=400)
 
         # Birlamchi tekshiruv
         try:

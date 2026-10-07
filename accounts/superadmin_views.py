@@ -13,9 +13,8 @@ from django.db.models.functions import Coalesce
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.conf import settings
-from django.urls import reverse
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
-from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Box, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason
+from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Box, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason, ControlSetting
 from production.excel_reports import compact_ticket_ids
 from production.services import get_patok_code, get_patok_name
 
@@ -2985,6 +2984,7 @@ def superadmin_defect_reasons(request):
     non_repairable_count = DefectReason.objects.filter(defect_type__in=[DefectReason.DefectType.NON_REPAIRABLE, DefectReason.DefectType.BOTH]).count()
 
     context = {
+        'control_setting': ControlSetting.get_settings(),
         'defect_reasons': defect_reasons,
         'total_count': total_count,
         'active_count': active_count,
@@ -2998,6 +2998,38 @@ def superadmin_defect_reasons(request):
         'defect_types': DefectReason.DefectType.choices,
     }
     return render(request, 'superadmin/defect_reasons.html', context)
+
+
+@superadmin_required
+def superadmin_toggle_require_all_operations_scanned(request):
+    """
+    Qutini qabul qilishda barcha operatsiyalar skanerlangan bo'lishi shartligi qoidasini yoqish/o'chirish
+    """
+    if request.method == 'POST':
+        setting = ControlSetting.get_settings()
+        setting.require_all_operations_scanned = not setting.require_all_operations_scanned
+        setting.updated_by = request.user
+        setting.save(update_fields=['require_all_operations_scanned', 'updated_by', 'updated_at'])
+
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+            request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest' or
+            'application/json' in request.META.get('HTTP_ACCEPT', '')
+        )
+        if is_ajax:
+            return JsonResponse({
+                'status': 'OK',
+                'success': True,
+                'require_all_operations_scanned': setting.require_all_operations_scanned,
+                'message': "Qat'iy qabul qilish qoidasi muvaffaqiyatli yangilandi."
+            })
+
+        status_text = "yoqildi (Qat'iy nazorat)" if setting.require_all_operations_scanned else "o'chirildi (Erkin qabul qilish)"
+        messages.success(request, f"✓ Qutini qabul qilishda barcha operatsiyalar skanerlangan bo'lishi talabi {status_text}.")
+        return redirect('superadmin_defect_reasons')
+
+    return redirect('superadmin_defect_reasons')
 
 
 @superadmin_required

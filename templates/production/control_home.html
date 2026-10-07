@@ -301,6 +301,21 @@
                 </div>
             </div>
 
+            <!-- SKANERLANMAGAN OPERATSIYALAR OGOHLANTIRISH BANNERI -->
+            <div id="unscanned-warning-banner"
+                class="hidden rounded-2xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-md flex-shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div id="unscanned-banner-icon-box"
+                        class="w-8 h-8 rounded-xl flex items-center justify-center text-sm shadow-inner flex-shrink-0">
+                        <i id="unscanned-banner-icon" class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <strong id="unscanned-banner-title" class="text-xs sm:text-sm font-black uppercase tracking-wider block"></strong>
+                        <p id="unscanned-banner-desc" class="text-[11px] mt-0.5"></p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 2. ASOSIY SOHA: CHAPDA RASM, MARKAZDA SON VA UCHBURCHAKLAR -->
             <div
                 class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-3 sm:p-4 shadow-xl flex-1 flex flex-col justify-between gap-3 min-h-0">
@@ -1210,6 +1225,44 @@
                 }
             }
 
+            // SKANERLANMAGAN OPERATSIYALAR BANNERI
+            const unBanner = document.getElementById('unscanned-warning-banner');
+            if (unBanner) {
+                const hasMissing = (!b.all_tickets_scanned && b.missing_operations && b.missing_operations.length > 0);
+                if (!isRepair && hasMissing) {
+                    unBanner.classList.remove('hidden');
+                    const isStrict = (b.require_all_operations_scanned === true);
+                    const iconBox = document.getElementById('unscanned-banner-icon-box');
+                    const titleEl = document.getElementById('unscanned-banner-title');
+                    const descEl = document.getElementById('unscanned-banner-desc');
+                    if (isStrict) {
+                        unBanner.className = "bg-rose-500/15 border-2 border-rose-500/50 rounded-2xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-md flex-shrink-0";
+                        if (iconBox) iconBox.className = "w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-sm shadow-inner flex-shrink-0";
+                        if (titleEl) {
+                            titleEl.className = "text-rose-300 text-xs sm:text-sm font-black uppercase tracking-wider block";
+                            titleEl.innerText = `QAT'IY QOIDA: ${b.missing_operations.length} TA OPERATSIYA SKANERLANMAGAN`;
+                        }
+                        if (descEl) {
+                            descEl.className = "text-rose-200/80 text-[11px] mt-0.5";
+                            descEl.innerText = "Barcha stikerlar skanerlanmaguncha qabul qilish taqiqlangan.";
+                        }
+                    } else {
+                        unBanner.className = "bg-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-2.5 flex items-center justify-between gap-3 text-xs shadow-md flex-shrink-0";
+                        if (iconBox) iconBox.className = "w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-sm shadow-inner flex-shrink-0";
+                        if (titleEl) {
+                            titleEl.className = "text-amber-300 text-xs sm:text-sm font-black uppercase tracking-wider block";
+                            titleEl.innerText = `DIQQAT: ${b.missing_operations.length} TA OPERATSIYA SKANERLANMAGAN`;
+                        }
+                        if (descEl) {
+                            descEl.className = "text-amber-200/80 text-[11px] mt-0.5";
+                            descEl.innerText = "Yangi tizimga o'rganish davri: qabul qilishga ruxsat berilgan.";
+                        }
+                    }
+                } else {
+                    unBanner.classList.add('hidden');
+                }
+            }
+
             // BLOK 1: ZAKAZ NOMI - Nomer
             document.getElementById('val-order-number').innerText = b.order_number || "—";
             document.getElementById('val-order-name').innerText = b.order_client || (b.order_number ? `Zakaz #${b.order_number}` : "Buyurtmachi");
@@ -1310,12 +1363,15 @@
 
             const isRepair = (currentBox.mode === 'REPAIR_RETURN');
 
-            // 1. Operatsiyalar skanerlanganligini tekshirish (faqat INITIAL rejimda)
+            // 1. Operatsiyalar skanerlanganligini tekshirish (faqat INITIAL rejimda va sozlamada YOQILGAN bo'lsa)
             if (!isRepair) {
-                if (!currentBox.all_tickets_scanned || (currentBox.missing_operations && currentBox.missing_operations.length > 0)) {
-                    playSound('error');
-                    showUnscannedModal(currentBox.missing_operations.map(o => o.operation_name || o));
-                    return;
+                const isStrictRequired = (currentBox.require_all_operations_scanned === true);
+                if (isStrictRequired) {
+                    if (!currentBox.all_tickets_scanned || (currentBox.missing_operations && currentBox.missing_operations.length > 0)) {
+                        playSound('error');
+                        showUnscannedModal(currentBox.missing_operations.map(o => o.operation_name || o));
+                        return;
+                    }
                 }
             }
 

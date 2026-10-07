@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog, DefectReason, CancelledBatchLog
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog, DefectReason, CancelledBatchLog, ControlSetting
 
 
 @admin.register(Customer)
@@ -144,4 +144,10 @@ class CancelledBatchLogAdmin(admin.ModelAdmin):
     list_filter = ['cancelled_at']
     search_fields = ['batch_id', 'pastal_code', 'order_number', 'article_code', 'reason']
     ordering = ['-cancelled_at']
+
+
+@admin.register(ControlSetting)
+class ControlSettingAdmin(admin.ModelAdmin):
+    list_display = ['id', 'require_all_operations_scanned', 'updated_at', 'updated_by']
+    list_editable = ['require_all_operations_scanned']
 

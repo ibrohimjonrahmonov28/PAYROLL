@@ -1243,6 +1243,41 @@ class DefectReason(models.Model):
         super().save(*args, **kwargs)
 
 
+class ControlSetting(models.Model):
+    require_all_operations_scanned = models.BooleanField(
+        default=False,
+        verbose_name="Qutini qabul qilishda barcha operatsiyalar to'liq skanerlangan bo'lishi shart"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Yangilangan vaqt")
+    updated_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='updated_control_settings',
+        verbose_name="Oxirgi tahrirlovchi"
+    )
+
+    class Meta:
+        verbose_name = "OTK Nazorat Sozlamasi"
+        verbose_name_plural = "OTK Nazorat Sozlamalari"
+
+    @classmethod
+    def get_settings(cls):
+        obj = cls.objects.first()
+        if not obj:
+            obj = cls.objects.create(require_all_operations_scanned=False)
+        return obj
+
+    @classmethod
+    def is_all_operations_required(cls) -> bool:
+        return cls.get_settings().require_all_operations_scanned
+
+    def __str__(self):
+        status = "Qat'iy (Faol)" if self.require_all_operations_scanned else "Erkin (Nofaol)"
+        return f"OTK Sozlamasi: Barcha operatsiyalar talabi - {status}"
+
+
 class Ticket(models.Model):
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Kutilmoqda'

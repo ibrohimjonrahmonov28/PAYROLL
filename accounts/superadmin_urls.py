@@ -41,5 +41,6 @@ urlpatterns = [
     path('control/defect-reasons/<int:reason_id>/toggle/', superadmin_views.superadmin_defect_reason_toggle, name='superadmin_defect_reason_toggle'),
     path('control/defect-reasons/<int:reason_id>/delete/', superadmin_views.superadmin_defect_reason_delete, name='superadmin_defect_reason_delete'),
     path('control/defect-reasons/seed-defaults/', superadmin_views.superadmin_defect_reason_seed_defaults, name='superadmin_defect_reason_seed_defaults'),
+    path('control/defect-reasons/toggle-require-scanned/', superadmin_views.superadmin_toggle_require_all_operations_scanned, name='superadmin_toggle_require_all_operations_scanned'),
 ]
 

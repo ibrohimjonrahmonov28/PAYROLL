@@ -4,7 +4,7 @@ from django.utils import timezone
 from .models import (
     Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket,
     Customer, ProductModel, OrderItemSize, CuttingBatch, CuttingBatchItem,
-    OperationGroup, OperationGroupItem
+    OperationGroup, OperationGroupItem, ControlSetting
 )
 from .services import allocate_ticket_quantities, generate_box_tickets
 from accounts.models import User, Worker
@@ -1854,7 +1854,32 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         self.client.login(username="inspector_otk", password="password123")
         submit_url = reverse('control:api_submit')
 
-        # Egasi yo'q operatsiya (Tugma qadash) bo'lganda tasdiqlash bloklanishi shart!
+        # 1. Standart (yumshoq) rejimda: barcha operatsiyalar skanerlanmagan bo'lsa ham qabul qilinadi
+        setting = ControlSetting.get_settings()
+        setting.require_all_operations_scanned = False
+        setting.save()
+
+        res_soft = self.client.post(
+            submit_url,
+            data=json.dumps({
+                'box_id': self.box.id,
+                'mode': 'INITIAL',
+                'total_qty': 50,
+                'second_sort_qty': 0,
+                'repair_qty': 0
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_soft.status_code, 200)
+
+        # Qutini qayta tekshiruv uchun ochamiz
+        self.box.is_controlled = False
+        self.box.save()
+
+        # 2. Qat'iy rejim yoqilganda: egasi yo'q operatsiya (Tugma qadash) bo'lganda tasdiqlash bloklanishi shart!
+        setting.require_all_operations_scanned = True
+        setting.save()
+
         res = self.client.post(
             submit_url,
             data=json.dumps({
