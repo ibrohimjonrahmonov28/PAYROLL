@@ -29,6 +29,34 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `b967f3d`] — 08.10.2026, 08:10
+* **Turi:** `feat(statistics)` — Yangi imkoniyat va Snapshot Arxitekturasi
+* **Mavzu:** Tikim patoklarining kunlik normasi va bajarilish monitoringi, vaqt chegaralari (bugun real-time, kecha va avvalgi kunlar 24:00 tungi muhr) hamda `DailyPatokProgress` modeli
+* **O'zgartirilgan fayllar:**
+  - `production/models.py`
+  - `production/migrations/0031_dailypatokprogress.py`
+  - `production/sewing_statistics_views.py`
+  - `templates/production/sewing_statistics_daily.html`
+  - `production/tests.py`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **DailyPatokProgress Modeli va Migratsiya (`0031_dailypatokprogress`):** Har bir patokning kunlik rejasi (norma), bajarilgan donasi, foizi, dazmol, OTK, kutayotgan va ta'mirdagi donalari bazada arxivlanadi va muhrlanadi.
+  2. **Aniq Vaqt Chegarasi (Bugun Real-time vs Avvalgi Kunlar Tungi 24:00):**
+     - Bugungi kun uchun `scanned_at` va `created_at` so'rovlari hozirgi soniyagacha (`timezone.now()`) jonli real-time ishlaydi.
+     - Kecha va undan oldingi kunlar uchun aniq tungi 23:59:59 gacha bo'lgan vaqt oralig'i olinadi va bazada o'sha kungi holat sifatida qat'iy saqlanadi.
+  3. **Kunlik Norma Hisobi:** Har bir patokda tikilayotgan modellar (artikullar)ning `daily_norm` ko'rsatkichi asosida patokning kunlik normasi (reja) hisoblanadi (standart 1200 dona).
+  4. **Bajarilgan Natija & Foiz:** Dazmoldan chiqqan (yoki OTK tekshirgan) mahsulotlar normaga nisbatan taqqoslanadi (`completed_norm_units`, `norm_percentage`, `norm_diff`).
+  5. **Desktop Dashboard UI Yangilanishi:**
+     - KPI bloki: "Norma Natijasi" kartochkasi (`avg_norm_pct`%, reja va bajarilgan jami sonlar).
+     - Jadval ustuni: "Kunlik Norma & Natija" ustuni (reja soni, bajarilgani, dinamik rangli progress-bar va `+X` oshirildi / `-Y` qoldi ko'rsatkichi).
+     - Batafsil panelida patok normasi va farqi ko'rsatilishi.
+  6. **179 ta test (113 production + 66 accounts)** to'liq muvaffaqiyatli o'tdi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout b967f3d
+  ```
+
+---
+
 ### 🔹 [Commit: `e9af786`] — 07.10.2026, 21:05
 * **Turi:** `feat(statistics)` — Yangi imkoniyat
 * **Mavzu:** Kunlik tikim va pastallar monitoringi: yaxlit desktop interfeys, pastal statusi va razmerlar kesimidagi mato/ta'mir balansi
