@@ -28,7 +28,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-6">
+<div class="w-full max-w-[1920px] mx-auto space-y-6">
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -418,53 +418,80 @@
     </div>
 </div>
 
-<!-- MODAL: Yangi Kesim Partiyasi Kiritish -->
+<!-- MODAL: Yangi Kesim Partiyasi Kiritish (Desktop PC Kengaytirilgan Rejim) -->
 <div id="add-batch-modal"
     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl my-8 space-y-5">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-3xl p-6 md:p-8 shadow-2xl my-8 space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
             <div>
-                <h3 class="text-base font-black text-white flex items-center gap-2">
-                    <i class="fa-solid fa-scissors text-rose-500"></i> <span id="modal-batch-title">Yangi Kesim</span>
+                <h3 class="text-lg font-black text-white flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-scissors"></i>
+                    </span>
+                    <span id="modal-batch-title">Yangi Kesim Partiyasi</span>
                 </h3>
-                <p class="text-xs text-slate-400 mt-0.5">Artikul: <strong id="modal-art-code"
-                        class="text-amber-400"></strong></p>
+                <p class="text-xs text-slate-400 mt-1">Artikul: <strong id="modal-art-code" class="text-amber-400 font-mono text-sm"></strong></p>
             </div>
-            <button onclick="closeAddBatchModal()" class="text-slate-400 hover:text-white text-xl p-1">
+            <button onclick="closeAddBatchModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
-        <form method="POST" id="add-batch-form" class="space-y-4">
+        <form method="POST" id="add-batch-form" class="space-y-5">
             {% csrf_token %}
 
-            <!-- Mato va Partiya ma'lumotlari -->
-            <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-3">
-                <span class="text-xs uppercase font-extrabold text-amber-400 tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-layer-group"></i> Tayyor Mato Omboridan Chiqqan Mato va Pastal:
-                </span>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">
-                            Pastal Kodi * <span class="text-rose-400 font-normal">(majburiy)</span>
+            <!-- Mato va Pastal ma'lumotlari -->
+            <div class="bg-slate-950 p-4 md:p-5 rounded-2xl border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs uppercase font-extrabold text-amber-400 tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group"></i> Tayyor Mato Omboridan Chiqqan Mato va Pastal
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                        <i class="fa-solid fa-desktop text-rose-400 mr-1"></i> PC Desktop
+                    </span>
+                </div>
+
+                <!-- Pastal Kodi (Avtomatik generatsiya bloki) -->
+                <div class="bg-slate-900/90 p-3.5 rounded-xl border border-rose-900/50 shadow-inner">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-barcode text-rose-400"></i> Pastal Kodi *
+                            <span class="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold border border-rose-500/30">
+                                ✨ Avtomat Generatsiya
+                            </span>
                         </label>
-                        <div class="relative">
-                            <input type="text" name="pastal_code" id="add-pastal-code" required placeholder="Masalan: P-01 yoki 1" autocomplete="off"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 pr-8 text-xs text-white focus:outline-none focus:border-rose-500 font-mono shadow-inner transition">
-                            <span id="add-pastal-status-icon" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden text-xs"></span>
-                        </div>
-                        <p id="add-pastal-error" class="hidden text-[11px] text-rose-400 font-bold mt-1.5 flex items-center gap-1.5 animate-pulse">
-                            <i class="fa-solid fa-circle-exclamation text-xs"></i>
-                            <span id="add-pastal-error-text">Ushbu pastal kodi bu modelda allaqachon mavjud!</span>
-                        </p>
-                        <p id="add-pastal-success" class="hidden text-[11px] text-emerald-400 font-bold mt-1.5 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-check text-xs"></i>
-                            <span>Ushbu pastal kodi kiritish uchun mos (band emas)</span>
-                        </p>
+                        <button type="button" onclick="refreshAddPastalCode()" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1.5 transition px-2 py-0.5 rounded-lg hover:bg-slate-800" title="Keyingi yangi bo'sh kodni tekshirish">
+                            <i class="fa-solid fa-arrows-rotate text-xs" id="refresh-pastal-icon"></i> Kodni Yangilash
+                        </button>
                     </div>
+                    <div class="relative">
+                        <input type="text" name="pastal_code" id="add-pastal-code" required placeholder="Masalan: P10-120" autocomplete="off"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 pr-10 text-sm font-black text-rose-300 focus:outline-none focus:border-rose-500 font-mono shadow-inner transition tracking-wider">
+                        <span id="add-pastal-status-icon" class="absolute right-3.5 top-1/2 -translate-y-1/2 hidden text-xs"></span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2 text-[11px] text-slate-400">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                            Barcha zakazlar bo'ylab yagona unikal ketma-ketlik.
+                        </span>
+                        <span class="text-amber-400/90 font-medium">
+                            <i class="fa-regular fa-clock"></i> Faqat "Saqlash"da olinadi (bekor qilinsa yo'qolmaydi)
+                        </span>
+                    </div>
+                    <p id="add-pastal-error" class="hidden text-[11px] text-rose-400 font-bold mt-2 flex items-center gap-1.5 animate-pulse">
+                        <i class="fa-solid fa-circle-exclamation text-xs"></i>
+                        <span id="add-pastal-error-text">Ushbu pastal kodi tizimda allaqachon mavjud!</span>
+                    </p>
+                    <p id="add-pastal-success" class="hidden text-[11px] text-emerald-400 font-bold mt-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check text-xs"></i>
+                        <span>Ushbu pastal kodi kiritish uchun mos (band emas)</span>
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">
-                            Partiya Raqami <span class="text-slate-400 font-normal">(9-26-190, 10-10-2026)</span>
+                            Partiya Raqami <span class="text-slate-400 font-normal">(9-26-190...)</span>
                         </label>
                         <input type="text" name="partiya_number" placeholder="Masalan: 9-26-190"
                             class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-mono shadow-inner">
@@ -475,8 +502,7 @@
                             class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-mono shadow-inner">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Mato Partiyasi / Rulon
-                            (ixtiyoriy)</label>
+                        <label class="block text-xs font-bold text-slate-300 mb-1">Mato Partiyasi / Rulon</label>
                         <input type="text" name="fabric_batch_code" placeholder="TKDL102 / Rulon #5"
                             class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-mono shadow-inner">
                     </div>
@@ -488,59 +514,64 @@
                     <label class="block text-xs font-bold text-slate-300 mb-1">Bichuvchi Ismi (avtomatik)</label>
                     <input type="text" name="cutter_name"
                         value="{{ request.user.get_full_name|default:request.user.username }}"
-                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 shadow-inner">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-rose-500 shadow-inner">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-1">Izoh (ixtiyoriy)</label>
                     <input type="text" name="notes" placeholder="Qoldiqsiz bichildi"
-                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 shadow-inner">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-rose-500 shadow-inner">
                 </div>
             </div>
 
-            <!-- Razmerlar bo'yicha kesilgan sonlar -->
-            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
-                <span class="text-xs uppercase font-extrabold text-cyan-400 tracking-wider block">
-                    Ushbu partiyada bichilgan kiyimlar:
-                </span>
-                <div id="modal-sizes-inputs" class="space-y-2">
+            <!-- Razmerlar bo'yicha kesilgan sonlar (Desktop Grid) -->
+            <div class="bg-slate-950 p-4 md:p-5 rounded-2xl border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs uppercase font-extrabold text-cyan-400 tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-ruler-combined"></i> Ushbu partiyada bichilgan kiyimlar:
+                    </span>
+                    <span class="text-[11px] text-slate-400">Har bir razmer bo'yicha bichuv sonini kiriting:</span>
+                </div>
+                <div id="modal-sizes-inputs" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                     <!-- Dinamik ravishda to'ldiriladi -->
                 </div>
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-2">
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
                 <button type="button" onclick="closeAddBatchModal()"
-                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                    class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
                     Bekor Qilish
                 </button>
                 <button type="submit" id="add-batch-submit-btn"
-                    class="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition">
-                    Saqlash (Meto Bo'limiga Uzatish)
+                    class="px-7 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> Saqlash (Meto Bo'limiga Uzatish)
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- MODAL: Kesim Partiyasini Tahrirlash -->
+<!-- MODAL: Kesim Partiyasini Tahrirlash (Desktop PC Kengaytirilgan Rejim) -->
 <div id="edit-batch-modal"
     class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl my-8 space-y-5">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-3xl p-6 md:p-8 shadow-2xl my-8 space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
             <div>
-                <h3 class="text-base font-black text-white flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-amber-500"></i> <span id="edit-modal-title">Partiyani
-                        Tahrirlash</span>
+                <h3 class="text-lg font-black text-white flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </span>
+                    <span id="edit-modal-title">Partiyani Tahrirlash</span>
                 </h3>
-                <p class="text-xs text-slate-400 mt-0.5">Meto tasdiqlamaguncha sonlarni tahrirlashingiz mumkin</p>
+                <p class="text-xs text-slate-400 mt-1">Meto tasdiqlamaguncha sonlarni tahrirlashingiz mumkin</p>
             </div>
-            <button onclick="closeEditBatchModal()" class="text-slate-400 hover:text-white text-xl p-1">
+            <button onclick="closeEditBatchModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
-        <form method="POST" id="edit-batch-form" class="space-y-4">
+        <form method="POST" id="edit-batch-form" class="space-y-5">
             {% csrf_token %}
-            <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-3">
+            <div class="bg-slate-950 p-4 md:p-5 rounded-2xl border border-slate-800 space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">
@@ -548,7 +579,7 @@
                         </label>
                         <div class="relative">
                             <input type="text" name="pastal_code" id="edit-pastal-code" required autocomplete="off"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 pr-8 text-xs text-white font-mono transition">
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 pr-8 text-xs text-white font-mono transition">
                             <span id="edit-pastal-status-icon" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden text-xs"></span>
                         </div>
                         <p id="edit-pastal-error" class="hidden text-[11px] text-rose-400 font-bold mt-1.5 flex items-center gap-1.5 animate-pulse">
@@ -563,17 +594,17 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">Partiya Raqami</label>
                         <input type="text" name="partiya_number" id="edit-partiya-number" placeholder="9-26-190"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">Mato Og'irligi (kg)</label>
                         <input type="number" step="0.01" name="fabric_weight_kg" id="edit-fabric-weight"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-300 mb-1">Partiya / Rulon Kodi</label>
                         <input type="text" name="fabric_batch_code" id="edit-fabric-batch"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono">
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono">
                     </div>
                 </div>
             </div>
@@ -582,42 +613,45 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-1">Bichuvchi</label>
                     <input type="text" name="cutter_name" id="edit-cutter-name"
-                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-1">Izoh</label>
                     <input type="text" name="notes" id="edit-notes"
-                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white">
                 </div>
             </div>
 
-            <!-- Razmerlar sonlari -->
-            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
+            <!-- Razmerlar sonlari (Desktop Grid) -->
+            <div class="bg-slate-950 p-4 md:p-5 rounded-2xl border border-slate-800 space-y-3">
                 <span class="text-xs uppercase font-extrabold text-amber-400 tracking-wider block">
-                    Bichilgan sonlarni tahrirlash:
+                    <i class="fa-solid fa-ruler-combined"></i> Bichilgan sonlarni tahrirlash:
                 </span>
-                <div id="edit-sizes-inputs" class="space-y-2">
+                <div id="edit-sizes-inputs" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                     <!-- Dinamik ravishda to'ldiriladi -->
                 </div>
             </div>
 
-            <div class="flex items-center justify-between gap-3 pt-2">
+            <div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-800">
                 <button type="button" onclick="confirmDeleteFromEditModal()"
-                    class="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white font-bold rounded-xl text-xs border border-rose-500/30 transition flex items-center gap-1.5"
+                    class="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white font-bold rounded-xl text-xs border border-rose-500/30 transition flex items-center gap-1.5"
                     title="Ushbu partiyani butunlay o'chirish">
                     <i class="fa-solid fa-trash-can"></i> O'chirish
                 </button>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="closeEditBatchModal()"
-                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                        class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
                         Bekor Qilish
                     </button>
                     <button type="submit" id="edit-batch-submit-btn"
-                        class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition">
-                        O'zgarishlarni Saqlash
+                        class="px-7 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> O'zgarishlarni Saqlash
                     </button>
                 </div>
             </div>
+        </form>
+    </div>
+</div>
         </form>
     </div>
 </div>
@@ -1251,6 +1285,26 @@
         }
     });
 
+    function refreshAddPastalCode() {
+        const icon = document.getElementById('refresh-pastal-icon');
+        const addPastalInput = document.getElementById('add-pastal-code');
+        if (icon) icon.classList.add('animate-spin');
+        fetch(`{% url 'api_cutting_next_pastal' %}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.pastal_code && addPastalInput) {
+                    addPastalInput.value = data.pastal_code;
+                    validateAddPastalCode();
+                }
+            })
+            .catch(e => console.error("Pastal kodini yangilash xatosi:", e))
+            .finally(() => {
+                if (icon) {
+                    setTimeout(() => icon.classList.remove('animate-spin'), 400);
+                }
+            });
+    }
+
     function openAddBatchModal(itemId, artCode, batchName) {
         currentAddBatchContext = { itemId: String(itemId), artCode: artCode };
         document.getElementById('modal-batch-title').innerText = batchName;
@@ -1259,9 +1313,20 @@
 
         const addPastalInput = document.getElementById('add-pastal-code');
         if (addPastalInput) {
-            addPastalInput.value = '';
+            addPastalInput.value = '{{ next_pastal_code|default:"P10-1" }}';
         }
         resetAddPastalValidation();
+
+        // Serverdan eng so'nggi bo'sh unikal kodni olib yangilash
+        fetch(`{% url 'api_cutting_next_pastal' %}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.pastal_code && addPastalInput) {
+                    addPastalInput.value = data.pastal_code;
+                    validateAddPastalCode();
+                }
+            })
+            .catch(e => console.log('Next pastal error:', e));
 
         const sizesContainer = document.getElementById('modal-sizes-inputs');
         sizesContainer.innerHTML = '';
@@ -1270,16 +1335,17 @@
         if ('{{ item_data.item.id }}' === itemId) {
             {% for s in item_data.sizes %}
             sizesContainer.innerHTML += `
-                <div class="flex items-center justify-between gap-3 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                    <span class="font-bold text-white text-xs font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-700 text-cyan-400">
-                        {{ s.size.size_name }}
-                    </span>
-                    <span class="text-[11px] text-slate-400">Reja: <strong class="text-amber-400">{{ s.planned }}</strong> ta</span>
+                <div class="flex items-center justify-between gap-2.5 bg-slate-900/90 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                    <div class="min-w-0">
+                        <span class="font-black text-white text-xs font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-700 text-cyan-400 inline-block">
+                            {{ s.size.size_name }}
+                        </span>
+                        <span class="text-[10px] text-slate-400 mt-1 block">Reja: <strong class="text-amber-400">{{ s.planned }}</strong> ta</span>
+                    </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-xs text-slate-400 font-medium">Bichildi:</span>
                         <input type="number" name="size_qty_{{ s.size.id }}" min="0" placeholder="0"
-                            class="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-right font-black text-emerald-300 digital-font focus:outline-none focus:border-rose-500">
-                        <span class="text-xs text-slate-500">ta</span>
+                            class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-right font-black text-emerald-300 digital-font focus:outline-none focus:border-rose-500 shadow-inner">
+                        <span class="text-[11px] text-slate-500 font-bold">ta</span>
                     </div>
                 </div>
             `;
@@ -1316,15 +1382,16 @@
         if (Array.isArray(items)) {
             items.forEach(it => {
                 editSizesContainer.innerHTML += `
-                    <div class="flex items-center justify-between gap-3 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                        <span class="font-bold text-white text-xs font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-700 text-cyan-400">
-                            ${it.size_name}
-                        </span>
+                    <div class="flex items-center justify-between gap-2.5 bg-slate-900/90 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                        <div class="min-w-0">
+                            <span class="font-black text-white text-xs font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-700 text-cyan-400 inline-block">
+                                ${it.size_name}
+                            </span>
+                        </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="text-xs text-slate-400 font-medium">Bichildi:</span>
                             <input type="number" name="size_qty_${it.id || (it.item && it.item.id) || it.item}" value="${it.quantity}" min="0"
-                                class="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-right font-black text-emerald-300 digital-font focus:outline-none focus:border-amber-500">
-                            <span class="text-xs text-slate-500">ta</span>
+                                class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-right font-black text-emerald-300 digital-font focus:outline-none focus:border-amber-500 shadow-inner">
+                            <span class="text-[11px] text-slate-500 font-bold">ta</span>
                         </div>
                     </div>
                 `;

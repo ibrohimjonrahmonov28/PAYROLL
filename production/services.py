@@ -1,10 +1,12 @@
 """
 Production business logic and SRS Ticket Allocation Algorithm.
 """
+import re
 from decimal import Decimal
 from django.db import transaction
 from django.db.models import Max, Q
-from .models import Box, Order, Ticket, ArticleOperation
+from django.utils import timezone
+from .models import Box, Order, Ticket, ArticleOperation, CuttingBatch
 
 
 def allocate_ticket_quantities(box_quantity: int, split_count: int) -> list[int]:
@@ -566,5 +568,43 @@ def close_boxes_as_controlled(
     }
 
 
+def generate_next_pastal_code(now=None) -> str:
+    """
+    Barcha zakazlar uchun yagona, unikal avtomatik Pastal Kodi generatsiyasi:
+    - Format: P{MM}-{N} (masalan: P10-1, P10-120, P10-999, P10-1000 ... P10-9999).
+    - 'P' = Pastal.
+    - {MM} = joriy oy (masalan 10 = Oktyabr, 11 = Noyabr).
+    - Raqamlash har oy 1 dan boshlanadi.
+    - 999 dan oshsa avtomatik ravishda 1000..9999 gacha davom etadi.
+    - Faqatgina bazaga saqlanganda band qilinadi (bekor qilinsa raqam yo'qolmaydi).
+    - Tizimdagi barcha zakazlar bo'ylab qat'iy UNIKAL bo'lishi kafolatlanadi.
+    """
+    if now is None:
+        now = timezone.now()
 
+    month_str = now.strftime('%m')
+    prefix = f"P{month_str}-"
 
+    existing_codes = CuttingBatch.objects.filter(
+        pastal_code__istartswith=prefix
+    ).values_list('pastal_code', flat=True)
+
+    max_num = 0
+    pattern = re.compile(rf'^{re.escape(prefix)}(\d+)$', re.IGNORECASE)
+    for code in existing_codes:
+        m = pattern.match((code or '').strip())
+        if m:
+            try:
+                val = int(m.group(1))
+                if val > max_num:
+                    max_num = val
+            except ValueError:
+                pass
+
+    next_num = max(1, max_num + 1)
+
+    # Dublikat bo'lmasligini to'liq kafolatlash uchun (agar oraliqda qo'lda kiritilgan bo'lsa)
+    while CuttingBatch.objects.filter(pastal_code__iexact=f"{prefix}{next_num}").exists():
+        next_num += 1
+
+    return f"{prefix}{next_num}"

@@ -84,14 +84,16 @@ def login_view(request):
                     return redirect('superadmin_payroll')
                 if user.role == User.Role.PLAN:
                     return redirect('production:sewing_statistics_daily')
+                if user.role == User.Role.CUTTER:
+                    if next_url and next_url.startswith('/cutting'):
+                        return redirect(next_url)
+                    return redirect('cutting_dashboard')
                 
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)
                 
                 if user.role == User.Role.MANAGER:
                     return redirect('manager_dashboard')
-                if user.role == User.Role.CUTTER:
-                    return redirect('cutting_dashboard')
                 if user.role == User.Role.METO:
                     return redirect('meto_dashboard')
                 if user.role == User.Role.STICKER:

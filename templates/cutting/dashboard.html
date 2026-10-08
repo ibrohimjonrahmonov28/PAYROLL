@@ -16,7 +16,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-6">
+<div class="w-full max-w-[1920px] mx-auto space-y-6">
 
     <!-- Top Action Bar -->
     <div
@@ -31,8 +31,8 @@
 
         <form method="GET" class="relative flex items-center">
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-500 text-xs pointer-events-none"></i>
-            <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz, mijoz yoki model..."
-                class="pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 w-64 md:w-80 shadow-inner transition">
+            <input type="text" name="q" value="{{ search_q }}" placeholder="Zakaz, mijoz yoki model bo'yicha qidirish..."
+                class="pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 w-72 md:w-96 shadow-inner transition">
             {% if search_q %}
             <a href="{% url 'cutting_dashboard' %}" class="absolute right-3 text-slate-500 hover:text-rose-400 text-xs"
                 title="Tozalash">

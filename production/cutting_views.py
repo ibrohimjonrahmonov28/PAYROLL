@@ -5,7 +5,9 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max, Sum
 from django.http import JsonResponse
+from django.utils import timezone
 from .models import Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket, CancelledBatchLog
+from .services import generate_next_pastal_code
 
 
 def cutter_required(view_func):
@@ -237,6 +239,7 @@ def cutting_order_detail(request, order_id: int):
         'total_cut_order': total_cut_order,
         'overall_order_pct': overall_order_pct,
         'search_q': search_q,
+        'next_pastal_code': generate_next_pastal_code(),
     })
 
 
@@ -427,11 +430,26 @@ def api_check_pastal_code(request):
 
 
 @cutter_required
+def api_get_next_pastal_code(request):
+    """
+    Avtomatik yangi unikal Pastal kodini olish API (0 ms kechikish bilan):
+    Format: P{MM}-{N} (masalan: P10-1, P10-120, P10-1000).
+    Faqat so'rov vaqtida hisoblanadi, bazaga yozilmaydi (saqlanmasa raqam yo'qolmaydi).
+    """
+    code = generate_next_pastal_code()
+    return JsonResponse({
+        'status': 'SUCCESS',
+        'pastal_code': code,
+        'month': timezone.now().strftime('%m'),
+    })
+
+
+@cutter_required
 def cutting_add_batch(request, order_id: int, order_item_id: int):
     """
     Yangi Kesim Partiyasi Kiritish (POST):
     - Tayyor mato omboridan mato partiyasi (kg va rulon/kod)
-    - Pastal kodi (majburiy)
+    - Pastal kodi (majburiy, bo'sh bo'lsa avtomatik P{MM}-{N} olinadi)
     - Partiya raqami (masalan: 9-26-190, 10-10-2026)
     - Bichuvchi ismi (avtomatik akkount egasi)
     - Kesilgan razmerlar soni
@@ -447,6 +465,11 @@ def cutting_add_batch(request, order_id: int, order_item_id: int):
     if not pastal_code:
         messages.error(request, "Pastal kodi kiritilishi majburiy!")
         return redirect('cutting_order_detail', order_id=order_id)
+
+    # Agar bu avtomatik P{MM}- formatidagi kod bo'lsa va parallel saqlash tufayli band bo'lib qolgan bo'lsa:
+    month_prefix = f"P{timezone.now().strftime('%m')}-"
+    if pastal_code.upper().startswith(month_prefix) and CuttingBatch.objects.filter(pastal_code__iexact=pastal_code).exists():
+        pastal_code = generate_next_pastal_code()
 
     # Bir model/artikul uchun bir xil pastal kodini 2 marta kiritish taqiqlanadi
     if CuttingBatch.objects.filter(order_item=order_item, pastal_code__iexact=pastal_code).exists():

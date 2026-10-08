@@ -1110,6 +1110,80 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertEqual(self.client.get(reverse('sticker_dashboard')).status_code, 200)
         self.assertEqual(self.client.get(reverse('norma_dashboard')).status_code, 200)
 
+    def test_cutter_role_restricted_to_cutting_only(self):
+        """
+        CUTTER roli egasi faqat /cutting/ va uning ichki sahifalarida ishlay oladi.
+        Boshqa sahifalarga kirish qat'iy cheklanadi (middleware orqali /cutting/ ga qaytariladi).
+        """
+        self.client.login(username="cutter_user", password="password123")
+        
+        # 1. /cutting/ sahifasi - 200 OK
+        res_cutting = self.client.get(reverse('cutting_dashboard'))
+        self.assertEqual(res_cutting.status_code, 200)
+
+        # 2. Boshqa bo'limlarga kirish - /cutting/ ga redirect
+        res_orders = self.client.get(reverse('production:order_list'))
+        self.assertEqual(res_orders.status_code, 302)
+        self.assertEqual(res_orders.url, reverse('cutting_dashboard'))
+
+        res_term = self.client.get(reverse('production:terminal_home'))
+        self.assertEqual(res_term.status_code, 302)
+        self.assertEqual(res_term.url, reverse('cutting_dashboard'))
+
+        # AJAX so'rovlar uchun 403 Forbidden
+        res_ajax = self.client.get(reverse('production:order_list'), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_ajax.status_code, 403)
+        self.assertIn("Kesimchi hisobi faqat Kesim", res_ajax.json().get('message', ''))
+
+    def test_auto_pastal_code_generation_and_api(self):
+        """
+        Avtomatik unikal Pastal kodi generatsiyasi:
+        - P{MM}-1 dan boshlanadi.
+        - Saqlanmaguncha raqam olinmaydi / yo'qolmaydi.
+        - 999 dan oshsa 1000..9999 gacha davom etadi.
+        - API orqali so'ralganda to'g'ri qaytadi.
+        """
+        from production.services import generate_next_pastal_code
+        from django.utils import timezone
+
+        month_prefix = f"P{timezone.now().strftime('%m')}-"
+
+        # 1. Boshida 1-raqam beriladi
+        code1 = generate_next_pastal_code()
+        self.assertEqual(code1, f"{month_prefix}1")
+
+        # 2. Saqlanmaguncha yana qayta so'ralsa ham 1 beriladi (saqlasa olsin, saqlamasa olmasin)
+        code1_again = generate_next_pastal_code()
+        self.assertEqual(code1_again, f"{month_prefix}1")
+
+        # API endpoint tekshiruvi
+        self.client.login(username="cutter_user", password="password123")
+        res_api = self.client.get(reverse('api_cutting_next_pastal'))
+        self.assertEqual(res_api.status_code, 200)
+        self.assertEqual(res_api.json()['status'], 'SUCCESS')
+        self.assertEqual(res_api.json()['pastal_code'], f"{month_prefix}1")
+
+        # 3. Bazaga 1-pastal saqlanganda keyingi raqam 2 bo'ladi
+        order = Order.objects.create(order_number="ORD-AUTO-PST", status=Order.Status.IN_PROGRESS)
+        art = Article.objects.create(code="ART-AUTO", name="Auto Model")
+        ord_item = OrderItem.objects.create(order=order, article=art, quantity=100)
+        CuttingBatch.objects.create(order_item=ord_item, batch_number=1, pastal_code=code1)
+
+        code2 = generate_next_pastal_code()
+        self.assertEqual(code2, f"{month_prefix}2")
+
+        # 4. 119 bo'lsa -> 120 (misol: P10-120)
+        CuttingBatch.objects.create(order_item=ord_item, batch_number=2, pastal_code=f"{month_prefix}119")
+        self.assertEqual(generate_next_pastal_code(), f"{month_prefix}120")
+
+        # 5. 999 bo'lsa -> 1000 (999 dan oshsa avtomatik 1000 bolaversin)
+        CuttingBatch.objects.create(order_item=ord_item, batch_number=3, pastal_code=f"{month_prefix}999")
+        self.assertEqual(generate_next_pastal_code(), f"{month_prefix}1000")
+
+        # 6. 1000 bo'lsa -> 1001 (toki 9999 gacha)
+        CuttingBatch.objects.create(order_item=ord_item, batch_number=4, pastal_code=f"{month_prefix}1000")
+        self.assertEqual(generate_next_pastal_code(), f"{month_prefix}1001")
+
 
 class NormaModuleTests(TestCase):
     def setUp(self):

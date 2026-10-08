@@ -9,5 +9,6 @@ urlpatterns = [
     path('orders/<int:order_id>/batches/<int:batch_id>/edit/', cutting_views.cutting_edit_batch, name='cutting_edit_batch'),
     path('orders/<int:order_id>/batches/<int:batch_id>/delete/', cutting_views.cutting_delete_batch, name='cutting_delete_batch'),
     path('api/check-pastal/', cutting_views.api_check_pastal_code, name='api_cutting_check_pastal'),
+    path('api/next-pastal/', cutting_views.api_get_next_pastal_code, name='api_cutting_next_pastal'),
 ]
 

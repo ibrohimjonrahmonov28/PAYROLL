@@ -112,7 +112,7 @@
 
         <!-- Messages -->
         {% if messages %}
-        <div class="p-4 max-w-7xl mx-auto w-full space-y-2">
+        <div class="p-4 max-w-[1920px] mx-auto w-full space-y-2">
             {% for message in messages %}
             <div
                 class="p-3.5 rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-lg {% if message.tags == 'error' %}bg-rose-950/80 border border-rose-800 text-rose-300{% elif message.tags == 'success' %}bg-emerald-950/80 border border-emerald-800 text-emerald-300{% elif message.tags == 'warning' %}bg-amber-950/80 border border-amber-800 text-amber-300{% else %}bg-slate-900 border border-slate-700 text-slate-200{% endif %}">
@@ -124,8 +124,8 @@
         </div>
         {% endif %}
 
-        <!-- Content Block -->
-        <div class="p-6 flex-1">
+        <!-- Content Block (Desktop Keng Maydon) -->
+        <div class="p-4 lg:p-8 flex-1 w-full max-w-[1920px] mx-auto">
             {% block content %}{% endblock %}
         </div>
     </main>

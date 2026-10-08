@@ -222,5 +222,34 @@ class MasterTerminalAccessRestrictionMiddleware:
 
                     return redirect('production:sewing_statistics_daily')
 
+            elif getattr(request.user, 'role', None) == User.Role.CUTTER:
+                path = request.path_info
+                allowed_prefixes = (
+                    '/cutting/',
+                    '/cutting',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes)
+                if not is_allowed:
+                    is_ajax = (
+                        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                        'application/json' in request.headers.get('accept', '') or
+                        request.content_type == 'application/json' or
+                        '/api/' in path
+                    )
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'FORBIDDEN',
+                            'message': "Ruxsat etilmagan! Kesimchi hisobi faqat Kesim (Cutting) bo'limidan foydalana oladi."
+                        }, status=403)
+
+                    return redirect('cutting_dashboard')
+
         return self.get_response(request)
 
