@@ -29,6 +29,44 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `4cc5f18`] — 08.10.2026, 18:16
+* **Turi:** `feat(cutting)` — Maxsus Kesimchi (CUTTER) Hisobi, Avtomatik Unikal Pastal Kodi (P{MM}-{N}) va PC Desktop Kengaytirilgan Maydoni
+* **Mavzu:** `/cutting/` uchun maxsus akkount ruxsatlari (middleware orqali qat'iy cheklov), yangi kesim qo'shishda avtomatik unikal pastal kodi generatsiyasi (`P10-1`..`P10-120`..`P10-999`..`P10-1000`..`P10-9999`, saqlanmasa raqam yo'qolmaydi), hamda PC/Desktop monitorlar uchun kengaytirilgan (1920px widescreen) qulay ish maydoni va grid modallar
+* **O'zgartirilgan fayllar:**
+  - `accounts/middleware.py`
+  - `accounts/views.py`
+  - `production/services.py`
+  - `production/cutting_views.py`
+  - `production/cutting_urls.py`
+  - `production/tests.py`
+  - `templates/cutting/base_cutting.html`
+  - `templates/cutting/dashboard.html`
+  - `templates/cutting/order_detail.html`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **CUTTER Roli va Qat'iy Xavfsizlik Middleware'i (`MasterTerminalAccessRestrictionMiddleware`):**
+     - Kesim bo'limi uchun maxsus `cutting` akkounti yaratildi (`role = CUTTER`).
+     - Ushbu foydalanuvchi faqat `/cutting/` sahifalari va uning API'larida ishlay oladi. Boshqa bo'limlarga (`/orders/`, `/terminal/`, `/superadmin/` va h.k.) kirish qat'iy bloklanib, avtomatik ravishda `/cutting/` ga yo'naltiriladi; AJAX so'rovlarda 403 Forbidden qaytariladi.
+     - Login qilganda ham to'g'ridan-to'g'ri `/cutting/` dashboardiga yo'naltiriladi.
+  2. **Avtomatik Unikal Pastal Kodi Generatsiyasi (`generate_next_pastal_code`):**
+     - Format: `P{MM}-{N}` (masalan: `P10-1`, `P10-120`, `P10-999`, `P10-1000` ... `P10-9999`).
+     - `P` = Pastal; `{MM}` = joriy oy (masalan 10 = Oktyabr, 11 = Noyabr).
+     - Barcha zakazlar bo'ylab yagona factory-wide ketma-ketlik va 100% unikal kod kafolatlanadi.
+     - **Saqlasa olsin, saqlamasa olmasin:** Generatsiya qilingan raqam faqat "Saqlash" bosilgandagina bazaga biriktiriladi. Modalni shunchaki ochib ko'rish yoki bekor qilish raqamni sarflamaydi/yo'qotmaydi.
+     - Raqamlash 1 dan boshlanadi, 999 dan oshsa avtomatik tarzda 1000..9999 ga kengayadi.
+  3. **Yangi Pastal API (`/cutting/api/next-pastal/`):**
+     - Modal ochilganda brauzer 0 ms ichida eng oxirgi bo'sh unikal kodni olib, maydonni to'ldiradi.
+     - "Kodni Yangilash" (Refresh) tugmasi va chiroyli visual status indikatori qo'shildi.
+  4. **PC / Desktop Kengaytirilgan Ish Maydoni (Widescreen 1920px):**
+     - Barcha kesim sahifalari (`base_cutting.html`, `dashboard.html`, `order_detail.html`) tor `max-w-7xl` cheklovidan chiqarilib, katta PC ekranlarga mos `max-w-[1920px]` keng formatga o'tkazildi.
+     - Partiya qo'shish va tahrirlash modallari `max-w-3xl` ga kengaytirildi, razmerlar kiritish ro'yxati 3 ustunli qulay kartochkalar to'plamiga (grid) aylantirildi.
+  5. **182 ta test (116 production + 66 accounts)** to'liq muvaffaqiyatli o'tdi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout 4cc5f18
+  ```
+
+---
+
 ### 🔹 [Commit: `ee22aa1`] — 08.10.2026, 15:12
 * **Turi:** `fix(terminal)` — Rapid-Scan Barqarorligi va Zero-Drop Arxitekturasi
 * **Mavzu:** Skanerlash terminalida soxta dublikat xatolari va biletlar tushib qolishini bartaraf etish: ketma-ket FIFO Queue (navbat), apparat takrorini filtrlash (hardware dedup), ko'p martalik Enter hodisalarini birlashtirish va Finalize reconciliation
