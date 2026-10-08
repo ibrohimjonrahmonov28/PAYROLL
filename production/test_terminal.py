@@ -426,3 +426,32 @@ class MasterWebTerminalTest(TestCase):
         self.assertEqual(self.ticket1.price_per_unit, Decimal('2500.00'))
         self.assertEqual(self.ticket1.total_amount, Decimal(self.ticket1.quantity) * Decimal('2500.00'))
         self.assertEqual(data['scanned_ticket']['price_per_unit'], 2500.0)
+
+    def test_terminal_finalize_with_client_ticket_ids_zero_drop(self):
+        """
+        Zero-drop kafolati testi:
+        Agar sessiyada faqat bitta bilet bo'lsa-yu, clientdan qo'shimcha tasdiqlangan
+        bilet ID lari ro'yxati kelsa, ularning barchasi muvaffaqiyatli SCANNED holatiga o'tishi kerak.
+        """
+        import json
+        self.client.force_login(self.master)
+        self.client.post(reverse('production:terminal_identify_worker'), {'code': self.worker.worker_id})
+
+        # Sessiyaga faqat ticket1 qo'shilgan deylik:
+        self.client.post(reverse('production:terminal_scan_ticket'), {'ticket_code': self.ticket1.ticket_code})
+
+        # Finalize paytida client ticket2 ni ham yuboradi (masalan, frontend jadvalida bor bo'lgan):
+        res_fin = self.client.post(reverse('production:terminal_finalize'), {
+            'screen_number': 1,
+            'ticket_ids': json.dumps([self.ticket1.id, self.ticket2.id])
+        })
+        self.assertEqual(res_fin.status_code, 200)
+        data = res_fin.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(data['summary']['tickets_count'], 2)
+
+        self.ticket1.refresh_from_db()
+        self.ticket2.refresh_from_db()
+        self.assertEqual(self.ticket1.status, Ticket.Status.SCANNED)
+        self.assertEqual(self.ticket2.status, Ticket.Status.SCANNED)
+        self.assertEqual(self.ticket2.worker, self.worker)

@@ -1000,12 +1000,39 @@
             );
         }
 
+        function splitScanTokens(rawText) {
+            if (!rawText) return [];
+            const chunks = rawText.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+            const tokens = [];
+            for (let chunk of chunks) {
+                // Skaner birdaniga ikkita kodni yopishtirib yuborgan bo'lsa xavfsiz ajratish:
+                let normalized = chunk
+                    .replace(/TICKET:TK-/gi, '___TICKTK___')
+                    .replace(/TICKET:/gi, '|||TICKET:')
+                    .replace(/WORKER:/gi, '|||WORKER:')
+                    .replace(/USER:/gi, '|||USER:')
+                    .replace(/BOX:/gi, '|||BOX:')
+                    .replace(/TK-/gi, '|||TK-')
+                    .replace(/(#[A-Za-z0-9]{8})/g, '|||$1')
+                    .replace(/___TICKTK___/g, '|||TICKET:TK-');
+
+                const parts = normalized.split('|||').map(s => s.trim()).filter(Boolean);
+                tokens.push(...parts);
+            }
+            return tokens;
+        }
+
         function submitScan() {
             clearTimeout(scanDebounceTimer);
-            const val = scanInput.value.replace(/[\r\n\t]+/g, '').trim();
+            const rawVal = scanInput.value;
             scanInput.value = '';
-            if (val) {
-                processIncomingScan(val);
+            if (!rawVal || !rawVal.trim()) {
+                scanInput.focus();
+                return;
+            }
+            const tokens = splitScanTokens(rawVal);
+            for (const token of tokens) {
+                processIncomingScan(token);
             }
             scanInput.focus();
         }
@@ -1052,35 +1079,11 @@
             }
         });
 
-        // 2. KEYDOWN, KEYPRESS, KEYUP, CHANGE EVENTLARI
+        // 2. KEYDOWN EVENTI (Enter / Return / Tab - yagona va toza hodisa)
         scanInput.addEventListener('keydown', (e) => {
             if (isEnterKey(e)) {
                 e.preventDefault();
                 e.stopPropagation();
-                submitScan();
-            }
-        });
-
-        scanInput.addEventListener('keypress', (e) => {
-            if (isEnterKey(e)) {
-                e.preventDefault();
-                e.stopPropagation();
-                submitScan();
-            }
-        });
-
-        scanInput.addEventListener('keyup', (e) => {
-            if (isEnterKey(e)) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (scanInput.value.trim()) {
-                    submitScan();
-                }
-            }
-        });
-
-        scanInput.addEventListener('change', (e) => {
-            if (scanInput.value.trim()) {
                 submitScan();
             }
         });
@@ -1210,6 +1213,10 @@
                     if (data.status === 'OK') {
                         currentWorker = data.worker;
                         pendingTickets = [];
+                        scanQueue.length = 0;
+                        isProcessingQueue = false;
+                        lastScannedCode = '';
+                        lastScannedTime = 0;
                         renderWorkerActiveCard(data.worker);
                         renderEmptyTablePlaceholder();
                         playWorkerChime();
@@ -1249,11 +1256,58 @@
         }
 
         // -------------------------------------------------------------
-        // 6. TICKET SCANNING (RAPID FIRE)
+        // 6. TICKET SCANNING (SEQUENTIAL FIFO QUEUE - ZERO LOSS)
         // -------------------------------------------------------------
+        const scanQueue = [];
+        let isProcessingQueue = false;
+        let lastScannedCode = '';
+        let lastScannedTime = 0;
+
+        function updateQueueBadge() {
+            const hintEl = document.getElementById('queue-status-hint');
+            if (!hintEl) return;
+            if (scanQueue.length > 0) {
+                hintEl.innerHTML = `<span class="text-amber-400 font-bold animate-pulse"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Biletlar navbati: <b>${scanQueue.length} ta</b> qabul qilinmoqda...</span>`;
+            } else if (currentWorker) {
+                hintEl.innerHTML = `👉 <b>${currentWorker.full_name}</b> uchun biletlarni skanerlang...`;
+            } else {
+                hintEl.innerText = "Zebra DS22 skaneri bilan bilet shtrix-kodlarini ketma-ket skanerlang";
+            }
+        }
+
         function scanTicket(ticketCode) {
+            const cleanCode = (ticketCode || '').trim();
+            if (!cleanCode) return;
+
+            // Skaner apparatining 350ms ichidagi takroriy nurini (Hardware double-trigger) filtrlaymiz:
+            const now = Date.now();
+            if (cleanCode === lastScannedCode && (now - lastScannedTime) < 350) {
+                return;
+            }
+            lastScannedCode = cleanCode;
+            lastScannedTime = now;
+
+            // Navbatga qo'shamiz va ketma-ket qayta ishlashni ishga tushiramiz:
+            scanQueue.push(cleanCode);
+            updateQueueBadge();
+            processScanQueue();
+        }
+
+        function processScanQueue() {
+            if (isProcessingQueue) {
+                return; // Serverdan avvalgi so'rov javobi kutilmoqda (sessiya ezilib ketmasligi uchun)
+            }
+            if (scanQueue.length === 0) {
+                updateQueueBadge();
+                return;
+            }
+
+            const nextCode = scanQueue.shift();
+            isProcessingQueue = true;
+            updateQueueBadge();
+
             const formData = new FormData();
-            formData.append('ticket_code', ticketCode);
+            formData.append('ticket_code', nextCode);
 
             fetch("{% url 'production:terminal_scan_ticket' %}", {
                 method: 'POST',
@@ -1267,6 +1321,7 @@
                         pendingTickets.push(data.scanned_ticket);
                         addTicketRowToTable(data.scanned_ticket, data.summary);
                         updateBatchSummary(data.summary);
+                        hideStatusBanner();
                     } else if (data.status === 'CANCELLED_TICKET') {
                         playErrorBuzz();
                         showStatusBanner('error', "BEKOR QILINGAN (ESKIRGAN) BILET!", data.message);
@@ -1290,7 +1345,13 @@
                     showStatusBanner('error', "ALOQA XATOLIGI", "Xatolik: " + (err.message || "Serverga ulanishda muammo yuz berdi."));
                 })
                 .finally(() => {
+                    isProcessingQueue = false;
+                    updateQueueBadge();
                     scanInput.focus();
+                    // Navbatda keyingi biletlar bormi? Ularni ketma-ket qayta ishlaymiz:
+                    if (scanQueue.length > 0) {
+                        processScanQueue();
+                    }
                 });
         }
 
@@ -1393,6 +1454,14 @@
         // 7. FINALIZE & ROUTE TO SCREEN (3-BOSQICH)
         // -------------------------------------------------------------
         function finalizeBatch() {
+            // Agar navbatda hali serverga ketayotgan biletlar bo'lsa, ularni yakunlanishini kutamiz:
+            if (isProcessingQueue || scanQueue.length > 0) {
+                const finalizeBtnText = document.getElementById('finalize-btn-text');
+                if (finalizeBtnText) finalizeBtnText.innerText = "Biletlar navbati kutilmoqda...";
+                setTimeout(finalizeBatch, 120);
+                return;
+            }
+
             if (!currentWorker || pendingTickets.length === 0) return;
 
             const finalizeBtn = document.getElementById('finalize-btn');
@@ -1401,6 +1470,10 @@
 
             const formData = new FormData();
             formData.append('screen_number', selectedScreenNumber);
+
+            // Client jadvalida tasdiqlangan bilet ID larini ham yuboramiz (Zero-drop kafolati):
+            const clientTicketIds = pendingTickets.map(t => t.id);
+            formData.append('ticket_ids', JSON.stringify(clientTicketIds));
 
             fetch("{% url 'production:terminal_finalize' %}", {
                 method: 'POST',
@@ -1461,6 +1534,10 @@
         function resetScanningSession(keepBanner) {
             currentWorker = null;
             pendingTickets = [];
+            scanQueue.length = 0;
+            isProcessingQueue = false;
+            lastScannedCode = '';
+            lastScannedTime = 0;
 
             fetch("{% url 'production:terminal_reset_session' %}", {
                 method: 'POST',

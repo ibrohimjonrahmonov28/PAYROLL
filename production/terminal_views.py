@@ -35,8 +35,8 @@ def _get_request_param(request, *keys, default=''):
             val = request.POST.get(k)
             if val is not None and str(val).strip() != '':
                 return str(val).strip()
-    if request.body:
-        try:
+    try:
+        if request.body:
             body_json = json.loads(request.body.decode('utf-8'))
             if isinstance(body_json, dict):
                 for k in keys:
@@ -44,8 +44,8 @@ def _get_request_param(request, *keys, default=''):
                         val = body_json.get(k)
                         if val is not None and str(val).strip() != '':
                             return str(val).strip()
-        except Exception:
-            pass
+    except Exception:
+        pass
     return default
 
 
@@ -631,7 +631,24 @@ def terminal_finalize_api(request):
     Barcha biletlarni tasdiqlash, tanlangan Sex Ekraniga (1-10) uzatish va bazaga yozish.
     """
     worker_id = request.session.get('terminal_worker_id')
-    pending_ids = request.session.get('terminal_pending_tickets', [])
+    pending_ids = list(request.session.get('terminal_pending_tickets', []))
+
+    # Client tomonidan tasdiqlangan bilet ID larini ham xavfsiz qabul qilish va birlashtirish:
+    # Bu orqali tarmoq yoki sessiya to'qnashuvi tufayli birorta ham bilet tushib qolmasligi kafolatlanadi.
+    client_ids_raw = _get_request_param(request, 'ticket_ids', 'client_ticket_ids', default='')
+    if client_ids_raw:
+        try:
+            if isinstance(client_ids_raw, str):
+                c_ids = json.loads(client_ids_raw) if client_ids_raw.startswith('[') else [int(x.strip()) for x in client_ids_raw.split(',') if x.strip().isdigit()]
+            elif isinstance(client_ids_raw, list):
+                c_ids = [int(x) for x in client_ids_raw]
+            else:
+                c_ids = []
+            for cid in c_ids:
+                if cid not in pending_ids:
+                    pending_ids.append(cid)
+        except Exception:
+            pass
 
     if not worker_id:
         return JsonResponse({'status': 'ERROR', 'message': "Xodim tanlanmagan!"}, status=400)
