@@ -43,7 +43,7 @@
 <div class="w-full px-2 lg:px-6 py-4 space-y-6">
 
     <!-- TOP EXECUTIVE KPI CARDS -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-3">
         <!-- KPI 1: Faol Patoklar -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Faol Patoklar</span>
@@ -52,6 +52,21 @@
                 <span class="text-xs text-slate-500 font-semibold ml-1">ta liniya</span>
             </div>
             <span class="text-[10px] text-slate-500 mt-1 block">Bugun ishlagan liniyalar</span>
+        </div>
+
+        <!-- KPI: O'rtacha Norma Bajarilishi -->
+        <div class="bg-slate-900 border {% if kpis.avg_norm_pct >= 100 %}border-emerald-900/50 bg-gradient-to-b from-emerald-950/25 to-transparent{% elif kpis.avg_norm_pct >= 80 %}border-cyan-900/40 bg-gradient-to-b from-cyan-950/25 to-transparent{% else %}border-amber-900/40 bg-gradient-to-b from-amber-950/25 to-transparent{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %}">Norma Natijasi</span>
+                <i class="fa-solid fa-bullseye {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %} text-xs"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %} digital-font">{{ kpis.avg_norm_pct }}%</span>
+                <span class="text-xs text-slate-500 font-semibold">o'rtacha</span>
+            </div>
+            <span class="text-[10px] text-slate-400 font-mono mt-1 block">
+                {{ kpis.total_completed_norm }} / {{ kpis.total_planned_norm }} dona
+            </span>
         </div>
 
         <!-- KPI 2: Jarayondagi Zakazlar & Pastallar -->
@@ -214,6 +229,7 @@
                         <th class="py-3.5 px-4 w-44">Patok</th>
                         <th class="py-3.5 px-4">Qilayotgan Zakazi & Modellar (Yaxlit)</th>
                         <th class="py-3.5 px-4 min-w-[220px]">Tikayotgan Pastallar</th>
+                        <th class="py-3.5 px-3 text-center min-w-[160px]">Kunlik Norma & Natija</th>
                         <th class="py-3.5 px-3 text-center">Kunlik Dazmol</th>
                         <th class="py-3.5 px-3 text-center">Bugun OTK O'tgan</th>
                         <th class="py-3.5 px-3 text-center">Hali Kutmoqda</th>
@@ -300,7 +316,43 @@
                             {% endif %}
                         </td>
 
-                        <!-- 4. Kunlik Dazmol (Shu kunniki) -->
+                        <!-- 4. Kunlik Norma & Natija (Real-time yoki Muzlatilgan snapshot) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            {% if p.is_active %}
+                            <div class="flex flex-col items-center gap-1 min-w-[140px]">
+                                <div class="flex items-center justify-between w-full px-0.5 text-[11px] font-mono">
+                                    <span class="text-slate-400">Reja: <strong class="text-white">{{ p.daily_norm }}</strong></span>
+                                    <span class="{% if p.is_norm_completed %}text-emerald-400 font-black{% elif p.norm_percentage >= 80 %}text-cyan-400 font-bold{% else %}text-amber-400 font-bold{% endif %}">
+                                        {{ p.completed_norm_units }} ({{ p.norm_percentage }}%)
+                                    </span>
+                                </div>
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-800 overflow-hidden shadow-inner">
+                                    <div class="h-full rounded-full transition-all duration-300 {% if p.is_norm_completed %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif p.norm_percentage >= 80 %}bg-gradient-to-r from-cyan-500 to-blue-500{% else %}bg-gradient-to-r from-amber-500 to-rose-500{% endif %}"
+                                        style="width: {% if p.norm_percentage > 100 %}100{% else %}{{ p.norm_percentage }}{% endif %}%;">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between w-full px-0.5 text-[10px] font-mono">
+                                    {% if p.is_norm_completed %}
+                                    <span class="text-emerald-400 font-black">✓ +{{ p.norm_diff }} dona</span>
+                                    {% else %}
+                                    <span class="text-amber-400 font-bold">{{ p.norm_diff }} dona</span>
+                                    {% endif %}
+                                    {% if is_today %}
+                                    <span class="text-[9px] text-emerald-400/90 font-sans font-bold flex items-center gap-0.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Jonli
+                                    </span>
+                                    {% else %}
+                                    <span class="text-[9px] text-slate-500 font-sans font-semibold">24:00 muhr</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 5. Kunlik Dazmol (Shu kunniki) -->
                         <td class="py-3.5 px-3 text-center align-middle">
                             {% if p.daily_dazmol_qty > 0 %}
                             <div class="inline-flex flex-col items-center">
@@ -407,7 +459,7 @@
                     <!-- EXPANDABLE DRAWER: PASTALLAR VA RAZMERLAR BALANSI (BATAFSIL) -->
                     {% if p.is_active %}
                     <tr id="drawer-{{ p.patok_code }}" class="hidden bg-slate-950/95 border-t border-b border-cyan-900/40">
-                        <td colspan="9" class="p-4 sm:p-6">
+                        <td colspan="10" class="p-4 sm:p-6">
                             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-5">
                                 
                                 <!-- Drawer Top Bar: Title & Pastal Tabs -->
@@ -420,9 +472,15 @@
                                             <h4 class="text-sm font-black text-white flex items-center gap-2">
                                                 <span>{{ p.patok_name }} — Pastallar va Razmerlar Kesimidagi To'liq Balans</span>
                                             </h4>
-                                            <p class="text-xs text-slate-400">
-                                                Ushbu ma'lumotlar orqali ta'mir, brak va yetishmayotgan matoga yana buyurtma berish hisoblanadi
-                                            </p>
+                                            <div class="flex items-center gap-2.5 text-xs text-slate-400 mt-0.5 flex-wrap">
+                                                <span>Kunlik norma: <strong class="text-white font-mono">{{ p.daily_norm }}</strong> dona</span>
+                                                <span class="text-slate-600">•</span>
+                                                <span>Bajarildi: <strong class="{% if p.is_norm_completed %}text-emerald-400{% else %}text-cyan-400{% endif %} font-mono">{{ p.completed_norm_units }}</strong> dona ({{ p.norm_percentage }}%)</span>
+                                                <span class="text-slate-600">•</span>
+                                                <span class="{% if p.is_norm_completed %}text-emerald-400 font-bold{% else %}text-amber-400 font-bold{% endif %} font-mono">
+                                                    {% if p.is_norm_completed %}+{{ p.norm_diff }} dona oshirildi{% else %}{{ p.norm_diff }} dona qoldi{% endif %}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 

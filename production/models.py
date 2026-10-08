@@ -1519,6 +1519,46 @@ class DailyModelProgress(models.Model):
         return f"{self.date} | {self.product_model.code} - {self.completed_units}/{self.daily_norm} ({self.total_percentage}%)"
 
 
+class DailyPatokProgress(models.Model):
+    """
+    Patok (Liniya) Kunlik Norma va Natijasi:
+    - Har bir patok (screen_number) uchun har kuni rejalashtirilgan kunlik norma (dona).
+    - O'sha kuni dazmoldan o'tgan / tikilgan dona (completed_units).
+    - Bajarilish foizi (completion_percentage, masalan 95.5%).
+    - Norma bajarildimi (is_completed).
+    - Tungi 12:00 (23:59:59) da muhrlangan yakuniy holat yoki bugungi real vaqt ko'rsatkichi.
+    """
+    screen_number = models.PositiveIntegerField(db_index=True, verbose_name="Patok Raqami")
+    patok_code = models.CharField(max_length=20, verbose_name="Patok Kodi")
+    date = models.DateField(db_index=True, verbose_name="Sana")
+    daily_norm = models.PositiveIntegerField(default=1200, verbose_name="Kunlik Norma (dona)")
+    completed_units = models.PositiveIntegerField(default=0, verbose_name="Bajarilgan dona (Dazmol)")
+    completion_percentage = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Bajarilish foizi (%)"
+    )
+    dazmol_qty = models.PositiveIntegerField(default=0, verbose_name="Dazmoldan o'tgan dona")
+    scanned_ops_qty = models.PositiveIntegerField(default=0, verbose_name="Jami tikilgan operatsiyalar")
+    tickets_count = models.PositiveIntegerField(default=0, verbose_name="Skanerlangan stikerlar soni")
+    controlled_qty = models.PositiveIntegerField(default=0, verbose_name="OTK o'tgan dona")
+    waiting_qty = models.PositiveIntegerField(default=0, verbose_name="Kutayotgan dona")
+    repair_qty = models.PositiveIntegerField(default=0, verbose_name="Ta'mir dona")
+    is_completed = models.BooleanField(default=False, verbose_name="Norma bajarildimi?")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Patok Kunlik Norma Natijasi"
+        verbose_name_plural = "Patoklar Kunlik Norma Natijalari"
+        unique_together = ('screen_number', 'date')
+        ordering = ['-date', 'screen_number']
+
+    def __str__(self):
+        return f"{self.date} | {self.patok_code} - {self.completed_units}/{self.daily_norm} ({self.completion_percentage}%)"
+
+
 class CancelledBatchLog(models.Model):
     """
     Bekor qilingan (atmen bo'lgan) Kesim Partiyalari jurnali.

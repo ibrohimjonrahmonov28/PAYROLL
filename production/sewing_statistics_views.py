@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -10,7 +11,10 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from accounts.models import User
-from production.models import Order, OrderItem, Box, Ticket, ArticleOperation, BoxQualityInspectionLog
+from production.models import (
+    Order, OrderItem, Box, Ticket, ArticleOperation, BoxQualityInspectionLog,
+    DailyPatokProgress
+)
 from production.services import get_patok_name, get_patok_code, get_patok_login
 
 
@@ -490,7 +494,7 @@ def sewing_statistics_daily_view(request):
         (Tikimga kirdi, dazmoldan o'tdi, kontrolda kutmoqda, 1-sort, 2-sort, ta'mir, brak, qayta tikish / mato ehtiyoji)
       * Bajarilgan operatsiyalar ro'yxati (ism-familiyasiz)
     """
-    from datetime import datetime
+    from datetime import datetime, time
     date_str = request.GET.get('date', '').strip()
     selected_date = None
     if date_str:
@@ -501,14 +505,25 @@ def sewing_statistics_daily_view(request):
     if not selected_date:
         selected_date = timezone.localdate()
 
+    today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    is_today = (selected_date == today)
+
+    # Foydalanuvchi talabi: Bugun real-time, kecha va undan oldingi kunlar tungi 12:00 (23:59:59) dagi holat
+    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
+    if is_today:
+        day_end = timezone.now()  # Real-time
+    else:
+        day_end = timezone.make_aware(datetime.combine(selected_date, time(23, 59, 59, 999999)), tz)
+
     patok_filter = request.GET.get('patok', '').strip().upper()
     search_q = request.GET.get('q', '').strip()
     show_all_patoks = request.GET.get('all', '0') == '1'
 
-    # 1. Shu kunda skanerlangan barcha biletlar
+    # 1. Shu kunda skanerlangan barcha biletlar (Index-friendly datetime range)
     tickets_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__date=selected_date,
+        scanned_at__range=(day_start, day_end),
         screen_number__isnull=False
     ).select_related(
         'box__order__customer',
@@ -565,7 +580,7 @@ def sewing_statistics_daily_view(request):
     # Shu kuni tekshirilgan Sifat Nazorati (OTK) loglari
     inspection_logs = BoxQualityInspectionLog.objects.filter(
         box_id__in=today_box_ids,
-        created_at__date=selected_date
+        created_at__range=(day_start, day_end)
     )
     logs_by_box = {}
     for log in inspection_logs:
@@ -606,6 +621,7 @@ def sewing_statistics_daily_view(request):
         orders_dict = {}
         models_dict = {}
         sn_pastal_codes_set = set()
+        sn_norms = []
 
         for b in sn_today_boxes:
             if b.order:
@@ -618,11 +634,16 @@ def sewing_statistics_daily_view(request):
             art = b.target_article or b.article
             if art:
                 m_name = (art.name or (art.model.name if art.model else "—"))
+                art_norm = art.daily_norm or (art.model.daily_norm if art.model else 0) or 1200
+                if art_norm > 0:
+                    sn_norms.append(art_norm)
+
                 models_dict[art.id] = {
                     'article_id': art.id,
                     'article_code': art.code or "",
                     'model_name': m_name,
                     'order_number': b.order.order_number if b.order else "—",
+                    'daily_norm': art_norm,
                 }
             pcode = b.pastal_code
             if pcode:
@@ -630,6 +651,9 @@ def sewing_statistics_daily_view(request):
                 all_worked_pastals.add(pcode)
 
         sn_pastal_codes = sorted(list(sn_pastal_codes_set))
+
+        # Patok kunlik normasi (modellar normasi asosida)
+        patok_daily_norm = int(sum(sn_norms) / len(sn_norms)) if sn_norms else 1200
 
         # Kunlik dazmolni aniqlash
         sn_dazmol_qty = 0
@@ -694,6 +718,38 @@ def sewing_statistics_daily_view(request):
 
             if not box.is_controlled and box.controlled_repair_qty == 0:
                 sn_waiting_qty += box.quantity
+
+        patok_scanned_sum = sum(t.quantity for t in t_list)
+
+        # Normaga qarshi bajarilgan dona va foiz hisoblash
+        completed_for_norm = sn_dazmol_qty if sn_dazmol_qty > 0 else (sn_controlled_qty if sn_controlled_qty > 0 else int(patok_scanned_sum / max(1, len(operations_map))))
+        if patok_daily_norm > 0:
+            norm_percentage = round((Decimal(completed_for_norm) / Decimal(patok_daily_norm)) * Decimal('100.0'), 1)
+        else:
+            norm_percentage = Decimal('0.0')
+
+        is_norm_completed = (completed_for_norm >= patok_daily_norm)
+        norm_diff = completed_for_norm - patok_daily_norm
+
+        # DailyPatokProgress ga saqlash / muhrlash (Bugun real-time, kecha va undan oldingi kunlar muzlatilgan snapshot)
+        if is_active:
+            DailyPatokProgress.objects.update_or_create(
+                screen_number=sn,
+                date=selected_date,
+                defaults={
+                    'patok_code': p_code,
+                    'daily_norm': patok_daily_norm,
+                    'completed_units': completed_for_norm,
+                    'completion_percentage': norm_percentage,
+                    'dazmol_qty': sn_dazmol_qty,
+                    'scanned_ops_qty': patok_scanned_sum,
+                    'tickets_count': len(t_list),
+                    'controlled_qty': sn_controlled_qty,
+                    'waiting_qty': sn_waiting_qty,
+                    'repair_qty': sn_repair_qty,
+                    'is_completed': is_norm_completed,
+                }
+            )
 
         # PASTALLAR VA RAZMERLAR KESIMIDA CHUQUR HISOB-KITOB
         pastals_detail_list = []
@@ -805,8 +861,6 @@ def sewing_statistics_daily_view(request):
             if not matches_search:
                 continue
 
-        patok_scanned_sum = sum(t.quantity for t in t_list)
-
         total_daily_dazmol_qty += sn_dazmol_qty
         total_daily_controlled_qty += sn_controlled_qty
         total_daily_first_sort += sn_first_sort_qty
@@ -830,6 +884,11 @@ def sewing_statistics_daily_view(request):
             'pastals': pastals_detail_list,
             'pastals_count': len(pastals_detail_list),
             'all_pastals_closed': all_patok_pastals_closed if is_active else False,
+            'daily_norm': patok_daily_norm,
+            'completed_norm_units': completed_for_norm,
+            'norm_percentage': norm_percentage,
+            'is_norm_completed': is_norm_completed,
+            'norm_diff': norm_diff,
             'dazmol_qty': sn_dazmol_qty,
             'daily_dazmol_qty': sn_dazmol_qty,
             'dazmol_boxes_count': len(sn_dazmol_box_ids),
@@ -855,7 +914,11 @@ def sewing_statistics_daily_view(request):
 
     prev_date = selected_date - timedelta(days=1)
     next_date = selected_date + timedelta(days=1)
-    is_today = (selected_date == timezone.localdate())
+
+    active_patok_items = [p for p in patoks_data if p['is_active']]
+    total_planned_norm = sum(p['daily_norm'] for p in active_patok_items)
+    total_completed_norm = sum(p['completed_norm_units'] for p in active_patok_items)
+    avg_norm_pct = round((sum(p['norm_percentage'] for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
 
     context = {
         'selected_date': selected_date,
@@ -871,6 +934,9 @@ def sewing_statistics_daily_view(request):
             'active_patoks': total_active_patoks,
             'total_orders': len(all_worked_orders),
             'total_pastals': len(all_worked_pastals),
+            'total_planned_norm': total_planned_norm,
+            'total_completed_norm': total_completed_norm,
+            'avg_norm_pct': avg_norm_pct,
             'dazmol_qty': total_daily_dazmol_qty,
             'controlled_qty': total_daily_controlled_qty,
             'first_sort_qty': total_daily_first_sort,

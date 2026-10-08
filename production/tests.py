@@ -4,7 +4,7 @@ from django.utils import timezone
 from .models import (
     Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket,
     Customer, ProductModel, OrderItemSize, CuttingBatch, CuttingBatchItem,
-    OperationGroup, OperationGroupItem, ControlSetting
+    OperationGroup, OperationGroupItem, ControlSetting, DailyPatokProgress
 )
 from .services import allocate_ticket_quantities, generate_box_tickets
 from accounts.models import User, Worker
@@ -2387,6 +2387,20 @@ class SewingStatisticsFeatureTest(TestCase):
         op_names = [o['operation_name'] for o in k1['operations']]
         self.assertIn('Bichim Tikish', op_names)
         self.assertIn('DAZMOL QILISH', op_names)
+
+        # Kunlik norma va bajarilish ko'rsatkichlari tekshiruvi
+        self.assertGreater(k1['daily_norm'], 0)
+        self.assertEqual(k1['completed_norm_units'], 40)
+        self.assertGreater(k1['norm_percentage'], Decimal('0.0'))
+        self.assertIn('total_planned_norm', res.context['kpis'])
+        self.assertIn('total_completed_norm', res.context['kpis'])
+        self.assertIn('avg_norm_pct', res.context['kpis'])
+
+        # DailyPatokProgress bazaga snapshot saqlanganligini tekshirish
+        progress = DailyPatokProgress.objects.filter(screen_number=1, patok_code='K1').first()
+        self.assertIsNotNone(progress)
+        self.assertEqual(progress.completed_units, 40)
+        self.assertEqual(progress.dazmol_qty, 40)
 
     def test_api_sewing_statistics_daily_operations(self):
         self.client.login(username="superadmin_stat", password="password123")
