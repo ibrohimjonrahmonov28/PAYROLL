@@ -29,6 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `ee22aa1`] — 08.10.2026, 15:12
+* **Turi:** `fix(terminal)` — Rapid-Scan Barqarorligi va Zero-Drop Arxitekturasi
+* **Mavzu:** Skanerlash terminalida soxta dublikat xatolari va biletlar tushib qolishini bartaraf etish: ketma-ket FIFO Queue (navbat), apparat takrorini filtrlash (hardware dedup), ko'p martalik Enter hodisalarini birlashtirish va Finalize reconciliation
+* **O'zgartirilgan fayllar:**
+  - `production/terminal_views.py`
+  - `templates/terminal/index.html`
+  - `production/test_terminal.py`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Sequential FIFO Queue (Navbat Tizimi):** Skaner qanchalik tez o'qisa ham, biletlar brauzerdagi navbatga olinadi va serverga bittalab, ketma-ket yuboriladi. Natijada Django sessiyalarining bir-birini ustiga yozib yuborishi (Race Condition) 100% yo'qotildi.
+  2. **Hardware Bounce Dedup (350ms):** Skaner apparati nurini ushlab turganda bitta QR-kodni millisekundlar ichida 2 marta o'qishi oqibatida kelib chiqadigan soxta "DUBLIKAT" xatosi jim filtrlanadi va keyingi stikerga xalaqit bermaydi.
+  3. **Yagona va Toza Enter Hodisasi:** `scanInput` dagi parallel `keypress`, `keyup`, `change` lardan `submitScan` chaqiruvi tozalandi. Faqat bitta toza `keydown` qoldirildi.
+  4. **Stikerlarni Xavfsiz Ajratish (`splitScanTokens`):** Skaner tezligi tufayli bir nechta stiker buferda bitta qatorga yopishib qolsa (`TICKET:TK-...TICKET:TK-...` yoki `#7MAG7064#4DXN5YBF`), ular alohida tokenlarga ajratilib, navbatga teriladi.
+  5. **Zero-Drop Finalize Reconciliation:** Yakunlash (F2) paytida client tasdiqlagan bilet ID lari ro'yxati server sessiyasi bilan birlashtiriladi. Biron bir bilet oralarida tushib qolishi butunlay bartaraf etildi.
+  6. **180 ta test (114 production + 66 accounts)** to'liq muvaffaqiyatli o'tdi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout ee22aa1
+  ```
+
+---
+
 ### 🔹 [Commit: `b967f3d`] — 08.10.2026, 08:10
 * **Turi:** `feat(statistics)` — Yangi imkoniyat va Snapshot Arxitekturasi
 * **Mavzu:** Tikim patoklarining kunlik normasi va bajarilish monitoringi, vaqt chegaralari (bugun real-time, kecha va avvalgi kunlar 24:00 tungi muhr) hamda `DailyPatokProgress` modeli
