@@ -3179,6 +3179,95 @@ class SewingStatisticsPastalPipelineTests(TestCase):
         self.assertEqual(pastal_closed['waiting_otk_boxes'], 0)
         self.assertEqual(pastal_closed['repair_boxes'], 0)
 
+    def test_pastal_strictly_assigned_to_majority_screen_and_excludes_old_pastals(self):
+        """
+        Foydalanuvchi talabi:
+        1. 1 ta pastal FAQAT 1 ta patokda chiqishi kerak (kopchiligi qayerda bolsa oshanga chiqarib ber).
+        2. Stray ticket boshqa patokda urilsa ham, pastal o'sha patokka o'tib ketmasligi kerak.
+        3. O'tmishda to'liq yopilgan pastallar bugungi kunda ko'rinmasligi kerak ("oldin qilganlari kerak emas").
+        """
+        from datetime import timedelta
+        now = timezone.now()
+        yesterday = now - timedelta(days=1)
+
+        # 1. Pastal A (P10-AAA): 5 quti (250 dona).
+        # Screen 9 da 10 ta bilet skanerlangan, Screen 8 da atigi 1 ta adashgan bilet skanerlangan.
+        boxes_a = []
+        for i in range(1, 6):
+            b = Box.objects.create(
+                order=self.order,
+                article=self.art,
+                box_number=100 + i,
+                quantity=50,
+                razmer="M",
+                pastal_number="P10-AAA",
+                status=Box.Status.IN_PROGRESS
+            )
+            generate_box_tickets(b)
+            for t in b.tickets.all():
+                t.status = Ticket.Status.SCANNED
+                t.screen_number = 9
+                t.scanned_at = now
+                t.save()
+            boxes_a.append(b)
+
+        # Screen 8 da Box A1 ning 1 ta bileti adashib skanerlandi
+        extra_t = Ticket.objects.create(
+            box=boxes_a[0],
+            article_operation=self.ao1,
+            ticket_code="TK-EXTRA-8",
+            stiker_code="EX888888",
+            status=Ticket.Status.SCANNED,
+            screen_number=8,
+            scanned_at=now,
+            quantity=50
+        )
+
+        # 2. Pastal B (P10-BBB): Kecha 100% yopilgan eski pastal.
+        # Bugun adashib bitta bilet skanerlangan.
+        b_old = Box.objects.create(
+            order=self.order,
+            article=self.art,
+            box_number=201,
+            quantity=50,
+            razmer="L",
+            pastal_number="P10-BBB",
+            status=Box.Status.COMPLETED,
+            is_controlled=True,
+            controlled_first_sort_qty=50,
+            controlled_at=yesterday
+        )
+        generate_box_tickets(b_old)
+        t_old = b_old.tickets.first()
+        t_old.status = Ticket.Status.SCANNED
+        t_old.screen_number = 9
+        t_old.scanned_at = now
+        t_old.save()
+
+        url = reverse('production:sewing_statistics_daily')
+        res = self.client.get(url, {'date': now.strftime('%Y-%m-%d')})
+        self.assertEqual(res.status_code, 200)
+
+        patoks_data = res.context['patoks_data']
+        p9 = next((p for p in patoks_data if p['screen_number'] == 9), None)
+        p8 = next((p for p in patoks_data if p['screen_number'] == 8), None)
+
+        self.assertIsNotNone(p9)
+        # P10-AAA asosiy egasi Screen 9 bo'lgani uchun Screen 9 da chiqishi shart!
+        p9_pastal_codes = [pastal['pastal_code'] for pastal in p9['pastals']]
+        self.assertIn("P10-AAA", p9_pastal_codes)
+
+        # Screen 8 da bitta bilet urilgan bo'lsa ham, kopchiligi Screen 9 da bo'lgani uchun
+        # P10-AAA Screen 8 da CHIQMASLIGI SHART!
+        if p8:
+            p8_pastal_codes = [pastal['pastal_code'] for pastal in p8['pastals']]
+            self.assertNotIn("P10-AAA", p8_pastal_codes)
+
+        # Kecha to'liq yopilgan P10-BBB bugungi ro'yxatda ("oldin qilganlari kerak emas")
+        # Screen 9 da ham, boshqa joyda ham CHIQMASLIGI SHART!
+        self.assertNotIn("P10-BBB", p9_pastal_codes)
+
+
 
 
 

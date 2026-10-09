@@ -1,3 +1,4 @@
+from collections import defaultdict, Counter
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
@@ -563,11 +564,35 @@ def sewing_statistics_daily_view(request):
     )
     boxes_by_pastal = {}
     all_pbox_ids = []
+    box_to_pastal = {}
     for b in all_pastal_boxes:
         pcode = b.pastal_code
         if pcode:
             boxes_by_pastal.setdefault(pcode, []).append(b)
             all_pbox_ids.append(b.id)
+            box_to_pastal[b.id] = pcode
+
+    # 1 ta pastal FAQAT 1 ta patokda chiqishi kerak (Majority rule / Asosiy patok qoidasi):
+    # Har bir pastal bo'yicha barcha biletlarning qaysi patokda (screen_number) skanerlanganligini sanaymiz.
+    # Qaysi patokda eng ko'p bilet skanerlangan bo'lsa, pastal 100% o'sha patokka biriktiriladi.
+    pastal_screen_counts = defaultdict(Counter)
+    if all_pbox_ids:
+        ticket_screen_rows = Ticket.objects.filter(
+            box_id__in=all_pbox_ids,
+            status=Ticket.Status.SCANNED,
+            screen_number__isnull=False
+        ).values('box_id', 'screen_number')
+
+        for row in ticket_screen_rows:
+            pcode = box_to_pastal.get(row['box_id'])
+            if pcode:
+                pastal_screen_counts[pcode][row['screen_number']] += 1
+
+    pastal_primary_screen = {}
+    for pcode, counts in pastal_screen_counts.items():
+        if counts:
+            best_screen, _ = counts.most_common(1)[0]
+            pastal_primary_screen[pcode] = best_screen
 
     # Dazmoldan o'tgan qutilar ID to'plami
     dazmol_box_ids_set = set(
@@ -620,13 +645,21 @@ def sewing_statistics_daily_view(request):
         sn_box_ids = {t.box_id for t in t_list}
         sn_today_boxes = [today_boxes_dict[bid] for bid in sn_box_ids if bid in today_boxes_dict]
 
-        # Zakazlar va Modellarni yaxlitlash
+        # 1 ta pastal FAQAT 1 ta patokda chiqishi kerak (Majority rule / Asosiy patok qoidasi):
+        # Faqat ushbu patok eng ko'p skanerlagan (asosiy egasi bo'lgan) qutilarni qabul qilamiz!
+        sn_valid_today_boxes = [
+            b for b in sn_today_boxes
+            if not b.pastal_code or pastal_primary_screen.get(b.pastal_code) == sn
+        ]
+        sn_valid_box_ids = {b.id for b in sn_valid_today_boxes}
+
+        # Zakazlar va Modellarni yaxlitlash (faqat ushbu patokka tegishli haqiqiy qutilar bo'yicha)
         orders_dict = {}
         models_dict = {}
         sn_pastal_codes_set = set()
         sn_norms = []
 
-        for b in sn_today_boxes:
+        for b in sn_valid_today_boxes:
             if b.order:
                 all_worked_orders.add(b.order.order_number)
                 orders_dict[b.order_id] = {
@@ -651,7 +684,6 @@ def sewing_statistics_daily_view(request):
             pcode = b.pastal_code
             if pcode:
                 sn_pastal_codes_set.add(pcode)
-                all_worked_pastals.add(pcode)
 
         sn_pastal_codes = sorted(list(sn_pastal_codes_set))
 
@@ -691,7 +723,7 @@ def sewing_statistics_daily_view(request):
                 operations_map[op_id]['total_quantity'] += t.quantity
                 operations_map[op_id]['tickets_count'] += 1
 
-        # Kunlik OTK, Kutmoqda, Ta'mir hisoblash
+        # Kunlik OTK, Kutmoqda, Ta'mir hisoblash (faqat ushbu patokka tegishli qutilar bo'yicha)
         sn_controlled_qty = 0
         sn_first_sort_qty = 0
         sn_second_sort_qty = 0
@@ -699,7 +731,7 @@ def sewing_statistics_daily_view(request):
         sn_repair_qty = 0
         sn_defect_qty = 0
 
-        for bid in sn_box_ids:
+        for bid in sn_valid_box_ids:
             box = today_boxes_dict.get(bid)
             if not box:
                 continue
@@ -803,8 +835,6 @@ def sewing_statistics_daily_view(request):
 
             # Yopilish holati: barcha qutilar dazmoldan va kontroldan to'liq o'tgan hamda ta'mir 0
             is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes and repair_qty == 0)
-            if not is_pastal_closed:
-                all_patok_pastals_closed = False
 
             first_b = p_boxes[0] if p_boxes else None
             p_order_num = first_b.order.order_number if first_b and first_b.order else "—"
@@ -829,6 +859,13 @@ def sewing_statistics_daily_view(request):
                 p_today_repair = sum(b.controlled_repair_qty for b in today_controlled_boxes)
                 p_today_defect = sum(b.controlled_defect_qty for b in today_controlled_boxes)
                 p_today_controlled = p_today_first_sort + p_today_second_sort
+
+            # Foydalanuvchi talabi: "oldin qilganlari kerak emas umuman, menga shu patokka kirgan va jarayondagilari kerak xolos".
+            # Agar pastal o'tmishda to'liq yopilgan bo'lsa (bugun hech qanday qutisi kontroldan yoki dazmoldan o'tmagan bo'lsa) - ko'rsatmaymiz!
+            if is_pastal_closed and p_today_controlled == 0 and p_today_dazmol == 0:
+                continue
+
+            all_worked_pastals.add(pcode)
 
             # RAZMERLAR KESIMIDA GURUHLASH (Mato buyurtmasi uchun!)
             sizes_dict = {}
@@ -947,6 +984,8 @@ def sewing_statistics_daily_view(request):
                 'today_defect_qty': p_today_defect,
                 'sizes': sizes_breakdown,
             })
+
+        all_patok_pastals_closed = (len(pastals_detail_list) > 0) and all(p['is_closed'] for p in pastals_detail_list)
 
         # Qidiruv filtri
         if search_q:
