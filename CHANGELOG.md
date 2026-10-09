@@ -29,6 +29,26 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `0c3d04f`] — 09.10.2026, 17:27
+* **Turi:** `fix(statistics)` — 1 Pastal Faqat 1 Patokda Chiqishi (Majority Rule / Ko'pchilik Qoidasi) va O'tmishda Yopilgan Pastallarni Chiqarib Tashlash
+* **Mavzu:** Kunlik tikim statistikasida bitta patokda ortiqcha ko'p pastallar (adashgan yoki boshqa patoklarning pastallari) chiqishi muammosi to'liq bartaraf etildi.
+* **O'zgartirilgan fayllar:**
+  - `production/sewing_statistics_views.py`
+  - `production/tests.py`
+  - `CHANGELOG.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **1 Pastal $\to$ Faqat 1 Patok (Majority Rule / Asosiy Patok):**
+     - Har bir pastal bo'yicha barcha biletlarning qaysi patokda skanerlanganligi hisoblab chiqiladi.
+     - Pastal qaysi patokda eng ko'p (ko'pchiligi) tikilgan bo'lsa, pastal **FAQAT VA FAQAT O'SHA 1 TA PATOKKA** biriktiriladi.
+     - Agar qaysidir operatsiya boshqa patokda qilingan bo'lsa yoki adashib boshqa patokda 1-2 ta bilet skanerlangan bo'lsa ham, pastal o'sha patokda CHIQMAYDI.
+  2. **Faqat Shu Patokka Kirgan va Jarayondagilar (Eski/Yopilganlar Chiqarib Tashlandi):**
+     - O'tmishda (tanlangan sanadan oldin) to'liq yopilgan pastallar bugungi kun hisobotidan chiqarib tashlandi ("oldin qilganlari kerak emas").
+     - Faqat ushbu patokka kirgan, bugun amalda ishlangan va hozir jarayonda bo'lgan (yoki bugun 100% yopilgan) pastallar ko'rsatiladi.
+  3. **Patok Ko'rsatkichlari Tozaligi:**
+     - Har bir patokning qutilar navbati, kutayotgan (waiting), ta'mirlar va OTK sonlari faqat o'zining haqiqiy pastallariga tegishli qutilar bo'yicha hisoblanadi (boshqa patoklarning adashgan biletlari patok hisobini buzmaydi).
+  4. **Avtomatlashtirilgan Testlar:**
+     - `test_pastal_strictly_assigned_to_majority_screen_and_excludes_old_pastals` testi yozildi va 100% muvaffaqiyatli o'tdi.
+
 ### 🔹 [Commit: `9593bf9`] — 09.10.2026, 14:50
 * **Turi:** `feat(statistics)` — Tikim Statistikasida Pastallar Bo'yicha 4-Bosqichli Quvur (Pipeline Balansi), Oraliq (Dazmoldan O'tgan, OTK Kutmoqda) va 100% Yakuniy Yopilish Muhrlanishi
 * **Mavzu:** Har bir patok tikayotgan pastallar bo'yicha to'liq 4-bosqichli hisob-kitob (1. Jami kirgan reja dona va quti, 2. Hali tikimda [dazmolgacha], 3. Dazmoldan o'tgan, 4. Oraliq: dazmoldan o'tgan va hali OTK ga kirmagan kutayotgan qutilar, 5. OTK o'tgan 1-sort, ta'mir va brak, hamda 20/20 quti o'tganda 100% yakuniy yopilish muhrlanishi)
