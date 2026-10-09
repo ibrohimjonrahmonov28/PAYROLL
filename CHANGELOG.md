@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 09.10.2026, 14:50
+### 🔹 [Commit: `9593bf9`] — 09.10.2026, 14:50
 * **Turi:** `feat(statistics)` — Tikim Statistikasida Pastallar Bo'yicha 4-Bosqichli Quvur (Pipeline Balansi), Oraliq (Dazmoldan O'tgan, OTK Kutmoqda) va 100% Yakuniy Yopilish Muhrlanishi
 * **Mavzu:** Har bir patok tikayotgan pastallar bo'yicha to'liq 4-bosqichli hisob-kitob (1. Jami kirgan reja dona va quti, 2. Hali tikimda [dazmolgacha], 3. Dazmoldan o'tgan, 4. Oraliq: dazmoldan o'tgan va hali OTK ga kirmagan kutayotgan qutilar, 5. OTK o'tgan 1-sort, ta'mir va brak, hamda 20/20 quti o'tganda 100% yakuniy yopilish muhrlanishi)
 * **O'zgartirilgan fayllar:**
@@ -52,7 +52,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
   5. **183 ta test (117 production + 66 accounts)** 100% muvaffaqiyatli o'tdi.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 9593bf9
   ```
 
 ---
