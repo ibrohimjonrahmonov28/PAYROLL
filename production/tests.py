@@ -3028,4 +3028,157 @@ class RestoreStickersFromBackupTests(TestCase):
                 os.remove(temp_path)
 
 
+class SewingStatisticsPastalPipelineTests(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        self.user = User.objects.create_superuser(
+            username='admin_pastal_test',
+            password='admin_password123',
+            role=User.Role.SUPER_ADMIN
+        )
+        self.client.login(username='admin_pastal_test', password='admin_password123')
+
+        self.art = Article.objects.create(code="ART-PST-01", name="Pastal Test Ko'ylak")
+        self.op1 = Operation.objects.create(code="OP-SEW", name="Tikuv operatsiyasi")
+        self.op_dazmol = Operation.objects.create(code="OP-DAZ", name="Dazmol")
+        self.ao1 = ArticleOperation.objects.create(article=self.art, operation=self.op1, sequence=1, price_per_unit=Decimal("100"))
+        self.ao_daz = ArticleOperation.objects.create(article=self.art, operation=self.op_dazmol, sequence=2, price_per_unit=Decimal("150"))
+
+        self.order = Order.objects.create(order_number="ORD-PST-100", total_quantity=1000)
+
+        # 20 ta quti (har biri 50 tadan, jami 1000 dona) - Pastal P10-99
+        self.boxes = []
+        for i in range(1, 21):
+            b = Box.objects.create(
+                order=self.order,
+                article=self.art,
+                box_number=i,
+                quantity=50,
+                razmer="M",
+                pastal_number="P10-99"
+            )
+            generate_box_tickets(b)
+            self.boxes.append(b)
+
+    def test_four_stage_pipeline_and_closure(self):
+        now = timezone.now()
+
+        # 1-Bosqich: Box 1..4 (4 quti, 200 dona) -> Hali tikimda (Dazmol skanerlanmagan, faqat tikuv 1 skanerlandi)
+        for b in self.boxes[0:4]:
+            t = b.tickets.filter(article_operation=self.ao1).first()
+            t.status = Ticket.Status.SCANNED
+            t.screen_number = 9
+            t.scanned_at = now
+            t.save()
+
+        # 2-Bosqich: Box 5..12 (8 quti, 400 dona) -> Dazmoldan o'tgan, lekin hali OTK tekshirmagan (ORALIQDA KUTMOQDA)
+        for b in self.boxes[4:12]:
+            for t in b.tickets.all():
+                t.status = Ticket.Status.SCANNED
+                t.screen_number = 9
+                t.scanned_at = now
+                t.save()
+
+        # 3-Bosqich: Box 13..20 (8 quti, 400 dona) -> Dazmoldan o'tgan va OTK tekshirgan:
+        # - Box 13..18 (6 quti, 300 dona): 1-sort, yopilgan
+        # - Box 19 (1 quti, 50 dona): 40 ta 1-sort, 10 ta brak, yopilgan
+        # - Box 20 (1 quti, 50 dona): 50 ta ta'mirga qaytgan, hali yopilmagan (ta'mirda)
+        for b in self.boxes[12:20]:
+            for t in b.tickets.all():
+                t.status = Ticket.Status.SCANNED
+                t.screen_number = 9
+                t.scanned_at = now
+                t.save()
+
+        for b in self.boxes[12:18]:
+            b.is_controlled = True
+            b.controlled_first_sort_qty = 50
+            b.controlled_second_sort_qty = 0
+            b.controlled_repair_qty = 0
+            b.controlled_defect_qty = 0
+            b.controlled_at = now
+            b.save()
+
+        b19 = self.boxes[18]
+        b19.is_controlled = True
+        b19.controlled_first_sort_qty = 40
+        b19.controlled_second_sort_qty = 0
+        b19.controlled_repair_qty = 0
+        b19.controlled_defect_qty = 10
+        b19.controlled_at = now
+        b19.save()
+
+        b20 = self.boxes[19]
+        b20.is_controlled = False
+        b20.controlled_first_sort_qty = 0
+        b20.controlled_second_sort_qty = 0
+        b20.controlled_repair_qty = 50
+        b20.controlled_defect_qty = 0
+        b20.controlled_at = now
+        b20.save()
+
+        # View chaqirish
+        url = reverse('production:sewing_statistics_daily')
+        response = self.client.get(url, {'date': now.strftime('%Y-%m-%d')})
+        self.assertEqual(response.status_code, 200)
+
+        patoks_data = response.context['patoks_data']
+        p9 = next((p for p in patoks_data if p['screen_number'] == 9), None)
+        self.assertIsNotNone(p9)
+
+        pastal_info = next((p for p in p9['pastals'] if p['pastal_code'] == 'P10-99'), None)
+        self.assertIsNotNone(pastal_info)
+
+        # Tekshiruvlar:
+        # 1. Jami kirgan reja: 1000 dona (20 quti)
+        self.assertEqual(pastal_info['total_qty'], 1000)
+        self.assertEqual(pastal_info['total_boxes'], 20)
+
+        # 2. Hali tikimda (Pre-dazmol): 200 dona (4 quti)
+        self.assertEqual(pastal_info['in_sewing_qty'], 200)
+        self.assertEqual(pastal_info['in_sewing_boxes'], 4)
+
+        # 3. Dazmoldan o'tgan: 800 dona (16 quti)
+        self.assertEqual(pastal_info['dazmol_qty'], 800)
+        self.assertEqual(pastal_info['dazmol_boxes'], 16)
+
+        # 4. Oraliqda (Dazmoldan o'tgan, lekin hali OTK ga kirmagan): 400 dona (8 quti)
+        self.assertEqual(pastal_info['waiting_otk_qty'], 400)
+        self.assertEqual(pastal_info['waiting_otk_boxes'], 8)
+
+        # 5. Ta'mirda turgan: 50 dona (1 quti)
+        self.assertEqual(pastal_info['repair_qty'], 50)
+        self.assertEqual(pastal_info['repair_boxes'], 1)
+
+        # 6. OTK o'tgan / yopilgan: 350 dona (7 quti)
+        self.assertEqual(pastal_info['controlled_qty'], 350)
+        self.assertEqual(pastal_info['closed_boxes'], 7)
+        self.assertEqual(pastal_info['first_sort_qty'], 340)  # 6*50 + 40 = 340
+        self.assertEqual(pastal_info['defect_qty'], 10)
+
+        # 7. Hali to'liq yopilmagan (100% emas, chunki 7/20 yopilgan, 1 quti ta'mirda, 8 quti oraliqda, 4 quti tikimda)
+        self.assertFalse(pastal_info['is_closed'])
+        self.assertEqual(pastal_info['completion_pct'], 35.0)
+
+        # Endi barcha qutilarni to'liq yopamiz (20/20 yopilganda 100% muhrlanish testi)
+        for b in self.boxes:
+            b.is_controlled = True
+            b.controlled_repair_qty = 0
+            b.controlled_first_sort_qty = b.quantity
+            b.controlled_at = now
+            b.save()
+
+        res2 = self.client.get(url, {'date': now.strftime('%Y-%m-%d')})
+        p9_closed = next((p for p in res2.context['patoks_data'] if p['screen_number'] == 9), None)
+        pastal_closed = next((p for p in p9_closed['pastals'] if p['pastal_code'] == 'P10-99'), None)
+
+        self.assertTrue(pastal_closed['is_closed'])
+        self.assertEqual(pastal_closed['closed_boxes'], 20)
+        self.assertEqual(pastal_closed['completion_pct'], 100.0)
+        self.assertEqual(pastal_closed['in_sewing_boxes'], 0)
+        self.assertEqual(pastal_closed['waiting_otk_boxes'], 0)
+        self.assertEqual(pastal_closed['repair_boxes'], 0)
+
+
+
 

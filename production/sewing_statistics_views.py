@@ -554,7 +554,10 @@ def sewing_statistics_daily_view(request):
 
     # Barcha ushbu pastallarga tegishli qutilarni bitta tezkor so'rovda olamiz
     all_pastal_boxes = list(
-        Box.objects.filter(pastal_number__in=active_pastal_codes).select_related(
+        Box.objects.filter(
+            Q(pastal_number__in=active_pastal_codes) |
+            Q(cutting_batch_item__batch__pastal_code__in=active_pastal_codes)
+        ).exclude(status=Box.Status.CANCELLED).distinct().select_related(
             'order__customer', 'article__model', 'cutting_batch_item__batch'
         )
     )
@@ -579,7 +582,7 @@ def sewing_statistics_daily_view(request):
 
     # Shu kuni tekshirilgan Sifat Nazorati (OTK) loglari
     inspection_logs = BoxQualityInspectionLog.objects.filter(
-        box_id__in=today_box_ids,
+        box_id__in=set(all_pbox_ids) | today_box_ids,
         created_at__range=(day_start, day_end)
     )
     logs_by_box = {}
@@ -751,15 +754,55 @@ def sewing_statistics_daily_view(request):
                 }
             )
 
-        # PASTALLAR VA RAZMERLAR KESIMIDA CHUQUR HISOB-KITOB
+        # PASTALLAR VA RAZMERLAR KESIMIDA CHUQUR HISOB-KITOB (4-BOSQICHLI QUVUR BALANSI)
         pastals_detail_list = []
         all_patok_pastals_closed = (len(sn_pastal_codes) > 0)
 
         for pcode in sn_pastal_codes:
             p_boxes = boxes_by_pastal.get(pcode, [])
             total_p_boxes = len(p_boxes)
+            p_total_qty = sum(b.quantity for b in p_boxes)
+
+            # 1. Hali tikimda (Pre-dazmol)
+            in_sewing_boxes = [b for b in p_boxes if not (b.id in dazmol_box_ids_set or b.is_controlled)]
+            in_sewing_boxes_count = len(in_sewing_boxes)
+            in_sewing_qty = sum(b.quantity for b in in_sewing_boxes)
+
+            # 2. Dazmoldan o'tgan (Total passed Dazmol)
+            dazmol_boxes = [b for b in p_boxes if (b.id in dazmol_box_ids_set or b.is_controlled)]
+            dazmol_boxes_count = len(dazmol_boxes)
+            dazmol_qty = sum(b.quantity for b in dazmol_boxes)
+
+            # 3. Oraliq: Dazmoldan o'tgan, lekin hali kontroldan o'tmagan (WIP: Waiting OTK)
+            waiting_otk_boxes = [b for b in p_boxes if (b.id in dazmol_box_ids_set or b.is_controlled) and (not b.is_controlled) and (b.controlled_repair_qty == 0)]
+            waiting_otk_boxes_count = len(waiting_otk_boxes)
+            waiting_otk_qty = sum(b.quantity for b in waiting_otk_boxes)
+
+            # 4. Ta'mirda (In repair)
+            repair_boxes = [b for b in p_boxes if b.controlled_repair_qty > 0]
+            repair_boxes_count = len(repair_boxes)
+            repair_qty = sum(b.controlled_repair_qty for b in p_boxes)
+
+            # 5. Kontroldan o'tgan (OTK closed)
             closed_p_boxes = len([b for b in p_boxes if b.is_controlled])
-            is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes)
+            controlled_p_boxes = [b for b in p_boxes if b.is_controlled]
+            controlled_qty = sum(b.quantity for b in controlled_p_boxes)
+
+            p_first_sort = sum(b.controlled_first_sort_qty for b in p_boxes)
+            p_second_sort = sum(b.controlled_second_sort_qty for b in p_boxes)
+            p_defect = sum(b.controlled_defect_qty for b in p_boxes)
+
+            # Qolgan ish
+            remaining_boxes = max(0, total_p_boxes - closed_p_boxes)
+            remaining_qty = max(0, p_total_qty - controlled_qty)
+
+            # Foizlar
+            completion_pct = round((controlled_qty / p_total_qty * 100), 1) if p_total_qty > 0 else 0.0
+            box_completion_pct = round((closed_p_boxes / total_p_boxes * 100), 1) if total_p_boxes > 0 else 0.0
+            dazmol_pct = round((dazmol_qty / p_total_qty * 100), 1) if p_total_qty > 0 else 0.0
+
+            # Yopilish holati: barcha qutilar dazmoldan va kontroldan to'liq o'tgan hamda ta'mir 0
+            is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes and repair_qty == 0)
             if not is_pastal_closed:
                 all_patok_pastals_closed = False
 
@@ -767,16 +810,25 @@ def sewing_statistics_daily_view(request):
             p_order_num = first_b.order.order_number if first_b and first_b.order else "—"
             p_model_name = (first_b.target_article.name if first_b and first_b.target_article else (first_b.article.name if first_b and first_b.article else "—"))
 
-            p_total_qty = sum(b.quantity for b in p_boxes)
-            p_first_sort = sum(b.controlled_first_sort_qty for b in p_boxes)
-            p_second_sort = sum(b.controlled_second_sort_qty for b in p_boxes)
-            p_repair = sum(b.controlled_repair_qty for b in p_boxes)
-            p_defect = sum(b.controlled_defect_qty for b in p_boxes)
-            p_dazmol = sum(b.quantity for b in p_boxes if b.id in dazmol_box_ids_set)
-            p_waiting = sum(b.quantity for b in p_boxes if (not b.is_controlled) and (b.controlled_repair_qty == 0) and (b.id in dazmol_box_ids_set))
-
             # Bugungi kunlik dazmol va OTK shu pastal uchun
             p_today_dazmol = sum(t.quantity for t in t_list if t.box and t.box.pastal_code == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else '')))
+            p_today_dazmol_boxes = len({t.box_id for t in t_list if t.box and t.box.pastal_code == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else ''))})
+
+            # Bugungi kunlik OTK shu pastal uchun
+            p_today_logs = [l for bid in [b.id for b in p_boxes] for l in logs_by_box.get(bid, [])]
+            if p_today_logs:
+                p_today_first_sort = sum(l.first_sort_qty for l in p_today_logs)
+                p_today_second_sort = sum(l.second_sort_qty for l in p_today_logs)
+                p_today_repair = sum(l.repair_qty for l in p_today_logs)
+                p_today_defect = sum(l.defect_qty for l in p_today_logs)
+                p_today_controlled = p_today_first_sort + p_today_second_sort
+            else:
+                today_controlled_boxes = [b for b in p_boxes if b.is_controlled and b.controlled_at and b.controlled_at.date() == selected_date]
+                p_today_first_sort = sum(b.controlled_first_sort_qty for b in today_controlled_boxes)
+                p_today_second_sort = sum(b.controlled_second_sort_qty for b in today_controlled_boxes)
+                p_today_repair = sum(b.controlled_repair_qty for b in today_controlled_boxes)
+                p_today_defect = sum(b.controlled_defect_qty for b in today_controlled_boxes)
+                p_today_controlled = p_today_first_sort + p_today_second_sort
 
             # RAZMERLAR KESIMIDA GURUHLASH (Mato buyurtmasi uchun!)
             sizes_dict = {}
@@ -788,44 +840,72 @@ def sewing_statistics_daily_view(request):
                         'boxes_count': 0,
                         'closed_boxes': 0,
                         'total_qty': 0,
+                        'in_sewing_boxes': 0,
+                        'in_sewing_qty': 0,
+                        'dazmol_boxes': 0,
                         'dazmol_qty': 0,
+                        'waiting_boxes': 0,
                         'waiting_qty': 0,
+                        'repair_boxes': 0,
+                        'repair_qty': 0,
+                        'controlled_qty': 0,
                         'first_sort': 0,
                         'second_sort': 0,
-                        'repair': 0,
                         'defect': 0,
                     }
                 sd = sizes_dict[sz]
                 sd['boxes_count'] += 1
+                sd['total_qty'] += b.quantity
+
+                has_dazmol = (b.id in dazmol_box_ids_set or b.is_controlled)
+                if not has_dazmol:
+                    sd['in_sewing_boxes'] += 1
+                    sd['in_sewing_qty'] += b.quantity
+                else:
+                    sd['dazmol_boxes'] += 1
+                    sd['dazmol_qty'] += b.quantity
+
+                if has_dazmol and not b.is_controlled and b.controlled_repair_qty == 0:
+                    sd['waiting_boxes'] += 1
+                    sd['waiting_qty'] += b.quantity
+
+                if b.controlled_repair_qty > 0:
+                    sd['repair_boxes'] += 1
+                    sd['repair_qty'] += b.controlled_repair_qty
+
                 if b.is_controlled:
                     sd['closed_boxes'] += 1
-                sd['total_qty'] += b.quantity
-                if b.id in dazmol_box_ids_set:
-                    sd['dazmol_qty'] += b.quantity
-                if not b.is_controlled and b.controlled_repair_qty == 0 and b.id in dazmol_box_ids_set:
-                    sd['waiting_qty'] += b.quantity
+                    sd['controlled_qty'] += b.quantity
+
                 sd['first_sort'] += b.controlled_first_sort_qty
                 sd['second_sort'] += b.controlled_second_sort_qty
-                sd['repair'] += b.controlled_repair_qty
                 sd['defect'] += b.controlled_defect_qty
 
             sizes_breakdown = []
             for sz in sorted(sizes_dict.keys(), key=natural_size_sort_key):
                 sd = sizes_dict[sz]
-                # Defitsit / Qayta tikish yoki mato buyurtmasi ehtiyoji:
-                deficit = sd['repair'] + sd['defect'] + sd['second_sort']
-                is_sz_closed = (sd['closed_boxes'] == sd['boxes_count'] and sd['boxes_count'] > 0)
+                deficit = sd['repair_qty'] + sd['defect'] + sd['second_sort']
+                is_sz_closed = (sd['closed_boxes'] == sd['boxes_count'] and sd['boxes_count'] > 0 and sd['repair_qty'] == 0)
+                sz_comp_pct = round((sd['controlled_qty'] / sd['total_qty'] * 100), 1) if sd['total_qty'] > 0 else 0.0
                 sizes_breakdown.append({
                     'size': sd['size'],
                     'boxes_count': sd['boxes_count'],
                     'closed_boxes': sd['closed_boxes'],
+                    'remaining_boxes': max(0, sd['boxes_count'] - sd['closed_boxes']),
                     'is_closed': is_sz_closed,
+                    'completion_pct': sz_comp_pct,
                     'total_qty': sd['total_qty'],
+                    'in_sewing_boxes': sd['in_sewing_boxes'],
+                    'in_sewing_qty': sd['in_sewing_qty'],
+                    'dazmol_boxes': sd['dazmol_boxes'],
                     'dazmol_qty': sd['dazmol_qty'],
+                    'waiting_boxes': sd['waiting_boxes'],
                     'waiting_qty': sd['waiting_qty'],
+                    'repair_boxes': sd['repair_boxes'],
+                    'repair': sd['repair_qty'],
+                    'controlled_qty': sd['controlled_qty'],
                     'first_sort': sd['first_sort'],
                     'second_sort': sd['second_sort'],
-                    'repair': sd['repair'],
                     'defect': sd['defect'],
                     'deficit_qty': deficit,
                 })
@@ -836,16 +916,35 @@ def sewing_statistics_daily_view(request):
                 'model_name': p_model_name,
                 'total_boxes': total_p_boxes,
                 'closed_boxes': closed_p_boxes,
+                'remaining_boxes': remaining_boxes,
+                'remaining_qty': remaining_qty,
                 'is_closed': is_pastal_closed,
+                'completion_pct': completion_pct,
+                'box_completion_pct': box_completion_pct,
+                'dazmol_pct': dazmol_pct,
                 'total_qty': p_total_qty,
-                'dazmol_qty': p_dazmol,
+                'in_sewing_boxes': in_sewing_boxes_count,
+                'in_sewing_qty': in_sewing_qty,
+                'dazmol_boxes': dazmol_boxes_count,
+                'dazmol_qty': dazmol_qty,
                 'today_dazmol_qty': p_today_dazmol,
-                'waiting_qty': p_waiting,
+                'today_dazmol_boxes': p_today_dazmol_boxes,
+                'waiting_otk_boxes': waiting_otk_boxes_count,
+                'waiting_otk_qty': waiting_otk_qty,
+                'waiting_qty': waiting_otk_qty,
+                'repair_boxes': repair_boxes_count,
+                'repair_qty': repair_qty,
+                'controlled_boxes': closed_p_boxes,
+                'controlled_qty': controlled_qty,
                 'first_sort_qty': p_first_sort,
                 'second_sort_qty': p_second_sort,
-                'repair_qty': p_repair,
                 'defect_qty': p_defect,
-                'deficit_qty': (p_repair + p_defect + p_second_sort),
+                'deficit_qty': (repair_qty + p_defect + p_second_sort),
+                'today_controlled_qty': p_today_controlled,
+                'today_first_sort_qty': p_today_first_sort,
+                'today_second_sort_qty': p_today_second_sort,
+                'today_repair_qty': p_today_repair,
+                'today_defect_qty': p_today_defect,
                 'sizes': sizes_breakdown,
             })
 
@@ -874,6 +973,32 @@ def sewing_statistics_daily_view(request):
             key=lambda o: (o['order_number'], o['sequence'], o['operation_name'])
         )
 
+        patok_total_qty = sum(p['total_qty'] for p in pastals_detail_list)
+        patok_controlled_qty = sum(p['controlled_qty'] for p in pastals_detail_list)
+        patok_summary = {
+            'total_boxes': sum(p['total_boxes'] for p in pastals_detail_list),
+            'total_qty': patok_total_qty,
+            'in_sewing_boxes': sum(p['in_sewing_boxes'] for p in pastals_detail_list),
+            'in_sewing_qty': sum(p['in_sewing_qty'] for p in pastals_detail_list),
+            'dazmol_boxes': sum(p['dazmol_boxes'] for p in pastals_detail_list),
+            'dazmol_qty': sum(p['dazmol_qty'] for p in pastals_detail_list),
+            'waiting_otk_boxes': sum(p['waiting_otk_boxes'] for p in pastals_detail_list),
+            'waiting_otk_qty': sum(p['waiting_otk_qty'] for p in pastals_detail_list),
+            'repair_boxes': sum(p['repair_boxes'] for p in pastals_detail_list),
+            'repair_qty': sum(p['repair_qty'] for p in pastals_detail_list),
+            'controlled_boxes': sum(p['closed_boxes'] for p in pastals_detail_list),
+            'controlled_qty': patok_controlled_qty,
+            'remaining_boxes': sum(p['remaining_boxes'] for p in pastals_detail_list),
+            'remaining_qty': sum(p['remaining_qty'] for p in pastals_detail_list),
+            'first_sort_qty': sum(p['first_sort_qty'] for p in pastals_detail_list),
+            'second_sort_qty': sum(p['second_sort_qty'] for p in pastals_detail_list),
+            'defect_qty': sum(p['defect_qty'] for p in pastals_detail_list),
+            'deficit_qty': sum(p['deficit_qty'] for p in pastals_detail_list),
+            'closed_pastals_count': len([p for p in pastals_detail_list if p['is_closed']]),
+            'total_pastals_count': len(pastals_detail_list),
+            'completion_pct': round((patok_controlled_qty / patok_total_qty * 100), 1) if patok_total_qty > 0 else 0.0,
+        }
+
         patoks_data.append({
             'screen_number': sn,
             'patok_code': p_code,
@@ -883,6 +1008,7 @@ def sewing_statistics_daily_view(request):
             'models': list(models_dict.values()),
             'pastals': pastals_detail_list,
             'pastals_count': len(pastals_detail_list),
+            'pastals_summary': patok_summary,
             'all_pastals_closed': all_patok_pastals_closed if is_active else False,
             'daily_norm': patok_daily_norm,
             'completed_norm_units': completed_for_norm,

@@ -29,6 +29,34 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 09.10.2026, 14:50
+* **Turi:** `feat(statistics)` — Tikim Statistikasida Pastallar Bo'yicha 4-Bosqichli Quvur (Pipeline Balansi), Oraliq (Dazmoldan O'tgan, OTK Kutmoqda) va 100% Yakuniy Yopilish Muhrlanishi
+* **Mavzu:** Har bir patok tikayotgan pastallar bo'yicha to'liq 4-bosqichli hisob-kitob (1. Jami kirgan reja dona va quti, 2. Hali tikimda [dazmolgacha], 3. Dazmoldan o'tgan, 4. Oraliq: dazmoldan o'tgan va hali OTK ga kirmagan kutayotgan qutilar, 5. OTK o'tgan 1-sort, ta'mir va brak, hamda 20/20 quti o'tganda 100% yakuniy yopilish muhrlanishi)
+* **O'zgartirilgan fayllar:**
+  - `production/sewing_statistics_views.py`
+  - `templates/production/sewing_statistics_daily.html`
+  - `production/tests.py`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **4-Bosqichli Quvur Balansi (4-Stage Pipeline):**
+     - **1-Bosqich (Jami Kirgan Reja):** Pastal bo'yicha jami rejalashtirilgan donalar va qutilar soni (masalan 1000 dona / 20 ta quti).
+     - **2-Bosqich (Hali Tikimda):** Dazmolga yetib bormagan, tikuvchilar qo'lida tikilayotgan qutilar va donalar soni (masalan 200 dona / 4 ta quti).
+     - **3-Bosqich (Dazmoldan O'tgan & Oraliq):** Dazmoldan o'tgan umumiy qutilar (masalan 800 dona / 16 ta quti) hamda **Oraliqda turgan** (dazmoldan o'tgan, lekin hali OTK nazoratiga kirmagan/kutayotgan) qutilar va donalar (masalan 400 dona / 8 ta quti).
+     - **4-Bosqich (Kontroldan O'tgan / OTK Yopgan):** OTK tekshirib yopgan mahsulotlar (masalan 400 dona / 8 ta quti) va ularning sifat taqsimoti: 1-sort (300 dona), ta'mirga qaytgan (90 dona), brak/2-sort (10 dona).
+  2. **Pastal 100% To'liq Yopilishi va Yakuniy Muhr (100% Closed & Final Seal):**
+     - 20 ta quti kirdimi, 20 tasi ham dazmoldan o'tib, 20 tasi ham OTK dan to'liq o'tgan va ta'mirlar 0 bo'lganda pastal "🏁 100% TO'LIQ YOPILDI" deb belgilanadi va yakuniy son muhrlanadi.
+     - Agar hali to'liq yopilmagan bo'lsa, qolgan qutilar (tikimda + oraliqda + ta'mirda) va bitish foizi aniq ko'rsatiladi.
+  3. **Patok Darajasidagi Umumiy Xulosa (Patok Summary Strip):**
+     - Har bir patokning barcha pastallari bo'yicha umumiy 6 talik tezkor ko'rsatkichlar paneli qo'shildi.
+  4. **Razmerlar Kesimidagi Kengaytirilgan Balans:**
+     - Har bir razmer bo'yicha tikimda, dazmoldan o'tgan, oraliqda kutayotgan, 1-sort, 2-sort, ta'mir, brak va defitsit/mato ehtiyoji batafsil ko'rsatiladi.
+  5. **183 ta test (117 production + 66 accounts)** 100% muvaffaqiyatli o'tdi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `4cc5f18`] — 08.10.2026, 18:16
 * **Turi:** `feat(cutting)` — Maxsus Kesimchi (CUTTER) Hisobi, Avtomatik Unikal Pastal Kodi (P{MM}-{N}) va PC Desktop Kengaytirilgan Maydoni
 * **Mavzu:** `/cutting/` uchun maxsus akkount ruxsatlari (middleware orqali qat'iy cheklov), yangi kesim qo'shishda avtomatik unikal pastal kodi generatsiyasi (`P10-1`..`P10-120`..`P10-999`..`P10-1000`..`P10-9999`, saqlanmasa raqam yo'qolmaydi), hamda PC/Desktop monitorlar uchun kengaytirilgan (1920px widescreen) qulay ish maydoni va grid modallar
