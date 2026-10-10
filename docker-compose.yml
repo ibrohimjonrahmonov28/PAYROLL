@@ -37,7 +37,7 @@ services:
       DB_PORT: 5432
       BOT_TOKEN: ${BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
       TELEGRAM_REPORT_CHAT_ID: ${TELEGRAM_REPORT_CHAT_ID:--1004374345556}
-      PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU}
+      PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://terryjar.uz,https://www.terryjar.uz,https://tezol.shop,https://www.tezol.shop,https://34.156.34.148,http://34.156.34.148,https://91.99.181.42,http://91.99.181.42}
       BONUS: ${BONUS:-0}
     volumes:
@@ -46,7 +46,6 @@ services:
       - ./production:/app/production
       - ./screens:/app/screens
       - ./templates:/app/templates
-      - ./android_control:/app/android_control:ro
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
@@ -80,7 +79,7 @@ services:
       DB_PORT: 5432
       BOT_TOKEN: ${BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
       TELEGRAM_REPORT_CHAT_ID: ${TELEGRAM_REPORT_CHAT_ID:--1004374345556}
-      PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU}
+      PASSPORT_BOT_TOKEN: ${PASSPORT_BOT_TOKEN:-8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg}
     volumes:
       - ./config:/app/config
       - ./accounts:/app/accounts
