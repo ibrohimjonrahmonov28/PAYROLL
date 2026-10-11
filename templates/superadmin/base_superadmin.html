@@ -145,12 +145,6 @@
                 <span>Brak Sabablari (OTK)</span>
             </a>
 
-            <a href="{% url 'superadmin_masters_list' %}"
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'master' in request.resolver_match.url_name %}bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20{% else %}text-emerald-400 hover:bg-slate-800 hover:text-emerald-300{% endif %}">
-                <i class="fa-solid fa-user-tie w-5 text-center text-emerald-400"></i>
-                <span>Liniya Masterlari</span>
-            </a>
-
             <a href="{% url 'superadmin_users' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'superadmin_users' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-users-gear w-5 text-center"></i>
