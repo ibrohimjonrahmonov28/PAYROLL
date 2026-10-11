@@ -3001,13 +3001,16 @@ def superadmin_ticket_freeze_toggle(request):
     return redirect('superadmin_payroll')
 
 
-@payroll_admin_required
+@superadmin_required
 def superadmin_recalculate_unfrozen_tickets(request):
     """
     Tizimdagi barcha biletlarni operatsiyalarning eng so'nggi narxlari bilan
-    to'liq qayta hisoblash (re-sync).
+    to'liq qayta hisoblash (re-sync). Faqat Super Admin huquqi bilan bajariladi.
     """
     if request.method == 'POST':
+        from accounts.freeze_services import check_and_apply_freeze_timers
+        check_and_apply_freeze_timers()
+
         total_updated = 0
         for ao in ArticleOperation.objects.all():
             cnt = ao.sync_price_to_tickets()

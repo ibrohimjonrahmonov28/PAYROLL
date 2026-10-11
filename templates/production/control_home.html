@@ -107,22 +107,60 @@
 
             <!-- Header Controls & Stats -->
             <div class="flex items-center gap-1.5 sm:gap-2.5">
-                <!-- Bugungi unikal qutilar -->
-                <div
-                    class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1 rounded-xl">
-                    <i class="fa-solid fa-boxes-stacked text-xs text-amber-400"></i>
-                    <span class="text-xs text-slate-400 font-bold">Bugun:</span>
-                    <strong id="header-today-count" class="text-sm font-black text-white digital-font">{{
-                        today_boxes_count }}</strong>
-                    <span class="text-[10px] text-slate-500">quti</span>
+                <!-- HAR KUNLIK TEKSHIRGAN ISHLARI STATISTIKASI (User talabi: Yashil 1-sort / Qizil Ta'mir / Sariq 2-sort) -->
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <!-- 1-sort (Yashil) -->
+                    <div class="flex items-center gap-1 sm:gap-1.5 bg-emerald-950/80 border border-emerald-500/40 px-2 sm:px-2.5 py-1 rounded-xl text-emerald-300 font-bold text-xs shadow-sm"
+                        title="Bugun qabul qilingan 1-sort ishlar">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                        <span class="hidden md:inline text-[10px] text-emerald-400/90 font-black uppercase">1-sort:</span>
+                        <strong id="stat-first-sort" class="text-xs sm:text-sm font-black text-emerald-300 digital-font">{{ today_first_sort }}</strong>
+                    </div>
+
+                    <!-- Ta'mir (Qizil) -->
+                    <div class="flex items-center gap-1 sm:gap-1.5 bg-rose-950/80 border border-rose-500/40 px-2 sm:px-2.5 py-1 rounded-xl text-rose-300 font-bold text-xs shadow-sm"
+                        title="Bugun ta'mirga yuborilgan ishlar">
+                        <i class="fa-solid fa-screwdriver-wrench text-rose-400 text-xs"></i>
+                        <span class="hidden md:inline text-[10px] text-rose-400/90 font-black uppercase">Ta'mir:</span>
+                        <strong id="stat-repair" class="text-xs sm:text-sm font-black text-rose-300 digital-font">{{ today_repair }}</strong>
+                    </div>
+
+                    <!-- 2-sort (Sariq) -->
+                    <div class="flex items-center gap-1 sm:gap-1.5 bg-amber-950/80 border border-amber-500/40 px-2 sm:px-2.5 py-1 rounded-xl text-amber-300 font-bold text-xs shadow-sm"
+                        title="Bugungi 2-sort / nuqsonli ishlar">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xs"></i>
+                        <span class="hidden md:inline text-[10px] text-amber-400/90 font-black uppercase">2-sort:</span>
+                        <strong id="stat-second-sort" class="text-xs sm:text-sm font-black text-amber-300 digital-font">{{ today_second_sort }}</strong>
+                    </div>
                 </div>
 
-                <!-- Inspector -->
-                <div
-                    class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 sm:px-3 py-1 rounded-xl text-xs">
-                    <i class="fa-solid fa-user-check text-emerald-400"></i>
-                    <span class="font-bold text-slate-200 truncate max-w-[100px] sm:max-w-none">@{{ inspector.username
-                        }}</span>
+                <!-- FAOL OPERATOR (USER ID & CHIQISH TUGMASI) (User talabi) -->
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2 sm:px-3 py-1 rounded-xl text-xs shadow-sm">
+                    <i class="fa-solid fa-id-badge text-emerald-400 text-sm"></i>
+                    <div class="flex flex-col text-left leading-tight">
+                        <span id="header-op-id" class="text-[9px] font-mono font-black text-emerald-400">
+                            {% if active_operator %}ID: {{ active_operator.worker_id }}{% else %}ID: —{% endif %}
+                        </span>
+                        <span id="header-op-name" class="font-bold text-slate-200 text-[10px] sm:text-[11px] truncate max-w-[90px] sm:max-w-[130px]">
+                            {% if active_operator %}{{ active_operator.full_name }}{% else %}Xodim yo'q{% endif %}
+                        </span>
+                    </div>
+                    <button type="button" id="btn-header-logout" onclick="openOperatorLogoutModal()"
+                        class="{% if not active_operator %}hidden{% endif %} ml-1 px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] font-black transition flex items-center gap-1 cursor-pointer active:scale-95"
+                        title="Smenani yakunlash / Boshqa ishchiga o'tish">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline">Chiqish</span>
+                    </button>
+                    <button type="button" id="btn-header-start" onclick="openIdentifyWorkerModal()"
+                        class="{% if active_operator %}hidden{% endif %} ml-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-black transition flex items-center gap-1 cursor-pointer animate-pulse active:scale-95"
+                        title="Ishni boshlash / Birkani skanerlash">
+                        <i class="fa-solid fa-play text-[9px]"></i>
+                        <span>Boshlash</span>
+                    </button>
+                </div>
+
+                <div class="hidden 2xl:flex items-center text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                    <span>Patok: @{{ inspector.username }}</span>
                 </div>
 
                 <!-- Sound toggle -->
@@ -178,7 +216,7 @@
                         <i class="fa-solid fa-barcode"></i>
                     </div>
                     <input type="text" id="scanner-input" autofocus autocomplete="off"
-                        placeholder="Qutidagi CONTROL stikerini yoki Quti ID sini skanerlang..."
+                        placeholder="{% if active_operator %}Qutidagi CONTROL stikerini yoki Quti ID sini skanerlang (masalan: A10-394)...{% else %}Ishni boshlash uchun o'z ID birkangizni skanerlang...{% endif %}"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 uppercase font-mono tracking-wider transition">
                     <button type="button" onclick="clearScannerInput()"
                         class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-500 hover:text-white text-xs">
@@ -194,10 +232,56 @@
         </section>
 
         <!-- ================================================================= -->
-        <!-- STATE A: STANDBY (SKANER KUTILMOQDA) EKRANI                       -->
+        <!-- STATE 0: KUNLIK SMENANI BOSHLASH (KATTA TUGMA VA BIRKA SCAN)      -->
+        <!-- ================================================================= -->
+        <section id="start-shift-screen"
+            class="{% if active_operator %}hidden{% endif %} bg-slate-900/90 border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-12 text-center my-auto shadow-2xl flex-1 flex flex-col items-center justify-center min-h-0 relative overflow-hidden">
+            <!-- Bezak nur fonlari -->
+            <div class="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col items-center max-w-lg w-full">
+                <!-- Katta ikonka -->
+                <div
+                    class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-400 flex items-center justify-center text-4xl sm:text-5xl mb-4 shadow-xl shadow-emerald-500/20">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                </div>
+
+                <span class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono font-bold mb-2">
+                    Patok Plansheti: @{{ inspector.get_full_name|default:inspector.username }}
+                </span>
+
+                <h2 class="text-xl sm:text-3xl font-black text-white uppercase tracking-wider">
+                    KUNLIK SMENANI BOSHLASH
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400 mt-2 mb-6 leading-relaxed">
+                    Sifat nazorati (OTK) planshetiga xush kelibsiz. Ishni boshlash uchun o'z ID birkangizni skanerlang yoki quyidagi tugmani bosing.
+                </p>
+
+                <!-- KATTA 'ISHNI BOSHLASH' TUGMASI (User talabi) -->
+                <button type="button" onclick="openIdentifyWorkerModal()"
+                    class="touch-btn group w-full sm:w-auto px-8 sm:px-14 py-4 sm:py-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-base sm:text-xl shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-3.5 transition-all duration-200 active:scale-95 border border-emerald-400/40 cursor-pointer">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                    <div class="text-left">
+                        <span class="block text-[10px] uppercase tracking-widest text-emerald-100 font-bold">OTK Tekshiruv</span>
+                        <span class="tracking-wide">ISHNI BOSHLASH</span>
+                    </div>
+                </button>
+
+                <div class="mt-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>QR/Shtrix-kod skaneri ulangan — birkani to'g'ridan-to'g'ri skaner qilishingiz mumkin</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- STATE A: STANDBY (CONTROL SKANER KUTILMOQDA) EKRANI               -->
         <!-- ================================================================= -->
         <section id="standby-screen"
-            class="bg-slate-900/80 border-2 border-dashed border-indigo-500/30 rounded-3xl p-6 sm:p-10 text-center my-auto shadow-2xl pulse-scanner flex-1 flex flex-col items-center justify-center min-h-0">
+            class="{% if not active_operator %}hidden{% endif %} bg-slate-900/80 border-2 border-dashed border-indigo-500/30 rounded-3xl p-6 sm:p-10 text-center my-auto shadow-2xl pulse-scanner flex-1 flex flex-col items-center justify-center min-h-0">
             <div
                 class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-indigo-500/10 border-2 border-indigo-500/40 flex items-center justify-center text-3xl sm:text-4xl text-indigo-400 mb-3 shadow-inner">
                 <i class="fa-solid fa-qrcode"></i>
@@ -206,7 +290,7 @@
                 1 - qadam : Control stikerini scan qiling
             </h2>
             <p class="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-1.5 leading-relaxed">
-                Qutining ustidagi <strong class="text-amber-400">CONTROL:KOD</strong> stikerini skanerlang.
+                Qutining ustidagi <strong class="text-amber-400">CONTROL:KOD</strong> (masalan: <strong class="text-indigo-400 font-mono">A10-394</strong>) stikerini skanerlang.
                 Model rasmi, zakaz nomi va qutidagi son avtomatik yuklanadi.
             </p>
             <div
@@ -1015,10 +1099,125 @@
             <p class="text-[11px] text-slate-400 italic">
                 Ushbu qutining sifat nazorati yakunlangan va mahsulot Upakovkaga topshirilgan.
             </p>
-            <div class="pt-2">
-                <button type="button" onclick="closeCompletedModal()"
-                    class="touch-btn w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-emerald-600/30 transition">
-                    Yangi quti skanerlash (Enter)
+    <!-- 7. MODAL: XODIM BIRKASINI SKANERLASH VA TASDIQLASH (ISHNI BOSHLASH) -->
+    <div id="identify-worker-modal"
+        class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-emerald-500/60 rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl shadow-emerald-950/50 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3 text-left">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">
+                            Xodimni Tasdiqlash
+                        </h3>
+                        <p class="text-xs text-slate-400">
+                            ID birkangizni skanerlang yoki kodni kiriting
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeIdentifyWorkerModal()" class="text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Skaner inputi -->
+            <form id="worker-scan-form" onsubmit="handleWorkerModalSubmit(event)" class="space-y-3">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400 text-base">
+                        <i class="fa-solid fa-barcode"></i>
+                    </div>
+                    <input type="text" id="worker-scan-input" autocomplete="off"
+                        placeholder="Birka QR kodini skanerlang (masalan: W-001 yoki USER:482910)..."
+                        class="w-full bg-slate-950 border-2 border-emerald-500/40 focus:border-emerald-400 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-white placeholder-slate-500 uppercase font-mono tracking-wider focus:outline-none focus:ring-4 focus:ring-emerald-500/20">
+                </div>
+                <button type="submit"
+                    class="touch-btn w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-sm shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Xodimni Qidirish</span>
+                </button>
+            </form>
+
+            <!-- Natija kartochkasi (Xodim topilganda chiqadi) -->
+            <div id="worker-preview-card" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-4 text-left space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 flex items-center justify-center text-2xl font-black">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <div>
+                        <h4 id="worker-preview-name" class="text-base font-black text-white leading-tight">
+                            Ism Familiya
+                        </h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="worker-preview-id" class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono text-xs font-black">
+                                W-000
+                            </span>
+                            <span id="worker-preview-phone" class="text-xs text-slate-400">
+                                +998 -- --- -- --
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Sifat Nazorati stantsiyasi:</span>
+                    <strong class="text-emerald-400">Tayyor</strong>
+                </div>
+
+                <button type="button" id="btn-confirm-worker" onclick="confirmIdentifiedWorker()"
+                    class="touch-btn w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-sm shadow-xl shadow-emerald-600/40 transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-circle-check text-base"></i>
+                    <span>Tasdiqlash va Ishni Boshlash</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. MODAL: OPERATOR CHIQISH / SMENANI YAKUNLASH -->
+    <div id="operator-logout-modal"
+        class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-rose-500/50 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl shadow-rose-950/50 space-y-4">
+            <div class="w-16 h-16 mx-auto rounded-3xl bg-rose-500/15 border-2 border-rose-500/50 text-rose-400 flex items-center justify-center text-3xl">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-black text-white uppercase tracking-wider">
+                    Smenani Yakunlash
+                </h3>
+                <p class="text-xs text-slate-300 mt-1">
+                    Haqiqatan ham joriy xodim hisobidan chiqib, smenani yakunlaysizmi?
+                </p>
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-left space-y-2 text-xs">
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>Xodim:</span>
+                    <strong id="logout-modal-worker" class="text-white">—</strong>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>Bugungi tekshirgan ishlaringiz:</span>
+                    <div class="flex items-center gap-1.5 font-mono text-xs">
+                        <span class="text-emerald-400 font-bold" id="logout-modal-first">0 1-sort</span> /
+                        <span class="text-rose-400 font-bold" id="logout-modal-repair">0 ta'mir</span> /
+                        <span class="text-amber-400 font-bold" id="logout-modal-second">0 2-sort</span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+                Planshetning patok akkaunti saqlanib qoladi. Keyingi xodim kelib o'z birkasini skaner qilishi mumkin bo'ladi.
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeOperatorLogoutModal()"
+                    class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+                    Bekor qilish
+                </button>
+                <button type="button" onclick="confirmOperatorLogout()"
+                    class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/30 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Ha, Chiqish</span>
                 </button>
             </div>
         </div>
@@ -1042,6 +1241,9 @@
         }
         // Sahifa yuklanishidan oldin darhol masshtabni o'rnatish
         applyZoom(currentZoom);
+
+        let activeOperator = {{ active_operator_json|safe }};
+        let identifiedWorkerCandidate = null;
 
         let currentBox = null;
         let currentDefectReasons = [];
@@ -1138,9 +1340,228 @@
             }
         }
 
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // =====================================================================
+        // OPERATOR (ISHCHI) BOSHQARUVI VA SMENA (User talabi)
+        // =====================================================================
+        function updateHeaderOperatorUI(op) {
+            const idEl = document.getElementById('header-op-id');
+            const nameEl = document.getElementById('header-op-name');
+            const btnLogout = document.getElementById('btn-header-logout');
+            const btnStart = document.getElementById('btn-header-start');
+
+            if (op) {
+                if (idEl) idEl.innerText = `ID: ${op.worker_id}`;
+                if (nameEl) nameEl.innerText = op.full_name;
+                if (btnLogout) btnLogout.classList.remove('hidden');
+                if (btnStart) btnStart.classList.add('hidden');
+            } else {
+                if (idEl) idEl.innerText = "ID: —";
+                if (nameEl) nameEl.innerText = "Xodim yo'q";
+                if (btnLogout) btnLogout.classList.add('hidden');
+                if (btnStart) btnStart.classList.remove('hidden');
+            }
+        }
+
+        function updateTodayStatsUI(stats) {
+            if (!stats) return;
+            const el1 = document.getElementById('stat-first-sort');
+            const elR = document.getElementById('stat-repair');
+            const el2 = document.getElementById('stat-second-sort');
+            if (el1 && stats.first_sort !== undefined) el1.innerText = stats.first_sort;
+            if (elR && stats.repair !== undefined) elR.innerText = stats.repair;
+            if (el2 && stats.second_sort !== undefined) el2.innerText = stats.second_sort;
+        }
+
+        function openIdentifyWorkerModal() {
+            identifiedWorkerCandidate = null;
+            const preview = document.getElementById('worker-preview-card');
+            if (preview) preview.classList.add('hidden');
+            const inp = document.getElementById('worker-scan-input');
+            if (inp) inp.value = '';
+            document.getElementById('identify-worker-modal')?.classList.remove('hidden');
+            setTimeout(() => {
+                if (inp) inp.focus();
+            }, 100);
+        }
+
+        function closeIdentifyWorkerModal() {
+            document.getElementById('identify-worker-modal')?.classList.add('hidden');
+            focusScannerInput();
+        }
+
+        function openOperatorLogoutModal() {
+            if (!activeOperator) return;
+            const wEl = document.getElementById('logout-modal-worker');
+            if (wEl) wEl.innerText = `${activeOperator.full_name} (${activeOperator.worker_id})`;
+            const fEl = document.getElementById('logout-modal-first');
+            const rEl = document.getElementById('logout-modal-repair');
+            const sEl = document.getElementById('logout-modal-second');
+            if (fEl) fEl.innerText = `${document.getElementById('stat-first-sort')?.innerText || 0} 1-sort`;
+            if (rEl) rEl.innerText = `${document.getElementById('stat-repair')?.innerText || 0} ta'mir`;
+            if (sEl) sEl.innerText = `${document.getElementById('stat-second-sort')?.innerText || 0} 2-sort`;
+            document.getElementById('operator-logout-modal')?.classList.remove('hidden');
+        }
+
+        function closeOperatorLogoutModal() {
+            document.getElementById('operator-logout-modal')?.classList.add('hidden');
+            focusScannerInput();
+        }
+
+        async function handleWorkerModalSubmit(e) {
+            if (e) e.preventDefault();
+            const val = document.getElementById('worker-scan-input').value.trim();
+            if (!val) return;
+            await searchAndPreviewWorker(val);
+        }
+
+        async function searchAndPreviewWorker(code) {
+            try {
+                const res = await fetch(`{% url 'control:api_identify_operator' %}?code=${encodeURIComponent(code)}`);
+                const data = await res.json();
+                if (res.ok && data.status === 'OK') {
+                    playSound('beep');
+                    identifiedWorkerCandidate = data.operator;
+                    document.getElementById('worker-preview-name').innerText = data.operator.full_name;
+                    document.getElementById('worker-preview-id').innerText = `ID: ${data.operator.worker_id}`;
+                    document.getElementById('worker-preview-phone').innerText = data.operator.phone || "Telefon kiritilmagan";
+                    document.getElementById('worker-preview-card')?.classList.remove('hidden');
+                    setTimeout(() => {
+                        document.getElementById('btn-confirm-worker')?.focus();
+                    }, 50);
+                } else {
+                    playSound('error');
+                    alert(data.message || "Xodim topilmadi!");
+                    const inp = document.getElementById('worker-scan-input');
+                    if (inp) {
+                        inp.focus();
+                        inp.select();
+                    }
+                }
+            } catch (err) {
+                playSound('error');
+                alert("Server bilan aloqa xatosi!");
+                console.error(err);
+            }
+        }
+
+        async function confirmIdentifiedWorker() {
+            if (!identifiedWorkerCandidate) return;
+            activeOperator = identifiedWorkerCandidate;
+            updateHeaderOperatorUI(activeOperator);
+            closeIdentifyWorkerModal();
+            playSound('success');
+
+            // UI holatini yangilash
+            document.getElementById('start-shift-screen')?.classList.add('hidden');
+            document.getElementById('standby-screen')?.classList.remove('hidden');
+            const stepEl = document.getElementById('header-step-indicator');
+            if (stepEl) stepEl.innerText = "1 - qadam : Control stikerini scan qiling";
+            const scanInp = document.getElementById('scanner-input');
+            if (scanInp) scanInp.placeholder = "Qutidagi CONTROL stikerini yoki Quti ID sini skanerlang (masalan: A10-394)...";
+
+            // Bugungi statistikani yangilash
+            try {
+                const res = await fetch(`{% url 'control:api_recent' %}`);
+                const data = await res.json();
+                if (data.today_first_sort !== undefined) {
+                    updateTodayStatsUI({
+                        first_sort: data.today_first_sort,
+                        repair: data.today_repair,
+                        second_sort: data.today_second_sort,
+                    });
+                }
+            } catch (e) { }
+
+            focusScannerInput();
+        }
+
+        async function identifyOperatorDirect(code) {
+            try {
+                const res = await fetch(`{% url 'control:api_identify_operator' %}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'OK') {
+                    playSound('success');
+                    activeOperator = data.operator;
+                    updateHeaderOperatorUI(activeOperator);
+                    if (data.today_stats) {
+                        updateTodayStatsUI(data.today_stats);
+                    }
+                    document.getElementById('start-shift-screen')?.classList.add('hidden');
+                    document.getElementById('standby-screen')?.classList.remove('hidden');
+                    const stepEl = document.getElementById('header-step-indicator');
+                    if (stepEl) stepEl.innerText = "1 - qadam : Control stikerini scan qiling";
+                    const scanInp = document.getElementById('scanner-input');
+                    if (scanInp) scanInp.placeholder = "Qutidagi CONTROL stikerini yoki Quti ID sini skanerlang (masalan: A10-394)...";
+                } else {
+                    playSound('error');
+                    alert(data.message || "Xodim birkasi topilmadi!");
+                }
+            } catch (err) {
+                playSound('error');
+                alert("Server bilan aloqa xatosi!");
+            }
+        }
+
+        async function confirmOperatorLogout() {
+            try {
+                const res = await fetch(`{% url 'control:api_logout_operator' %}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    }
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'OK') {
+                    playSound('beep');
+                    activeOperator = null;
+                    updateHeaderOperatorUI(null);
+                    closeOperatorLogoutModal();
+
+                    document.getElementById('inspection-card')?.classList.add('hidden');
+                    document.getElementById('step2-card')?.classList.add('hidden');
+                    document.getElementById('standby-screen')?.classList.add('hidden');
+                    document.getElementById('start-shift-screen')?.classList.remove('hidden');
+                    const stepEl = document.getElementById('header-step-indicator');
+                    if (stepEl) stepEl.innerText = "Smena yakunlandi : Ishni boshlash uchun birkani skanerlang";
+                    const scanInp = document.getElementById('scanner-input');
+                    if (scanInp) scanInp.placeholder = "Ishni boshlash uchun o'z ID birkangizni skanerlang...";
+                    focusScannerInput();
+                }
+            } catch (err) {
+                playSound('error');
+                console.error(err);
+            }
+        }
+
         // Sahifa yuklanganda fokus
         document.addEventListener('DOMContentLoaded', function () {
             focusScannerInput();
+            if (!activeOperator) {
+                const stepEl = document.getElementById('header-step-indicator');
+                if (stepEl) stepEl.innerText = "Ishni boshlash uchun o'z ID birkangizni skanerlang";
+            }
         });
 
         // Skaner avtomatik qabul qilish
@@ -1150,18 +1571,44 @@
             let inputVal = document.getElementById('scanner-input').value.trim();
             if (!inputVal) return;
 
-            // Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish, masalan CONTROL+A9+1 yoki A9+1)
+            // Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish)
             if (inputVal.includes('+')) {
-                inputVal = inputVal.replace(/^(CONTROL|BOX|TICKET|TK)\+/i, '$1:');
+                inputVal = inputVal.replace(/^(CONTROL|BOX|TICKET|TK|USER|WORKER)\+/i, '$1:');
                 inputVal = inputVal.replace(/\+/g, '-');
             }
 
             const rawUpper = inputVal.toUpperCase();
 
-            // 0. Tikuvchi bilet kodi (TICKET:, TK-) bo'lsa darhol bloklash!
+            // 1. Agar xodim hali tanlanmagan bo'lsa (activeOperator == null):
+            // Planshetga xodim kelib o'z birkasini skaner qilganda avtomatik uni tanish:
+            if (!activeOperator) {
+                await identifyOperatorDirect(inputVal);
+                clearScannerInput();
+                return;
+            }
+
+            // 2. Agar xodim tizimda bo'lsa, lekin adashib xodim birkasini skaner qilsa:
+            if (rawUpper.startsWith('USER:') || rawUpper.startsWith('WORKER:') || (rawUpper.startsWith('W-') && !rawUpper.includes('BOX'))) {
+                playSound('beep');
+                if (confirm(`Siz allaqachon tizimdasiz: ${activeOperator.full_name} (${activeOperator.worker_id}).\n\nBoshqa xodimga almashtirmoqchimisiz?`)) {
+                    await identifyOperatorDirect(inputVal);
+                }
+                clearScannerInput();
+                return;
+            }
+
+            // 3. Tikuvchi bilet kodi (TICKET:, TK-) bo'lsa darhol bloklash!
             if (rawUpper.startsWith('TICKET:') || rawUpper.startsWith('TK-')) {
                 playSound('error');
-                showPermissionDeniedModal("Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!");
+                showPermissionDeniedModal("Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini (masalan: A10-394) skanerlang!");
+                clearScannerInput();
+                return;
+            }
+
+            // 4. User talabi: Quti raqami (#456) qabul qilinmaydi! Faqat Quti ID si (masalan A10-394)!
+            if (/^#?\d+$/.test(inputVal)) {
+                playSound('error');
+                alert("Quti raqami (#456) qabul qilinmaydi!\n\nIltimos, faqat Quti ID kodi (masalan: A10-394) yoki CONTROL stikerini skanerlang.");
                 clearScannerInput();
                 return;
             }
@@ -1483,11 +1930,20 @@
 
             document.getElementById('inspection-card').classList.add('hidden');
             document.getElementById('step2-card').classList.add('hidden');
-            document.getElementById('standby-screen').classList.remove('hidden');
 
             const headerSub = document.getElementById('header-step-indicator');
-            if (headerSub) {
-                headerSub.innerText = "1 - qadam : Control stikerini scan qilgandan keyin";
+            if (activeOperator) {
+                document.getElementById('start-shift-screen')?.classList.add('hidden');
+                document.getElementById('standby-screen').classList.remove('hidden');
+                if (headerSub) {
+                    headerSub.innerText = "1 - qadam : Control stikerini scan qiling";
+                }
+            } else {
+                document.getElementById('standby-screen').classList.add('hidden');
+                document.getElementById('start-shift-screen')?.classList.remove('hidden');
+                if (headerSub) {
+                    headerSub.innerText = "Ishni boshlash uchun o'z ID birkangizni skanerlang";
+                }
             }
 
             clearScannerInput();
@@ -2125,10 +2581,15 @@
                         }
                     }
 
-                    // Bugungi hisoblagichni yangilash
-                    const headerCount = document.getElementById('header-today-count');
-                    if (headerCount) {
-                        headerCount.innerText = (parseInt(headerCount.innerText) || 0) + 1;
+                    // Bugungi hisoblagichlarni yangilash (1-sort, ta'mir, 2-sort)
+                    if (data.today_stats) {
+                        updateTodayStatsUI(data.today_stats);
+                    } else if (data.today_first_sort !== undefined) {
+                        updateTodayStatsUI({
+                            first_sort: data.today_first_sort,
+                            repair: data.today_repair,
+                            second_sort: data.today_second_sort
+                        });
                     }
                 } else if (data.status === 'UNSCANNED_OPERATIONS') {
                     playSound('error');

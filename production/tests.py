@@ -3061,7 +3061,8 @@ class SewingStatisticsPastalPipelineTests(TestCase):
             self.boxes.append(b)
 
     def test_four_stage_pipeline_and_closure(self):
-        now = timezone.now()
+        now = timezone.localtime()
+        target_date_str = timezone.localdate().strftime('%Y-%m-%d')
 
         # 1-Bosqich: Box 1..4 (4 quti, 200 dona) -> Hali tikimda (Dazmol skanerlanmagan, faqat tikuv 1 skanerlandi)
         for b in self.boxes[0:4]:
@@ -3119,7 +3120,7 @@ class SewingStatisticsPastalPipelineTests(TestCase):
 
         # View chaqirish
         url = reverse('production:sewing_statistics_daily')
-        response = self.client.get(url, {'date': now.strftime('%Y-%m-%d')})
+        response = self.client.get(url, {'date': target_date_str})
         self.assertEqual(response.status_code, 200)
 
         patoks_data = response.context['patoks_data']

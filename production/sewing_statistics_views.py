@@ -712,7 +712,7 @@ def sewing_statistics_daily_view(request):
                     sn_controlled_qty += (l.first_sort_qty + l.second_sort_qty)
                     sn_repair_qty += l.repair_qty
                     sn_defect_qty += l.defect_qty
-            elif box.is_controlled and box.controlled_at and box.controlled_at.date() == selected_date:
+            elif box.is_controlled and box.controlled_at and timezone.localdate(box.controlled_at) == selected_date:
                 sn_first_sort_qty += box.controlled_first_sort_qty
                 sn_second_sort_qty += box.controlled_second_sort_qty
                 sn_controlled_qty += (box.controlled_first_sort_qty + box.controlled_second_sort_qty)
@@ -823,7 +823,7 @@ def sewing_statistics_daily_view(request):
                 p_today_defect = sum(l.defect_qty for l in p_today_logs)
                 p_today_controlled = p_today_first_sort + p_today_second_sort
             else:
-                today_controlled_boxes = [b for b in p_boxes if b.is_controlled and b.controlled_at and b.controlled_at.date() == selected_date]
+                today_controlled_boxes = [b for b in p_boxes if b.is_controlled and b.controlled_at and timezone.localdate(b.controlled_at) == selected_date]
                 p_today_first_sort = sum(b.controlled_first_sort_qty for b in today_controlled_boxes)
                 p_today_second_sort = sum(b.controlled_second_sort_qty for b in today_controlled_boxes)
                 p_today_repair = sum(b.controlled_repair_qty for b in today_controlled_boxes)

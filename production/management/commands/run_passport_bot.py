@@ -175,8 +175,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         token = (
             options.get('token')
-            or getattr(settings, 'TELEGRAM_PASSPORT_BOT_TOKEN', None)
-            or '8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU'
+            or getattr(settings, 'TELEGRAM_PASSPORT_BOT_TOKEN', '')
         )
 
         if not token:

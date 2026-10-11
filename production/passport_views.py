@@ -31,7 +31,7 @@ def passport_telegram_webhook(request):
     except Exception:
         return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
 
-    token = getattr(settings, 'TELEGRAM_PASSPORT_BOT_TOKEN', None) or '8679375634:AAF5bd9mCMpkfpVJhhFuoiAoCLLZa_LYeFU'
+    token = getattr(settings, 'TELEGRAM_PASSPORT_BOT_TOKEN', '')
 
     message = body.get('message') or body.get('edited_message')
     if not message:

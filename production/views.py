@@ -228,6 +228,9 @@ def order_detail_view(request, order_id: int):
             box_id = request.POST.get('box_id')
             box = get_object_or_404(Box, id=box_id, order=order)
             box_num = box.box_number
+            if box.tickets.filter(status=Ticket.Status.SCANNED).exists():
+                messages.error(request, f"Quti #{box_num} da allaqachon skanerlangan biletlar mavjud! Uni o'chirib bo'lmaydi.")
+                return redirect('production:order_detail', order_id=order.id)
             box.delete()
             messages.success(request, f"Quti #{box_num} o'chirildi.")
             return redirect('production:order_detail', order_id=order.id)

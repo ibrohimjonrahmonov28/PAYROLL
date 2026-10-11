@@ -376,6 +376,11 @@ def manager_order_delete(request, order_id: int):
     """
     order = get_object_or_404(Order, id=order_id)
     if request.method == 'POST':
+        scanned_tickets = Ticket.objects.filter(box__order=order, status=Ticket.Status.SCANNED)
+        if scanned_tickets.exists():
+            messages.error(request, f"'{order.order_number}' zakazida allaqachon skanerlangan biletlar mavjud! Uni o'chirib bo'lmaydi.")
+            return redirect('manager_order_detail', order_id=order.id)
+
         order_num = order.order_number
         order.delete()
         messages.success(request, f"'{order_num}' zakazi butunlay o'chirildi.")

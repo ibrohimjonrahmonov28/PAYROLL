@@ -7,8 +7,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Sum, Q
-from accounts.models import User
+from accounts.models import User, Worker
 from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason, ControlSetting
+from production.terminal_views import extract_worker_code
 
 
 def _get_active_defect_reasons():
@@ -50,52 +51,236 @@ def _get_active_defect_reasons():
 
 
 def _is_control_authorized(user) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return user.role in [User.Role.CONTROL, User.Role.SUPER_ADMIN, User.Role.ADMIN]
+    """
+    Planshet / Patok foydalanuvchisi avtorizatsiyasi.
+    Planshetlar oldindan patok akkaunti bilan kirib qo'yiladi.
+    """
+    return user.is_authenticated
+
+
+def _get_active_operator(request):
+    """
+    Sessiyadagi faol operator (ishchi).
+    Yangi kun boshlangan bo'lsa (sana o'zgargan bo'lsa), sessiya avtomatik tozalanadi!
+    """
+    today_str = str(timezone.localdate())
+    op = request.session.get('control_operator')
+    if not op:
+        return None
+    if op.get('login_date') != today_str:
+        request.session.pop('control_operator', None)
+        request.session.modified = True
+        return None
+    return op
+
+
+def _get_today_stats(request, operator=None):
+    """
+    Bugun tekshirilgan ishlar (donalar) soni:
+    - 1-sort: yashilda (first_sort_qty)
+    - Ta'mir: qizilda (repair_qty)
+    - 2-sort: sariqda (second_sort_qty)
+    Agar operator ko'rsatilgan bo'lsa, shu ishchining ishlari hisoblanadi.
+    """
+    today = timezone.localdate()
+    logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+
+    if operator:
+        op_user_id = operator.get('user_id')
+        op_worker_id = operator.get('worker_id')
+        cond = Q()
+        if op_user_id:
+            cond |= Q(inspector_id=op_user_id)
+        if op_worker_id:
+            cond |= Q(notes__icontains=op_worker_id)
+        if cond:
+            logs_qs = logs_qs.filter(cond)
+
+    first_sort = logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
+    repair = logs_qs.aggregate(s=Sum('repair_qty'))['s'] or 0
+    second_sort = logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
+    legacy_defects = logs_qs.filter(
+        action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
+        second_sort_qty=0
+    ).aggregate(d=Sum('defect_qty'))['d'] or 0
+    second_sort += legacy_defects
+
+    return {
+        'first_sort': int(first_sort),
+        'repair': int(repair),
+        'second_sort': int(second_sort),
+    }
 
 
 @login_required
 def control_home_view(request):
     """
     Sifat Nazorati (OTK / Control) planshet interfeysi.
-    Faqat CONTROL, SUPER_ADMIN va ADMIN foydalanuvchilariga ruxsat beriladi.
+    Har bir planshet oldindan tegishli patok akkaunti bilan kiritilgan bo'ladi.
+    Yangi kun boshlanishi bilan katta 'ISHNI BOSHLASH' tugmasi chiqadi.
     """
     if not _is_control_authorized(request.user):
         return redirect('root_login')
 
     today = timezone.localdate()
-    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+    active_operator = _get_active_operator(request)
+    stats = _get_today_stats(request, active_operator)
 
+    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+    today_boxes_count = today_logs_qs.values('box_id').distinct().count()
     today_inspections = today_logs_qs.select_related(
         'box', 'box__order', 'box__article', 'inspector'
     ).order_by('-created_at')[:25]
 
-    # Faqat unikal qutilar soni (bir quti 2-3 marta ta'mirga kirsa ham 1 ta quti hisoblanadi!)
-    today_boxes_count = today_logs_qs.values('box_id').distinct().count()
-
-    # Bugun 1-sort bo'lgan barcha donalar
-    today_first_sort = today_logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
-
-    # Bugun 2-sort bo'lgan barcha donalar (birlamchi 2-sort + ta'mirdan chiqqan nuqsonli/2-sort ishlar)
-    today_second_sort = (today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0)
-    legacy_defects = today_logs_qs.filter(
-        action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
-        second_sort_qty=0
-    ).aggregate(d=Sum('defect_qty'))['d'] or 0
-    today_second_sort += legacy_defects
-
     return render(request, 'production/control_home.html', {
         'inspector': request.user,
-        'today_inspections': today_inspections,
-        'today_count': today_boxes_count,
+        'active_operator': active_operator,
+        'active_operator_json': json.dumps(active_operator) if active_operator else "null",
         'today_boxes_count': today_boxes_count,
-        'today_first_sort': today_first_sort,
-        'today_second_sort': today_second_sort,
-        'today_defects': today_second_sort,
+        'today_first_sort': stats['first_sort'],
+        'today_repair': stats['repair'],
+        'today_second_sort': stats['second_sort'],
+        'today_inspections': today_inspections,
         'today_date': today,
+    })
+
+
+@require_http_methods(["GET", "POST"])
+def control_identify_operator_api(request):
+    """
+    Xodim birkasini (QR / shtrix-kod) skaner qilish orqali bazadan topish va tasdiqlash API.
+    Kiritilgan kod: USER:468626, WORKER:W-001, W-001, 468626, yoki ism/familiya.
+    """
+    if not _is_control_authorized(request.user):
+        return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            raw_code = data.get('code', '')
+        except Exception:
+            raw_code = request.POST.get('code', '')
+    else:
+        raw_code = request.GET.get('code', '')
+
+    raw_code = str(raw_code).strip()
+    if not raw_code:
+        return JsonResponse({'status': 'ERROR', 'message': "Iltimos, xodim birkasini skanerlang yoki ID sini kiriting!"}, status=400)
+
+    clean = extract_worker_code(raw_code).strip()
+
+    # 1. Aniq mosliklar: worker_id yoki user.uid
+    worker = Worker.objects.filter(is_active=True).select_related('user').filter(
+        Q(worker_id__iexact=clean) | Q(user__uid=clean)
+    ).first()
+
+    # 2. Son orqali qidirish (UID, worker_id W-00X, ID)
+    if not worker and clean.isdigit():
+        num = int(clean)
+        worker = Worker.objects.filter(is_active=True).select_related('user').filter(
+            Q(user__uid=clean) |
+            Q(worker_id__iexact=f"W-{num:03d}") |
+            Q(worker_id__iexact=f"W-{clean}") |
+            Q(id=num)
+        ).first()
+
+    # 3. W- prefiksi bo'lsa
+    if not worker and clean.upper().startswith("W-"):
+        num_part = clean[2:]
+        if num_part.isdigit():
+            worker = Worker.objects.filter(is_active=True).select_related('user').filter(
+                Q(worker_id__iexact=f"W-{int(num_part):03d}") |
+                Q(worker_id__iexact=clean.upper())
+            ).first()
+
+    # 4. User ob'ekti (agar Worker profili bo'lmasa ham)
+    user_match = None
+    if not worker:
+        user_match = User.objects.filter(
+            Q(uid=clean) | Q(username__iexact=clean)
+        ).filter(is_active=True).first()
+        if user_match and hasattr(user_match, 'worker_profile') and user_match.worker_profile.is_active:
+            worker = user_match.worker_profile
+            user_match = None
+
+    # 5. Ism / familiya bo'yicha qidiruv
+    if not worker and not user_match:
+        q = Q(first_name__icontains=clean) | Q(last_name__icontains=clean) | Q(user__username__icontains=clean)
+        matches = list(Worker.objects.filter(q, is_active=True).select_related('user')[:5])
+        if len(matches) == 1:
+            worker = matches[0]
+        elif len(matches) > 1:
+            return JsonResponse({
+                'status': 'MULTIPLE_MATCHES',
+                'message': f"«{clean}» bo'yicha bir nechta xodim topildi. Keraklisini tanlang:",
+                'candidates': [
+                    {
+                        'id': w.id,
+                        'worker_id': w.worker_id,
+                        'full_name': w.full_name,
+                        'uid': w.user.uid if w.user and w.user.uid else "",
+                    }
+                    for w in matches
+                ]
+            })
+
+    if not worker and not user_match:
+        return JsonResponse({
+            'status': 'NOT_FOUND',
+            'message': f"«{raw_code}» kodi bo'yicha xodim topilmadi! Birkani to'g'ri skaner qiling."
+        }, status=404)
+
+    if worker:
+        w_uid = worker.user.uid if (worker.user and worker.user.uid) else worker.worker_id
+        w_user_id = worker.user.id if worker.user else None
+        operator_data = {
+            'id': worker.id,
+            'worker_id': worker.worker_id,
+            'full_name': worker.full_name,
+            'uid': w_uid,
+            'user_id': w_user_id,
+            'phone': worker.phone_number or (worker.user.phone_number if worker.user else ""),
+            'login_date': str(timezone.localdate()),
+            'type': 'WORKER',
+        }
+    else:
+        operator_data = {
+            'id': user_match.id,
+            'worker_id': user_match.uid or f"U-{user_match.id}",
+            'full_name': user_match.get_full_name() or user_match.username,
+            'uid': user_match.uid or str(user_match.id),
+            'user_id': user_match.id,
+            'phone': user_match.phone_number or "",
+            'login_date': str(timezone.localdate()),
+            'type': 'USER',
+        }
+
+    # Sessiyada faol operator sifatida saqlash
+    request.session['control_operator'] = operator_data
+    request.session.modified = True
+
+    stats = _get_today_stats(request, operator_data)
+
+    return JsonResponse({
+        'status': 'OK',
+        'message': f"Xush kelibsiz, {operator_data['full_name']}! Ishni boshlashingiz mumkin.",
+        'operator': operator_data,
+        'today_stats': stats,
+    })
+
+
+@require_http_methods(["POST"])
+def control_logout_operator_api(request):
+    """
+    Faol xodim smenasini yakunlash (accountdan chiqish).
+    Planshetning o'zidan (patok loginidan) chiqilmaydi — faqat xodim sessiyasi bo'shaydi,
+    shunda boshqa xodim kelib o'z birkasini skaner qilishi mumkin.
+    """
+    request.session.pop('control_operator', None)
+    request.session.modified = True
+    return JsonResponse({
+        'status': 'OK',
+        'message': "Xodim smenasi yakunlandi. Keyingi xodim birkasini skaner qilishi mumkin."
     })
 
 
@@ -103,7 +288,8 @@ def control_home_view(request):
 def control_box_lookup_api(request):
     """
     Skanerlangan QR/shtrix-kod bo'yicha qutini qidirib topish API.
-    Kiritilgan kod CONTROL:BOX_CODE, BOX:BOX_CODE, yoki shunchaki BOX_CODE bo'lishi mumkin.
+    Faqat Quti ID kodi (masalan: A10-394) yoki CONTROL:A10-394 qabul qilinadi.
+    Eski #456 kabi quti raqamlari rad etiladi!
     """
     if not _is_control_authorized(request.user):
         return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
@@ -134,31 +320,25 @@ def control_box_lookup_api(request):
             'message': "Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!"
         }, status=403)
 
-    # Prefikslarni tozalash (CONTROL:, BOX:, QUTI #, QUTI#, QUTI:, #)
+    # Prefikslarni tozalash (CONTROL:, BOX:, QUTI:)
     cleaned = raw_code.upper()
-    for prefix in ['CONTROL:', 'BOX:', 'QUTI #', 'QUTI#', 'QUTI:', '#']:
+    for prefix in ['CONTROL:', 'BOX:', 'QUTI:', 'QUTI ']:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):].strip()
 
-    # Bazadan qidirish:
-    # 1. Aniq box_code moslik
-    box = None
-    if len(cleaned) == 8 and cleaned.isalnum():
-        box = Box.objects.filter(box_code=cleaned).select_related('order', 'article').first()
+    # User talabi: Quti raqami (#456) qabul qilinmaydi! Faqat Quti ID kodi (masalan: A10-394 yoki unikal Box ID)!
+    if raw_code.strip().startswith('#') or cleaned.startswith('#'):
+        return JsonResponse({
+            'status': 'INVALID_FORMAT',
+            'message': "Quti raqami (#456) qabul qilinmaydi! Iltimos, faqat Quti ID kodi (masalan: A10-394) yoki CONTROL stikerini skanerlang."
+        }, status=400)
 
-    # 2. Agar son bo'lsa ID yoki box_number
+    # Bazadan qidirish: Faqat box_code (A10-394 kabi) yoki unikal Box ID bo'yicha qidirish
+    box = Box.objects.filter(box_code__iexact=cleaned).select_related('order', 'article').first()
     if not box and cleaned.isdigit():
-        num = int(cleaned)
-        box = Box.objects.filter(id=num).select_related('order', 'article').first()
-        if not box:
-            box = Box.objects.filter(box_number=num).select_related('order', 'article').first()
+        box = Box.objects.filter(id=int(cleaned)).select_related('order', 'article').first()
 
-    # 3. Katta-kichik harf farqsiz box_code (masalan: a9-1, A9-1)
-    if not box:
-        box = Box.objects.filter(box_code__iexact=cleaned).select_related('order', 'article').first()
-
-    # 4. Agar quti topilmagan bo'lsa, lekin kiritilgan kod biletga (operatsiyaga) tegishli bo'lsa:
-    # Kontrolchi operatsiya stikerini ura olmaydi — faqat CONTROL stiker yoki quti ID!
+    # Agar quti topilmagan bo'lsa, lekin kiritilgan kod biletga tegishli bo'lsa:
     if not box:
         if Ticket.objects.filter(Q(stiker_code__iexact=cleaned) | Q(ticket_code__iexact=cleaned)).exists():
             return JsonResponse({
@@ -169,7 +349,7 @@ def control_box_lookup_api(request):
     if not box:
         return JsonResponse({
             'status': 'NOT_FOUND',
-            'message': f"«{raw_code}» kodi bo'yicha quti topilmadi! Qaytadan tekshirib ko'ring."
+            'message': f"«{raw_code}» kodi bo'yicha quti topilmadi! Faqat Quti ID kodi (masalan: A10-394) yoki CONTROL stikerini skanerlang."
         }, status=404)
 
     art = box.target_article
@@ -393,9 +573,23 @@ def control_submit_inspection_api(request):
 
         final_notes = "\n".join(notes_lines)
 
+        active_operator = _get_active_operator(request)
+        inspector_user = request.user
+        if active_operator and active_operator.get('user_id'):
+            u = User.objects.filter(id=active_operator['user_id']).first()
+            if u:
+                inspector_user = u
+
+        if active_operator:
+            operator_tag = f"\n[Nazoratchi: {active_operator.get('full_name')} ({active_operator.get('worker_id')})]"
+            final_notes += operator_tag
+
+        box.controlled_by = inspector_user
+        box.save(update_fields=['controlled_by'])
+
         log = BoxQualityInspectionLog.objects.create(
             box=box,
-            inspector=request.user,
+            inspector=inspector_user,
             action_type=BoxQualityInspectionLog.ActionType.INITIAL,
             inspected_qty=total_qty,
             first_sort_qty=first_sort,
@@ -406,15 +600,21 @@ def control_submit_inspection_api(request):
         )
 
         if is_closed:
-            msg = f"Quti #{box.box_number} yopildi: {first_sort} ta 1-sort, {second_sort} ta 2-sort. Mahsulot qabul qilindi va Upakovkaga topshiriladi!"
+            msg = f"Quti {box.box_code} yopildi: {first_sort} ta 1-sort, {second_sort} ta 2-sort. Mahsulot qabul qilindi!"
         else:
-            msg = f"Quti #{box.box_number} ta'mirga yuborildi: {repair_qty} ta ta'mirga ketdi. Quti qutisi bilan ta'mir bo'limiga qaytariladi."
+            msg = f"Quti {box.box_code} ta'mirga yuborildi: {repair_qty} ta ta'mirga ketdi."
+
+        updated_stats = _get_today_stats(request, active_operator)
 
         return JsonResponse({
             'status': 'OK',
             'message': msg,
             'is_closed': is_closed,
             'repair_qty': repair_qty,
+            'today_stats': updated_stats,
+            'today_first_sort': updated_stats['first_sort'],
+            'today_repair': updated_stats['repair'],
+            'today_second_sort': updated_stats['second_sort'],
             'box': {
                 'box_code': box.box_code,
                 'box_number': box.box_number,
@@ -450,6 +650,13 @@ def control_submit_inspection_api(request):
         fixed_qty = repair_in_hand - defect_qty - re_repair_qty
         is_closed = (re_repair_qty == 0)
 
+        active_operator = _get_active_operator(request)
+        inspector_user = request.user
+        if active_operator and active_operator.get('user_id'):
+            u = User.objects.filter(id=active_operator['user_id']).first()
+            if u:
+                inspector_user = u
+
         # Qutini yangilash (Brak bilan 2-sort bitta narsa - ikkalasi ham 2-sort)
         box.controlled_first_sort_qty += fixed_qty
         box.controlled_second_sort_qty += defect_qty
@@ -458,7 +665,7 @@ def control_submit_inspection_api(request):
         box.is_controlled = is_closed
         box.status = Box.Status.COMPLETED if is_closed else Box.Status.IN_PROGRESS
         box.controlled_at = timezone.now()
-        box.controlled_by = request.user
+        box.controlled_by = inspector_user
         box.save(update_fields=[
             'controlled_first_sort_qty', 'controlled_second_sort_qty',
             'controlled_defect_qty', 'controlled_repair_qty',
@@ -494,11 +701,15 @@ def control_submit_inspection_api(request):
                 custom_note = f" [{r.get('notes')}]" if r.get('notes') else ""
                 notes_lines.append(f"• #{item_idx} dona: Operatsiya: [{ops}{worker_part}]{custom_note}")
 
+        if active_operator:
+            operator_tag = f"\n[Nazoratchi: {active_operator.get('full_name')} ({active_operator.get('worker_id')})]"
+            notes_lines.append(operator_tag)
+
         final_notes = "\n".join(notes_lines)
 
         log = BoxQualityInspectionLog.objects.create(
             box=box,
-            inspector=request.user,
+            inspector=inspector_user,
             action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
             inspected_qty=repair_in_hand,
             first_sort_qty=fixed_qty,
@@ -509,15 +720,21 @@ def control_submit_inspection_api(request):
         )
 
         if is_closed:
-            msg = f"Quti #{box.box_number} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort. Mahsulot Upakovkaga topshiriladi!"
+            msg = f"Quti {box.box_code} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort."
         else:
-            msg = f"Quti #{box.box_number}: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort, {re_repair_qty} ta qayta ta'mirda qoldi."
+            msg = f"Quti {box.box_code}: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort, {re_repair_qty} ta qayta ta'mirda qoldi."
+
+        updated_stats = _get_today_stats(request, active_operator)
 
         return JsonResponse({
             'status': 'OK',
             'message': msg,
             'is_closed': is_closed,
             'repair_qty': re_repair_qty,
+            'today_stats': updated_stats,
+            'today_first_sort': updated_stats['first_sort'],
+            'today_repair': updated_stats['repair'],
+            'today_second_sort': updated_stats['second_sort'],
             'box': {
                 'box_code': box.box_code,
                 'box_number': box.box_number,
@@ -543,25 +760,15 @@ def control_recent_inspections_api(request):
         return JsonResponse({'status': 'FORBIDDEN'}, status=403)
 
     today = timezone.localdate()
-    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+    active_operator = _get_active_operator(request)
+    stats = _get_today_stats(request, active_operator)
 
+    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
     logs = today_logs_qs.select_related(
         'box', 'box__order', 'box__article', 'inspector'
     ).order_by('-created_at')[:25]
 
-    # Faqat unikal qutilar soni (bir quti 2-3 marta ta'mirga kirsa ham 1 ta quti hisoblanadi!)
     today_boxes_count = today_logs_qs.values('box_id').distinct().count()
-
-    # Bugun 1-sort bo'lgan barcha donalar
-    today_first_sort = today_logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
-
-    # Bugun 2-sort bo'lgan barcha donalar (birlamchi 2-sort + ta'mir natijasidagi 2-sort/brak)
-    today_second_sort = (today_logs_qs.aggregate(s=Sum('second_sort_qty'))['s'] or 0)
-    legacy_defects = today_logs_qs.filter(
-        action_type=BoxQualityInspectionLog.ActionType.REPAIR_RETURN,
-        second_sort_qty=0
-    ).aggregate(d=Sum('defect_qty'))['d'] or 0
-    today_second_sort += legacy_defects
 
     data = []
     for l in logs:
@@ -586,9 +793,10 @@ def control_recent_inspections_api(request):
         'status': 'OK',
         'count': today_boxes_count,
         'today_boxes_count': today_boxes_count,
-        'today_first_sort': today_first_sort,
-        'today_second_sort': today_second_sort,
-        'today_defects': today_second_sort,
+        'today_first_sort': stats['first_sort'],
+        'today_repair': stats['repair'],
+        'today_second_sort': stats['second_sort'],
+        'today_defects': stats['second_sort'],
         'logs': data
     })
 
