@@ -1,0 +1,226 @@
+<!-- Universal Theme & Font Manager: Times New Roman & Kun/Tun (Day/Night) Mode -->
+<script>
+    (function () {
+        const savedTheme = localStorage.getItem('payroll_theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.documentElement.classList.add('theme-light');
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.remove('theme-light');
+            document.documentElement.classList.add('dark');
+        }
+    })();
+</script>
+
+<style>
+    /* 1. UNIVERSAL FONT: Times New Roman on every element (strictly preserving FontAwesome icons) */
+    html, body, input, button, select, textarea, optgroup, option,
+    table, th, td, h1, h2, h3, h4, h5, h6, p, span, a, label, div, ul, ol, li {
+        font-family: 'Times New Roman', Times, serif;
+    }
+
+    *:not(.fa):not(.fas):not(.far):not(.fal):not(.fab):not(.fad):not([class*="fa-"]):not([class*="fas"]):not([class*="fa-solid"]):not([class*="fa-regular"]):not([class*="fa-brands"]):not([class*="fa-duotone"]) {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+
+    .digital-font, .font-mono {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+
+    /* 2. LIGHT THEME (KUN REJIMI) STYLES */
+    html.theme-light, 
+    html.theme-light body {
+        background-color: #f8fafc !important; /* Slate-50 */
+        color: #0f172a !important;            /* Slate-900 */
+    }
+
+    /* Aside / Sidebar */
+    html.theme-light aside {
+        background-color: #ffffff !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    /* Header / Navbars */
+    html.theme-light header,
+    html.theme-light nav.top-navbar {
+        background-color: #ffffff !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    /* Cards & Containers */
+    html.theme-light .bg-slate-900 {
+        background-color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    }
+    html.theme-light .bg-slate-950 {
+        background-color: #f1f5f9 !important; /* Slate-100 */
+    }
+    html.theme-light .bg-slate-950\/50,
+    html.theme-light .bg-slate-950\/60,
+    html.theme-light .bg-slate-950\/80,
+    html.theme-light .bg-slate-900\/50,
+    html.theme-light .bg-slate-900\/60,
+    html.theme-light .bg-slate-900\/80 {
+        background-color: #f8fafc !important;
+    }
+    html.theme-light .bg-slate-800,
+    html.theme-light .bg-slate-800\/40,
+    html.theme-light .bg-slate-800\/50,
+    html.theme-light .bg-slate-800\/60,
+    html.theme-light .bg-slate-800\/70,
+    html.theme-light .bg-slate-800\/80 {
+        background-color: #e2e8f0 !important;
+    }
+
+    /* Text Colors */
+    html.theme-light .text-white {
+        color: #0f172a !important;
+    }
+    html.theme-light .text-slate-100,
+    html.theme-light .text-slate-200,
+    html.theme-light .text-slate-300 {
+        color: #1e293b !important;
+    }
+    html.theme-light .text-slate-400 {
+        color: #475569 !important;
+    }
+    html.theme-light .text-slate-500 {
+        color: #64748b !important;
+    }
+
+    /* Borders & Dividers */
+    html.theme-light .border-slate-800,
+    html.theme-light .border-slate-800\/60,
+    html.theme-light .border-slate-800\/80,
+    html.theme-light .border-slate-700,
+    html.theme-light .border-slate-700\/60 {
+        border-color: #e2e8f0 !important;
+    }
+    html.theme-light .divide-slate-800\/60 > * + *,
+    html.theme-light .divide-slate-800 > * + * {
+        border-color: #e2e8f0 !important;
+    }
+
+    /* Form Controls */
+    html.theme-light input:not([type="checkbox"]):not([type="radio"]),
+    html.theme-light select,
+    html.theme-light textarea {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+    }
+    html.theme-light input::placeholder,
+    html.theme-light textarea::placeholder {
+        color: #94a3b8 !important;
+    }
+
+    /* Tables */
+    html.theme-light table thead tr {
+        background-color: #f1f5f9 !important;
+        color: #475569 !important;
+        border-bottom-color: #cbd5e1 !important;
+    }
+    html.theme-light table tbody tr:hover {
+        background-color: #f1f5f9 !important;
+    }
+
+    /* Modals */
+    html.theme-light .bg-black\/80,
+    html.theme-light .bg-black\/70 {
+        background-color: rgba(15, 23, 42, 0.6) !important;
+    }
+    html.theme-light [id*="modal"] > div {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    /* Floating Toast Notifications */
+    .payroll-toast {
+        animation: toastIn 0.25s ease-out forwards;
+    }
+    @keyframes toastIn {
+        from { transform: translateY(16px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
+
+<script>
+    function togglePayrollTheme() {
+        const isLight = document.documentElement.classList.contains('theme-light');
+        if (isLight) {
+            document.documentElement.classList.remove('theme-light');
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('payroll_theme', 'dark');
+        } else {
+            document.documentElement.classList.add('theme-light');
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('payroll_theme', 'light');
+        }
+        updatePayrollThemeButtons();
+    }
+
+    function updatePayrollThemeButtons() {
+        const isLight = document.documentElement.classList.contains('theme-light');
+        document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+            const moonIcon = btn.querySelector('.theme-icon-moon');
+            const sunIcon = btn.querySelector('.theme-icon-sun');
+            const textEl = btn.querySelector('.theme-text');
+            
+            if (isLight) {
+                if (moonIcon) moonIcon.classList.add('hidden');
+                if (sunIcon) sunIcon.classList.remove('hidden');
+                if (textEl) textEl.textContent = 'Kun';
+                btn.title = "Tungi (qorong'u) rejimga o'tish";
+            } else {
+                if (moonIcon) moonIcon.classList.remove('hidden');
+                if (sunIcon) sunIcon.classList.add('hidden');
+                if (textEl) textEl.textContent = 'Tun';
+                btn.title = "Kunduzgi (yorug') rejimga o'tish";
+            }
+        });
+    }
+
+    // Floating Toast Notification Helper
+    function showPayrollToast(message, type = 'success') {
+        let container = document.getElementById('payroll-floating-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'payroll-floating-toast-container';
+            container.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `payroll-toast pointer-events-auto p-3.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-md border ${
+            type === 'error' 
+                ? 'bg-rose-950/95 text-rose-200 border-rose-700/80 shadow-rose-950/50' 
+                : type === 'info'
+                ? 'bg-sky-950/95 text-sky-200 border-sky-700/80 shadow-sky-950/50'
+                : 'bg-emerald-950/95 text-emerald-200 border-emerald-700/80 shadow-emerald-950/50'
+        }`;
+
+        const iconClass = type === 'error' ? 'fa-circle-xmark text-rose-400' : type === 'info' ? 'fa-circle-info text-sky-400' : 'fa-circle-check text-emerald-400';
+        toast.innerHTML = `
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid ${iconClass} text-sm"></i>
+                <span>${message}</span>
+            </div>
+            <button type="button" class="text-slate-400 hover:text-white p-0.5 cursor-pointer" onclick="this.parentElement.remove()">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        `;
+
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(() => toast.remove(), 400);
+        }, 3500);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updatePayrollThemeButtons();
+    });
+</script>

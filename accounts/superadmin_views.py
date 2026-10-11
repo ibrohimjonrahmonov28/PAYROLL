@@ -1530,6 +1530,7 @@ def superadmin_pricing(request):
     """
     if request.method == 'POST':
         action = request.POST.get('action')
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
 
         # 0. TEZKOR AJAX ORQALI YANGI OPERATSIYA YARATISH (Modal ichida sahifani yangilamasdan)
         if action == 'quick_create_operation':
@@ -1758,11 +1759,15 @@ def superadmin_pricing(request):
             new_desc = request.POST.get('description', '').strip()
 
             if not new_name:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': "Guruh nomini kiritish shart!"}, status=400)
                 messages.error(request, "Guruh nomini kiritish shart!")
                 return redirect('superadmin_pricing')
 
             # Nom takrorlanmasligi kerak (boshqa guruhlarda)
             if OperationGroup.objects.filter(name__iexact=new_name).exclude(id=group.id).exists():
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': f"'{new_name}' nomli boshqa guruh allaqachon mavjud!"}, status=400)
                 messages.error(request, f"'{new_name}' nomli boshqa guruh allaqachon mavjud!")
                 return redirect('superadmin_pricing')
 
@@ -1771,7 +1776,18 @@ def superadmin_pricing(request):
             group.description = new_desc
             group.save(update_fields=['name', 'description'])
 
-            messages.success(request, f"Guruh nomi muvaffaqiyatli yangilandi: '{old_name}' ➔ '{group.name}'")
+            msg = f"Guruh nomi muvaffaqiyatli yangilandi: '{old_name}' ➔ '{group.name}'"
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': msg,
+                    'group': {
+                        'id': group.id,
+                        'name': group.name,
+                        'description': group.description or '',
+                    }
+                })
+            messages.success(request, msg)
             return redirect('superadmin_pricing')
 
         # 2. GURUH OPERATSIYASI NARXINI / TARTIBINI O'ZGARTIRISH
@@ -1806,10 +1822,25 @@ def superadmin_pricing(request):
             else:
                 group.reorder_items()
 
-            messages.success(
-                request, 
-                f"'{item.group.name}' guruhi -> '{item.operation.name}' yangilandi (narxi {item.price_per_unit:,.0f} UZS, tartibi #{item.sequence}) va barcha joyda yangilandi!"
-            )
+            item.refresh_from_db()
+            group.refresh_from_db()
+
+            msg = f"'{item.group.name}' guruhi -> '{item.operation.name}' yangilandi (narxi {item.price_per_unit:,.0f} UZS, tartibi #{item.sequence}) va barcha joyda yangilandi!"
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': msg,
+                    'item': {
+                        'id': item.id,
+                        'group_id': group.id,
+                        'price': float(item.price_per_unit),
+                        'price_formatted': f"{item.price_per_unit:,.0f}".replace(",", " "),
+                        'sequence': item.sequence,
+                        'difficulty': item.difficulty,
+                        'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                    }
+                })
+            messages.success(request, msg)
             return redirect('superadmin_pricing')
 
         # 3. MAVJUD GURUHGA OPERATSIYA QO'SHISH (Mavjudini tanlash yoki yangisini yaratish)
@@ -1852,25 +1883,64 @@ def superadmin_pricing(request):
                 }
             )
             group.reorder_items(target_item=item, desired_seq=seq)
+            item.refresh_from_db()
+            group.refresh_from_db()
 
             if created:
-                messages.success(request, f"'{op.name}' operatsiyasi '{group.name}' guruhiga #{item.sequence} tartibda qo'shildi ({price:,.0f} UZS). Pastdagi operatsiyalar avtomatik surildi.")
+                msg = f"'{op.name}' operatsiyasi '{group.name}' guruhiga #{item.sequence} tartibda qo'shildi ({price:,.0f} UZS). Pastdagi operatsiyalar avtomatik surildi."
             else:
-                messages.info(request, f"'{op.name}' operatsiyasi '{group.name}' guruhida #{item.sequence} tartib raqamiga yangilandi.")
+                msg = f"'{op.name}' operatsiyasi '{group.name}' guruhida #{item.sequence} tartib raqamiga yangilandi."
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': msg,
+                    'item': {
+                        'id': item.id,
+                        'group_id': group.id,
+                        'group_name': group.name,
+                        'operation_name': op.name,
+                        'operation_code': op.code,
+                        'price': float(item.price_per_unit),
+                        'price_formatted': f"{item.price_per_unit:,.0f}".replace(",", " "),
+                        'sequence': item.sequence,
+                        'difficulty': item.difficulty,
+                        'group_items_count': group.items.count(),
+                        'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                    }
+                })
+
+            if created:
+                messages.success(request, msg)
+            else:
+                messages.info(request, msg)
             return redirect('superadmin_pricing')
 
         # 3.1 OPERATSIYANI TO'XTATISH / BEKOR QILISH YOKI QAYTA FAOL QILISH
         elif action == 'toggle_group_item_status':
             item_id = request.POST.get('item_id')
             item = get_object_or_404(OperationGroupItem, id=item_id)
+            group = item.group
             item.is_active = not item.is_active
             item.save()
+            group.refresh_from_db()
             status_text = "qayta faollashtirildi" if item.is_active else "to'xtatildi (bekor qilindi)"
-            messages.success(
-                request,
+            msg = (
                 f"'{item.operation.name}' operatsiyasi muvaffaqiyatli {status_text}! "
                 f"Barcha skanerlanmagan stikerlar avtomatik yangilandi va Control sifat nazorati talabidan chiqarildi."
             )
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': msg,
+                    'item': {
+                        'id': item.id,
+                        'group_id': group.id,
+                        'is_active': item.is_active,
+                        'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                    }
+                })
+            messages.success(request, msg)
             return redirect('superadmin_pricing')
 
         # 4. GURUHDAN OPERATSIYANI O'CHIRISH
@@ -1878,6 +1948,7 @@ def superadmin_pricing(request):
             item_id = request.POST.get('item_id')
             item = get_object_or_404(OperationGroupItem, id=item_id)
             group = item.group
+            group_id = group.id
             group_name = group.name
             op = item.operation
             op_name = op.name
@@ -1885,33 +1956,66 @@ def superadmin_pricing(request):
 
             item.delete()
             group.reorder_items()
+            group.refresh_from_db()
 
             if delete_from_catalog:
                 tickets_count = Ticket.objects.filter(article_operation__operation=op).count()
                 other_groups_count = OperationGroupItem.objects.filter(operation=op).count()
 
                 if tickets_count > 0:
-                    messages.warning(
-                        request,
-                        f"'{op_name}' guruhdan olib tashlandi, ammo katalogdan o'chirilmadi, chunki tizimda unga tegishli {tickets_count} ta bilet mavjud."
-                    )
+                    warn_msg = f"'{op_name}' guruhdan olib tashlandi, ammo katalogdan o'chirilmadi, chunki tizimda unga tegishli {tickets_count} ta bilet mavjud."
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': True,
+                            'message': warn_msg,
+                            'item_id': item_id,
+                            'group_id': group_id,
+                            'group_items_count': group.items.count(),
+                            'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                        })
+                    messages.warning(request, warn_msg)
                 elif other_groups_count > 0:
-                    messages.info(
-                        request,
-                        f"'{op_name}' ushbu guruhdan olib tashlandi, ammo boshqa {other_groups_count} ta guruhda mavjud bo'lgani uchun katalogda saqlandi."
-                    )
+                    info_msg = f"'{op_name}' ushbu guruhdan olib tashlandi, ammo boshqa {other_groups_count} ta guruhda mavjud bo'lgani uchun katalogda saqlandi."
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': True,
+                            'message': info_msg,
+                            'item_id': item_id,
+                            'group_id': group_id,
+                            'group_items_count': group.items.count(),
+                            'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                        })
+                    messages.info(request, info_msg)
                 else:
                     try:
                         op.delete()
-                        messages.success(
-                            request,
-                            f"'{op_name}' operatsiyasi guruhdan ham, umumiy katalogdan ham butunlay o'chirildi."
-                        )
+                        suc_del_msg = f"'{op_name}' operatsiyasi guruhdan ham, umumiy katalogdan ham butunlay o'chirildi."
+                        if is_ajax:
+                            return JsonResponse({
+                                'success': True,
+                                'message': suc_del_msg,
+                                'item_id': item_id,
+                                'group_id': group_id,
+                                'group_items_count': group.items.count(),
+                                'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                            })
+                        messages.success(request, suc_del_msg)
                         return redirect('superadmin_pricing')
                     except Exception as e:
-                        messages.warning(request, f"Katalogdan o'chirishda xatolik yuz berdi: {e}")
+                        if not is_ajax:
+                            messages.warning(request, f"Katalogdan o'chirishda xatolik yuz berdi: {e}")
 
-            messages.success(request, f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi va qolgan operatsiyalar tartib raqamlari qayta tartiblandi.")
+            msg = f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi va qolgan operatsiyalar tartib raqamlari qayta tartiblandi."
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': msg,
+                    'item_id': item_id,
+                    'group_id': group_id,
+                    'group_items_count': group.items.count(),
+                    'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
+                })
+            messages.success(request, msg)
             return redirect('superadmin_pricing')
 
         # 5. GURUHNI TO'LIQ O'CHIRISH

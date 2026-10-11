@@ -8,19 +8,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@600;700&display=swap');
-
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Times New Roman', Times, serif;
         }
 
         .digital-font {
-            font-family: 'Chakra Petch', monospace;
+            font-family: 'Times New Roman', Times, serif;
         }
     </style>
+    {% include 'includes/theme_head.html' %}
 </head>
 
-<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 relative">
+    <div class="absolute top-4 right-4">
+        {% include 'includes/theme_toggle.html' %}
+    </div>
 
     <div class="w-full max-w-md">
         <!-- Brand Header -->
