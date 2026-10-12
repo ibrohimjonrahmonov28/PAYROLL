@@ -5,6 +5,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils import timezone
 from django.db.models import Sum, Q
 from accounts.models import User, Worker
@@ -113,6 +114,7 @@ def _get_today_stats(request, operator=None):
 
 
 @login_required
+@ensure_csrf_cookie
 def control_home_view(request):
     """
     Sifat Nazorati (OTK / Control) planshet interfeysi.
@@ -145,6 +147,7 @@ def control_home_view(request):
     })
 
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def control_identify_operator_api(request):
     """
@@ -269,7 +272,8 @@ def control_identify_operator_api(request):
     })
 
 
-@require_http_methods(["POST"])
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
 def control_logout_operator_api(request):
     """
     Faol xodim smenasini yakunlash (accountdan chiqish).
@@ -278,6 +282,14 @@ def control_logout_operator_api(request):
     """
     request.session.pop('control_operator', None)
     request.session.modified = True
+
+    # Faqat explicit redirect so'ralsa yoki brauzer to'g'ridan-to'g'ri GET qilganda:
+    if request.method == 'GET' and (
+        request.GET.get('redirect') == '1' or
+        'text/html' in request.headers.get('accept', '')
+    ):
+        return redirect('production:control_home')
+
     stats = _get_today_stats(request, None)
     return JsonResponse({
         'status': 'OK',
@@ -459,6 +471,7 @@ def control_box_lookup_api(request):
     })
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def control_submit_inspection_api(request):
     """

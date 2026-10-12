@@ -145,11 +145,11 @@
                             {% if active_operator %}{{ active_operator.full_name }}{% else %}Xodim yo'q{% endif %}
                         </span>
                     </div>
-                    <button type="button" id="btn-header-logout" onclick="openOperatorLogoutModal()"
-                        class="{% if not active_operator %}hidden{% endif %} ml-1 px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] font-black transition flex items-center gap-1 cursor-pointer active:scale-95"
+                    <button type="button" id="btn-header-logout" onclick="requestOperatorLogout(event)"
+                        class="{% if not active_operator %}hidden{% endif %} ml-1 px-2.5 py-1 rounded-lg bg-rose-600/30 hover:bg-rose-600/40 text-rose-200 border border-rose-500/50 text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
                         title="Smenani yakunlash / Boshqa ishchiga o'tish">
                         <i class="fa-solid fa-right-from-bracket"></i>
-                        <span class="hidden sm:inline">Chiqish</span>
+                        <span>Chiqish</span>
                     </button>
                     <button type="button" id="btn-header-start" onclick="openIdentifyWorkerModal()"
                         class="{% if active_operator %}hidden{% endif %} ml-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-black transition flex items-center gap-1 cursor-pointer animate-pulse active:scale-95"
@@ -206,6 +206,8 @@
     <!-- 2. MAIN CONTAINER -->
     <main
         class="max-w-7xl mx-auto w-full px-2.5 sm:px-4 py-2 flex-1 flex flex-col min-h-0 overflow-hidden justify-between gap-2 sm:gap-2.5">
+
+        <form style="display:none;" id="csrf-helper-form">{% csrf_token %}</form>
 
         <!-- SKANER INPUT MAYDONI (Har doim faol, skaner fokuslangan) -->
         <section class="bg-slate-900 border-2 border-indigo-500/30 rounded-2xl p-2 sm:p-2.5 shadow-lg flex-shrink-0">
@@ -1355,6 +1357,10 @@
             return cookieValue;
         }
 
+        function getCsrfToken() {
+            return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || getCookie('csrftoken') || '';
+        }
+
         // =====================================================================
         // OPERATOR (ISHCHI) BOSHQARUVI VA SMENA (User talabi)
         // =====================================================================
@@ -1404,17 +1410,19 @@
             focusScannerInput();
         }
 
+        function requestOperatorLogout(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const opName = activeOperator ? `${activeOperator.full_name} (${activeOperator.worker_id})` : "xodim";
+            if (confirm(`Haqiqatan ham ${opName} hisobidan chiqib, smenani yakunlaysizmi?`)) {
+                confirmOperatorLogout();
+            }
+        }
+
         function openOperatorLogoutModal() {
-            if (!activeOperator) return;
-            const wEl = document.getElementById('logout-modal-worker');
-            if (wEl) wEl.innerText = `${activeOperator.full_name} (${activeOperator.worker_id})`;
-            const fEl = document.getElementById('logout-modal-first');
-            const rEl = document.getElementById('logout-modal-repair');
-            const sEl = document.getElementById('logout-modal-second');
-            if (fEl) fEl.innerText = `${document.getElementById('stat-first-sort')?.innerText || 0} 1-sort`;
-            if (rEl) rEl.innerText = `${document.getElementById('stat-repair')?.innerText || 0} ta'mir`;
-            if (sEl) sEl.innerText = `${document.getElementById('stat-second-sort')?.innerText || 0} 2-sort`;
-            document.getElementById('operator-logout-modal')?.classList.remove('hidden');
+            requestOperatorLogout();
         }
 
         function closeOperatorLogoutModal() {
@@ -1525,36 +1533,47 @@
         }
 
         async function confirmOperatorLogout() {
+            // 1. Darhol UI ni tozalash va Start ekranga o'tkazish
+            activeOperator = null;
+            updateHeaderOperatorUI(null);
+            closeOperatorLogoutModal();
+
+            document.getElementById('inspection-card')?.classList.add('hidden');
+            document.getElementById('step2-card')?.classList.add('hidden');
+            document.getElementById('standby-screen')?.classList.add('hidden');
+            document.getElementById('start-shift-screen')?.classList.remove('hidden');
+
+            const stepEl = document.getElementById('header-step-indicator');
+            if (stepEl) stepEl.innerText = "Smena yakunlandi : Ishni boshlash uchun birkani skanerlang";
+            const scanInp = document.getElementById('scanner-input');
+            if (scanInp) {
+                scanInp.value = '';
+                scanInp.placeholder = "Ishni boshlash uchun o'z ID birkangizni skanerlang...";
+                scanInp.focus();
+            }
+            playSound('beep');
+
+            // 2. Server sessiyasini tozalash (POST va fallback GET)
             try {
+                const token = getCsrfToken();
                 const res = await fetch(`{% url 'control:api_logout_operator' %}`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': token
                     }
                 });
-                const data = await res.json();
-                if (res.ok && data.status === 'OK') {
-                    playSound('beep');
-                    activeOperator = null;
-                    updateHeaderOperatorUI(null);
-                    if (data.today_stats) {
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.today_stats) {
                         updateTodayStatsUI(data.today_stats);
                     }
-                    closeOperatorLogoutModal();
-
-                    document.getElementById('inspection-card')?.classList.add('hidden');
-                    document.getElementById('step2-card')?.classList.add('hidden');
-                    document.getElementById('standby-screen')?.classList.add('hidden');
-                    document.getElementById('start-shift-screen')?.classList.remove('hidden');
-                    const stepEl = document.getElementById('header-step-indicator');
-                    if (stepEl) stepEl.innerText = "Smena yakunlandi : Ishni boshlash uchun birkani skanerlang";
-                    const scanInp = document.getElementById('scanner-input');
-                    if (scanInp) scanInp.placeholder = "Ishni boshlash uchun o'z ID birkangizni skanerlang...";
-                    focusScannerInput();
+                } else {
+                    window.location.href = `{% url 'control:api_logout_operator' %}?redirect=1`;
                 }
             } catch (err) {
-                playSound('error');
-                console.error(err);
+                console.warn("Logout error, redirecting:", err);
+                window.location.href = `{% url 'control:api_logout_operator' %}?redirect=1`;
             }
         }
 
