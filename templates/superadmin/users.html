@@ -63,6 +63,35 @@
             <div class="text-[11px] text-slate-500 mt-1">Bot skanerlari</div>
         </a>
 
+        {% if is_branch_admin %}
+        <!-- 4. Kontrolchilar -->
+        <a href="{% url 'superadmin_users' %}?role=CONTROL"
+            class="bg-slate-900 border {% if role_filter == 'CONTROL' %}border-indigo-500/60 shadow-indigo-500/10{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg hover:border-slate-700 transition">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Kontrolchilar</span>
+                <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-indigo-400 digital-font">{{ controllers_count }} <small
+                    class="text-xs text-indigo-400/70">nafar</small></div>
+            <div class="text-[11px] text-slate-500 mt-1">Sifat nazorati</div>
+        </a>
+
+        <!-- 5. Yangi Birkalar -->
+        <a href="{% url 'superadmin_users' %}?badge=unprinted"
+            class="bg-slate-900 border {% if badge_filter == 'unprinted' %}border-amber-500/60 shadow-amber-500/10{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg hover:border-slate-700 transition">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Yangi Birkalar</span>
+                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-print"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-amber-400 digital-font">{{ unprinted_badges_count }} <small
+                    class="text-xs text-amber-400/70">ta</small></div>
+            <div class="text-[11px] text-slate-500 mt-1">Chop etilmagan</div>
+        </a>
+        {% else %}
         <!-- 4. Adminlar -->
         <a href="{% url 'superadmin_users' %}?role=ADMIN"
             class="bg-slate-900 border {% if role_filter == 'ADMIN' %}border-amber-500/60 shadow-amber-500/10{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg hover:border-slate-700 transition">
@@ -90,6 +119,7 @@
                     class="text-xs text-rose-400/70">nafar</small></div>
             <div class="text-[11px] text-slate-500 mt-1">To'liq huquq</div>
         </a>
+        {% endif %}
     </div>
 
     <!-- TOOLBAR: SEARCH, ROLE TABS, BIRKA TABS & ACTIONS -->
@@ -118,6 +148,7 @@
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'PLAN' %}bg-emerald-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
                     <i class="fa-solid fa-calendar-day mr-1"></i> Plan ({{ plan_count }})
                 </a>
+                {% if not is_branch_admin %}
                 <a href="{% url 'superadmin_users' %}?role=ADMIN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'ADMIN' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
                     <i class="fa-solid fa-user-shield mr-1"></i> Admin ({{ admins_count }})
@@ -126,6 +157,7 @@
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'SUPER_ADMIN' %}bg-rose-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-rose-400{% endif %}">
                     <i class="fa-solid fa-crown mr-1"></i> Super Admin ({{ superadmins_count }})
                 </a>
+                {% endif %}
             </div>
 
             <!-- Search Form & Add User Button -->
@@ -164,12 +196,14 @@
                     {% endif %}
                 </a>
 
+                {% if not is_branch_admin %}
                 <button onclick="document.getElementById('generate-patoks-modal').classList.remove('hidden')"
                     class="px-3.5 py-2 bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2 whitespace-nowrap"
                     title="1 dan 40 gacha bo'lgan barcha Patok kontrolchi akkauntlarini bir zumda yaratish yoki yangilash">
                     <i class="fa-solid fa-clipboard-check text-sm"></i>
                     <span>Patok 1-40 Akkauntlari</span>
                 </button>
+                {% endif %}
 
                 <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')"
                     class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 hover:border-amber-500/50 rounded-xl text-xs font-black shadow-md transition flex items-center gap-2 whitespace-nowrap">
@@ -654,19 +688,27 @@
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
                         <option value="PLAN">📊 Plan (Rejalashtirish / Tikim Statistikasi)</option>
+                        {% if not is_branch_admin %}
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin (To'liq huquq)</option>
+                        {% endif %}
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish
-                        Joyi *</label>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish Joyi *</label>
+                    {% if is_branch_admin %}
+                    <input type="hidden" name="branch" value="{{ user_branch }}">
+                    <div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 font-bold flex items-center gap-2">
+                        <span>📍 {{ request.user.get_branch_display }} filiali</span>
+                    </div>
+                    {% else %}
                     <select name="branch" required
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 focus:outline-none focus:border-amber-500 font-bold">
                         <option value="HQ" selected>🏢 Bosh bino (HQ)</option>
                         <option value="UYCHI">📍 Uychi filiali</option>
                     </select>
+                    {% endif %}
                 </div>
             </div>
 
@@ -752,19 +794,27 @@
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
                         <option value="PLAN">📊 Plan (Rejalashtirish / Tikim Statistikasi)</option>
+                        {% if not is_branch_admin %}
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin (To'liq huquq)</option>
+                        {% endif %}
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish
-                        Joyi</label>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish Joyi</label>
+                    {% if is_branch_admin %}
+                    <input type="hidden" name="branch" id="edit-branch" value="{{ user_branch }}">
+                    <div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 font-bold flex items-center gap-2">
+                        <span>📍 {{ request.user.get_branch_display }} filiali</span>
+                    </div>
+                    {% else %}
                     <select name="branch" id="edit-branch"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 focus:outline-none focus:border-amber-500 font-bold">
                         <option value="HQ">🏢 Bosh bino (HQ)</option>
                         <option value="UYCHI">📍 Uychi filiali</option>
                     </select>
+                    {% endif %}
                 </div>
             </div>
 
@@ -881,6 +931,7 @@
                     </div>
                 </label>
 
+                {% if not is_branch_admin %}
                 <label
                     class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
                     <input type="radio" name="role" value="ADMIN" id="role-radio-admin"
@@ -916,6 +967,7 @@
                             foydalanuvchilar va narxlar</span>
                     </div>
                 </label>
+                {% endif %}
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">

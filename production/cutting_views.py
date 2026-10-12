@@ -11,12 +11,18 @@ from .services import generate_next_pastal_code
 
 
 def cutter_required(view_func):
-    """Kesimchi (Bichuvchi) yoki Superadmin uchun ruxsat tekshiruvi"""
+    """Kesimchi (Bichuvchi), Stikerchi yoki Superadmin uchun ruxsat tekshiruvi"""
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('root_login')
-        if not (getattr(request.user, 'is_cutter', lambda: False)() or request.user.is_superadmin()):
-            messages.error(request, "Ushbu bo'limga faqat kesimchilar va superadminlar kira oladi!")
+        if not (
+            getattr(request.user, 'is_cutter', lambda: False)() or
+            getattr(request.user, 'is_sticker', lambda: False)() or
+            getattr(request.user, 'role', None) == 'STICKER' or
+            request.user.is_superadmin() or
+            request.user.is_admin_user()
+        ):
+            messages.error(request, "Ushbu bo'limga faqat kesimchilar, stikerchilar va adminlar kira oladi!")
             return redirect('production:order_list')
         return view_func(request, *args, **kwargs)
     return wrapper

@@ -1957,6 +1957,163 @@ class PlanRoleAccessTest(TestCase):
         self.assertIn(reverse('production:sewing_statistics_daily'), res_orders.url)
 
 
+class BranchAdminUserManagementTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        
+        # Branch admin for Uychi
+        self.branch_admin = User.objects.create_user(
+            username='uychi_admin',
+            password='testpassword123',
+            role=User.Role.BRANCH_ADMIN,
+            branch=User.Branch.UYCHI,
+            first_name='Uychi',
+            last_name='Admin'
+        )
+
+        # Super admin (HQ)
+        self.super_admin = User.objects.create_superuser(
+            username='head_superadmin',
+            password='testpassword123',
+            email='admin@terryjar.uz',
+            role=User.Role.SUPER_ADMIN,
+            branch=User.Branch.HQ
+        )
+
+        # Existing HQ user
+        self.hq_user = User.objects.create_user(
+            username='hq_worker_user',
+            password='testpassword123',
+            role=User.Role.USER,
+            branch=User.Branch.HQ,
+            first_name='HQ',
+            last_name='Ishchi'
+        )
+        self.hq_worker = Worker.objects.create(
+            user=self.hq_user,
+            worker_id='W-HQ1',
+            first_name='HQ',
+            last_name='Ishchi',
+            branch=User.Branch.HQ
+        )
+
+        # Existing Uychi user
+        self.uychi_user = User.objects.create_user(
+            username='uychi_worker_user',
+            password='testpassword123',
+            role=User.Role.USER,
+            branch=User.Branch.UYCHI,
+            first_name='Uychi',
+            last_name='Tikuvchi'
+        )
+        self.uychi_worker = Worker.objects.create(
+            user=self.uychi_user,
+            worker_id='W-UY1',
+            first_name='Uychi',
+            last_name='Tikuvchi',
+            branch=User.Branch.UYCHI
+        )
+
+    def test_branch_admin_can_access_users_page(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.get(reverse('superadmin_users'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Uychi Tikuvchi')
+        self.assertNotContains(res, 'HQ Ishchi')
+        # Check context
+        self.assertEqual(res.context['is_branch_admin'], True)
+        self.assertEqual(res.context['user_branch'], User.Branch.UYCHI)
+        self.assertEqual(res.context['all_users_count'], 2)
+
+    def test_branch_admin_cannot_see_hq_users(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.get(reverse('superadmin_users'))
+        users_in_context = res.context['users']
+        self.assertTrue(all(u.branch == User.Branch.UYCHI for u in users_in_context))
+        self.assertNotIn(self.hq_user, users_in_context)
+
+    def test_branch_admin_create_user_automatically_assigned_to_uychi(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.post(reverse('superadmin_users'), {
+            'action': 'create_user',
+            'first_name': 'Yangi',
+            'last_name': 'Uychilik',
+            'password': 'pass12345new',
+            'role': User.Role.USER,
+            'branch': 'HQ',  # Attempt to spoof branch to HQ
+        })
+        self.assertEqual(res.status_code, 302)
+        new_user = User.objects.get(first_name='Yangi', last_name='Uychilik')
+        self.assertEqual(new_user.branch, User.Branch.UYCHI)
+        self.assertTrue(hasattr(new_user, 'worker_profile'))
+        self.assertEqual(new_user.worker_profile.branch, User.Branch.UYCHI)
+
+    def test_branch_admin_cannot_escalate_role_on_create(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.post(reverse('superadmin_users'), {
+            'action': 'create_user',
+            'first_name': 'Hacker',
+            'last_name': 'Admin',
+            'password': 'pass12345new',
+            'role': User.Role.SUPER_ADMIN,
+        })
+        self.assertEqual(res.status_code, 302)
+        hacker = User.objects.get(first_name='Hacker', last_name='Admin')
+        self.assertEqual(hacker.role, User.Role.USER)
+        self.assertEqual(hacker.branch, User.Branch.UYCHI)
+        self.assertFalse(hacker.is_superuser)
+        self.assertFalse(hacker.is_staff)
+
+    def test_branch_admin_cannot_edit_hq_user(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.post(reverse('superadmin_users'), {
+            'action': 'update_user',
+            'user_id': self.hq_user.id,
+            'first_name': 'Hacked',
+        })
+        self.assertEqual(res.status_code, 302)
+        self.hq_user.refresh_from_db()
+        self.assertEqual(self.hq_user.first_name, 'HQ')
+
+    def test_branch_admin_cannot_delete_hq_user(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.post(reverse('superadmin_users'), {
+            'action': 'delete_user',
+            'user_id': self.hq_user.id,
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertTrue(User.objects.filter(id=self.hq_user.id).exists())
+
+    def test_branch_admin_cannot_view_badge_of_hq_user(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.get(reverse('superadmin_user_badge', args=[self.hq_user.id]))
+        self.assertEqual(res.status_code, 404)
+
+        # But can view Uychi user badge
+        res_ok = self.client.get(reverse('superadmin_user_badge', args=[self.uychi_user.id]))
+        self.assertEqual(res_ok.status_code, 200)
+
+    def test_branch_admin_print_badges_only_shows_uychi(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.get(reverse('superadmin_users_print_badges'))
+        self.assertEqual(res.status_code, 200)
+        users = res.context['badge_users']
+        self.assertTrue(all(u.branch == User.Branch.UYCHI for u in users))
+
+    def test_branch_admin_middleware_allows_users_and_blocks_disallowed(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        # Allowed users page
+        res = self.client.get('/superadmin/users/')
+        self.assertEqual(res.status_code, 200)
+
+        # Disallowed page (e.g., /superadmin/pricing/) redirects to /superadmin/payroll/
+        res_pricing = self.client.get('/superadmin/pricing/')
+        self.assertEqual(res_pricing.status_code, 302)
+        self.assertIn(reverse('superadmin_payroll'), res_pricing.url)
+
+
+
+
 
 
 

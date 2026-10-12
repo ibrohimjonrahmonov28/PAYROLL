@@ -9,12 +9,18 @@ from .services import auto_generate_boxes_for_batch_item
 
 
 def meto_required(view_func):
-    """Metochi (Nomerovkachi) yoki Superadmin uchun ruxsat tekshiruvi"""
+    """Metochi (Nomerovkachi), Stikerchi yoki Superadmin uchun ruxsat tekshiruvi"""
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('root_login')
-        if not (getattr(request.user, 'is_meto', lambda: False)() or request.user.is_superadmin() or request.user.is_admin_user()):
-            messages.error(request, "Ushbu bo'limga faqat Meto (Nomerovka) bo'limi xodimlari kira oladi!")
+        if not (
+            getattr(request.user, 'is_meto', lambda: False)() or
+            getattr(request.user, 'is_sticker', lambda: False)() or
+            getattr(request.user, 'role', None) == 'STICKER' or
+            request.user.is_superadmin() or
+            request.user.is_admin_user()
+        ):
+            messages.error(request, "Ushbu bo'limga faqat Meto (Nomerovka) bo'limi xodimlari, stikerchilar va adminlar kira oladi!")
             return redirect('production:order_list')
         return view_func(request, *args, **kwargs)
     return wrapper

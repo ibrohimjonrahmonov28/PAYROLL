@@ -23,6 +23,12 @@ def login_view(request):
             return redirect('superadmin_payroll')
         if getattr(request.user, 'role', None) == User.Role.PLAN:
             return redirect('production:sewing_statistics_daily')
+        if getattr(request.user, 'role', None) == User.Role.CUTTER:
+            return redirect('cutting_dashboard')
+        if getattr(request.user, 'role', None) == User.Role.METO:
+            return redirect('meto_dashboard')
+        if getattr(request.user, 'role', None) == User.Role.STICKER:
+            return redirect('sticker_dashboard')
         if request.user.is_superadmin():
             return redirect('superadmin_dashboard')
         return redirect('production:order_list')

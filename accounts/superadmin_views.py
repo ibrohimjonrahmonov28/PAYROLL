@@ -5,7 +5,7 @@ import json
 import datetime
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count, Q, F, FloatField, ExpressionWrapper, Value, Max, ProtectedError
@@ -300,8 +300,11 @@ def superadmin_dashboard(request):
     })
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_users(request):
+    is_branch_admin = (request.user.role == User.Role.BRANCH_ADMIN and not request.user.is_superuser)
+    user_branch = request.user.branch or User.Branch.UYCHI
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -312,9 +315,14 @@ def superadmin_users(request):
             email = request.POST.get('email', '').strip()
             password = request.POST.get('password', '').strip()
             role = request.POST.get('role', User.Role.USER)
-            branch = request.POST.get('branch', User.Branch.HQ)
-            if branch not in User.Branch.values:
-                branch = User.Branch.HQ
+            if is_branch_admin:
+                branch = user_branch
+                if role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+                    role = User.Role.USER
+            else:
+                branch = request.POST.get('branch', User.Branch.HQ)
+                if branch not in User.Branch.values:
+                    branch = User.Branch.HQ
             phone_number = request.POST.get('phone_number', '').strip()
             telegram_user_id = request.POST.get('telegram_user_id', '').strip() or None
 
@@ -360,14 +368,21 @@ def superadmin_users(request):
         elif action == 'update_user':
             user_id = request.POST.get('user_id')
             user = get_object_or_404(User, id=user_id)
+            if is_branch_admin and user.branch != user_branch:
+                messages.error(request, "Siz faqat o'z filialingizdagi foydalanuvchilarni tahrirlay olasiz!")
+                return redirect('superadmin_users')
+
             user.first_name = request.POST.get('first_name', '').strip()
             user.last_name = request.POST.get('last_name', '').strip()
             user.email = request.POST.get('email', '').strip()
             user.phone_number = request.POST.get('phone_number', '').strip()
 
-            new_branch = request.POST.get('branch')
-            if new_branch in User.Branch.values:
-                user.branch = new_branch
+            if is_branch_admin:
+                user.branch = user_branch
+            else:
+                new_branch = request.POST.get('branch')
+                if new_branch in User.Branch.values:
+                    user.branch = new_branch
 
             # Username o'zgartirish (faqat agar formda aniq mavjud va to'ldirilgan bo'lsa)
             if 'username' in request.POST and request.POST.get('username', '').strip():
@@ -383,7 +398,9 @@ def superadmin_users(request):
             
             old_role = user.role
             new_role = request.POST.get('role', user.role)
-            if user == request.user and new_role != User.Role.SUPER_ADMIN:
+            if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+                new_role = user.role
+            if user == request.user and new_role != User.Role.SUPER_ADMIN and not is_branch_admin:
                 messages.warning(request, "O'zingizning Super Admin rolingizni tushira olmaysiz!")
             else:
                 user.role = new_role
@@ -440,7 +457,13 @@ def superadmin_users(request):
             user_id = request.POST.get('user_id')
             new_role = request.POST.get('role', '').strip()
             user = get_object_or_404(User, id=user_id)
-            if user == request.user and new_role != User.Role.SUPER_ADMIN:
+            if is_branch_admin and user.branch != user_branch:
+                messages.error(request, "Siz faqat o'z filialingizdagi foydalanuvchilar rolini o'zgartira olasiz!")
+                return redirect('superadmin_users')
+            if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+                messages.error(request, "Filial admini ushbu rolni biriktira olmaydi!")
+                return redirect('superadmin_users')
+            if user == request.user and new_role != User.Role.SUPER_ADMIN and not is_branch_admin:
                 messages.error(request, "Xatolik: O'zingizning Super Admin rolingizni o'zgartira olmaysiz!")
             elif new_role not in User.Role.values:
                 messages.error(request, "Noto'g'ri rol tanlandi!")
@@ -454,6 +477,12 @@ def superadmin_users(request):
         elif action == 'delete_user':
             user_id = request.POST.get('user_id')
             target_user = get_object_or_404(User, id=user_id)
+            if is_branch_admin and target_user.branch != user_branch:
+                messages.error(request, "Siz faqat o'z filialingizdagi foydalanuvchilarni o'chira olasiz!")
+                return redirect('superadmin_users')
+            if is_branch_admin and target_user.role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+                messages.error(request, "Siz admin hisoblarini o'chira olmaysiz!")
+                return redirect('superadmin_users')
             if target_user == request.user:
                 messages.error(request, "Xatolik: O'zingizning profilingizni o'chira olmaysiz!")
             elif target_user.role == User.Role.SUPER_ADMIN and User.objects.filter(role=User.Role.SUPER_ADMIN).count() <= 1:
@@ -466,6 +495,9 @@ def superadmin_users(request):
         elif action == 'toggle_active':
             user_id = request.POST.get('user_id')
             user = get_object_or_404(User, id=user_id)
+            if is_branch_admin and user.branch != user_branch:
+                messages.error(request, "Siz faqat o'z filialingizdagi foydalanuvchilar hisobini o'zgartira olasiz!")
+                return redirect('superadmin_users')
             if user == request.user:
                 messages.error(request, "O'zingizning hisobingizni bloklay olmaysiz!")
             else:
@@ -477,6 +509,11 @@ def superadmin_users(request):
         elif action == 'toggle_badge_printed':
             user_id = request.POST.get('user_id')
             target_user = get_object_or_404(User, id=user_id)
+            if is_branch_admin and target_user.branch != user_branch:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+                    return JsonResponse({'status': 'error', 'message': "Ruxsat yo'q"}, status=403)
+                messages.error(request, "Ruxsat yo'q!")
+                return redirect('superadmin_users')
             target_user.is_badge_printed = not target_user.is_badge_printed
             target_user.save(update_fields=['is_badge_printed'])
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
@@ -494,12 +531,18 @@ def superadmin_users(request):
             val = request.POST.get('value', 'true').lower() == 'true'
             ids = [int(i.strip()) for i in user_ids_raw.split(',') if i.strip().isdigit()]
             if ids:
-                updated_cnt = User.objects.filter(id__in=ids).update(is_badge_printed=val)
+                qs = User.objects.filter(id__in=ids)
+                if is_branch_admin:
+                    qs = qs.filter(branch=user_branch)
+                updated_cnt = qs.update(is_badge_printed=val)
                 state_lbl = "Berilgan" if val else "Berilmagan"
                 messages.success(request, f"{updated_cnt} ta xodimning birkasi '{state_lbl}' deb belgilandi.")
             return redirect(request.META.get('HTTP_REFERER') or 'superadmin_users')
 
         elif action == 'generate_patok_users':
+            if is_branch_admin:
+                messages.error(request, "Filial admini ushbu amalni bajara olmaydi!")
+                return redirect('superadmin_users')
             try:
                 count = max(1, min(100, int(request.POST.get('count', 40))))
             except (ValueError, TypeError):
@@ -554,6 +597,9 @@ def superadmin_users(request):
     badge_filter = request.GET.get('badge', '').strip()  # unprinted, printed, all
 
     users_qs = User.objects.all()
+    if is_branch_admin:
+        users_qs = users_qs.filter(branch=user_branch)
+
     if search_q:
         users_qs = users_qs.filter(
             Q(username__icontains=search_q) |
@@ -574,16 +620,20 @@ def superadmin_users(request):
     users = users_qs.order_by('-date_joined')
 
     # Hisoblagichlar
-    all_users_count = User.objects.count()
-    regular_users_count = User.objects.filter(role=User.Role.USER).count()
-    masters_count = User.objects.filter(role=User.Role.MASTER).count()
-    controllers_count = User.objects.filter(role=User.Role.CONTROL).count()
-    screens_count = User.objects.filter(role=User.Role.SCREEN).count()
-    plan_count = User.objects.filter(role=User.Role.PLAN).count()
-    admins_count = User.objects.filter(role=User.Role.ADMIN).count()
-    superadmins_count = User.objects.filter(role=User.Role.SUPER_ADMIN).count()
-    unprinted_badges_count = User.objects.filter(is_badge_printed=False).count()
-    printed_badges_count = User.objects.filter(is_badge_printed=True).count()
+    base_counts_qs = User.objects.all()
+    if is_branch_admin:
+        base_counts_qs = base_counts_qs.filter(branch=user_branch)
+
+    all_users_count = base_counts_qs.count()
+    regular_users_count = base_counts_qs.filter(role=User.Role.USER).count()
+    masters_count = base_counts_qs.filter(role=User.Role.MASTER).count()
+    controllers_count = base_counts_qs.filter(role=User.Role.CONTROL).count()
+    screens_count = base_counts_qs.filter(role=User.Role.SCREEN).count()
+    plan_count = base_counts_qs.filter(role=User.Role.PLAN).count()
+    admins_count = base_counts_qs.filter(role=User.Role.ADMIN).count()
+    superadmins_count = base_counts_qs.filter(role=User.Role.SUPER_ADMIN).count()
+    unprinted_badges_count = base_counts_qs.filter(is_badge_printed=False).count()
+    printed_badges_count = base_counts_qs.filter(is_badge_printed=True).count()
 
     return render(request, 'superadmin/users.html', {
         'users': users,
@@ -600,16 +650,23 @@ def superadmin_users(request):
         'superadmins_count': superadmins_count,
         'unprinted_badges_count': unprinted_badges_count,
         'printed_badges_count': printed_badges_count,
+        'is_branch_admin': is_branch_admin,
+        'user_branch': user_branch,
     })
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_user_badge(request, user_id):
     """
     Yagona foydalanuvchi uchun Universal Birka (ID Card / Beydjik) chop etish sahifasi.
     Ismi, familiyasi, 6 xonali unikal UID raqami va yuqori sifatli QR kod aks etadi.
     """
+    is_branch_admin = (request.user.role == User.Role.BRANCH_ADMIN and not request.user.is_superuser)
+    user_branch = request.user.branch or User.Branch.UYCHI
+
     user = get_object_or_404(User, id=user_id)
+    if is_branch_admin and user.branch != user_branch:
+        raise Http404("Foydalanuvchi topilmadi")
     
     # UID mavjudligini kafolatlash
     if not user.uid:
@@ -636,12 +693,15 @@ def superadmin_user_badge(request, user_id):
     })
 
 
-@superadmin_required
+@payroll_admin_required
 def superadmin_users_print_badges(request):
     """
     Barcha yoki filtrlangan foydalanuvchilarning Universal Birkalarini
     A4 qog'ozda (varaqqa 8 tadan) ommaviy chop etish sahifasi.
     """
+    is_branch_admin = (request.user.role == User.Role.BRANCH_ADMIN and not request.user.is_superuser)
+    user_branch = request.user.branch or User.Branch.UYCHI
+
     if request.method == 'POST':
         action = request.POST.get('action')
         is_ajax = (
@@ -655,7 +715,10 @@ def superadmin_users_print_badges(request):
             ids = [int(i.strip()) for i in user_ids_raw.split(',') if i.strip().isdigit()]
             updated_cnt = 0
             if ids:
-                updated_cnt = User.objects.filter(id__in=ids).update(is_badge_printed=val)
+                qs = User.objects.filter(id__in=ids)
+                if is_branch_admin:
+                    qs = qs.filter(branch=user_branch)
+                updated_cnt = qs.update(is_badge_printed=val)
                 state_lbl = "Berilgan" if val else "Berilmagan"
                 messages.success(request, f"Jami {updated_cnt} ta xodimning birkasi '{state_lbl}' deb belgilandi!")
 
@@ -671,6 +734,12 @@ def superadmin_users_print_badges(request):
         elif action == 'toggle_badge_printed':
             user_id = request.POST.get('user_id')
             target_user = get_object_or_404(User, id=user_id)
+            if is_branch_admin and target_user.branch != user_branch:
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': "Ruxsat yo'q"}, status=403)
+                messages.error(request, "Ruxsat yo'q!")
+                return redirect(request.get_full_path())
+
             target_user.is_badge_printed = not target_user.is_badge_printed
             target_user.save(update_fields=['is_badge_printed'])
 
@@ -694,10 +763,16 @@ def superadmin_users_print_badges(request):
         badge_status = badge_status_param.strip()
     else:
         # Agar parametr berilmagan bo'lsa: chop etilmaganlar bo'lsa 'unprinted', bo'lmasa 'all'
-        has_unprinted = User.objects.filter(is_badge_printed=False).exists()
+        chk_qs = User.objects.filter(is_badge_printed=False)
+        if is_branch_admin:
+            chk_qs = chk_qs.filter(branch=user_branch)
+        has_unprinted = chk_qs.exists()
         badge_status = 'unprinted' if has_unprinted else 'all'
 
     users_qs = User.objects.all()
+    if is_branch_admin:
+        users_qs = users_qs.filter(branch=user_branch)
+
     if batch == 'new':
         # Faqat yangi qo'shilgan 20 ta ishchi (id >= 9)
         users_qs = users_qs.filter(id__gte=9, role=User.Role.USER)
@@ -753,6 +828,8 @@ def superadmin_users_print_badges(request):
     pages_list = [users_list[i:i + CARDS_PER_A4] for i in range(0, len(users_list), CARDS_PER_A4)]
 
     base_counts_qs = User.objects.all()
+    if is_branch_admin:
+        base_counts_qs = base_counts_qs.filter(branch=user_branch)
     if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.CONTROL, User.Role.SCREEN, User.Role.USER]:
         base_counts_qs = base_counts_qs.filter(role=role_filter)
     unprinted_badges_count = base_counts_qs.filter(is_badge_printed=False).count()
@@ -772,6 +849,8 @@ def superadmin_users_print_badges(request):
         'printed_badges_count': printed_badges_count,
         'total_all_badges_count': total_all_badges_count,
         'user_ids_str': ','.join(str(u.id) for u in users_list),
+        'is_branch_admin': is_branch_admin,
+        'user_branch': user_branch,
     })
 
 

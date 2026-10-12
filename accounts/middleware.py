@@ -165,6 +165,8 @@ class MasterTerminalAccessRestrictionMiddleware:
                     '/superadmin/payroll/',
                     '/superadmin/payroll',
                     '/superadmin/workers/',
+                    '/superadmin/users/',
+                    '/superadmin/users',
                     '/statistics/',
                     '/statistics',
                     '/terminal/',
