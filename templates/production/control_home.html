@@ -1537,6 +1537,9 @@
                     playSound('beep');
                     activeOperator = null;
                     updateHeaderOperatorUI(null);
+                    if (data.today_stats) {
+                        updateTodayStatsUI(data.today_stats);
+                    }
                     closeOperatorLogoutModal();
 
                     document.getElementById('inspection-card')?.classList.add('hidden');

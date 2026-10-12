@@ -278,9 +278,11 @@ def control_logout_operator_api(request):
     """
     request.session.pop('control_operator', None)
     request.session.modified = True
+    stats = _get_today_stats(request, None)
     return JsonResponse({
         'status': 'OK',
-        'message': "Xodim smenasi yakunlandi. Keyingi xodim birkasini skaner qilishi mumkin."
+        'message': "Xodim smenasi yakunlandi. Keyingi xodim birkasini skaner qilishi mumkin.",
+        'today_stats': stats
     })
 
 

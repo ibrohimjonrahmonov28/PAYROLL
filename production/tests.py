@@ -2195,6 +2195,68 @@ class ControlQualityInspectionWorkflowTest(TestCase):
         data_lookup2 = res_lookup2.json()
         self.assertEqual(data_lookup2['box']['mode'], 'COMPLETED')
 
+    def test_operator_shift_identification_and_exit_flow(self):
+        import json
+        from django.urls import reverse
+        from accounts.models import Worker, User
+
+        self.client.login(username="inspector_otk", password="password123")
+        control_home_url = reverse('production:control_home')
+        identify_url = reverse('control:api_identify_operator')
+        logout_op_url = reverse('control:api_logout_operator')
+        root_logout_url = reverse('root_logout')
+
+        # 1. Dastlab xodimsiz sahifa ochiladi
+        res_init = self.client.get(control_home_url)
+        self.assertEqual(res_init.status_code, 200)
+        self.assertIsNone(res_init.context['active_operator'])
+        self.assertContains(res_init, 'start-shift-screen')
+        self.assertContains(res_init, "KUNLIK SMENANI BOSHLASH")
+        self.assertContains(res_init, "ISHNI BOSHLASH")
+
+        # 2. Xodim birkasini skaner qilish (Identify operator)
+        w_user = User.objects.create_user(username="worker_otk_op", password="pass", first_name="Nodir", last_name="Karimov")
+        worker = Worker.objects.create(worker_id="W-105", user=w_user, first_name="Nodir", last_name="Karimov")
+
+        res_id = self.client.post(
+            identify_url,
+            data=json.dumps({'code': 'WORKER:W-105'}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_id.status_code, 200)
+        data_id = res_id.json()
+        self.assertEqual(data_id['status'], 'OK')
+        self.assertEqual(data_id['operator']['worker_id'], 'W-105')
+        self.assertEqual(data_id['operator']['full_name'], 'Nodir Karimov')
+
+        # 3. Sahifada endi xodim faol ko'rinadi
+        res_active = self.client.get(control_home_url)
+        self.assertEqual(res_active.status_code, 200)
+        self.assertIsNotNone(res_active.context['active_operator'])
+        self.assertEqual(res_active.context['active_operator']['worker_id'], 'W-105')
+        self.assertContains(res_active, 'ID: W-105')
+        self.assertContains(res_active, 'Nodir Karimov')
+        self.assertContains(res_active, 'btn-header-logout')
+
+        # 4. Chiqish (Exit / Logout Operator) API chaqirilganda
+        res_logout = self.client.post(logout_op_url)
+        self.assertEqual(res_logout.status_code, 200)
+        data_logout = res_logout.json()
+        self.assertEqual(data_logout['status'], 'OK')
+
+        # 5. Chiqishdan keyin tekshiruv: xodim sessiyasi bo'shagan, lekin planshet akkaunti tizimda qolgan
+        res_after = self.client.get(control_home_url)
+        self.assertEqual(res_after.status_code, 200)
+        self.assertIsNone(res_after.context['active_operator'])
+        self.assertEqual(res_after.context['inspector'].username, "inspector_otk")
+        self.assertContains(res_after, 'start-shift-screen')
+
+        # 6. To'liq tizimdan chiqish (root_logout)
+        res_root = self.client.get(root_logout_url)
+        self.assertEqual(res_root.status_code, 302)
+        res_unauth = self.client.get(control_home_url)
+        self.assertEqual(res_unauth.status_code, 302)
+
 
 class SewingStatisticsFeatureTest(TestCase):
     def setUp(self):
