@@ -1546,6 +1546,29 @@ class DailyPatokProgress(models.Model):
     waiting_qty = models.PositiveIntegerField(default=0, verbose_name="Kutayotgan dona")
     repair_qty = models.PositiveIntegerField(default=0, verbose_name="Ta'mir dona")
     is_completed = models.BooleanField(default=False, verbose_name="Norma bajarildimi?")
+
+    # Yangi ko'rsatkichlar va foizlar
+    aniqlik = models.FloatField(default=0.0, verbose_name="Aniqlik (shablon qiyinligi)")
+    davomat = models.PositiveIntegerField(default=0, verbose_name="Davomat (faol tikuvchilar)")
+    davomat_foiz = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Davomat foizi (%)"
+    )
+    avg_kpi = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Tikuvchilar o'rtacha KPI si (%)"
+    )
+    patok_kpi = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Patok KPI (%)"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

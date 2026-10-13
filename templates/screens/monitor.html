@@ -82,10 +82,10 @@
     <!-- HEADER / STATUS BAR -->
     <header class="flex items-center justify-between border-b border-slate-800/80 pb-2.5 mb-2.5 gap-3 flex-shrink-0">
         <!-- Left: Patok Badge, Terry Jar, and Large Digital Clock -->
-        <div class="flex items-center gap-3 md:gap-5 shrink-0">
+        <div class="flex items-center gap-3 md:gap-4 shrink-0">
             <!-- Patok Badge -->
             <div
-                class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-4 py-1.5 md:py-2 rounded-xl shadow-lg flex items-center gap-2.5 shrink-0">
+                class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black text-2xl md:text-3xl px-3.5 py-1.5 md:py-2 rounded-xl shadow-lg flex items-center gap-2 shrink-0">
                 <i class="fa-solid fa-tv"></i>
                 <span>{{ patok_code|default:screen_number }}-PATOK</span>
             </div>
@@ -93,54 +93,64 @@
             <!-- Terry Jar Title -->
             <div class="shrink-0">
                 <h1
-                    class="text-xl md:text-2xl font-black tracking-wide text-white leading-tight flex items-center gap-2">
+                    class="text-xl md:text-2xl font-black tracking-wide text-white leading-tight">
                     TERRY JAR
-                    <span
-                        class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
-                        Online
-                    </span>
                 </h1>
-                <p class="text-xs text-slate-400 font-medium">Dona-bay monitoring tizimi</p>
+                <p class="text-[11px] text-slate-400 font-medium">Dona-bay monitoring tizimi</p>
             </div>
 
-            <!-- VAQT (Kattaroq, Terry Jar va Patok raqami qatorida) -->
+            <!-- VAQT (Terry Jar va Patok raqami yonida) -->
             <div
-                class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-4 py-1.5 rounded-xl shrink-0">
+                class="flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 rounded-xl shrink-0">
                 <i class="fa-regular fa-clock text-amber-400 text-2xl md:text-3xl"></i>
                 <div>
                     <div id="live-clock"
-                        class="text-3xl md:text-4xl lg:text-5xl font-black digital-font text-amber-400 leading-none tracking-wider">
+                        class="text-2xl md:text-3xl lg:text-4xl font-black digital-font text-amber-400 leading-none tracking-wider">
                         00:00:00</div>
-                    <div id="live-date" class="text-xs text-slate-400 font-semibold tracking-wide mt-0.5">{{ date_str }}
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <button type="button" onclick="const inp = document.getElementById('date-picker-input'); try { inp.showPicker(); } catch(e) { inp.click(); }" class="cursor-pointer flex items-center gap-1 text-[11px] text-slate-400 hover:text-amber-300 font-semibold tracking-wide transition bg-transparent border-0 p-0" title="Sanani o'zgartirish (Kalendardan tanlash)">
+                            <i class="fa-regular fa-calendar-days text-amber-400 text-xs"></i>
+                            <span id="live-date">{{ date_str }}</span>
+                        </button>
+                        <input type="date" id="date-picker-input" value="{{ target_date_iso }}" class="sr-only" onchange="onDateChanged(this.value)">
+                        {% if is_custom_date %}
+                        <a href="?date=" class="text-[10px] bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-1.5 py-0.5 rounded font-bold transition border border-amber-500/30" title="Bugungi kunga qaytish">Bugun</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Right: Summary Stats & Actions -->
-        <div class="flex items-center gap-3 shrink-0">
-            <!-- Summary Stats Card -->
+        <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
+            <!-- Summary Stats Card: Aniqlik, Davomat, Foiz, O'rtacha KPI, Patok KPI -->
             <div
-                class="flex items-center gap-4 md:gap-6 bg-slate-900/90 border border-slate-800 px-5 py-1.5 rounded-xl">
-                <div class="text-center">
-                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Faol
-                        Tikuvchilar</span>
-                    <span id="stat-active-workers" class="text-2xl md:text-3xl font-black text-cyan-400 digital-font">{{
-                        active_workers_count }}</span>
+                class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-slate-800 px-4 md:px-5 py-1.5 rounded-xl shrink-0">
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Aniqlik</span>
+                    <span id="stat-aniqlik" class="text-xl md:text-2xl lg:text-3xl font-black text-amber-400 digital-font">{{ aniqlik }}</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
-                <div class="text-center">
-                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Bugun Tikilgan (Dazmol)</span>
-                    <span id="stat-total-units" class="text-2xl md:text-3xl font-black text-amber-400 digital-font">{{
-                        grand_total_units }}</span>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Davomat</span>
+                    <span id="stat-davomat" class="text-xl md:text-2xl lg:text-3xl font-black text-cyan-400 digital-font">{{ davomat }}</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
-                <div class="text-center">
-                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">O'rtacha
-                        KPI</span>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Foiz</span>
+                    <span id="stat-foiz" class="text-xl md:text-2xl lg:text-3xl font-black text-blue-400 digital-font">{{ foiz }}%</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">O'rtacha KPI</span>
                     <span id="stat-avg-kpi"
-                        class="text-2xl md:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{
-                        avg_screen_kpi }}%</span>
+                        class="text-xl md:text-2xl lg:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{ avg_screen_kpi }}%</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Patok KPI</span>
+                    <span id="stat-patok-kpi"
+                        class="text-xl md:text-2xl lg:text-3xl font-black text-amber-300 digital-font glow-amber">{{ patok_kpi }}%</span>
                 </div>
             </div>
 
@@ -151,13 +161,6 @@
                 <i id="scroll-icon" class="fa-solid fa-arrows-up-down animate-pulse"></i>
                 <span id="scroll-text" class="hidden xl:inline">Avto-tushish: Faol</span>
             </button>
-
-            <!-- Countdown Timer Indicator -->
-            <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs text-slate-400"
-                title="Keyingi yangilanish">
-                <i class="fa-solid fa-arrows-rotate text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
-                <strong id="timer-countdown" class="text-white digital-font text-sm">30</strong>s
-            </div>
 
             <!-- Fullscreen Button -->
             <button id="btn-fullscreen" onclick="toggleFullscreen()"
@@ -258,12 +261,18 @@
                     </tr>
                     {% empty %}
                     <tr id="empty-row">
-                        <td colspan="7" class="py-20 text-center text-slate-500">
+                        <td colspan="7" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
-                            <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar
-                                biriktirilmadi</span>
-                            <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan
-                                biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                            <span class="text-xl font-bold block text-slate-400">Ushbu kunda ({{ date_str }}) bu ekranga hali ishlar biriktirilmadi</span>
+                            <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                            <div class="mt-4 flex items-center justify-center gap-2">
+                                <a href="?date=2026-10-09" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition shadow-sm">
+                                    <i class="fa-regular fa-calendar-check"></i> 09.10.2026 (Real tarixiy ma'lumotlarni ko'rish)
+                                </a>
+                                <a href="?date=2026-10-08" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition">
+                                    08.10.2026
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -287,7 +296,14 @@
     <!-- JAVASCRIPT: Auto-refresh, TV Auto-scroll, and live clock -->
     <script>
         const SCREEN_NUMBER = {{ screen_number }};
+        const CURRENT_DATE = "{{ target_date_iso|default:'' }}";
         let countdown = 30;
+
+        function onDateChanged(newDate) {
+            if (newDate) {
+                window.location.search = `?date=${encodeURIComponent(newDate)}`;
+            }
+        }
 
         // Clock Update
         function updateClock() {
@@ -303,7 +319,11 @@
         // Refresh Countdown & Polling
         async function fetchScreenData() {
             try {
-                const response = await fetch(`/screens/api/${SCREEN_NUMBER}/`);
+                let apiUrl = `/screens/api/${SCREEN_NUMBER}/`;
+                if (CURRENT_DATE) {
+                    apiUrl += `?date=${encodeURIComponent(CURRENT_DATE)}`;
+                }
+                const response = await fetch(apiUrl);
                 if (!response.ok) return;
                 const data = await response.json();
 
@@ -312,12 +332,20 @@
                     const dateElem = document.getElementById('live-date');
                     if (dateElem) dateElem.innerText = data.date_str;
                 }
-                const statActiveWorkers = document.getElementById('stat-active-workers');
-                if (statActiveWorkers) statActiveWorkers.innerText = data.active_workers_count;
-                const statTotalUnits = document.getElementById('stat-total-units');
-                if (statTotalUnits) statTotalUnits.innerText = data.grand_total_units;
+                const statAniqlik = document.getElementById('stat-aniqlik');
+                if (statAniqlik && data.aniqlik !== undefined) statAniqlik.innerText = data.aniqlik;
+
+                const statDavomat = document.getElementById('stat-davomat');
+                if (statDavomat && data.davomat !== undefined) statDavomat.innerText = data.davomat;
+
+                const statFoiz = document.getElementById('stat-foiz');
+                if (statFoiz && data.foiz !== undefined) statFoiz.innerText = `${data.foiz}%`;
+
                 const statAvgKpi = document.getElementById('stat-avg-kpi');
                 if (statAvgKpi && data.avg_screen_kpi !== undefined) statAvgKpi.innerText = `${data.avg_screen_kpi}%`;
+
+                const statPatokKpi = document.getElementById('stat-patok-kpi');
+                if (statPatokKpi && data.patok_kpi !== undefined) statPatokKpi.innerText = `${data.patok_kpi}%`;
 
                 // Render Table Rows
                 const tbody = document.getElementById('workers-tbody');
@@ -325,10 +353,18 @@
                 if (!data.workers || data.workers.length === 0) {
                     tbody.innerHTML = `
                     <tr id="empty-row">
-                        <td colspan="7" class="py-20 text-center text-slate-500">
+                        <td colspan="7" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
-                            <span class="text-xl font-bold block text-slate-400">Bugun ushbu ekranga hali ishlar biriktirilmadi</span>
+                            <span class="text-xl font-bold block text-slate-400">Ushbu kunda (${data.date_str || ''}) bu ekranga hali ishlar biriktirilmadi</span>
                             <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                            <div class="mt-4 flex items-center justify-center gap-2">
+                                <a href="?date=2026-10-09" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition shadow-sm">
+                                    <i class="fa-regular fa-calendar-check"></i> 09.10.2026 (Real tarixiy ma'lumotlarni ko'rish)
+                                </a>
+                                <a href="?date=2026-10-08" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition">
+                                    08.10.2026
+                                </a>
+                            </div>
                         </td>
                     </tr>`;
                 } else {
@@ -398,10 +434,9 @@
             }
         }
 
-        // Countdown Timer
+        // Auto-refresh interval (har 30 soniyada ma'lumotlarni yangilash)
         setInterval(() => {
             countdown--;
-            document.getElementById('timer-countdown').innerText = countdown;
             if (countdown <= 0) {
                 countdown = 30;
                 fetchScreenData();

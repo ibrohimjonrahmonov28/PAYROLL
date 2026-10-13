@@ -107,6 +107,28 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         self.assertEqual(data_after['dazmol_units'], 44)
         self.assertEqual(data_after['active_workers_count'], 2)
 
+    def test_screen_aniqlik_and_patok_kpi_calculation(self):
+        # 1. Worker 1 scans on Screen 1
+        Ticket.objects.create(
+            box=self.box,
+            article_operation=self.art_op_sewing,
+            quantity=50,
+            price_per_unit=Decimal("1000.00"),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker1,
+            screen_number=1,
+            scanned_at=timezone.now()
+        )
+        data = get_screen_data(1)
+        # article has 2 operations with default difficulty 1.0 each -> aniqlik = 2
+        self.assertEqual(data['aniqlik'], 2)
+        self.assertEqual(data['davomat'], 1)
+        # 1 / 2 * 100 = 50.0%
+        self.assertEqual(data['foiz'], 50.0)
+        # patok_kpi = (foiz + avg_screen_kpi) / 2
+        expected_patok_kpi = round((50.0 + data['avg_screen_kpi']) / 2, 1)
+        self.assertEqual(data['patok_kpi'], expected_patok_kpi)
+
     def test_screen_template_layout_elements(self):
         # View screen 1
         res = self.client.get(reverse('screens:screen_view', args=[1]))
@@ -122,8 +144,16 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         self.assertIn("TERRY JAR", html)
         self.assertIn("K1-PATOK", html)
 
-        # Check that the stat label specifies Dazmol
-        self.assertIn("Bugun Tikilgan (Dazmol)", html)
+        # Check that Online badge and countdown timer are removed
+        self.assertNotIn(">Online<", html)
+        self.assertNotIn("timer-countdown", html)
+
+        # Check that new summary stats exist
+        self.assertIn("Aniqlik", html)
+        self.assertIn("Davomat", html)
+        self.assertIn("Foiz", html)
+        self.assertIn("O'rtacha KPI", html)
+        self.assertIn("Patok KPI", html)
 
         # View screen 14 -> must show U1-PATOK
         res14 = self.client.get(reverse('screens:screen_view', args=[14]))

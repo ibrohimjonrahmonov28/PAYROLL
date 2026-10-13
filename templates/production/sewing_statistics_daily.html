@@ -43,9 +43,9 @@
 <div class="w-full px-2 lg:px-6 py-4 space-y-6">
 
     <!-- TOP EXECUTIVE KPI CARDS -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
         <!-- KPI 1: Faol Patoklar -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Faol Patoklar</span>
             <div class="mt-2">
                 <span class="text-2xl font-black text-emerald-400 digital-font">{{ kpis.active_patoks }}</span>
@@ -54,24 +54,50 @@
             <span class="text-[10px] text-slate-500 mt-1 block">Bugun ishlagan liniyalar</span>
         </div>
 
-        <!-- KPI: O'rtacha Norma Bajarilishi -->
-        <div class="bg-slate-900 border {% if kpis.avg_norm_pct >= 100 %}border-emerald-900/50 bg-gradient-to-b from-emerald-950/25 to-transparent{% elif kpis.avg_norm_pct >= 80 %}border-cyan-900/40 bg-gradient-to-b from-cyan-950/25 to-transparent{% else %}border-amber-900/40 bg-gradient-to-b from-amber-950/25 to-transparent{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <!-- KPI 2: Faol Tikuvchilar (Davomat) -->
+        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/20 to-transparent">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %}">Norma Natijasi</span>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Tikuvchilar</span>
+                <i class="fa-solid fa-users text-emerald-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-emerald-300 digital-font">{{ kpis.total_workers }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">kishi</span>
+            </div>
+            <span class="text-[10px] text-emerald-400/80 font-mono mt-1 block">Jami faol davomat</span>
+        </div>
+
+        <!-- KPI 3: Patok KPI va O'rtacha KPI -->
+        <div class="bg-slate-900 border border-cyan-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-cyan-950/20 to-transparent">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Patok KPI</span>
+                <i class="fa-solid fa-chart-line text-cyan-400 text-xs"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1">
+                <span class="text-2xl font-black text-cyan-300 digital-font">{{ kpis.avg_patok_kpi_overall }}%</span>
+            </div>
+            <span class="text-[10px] text-slate-400 font-mono mt-1 block">
+                O'rtacha KPI: <strong class="text-cyan-300">{{ kpis.avg_kpi_overall }}%</strong>
+            </span>
+        </div>
+
+        <!-- KPI 4: O'rtacha Norma Bajarilishi -->
+        <div class="bg-slate-900 border {% if kpis.avg_norm_pct >= 100 %}border-emerald-900/50 bg-gradient-to-b from-emerald-950/25 to-transparent{% elif kpis.avg_norm_pct >= 80 %}border-cyan-900/40 bg-gradient-to-b from-cyan-950/25 to-transparent{% else %}border-amber-900/40 bg-gradient-to-b from-amber-950/25 to-transparent{% endif %} rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %}">Kunlik Norma</span>
                 <i class="fa-solid fa-bullseye {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %} text-xs"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1.5">
                 <span class="text-2xl font-black {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %} digital-font">{{ kpis.avg_norm_pct }}%</span>
-                <span class="text-xs text-slate-500 font-semibold">o'rtacha</span>
             </div>
-            <span class="text-[10px] text-slate-400 font-mono mt-1 block">
+            <span class="text-[10px] text-slate-400 font-mono mt-1 block truncate">
                 {{ kpis.total_completed_norm }} / {{ kpis.total_planned_norm }} dona
             </span>
         </div>
 
-        <!-- KPI 2: Jarayondagi Zakazlar & Pastallar -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Zakazlar & Pastallar</span>
+        <!-- KPI 5: Jarayondagi Zakazlar & Pastallar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Zakaz & Pastal</span>
             <div class="mt-2 flex items-baseline gap-1.5">
                 <span class="text-2xl font-black text-cyan-400 digital-font">{{ kpis.total_orders }}</span>
                 <span class="text-xs text-slate-400 font-semibold">zakaz</span>
@@ -82,8 +108,8 @@
             <span class="text-[10px] text-slate-500 mt-1 block">Patoklarda tikilayotgan</span>
         </div>
 
-        <!-- KPI 3: Kunlik Dazmol -->
-        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/25 to-transparent">
+        <!-- KPI 6: Kunlik Dazmol -->
+        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/25 to-transparent">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Kunlik Dazmol</span>
                 <i class="fa-solid fa-soap text-indigo-400 text-xs"></i>
@@ -95,36 +121,23 @@
             <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">Bugun dazmoldan chiqqan</span>
         </div>
 
-        <!-- KPI 4: Bugun OTK Qabul Qildi -->
-        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/25 to-transparent">
+        <!-- KPI 7: Bugun OTK Qabul Qildi -->
+        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/25 to-transparent">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK Qabul Qildi</span>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK O'tgan</span>
                 <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1.5">
                 <span class="text-2xl font-black text-emerald-400 digital-font">{{ kpis.controlled_qty }}</span>
                 <span class="text-xs text-slate-500 font-semibold">dona</span>
             </div>
-            <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block">
-                {{ kpis.first_sort_qty }} (1-sort) {% if kpis.second_sort_qty > 0 %}• {{ kpis.second_sort_qty }} (2-sort){% endif %}
+            <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block truncate">
+                {{ kpis.first_sort_qty }} 1-s {% if kpis.second_sort_qty > 0 %}• {{ kpis.second_sort_qty }} 2-s{% endif %}
             </span>
         </div>
 
-        <!-- KPI 5: Kontrolda Kutmoqda -->
-        <div class="bg-slate-900 border border-amber-900/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-amber-950/25 to-transparent">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">OTK Kutmoqda</span>
-                <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
-            </div>
-            <div class="mt-2">
-                <span class="text-2xl font-black text-amber-400 digital-font">{{ kpis.waiting_qty }}</span>
-                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
-            </div>
-            <span class="text-[10px] text-amber-400 font-mono font-bold mt-1 block">Tekshiruv navbatida</span>
-        </div>
-
-        <!-- KPI 6: Ta'mirda Turgan (Mato/Remont) -->
-        <div class="bg-slate-900 border {% if kpis.repair_qty > 0 %}border-rose-900/50 bg-gradient-to-b from-rose-950/25 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <!-- KPI 8: Ta'mirda Turgan -->
+        <div class="bg-slate-900 border {% if kpis.repair_qty > 0 %}border-rose-900/50 bg-gradient-to-b from-rose-950/25 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
             <div class="flex items-center justify-between">
                 <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.repair_qty > 0 %}text-rose-400{% else %}text-slate-400{% endif %}">Hozir Ta'mirda</span>
                 <i class="fa-solid fa-wrench {% if kpis.repair_qty > 0 %}text-rose-400{% else %}text-slate-500{% endif %} text-xs"></i>
@@ -226,15 +239,14 @@
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="bg-slate-950 text-slate-400 uppercase font-black tracking-wider border-b border-slate-800 text-[11px]">
-                        <th class="py-3.5 px-4 w-44">Patok</th>
-                        <th class="py-3.5 px-4">Qilayotgan Zakazi & Modellar (Yaxlit)</th>
-                        <th class="py-3.5 px-4 min-w-[220px]">Tikayotgan Pastallar</th>
-                        <th class="py-3.5 px-3 text-center min-w-[160px]">Kunlik Norma & Natija</th>
+                        <th class="py-3.5 px-4 w-40">Patok</th>
+                        <th class="py-3.5 px-3 min-w-[170px]">Zakaz & Modellar</th>
+                        <th class="py-3.5 px-3 min-w-[180px]">Tikayotgan Pastallar</th>
+                        <th class="py-3.5 px-3 text-center min-w-[140px]">Davomat & Aniqlik</th>
+                        <th class="py-3.5 px-3 text-center min-w-[160px]">KPI & Norma</th>
                         <th class="py-3.5 px-3 text-center">Kunlik Dazmol</th>
-                        <th class="py-3.5 px-3 text-center">Bugun OTK O'tgan</th>
-                        <th class="py-3.5 px-3 text-center">Hali Kutmoqda</th>
+                        <th class="py-3.5 px-3 text-center">Bugun OTK</th>
                         <th class="py-3.5 px-3 text-center">Ta'mir / Brak</th>
-                        <th class="py-3.5 px-3 text-center">Pastal Holati</th>
                         <th class="py-3.5 px-4 text-center w-28">Batafsil</th>
                     </tr>
                 </thead>
@@ -243,7 +255,7 @@
                     <!-- Main Patok Row -->
                     <tr class="hover:bg-slate-800/40 transition group {% if not p.is_active %}opacity-50 bg-slate-950/20{% endif %}" id="row-{{ p.patok_code }}">
                         <!-- 1. Patok Nomer va Nomi -->
-                        <td class="py-3.5 px-4 align-middle">
+                        <td class="py-3 px-4 align-middle">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-10 h-10 rounded-xl {% if p.is_active %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800 text-slate-500 border border-slate-700{% endif %} flex items-center justify-center font-black text-sm flex-shrink-0 shadow-inner">
                                     {{ p.patok_code }}
@@ -255,7 +267,7 @@
                                     {% if p.is_active %}
                                     <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 mt-0.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        Faol ({{ p.tickets_count }} ta stiker)
+                                        Faol ({{ p.tickets_count }} stiker)
                                     </span>
                                     {% else %}
                                     <span class="text-[10px] text-slate-500 block mt-0.5">Ishlanmadi</span>
@@ -264,106 +276,73 @@
                             </div>
                         </td>
 
-                        <!-- 2. Qilayotgan Zakazi & Modellar (Yaxlitlangan) -->
-                        <td class="py-3.5 px-4 align-middle">
+                        <!-- 2. Qilayotgan Zakazi & Modellar -->
+                        <td class="py-3 px-3 align-middle">
                             {% if p.orders or p.models %}
-                            <div class="space-y-1.5">
+                            <div class="space-y-1">
                                 <!-- Orders Chips -->
-                                <div class="flex items-center gap-1.5 flex-wrap">
+                                <div class="flex items-center gap-1 flex-wrap">
                                     {% for o in p.orders %}
-                                    <span class="px-2 py-0.5 rounded-lg bg-cyan-950/90 text-cyan-300 font-mono font-black text-xs border border-cyan-800/60 shadow-sm"
+                                    <span class="px-2 py-0.5 rounded-md bg-cyan-950/90 text-cyan-300 font-mono font-black text-[11px] border border-cyan-800/60 shadow-sm"
                                           title="{{ o.customer_name }}">
                                         Zakaz #{{ o.order_number }}
                                     </span>
                                     {% endfor %}
                                 </div>
                                 <!-- Models Names -->
-                                <div class="flex items-center gap-2 flex-wrap text-xs">
+                                <div class="flex items-center gap-1 flex-wrap text-[11px]">
                                     {% for m in p.models %}
-                                    <span class="inline-flex items-center gap-1 text-slate-200 font-bold bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800">
-                                        <i class="fa-solid fa-shirt text-[10px] text-slate-400"></i>
+                                    <span class="inline-flex items-center gap-1 text-slate-300 font-medium bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800 truncate max-w-[160px]" title="{{ m.model_name }}">
+                                        <i class="fa-solid fa-shirt text-[9px] text-slate-400"></i>
                                         {{ m.model_name }}
                                     </span>
                                     {% endfor %}
                                 </div>
                             </div>
                             {% else %}
-                            <span class="text-slate-600 italic text-xs">Zakaz mavjud emas</span>
+                            <span class="text-slate-600 italic text-xs">—</span>
                             {% endif %}
                         </td>
 
-                        <!-- 3. Tikayotgan Pastallar (Har biri alohida quvur ko'rsatkichi bilan) -->
-                        <td class="py-3.5 px-4 align-middle">
+                        <!-- 3. Tikayotgan Pastallar (Ixcham deduplicated nishonlar) -->
+                        <td class="py-3 px-3 align-middle">
                             {% if p.pastals %}
-                            <div class="flex items-center gap-2 flex-wrap">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 {% for pastal in p.pastals %}
                                 <button type="button"
                                     onclick="openPastalFromBadge('{{ p.patok_code }}', '{{ pastal.pastal_code }}')"
-                                    class="inline-flex flex-col items-start p-2 rounded-xl text-xs font-mono transition shadow-sm cursor-pointer border {% if pastal.is_closed %}bg-emerald-950/70 border-emerald-600/70 hover:border-emerald-400{% else %}bg-slate-950 border-cyan-800/70 hover:border-cyan-400 hover:bg-slate-800/80{% endif %}"
-                                    title="Pastal {{ pastal.pastal_code }}: {{ pastal.total_qty }} dona ({{ pastal.total_boxes }} quti) | Dazmoldan: {{ pastal.dazmol_qty }} dona | Oraliqda: {{ pastal.waiting_otk_qty }} dona | OTK o'tgan: {{ pastal.controlled_qty }} dona ({{ pastal.completion_pct }}%)">
-                                    <div class="flex items-center justify-between w-full gap-2">
-                                        <span class="font-black flex items-center gap-1.5 {% if pastal.is_closed %}text-emerald-300{% else %}text-cyan-300{% endif %}">
-                                            <i class="fa-solid fa-layer-group text-[10px]"></i>
-                                            {{ pastal.pastal_code }}
-                                        </span>
-                                        {% if pastal.is_closed %}
-                                        <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-black text-[10px] border border-emerald-500/40">
-                                            ✓ 100% Yopildi
-                                        </span>
-                                        {% else %}
-                                        <span class="px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 font-bold text-[10px] border border-cyan-800">
-                                            {{ pastal.completion_pct }}%
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1 flex-wrap font-sans">
-                                        <span>Kirgan: <strong class="text-white font-mono">{{ pastal.total_boxes }}q</strong></span>
-                                        <span class="text-slate-600">•</span>
-                                        <span>Dazmol: <strong class="text-indigo-300 font-mono">{{ pastal.dazmol_boxes }}q</strong></span>
-                                        {% if pastal.waiting_otk_boxes > 0 %}
-                                        <span class="text-slate-600">•</span>
-                                        <span class="text-amber-400 font-bold font-mono">Oraliq: {{ pastal.waiting_otk_boxes }}q</span>
-                                        {% endif %}
-                                        <span class="text-slate-600">•</span>
-                                        <span>OTK: <strong class="text-emerald-400 font-mono">{{ pastal.closed_boxes }}q</strong></span>
-                                    </div>
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition border shadow-sm cursor-pointer {% if pastal.is_closed %}bg-emerald-950/70 border-emerald-600/70 text-emerald-300 hover:border-emerald-400{% else %}bg-slate-950 border-cyan-800/70 text-cyan-300 hover:border-cyan-400 hover:bg-slate-800/80{% endif %}"
+                                    title="Pastal {{ pastal.pastal_code }}: {{ pastal.total_qty }} dona ({{ pastal.total_boxes }}q) | Dazmol: {{ pastal.dazmol_qty }} | Oraliq: {{ pastal.waiting_otk_qty }} | OTK: {{ pastal.controlled_qty }} ({{ pastal.completion_pct }}%)">
+                                    <i class="fa-solid fa-layer-group text-[10px]"></i>
+                                    <span class="font-black">{{ pastal.pastal_code }}</span>
+                                    {% if pastal.is_closed %}
+                                    <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-black">✓ 100%</span>
+                                    {% else %}
+                                    <span class="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-cyan-400 font-bold">{{ pastal.completion_pct }}%</span>
+                                    {% endif %}
                                 </button>
                                 {% endfor %}
                             </div>
                             {% else %}
-                            <span class="text-slate-600 font-mono">—</span>
+                            <span class="text-slate-600 font-mono text-xs">—</span>
                             {% endif %}
                         </td>
 
-                        <!-- 4. Kunlik Norma & Natija (Real-time yoki Muzlatilgan snapshot) -->
-                        <td class="py-3.5 px-3 text-center align-middle">
+                        <!-- 4. Davomat & Aniqlik -->
+                        <td class="py-3 px-3 text-center align-middle">
                             {% if p.is_active %}
-                            <div class="flex flex-col items-center gap-1 min-w-[140px]">
-                                <div class="flex items-center justify-between w-full px-0.5 text-[11px] font-mono">
-                                    <span class="text-slate-400">Reja: <strong class="text-white">{{ p.daily_norm }}</strong></span>
-                                    <span class="{% if p.is_norm_completed %}text-emerald-400 font-black{% elif p.norm_percentage >= 80 %}text-cyan-400 font-bold{% else %}text-amber-400 font-bold{% endif %}">
-                                        {{ p.completed_norm_units }} ({{ p.norm_percentage }}%)
-                                    </span>
+                            <div class="inline-flex flex-col items-center">
+                                <div class="flex items-center gap-1 text-xs">
+                                    <span class="text-slate-400">Ishchi:</span>
+                                    <strong class="text-emerald-400 font-mono">{{ p.davomat }}</strong>
+                                    <span class="text-slate-600">/</span>
+                                    <span class="text-slate-400">Aniq:</span>
+                                    <strong class="text-white font-mono">{{ p.aniqlik }}</strong>
                                 </div>
-                                <!-- Progress Bar -->
-                                <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-800 overflow-hidden shadow-inner">
-                                    <div class="h-full rounded-full transition-all duration-300 {% if p.is_norm_completed %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif p.norm_percentage >= 80 %}bg-gradient-to-r from-cyan-500 to-blue-500{% else %}bg-gradient-to-r from-amber-500 to-rose-500{% endif %}"
-                                        style="width: {% if p.norm_percentage > 100 %}100{% else %}{{ p.norm_percentage }}{% endif %}%;">
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between w-full px-0.5 text-[10px] font-mono">
-                                    {% if p.is_norm_completed %}
-                                    <span class="text-emerald-400 font-black">✓ +{{ p.norm_diff }} dona</span>
-                                    {% else %}
-                                    <span class="text-amber-400 font-bold">{{ p.norm_diff }} dona</span>
-                                    {% endif %}
-                                    {% if is_today %}
-                                    <span class="text-[9px] text-emerald-400/90 font-sans font-bold flex items-center gap-0.5">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Jonli
+                                <div class="mt-0.5">
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-black font-mono {% if p.davomat_foiz >= 100 %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif p.davomat_foiz >= 80 %}bg-cyan-500/20 text-cyan-300 border border-cyan-500/30{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% endif %}">
+                                        {{ p.davomat_foiz }}%
                                     </span>
-                                    {% else %}
-                                    <span class="text-[9px] text-slate-500 font-sans font-semibold">24:00 muhr</span>
-                                    {% endif %}
                                 </div>
                             </div>
                             {% else %}
@@ -371,24 +350,52 @@
                             {% endif %}
                         </td>
 
-                        <!-- 5. Kunlik Dazmol (Shu kunniki) -->
-                        <td class="py-3.5 px-3 text-center align-middle">
+                        <!-- 5. KPI & Norma -->
+                        <td class="py-3 px-3 text-center align-middle">
+                            {% if p.is_active %}
+                            <div class="flex flex-col items-center gap-1 min-w-[140px]">
+                                <div class="flex items-center justify-between w-full px-0.5 text-[11px] font-mono">
+                                    <span class="text-slate-400" title="O'rtacha KPI">KPI: <strong class="text-cyan-300">{{ p.avg_kpi }}%</strong></span>
+                                    <span class="font-bold {% if p.patok_kpi >= 100 %}text-emerald-400{% elif p.patok_kpi >= 80 %}text-cyan-300{% else %}text-amber-400{% endif %}" title="Patok KPI">
+                                        Patok: {{ p.patok_kpi }}%
+                                    </span>
+                                </div>
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-slate-950 rounded-full h-1.5 border border-slate-800 overflow-hidden shadow-inner">
+                                    <div class="h-full rounded-full transition-all duration-300 {% if p.is_norm_completed %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif p.norm_percentage >= 80 %}bg-gradient-to-r from-cyan-500 to-blue-500{% else %}bg-gradient-to-r from-amber-500 to-rose-500{% endif %}"
+                                        style="width: {% if p.norm_percentage > 100 %}100{% else %}{{ p.norm_percentage }}{% endif %}%;">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between w-full px-0.5 text-[10px] font-mono text-slate-400">
+                                    <span>{{ p.completed_norm_units }}/{{ p.daily_norm }}</span>
+                                    <span class="{% if p.is_norm_completed %}text-emerald-400 font-bold{% else %}text-amber-400{% endif %}">
+                                        {{ p.norm_percentage }}%
+                                    </span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 6. Kunlik Dazmol -->
+                        <td class="py-3 px-3 text-center align-middle">
                             {% if p.daily_dazmol_qty > 0 %}
                             <div class="inline-flex flex-col items-center">
                                 <span class="font-black text-indigo-300 digital-font text-base">
                                     {{ p.daily_dazmol_qty }}
                                 </span>
-                                <span class="text-[10px] text-indigo-400/90 font-mono font-bold mt-0.5">
-                                    {{ p.daily_dazmol_boxes_count }} ta quti
+                                <span class="text-[10px] text-indigo-400/80 font-mono font-bold">
+                                    {{ p.daily_dazmol_boxes_count }} quti
                                 </span>
                             </div>
                             {% else %}
-                            <span class="text-slate-600 font-mono font-bold">0</span>
+                            <span class="text-slate-600 font-mono text-xs">0</span>
                             {% endif %}
                         </td>
 
-                        <!-- 5. Bugun OTK O'tgan (1-sort & 2-sort) -->
-                        <td class="py-3.5 px-3 text-center align-middle">
+                        <!-- 7. Bugun OTK O'tgan -->
+                        <td class="py-3 px-3 text-center align-middle">
                             {% if p.daily_controlled_qty > 0 %}
                             <div class="inline-flex flex-col items-center">
                                 <span class="font-black text-emerald-400 digital-font text-base">
@@ -402,28 +409,12 @@
                                 </div>
                             </div>
                             {% else %}
-                            <span class="text-slate-600 font-mono font-bold">0</span>
+                            <span class="text-slate-600 font-mono text-xs">0</span>
                             {% endif %}
                         </td>
 
-                        <!-- 6. Hali Kutmoqda (OTK navbatida) -->
-                        <td class="py-3.5 px-3 text-center align-middle">
-                            {% if p.daily_waiting_qty > 0 %}
-                            <div class="inline-flex flex-col items-center">
-                                <span class="font-black text-amber-400 digital-font text-base">
-                                    {{ p.daily_waiting_qty }}
-                                </span>
-                                <small class="text-[10px] text-slate-400">dona</small>
-                            </div>
-                            {% else %}
-                            <span class="text-emerald-500 font-bold text-xs flex items-center justify-center gap-1">
-                                <i class="fa-solid fa-check text-[10px]"></i> 0
-                            </span>
-                            {% endif %}
-                        </td>
-
-                        <!-- 7. Ta'mir / Brak -->
-                        <td class="py-3.5 px-3 text-center align-middle">
+                        <!-- 8. Ta'mir / Brak -->
+                        <td class="py-3 px-3 text-center align-middle">
                             {% if p.daily_repair_qty > 0 or p.daily_defect_qty > 0 %}
                             <div class="inline-flex flex-col items-center gap-0.5">
                                 {% if p.daily_repair_qty > 0 %}
@@ -438,48 +429,16 @@
                                 {% endif %}
                             </div>
                             {% else %}
-                            <span class="text-slate-600 font-mono">0</span>
-                            {% endif %}
-                        </td>
-
-                        <!-- 8. Pastal Holati (Yopildi / Jarayonda) -->
-                        <td class="py-3.5 px-3 text-center align-middle">
-                            {% if p.is_active and p.pastals %}
-                                {% if p.all_pastals_closed %}
-                                <div class="inline-flex flex-col items-center gap-0.5">
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
-                                        <i class="fa-solid fa-check-double"></i> 100% Yopildi
-                                    </span>
-                                    <span class="text-[10px] text-emerald-400/90 font-mono">
-                                        {{ p.pastals_summary.controlled_boxes }}/{{ p.pastals_summary.total_boxes }} quti muhrlandi
-                                    </span>
-                                </div>
-                                {% else %}
-                                <div class="inline-flex flex-col items-center gap-0.5">
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm">
-                                        <i class="fa-solid fa-spinner animate-spin text-[10px]"></i> Jarayonda
-                                    </span>
-                                    <span class="text-[10px] text-cyan-300 font-mono font-bold">
-                                        {{ p.pastals_summary.controlled_boxes }}/{{ p.pastals_summary.total_boxes }} quti ({{ p.pastals_summary.completion_pct }}%)
-                                    </span>
-                                    {% if p.pastals_summary.waiting_otk_boxes > 0 %}
-                                    <span class="text-[9px] text-amber-400/90 font-mono">
-                                        {{ p.pastals_summary.waiting_otk_boxes }} quti oraliqda
-                                    </span>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                            {% else %}
-                            <span class="text-slate-600 font-mono">—</span>
+                            <span class="text-slate-600 font-mono text-xs">0</span>
                             {% endif %}
                         </td>
 
                         <!-- 9. Batafsil Tugmasi -->
-                        <td class="py-3.5 px-4 text-center align-middle">
+                        <td class="py-3 px-4 text-center align-middle">
                             {% if p.is_active %}
                             <button type="button"
                                 onclick="togglePatokDrawer('drawer-{{ p.patok_code }}', this)"
-                                class="px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-cyan-300 hover:text-white border border-cyan-800/60 font-black text-xs transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer mx-auto">
+                                class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-cyan-300 hover:text-white border border-cyan-800/60 font-black text-xs transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer mx-auto">
                                 <i class="fa-solid fa-chart-pie"></i>
                                 <span>Batafsil</span>
                                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"></i>
@@ -493,18 +452,18 @@
                     <!-- EXPANDABLE DRAWER: PASTALLAR VA RAZMERLAR BALANSI (BATAFSIL) -->
                     {% if p.is_active %}
                     <tr id="drawer-{{ p.patok_code }}" class="hidden bg-slate-950/95 border-t border-b border-cyan-900/40">
-                        <td colspan="10" class="p-4 sm:p-6">
+                        <td colspan="9" class="p-4 sm:p-6">
                             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-5">
                                 
-                                <!-- Drawer Top Bar: Title & Status -->
+                                <!-- Drawer Top Bar: Title, Status & Close Button -->
                                 <div class="flex flex-col xl:flex-row xl:items-center justify-between pb-4 border-b border-slate-800 gap-3">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center text-sm font-black">
+                                        <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center text-sm font-black shadow-inner">
                                             {{ p.patok_code }}
                                         </div>
                                         <div>
                                             <h4 class="text-sm font-black text-white flex items-center gap-2">
-                                                <span>{{ p.patok_name }} — Pastallar va Razmerlar Kesimidagi To'liq Balans</span>
+                                                <span>{{ p.patok_name }} — Kunlik To'liq Monitoring va Balans</span>
                                             </h4>
                                             <div class="flex items-center gap-2.5 text-xs text-slate-400 mt-0.5 flex-wrap">
                                                 <span>Kunlik norma: <strong class="text-white font-mono">{{ p.daily_norm }}</strong> dona</span>
@@ -517,7 +476,162 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button"
+                                            onclick="togglePatokDrawer('drawer-{{ p.patok_code }}')"
+                                            class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                            <i class="fa-solid fa-xmark"></i>
+                                            <span>Yopish</span>
+                                        </button>
+                                    </div>
                                 </div>
+
+                                <!-- 9 TA ASOSIY KO'RSATKICH KARTALARI (EXECUTIVE 9-GRID) -->
+                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2.5">
+                                    <!-- 1. Aniqlik -->
+                                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">1. Aniqlik</span>
+                                        <span class="text-xl font-black text-white digital-font block mt-1">{{ p.aniqlik }}</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5 block">Qiyinlik summasi</span>
+                                    </div>
+                                    <!-- 2. Davomat -->
+                                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">2. Davomat</span>
+                                        <div class="mt-1 flex items-baseline gap-1">
+                                            <span class="text-xl font-black text-emerald-400 digital-font">{{ p.davomat }}</span>
+                                            <span class="text-xs text-slate-400 font-semibold">kishi</span>
+                                        </div>
+                                        <span class="text-[10px] text-slate-500 mt-0.5 block">Faol tikuvchilar</span>
+                                    </div>
+                                    <!-- 3. Davomat Foizi -->
+                                    <div class="bg-slate-950 border border-cyan-900/40 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">3. Davomat %</span>
+                                        <span class="text-xl font-black text-cyan-300 digital-font block mt-1">{{ p.davomat_foiz }}%</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5 block">Ishchi / Aniqlik</span>
+                                    </div>
+                                    <!-- 4. O'rtacha KPI -->
+                                    <div class="bg-slate-950 border border-cyan-900/40 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">4. O'rtacha KPI</span>
+                                        <span class="text-xl font-black text-cyan-300 digital-font block mt-1">{{ p.avg_kpi }}%</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5 block">Tikuvchilar o'rtachasi</span>
+                                    </div>
+                                    <!-- 5. Patok KPI -->
+                                    <div class="bg-slate-950 border {% if p.patok_kpi >= 100 %}border-emerald-600/60 bg-emerald-950/20{% else %}border-emerald-900/40{% endif %} rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">5. Patok KPI</span>
+                                        <span class="text-xl font-black text-emerald-300 digital-font block mt-1">{{ p.patok_kpi }}%</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5 block">(Davomat% + KPI)/2</span>
+                                    </div>
+                                    <!-- 6. Kunlik Norma -->
+                                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">6. Kunlik Norma</span>
+                                        <span class="text-xl font-black {% if p.is_norm_completed %}text-emerald-400{% else %}text-amber-400{% endif %} digital-font block mt-1">{{ p.norm_percentage }}%</span>
+                                        <span class="text-[10px] text-slate-400 font-mono mt-0.5 block truncate">{{ p.completed_norm_units }}/{{ p.daily_norm }}</span>
+                                    </div>
+                                    <!-- 7. Kunlik Dazmol -->
+                                    <div class="bg-slate-950 border border-indigo-900/40 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">7. Dazmol</span>
+                                        <span class="text-xl font-black text-indigo-300 digital-font block mt-1">{{ p.daily_dazmol_qty }}</span>
+                                        <span class="text-[10px] text-indigo-400/80 font-mono mt-0.5 block">{{ p.daily_dazmol_boxes_count }} ta quti</span>
+                                    </div>
+                                    <!-- 8. OTK O'tgan -->
+                                    <div class="bg-slate-950 border border-emerald-900/40 rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">8. OTK O'tgan</span>
+                                        <span class="text-xl font-black text-emerald-400 digital-font block mt-1">{{ p.daily_controlled_qty }}</span>
+                                        <span class="text-[10px] text-emerald-400/80 font-mono mt-0.5 block truncate">{{ p.daily_first_sort_qty }} 1-s{% if p.daily_second_sort_qty > 0 %} • {{ p.daily_second_sort_qty }} 2-s{% endif %}</span>
+                                    </div>
+                                    <!-- 9. Ta'mir & Brak -->
+                                    <div class="bg-slate-950 border {% if p.daily_repair_qty > 0 %}border-rose-900/50 bg-rose-950/20{% else %}border-slate-800{% endif %} rounded-xl p-3 shadow-inner">
+                                        <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider block">9. Ta'mir & Brak</span>
+                                        <span class="text-xl font-black text-rose-300 digital-font block mt-1">{{ p.daily_repair_qty }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">{{ p.daily_defect_qty }} brak</span>
+                                    </div>
+                                </div>
+
+                                <!-- SHU PATOKDAGI FAOL TIKUVCHILAR LEADERBOARD JADVALI (ISM-FAMILIYA, REYTING VA OYLIK) -->
+                                {% if p.workers %}
+                                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 shadow-lg space-y-3">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xs font-black">
+                                                <i class="fa-solid fa-users"></i>
+                                            </span>
+                                            <h5 class="text-xs font-black text-white uppercase tracking-wider">
+                                                {{ p.patok_name }} — Bugungi Faol Tikuvchilar Natijalari ({{ p.workers_count }} nafar)
+                                            </h5>
+                                        </div>
+                                        <div class="flex items-center gap-3 text-xs text-slate-400 font-mono">
+                                            <span>O'rtacha KPI: <strong class="text-cyan-300">{{ p.avg_kpi }}%</strong></span>
+                                            <span class="text-slate-600">•</span>
+                                            <span>Patok KPI: <strong class="text-emerald-400">{{ p.patok_kpi }}%</strong></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                                        <table class="w-full text-left border-collapse text-xs">
+                                            <thead class="sticky top-0 bg-slate-900 z-10 shadow-sm text-slate-400 uppercase font-black text-[10px] border-b border-slate-800">
+                                                <tr>
+                                                    <th class="py-2.5 px-3 text-center w-12"># O'rin</th>
+                                                    <th class="py-2.5 px-3 min-w-[170px]">Xodim F.I.SH</th>
+                                                    <th class="py-2.5 px-3 text-center">Bajarilgan Ish</th>
+                                                    <th class="py-2.5 px-3 text-center min-w-[160px]">Norma & KPI</th>
+                                                    <th class="py-2.5 px-3 text-right">Bugungi Ishbay</th>
+                                                    <th class="py-2.5 px-3 text-right">Oylik Ishbay</th>
+                                                    <th class="py-2.5 px-3 text-center">Oxirgi Skaner</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-800/60 font-mono">
+                                                {% for w in p.workers %}
+                                                <tr class="hover:bg-slate-900/60 transition">
+                                                    <td class="py-2.5 px-3 text-center font-bold">
+                                                        {% if forloop.counter == 1 %}
+                                                        <span class="w-5 h-5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 inline-flex items-center justify-center text-[10px]">🥇</span>
+                                                        {% elif forloop.counter == 2 %}
+                                                        <span class="w-5 h-5 rounded-full bg-slate-400/20 text-slate-300 border border-slate-400/40 inline-flex items-center justify-center text-[10px]">🥈</span>
+                                                        {% elif forloop.counter == 3 %}
+                                                        <span class="w-5 h-5 rounded-full bg-amber-700/20 text-amber-500 border border-amber-600/40 inline-flex items-center justify-center text-[10px]">🥉</span>
+                                                        {% else %}
+                                                        <span class="text-slate-500 text-xs">{{ forloop.counter }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="py-2.5 px-3 font-sans">
+                                                        <strong class="text-white text-xs block leading-tight">{{ w.full_name }}</strong>
+                                                        <span class="text-[10px] text-slate-500 font-mono">ID: {{ w.worker_id }}</span>
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-center">
+                                                        <span class="font-black text-white digital-font text-sm">{{ w.total_units }}</span>
+                                                        <span class="text-[10px] text-slate-400">dona</span>
+                                                        <span class="text-[10px] text-cyan-400 block font-sans">({{ w.total_points }} ball)</span>
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-center">
+                                                        <div class="flex items-center justify-between text-[11px] font-mono px-0.5">
+                                                            <span class="text-slate-400 truncate max-w-[100px]" title="{{ w.models_str }}">{{ w.models_str|default:"Norma" }}</span>
+                                                            <span class="{% if w.is_above_norm %}text-emerald-400 font-black{% elif w.total_percentage >= 80 %}text-cyan-300 font-bold{% else %}text-amber-400{% endif %}">
+                                                                {{ w.total_percentage }}%
+                                                            </span>
+                                                        </div>
+                                                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-1">
+                                                            <div class="h-full rounded-full {% if w.is_above_norm %}bg-emerald-500{% elif w.total_percentage >= 80 %}bg-cyan-500{% else %}bg-amber-500{% endif %}"
+                                                                style="width: {{ w.progress_width }}%;"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-right">
+                                                        <span class="text-emerald-400 font-black text-xs">{{ w.total_earnings_formatted }}</span>
+                                                        <span class="text-[10px] text-slate-500">so'm</span>
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-right">
+                                                        <span class="text-cyan-300 font-bold text-xs">{{ w.month_earnings_formatted }}</span>
+                                                        <span class="text-[10px] text-slate-500">so'm</span>
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-center font-sans text-slate-400 text-[11px]">
+                                                        {{ w.last_scan|default:"—" }}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                {% endif %}
 
                                 <!-- PATOK UMUMIY QUVR BALANSI (BARCHA PASTALLAR BO'YICHA) -->
                                 <div class="p-3.5 rounded-xl bg-slate-950 border border-cyan-900/40 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs shadow-inner">
@@ -990,6 +1104,12 @@
     function togglePatokDrawer(drawerId, btn) {
         const drawer = document.getElementById(drawerId);
         if (!drawer) return;
+
+        if (!btn) {
+            const patokCode = drawerId.replace('drawer-', '');
+            const row = document.getElementById(`row-${patokCode}`);
+            if (row) btn = row.querySelector('button[onclick*="togglePatokDrawer"]');
+        }
 
         const isHidden = drawer.classList.contains('hidden');
         if (isHidden) {

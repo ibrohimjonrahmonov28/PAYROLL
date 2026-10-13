@@ -16,6 +16,7 @@ from production.models import (
     DailyPatokProgress
 )
 from production.services import get_patok_name, get_patok_code, get_patok_login
+from screens.views import get_screen_data
 
 
 def manager_or_superadmin_required(view_func):
@@ -550,7 +551,7 @@ def sewing_statistics_daily_view(request):
     }
 
     # Faol pastal kodlari
-    active_pastal_codes = {b.pastal_code for b in today_boxes_dict.values() if b.pastal_code}
+    active_pastal_codes = {b.pastal_code.strip() for b in today_boxes_dict.values() if b.pastal_code and b.pastal_code.strip()}
 
     # Barcha ushbu pastallarga tegishli qutilarni bitta tezkor so'rovda olamiz
     all_pastal_boxes = list(
@@ -564,7 +565,7 @@ def sewing_statistics_daily_view(request):
     boxes_by_pastal = {}
     all_pbox_ids = []
     for b in all_pastal_boxes:
-        pcode = b.pastal_code
+        pcode = (b.pastal_code or "").strip()
         if pcode:
             boxes_by_pastal.setdefault(pcode, []).append(b)
             all_pbox_ids.append(b.id)
@@ -648,7 +649,7 @@ def sewing_statistics_daily_view(request):
                     'order_number': b.order.order_number if b.order else "—",
                     'daily_norm': art_norm,
                 }
-            pcode = b.pastal_code
+            pcode = (b.pastal_code or "").strip()
             if pcode:
                 sn_pastal_codes_set.add(pcode)
                 all_worked_pastals.add(pcode)
@@ -734,6 +735,15 @@ def sewing_statistics_daily_view(request):
         is_norm_completed = (completed_for_norm >= patok_daily_norm)
         norm_diff = completed_for_norm - patok_daily_norm
 
+        # Screens moduli orqali hisoblangan aniqlik, davomat, foizlar va tikuvchilar
+        screen_data = get_screen_data(sn, selected_date)
+        sn_aniqlik = screen_data.get('aniqlik', 0)
+        sn_davomat = screen_data.get('davomat', 0)
+        sn_davomat_foiz = screen_data.get('foiz', 0.0)
+        sn_avg_kpi = screen_data.get('avg_screen_kpi', 0.0)
+        sn_patok_kpi = screen_data.get('patok_kpi', 0.0)
+        sn_workers = screen_data.get('workers', [])
+
         # DailyPatokProgress ga saqlash / muhrlash (Bugun real-time, kecha va undan oldingi kunlar muzlatilgan snapshot)
         if is_active:
             DailyPatokProgress.objects.update_or_create(
@@ -751,6 +761,11 @@ def sewing_statistics_daily_view(request):
                     'waiting_qty': sn_waiting_qty,
                     'repair_qty': sn_repair_qty,
                     'is_completed': is_norm_completed,
+                    'aniqlik': sn_aniqlik,
+                    'davomat': sn_davomat,
+                    'davomat_foiz': sn_davomat_foiz,
+                    'avg_kpi': sn_avg_kpi,
+                    'patok_kpi': sn_patok_kpi,
                 }
             )
 
@@ -811,8 +826,8 @@ def sewing_statistics_daily_view(request):
             p_model_name = (first_b.target_article.name if first_b and first_b.target_article else (first_b.article.name if first_b and first_b.article else "—"))
 
             # Bugungi kunlik dazmol va OTK shu pastal uchun
-            p_today_dazmol = sum(t.quantity for t in t_list if t.box and t.box.pastal_code == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else '')))
-            p_today_dazmol_boxes = len({t.box_id for t in t_list if t.box and t.box.pastal_code == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else ''))})
+            p_today_dazmol = sum(t.quantity for t in t_list if t.box and (t.box.pastal_code or "").strip() == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else '')))
+            p_today_dazmol_boxes = len({t.box_id for t in t_list if t.box and (t.box.pastal_code or "").strip() == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else ''))})
 
             # Bugungi kunlik OTK shu pastal uchun
             p_today_logs = [l for bid in [b.id for b in p_boxes] for l in logs_by_box.get(bid, [])]
@@ -1015,6 +1030,13 @@ def sewing_statistics_daily_view(request):
             'norm_percentage': norm_percentage,
             'is_norm_completed': is_norm_completed,
             'norm_diff': norm_diff,
+            'aniqlik': sn_aniqlik,
+            'davomat': sn_davomat,
+            'davomat_foiz': sn_davomat_foiz,
+            'avg_kpi': sn_avg_kpi,
+            'patok_kpi': sn_patok_kpi,
+            'workers': sn_workers,
+            'workers_count': len(sn_workers),
             'dazmol_qty': sn_dazmol_qty,
             'daily_dazmol_qty': sn_dazmol_qty,
             'dazmol_boxes_count': len(sn_dazmol_box_ids),
@@ -1045,6 +1067,9 @@ def sewing_statistics_daily_view(request):
     total_planned_norm = sum(p['daily_norm'] for p in active_patok_items)
     total_completed_norm = sum(p['completed_norm_units'] for p in active_patok_items)
     avg_norm_pct = round((sum(p['norm_percentage'] for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
+    total_workers = sum(p.get('davomat', 0) for p in active_patok_items)
+    avg_kpi_overall = round((sum(p.get('avg_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
+    avg_patok_kpi_overall = round((sum(p.get('patok_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
 
     context = {
         'selected_date': selected_date,
@@ -1058,6 +1083,9 @@ def sewing_statistics_daily_view(request):
         'patoks_data': patoks_data,
         'kpis': {
             'active_patoks': total_active_patoks,
+            'total_workers': total_workers,
+            'avg_kpi_overall': avg_kpi_overall,
+            'avg_patok_kpi_overall': avg_patok_kpi_overall,
             'total_orders': len(all_worked_orders),
             'total_pastals': len(all_worked_pastals),
             'total_planned_norm': total_planned_norm,

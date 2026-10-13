@@ -5,13 +5,108 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, Value, Q
 from django.db.models.functions import Coalesce
-from production.models import Ticket, OrderItem, Operation
+from production.models import Ticket, OrderItem, Operation, OperationGroupItem, ArticleOperation
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 from accounts.models import Worker
 from django.core.cache import cache
 
 
 MAX_SCREENS = 40
+
+
+def calculate_screen_aniqlik(screen_number: int, patok_scans):
+    """
+    Ushbu patokka kirgan pastallar/biletlar qaysi narxlar shabloniga (OperationGroup) ulanganligini aniqlash.
+    Operatsiyalar qiyinligi yig'indisi olinadi.
+    Agar 2-3 xil shablonga ulangan bo'lsa:
+      - Mutlaq ko'pchilik nima qilingan bo'lsa (eng ko'p skanerlangan shablon), o'shaning qiyinlik yig'indisi olinadi.
+      - Agar teng bo'lib qolsa, o'rta arifmetik qilinadi va butun qilib yaxlitlanadi.
+    """
+    grp_stats = list(patok_scans.filter(
+        article_operation__article__operation_group__isnull=False
+    ).values('article_operation__article__operation_group_id').annotate(
+        cnt=Count('id')
+    ))
+
+    art_stats = list(patok_scans.filter(
+        article_operation__article__operation_group__isnull=True,
+        article_operation__article__isnull=False
+    ).values('article_operation__article_id').annotate(
+        cnt=Count('id')
+    ))
+
+    # Agar bugun hali skan qilinmagan bo'lsa, ushbu ekranning oxirgi skanlaridan olamiz
+    if not grp_stats and not art_stats:
+        recent_ids = list(Ticket.objects.filter(
+            screen_number=screen_number,
+            status=Ticket.Status.SCANNED
+        ).order_by('-scanned_at').values_list('id', flat=True)[:300])
+        if recent_ids:
+            recent_scans = Ticket.objects.filter(id__in=recent_ids)
+            grp_stats = list(recent_scans.filter(
+                article_operation__article__operation_group__isnull=False
+            ).values('article_operation__article__operation_group_id').annotate(
+                cnt=Count('id')
+            ))
+            art_stats = list(recent_scans.filter(
+                article_operation__article__operation_group__isnull=True,
+                article_operation__article__isnull=False
+            ).values('article_operation__article_id').annotate(
+                cnt=Count('id')
+            ))
+
+    if not grp_stats and not art_stats:
+        return 0
+
+    group_diffs = {}
+    if grp_stats:
+        grp_ids = [s['article_operation__article__operation_group_id'] for s in grp_stats]
+        group_diffs = {
+            row['group_id']: float(row['diff_sum'] or 0.0)
+            for row in OperationGroupItem.objects.filter(
+                group_id__in=grp_ids,
+                is_active=True
+            ).values('group_id').annotate(
+                diff_sum=Sum(Coalesce(F('difficulty'), Value(1.0)))
+            )
+        }
+
+    art_diffs = {}
+    if art_stats:
+        art_ids = [s['article_operation__article_id'] for s in art_stats]
+        art_diffs = {
+            row['article_id']: float(row['diff_sum'] or 0.0)
+            for row in ArticleOperation.objects.filter(
+                article_id__in=art_ids,
+                is_active=True
+            ).values('article_id').annotate(
+                diff_sum=Sum(Coalesce(F('difficulty'), Value(1.0)))
+            )
+        }
+
+    candidates = []
+    for s in grp_stats:
+        gid = s['article_operation__article__operation_group_id']
+        diff = group_diffs.get(gid, 0.0)
+        candidates.append({'cnt': s['cnt'], 'diff': diff})
+
+    for s in art_stats:
+        aid = s['article_operation__article_id']
+        diff = art_diffs.get(aid, 0.0)
+        candidates.append({'cnt': s['cnt'], 'diff': diff})
+
+    if not candidates:
+        return 0
+
+    max_cnt = max(c['cnt'] for c in candidates)
+    top_candidates = [c for c in candidates if c['cnt'] == max_cnt]
+
+    if len(top_candidates) == 1:
+        chosen_diff = top_candidates[0]['diff']
+        return int(chosen_diff) if chosen_diff.is_integer() else round(chosen_diff, 2)
+    else:
+        avg_diff = sum(c['diff'] for c in top_candidates) / len(top_candidates)
+        return int(round(avg_diff))
 
 
 def get_screen_data(screen_number: int, target_date=None):
@@ -35,6 +130,16 @@ def get_screen_data(screen_number: int, target_date=None):
 
     # Ushbu ekranga oxirgi stikeri to'g'ri kelgan xodimlar
     screen_worker_ids = [w_id for w_id, s_num in worker_latest_screen.items() if s_num == screen_number]
+
+    # Ushbu patokda bugun skanerlangan barcha biletlar
+    patok_scans = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(day_start, day_end)
+    ).filter(
+        Q(screen_number=screen_number) | (Q(worker_id__in=screen_worker_ids) if screen_worker_ids else Q(pk__in=[]))
+    )
+
+    aniqlik = calculate_screen_aniqlik(screen_number, patok_scans)
 
     # Dazmol operatsiyalari ID lari
     dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
@@ -64,7 +169,11 @@ def get_screen_data(screen_number: int, target_date=None):
             'grand_total_earnings_formatted': "0",
             'grand_total_units': dazmol_units,
             'dazmol_units': dazmol_units,
+            'aniqlik': aniqlik,
+            'davomat': 0,
+            'foiz': 0.0,
             'avg_screen_kpi': 0.0,
+            'patok_kpi': 0.0,
             'active_workers_count': 0,
             'all_screens_list': list(range(1, MAX_SCREENS + 1)),
         }
@@ -253,7 +362,10 @@ def get_screen_data(screen_number: int, target_date=None):
     for idx, w in enumerate(workers_list, start=1):
         w['rank'] = idx
 
+    davomat = len(workers_list)
+    foiz = round((davomat / aniqlik) * 100, 1) if (aniqlik and aniqlik > 0) else 0.0
     avg_screen_kpi = round(total_pct_sum / len(workers_list), 1) if workers_list else 0.0
+    patok_kpi = round((foiz + avg_screen_kpi) / 2, 1)
 
     has_dazmol_op = bool(dazmol_op_ids)
     grand_total_units = dazmol_units if has_dazmol_op else total_scanned_units
@@ -270,10 +382,26 @@ def get_screen_data(screen_number: int, target_date=None):
         'grand_total_earnings_formatted': f"{grand_total_earnings:,.0f}".replace(",", " "),
         'grand_total_units': grand_total_units,
         'dazmol_units': dazmol_units,
+        'aniqlik': aniqlik,
+        'davomat': davomat,
+        'foiz': foiz,
         'avg_screen_kpi': avg_screen_kpi,
+        'patok_kpi': patok_kpi,
         'active_workers_count': len(workers_list),
         'all_screens_list': list(range(1, MAX_SCREENS + 1)),
     }
+
+
+def parse_date_param(val):
+    if not val:
+        return None
+    val = val.strip()
+    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d-%m-%Y', '%Y/%m/%d', '%d/%m/%Y'):
+        try:
+            return datetime.strptime(val, fmt).date()
+        except ValueError:
+            pass
+    return None
 
 
 def screen_view(request, screen_number=None, screen_identifier=None):
@@ -281,7 +409,13 @@ def screen_view(request, screen_number=None, screen_identifier=None):
     parsed = parse_patok_number(raw)
     sn = parsed if (parsed and 1 <= parsed <= MAX_SCREENS) else 1
 
-    data = get_screen_data(sn)
+    date_param = request.GET.get('date')
+    target_date = parse_date_param(date_param)
+
+    data = get_screen_data(sn, target_date=target_date)
+    effective_date = target_date or timezone.localdate()
+    data['target_date_iso'] = effective_date.strftime('%Y-%m-%d')
+    data['is_custom_date'] = bool(target_date and target_date != timezone.localdate())
     return render(request, 'screens/monitor.html', data)
 
 
@@ -291,35 +425,49 @@ def screen_api_view(request, screen_number=None, screen_identifier=None):
     if not sn or not 1 <= sn <= MAX_SCREENS:
         return JsonResponse({'error': f'Invalid screen number or code (must be 1-{MAX_SCREENS}, K1-K13, U1-U27)'}, status=400)
 
-    cache_key = f"screen_api_data_{sn}"
+    date_param = request.GET.get('date')
+    target_date = parse_date_param(date_param)
+    effective_date = target_date or timezone.localdate()
+
+    cache_key = f"screen_api_data_{sn}_{effective_date.isoformat()}"
     cached_data = cache.get(cache_key)
     if cached_data is not None:
         return JsonResponse(cached_data)
 
-    data = get_screen_data(sn)
+    data = get_screen_data(sn, target_date=target_date)
+    data['target_date_iso'] = effective_date.strftime('%Y-%m-%d')
+    data['is_custom_date'] = bool(target_date and target_date != timezone.localdate())
     cache.set(cache_key, data, timeout=10)
     return JsonResponse(data)
 
 
 def all_screens_overview(request):
     """Barcha 40 ta patok ekranini umumiy kuzatish sahifasi"""
-    cached_summary = cache.get('all_screens_overview_data')
-    today = timezone.localdate()
+    date_param = request.GET.get('date')
+    target_date = parse_date_param(date_param)
+    effective_date = target_date or timezone.localdate()
+    cache_key = f"all_screens_overview_data_{effective_date.isoformat()}"
+
+    cached_summary = cache.get(cache_key)
     if cached_summary is not None:
         return render(request, 'screens/overview.html', {
             'screens': cached_summary,
-            'date_str': today.strftime("%d.%m.%Y"),
+            'date_str': effective_date.strftime("%d.%m.%Y"),
+            'target_date_iso': effective_date.strftime('%Y-%m-%d'),
+            'is_custom_date': bool(target_date and target_date != timezone.localdate()),
             'max_screens': MAX_SCREENS,
         })
 
     screens_summary = []
     for s_num in range(1, MAX_SCREENS + 1):
-        data = get_screen_data(s_num, today)
+        data = get_screen_data(s_num, effective_date)
         screens_summary.append(data)
 
-    cache.set('all_screens_overview_data', screens_summary, timeout=10)
+    cache.set(cache_key, screens_summary, timeout=10)
     return render(request, 'screens/overview.html', {
         'screens': screens_summary,
-        'date_str': today.strftime("%d.%m.%Y"),
+        'date_str': effective_date.strftime("%d.%m.%Y"),
+        'target_date_iso': effective_date.strftime('%Y-%m-%d'),
+        'is_custom_date': bool(target_date and target_date != timezone.localdate()),
         'max_screens': MAX_SCREENS,
     })
