@@ -207,20 +207,21 @@ def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
     total_controlled = branch_data['total_controlled']
     avg_percent = branch_data['avg_percent']
 
-    # Ranglar sxemasi
+    # Ochiq rangli (Light Theme) dizayn sxemasi
     is_hq = (branch_key == 'HQ')
-    # Asosiy aksentlar
-    header_accent = (99, 102, 241) if is_hq else (20, 184, 166)      # Indigo yoki Teal
-    header_glow = (67, 56, 202) if is_hq else (13, 148, 136)
-    bg_color = (8, 13, 26)                                           # Chuqur to'q fon
-    card_bg = (15, 23, 42)                                           # Slate 900
-    row_alt_bg = (20, 31, 56)                                        # Slate 850
-    border_color = (30, 41, 59)                                      # Slate 800
-    text_white = (248, 250, 252)
-    text_muted = (148, 163, 184)
-    text_dazmol = (52, 211, 153)                                     # Emerald yashil
-    text_otk = (56, 189, 248)                                        # Cyan moviy
-    total_bg = (30, 27, 75) if is_hq else (19, 46, 53)
+
+    # Asosiy aksent ranglar
+    header_accent = (67, 56, 202) if is_hq else (13, 148, 136)       # Indigo (HQ) yoki Teal (Uychi)
+    badge_accent_bg = (238, 242, 255) if is_hq else (240, 253, 250)
+    bg_color = (244, 246, 250)                                       # Ochiq silliq fon (#F4F6FA)
+    card_bg = (255, 255, 255)                                        # Oq fon (#FFFFFF)
+    row_alt_bg = (248, 250, 252)                                     # Yengil chiziqli fon (#F8FAFC)
+    border_color = (226, 232, 240)                                   # Yengil hoshiya (#E2E8F0)
+    text_dark = (15, 23, 42)                                         # To'q qora-ko'k matn (#0F172A)
+    text_muted = (100, 116, 139)                                     # Kulrang matn (#64748B)
+    text_dazmol = (5, 150, 105)                                       # To'q yashil (#059669)
+    text_otk = (2, 132, 199)                                         # To'q moviy (#0284C7)
+    total_bg = (238, 242, 255) if is_hq else (240, 253, 250)
 
     # Shriftlar
     font_brand = _get_font(13, bold=True)
@@ -245,32 +246,32 @@ def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
     img = Image.new('RGB', (width, height), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # 1. TASHQI RAMKA VA HEADER
+    # 1. TASHQI RAMKA VA HEADER (Ochiq oq karta)
     padding = 24
     content_width = width - (padding * 2)
 
-    # Header qutisi
+    # Header qutisi (Oq fon, chiroyli soya chegarasi)
     draw.rounded_rectangle(
         [(padding, padding), (width - padding, padding + header_height - 10)],
         radius=16,
         fill=card_bg,
-        outline=header_glow,
+        outline=header_accent,
         width=2
     )
 
-    # Header bezak yorlig'i
+    # Header bezak yorlig'i (Brand badge)
     draw.rounded_rectangle(
-        [(padding + 20, padding + 16), (padding + 230, padding + 40)],
+        [(padding + 20, padding + 16), (padding + 235, padding + 40)],
         radius=8,
-        fill=(header_accent[0]//4, header_accent[1]//4, header_accent[2]//4),
+        fill=badge_accent_bg,
         outline=header_accent,
         width=1
     )
     draw.text((padding + 32, padding + 20), "TERRY JAR MANUFACTURING", fill=header_accent, font=font_brand)
 
-    # Sarlavha
-    draw.text((padding + 20, padding + 48), f"📊 {branch_name}", fill=text_white, font=font_title)
-    sub_text = f"📅 Sana: {target_date.strftime('%d.%m.%Y')}  |  ⏰ Vaqt: 18:00 (O'zbekiston)  |  Holat: Kunlik Hisobot"
+    # Sarlavha (To'q matn)
+    draw.text((padding + 20, padding + 48), branch_name, fill=text_dark, font=font_title)
+    sub_text = f"Sana: {target_date.strftime('%d.%m.%Y')}   |   Vaqt: 18:00 (O'zbekiston)   |   Holat: Kunlik Hisobot"
     draw.text((padding + 20, padding + 85), sub_text, fill=text_muted, font=font_subtitle)
 
     # Header o'ng tomon: Filial o'rtacha foizi ko'rsatkichi
@@ -279,14 +280,14 @@ def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
     draw.rounded_rectangle(
         [(kpi_box_x, padding + 18), (kpi_box_x + kpi_box_w, padding + header_height - 28)],
         radius=12,
-        fill=(10, 20, 36),
+        fill=badge_accent_bg,
         outline=header_accent,
         width=1
     )
     draw.text((kpi_box_x + 18, padding + 26), "FILIAL KPI (O'RTACHA)", fill=text_muted, font=font_footer)
     draw.text((kpi_box_x + 18, padding + 46), f"{avg_percent}%", fill=text_dazmol, font=_get_font(28, bold=True))
 
-    # 2. JADVAL QUTISI
+    # 2. JADVAL QUTISI (Oq fon)
     table_top = padding + header_height + 6
     table_bottom = table_top + th_height + (len(patoks) * row_height) + total_height
     draw.rounded_rectangle(
@@ -305,32 +306,31 @@ def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
     col_otk_x = padding + 760
     col_pct_x = width - padding - 40
 
-    # Jadval Header qatori
-    draw.rectangle([(padding + 1, table_top + 1), (width - padding - 1, table_top + th_height)], fill=(20, 29, 47))
+    # Jadval Header qatori (Ochiq kulrang fon)
+    draw.rectangle([(padding + 1, table_top + 1), (width - padding - 1, table_top + th_height)], fill=(241, 245, 249))
     draw.line([(padding, table_top + th_height), (width - padding, table_top + th_height)], fill=border_color, width=1)
 
     draw.text((col_num_x, table_top + 13), "#", fill=text_muted, font=font_header)
-    draw.text((col_patok_x, table_top + 13), "PATOK NOMI", fill=text_muted, font=font_header)
-    draw.text((col_norma_x, table_top + 13), "KUNLIK NORMA", fill=text_muted, font=font_header, anchor="ra")
-    draw.text((col_dazmol_x, table_top + 13), "DAZMOLDAN CHIQQAN", fill=text_muted, font=font_header, anchor="ra")
-    draw.text((col_otk_x, table_top + 13), "KONTROL (OTK)", fill=text_muted, font=font_header, anchor="ra")
-    draw.text((col_pct_x, table_top + 13), "BAJARILISH (%)", fill=text_muted, font=font_header, anchor="ra")
+    draw.text((col_patok_x, table_top + 13), "PATOK NOMI", fill=(71, 85, 105), font=font_header)
+    draw.text((col_norma_x, table_top + 13), "KUNLIK NORMA", fill=(71, 85, 105), font=font_header, anchor="ra")
+    draw.text((col_dazmol_x, table_top + 13), "DAZMOLDAN CHIQQAN", fill=(71, 85, 105), font=font_header, anchor="ra")
+    draw.text((col_otk_x, table_top + 13), "KONTROL (OTK)", fill=(71, 85, 105), font=font_header, anchor="ra")
+    draw.text((col_pct_x, table_top + 13), "BAJARILISH (%)", fill=(71, 85, 105), font=font_header, anchor="ra")
 
-    # 3. PATOKLAR QATORLARI
+    # 3. PATOKLAR QATORLARI (Oq / yengil ochiq kulrang chiziqlar)
     cur_y = table_top + th_height
     for idx, p in enumerate(patoks, 1):
-        # Qator foni
         row_bg = row_alt_bg if (idx % 2 == 0) else card_bg
         draw.rectangle([(padding + 1, cur_y), (width - padding - 1, cur_y + row_height)], fill=row_bg)
-        draw.line([(padding, cur_y + row_height), (width - padding, cur_y + row_height)], fill=(24, 34, 54), width=1)
+        draw.line([(padding, cur_y + row_height), (width - padding, cur_y + row_height)], fill=(241, 245, 249), width=1)
 
         y_text = cur_y + 10
 
         # #
         draw.text((col_num_x, y_text), str(idx), fill=text_muted, font=font_row)
-        # Patok
+        # Patok nomi
         p_name = p['patok_name']
-        draw.text((col_patok_x, y_text), p_name, fill=text_white, font=font_row_bold)
+        draw.text((col_patok_x, y_text), p_name, fill=text_dark, font=font_row_bold)
         # Norma
         draw.text((col_norma_x, y_text), f"{p['daily_norm']:,}".replace(",", " "), fill=text_muted, font=font_row, anchor="ra")
         # Dazmol
@@ -340,21 +340,21 @@ def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
         otk_val = f"{p['controlled_qty']:,}".replace(",", " ")
         draw.text((col_otk_x, y_text), otk_val, fill=text_otk, font=font_row_bold, anchor="ra")
 
-        # Foiz nishoni (Badge)
+        # Foiz nishoni (Badge - Ochiq fonda mos ranglar)
         pct = p['percent']
         pct_str = f"{pct:.1f}%"
         if pct >= 100:
-            badge_bg = (6, 78, 59)
-            badge_fg = (110, 231, 183)
+            badge_bg = (209, 250, 229)
+            badge_fg = (6, 95, 70)
         elif pct >= 80:
-            badge_bg = (6, 95, 70)
-            badge_fg = (167, 243, 208)
+            badge_bg = (220, 252, 231)
+            badge_fg = (22, 101, 52)
         elif pct >= 50:
-            badge_bg = (120, 53, 15)
-            badge_fg = (253, 230, 138)
+            badge_bg = (254, 243, 199)
+            badge_fg = (146, 64, 14)
         else:
-            badge_bg = (136, 19, 55) if p['is_active'] else (30, 41, 59)
-            badge_fg = (254, 205, 211) if p['is_active'] else text_muted
+            badge_bg = (255, 228, 230) if p['is_active'] else (241, 245, 249)
+            badge_fg = (159, 18, 57) if p['is_active'] else text_muted
 
         badge_w = 70
         badge_h = 24
@@ -365,31 +365,31 @@ def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
 
         cur_y += row_height
 
-    # 4. JAMI / O'RTACHA QATORI
+    # 4. JAMI / O'RTACHA QATORI (Ochiq aksentli fon)
     total_y = cur_y
     draw.rectangle([(padding + 1, total_y), (width - padding - 1, total_y + total_height - 1)], fill=total_bg)
     draw.line([(padding, total_y), (width - padding, total_y)], fill=header_accent, width=2)
 
     ty_text = total_y + 16
     draw.text((col_num_x, ty_text), "Σ", fill=header_accent, font=font_total)
-    draw.text((col_patok_x, ty_text), "JAMI / O'RTACHA:", fill=text_white, font=font_total)
-    draw.text((col_norma_x, ty_text), f"{total_norm:,}".replace(",", " "), fill=text_white, font=font_total, anchor="ra")
+    draw.text((col_patok_x, ty_text), "JAMI / O'RTACHA:", fill=text_dark, font=font_total)
+    draw.text((col_norma_x, ty_text), f"{total_norm:,}".replace(",", " "), fill=text_dark, font=font_total, anchor="ra")
     draw.text((col_dazmol_x, ty_text), f"{total_dazmol:,} dona".replace(",", " "), fill=text_dazmol, font=font_total, anchor="ra")
     draw.text((col_otk_x, ty_text), f"{total_controlled:,} dona".replace(",", " "), fill=text_otk, font=font_total, anchor="ra")
 
-    # Umumiy foiz nishoni
+    # Umumiy foiz nishoni (Aksent rangli tugma)
     tot_badge_w = 80
     tot_badge_h = 28
     tbx1 = col_pct_x - tot_badge_w
     tby1 = total_y + 13
-    draw.rounded_rectangle([(tbx1, tby1), (tbx1 + tot_badge_w, tby1 + tot_badge_h)], radius=8, fill=header_glow)
-    draw.text((tbx1 + (tot_badge_w // 2), tby1 + 5), f"{avg_percent:.1f}%", fill=text_white, font=_get_font(15, bold=True), anchor="mt")
+    draw.rounded_rectangle([(tbx1, tby1), (tbx1 + tot_badge_w, tby1 + tot_badge_h)], radius=8, fill=header_accent)
+    draw.text((tbx1 + (tot_badge_w // 2), tby1 + 5), f"{avg_percent:.1f}%", fill=(255, 255, 255), font=_get_font(15, bold=True), anchor="mt")
 
-    # 5. FOOTER QISMI
+    # 5. FOOTER QISMI (Ochiq mayda matn)
     foot_y = table_bottom + 14
     draw.text(
         (padding + 8, foot_y),
-        "ℹ️ Ushbu hisobot Terry Jar ERP tizimi tomonidan har kuni soat 18:00 da avtomatik tarzda shakllantiriladi.",
+        "Ushbu hisobot Terry Jar ERP tizimi tomonidan har kuni soat 18:00 da avtomatik tarzda shakllantiriladi.",
         fill=text_muted,
         font=font_footer
     )
