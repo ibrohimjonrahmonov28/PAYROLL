@@ -1245,7 +1245,34 @@
         applyZoom(currentZoom);
 
         let activeOperator = {{ active_operator_json|safe }};
+        let currentDateStr = "{{ today_date }}";
         let identifiedWorkerCandidate = null;
+
+        // Kun almashganda (masalan, tuni bilan planshet ochiq qolganda) avtomatik yangilanish va 0 ga tushish:
+        function checkDateChange() {
+            try {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const localToday = `${year}-${month}-${day}`;
+                if (currentDateStr && localToday !== currentDateStr) {
+                    console.log("Yangi sana keldi (" + localToday + "). Sahifa yangilanmoqda...");
+                    window.location.reload();
+                    return true;
+                }
+            } catch (e) {
+                console.warn("Date check error:", e);
+            }
+            return false;
+        }
+        setInterval(checkDateChange, 30000);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                checkDateChange();
+            }
+        });
+        window.addEventListener('focus', checkDateChange);
 
         let currentBox = null;
         let currentDefectReasons = [];
@@ -1486,6 +1513,10 @@
             try {
                 const res = await fetch(`{% url 'control:api_recent' %}`);
                 const data = await res.json();
+                if (data.server_date && currentDateStr && data.server_date !== currentDateStr) {
+                    window.location.reload();
+                    return;
+                }
                 if (data.today_first_sort !== undefined) {
                     updateTodayStatsUI({
                         first_sort: data.today_first_sort,
@@ -1589,6 +1620,7 @@
         // Skaner avtomatik qabul qilish
         async function handleScannerSubmit(event) {
             if (event) event.preventDefault();
+            if (checkDateChange()) return;
 
             let inputVal = document.getElementById('scanner-input').value.trim();
             if (!inputVal) return;

@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime, time
 from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
@@ -75,27 +76,58 @@ def _get_active_operator(request):
     return op
 
 
+def _get_scoped_inspection_logs_qs(request, operator=None, target_date=None):
+    """
+    Sifat nazorati jurnallarini (BoxQualityInspectionLog) faqat joriy foydalanuvchi
+    yoki faol operator bo'yicha filterlaydi:
+    - Agar faol operator (operator dict) bo'lsa: shu operatorning bugungi ishlari.
+    - Agar faol operator bo'lmasa: faqat request.user ning o'zi bevosita qilgan ishlari
+      (boshqa xodim birkasi bilan qilinmagan) hisoblanadi.
+    - Yangi kun boshlanishida yoki birorta ish tekshirilmaganda bo'sh QuerySet qaytadi (0 ga tushadi).
+    """
+    if target_date is None:
+        target_date = timezone.localdate()
+
+    current_tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(target_date, time.min), current_tz)
+    day_end = timezone.make_aware(datetime.combine(target_date, time.max), current_tz)
+
+    base_qs = BoxQualityInspectionLog.objects.filter(
+        created_at__gte=day_start,
+        created_at__lte=day_end
+    )
+
+    if operator:
+        op_user_id = operator.get('user_id')
+        op_worker_id = operator.get('worker_id')
+        op_name = operator.get('full_name')
+        cond = Q()
+        if op_user_id:
+            cond |= Q(inspector_id=op_user_id)
+        if op_worker_id:
+            cond |= Q(notes__icontains=str(op_worker_id))
+        if op_name:
+            cond |= Q(notes__icontains=f"Nazoratchi: {op_name}")
+        return base_qs.filter(cond)
+    else:
+        # Operator sessiyasi bo'lmasa:
+        # Faqat joriy tizimga kirgan foydalanuvchi (request.user) ning to'g'ridan-to'g'ri ishlari
+        # (boshqa xodimlar birkasi bilan qilinmagan)
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            return base_qs.filter(inspector=request.user).exclude(notes__icontains="[Nazoratchi:")
+        return base_qs.none()
+
+
 def _get_today_stats(request, operator=None):
     """
     Bugun tekshirilgan ishlar (donalar) soni:
     - 1-sort: yashilda (first_sort_qty)
     - Ta'mir: qizilda (repair_qty)
     - 2-sort: sariqda (second_sort_qty)
-    Agar operator ko'rsatilgan bo'lsa, shu ishchining ishlari hisoblanadi.
+    Faqat joriy foydalanuvchi yoki faol operatorning bugungi ishlari hisoblanadi.
+    Yangi kunda yoki ish boshlanmaganda 0 qaytaradi.
     """
-    today = timezone.localdate()
-    logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
-
-    if operator:
-        op_user_id = operator.get('user_id')
-        op_worker_id = operator.get('worker_id')
-        cond = Q()
-        if op_user_id:
-            cond |= Q(inspector_id=op_user_id)
-        if op_worker_id:
-            cond |= Q(notes__icontains=op_worker_id)
-        if cond:
-            logs_qs = logs_qs.filter(cond)
+    logs_qs = _get_scoped_inspection_logs_qs(request, operator)
 
     first_sort = logs_qs.aggregate(s=Sum('first_sort_qty'))['s'] or 0
     repair = logs_qs.aggregate(s=Sum('repair_qty'))['s'] or 0
@@ -128,7 +160,7 @@ def control_home_view(request):
     active_operator = _get_active_operator(request)
     stats = _get_today_stats(request, active_operator)
 
-    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+    today_logs_qs = _get_scoped_inspection_logs_qs(request, active_operator, today)
     today_boxes_count = today_logs_qs.values('box_id').distinct().count()
     today_inspections = today_logs_qs.select_related(
         'box', 'box__order', 'box__article', 'inspector'
@@ -143,7 +175,7 @@ def control_home_view(request):
         'today_repair': stats['repair'],
         'today_second_sort': stats['second_sort'],
         'today_inspections': today_inspections,
-        'today_date': today,
+        'today_date': str(today),
     })
 
 
@@ -770,6 +802,7 @@ def control_submit_inspection_api(request):
 def control_recent_inspections_api(request):
     """
     Bugungi oxirgi tekshirilgan qutilar jurnali va umumiy statistika API.
+    Faqat joriy foydalanuvchi yoki faol operatorning ishlari qaytariladi.
     """
     if not _is_control_authorized(request.user):
         return JsonResponse({'status': 'FORBIDDEN'}, status=403)
@@ -778,7 +811,7 @@ def control_recent_inspections_api(request):
     active_operator = _get_active_operator(request)
     stats = _get_today_stats(request, active_operator)
 
-    today_logs_qs = BoxQualityInspectionLog.objects.filter(created_at__date=today)
+    today_logs_qs = _get_scoped_inspection_logs_qs(request, active_operator, today)
     logs = today_logs_qs.select_related(
         'box', 'box__order', 'box__article', 'inspector'
     ).order_by('-created_at')[:25]
@@ -806,6 +839,7 @@ def control_recent_inspections_api(request):
 
     return JsonResponse({
         'status': 'OK',
+        'server_date': str(today),
         'count': today_boxes_count,
         'today_boxes_count': today_boxes_count,
         'today_first_sort': stats['first_sort'],
