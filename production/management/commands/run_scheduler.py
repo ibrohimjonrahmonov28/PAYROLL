@@ -17,6 +17,7 @@ from django.utils import timezone
 
 from accounts.management.commands.close_daily_payroll import perform_daily_closing
 from production.telegram_reports import send_daily_excel_report
+from production.daily_image_reports import send_daily_1800_reports
 
 logger = logging.getLogger(__name__)
 
@@ -88,17 +89,41 @@ class Command(BaseCommand):
             return
 
         # DOIMIY SCHEDULER REJIMI
-        self.stdout.write(self.style.SUCCESS("⏰ TERRY JAR Tungi Hisobot Scheduler ishga tushdi..."))
-        self.stdout.write("📅 Har kuni 00:00 da (Toshkent vaqti bilan) avtomatik ishga tushadi.")
+        self.stdout.write(self.style.SUCCESS("⏰ TERRY JAR Avtomatik Scheduler ishga tushdi..."))
+        self.stdout.write("📅 1. Har kuni 18:00 da (Toshkent vaqti): Filiallar kunlik rasm-hisobotlari")
+        self.stdout.write("📅 2. Har kuni 00:00 da (Toshkent vaqti): Kunlik ish haqi yopish va to'liq Excel hisoboti")
 
         last_executed_date = None
+        last_1800_executed_date = None
 
         while True:
             try:
                 now = timezone.localtime()
-                yesterday = now.date() - datetime.timedelta(days=1)
+                today = now.date()
+                yesterday = today - datetime.timedelta(days=1)
 
-                # Har kuni tunda 00:00 dan 00:15 oralig'ida va bugun hali bajarilmagan bo'lsa
+                # 1. Har kuni 18:00 da (18:00 dan 18:15 oralig'ida): Filiallar Kunlik Rasm-Hisobotlari
+                if now.hour == 18 and now.minute <= 15 and last_1800_executed_date != today:
+                    self.stdout.write(self.style.NOTICE(
+                        f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ⏰ 18:00 Filiallar hisobot vaqti keldi! "
+                        f"Bosh bino va Uychi guruhlariga alohida hisobot rasmlari jo'natilmoqda..."
+                    ))
+
+                    res_1800 = send_daily_1800_reports(today)
+                    if res_1800.get('success'):
+                        last_1800_executed_date = today
+                        self.stdout.write(self.style.SUCCESS(
+                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ✅ 18:00 hisobot rasmlari muvaffaqiyatli jo'natildi."
+                        ))
+                    else:
+                        self.stdout.write(self.style.WARNING(
+                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ 18:00 hisobotida ogohlantirish: {res_1800}. "
+                            f"Keyingi daqiqada qayta urinib ko'riladi..."
+                        ))
+                        time.sleep(60)
+                        continue
+
+                # 2. Har kuni tunda 00:00 dan 00:15 oralig'ida: Tungi ish haqi yopish va Excel hisobot
                 if now.hour == 0 and now.minute <= 15 and last_executed_date != yesterday:
                     self.stdout.write(self.style.NOTICE(
                         f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Tungi hisobot vaqti keldi! "
@@ -111,11 +136,11 @@ class Command(BaseCommand):
                     if report_status.get('success'):
                         last_executed_date = yesterday
                         self.stdout.write(self.style.SUCCESS(
-                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ✅ Hisobot muvaffaqiyatli yuborildi: {report_status.get('message')}"
+                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ✅ Tungi Excel hisoboti muvaffaqiyatli yuborildi: {report_status.get('message')}"
                         ))
                     else:
                         self.stdout.write(self.style.WARNING(
-                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Hisobot yuborishda muammo bo'ldi: {report_status.get('message')}. "
+                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Tungi hisobot yuborishda muammo bo'ldi: {report_status.get('message')}. "
                             f"Keyingi daqiqada qayta urinib ko'riladi..."
                         ))
                         # 60 sekund kutib qayta urinadi
