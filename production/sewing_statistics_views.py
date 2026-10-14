@@ -1534,16 +1534,14 @@ def sewing_statistics_order_models_view(request, order_id: int):
 def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: int):
     """
     3-BOSQICH: Tanlangan Modelning Razmerlar Bo'yicha To'liq Tikim Statistikasi
-    - Har bir razmer bo'yicha:
-      * Reja, Kesilgan, Qutilardagi jami dona va qutilar soni
-      * Tikimga kirgan dona va qutilar soni (kamida 1 stikeri urilgan)
-      * Dazmoldan o'tgan dona va qutilar soni
-      * Kontrolgacha yetib bormagan ishlar soni
-      * Kontrolda kutib turgan dona va qutilar soni (100% tikilgan, OTK kutilmoqda)
-      * Kontroldan o'tgan: 1-sort, 2-sort, Ta'mirda
-      * Aniq nazorat soni va Farq (+ / - / Balans)
-    - Razmer qatori bosilganda pastdan real-time bazadan qutilar yuklanadi (AJAX)
+    - Kunlik nazorat (Tanlangan sana bo'yicha):
+      * Oldingi kunga qadar bo'lgan natija (prior)
+      * Tanlangan kunda qo'shilgan natija (daily / delta)
+      * Tanlangan kun oxiridagi umumiy natija (total = prior + daily)
+    - Kesim, Tikimga kirgan, Dazmoldan o'tgan, OTK 1-sort ko'rsatkichlari bo'yicha
     """
+    from datetime import datetime, time, timedelta
+
     order = get_object_or_404(Order.objects.select_related('customer'), id=order_id)
     item = get_object_or_404(
         OrderItem.objects.select_related('article', 'article__model').prefetch_related(
@@ -1555,6 +1553,27 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
     )
     article = item.article
     dazmol_ao_ids = get_dazmol_operation_ids_for_article(article)
+
+    # Sana filtri
+    date_str = request.GET.get('date', '').strip()
+    selected_date = None
+    if date_str:
+        for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d-%m-%Y', '%Y/%m/%d', '%d/%m/%Y'):
+            try:
+                selected_date = datetime.strptime(date_str, fmt).date()
+                break
+            except ValueError:
+                pass
+    if not selected_date:
+        selected_date = timezone.localdate()
+
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(selected_date, time.max), tz)
+
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+    is_today = (selected_date == timezone.localdate())
 
     # Qutilar, biletlar va sifat jurnallarini prefetch qilish
     boxes = list(
@@ -1593,11 +1612,20 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
     sizes_breakdown = []
     model_totals = {
         'planned': 0,
+        'cut_prior': 0,
+        'cut_today': 0,
+        'cut_total': 0,
         'cut': 0,
         'boxed': 0,
         'boxes_count': len(boxes),
+        'sewing_prior': 0,
+        'sewing_today': 0,
+        'sewing_total': 0,
         'entered_sewing': 0,
         'entered_boxes': 0,
+        'dazmol_prior': 0,
+        'dazmol_today': 0,
+        'dazmol_total': 0,
         'dazmol': 0,
         'dazmol_boxes': 0,
         'unreached_control': 0,
@@ -1608,7 +1636,13 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'in_repair_boxes': 0,
         're_repair': 0,
         're_repair_boxes': 0,
+        'first_sort_prior': 0,
+        'first_sort_today': 0,
+        'first_sort_total': 0,
         'first_sort': 0,
+        'second_sort_prior': 0,
+        'second_sort_today': 0,
+        'second_sort_total': 0,
         'second_sort': 0,
         'repair': 0,
         'controlled_boxes': 0,
@@ -1620,26 +1654,86 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
     for size_name in sorted_size_names:
         size_obj = sizes_map.get(size_name)
         planned_qty = size_obj.planned_quantity if size_obj else 0
-        cut_qty = size_obj.total_cut_quantity if size_obj else 0
 
         # Ushbu razmer qutilari
         size_boxes = [b for b in boxes if (b.razmer or '').strip().upper() == size_name]
         total_boxed_qty = sum(b.quantity for b in size_boxes)
-        size_balance = calculate_pipeline_balance(size_boxes, planned_qty, cut_qty, dazmol_ao_ids)
+        size_balance = calculate_pipeline_balance(size_boxes, planned_qty, size_obj.total_cut_quantity if size_obj else 0, dazmol_ao_ids)
+
+        # 1. Kesim delta
+        cutting_items = list(size_obj.cutting_items.select_related('batch')) if size_obj else []
+        if cutting_items:
+            s_cut_prior = sum(ci.quantity for ci in cutting_items if ci.batch and ci.batch.created_at and ci.batch.created_at < day_start)
+            s_cut_today = sum(ci.quantity for ci in cutting_items if ci.batch and ci.batch.created_at and day_start <= ci.batch.created_at <= day_end)
+        else:
+            s_cut_prior = sum(b.quantity for b in size_boxes if b.created_at and b.created_at < day_start)
+            s_cut_today = sum(b.quantity for b in size_boxes if b.created_at and day_start <= b.created_at <= day_end)
+        s_cut_total = s_cut_prior + s_cut_today
+
+        # 2. Tikim delta
+        s_sewing_prior = 0
+        s_sewing_today = 0
+        for b in size_boxes:
+            scanned_ts = [t.scanned_at for t in b.tickets.all() if t.status == Ticket.Status.SCANNED and t.scanned_at]
+            if scanned_ts:
+                min_ts = min(scanned_ts)
+                if min_ts < day_start:
+                    s_sewing_prior += b.quantity
+                elif day_start <= min_ts <= day_end:
+                    s_sewing_today += b.quantity
+        s_sewing_total = s_sewing_prior + s_sewing_today
+
+        # 3. Dazmol delta
+        s_dazmol_prior = 0
+        s_dazmol_today = 0
+        for b in size_boxes:
+            dz_tickets = [t for t in b.tickets.all() if t.article_operation_id in dazmol_ao_ids and t.status == Ticket.Status.SCANNED and t.scanned_at]
+            if dz_tickets:
+                min_dz = min(t.scanned_at for t in dz_tickets)
+                if min_dz < day_start:
+                    s_dazmol_prior += b.quantity
+                elif day_start <= min_dz <= day_end:
+                    s_dazmol_today += b.quantity
+        s_dazmol_total = s_dazmol_prior + s_dazmol_today
+
+        # 4. OTK delta
+        s_first_sort_prior = 0
+        s_first_sort_today = 0
+        s_second_sort_prior = 0
+        s_second_sort_today = 0
+        for b in size_boxes:
+            if b.is_controlled and b.controlled_at:
+                if b.controlled_at < day_start:
+                    s_first_sort_prior += (b.controlled_first_sort_qty or 0)
+                    s_second_sort_prior += (b.controlled_second_sort_qty or 0)
+                elif day_start <= b.controlled_at <= day_end:
+                    s_first_sort_today += (b.controlled_first_sort_qty or 0)
+                    s_second_sort_today += (b.controlled_second_sort_qty or 0)
+        s_first_sort_total = s_first_sort_prior + s_first_sort_today
+        s_second_sort_total = s_second_sort_prior + s_second_sort_today
 
         sizes_breakdown.append({
             'size_name': size_name,
             'planned_qty': planned_qty,
-            'cut_qty': cut_qty,
-            'cut_pct': size_balance['cut_pct'],
+            'cut_qty': s_cut_total,
+            'cut_prior': s_cut_prior,
+            'cut_today': s_cut_today,
+            'cut_total': s_cut_total,
+            'cut_pct': round((s_cut_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'total_boxed_qty': total_boxed_qty,
             'boxes_count': len(size_boxes),
-            'entered_sewing_qty': size_balance['entered_sewing_qty'],
+            'entered_sewing_qty': s_sewing_total,
+            'sewing_prior': s_sewing_prior,
+            'sewing_today': s_sewing_today,
+            'sewing_total': s_sewing_total,
             'entered_sewing_boxes': size_balance['entered_sewing_boxes'],
-            'sewing_pct': size_balance['sewing_pct'],
-            'dazmol_qty': size_balance['dazmol_qty'],
+            'sewing_pct': round((s_sewing_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
+            'dazmol_qty': s_dazmol_total,
+            'dazmol_prior': s_dazmol_prior,
+            'dazmol_today': s_dazmol_today,
+            'dazmol_total': s_dazmol_total,
             'dazmol_boxes': size_balance['dazmol_boxes'],
-            'dazmol_pct': size_balance['dazmol_pct'],
+            'dazmol_pct': round((s_dazmol_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'unreached_control_qty': size_balance['unreached_control_qty'],
             'unreached_control_boxes': size_balance['unreached_control_boxes'],
             'waiting_control_qty': size_balance['waiting_control_qty'],
@@ -1648,8 +1742,14 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'in_repair_boxes': size_balance['in_repair_boxes'],
             're_repair_qty': size_balance['re_repair_qty'],
             're_repair_boxes': size_balance['re_repair_boxes'],
-            'first_sort_qty': size_balance['first_sort_qty'],
-            'second_sort_qty': size_balance['second_sort_qty'],
+            'first_sort_qty': s_first_sort_total,
+            'first_sort_prior': s_first_sort_prior,
+            'first_sort_today': s_first_sort_today,
+            'first_sort_total': s_first_sort_total,
+            'second_sort_qty': s_second_sort_total,
+            'second_sort_prior': s_second_sort_prior,
+            'second_sort_today': s_second_sort_today,
+            'second_sort_total': s_second_sort_total,
             'repair_qty': size_balance['in_repair_qty'],
             'controlled_boxes': size_balance['controlled_boxes_count'],
             'control_variance': size_balance['net_variance'],
@@ -1659,12 +1759,24 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         })
 
         model_totals['planned'] += planned_qty
-        model_totals['cut'] += cut_qty
+        model_totals['cut_prior'] += s_cut_prior
+        model_totals['cut_today'] += s_cut_today
+        model_totals['cut_total'] += s_cut_total
+        model_totals['cut'] += s_cut_total
         model_totals['boxed'] += total_boxed_qty
-        model_totals['entered_sewing'] += size_balance['entered_sewing_qty']
+
+        model_totals['sewing_prior'] += s_sewing_prior
+        model_totals['sewing_today'] += s_sewing_today
+        model_totals['sewing_total'] += s_sewing_total
+        model_totals['entered_sewing'] += s_sewing_total
         model_totals['entered_boxes'] += size_balance['entered_sewing_boxes']
-        model_totals['dazmol'] += size_balance['dazmol_qty']
+
+        model_totals['dazmol_prior'] += s_dazmol_prior
+        model_totals['dazmol_today'] += s_dazmol_today
+        model_totals['dazmol_total'] += s_dazmol_total
+        model_totals['dazmol'] += s_dazmol_total
         model_totals['dazmol_boxes'] += size_balance['dazmol_boxes']
+
         model_totals['unreached_control'] += size_balance['unreached_control_qty']
         model_totals['unreached_control_boxes'] += size_balance['unreached_control_boxes']
         model_totals['waiting_control'] += size_balance['waiting_control_qty']
@@ -1673,19 +1785,31 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['in_repair_boxes'] += size_balance['in_repair_boxes']
         model_totals['re_repair'] += size_balance['re_repair_qty']
         model_totals['re_repair_boxes'] += size_balance['re_repair_boxes']
-        model_totals['first_sort'] += size_balance['first_sort_qty']
-        model_totals['second_sort'] += size_balance['second_sort_qty']
+
+        model_totals['first_sort_prior'] += s_first_sort_prior
+        model_totals['first_sort_today'] += s_first_sort_today
+        model_totals['first_sort_total'] += s_first_sort_total
+        model_totals['first_sort'] += s_first_sort_total
+
+        model_totals['second_sort_prior'] += s_second_sort_prior
+        model_totals['second_sort_today'] += s_second_sort_today
+        model_totals['second_sort_total'] += s_second_sort_total
+        model_totals['second_sort'] += s_second_sort_total
+
         model_totals['repair'] += size_balance['in_repair_qty']
         model_totals['controlled_boxes'] += size_balance['controlled_boxes_count']
         model_totals['control_variance'] += size_balance['net_variance']
 
     # To'liq model balansi
-    model_balance = calculate_pipeline_balance(boxes, model_totals['planned'], model_totals['cut'], dazmol_ao_ids)
-    model_totals['cut_pct'] = model_balance['cut_pct']
-    model_totals['sewing_pct'] = model_balance['sewing_pct']
-    model_totals['dazmol_pct'] = model_balance['dazmol_pct']
-    model_totals['brak_rate_pct'] = model_balance['brak_rate_pct']
-    model_totals['is_brak_warning'] = model_balance['is_brak_warning']
+    model_balance = calculate_pipeline_balance(boxes, model_totals['planned'], model_totals['cut_total'], dazmol_ao_ids)
+    model_totals['cut_pct'] = round((model_totals['cut_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
+    model_totals['sewing_pct'] = round((model_totals['sewing_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
+    model_totals['dazmol_pct'] = round((model_totals['dazmol_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
+
+    total_closed = model_totals['first_sort_total'] + model_totals['second_sort_total']
+    brak_pct = round((model_totals['second_sort_total'] / total_closed * 100), 1) if total_closed > 0 else 0.0
+    model_totals['brak_rate_pct'] = brak_pct
+    model_totals['is_brak_warning'] = (brak_pct >= 10.0 and total_closed >= 10)
 
     article_image_url = None
     if article.image:
@@ -1702,6 +1826,13 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'sizes_breakdown': sizes_breakdown,
         'model_totals': model_totals,
         'model_balance': model_balance,
+        'selected_date': selected_date,
+        'selected_date_str': selected_date.strftime('%Y-%m-%d'),
+        'selected_date_display': selected_date.strftime('%d.%m.%Y'),
+        'prev_date_str': prev_date.strftime('%Y-%m-%d'),
+        'next_date_str': next_date.strftime('%Y-%m-%d'),
+        'today_str': timezone.localdate().strftime('%Y-%m-%d'),
+        'is_today': is_today,
     })
 
 

@@ -2428,6 +2428,71 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertEqual(size_l_data['first_sort_qty'], 38)
         self.assertEqual(size_l_data['second_sort_qty'], 2)
 
+    def test_sewing_statistics_model_detail_date_progression(self):
+        from datetime import timedelta
+        self.client.login(username="superadmin_stat", password="password123")
+        base_url = reverse('production:sewing_statistics_model_detail', kwargs={'order_id': self.order.id, 'order_item_id': self.item.id})
+
+        today = timezone.localdate()
+        today_str = today.strftime('%Y-%m-%d')
+        tomorrow_str = (today + timedelta(days=1)).strftime('%Y-%m-%d')
+        yesterday_str = (today - timedelta(days=1)).strftime('%Y-%m-%d')
+
+        # 1. Bugungi sana bo'yicha: barcha bajarilgan ishlar today (shu kunda)
+        res_today = self.client.get(f"{base_url}?date={today_str}")
+        self.assertEqual(res_today.status_code, 200)
+        self.assertContains(res_today, "Hisob formulasi")
+        self.assertContains(res_today, "Sana hisoboti")
+
+        mt_today = res_today.context['model_totals']
+        self.assertEqual(mt_today['planned'], 100)
+        self.assertEqual(mt_today['cut_prior'], 0)
+        self.assertEqual(mt_today['cut_today'], 100)
+        self.assertEqual(mt_today['cut_total'], 100)
+        self.assertEqual(mt_today['sewing_prior'], 0)
+        self.assertEqual(mt_today['sewing_today'], 100)
+        self.assertEqual(mt_today['sewing_total'], 100)
+        self.assertEqual(mt_today['dazmol_prior'], 0)
+        self.assertEqual(mt_today['dazmol_today'], 70)
+        self.assertEqual(mt_today['dazmol_total'], 70)
+        self.assertEqual(mt_today['first_sort_prior'], 0)
+        self.assertEqual(mt_today['first_sort_today'], 38)
+        self.assertEqual(mt_today['first_sort_total'], 38)
+
+        # 2. Ertangi sana bo'yicha: bugungi ishlar prior (oldingi) bo'ladi, bugun yangi qo'shilmagan (today=0)
+        res_tomorrow = self.client.get(f"{base_url}?date={tomorrow_str}")
+        self.assertEqual(res_tomorrow.status_code, 200)
+        mt_tomorrow = res_tomorrow.context['model_totals']
+        self.assertEqual(mt_tomorrow['cut_prior'], 100)
+        self.assertEqual(mt_tomorrow['cut_today'], 0)
+        self.assertEqual(mt_tomorrow['cut_total'], 100)
+        self.assertEqual(mt_tomorrow['sewing_prior'], 100)
+        self.assertEqual(mt_tomorrow['sewing_today'], 0)
+        self.assertEqual(mt_tomorrow['sewing_total'], 100)
+        self.assertEqual(mt_tomorrow['dazmol_prior'], 70)
+        self.assertEqual(mt_tomorrow['dazmol_today'], 0)
+        self.assertEqual(mt_tomorrow['dazmol_total'], 70)
+        self.assertEqual(mt_tomorrow['first_sort_prior'], 38)
+        self.assertEqual(mt_tomorrow['first_sort_today'], 0)
+        self.assertEqual(mt_tomorrow['first_sort_total'], 38)
+
+        # 3. Kechagi sana bo'yicha: hali hech qanday ish boshlanmagan (hamma qiymatlar 0)
+        res_yesterday = self.client.get(f"{base_url}?date={yesterday_str}")
+        self.assertEqual(res_yesterday.status_code, 200)
+        mt_yesterday = res_yesterday.context['model_totals']
+        self.assertEqual(mt_yesterday['cut_prior'], 0)
+        self.assertEqual(mt_yesterday['cut_today'], 0)
+        self.assertEqual(mt_yesterday['cut_total'], 0)
+        self.assertEqual(mt_yesterday['sewing_prior'], 0)
+        self.assertEqual(mt_yesterday['sewing_today'], 0)
+        self.assertEqual(mt_yesterday['sewing_total'], 0)
+        self.assertEqual(mt_yesterday['dazmol_prior'], 0)
+        self.assertEqual(mt_yesterday['dazmol_today'], 0)
+        self.assertEqual(mt_yesterday['dazmol_total'], 0)
+        self.assertEqual(mt_yesterday['first_sort_prior'], 0)
+        self.assertEqual(mt_yesterday['first_sort_today'], 0)
+        self.assertEqual(mt_yesterday['first_sort_total'], 0)
+
     def test_api_sewing_statistics_size_boxes_html_and_json(self):
         self.client.login(username="superadmin_stat", password="password123")
         url = reverse('production:api_sewing_statistics_size_boxes')
