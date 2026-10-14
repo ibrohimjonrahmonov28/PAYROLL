@@ -173,72 +173,86 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
 
 def get_model_pastals_analysis(boxes):
     """
-    Model qutilarini pastallar kesimida tahlil qiladi (Foydalanuvchi qoidasi):
-    - Har bir pastal bo'yicha jami qutilar, donalar soni, razmerlar taqsimoti
-    - Agar pastal qutilaridagi barcha stikerlar ichidan kamida 1 dona stiker skanerlangan bo'lsa -> Tikimga Kirgan
-    - Agar pastal qutilaridan birorta ham stiker skanerlanmagan bo'lsa (0 ta skaner) -> Tikim Kutmoqda
-    - 1 ta stiker skanerlanishi bilan butun pastal 'Tikim Kutmoqda'dan chiqib avtomatik patokka (WIP) qo'shiladi
+    Model qutilarini tahlil qiladi (Foydalanuvchining yangi qoidasi - qutilar kesimida):
+    - Har bir quti tekshiriladi (Bekor qilingan / atmen qutilar qat'iy hisobga olinmaydi)
+    - Agar qutidagi kamida 1 dona stiker skanerlangan bo'lsa -> Tikimga Kirgan
+    - Agar qutidan birorta ham stiker skanerlanmagan bo'lsa (0 ta skaner) -> Tikim Kutmoqda
+    - Stikeri skanerlanishi bilan ushbu quti 'Tikim Kutmoqda'dan chiqib avtomatik patokka (WIP) o'tadi
+    - Natijada qutilar pastallar kesimida qulay guruhlanib, qaysi pastaldan qaysi qutilar kutayotgani ko'rsatiladi
     """
-    pastal_map = {}
-    for b in boxes:
-        pcode = (b.pastal_code or b.pastal_number or 'NOMA\'LUM').strip()
-        if pcode not in pastal_map:
-            batch_num = None
-            batch_created = None
-            if b.cutting_batch_item and b.cutting_batch_item.batch:
-                batch_num = b.cutting_batch_item.batch.batch_number
-                batch_created = b.cutting_batch_item.batch.created_at
-            pastal_map[pcode] = {
-                'pastal_code': pcode,
-                'boxes_count': 0,
-                'total_quantity': 0,
-                'scanned_tickets': 0,
-                'sizes_qty': {},
-                'batch_number': batch_num,
-                'created_at': batch_created,
-                'boxes': [],
-            }
-        p = pastal_map[pcode]
-        p['boxes_count'] += 1
-        p['total_quantity'] += b.quantity
-        p['boxes'].append(b)
-        rz = (b.razmer or '').strip().upper()
-        if rz:
-            p['sizes_qty'][rz] = p['sizes_qty'].get(rz, 0) + b.quantity
-
-        scanned_in_box = sum(1 for t in b.tickets.all() if t.status == Ticket.Status.SCANNED)
-        p['scanned_tickets'] += scanned_in_box
-
-    waiting_pastals = []
-    entered_pastals = []
-
-    for pcode, p in sorted(pastal_map.items(), key=lambda x: (x[1]['batch_number'] or 999, x[0])):
-        p['is_waiting'] = (p['scanned_tickets'] == 0)
-        p['sizes_display'] = ', '.join(f"{sz}: {qty}" for sz, qty in sorted(p['sizes_qty'].items()))
-        if p['is_waiting']:
-            waiting_pastals.append(p)
-        else:
-            entered_pastals.append(p)
-
-    waiting_sewing_qty = sum(p['total_quantity'] for p in waiting_pastals)
-    waiting_sewing_boxes = sum(p['boxes_count'] for p in waiting_pastals)
-
-    # Razmerlar kesimida waiting_sewing_qty va waiting_boxes_by_size
+    waiting_boxes = []
+    entered_boxes = []
+    waiting_pastals_map = {}
     waiting_by_size = {}
     waiting_boxes_by_size = {}
-    for p in waiting_pastals:
-        for b in p['boxes']:
-            rz = (b.razmer or '').strip().upper()
+
+    for b in boxes:
+        # Atmen bo'lgan qutilar umuman yo'q narsa - qat'iy o'tkazib yuboriladi
+        if getattr(b, 'status', None) == Box.Status.CANCELLED:
+            continue
+
+        scanned_in_box = sum(1 for t in b.tickets.all() if t.status == Ticket.Status.SCANNED)
+        rz = (b.razmer or '').strip().upper()
+        pcode = (b.pastal_code or b.pastal_number or 'NOMA\'LUM').strip()
+
+        if scanned_in_box == 0:
+            # Tikim Kutmoqda (0 stiker skanerlangan)
+            waiting_boxes.append(b)
             if rz:
                 waiting_by_size[rz] = waiting_by_size.get(rz, 0) + b.quantity
                 waiting_boxes_by_size[rz] = waiting_boxes_by_size.get(rz, 0) + 1
 
+            if pcode not in waiting_pastals_map:
+                batch_num = None
+                batch_created = None
+                if b.cutting_batch_item and b.cutting_batch_item.batch:
+                    batch_num = b.cutting_batch_item.batch.batch_number
+                    batch_created = b.cutting_batch_item.batch.created_at
+                waiting_pastals_map[pcode] = {
+                    'pastal_code': pcode,
+                    'boxes_count': 0,
+                    'total_quantity': 0,
+                    'sizes_qty': {},
+                    'batch_number': batch_num,
+                    'created_at': batch_created,
+                    'box_numbers': [],
+                    'boxes': [],
+                }
+            p = waiting_pastals_map[pcode]
+            p['boxes_count'] += 1
+            p['total_quantity'] += b.quantity
+            p['boxes'].append(b)
+            p['box_numbers'].append(b.box_number)
+            if rz:
+                p['sizes_qty'][rz] = p['sizes_qty'].get(rz, 0) + b.quantity
+        else:
+            # Tikimga Kirgan
+            entered_boxes.append(b)
+
+    waiting_pastals = []
+    for pcode, p in sorted(waiting_pastals_map.items(), key=lambda x: (x[1]['batch_number'] or 999, x[0])):
+        p['sizes_display'] = ', '.join(f"{sz}: {qty}" for sz, qty in sorted(p['sizes_qty'].items()))
+        box_nums = sorted(p['box_numbers'])
+        if len(box_nums) > 1:
+            p['boxes_range_display'] = f"№{box_nums[0]} – №{box_nums[-1]}"
+        elif box_nums:
+            p['boxes_range_display'] = f"№{box_nums[0]}"
+        else:
+            p['boxes_range_display'] = "—"
+        waiting_pastals.append(p)
+
+    waiting_sewing_qty = sum(b.quantity for b in waiting_boxes)
+    waiting_sewing_boxes = len(waiting_boxes)
+    waiting_pastals_count = len(waiting_pastals)
+
     return {
         'waiting_pastals': waiting_pastals,
-        'waiting_pastals_count': len(waiting_pastals),
+        'waiting_pastals_count': waiting_pastals_count,
         'waiting_sewing_qty': waiting_sewing_qty,
         'waiting_sewing_boxes': waiting_sewing_boxes,
-        'entered_pastals_count': len(entered_pastals),
+        'waiting_boxes': waiting_boxes,
+        'entered_boxes_count': len(entered_boxes),
+        'entered_sewing_qty': sum(b.quantity for b in entered_boxes),
         'waiting_by_size': waiting_by_size,
         'waiting_boxes_by_size': waiting_boxes_by_size,
     }
@@ -259,8 +273,9 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
     9. Kontrol bergan aniq son va Farq/Balans (+ / - / 0)
     10. 10% Brak ogohlantirish indikatori (is_brak_warning, brak_rate_pct)
     """
-    total_boxed_qty = sum(b.quantity for b in boxes)
-    boxes_count = len(boxes)
+    active_boxes = [b for b in boxes if getattr(b, 'status', None) != Box.Status.CANCELLED]
+    total_boxed_qty = sum(b.quantity for b in active_boxes)
+    boxes_count = len(active_boxes)
 
     entered_sewing_qty = 0
     entered_sewing_boxes = 0
@@ -295,7 +310,7 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
     nominal_closed_qty = 0
     net_variance = 0
 
-    for b in boxes:
+    for b in active_boxes:
         b_eval = evaluate_box_progress(b, dazmol_ao_ids)
 
         if b_eval['has_entered_sewing']:
@@ -351,7 +366,7 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
 
     # Pastallar tahlili: Tikim Kutmoqda (0 stiker) vs Tikimga Kirgan
     if pastals_info is None:
-        pastals_info = get_model_pastals_analysis(boxes)
+        pastals_info = get_model_pastals_analysis(active_boxes)
     waiting_sewing_qty = pastals_info['waiting_sewing_qty']
     waiting_sewing_boxes = pastals_info['waiting_sewing_boxes']
     waiting_pastals_count = pastals_info['waiting_pastals_count']

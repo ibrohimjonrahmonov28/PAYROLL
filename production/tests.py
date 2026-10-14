@@ -2908,6 +2908,31 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertEqual(analysis['waiting_sewing_boxes'], 1)
         self.assertEqual(analysis['waiting_by_size']['M'], 20)
 
+        # Bekor qilingan (CANCELLED) quti yaratamiz - u umuman hisobga olinmasligi shart!
+        box_cancelled = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="M",
+            box_number=11,
+            box_code="STAT-BX-CANCELLED-01",
+            quantity=999,
+            pastal_number="P-CANCELLED",
+            status=Box.Status.CANCELLED
+        )
+        Ticket.objects.create(
+            box=box_cancelled,
+            article_operation=self.ao1,
+            quantity=999,
+            price_per_unit=500,
+            status=Ticket.Status.PENDING
+        )
+
+        boxes_with_cancelled = list(self.order.boxes.filter(article=self.article).prefetch_related('tickets'))
+        analysis_with_cancelled = get_model_pastals_analysis(boxes_with_cancelled)
+        # Cancelled quti va uning 999 soni umuman hisobga kirmasligi kerak!
+        self.assertEqual(analysis_with_cancelled['waiting_sewing_qty'], 20)
+        self.assertEqual(analysis_with_cancelled['waiting_sewing_boxes'], 1)
+
         # Sahifani so'rab ko'ramiz
         self.client.login(username="superadmin_stat", password="password123")
         url = reverse('production:sewing_statistics_model_detail', kwargs={'order_id': self.order.id, 'order_item_id': self.item.id})
@@ -2916,9 +2941,9 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res, "3. Tikim Kutmoqda")
         self.assertContains(res, "modal-waiting-pastals")
         self.assertContains(res, "P-WAIT-01")
-        self.assertContains(res, "1 ta pastal")
+        self.assertNotContains(res, "P-CANCELLED")
 
-        # Endi kutayotgan pastaldan 1 dona stikerni skanerlaymiz -> Avtomatik kutmoqtadan chiqadi!
+        # Endi kutayotgan qutidan 1 dona stikerni skanerlaymiz -> Avtomatik kutmoqtadan chiqadi!
         t_wait1.status = Ticket.Status.SCANNED
         t_wait1.scanned_at = timezone.now()
         t_wait1.worker = self.worker

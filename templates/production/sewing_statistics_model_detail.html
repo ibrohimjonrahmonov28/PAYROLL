@@ -525,14 +525,14 @@
                 </div>
                 <div>
                     <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                        <span>Tikim Kutayotgan Pastallar Ro'yxati</span>
+                        <span>Tikim Kutayotgan Qutilar va Pastallar Ro'yxati</span>
                         <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                            {{ model_totals.waiting_pastals_count }} ta pastal
+                            {{ model_totals.waiting_sewing_boxes }} ta quti ({{ model_totals.waiting_pastals_count }} ta pastal)
                         </span>
                     </h3>
                     <p class="text-xs text-slate-400 mt-0.5">
                         Model / Artikul: <strong class="text-cyan-400">{{ article.name }}</strong>
-                        &bull; Birorta ham stikeri skanerlanmagan pastallar
+                        &bull; Birorta ham stikeri skanerlanmagan qutilar (stikeri urilishi bilan avtomatik patokka o'tadi)
                     </p>
                 </div>
             </div>
@@ -545,12 +545,12 @@
         <!-- Modal Summary Ribbon -->
         <div class="grid grid-cols-3 gap-3 p-4 bg-slate-950/40 border-b border-slate-800/80 text-center">
             <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span class="text-[10px] text-slate-400 uppercase font-bold block">Kutayotgan Pastallar</span>
-                <span class="text-lg font-black text-amber-400 font-mono">{{ model_totals.waiting_pastals_count }} ta</span>
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Kutayotgan Qutilar</span>
+                <span class="text-lg font-black text-amber-400 font-mono">{{ model_totals.waiting_sewing_boxes }} ta quti</span>
             </div>
             <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span class="text-[10px] text-slate-400 uppercase font-bold block">Jami Qutilar</span>
-                <span class="text-lg font-black text-sky-400 font-mono">{{ model_totals.waiting_sewing_boxes }} ta quti</span>
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Tegishli Pastallar</span>
+                <span class="text-lg font-black text-sky-400 font-mono">{{ model_totals.waiting_pastals_count }} ta pastal</span>
             </div>
             <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                 <span class="text-[10px] text-slate-400 uppercase font-bold block">Jami Ish Soni</span>
@@ -569,7 +569,7 @@
                             <th class="py-3 px-3">Pastal Kodi</th>
                             <th class="py-3 px-3">Partiya / Sana</th>
                             <th class="py-3 px-3">Razmerlar Taqsimoti</th>
-                            <th class="py-3 px-3 text-center">Qutilar</th>
+                            <th class="py-3 px-3 text-center">Kutayotgan Qutilar</th>
                             <th class="py-3 px-3 text-right">Jami Soni</th>
                             <th class="py-3 px-3 text-center">Holati</th>
                         </tr>
@@ -600,8 +600,9 @@
                                     {% endfor %}
                                 </div>
                             </td>
-                            <td class="py-3 px-3 text-center font-bold text-slate-200">
-                                {{ p.boxes_count }} ta
+                            <td class="py-3 px-3 text-center">
+                                <span class="font-bold text-slate-200 block">{{ p.boxes_count }} ta</span>
+                                <span class="text-[10px] text-amber-400/80 font-mono block">{{ p.boxes_range_display }}</span>
                             </td>
                             <td class="py-3 px-3 text-right">
                                 <span class="font-black text-amber-300 text-sm">{{ p.total_quantity }}</span>
@@ -621,8 +622,8 @@
             {% else %}
             <div class="py-12 text-center text-slate-400">
                 <i class="fa-solid fa-circle-check text-emerald-400 text-4xl mb-3 block"></i>
-                <h4 class="text-white font-bold text-base">Hozirda barcha pastallar tikimga kirgan!</h4>
-                <p class="text-xs text-slate-500 mt-1">Ushbu model bo'yicha tikim kutayotgan birorta ham pastal yo'q.</p>
+                <h4 class="text-white font-bold text-base">Hozirda barcha qutilar tikimga kirgan!</h4>
+                <p class="text-xs text-slate-500 mt-1">Ushbu model bo'yicha tikim kutayotgan birorta ham quti yo'q.</p>
             </div>
             {% endif %}
         </div>
@@ -631,7 +632,7 @@
         <div class="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between">
             <span class="text-[11px] text-slate-400">
                 <i class="fa-solid fa-circle-info mr-1 text-amber-400"></i>
-                Pastaldagi 1 dona quti stikeri o'qilishi bilan butun pastal avtomatik patokka (WIP) o'tadi.
+                Qutidagi birinchi stiker o'qilishi bilanoq, u avtomatik 'Tikim Kutmoqda'dan chiqib 'Hozir Patokda (WIP)' hisobiga o'tadi.
             </span>
             <button type="button" onclick="closeWaitingPastalsModal()"
                 class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer">
