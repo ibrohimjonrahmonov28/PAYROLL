@@ -100,11 +100,24 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
     is_in_repair = (box.controlled_repair_qty > 0)
     is_re_repair = (repair_cycles >= 2)
 
-    # Foydalanuvchi qoidasi: Tikuv va dazmol operatsiyalari to'liq tugagan (100%), lekin hali OTK o'tmagan va ta'mirda emas
-    is_waiting_control = (not box.is_controlled) and (not is_in_repair) and (total_tickets > 0) and (scanned_count == total_tickets)
+    has_finished_all_ops = (total_tickets > 0 and scanned_count == total_tickets)
+    has_passed_terminal = (has_passed_dazmol or has_finished_all_ops)
 
-    # Dazmoldan o'tgan-u, lekin kontrolgacha yetib bormagan / oraliqda turgan ishlar
-    unreached_control = has_passed_dazmol and (not box.is_controlled) and (not is_waiting_control) and (not is_in_repair)
+    # Foydalanuvchi qoidasi: Dazmoldan (yoki oxirgi operatsiyadan) o'tgan, lekin hali OTK yopmagan va ta'mirda bo'lmagan
+    # barcha qutilar OTK stoli oldida kutmoqda hisoblanadi (Dazmoldan o'tgan = OTK Kutmoqda + 1-sort + 2-sort + Ta'mir)
+    is_waiting_control = has_passed_terminal and (not box.is_controlled) and (not is_in_repair)
+
+    # Mas'uliyatni ajratish (Kim jazolanadi / javobgar):
+    # 1. 100% barcha stikeri urilgan - OTK nazoratchisi zudlik bilan tekshirishi shart (OTKchi javobgar)
+    is_waiting_control_ready = is_waiting_control and has_finished_all_ops
+    # 2. Oraliq tikuv stikeri urilmay dazmolga o'tib ketgan - Tikuvchi / Patok masteri javobgar
+    is_waiting_control_missing_ops = is_waiting_control and not is_waiting_control_ready
+
+    # Moslik uchun unreached_control stikeri chala bo'lgan qutilarni ko'rsatadi
+    unreached_control = is_waiting_control_missing_ops
+
+    # Dazmolgacha bo'lgan tikim jarayonida (tikimga kirgan, lekin hali dazmoldan o'tmagan, ta'mirda bo'lmagan va yopilmagan)
+    is_in_sewing_pre_dazmol = has_entered_sewing and (not has_passed_terminal) and (not is_in_repair) and (not box.is_controlled)
 
     # Kontrol bergan aniq son va farq (variance)
     actual_controlled_qty = (box.controlled_first_sort_qty or 0) + (box.controlled_second_sort_qty or 0) + (box.controlled_defect_qty or 0) + (box.controlled_repair_qty or 0)
@@ -142,11 +155,14 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
         'scanned_count': scanned_count,
         'progress_pct': progress_pct,
         'has_entered_sewing': has_entered_sewing,
-        'has_passed_dazmol': has_passed_dazmol,
+        'has_passed_dazmol': has_passed_terminal,
+        'is_in_sewing_pre_dazmol': is_in_sewing_pre_dazmol,
         'is_in_repair': is_in_repair,
         'repair_cycles': repair_cycles,
         'is_re_repair': is_re_repair,
         'is_waiting_control': is_waiting_control,
+        'is_waiting_control_ready': is_waiting_control_ready,
+        'is_waiting_control_missing_ops': is_waiting_control_missing_ops,
         'unreached_control': unreached_control,
         'actual_controlled_qty': actual_controlled_qty,
         'control_variance': control_variance,
@@ -185,6 +201,10 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
 
     waiting_control_qty = 0
     waiting_control_boxes = 0
+    waiting_control_ready_qty = 0
+    waiting_control_ready_boxes = 0
+    waiting_control_missing_ops_qty = 0
+    waiting_control_missing_ops_boxes = 0
 
     in_repair_qty = 0
     in_repair_boxes = 0
@@ -208,7 +228,7 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
             entered_sewing_qty += b.quantity
             entered_sewing_boxes += 1
 
-            if not b_eval['has_passed_dazmol']:
+            if b_eval['is_in_sewing_pre_dazmol']:
                 in_sewing_pre_dazmol_qty += b.quantity
                 in_sewing_pre_dazmol_boxes += 1
 
@@ -223,6 +243,12 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
         if b_eval['is_waiting_control']:
             waiting_control_qty += b.quantity
             waiting_control_boxes += 1
+            if b_eval['is_waiting_control_ready']:
+                waiting_control_ready_qty += b.quantity
+                waiting_control_ready_boxes += 1
+            else:
+                waiting_control_missing_ops_qty += b.quantity
+                waiting_control_missing_ops_boxes += 1
 
         if b_eval['is_in_repair']:
             in_repair_boxes += 1
@@ -243,6 +269,11 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
             total_closed_qty += box_closed_actual
             nominal_closed_qty += b.quantity
             net_variance += (box_closed_actual - b.quantity)
+
+    # Real Patokdagi ish (Haqiqiy Tikuvdagi WIP):
+    # Dazmolgacha bo'lgan tikuvdagi ishlar + OTKdan ta'mirga qaytgan ishlar
+    real_wip_sewing_qty = in_sewing_pre_dazmol_qty + in_repair_qty
+    real_wip_sewing_boxes = in_sewing_pre_dazmol_boxes + in_repair_boxes
 
     # Brak foizi (yopilgan ishlar ichida 2-sort + defect nisbati)
     effective_defects = second_sort_qty + defect_qty
@@ -265,6 +296,8 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
         'sewing_pct': sewing_pct,
         'in_sewing_pre_dazmol_qty': in_sewing_pre_dazmol_qty,
         'in_sewing_pre_dazmol_boxes': in_sewing_pre_dazmol_boxes,
+        'real_wip_sewing_qty': real_wip_sewing_qty,
+        'real_wip_sewing_boxes': real_wip_sewing_boxes,
         'dazmol_qty': dazmol_qty,
         'dazmol_boxes': dazmol_boxes,
         'dazmol_pct': dazmol_pct,
@@ -272,6 +305,10 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
         'unreached_control_boxes': unreached_control_boxes,
         'waiting_control_qty': waiting_control_qty,
         'waiting_control_boxes': waiting_control_boxes,
+        'waiting_control_ready_qty': waiting_control_ready_qty,
+        'waiting_control_ready_boxes': waiting_control_ready_boxes,
+        'waiting_control_missing_ops_qty': waiting_control_missing_ops_qty,
+        'waiting_control_missing_ops_boxes': waiting_control_missing_ops_boxes,
         'in_repair_qty': in_repair_qty,
         'in_repair_boxes': in_repair_boxes,
         'first_time_repair_boxes': first_time_repair_boxes,
@@ -1623,6 +1660,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'sewing_total': 0,
         'entered_sewing': 0,
         'entered_boxes': 0,
+        'in_sewing_pre_dazmol': 0,
+        'in_sewing_pre_dazmol_boxes': 0,
+        'real_wip_sewing': 0,
+        'real_wip_sewing_boxes': 0,
         'dazmol_prior': 0,
         'dazmol_today': 0,
         'dazmol_total': 0,
@@ -1632,6 +1673,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'unreached_control_boxes': 0,
         'waiting_control': 0,
         'waiting_control_boxes': 0,
+        'waiting_control_ready': 0,
+        'waiting_control_ready_boxes': 0,
+        'waiting_control_missing_ops': 0,
+        'waiting_control_missing_ops_boxes': 0,
         'in_repair': 0,
         'in_repair_boxes': 0,
         're_repair': 0,
@@ -1728,6 +1773,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'sewing_total': s_sewing_total,
             'entered_sewing_boxes': size_balance['entered_sewing_boxes'],
             'sewing_pct': round((s_sewing_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
+            'in_sewing_pre_dazmol_qty': size_balance['in_sewing_pre_dazmol_qty'],
+            'in_sewing_pre_dazmol_boxes': size_balance['in_sewing_pre_dazmol_boxes'],
+            'real_wip_sewing_qty': size_balance['real_wip_sewing_qty'],
+            'real_wip_sewing_boxes': size_balance['real_wip_sewing_boxes'],
             'dazmol_qty': s_dazmol_total,
             'dazmol_prior': s_dazmol_prior,
             'dazmol_today': s_dazmol_today,
@@ -1738,6 +1787,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'unreached_control_boxes': size_balance['unreached_control_boxes'],
             'waiting_control_qty': size_balance['waiting_control_qty'],
             'waiting_control_boxes': size_balance['waiting_control_boxes'],
+            'waiting_control_ready_qty': size_balance['waiting_control_ready_qty'],
+            'waiting_control_ready_boxes': size_balance['waiting_control_ready_boxes'],
+            'waiting_control_missing_ops_qty': size_balance['waiting_control_missing_ops_qty'],
+            'waiting_control_missing_ops_boxes': size_balance['waiting_control_missing_ops_boxes'],
             'in_repair_qty': size_balance['in_repair_qty'],
             'in_repair_boxes': size_balance['in_repair_boxes'],
             're_repair_qty': size_balance['re_repair_qty'],
@@ -1770,6 +1823,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['sewing_total'] += s_sewing_total
         model_totals['entered_sewing'] += s_sewing_total
         model_totals['entered_boxes'] += size_balance['entered_sewing_boxes']
+        model_totals['in_sewing_pre_dazmol'] += size_balance['in_sewing_pre_dazmol_qty']
+        model_totals['in_sewing_pre_dazmol_boxes'] += size_balance['in_sewing_pre_dazmol_boxes']
+        model_totals['real_wip_sewing'] += size_balance['real_wip_sewing_qty']
+        model_totals['real_wip_sewing_boxes'] += size_balance['real_wip_sewing_boxes']
 
         model_totals['dazmol_prior'] += s_dazmol_prior
         model_totals['dazmol_today'] += s_dazmol_today
@@ -1781,6 +1838,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['unreached_control_boxes'] += size_balance['unreached_control_boxes']
         model_totals['waiting_control'] += size_balance['waiting_control_qty']
         model_totals['waiting_control_boxes'] += size_balance['waiting_control_boxes']
+        model_totals['waiting_control_ready'] += size_balance['waiting_control_ready_qty']
+        model_totals['waiting_control_ready_boxes'] += size_balance['waiting_control_ready_boxes']
+        model_totals['waiting_control_missing_ops'] += size_balance['waiting_control_missing_ops_qty']
+        model_totals['waiting_control_missing_ops_boxes'] += size_balance['waiting_control_missing_ops_boxes']
         model_totals['in_repair'] += size_balance['in_repair_qty']
         model_totals['in_repair_boxes'] += size_balance['in_repair_boxes']
         model_totals['re_repair'] += size_balance['re_repair_qty']
@@ -1894,12 +1955,20 @@ def api_sewing_statistics_size_boxes(request):
         'total_units': sum(b.quantity for b in boxes),
         'entered_sewing_boxes': 0,
         'entered_sewing_units': 0,
+        'in_sewing_pre_dazmol_boxes': 0,
+        'in_sewing_pre_dazmol_units': 0,
+        'real_wip_sewing_boxes': 0,
+        'real_wip_sewing_units': 0,
         'passed_dazmol_boxes': 0,
         'passed_dazmol_units': 0,
         'unreached_control_boxes': 0,
         'unreached_control_units': 0,
         'waiting_control_boxes': 0,
         'waiting_control_units': 0,
+        'waiting_control_ready_boxes': 0,
+        'waiting_control_ready_units': 0,
+        'waiting_control_missing_ops_boxes': 0,
+        'waiting_control_missing_ops_units': 0,
         'in_repair_boxes': 0,
         'in_repair_units': 0,
         're_repair_boxes': 0,
@@ -1924,6 +1993,10 @@ def api_sewing_statistics_size_boxes(request):
             summary['entered_sewing_boxes'] += 1
             summary['entered_sewing_units'] += b.quantity
 
+            if b_eval['is_in_sewing_pre_dazmol']:
+                summary['in_sewing_pre_dazmol_boxes'] += 1
+                summary['in_sewing_pre_dazmol_units'] += b.quantity
+
         if has_dazmol:
             summary['passed_dazmol_boxes'] += 1
             summary['passed_dazmol_units'] += b.quantity
@@ -1935,6 +2008,12 @@ def api_sewing_statistics_size_boxes(request):
         if is_waiting_ctrl:
             summary['waiting_control_boxes'] += 1
             summary['waiting_control_units'] += b.quantity
+            if b_eval['is_waiting_control_ready']:
+                summary['waiting_control_ready_boxes'] += 1
+                summary['waiting_control_ready_units'] += b.quantity
+            else:
+                summary['waiting_control_missing_ops_boxes'] += 1
+                summary['waiting_control_missing_ops_units'] += b.quantity
 
         if is_in_rep:
             summary['in_repair_boxes'] += 1
@@ -2020,8 +2099,11 @@ def api_sewing_statistics_size_boxes(request):
             'scanned_count': b_eval['scanned_count'],
             'progress_pct': b_eval['progress_pct'],
             'has_passed_dazmol': has_dazmol,
+            'is_in_sewing_pre_dazmol': b_eval['is_in_sewing_pre_dazmol'],
             'unreached_control': unreached_ctrl,
             'is_waiting_control': is_waiting_ctrl,
+            'is_waiting_control_ready': b_eval['is_waiting_control_ready'],
+            'is_waiting_control_missing_ops': b_eval['is_waiting_control_missing_ops'],
             'is_in_repair': is_in_rep,
             'repair_cycles': b_eval['repair_cycles'],
             'is_re_repair': is_re_rep,
@@ -2038,6 +2120,9 @@ def api_sewing_statistics_size_boxes(request):
             'next_op': next_op_info,
             'tickets': tickets_list,
         })
+
+    summary['real_wip_sewing_boxes'] = summary['in_sewing_pre_dazmol_boxes'] + summary['in_repair_boxes']
+    summary['real_wip_sewing_units'] = summary['in_sewing_pre_dazmol_units'] + summary['in_repair_units']
 
     if req_format == 'json':
         return JsonResponse({

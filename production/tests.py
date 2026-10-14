@@ -2505,7 +2505,7 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res_html, "Malika Tikuvchi")
         self.assertContains(res_html, "Bichim Tikish")
         self.assertContains(res_html, "DAZMOL QILISH")
-        self.assertContains(res_html, "Kontrolda Kutmoqda") # box 2 has this badge
+        self.assertContains(res_html, "OTK Kutmoqda") # box 2 has this badge
 
         # 2. JSON format for Size M
         res_json = self.client.get(url, {'order_item_id': self.item.id, 'size_name': 'M', 'format': 'json'})
@@ -2642,22 +2642,37 @@ class SewingStatisticsFeatureTest(TestCase):
 
         # 1. Kesim: 150 ta
         self.assertEqual(balance['cut_qty'], 150)
-        # 2. Tikimda: 150 ta (barcha 4 ta qutida stiker urilgan)
+        # 2. Tikimga kirgan: 150 ta (barcha 4 ta qutida stiker urilgan)
         self.assertEqual(balance['entered_sewing_qty'], 150)
-        # 3. Dazmoldan o'tdi: Box 2 (30) + Box 3 (40) + Box 4 (50) = 120 ta
+        # 3. Dazmolgacha bo'lgan tikuvdagi ishlar: Box 1 (30 ta)
+        self.assertEqual(balance['in_sewing_pre_dazmol_qty'], 30)
+        # 4. Hozir Patokda (Real WIP): in_sewing_pre_dazmol (30) + in_repair (0) = 30 ta
+        self.assertEqual(balance['real_wip_sewing_qty'], 30)
+        # 5. Dazmoldan o'tdi: Box 2 (30) + Box 3 (40) + Box 4 (50) = 120 ta
         self.assertEqual(balance['dazmol_qty'], 120)
-        # 4. Kontrolgacha yetib bormagan / Oraliqda turgan: Box 4 (50 ta)
+        # Tikuv sexi balansi saqlanishi: Tikimga kirgan (150) = Dazmolgacha qolgan (30) + Dazmoldan o'tgan (120)
+        self.assertEqual(balance['entered_sewing_qty'], balance['in_sewing_pre_dazmol_qty'] + balance['dazmol_qty'])
+
+        # 6. OTK kutmoqda (Jami): Box 2 (30 ta) + Box 4 (50 ta) = 80 ta
+        self.assertEqual(balance['waiting_control_qty'], 80)
+        self.assertEqual(balance['waiting_control_boxes'], 2)
+        # 6a. OTKga tayyor (100% stikeri urilgan - OTKchi javobgar): Box 2 (30 ta)
+        self.assertEqual(balance['waiting_control_ready_qty'], 30)
+        self.assertEqual(balance['waiting_control_ready_boxes'], 1)
+        # 6b. Stikeri chala (oraliq stikeri qolib ketgan - Tikuvchi javobgar): Box 4 (50 ta)
+        self.assertEqual(balance['waiting_control_missing_ops_qty'], 50)
+        self.assertEqual(balance['waiting_control_missing_ops_boxes'], 1)
         self.assertEqual(balance['unreached_control_qty'], 50)
-        self.assertEqual(balance['unreached_control_boxes'], 1)
-        # 5. Controlda kutmoqda: Box 2 (30 ta)
-        self.assertEqual(balance['waiting_control_qty'], 30)
-        self.assertEqual(balance['waiting_control_boxes'], 1)
-        # 6. Controldan o'tib yopilgan: Box 3 (1-sort: 38, 2-sort: 2)
+
+        # 7. Controldan o'tib yopilgan: Box 3 (1-sort: 38, 2-sort: 2)
         self.assertEqual(balance['controlled_boxes_count'], 1)
         self.assertEqual(balance['first_sort_qty'], 38)
         self.assertEqual(balance['second_sort_qty'], 2)
         self.assertEqual(balance['total_closed_qty'], 40)
-        # 7. Farq (Variance): nominal 40, actual 40 -> 0
+        # OTK stoli balansi saqlanishi: Dazmoldan o'tgan (120) = OTK kutmoqda (80) + Yopilgan (40) + Ta'mir (0)
+        self.assertEqual(balance['dazmol_qty'], balance['waiting_control_qty'] + balance['total_closed_qty'] + balance['in_repair_qty'])
+
+        # 8. Farq (Variance): nominal 40, actual 40 -> 0
         self.assertEqual(balance['net_variance'], 0)
 
     def test_repair_monitoring_and_cycles_and_10_percent_warning(self):
