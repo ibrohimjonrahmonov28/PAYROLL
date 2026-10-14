@@ -143,11 +143,11 @@ def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_
     draw_qr_y = qr_y + (qr_size - qr_inner) // 2
     img.paste(qr_res, (draw_qr_x, draw_qr_y))
 
-    # STIKER ID Katagi: Katta va ko'zga tashlanadigan (User talabi)
+    # STIKER ID Katagi: Oq fon, qora hoshiya va qora matn (Termal printerlar uchun)
     stiker_y = qr_y + qr_size + 6  # 440 px
     stiker_h = 75
-    draw.rounded_rectangle([qr_x, stiker_y, qr_x + qr_size, stiker_y + stiker_h], radius=10, fill=(15, 23, 42), outline=(15, 23, 42), width=2)
-    draw.text((qr_x + 12, stiker_y + 8), "STIKER ID (UNIKAL):", fill=(251, 191, 36), font=font_code)
+    draw.rounded_rectangle([qr_x, stiker_y, qr_x + qr_size, stiker_y + stiker_h], radius=10, fill='white', outline=(15, 23, 42), width=2)
+    draw.text((qr_x + 12, stiker_y + 8), "STIKER ID (UNIKAL):", fill=(100, 116, 139), font=font_code)
 
     if getattr(ticket, 'stiker_code', None):
         stiker_text = f"#{ticket.stiker_code}"
@@ -156,7 +156,7 @@ def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_
         stiker_text = f"#{ticket.id} [{short_hash}]" if short_hash else f"#{ticket.id}"
 
     font_id = get_fitted_font(draw, stiker_text, qr_size - 24, font_bold_path, initial_size=34, min_size=20)
-    draw.text((qr_x + 12, stiker_y + 30), stiker_text, fill='white', font=font_id)
+    draw.text((qr_x + 12, stiker_y + 30), stiker_text, fill=(15, 23, 42), font=font_id)
 
     # 4. ASOSIY QISM O'NGDA: QUTI ID (Katta), MODEL NOMI, ARTIKUL, KATAKLAR
     right_x = 374
@@ -198,43 +198,39 @@ def render_single_box_ticket_65x45(ticket, font_bold_path: str = None, font_reg_
     draw.text((right_x + 2, 244), art_code.upper()[:24], fill=(15, 23, 42), font=font_art)
     draw.line([(right_x + 2, 274), (right_x + right_w, 274)], fill=(226, 232, 240), width=1)
 
-    # Pastki Kataklar (2 qator):
+    # Pastki Kataklar (2 qavatli: Soni & Razmer katta, pastda Qiyinlik lentasi):
     diff_val = ticket.article_operation.difficulty_display if ticket.article_operation else "1"
     razmer_val = ticket.box.razmer.strip() if ticket.box and ticket.box.razmer else ""
 
-    badge_h = 88
     col_gap = 10
-    col_w = (right_w - col_gap) // 2
+    col_w2 = (right_w - col_gap) // 2
 
-    # Qator 1: SONI | RAZMER
+    # 1-Qavat: SONI va RAZMER (katta va ko'zga tashlanadigan)
     r1_y = 282
-    draw.rounded_rectangle([right_x, r1_y, right_x + col_w, r1_y + badge_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-    draw.text((right_x + 8, r1_y + 8), "SONI:", fill=(100, 116, 139), font=font_code)
-    draw.text((right_x + 8, r1_y + 30), f"{ticket.quantity}", fill=(15, 23, 42), font=font_qty)
-    draw.text((right_x + col_w - 44, r1_y + 60), "dona", fill=(100, 116, 139), font=font_code)
+    r1_h = 118
+    draw.rounded_rectangle([right_x, r1_y, right_x + col_w2, r1_y + r1_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
+    draw.text((right_x + 12, r1_y + 10), "SONI:", fill=(100, 116, 139), font=font_code)
+    font_qty_large = ImageFont.truetype(font_bold_path, 46) if font_bold_path else ImageFont.load_default()
+    draw.text((right_x + 14, r1_y + 40), f"{ticket.quantity}", fill=(15, 23, 42), font=font_qty_large)
+    draw.text((right_x + col_w2 - 50, r1_y + 75), "dona", fill=(100, 116, 139), font=font_code)
 
-    draw.rounded_rectangle([right_x + col_w + col_gap, r1_y, right_x + right_w, r1_y + badge_h], radius=8, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
-    draw.text((right_x + col_w + col_gap + 8, r1_y + 8), "RAZMER:", fill=(107, 33, 168), font=font_code)
-    font_rz = get_fitted_font(draw, razmer_val or "—", col_w - 16, font_bold_path, initial_size=32, min_size=18)
-    draw.text((right_x + col_w + col_gap + 8, r1_y + 34), razmer_val or "—", fill=(88, 28, 135), font=font_rz)
+    draw.rounded_rectangle([right_x + col_w2 + col_gap, r1_y, right_x + right_w, r1_y + r1_h], radius=8, fill=(243, 232, 255), outline=(107, 33, 168), width=2)
+    draw.text((right_x + col_w2 + col_gap + 12, r1_y + 10), "RAZMER:", fill=(107, 33, 168), font=font_code)
+    font_rz_large = get_fitted_font(draw, razmer_val or "—", col_w2 - 24, font_bold_path, initial_size=46, min_size=22)
+    draw.text((right_x + col_w2 + col_gap + 14, r1_y + 44), razmer_val or "—", fill=(88, 28, 135), font=font_rz_large)
 
-    # Qator 2: PASTAL | QIYINLIK (yoki BO'LAK)
-    r2_y = 378
-    draw.rounded_rectangle([right_x, r2_y, right_x + col_w, r2_y + badge_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-    draw.text((right_x + 8, r2_y + 8), "PASTAL:", fill=(100, 116, 139), font=font_code)
-    font_pst = get_fitted_font(draw, pastal_val or "—", col_w - 16, font_bold_path, initial_size=24, min_size=16)
-    draw.text((right_x + 8, r2_y + 36), pastal_val or "—", fill=(15, 23, 42), font=font_pst)
-
+    # 2-Qavat: QIYINLIK DARAJASI yoki BO'LAK (gorizontal butun eni bo'ylab lenta)
+    r2_y = r1_y + r1_h + 8
+    r2_h = 56
+    draw.rounded_rectangle([right_x, r2_y, right_x + right_w, r2_y + r2_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
     if ticket.total_splits > 1:
-        draw.rounded_rectangle([right_x + col_w + col_gap, r2_y, right_x + right_w, r2_y + badge_h], radius=8, fill=(238, 242, 255), outline=(79, 70, 229), width=2)
-        draw.text((right_x + col_w + col_gap + 8, r2_y + 8), "BO'LAK:", fill=(79, 70, 229), font=font_code)
         split_txt = f"{ticket.split_index}/{ticket.total_splits}"
-        font_spl = get_fitted_font(draw, split_txt, col_w - 16, font_bold_path, initial_size=28, min_size=18)
-        draw.text((right_x + col_w + col_gap + 8, r2_y + 34), split_txt, fill=(49, 46, 129), font=font_spl)
+        draw.text((right_x + 14, r2_y + 16), "BO'LAK:", fill=(79, 70, 229), font=font_code)
+        draw.text((right_x + 120, r2_y + 10), split_txt, fill=(49, 46, 129), font=font_qty)
     else:
-        draw.rounded_rectangle([right_x + col_w + col_gap, r2_y, right_x + right_w, r2_y + badge_h], radius=8, fill=(248, 250, 252), outline=(15, 23, 42), width=2)
-        draw.text((right_x + col_w + col_gap + 8, r2_y + 8), "QIYINLIK:", fill=(100, 116, 139), font=font_code)
-        draw.text((right_x + col_w + col_gap + 8, r2_y + 34), f"{diff_val}", fill=(15, 23, 42), font=font_qty)
+        draw.text((right_x + 14, r2_y + 16), "QIYINLIK DARAJASI:", fill=(100, 116, 139), font=font_code)
+        font_diff = ImageFont.truetype(font_bold_path, 28) if font_bold_path else ImageFont.load_default()
+        draw.text((right_x + right_w - 40, r2_y + 12), f"{diff_val}", fill=(15, 23, 42), font=font_diff)
 
     # 5. FOOTER: TERRY JAR va Kod
     draw.line([(right_x, 474), (right_x + right_w, 474)], fill=(226, 232, 240), width=1)

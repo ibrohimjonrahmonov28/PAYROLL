@@ -277,12 +277,12 @@
                         class="w-[96px] h-[96px] border-2 border-slate-950 rounded p-0.5 bg-white flex items-center justify-center shadow-xs">
                         <img src="{{ ticket.qr_code_data_uri }}" alt="QR" class="w-full h-full object-contain">
                     </div>
-                    <!-- STIKER ID: Katta va ko'zga tashlanadigan badge -->
+                    <!-- STIKER ID: Katta va ko'zga tashlanadigan badge (Oq fon, qora hoshiya va qora matn) -->
                     <div
-                        class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-slate-950 text-white rounded shadow-xs">
-                        <span class="text-[5.5px] font-bold uppercase tracking-wider leading-none text-amber-400">STIKER
+                        class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-white text-slate-950 rounded shadow-xs">
+                        <span class="text-[5.5px] font-bold uppercase tracking-wider leading-none text-slate-500">STIKER
                             ID:</span>
-                        <span class="font-mono font-black text-[10.5px] leading-none text-white tracking-wide mt-0.5">
+                        <span class="font-mono font-black text-[10.5px] leading-none text-slate-950 tracking-wide mt-0.5">
                             {% if ticket.stiker_code %}
                             #{{ ticket.stiker_code }}
                             {% else %}
@@ -320,47 +320,42 @@
                         </span>
                     </div>
 
-                    <!-- 2x2 Kataklar: SONI, RAZMER, PASTAL, QIYINLIK/BO'LAK -->
-                    <div class="grid grid-cols-2 gap-1 pt-0.5">
-                        <!-- Soni -->
-                        <div
-                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
-                            <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
-                            <span class="text-[11px] font-black digital-font text-slate-950 leading-none">{{
-                                ticket.quantity }}</span>
+                    <!-- 2-Qavatli Kataklar: SONI & RAZMER (katta) + QIYINLIK / BO'LAK (lenta) -->
+                    <div class="space-y-0.5 pt-0.5">
+                        <div class="grid grid-cols-2 gap-1">
+                            <!-- Soni -->
+                            <div
+                                class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                                <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
+                                <span class="text-[12px] font-black digital-font text-slate-950 leading-none">
+                                    {{ ticket.quantity }} <small class="text-[6.5px] text-slate-500 font-sans">dona</small>
+                                </span>
+                            </div>
+
+                            <!-- Razmer -->
+                            <div
+                                class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
+                                <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
+                                <span class="text-[11px] font-black text-purple-950 leading-none font-mono">
+                                    {{ ticket.box.razmer|default:"—" }}
+                                </span>
+                            </div>
                         </div>
 
-                        <!-- Razmer -->
-                        <div
-                            class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
-                            <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
-                            <span class="text-[10.5px] font-black text-purple-950 leading-none font-mono">{{
-                                ticket.box.razmer|default:"—" }}</span>
-                        </div>
-
-                        <!-- Pastal -->
-                        <div
-                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between overflow-hidden">
-                            <span class="text-[6.5px] font-black uppercase text-slate-700 mr-1">PASTAL:</span>
-                            <span class="text-[9px] font-black font-mono text-slate-950 leading-none truncate"
-                                title="{{ ticket.box.pastal_code|default:ticket.box.pastal_number|default:'—' }}">{{
-                                ticket.box.pastal_code|default:ticket.box.pastal_number|default:"—" }}</span>
-                        </div>
-
-                        <!-- Qiyinlik yoki Bo'lak -->
+                        <!-- Qiyinlik yoki Bo'lak lentasi -->
                         {% if ticket.total_splits > 1 %}
                         <div
-                            class="border border-indigo-500 rounded px-1 py-0.5 bg-indigo-50 flex items-baseline justify-between text-indigo-900">
+                            class="border border-indigo-500 rounded px-1.5 py-0.5 bg-indigo-50 flex items-baseline justify-between text-indigo-900">
                             <span class="text-[6.5px] font-bold uppercase">BO'LAK:</span>
-                            <span class="text-[9.5px] font-black font-mono leading-none">{{ ticket.split_index }}/{{
-                                ticket.total_splits }}</span>
+                            <span class="text-[9.5px] font-black font-mono leading-none">{{ ticket.split_index }}/{{ ticket.total_splits }}</span>
                         </div>
                         {% else %}
                         <div
-                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
-                            <span class="text-[6.5px] font-black uppercase text-slate-600">QIYINLIK:</span>
-                            <span class="text-[10px] font-black font-mono text-slate-950 leading-none">{{
-                                ticket.article_operation.difficulty_display }}</span>
+                            class="border border-slate-950 rounded px-1.5 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                            <span class="text-[6.5px] font-black uppercase text-slate-600">QIYINLIK DARAJASI:</span>
+                            <span class="text-[10px] font-black font-mono text-slate-950 leading-none">
+                                {{ ticket.article_operation.difficulty_display }}
+                            </span>
                         </div>
                         {% endif %}
                     </div>
@@ -408,16 +403,16 @@
                             alt="QR: CONTROL:{{ box_item.box.box_code }}" class="w-full h-full object-contain">
                     </div>
                     <div
-                        class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-slate-950 text-white rounded shadow-xs text-center">
+                        class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-white text-slate-950 rounded shadow-xs text-center">
                         <span
-                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-amber-400 w-full text-center">CONTROL STIKER</span>
+                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-slate-500 w-full text-center">CONTROL STIKER</span>
                         <span
-                            class="font-mono font-black text-[9.5px] leading-none text-white tracking-wide mt-0.5 w-full text-center">{{
+                            class="font-mono font-black text-[9.5px] leading-none text-slate-950 tracking-wide mt-0.5 w-full text-center">{{
                             box_item.box.box_code }}</span>
                     </div>
                 </div>
 
-                <!-- O'NG USTUN: Quti ID, Model, Artikul, 2x2 Kataklar -->
+                <!-- O'NG USTUN: Quti ID, Model, Artikul, 2-Qavatli Kataklar -->
                 <div class="flex-1 min-w-0 flex flex-col justify-between h-full space-y-0.5 text-left">
                     <!-- QUTI ID -->
                     <div
@@ -445,41 +440,33 @@
                         </span>
                     </div>
 
-                    <!-- 2x2 Kataklar: SONI, RAZMER, PASTAL, QIYMATH -->
-                    <div class="grid grid-cols-2 gap-1 pt-0.5">
-                        <!-- Soni -->
-                        <div
-                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
-                            <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
-                            <span class="text-[11px] font-black digital-font text-slate-950 leading-none">
-                                {{ box_item.box.quantity }}
-                            </span>
+                    <!-- 2-Qavatli Kataklar: SONI & RAZMER (katta) + SIFAT NAZORATI (lenta) -->
+                    <div class="space-y-0.5 pt-0.5">
+                        <div class="grid grid-cols-2 gap-1">
+                            <!-- Soni -->
+                            <div
+                                class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                                <span class="text-[6.5px] font-black uppercase text-slate-600">SONI:</span>
+                                <span class="text-[12px] font-black digital-font text-slate-950 leading-none">
+                                    {{ box_item.box.quantity }} <small class="text-[6.5px] text-slate-500 font-sans">dona</small>
+                                </span>
+                            </div>
+
+                            <!-- Razmer -->
+                            <div
+                                class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
+                                <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
+                                <span class="text-[11px] font-black text-purple-950 leading-none font-mono">
+                                    {{ box_item.box.razmer|default:"—" }}
+                                </span>
+                            </div>
                         </div>
 
-                        <!-- Razmer -->
+                        <!-- SIFAT NAZORATI lentasi -->
                         <div
-                            class="border border-purple-900 rounded px-1 py-0.5 bg-purple-50 flex items-baseline justify-between">
-                            <span class="text-[6.5px] font-black uppercase text-purple-900">RAZMER:</span>
-                            <span class="text-[10.5px] font-black text-purple-950 leading-none font-mono">
-                                {{ box_item.box.razmer|default:"—" }}
-                            </span>
-                        </div>
-
-                        <!-- Pastal -->
-                        <div
-                            class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between overflow-hidden">
-                            <span class="text-[6.5px] font-black uppercase text-slate-700 mr-1">PASTAL:</span>
-                            <span class="text-[9px] font-black font-mono text-slate-950 leading-none truncate"
-                                title="{{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:'—' }}">
-                                {{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:"—" }}
-                            </span>
-                        </div>
-
-                        <!-- QIYMATH: 0 SO'M -->
-                        <div
-                            class="border border-emerald-800 rounded px-1 py-0.5 bg-emerald-50 flex items-baseline justify-between text-emerald-950">
-                            <span class="text-[6.5px] font-black uppercase">NARX:</span>
-                            <span class="text-[9.5px] font-black font-mono leading-none">0 SO'M</span>
+                            class="border border-emerald-800 rounded px-1.5 py-0.5 bg-emerald-50 flex items-baseline justify-between text-emerald-950">
+                            <span class="text-[6.5px] font-black uppercase">BOSQICH:</span>
+                            <span class="text-[10px] font-black font-mono leading-none">SIFAT NAZORATI (OTK)</span>
                         </div>
                     </div>
                 </div>
