@@ -2864,6 +2864,71 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res, "patok-drawer-K10")
         self.assertContains(res, "Batafsil")
 
+    def test_waiting_sewing_pastals_and_modal(self):
+        """
+        Tikim kutayotgan pastallar (0 stiker skanerlangan) va modal tahlili:
+        - Pastal ichidagi kamida bitta stiker skanerlangan bo'lsa -> Tikimga Kirgan
+        - Hech qaysi stikeri skanerlanmagan pastal -> Tikim Kutmoqda
+        - Skanerlanganda avtomatik 'Tikim Kutmoqda'dan chiqishi
+        - Sahifada '3. Tikim Kutmoqda' va modalning render bo'lishi
+        """
+        from production.sewing_statistics_views import get_model_pastals_analysis
+
+        # Yangi pastal: P-WAIT-01 (20 dona, barcha stikerlar PENDING)
+        box_wait = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            razmer="M",
+            box_number=10,
+            box_code="STAT-BX-WAIT-01",
+            quantity=20,
+            pastal_number="P-WAIT-01"
+        )
+        t_wait1 = Ticket.objects.create(
+            box=box_wait,
+            article_operation=self.ao1,
+            quantity=20,
+            price_per_unit=500,
+            status=Ticket.Status.PENDING
+        )
+        t_wait2 = Ticket.objects.create(
+            box=box_wait,
+            article_operation=self.ao2,
+            quantity=20,
+            price_per_unit=300,
+            status=Ticket.Status.PENDING
+        )
+
+        boxes = list(self.order.boxes.filter(article=self.article).prefetch_related('tickets'))
+        analysis = get_model_pastals_analysis(boxes)
+
+        # P-WAIT-01 kutayotgan pastal sifatida aniqlanishi kerak
+        self.assertEqual(analysis['waiting_pastals_count'], 1)
+        self.assertEqual(analysis['waiting_sewing_qty'], 20)
+        self.assertEqual(analysis['waiting_sewing_boxes'], 1)
+        self.assertEqual(analysis['waiting_by_size']['M'], 20)
+
+        # Sahifani so'rab ko'ramiz
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_model_detail', kwargs={'order_id': self.order.id, 'order_item_id': self.item.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "3. Tikim Kutmoqda")
+        self.assertContains(res, "modal-waiting-pastals")
+        self.assertContains(res, "P-WAIT-01")
+        self.assertContains(res, "1 ta pastal")
+
+        # Endi kutayotgan pastaldan 1 dona stikerni skanerlaymiz -> Avtomatik kutmoqtadan chiqadi!
+        t_wait1.status = Ticket.Status.SCANNED
+        t_wait1.scanned_at = timezone.now()
+        t_wait1.worker = self.worker
+        t_wait1.save()
+
+        boxes_updated = list(self.order.boxes.filter(article=self.article).prefetch_related('tickets'))
+        analysis_updated = get_model_pastals_analysis(boxes_updated)
+        self.assertEqual(analysis_updated['waiting_pastals_count'], 0)
+        self.assertEqual(analysis_updated['waiting_sewing_qty'], 0)
+
 
 class PricingMatrixAutoSyncStickerTests(TestCase):
     def setUp(self):

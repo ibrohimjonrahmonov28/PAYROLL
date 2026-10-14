@@ -171,12 +171,86 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
     }
 
 
-def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=None):
+def get_model_pastals_analysis(boxes):
+    """
+    Model qutilarini pastallar kesimida tahlil qiladi (Foydalanuvchi qoidasi):
+    - Har bir pastal bo'yicha jami qutilar, donalar soni, razmerlar taqsimoti
+    - Agar pastal qutilaridagi barcha stikerlar ichidan kamida 1 dona stiker skanerlangan bo'lsa -> Tikimga Kirgan
+    - Agar pastal qutilaridan birorta ham stiker skanerlanmagan bo'lsa (0 ta skaner) -> Tikim Kutmoqda
+    - 1 ta stiker skanerlanishi bilan butun pastal 'Tikim Kutmoqda'dan chiqib avtomatik patokka (WIP) qo'shiladi
+    """
+    pastal_map = {}
+    for b in boxes:
+        pcode = (b.pastal_code or b.pastal_number or 'NOMA\'LUM').strip()
+        if pcode not in pastal_map:
+            batch_num = None
+            batch_created = None
+            if b.cutting_batch_item and b.cutting_batch_item.batch:
+                batch_num = b.cutting_batch_item.batch.batch_number
+                batch_created = b.cutting_batch_item.batch.created_at
+            pastal_map[pcode] = {
+                'pastal_code': pcode,
+                'boxes_count': 0,
+                'total_quantity': 0,
+                'scanned_tickets': 0,
+                'sizes_qty': {},
+                'batch_number': batch_num,
+                'created_at': batch_created,
+                'boxes': [],
+            }
+        p = pastal_map[pcode]
+        p['boxes_count'] += 1
+        p['total_quantity'] += b.quantity
+        p['boxes'].append(b)
+        rz = (b.razmer or '').strip().upper()
+        if rz:
+            p['sizes_qty'][rz] = p['sizes_qty'].get(rz, 0) + b.quantity
+
+        scanned_in_box = sum(1 for t in b.tickets.all() if t.status == Ticket.Status.SCANNED)
+        p['scanned_tickets'] += scanned_in_box
+
+    waiting_pastals = []
+    entered_pastals = []
+
+    for pcode, p in sorted(pastal_map.items(), key=lambda x: (x[1]['batch_number'] or 999, x[0])):
+        p['is_waiting'] = (p['scanned_tickets'] == 0)
+        p['sizes_display'] = ', '.join(f"{sz}: {qty}" for sz, qty in sorted(p['sizes_qty'].items()))
+        if p['is_waiting']:
+            waiting_pastals.append(p)
+        else:
+            entered_pastals.append(p)
+
+    waiting_sewing_qty = sum(p['total_quantity'] for p in waiting_pastals)
+    waiting_sewing_boxes = sum(p['boxes_count'] for p in waiting_pastals)
+
+    # Razmerlar kesimida waiting_sewing_qty va waiting_boxes_by_size
+    waiting_by_size = {}
+    waiting_boxes_by_size = {}
+    for p in waiting_pastals:
+        for b in p['boxes']:
+            rz = (b.razmer or '').strip().upper()
+            if rz:
+                waiting_by_size[rz] = waiting_by_size.get(rz, 0) + b.quantity
+                waiting_boxes_by_size[rz] = waiting_boxes_by_size.get(rz, 0) + 1
+
+    return {
+        'waiting_pastals': waiting_pastals,
+        'waiting_pastals_count': len(waiting_pastals),
+        'waiting_sewing_qty': waiting_sewing_qty,
+        'waiting_sewing_boxes': waiting_sewing_boxes,
+        'entered_pastals_count': len(entered_pastals),
+        'waiting_by_size': waiting_by_size,
+        'waiting_boxes_by_size': waiting_boxes_by_size,
+    }
+
+
+def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=None, pastals_info=None):
     """
     Rahbariyat savollariga to'liq javob beruvchi Ishlab chiqarish va Nazorat Balansi:
     1. Kesim nechta kesdi (cut_qty)
-    2. Nechtasi tikimda (entered_sewing_qty va in_sewing_pre_dazmol_qty)
-    3. Nechtasi dazmoldan o'tdi (dazmol_qty)
+    2. Nechtasi tikim kutmoqda (waiting_sewing_qty va waiting_pastals_count)
+    3. Nechtasi tikimda (entered_sewing_qty va in_sewing_pre_dazmol_qty)
+    4. Nechtasi dazmoldan o'tdi (dazmol_qty)
     4. Dazmoldan o'tgan-u, lekin kontrolgacha yetib bormagan (unreached_control_qty)
     5. Controlda nechta quti va nechta ish kutyapti (waiting_control_qty, waiting_control_boxes)
     6. Controldan nechta quti o'tib yopildi va qanday holatda (controlled_boxes_count, 1-sort, 2-sort)
@@ -275,6 +349,13 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
     real_wip_sewing_qty = in_sewing_pre_dazmol_qty + in_repair_qty
     real_wip_sewing_boxes = in_sewing_pre_dazmol_boxes + in_repair_boxes
 
+    # Pastallar tahlili: Tikim Kutmoqda (0 stiker) vs Tikimga Kirgan
+    if pastals_info is None:
+        pastals_info = get_model_pastals_analysis(boxes)
+    waiting_sewing_qty = pastals_info['waiting_sewing_qty']
+    waiting_sewing_boxes = pastals_info['waiting_sewing_boxes']
+    waiting_pastals_count = pastals_info['waiting_pastals_count']
+
     # Brak foizi (yopilgan ishlar ichida 2-sort + defect nisbati)
     effective_defects = second_sort_qty + defect_qty
     brak_rate_pct = round((effective_defects / total_closed_qty * 100), 1) if total_closed_qty > 0 else 0.0
@@ -291,6 +372,12 @@ def calculate_pipeline_balance(boxes, planned_qty=0, cut_qty=0, dazmol_ao_ids=No
         'cut_pct': cut_pct,
         'boxed_qty': total_boxed_qty,
         'boxes_count': boxes_count,
+        'waiting_sewing_qty': waiting_sewing_qty,
+        'waiting_sewing_boxes': waiting_sewing_boxes,
+        'waiting_pastals_count': waiting_pastals_count,
+        'waiting_pastals': pastals_info['waiting_pastals'],
+        'waiting_by_size': pastals_info['waiting_by_size'],
+        'waiting_boxes_by_size': pastals_info['waiting_boxes_by_size'],
         'entered_sewing_qty': entered_sewing_qty,
         'entered_sewing_boxes': entered_sewing_boxes,
         'sewing_pct': sewing_pct,
@@ -1616,7 +1703,7 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
     boxes = list(
         order.boxes.filter(article=article).exclude(
             status=Box.Status.CANCELLED
-        ).select_related('controlled_by').prefetch_related(
+        ).select_related('controlled_by', 'cutting_batch_item__batch').prefetch_related(
             Prefetch(
                 'tickets',
                 queryset=Ticket.objects.exclude(status=Ticket.Status.CANCELLED).select_related(
@@ -1646,6 +1733,9 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         key=lambda name: (sizes_map[name].id if name in sizes_map else 999999, name)
     )
 
+    # Pastallar tahlili: Tikim Kutmoqda (0 stiker) vs Tikimga Kirgan
+    pastals_info = get_model_pastals_analysis(boxes)
+
     sizes_breakdown = []
     model_totals = {
         'planned': 0,
@@ -1655,6 +1745,10 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'cut': 0,
         'boxed': 0,
         'boxes_count': len(boxes),
+        'waiting_sewing_qty': pastals_info['waiting_sewing_qty'],
+        'waiting_sewing_boxes': pastals_info['waiting_sewing_boxes'],
+        'waiting_pastals_count': pastals_info['waiting_pastals_count'],
+        'waiting_pastals': pastals_info['waiting_pastals'],
         'sewing_prior': 0,
         'sewing_today': 0,
         'sewing_total': 0,
@@ -1757,6 +1851,9 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         s_first_sort_total = s_first_sort_prior + s_first_sort_today
         s_second_sort_total = s_second_sort_prior + s_second_sort_today
 
+        s_waiting_sewing_qty = pastals_info['waiting_by_size'].get(size_name, 0)
+        s_waiting_sewing_boxes = pastals_info['waiting_boxes_by_size'].get(size_name, 0)
+
         sizes_breakdown.append({
             'size_name': size_name,
             'planned_qty': planned_qty,
@@ -1767,6 +1864,8 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'cut_pct': round((s_cut_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'total_boxed_qty': total_boxed_qty,
             'boxes_count': len(size_boxes),
+            'waiting_sewing_qty': s_waiting_sewing_qty,
+            'waiting_sewing_boxes': s_waiting_sewing_boxes,
             'entered_sewing_qty': s_sewing_total,
             'sewing_prior': s_sewing_prior,
             'sewing_today': s_sewing_today,
@@ -1862,7 +1961,7 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['control_variance'] += size_balance['net_variance']
 
     # To'liq model balansi
-    model_balance = calculate_pipeline_balance(boxes, model_totals['planned'], model_totals['cut_total'], dazmol_ao_ids)
+    model_balance = calculate_pipeline_balance(boxes, model_totals['planned'], model_totals['cut_total'], dazmol_ao_ids, pastals_info=pastals_info)
     model_totals['cut_pct'] = round((model_totals['cut_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
     model_totals['sewing_pct'] = round((model_totals['sewing_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
     model_totals['dazmol_pct'] = round((model_totals['dazmol_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
