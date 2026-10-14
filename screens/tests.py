@@ -149,11 +149,11 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         self.assertNotIn("timer-countdown", html)
 
         # Check that new summary stats exist
-        self.assertIn("Aniqlik", html)
-        self.assertIn("Davomat", html)
-        self.assertIn("Foiz", html)
-        self.assertIn("O'rtacha KPI", html)
-        self.assertIn("Patok KPI", html)
+        self.assertIn("OPERATSION", html)
+        self.assertIn("DAVOMAD", html)
+        self.assertIn("DAVOMAD/FOIZ", html)
+        self.assertIn("CHEVARLAR KPI", html)
+        self.assertIn("PATOK PKI", html)
 
         # View screen 14 -> must show U1-PATOK
         res14 = self.client.get(reverse('screens:screen_view', args=[14]))

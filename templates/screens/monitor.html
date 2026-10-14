@@ -101,54 +101,42 @@
 
             <!-- VAQT (Terry Jar va Patok raqami yonida) -->
             <div
-                class="flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 rounded-xl shrink-0">
+                class="flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 md:py-2 rounded-xl shrink-0">
                 <i class="fa-regular fa-clock text-amber-400 text-2xl md:text-3xl"></i>
-                <div>
-                    <div id="live-clock"
-                        class="text-2xl md:text-3xl lg:text-4xl font-black digital-font text-amber-400 leading-none tracking-wider">
-                        00:00:00</div>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                        <button type="button" onclick="const inp = document.getElementById('date-picker-input'); try { inp.showPicker(); } catch(e) { inp.click(); }" class="cursor-pointer flex items-center gap-1 text-[11px] text-slate-400 hover:text-amber-300 font-semibold tracking-wide transition bg-transparent border-0 p-0" title="Sanani o'zgartirish (Kalendardan tanlash)">
-                            <i class="fa-regular fa-calendar-days text-amber-400 text-xs"></i>
-                            <span id="live-date">{{ date_str }}</span>
-                        </button>
-                        <input type="date" id="date-picker-input" value="{{ target_date_iso }}" class="sr-only" onchange="onDateChanged(this.value)">
-                        {% if is_custom_date %}
-                        <a href="?date=" class="text-[10px] bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-1.5 py-0.5 rounded font-bold transition border border-amber-500/30" title="Bugungi kunga qaytish">Bugun</a>
-                        {% endif %}
-                    </div>
-                </div>
+                <div id="live-clock"
+                    class="text-2xl md:text-3xl lg:text-4xl font-black digital-font text-amber-400 leading-none tracking-wider">
+                    00:00:00</div>
             </div>
         </div>
 
         <!-- Right: Summary Stats & Actions -->
         <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
-            <!-- Summary Stats Card: Aniqlik, Davomat, Foiz, O'rtacha KPI, Patok KPI -->
+            <!-- Summary Stats Card: OPERATSION, DAVOMAD, DAVOMAD/FOIZ, CHEVARLAR KPI, PATOK PKI -->
             <div
                 class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-slate-800 px-4 md:px-5 py-1.5 rounded-xl shrink-0">
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Aniqlik</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">OPERATSION</span>
                     <span id="stat-aniqlik" class="text-xl md:text-2xl lg:text-3xl font-black text-amber-400 digital-font">{{ aniqlik }}</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Davomat</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">DAVOMAD</span>
                     <span id="stat-davomat" class="text-xl md:text-2xl lg:text-3xl font-black text-cyan-400 digital-font">{{ davomat }}</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Foiz</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">DAVOMAD/FOIZ</span>
                     <span id="stat-foiz" class="text-xl md:text-2xl lg:text-3xl font-black text-blue-400 digital-font">{{ foiz }}%</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">O'rtacha KPI</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">CHEVARLAR KPI</span>
                     <span id="stat-avg-kpi"
                         class="text-xl md:text-2xl lg:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{ avg_screen_kpi }}%</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Patok KPI</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOK PKI</span>
                     <span id="stat-patok-kpi"
                         class="text-xl md:text-2xl lg:text-3xl font-black text-amber-300 digital-font glow-amber">{{ patok_kpi }}%</span>
                 </div>
