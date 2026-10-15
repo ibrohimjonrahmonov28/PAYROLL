@@ -20,7 +20,18 @@ def auto_freeze_past_months(now=None):
     current_year = local_now.year
     current_month = local_now.month
 
+    # Admin tomonidan qasddan "Muzlatishni bekor qilish" (status=OPEN) qilib ochilgan o'tgan oylarni aniqlash
+    manually_opened_past_months = set(
+        MonthlyClosing.objects.filter(
+            status=MonthlyClosing.Status.OPEN
+        ).filter(
+            Q(year__lt=current_year) |
+            Q(year=current_year, month__lt=current_month)
+        ).values_list('year', 'month')
+    )
+
     # 1. Joriy oydan oldingi barcha oylardagi skanerlangan ochiq biletlarni muzlatish
+    # (faqat admin qasddan ochib qo'ymagan oylarni muzlatamiz)
     past_tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         is_frozen=False
@@ -28,12 +39,17 @@ def auto_freeze_past_months(now=None):
         Q(scanned_at__year__lt=current_year) |
         Q(scanned_at__year=current_year, scanned_at__month__lt=current_month)
     )
+    if manually_opened_past_months:
+        for (y, m) in manually_opened_past_months:
+            past_tickets = past_tickets.exclude(scanned_at__year=y, scanned_at__month=m)
+
     frozen_tickets_cnt = past_tickets.update(
         is_frozen=True,
         frozen_at=now
     )
 
     # 2. Joriy oydan oldingi barcha oylarning MonthlyClosing holatini FROZEN ga o'tkazish
+    # (faqat admin ochib qo'ymagan bo'lsa)
     past_months = Ticket.objects.filter(
         status=Ticket.Status.SCANNED
     ).filter(
@@ -45,7 +61,7 @@ def auto_freeze_past_months(now=None):
     for item in past_months:
         y = item['scanned_at__year']
         m = item['scanned_at__month']
-        if not y or not m:
+        if not y or not m or (y, m) in manually_opened_past_months:
             continue
         closing, _ = MonthlyClosing.objects.get_or_create(year=y, month=m)
         if closing.status != MonthlyClosing.Status.FROZEN:

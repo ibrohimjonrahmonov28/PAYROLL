@@ -228,8 +228,21 @@
         <div class="flex flex-wrap items-center gap-3">
             {% if is_current_month %}
             <span class="px-3.5 py-2 bg-emerald-950/60 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Joriy oy muzlatilmaydi
+                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Joriy oy faol
             </span>
+            <!-- Muzlatishni bekor qilish (har ehtimolga qarshi joriy oy uchun ham) -->
+            <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="action" value="unfreeze">
+                <button type="submit"
+                    onclick="return confirm('{{ selected_year }}-yil {{ selected_month_name }} oyi uchun barcha stikerlarni muzdan chiqarishni (ochishni) xohlaysizmi?');"
+                    class="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/40 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    title="Muzlatishni bekor qilish (stikerlarni ochish)">
+                    <i class="fa-solid fa-lock-open"></i> Muzlatishni bekor qilish
+                </button>
+            </form>
             {% elif closing_info.status == 'PENDING_FREEZE' %}
             <div class="bg-amber-950/80 border border-amber-500/50 rounded-xl px-4 py-2 text-center shadow-lg">
                 <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Muzlashiga
@@ -248,8 +261,20 @@
                 <input type="hidden" name="action" value="freeze">
                 <button type="submit"
                     onclick="return confirm('7 kunlik taymerni kutmasdan, ushbu oyning barcha stikerlarini hoziroq muzlatishni (qulflashni) xohlaysizmi?');"
-                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm">
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
                     <i class="fa-solid fa-lock"></i> Hozir muzlatish
+                </button>
+            </form>
+            <!-- Unfreeze button -->
+            <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="action" value="unfreeze">
+                <button type="submit"
+                    onclick="return confirm('Muzlatish taymerini bekor qilib, oyni ochishni xohlaysizmi?');"
+                    class="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/40 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-lock-open"></i> Muzlatishni bekor qilish
                 </button>
             </form>
             {% elif closing_info.status == 'OPEN' %}
@@ -260,8 +285,32 @@
                 <input type="hidden" name="month" value="{{ selected_month }}">
                 <button type="submit"
                     onclick="return confirm('{{ selected_year }}-yil {{ selected_month_name }} oyliklari to\'liq berildimi? 7 kunlik muzlatish taymeri boshlansinmi?');"
-                    class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                    class="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-hourglass-start text-base"></i> Oylik berildi (7 kunlik taymerni boshlash)
+                </button>
+            </form>
+            <!-- Instant Freeze Button -->
+            <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="action" value="freeze">
+                <button type="submit"
+                    onclick="return confirm('Ushbu oyning barcha stikerlarini hoziroq muzlatishni (qulflashni) xohlaysizmi?');"
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-lock"></i> Hozir muzlatish
+                </button>
+            </form>
+            <!-- Unfreeze button -->
+            <form method="POST" action="{% url 'superadmin_month_freeze_toggle' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="action" value="unfreeze">
+                <button type="submit"
+                    onclick="return confirm('{{ selected_year }}-yil {{ selected_month_name }} oyidagi barcha stikerlarni muzdan chiqarishni (ochishni) xohlaysizmi?');"
+                    class="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/40 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-lock-open"></i> Muzlatishni bekor qilish
                 </button>
             </form>
             {% elif closing_info.status == 'FROZEN' %}
@@ -273,8 +322,8 @@
                 <input type="hidden" name="action" value="unfreeze">
                 <button type="submit"
                     onclick="return confirm('DIQQAT! Ushbu oyni muzdan chiqarish (ochish) barcha stikerlarni qayta faollashtiradi va narxlar o\'zgarsa hisob o\'zgarishi mumkin. Davom etasizmi?');"
-                    class="px-3 py-1.5 bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/30 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-lock-open"></i> Muzdan chiqarish (Ochish)
+                    class="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 font-bold text-xs rounded-xl border border-rose-500/40 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-lock-open"></i> Muzlatishni bekor qilish
                 </button>
             </form>
             {% endif %}
