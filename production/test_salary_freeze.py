@@ -93,14 +93,14 @@ class SalaryFreezeAndPriceRecalculationTest(TestCase):
         self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1500.00"))
         self.assertEqual(self.ticket_unfrozen.total_amount, Decimal("150000.00"))
 
-    def test_salary_payout_freezes_tickets(self):
+    def test_salary_payout_in_current_month_keeps_tickets_unfrozen(self):
         today = timezone.localdate()
 
         # Both tickets are unfrozen initially
         self.assertFalse(self.ticket_frozen.is_frozen)
         self.assertFalse(self.ticket_unfrozen.is_frozen)
 
-        # Perform SALARY payout via superadmin view
+        # Perform SALARY payout for CURRENT month
         res = self.client.post(reverse('superadmin_payout_create'), {
             'worker_id': self.worker.id,
             'amount': '200000.00',
@@ -111,57 +111,62 @@ class SalaryFreezeAndPriceRecalculationTest(TestCase):
         })
         self.assertEqual(res.status_code, 302)
 
-        # Check tickets are now frozen
+        # Tickets in current month must REMAIN UNFROZEN
+        self.ticket_frozen.refresh_from_db()
+        self.ticket_unfrozen.refresh_from_db()
+        self.assertFalse(self.ticket_frozen.is_frozen)
+        self.assertFalse(self.ticket_unfrozen.is_frozen)
+
+    def test_auto_freeze_past_months_and_protect_current_month(self):
+        import datetime
+        from accounts.freeze_services import auto_freeze_past_months
+
+        now = timezone.now()
+        past_date = now - datetime.timedelta(days=60)
+
+        # Set ticket_frozen to a past month
+        Ticket.objects.filter(id=self.ticket_frozen.id).update(scanned_at=past_date, is_frozen=False)
+        # Set ticket_unfrozen in current month, but simulate mistakenly frozen
+        Ticket.objects.filter(id=self.ticket_unfrozen.id).update(scanned_at=now, is_frozen=True)
+
+        res = auto_freeze_past_months(now=now)
+        self.assertGreaterEqual(res['frozen_tickets_cnt'], 1)
+        self.assertGreaterEqual(res['unfrozen_current_cnt'], 1)
+
         self.ticket_frozen.refresh_from_db()
         self.ticket_unfrozen.refresh_from_db()
 
+        # Past month ticket must now be frozen
         self.assertTrue(self.ticket_frozen.is_frozen)
         self.assertIsNotNone(self.ticket_frozen.frozen_at)
-        self.assertIsNotNone(self.ticket_frozen.frozen_payout)
 
-        self.assertTrue(self.ticket_unfrozen.is_frozen)
-        self.assertIsNotNone(self.ticket_unfrozen.frozen_at)
-        self.assertIsNotNone(self.ticket_unfrozen.frozen_payout)
+        # Current month ticket must now be unfrozen
+        self.assertFalse(self.ticket_unfrozen.is_frozen)
 
-        # Now change the operation price again to 2000
-        self.art_op.price_per_unit = Decimal("2000.00")
-        self.art_op.save()
-
-        # Both frozen tickets must remain completely untouched
-        self.ticket_frozen.refresh_from_db()
-        self.ticket_unfrozen.refresh_from_db()
-        self.assertEqual(self.ticket_frozen.price_per_unit, Decimal("1000.00"))
-        self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1000.00"))
-
-    def test_manual_ticket_freeze_toggle(self):
+    def test_freeze_current_month_is_blocked(self):
         today = timezone.localdate()
 
-        # 1. Manually freeze
-        res = self.client.post(reverse('superadmin_ticket_freeze_toggle'), {
+        # Attempt to freeze current month via month_freeze_toggle
+        res = self.client.post(reverse('superadmin_month_freeze_toggle'), {
+            'year': str(today.year),
+            'month': str(today.month),
+            'action': 'freeze'
+        })
+        self.assertEqual(res.status_code, 302)
+
+        self.ticket_unfrozen.refresh_from_db()
+        self.assertFalse(self.ticket_unfrozen.is_frozen)
+
+        # Attempt to freeze current month via ticket_freeze_toggle
+        res2 = self.client.post(reverse('superadmin_ticket_freeze_toggle'), {
             'worker_id': self.worker.id,
             'year': str(today.year),
             'month': str(today.month),
             'action_type': 'freeze'
         })
-        self.assertEqual(res.status_code, 302)
-
-        self.ticket_frozen.refresh_from_db()
-        self.ticket_unfrozen.refresh_from_db()
-        self.assertTrue(self.ticket_frozen.is_frozen)
-        self.assertTrue(self.ticket_unfrozen.is_frozen)
-
-        # 2. Manually unfreeze
-        res2 = self.client.post(reverse('superadmin_ticket_freeze_toggle'), {
-            'worker_id': self.worker.id,
-            'year': str(today.year),
-            'month': str(today.month),
-            'action_type': 'unfreeze'
-        })
         self.assertEqual(res2.status_code, 302)
 
-        self.ticket_frozen.refresh_from_db()
         self.ticket_unfrozen.refresh_from_db()
-        self.assertFalse(self.ticket_frozen.is_frozen)
         self.assertFalse(self.ticket_unfrozen.is_frozen)
 
     def test_recalculate_unfrozen_tickets_action(self):

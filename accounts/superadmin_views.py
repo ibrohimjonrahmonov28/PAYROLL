@@ -886,10 +886,12 @@ def superadmin_payroll(request):
     except (ValueError, TypeError):
         selected_month = today.month
 
-    # 7 kunlik taymerlarni avtomatik tekshirib muzlatish va tanlangan oy holatini olish
-    from accounts.freeze_services import check_and_apply_freeze_timers, get_monthly_closing_status
+    # O'tgan oylarni to'liq muzlatish, joriy oyni ochish va 7 kunlik taymerlarni tekshirish
+    from accounts.freeze_services import auto_freeze_past_months, check_and_apply_freeze_timers, get_monthly_closing_status
+    auto_freeze_past_months()
     check_and_apply_freeze_timers()
     closing_info = get_monthly_closing_status(selected_year, selected_month)
+    is_current_month = (selected_year == today.year and selected_month == today.month)
 
     # Yillar ro'yxati (oxirgi 2 yil va kelgusi 1 yil)
     years_list = list(range(today.year - 2, today.year + 2))
@@ -1065,6 +1067,7 @@ def superadmin_payroll(request):
         'search_q': search_q,
         'selected_branch': selected_branch,
         'is_branch_admin': is_branch_admin,
+        'is_current_month': is_current_month,
         'branches_list': User.Branch.choices,
     })
 
@@ -1250,17 +1253,21 @@ def superadmin_payout_create(request):
                     try:
                         m_int = int(month)
                         y_int = int(year)
-                        now = timezone.now()
-                        worker.tickets.filter(
-                            status=Ticket.Status.SCANNED,
-                            scanned_at__year=y_int,
-                            scanned_at__month=m_int,
-                            is_frozen=False
-                        ).update(
-                            is_frozen=True,
-                            frozen_at=now,
-                            frozen_payout=payout
-                        )
+                        today_ld = timezone.localdate()
+                        is_past_month = (y_int < today_ld.year) or (y_int == today_ld.year and m_int < today_ld.month)
+                        # Faqat o'tgan (yakunlangan) oylardagi biletlar muzlatiladi! Joriy oy biletlari aslo muzlatilmaydi!
+                        if is_past_month:
+                            now = timezone.now()
+                            worker.tickets.filter(
+                                status=Ticket.Status.SCANNED,
+                                scanned_at__year=y_int,
+                                scanned_at__month=m_int,
+                                is_frozen=False
+                            ).update(
+                                is_frozen=True,
+                                frozen_at=now,
+                                frozen_payout=payout
+                            )
                     except (ValueError, TypeError):
                         pass
 
@@ -2947,16 +2954,23 @@ def superadmin_payroll_bulk_pay(request):
                 total_paid_sum += net_payable
 
     if paid_count > 0:
-        # Ushbu oy uchun 7 kunlik muzlatish taymerini avtomatik ishga tushirish
-        from accounts.freeze_services import start_monthly_freeze_timer
-        closing, _ = start_monthly_freeze_timer(year=year, month=month, user=request.user)
+        is_past_month = (year < today.year) or (year == today.year and month < today.month)
+        if is_past_month:
+            from accounts.freeze_services import start_monthly_freeze_timer
+            closing, _ = start_monthly_freeze_timer(year=year, month=month, user=request.user)
 
-        deadline_str = timezone.localtime(closing.freeze_deadline).strftime('%d.%m.%Y %H:%M') if closing.freeze_deadline else "7 kun"
-        messages.success(
-            request, 
-            f"Muvaffaqiyatli! {paid_count} nafar xodimga jami {int(total_paid_sum):,} UZS oylik to'landi. "
-            f"Ushbu oy uchun 7 kunlik muzlatish taymeri ishga tushdi (Muddati: {deadline_str}).".replace(",", " ")
-        )
+            deadline_str = timezone.localtime(closing.freeze_deadline).strftime('%d.%m.%Y %H:%M') if (closing and closing.freeze_deadline) else "7 kun"
+            messages.success(
+                request, 
+                f"Muvaffaqiyatli! {paid_count} nafar xodimga jami {int(total_paid_sum):,} UZS oylik to'landi. "
+                f"O'tgan oy ({year}-{month:02d}) uchun 7 kunlik muzlatish taymeri ishga tushdi (Muddati: {deadline_str}).".replace(",", " ")
+            )
+        else:
+            messages.success(
+                request,
+                f"Muvaffaqiyatli! {paid_count} nafar xodimga jami {int(total_paid_sum):,} UZS oylik to'landi. "
+                f"Joriy oy ({year}-{month:02d}) davom etayotgani sababli biletlar faol (muzlatilmagan) holatda saqlandi.".replace(",", " ")
+            )
     else:
         messages.info(request, "Tanlangan xodimlarda to'lanishi kerak bo'lgan maosh qoldig'i yo'q.")
 
@@ -2967,6 +2981,7 @@ def superadmin_payroll_bulk_pay(request):
 def superadmin_start_month_freeze_timer(request):
     """
     Buxgalter qo'lda 'Ushbu oy uchun 7 kunlik taymerni boshlash' tugmasini bosganda chaqiriladi.
+    Faqat o'tgan (yakunlangan) oylar uchun ruxsat etiladi!
     """
     if request.method != 'POST':
         return redirect('superadmin_payroll')
@@ -2975,6 +2990,12 @@ def superadmin_start_month_freeze_timer(request):
         month = int(request.POST.get('month', timezone.localdate().month))
     except (ValueError, TypeError):
         year, month = timezone.localdate().year, timezone.localdate().month
+
+    today = timezone.localdate()
+    is_past_month = (year < today.year) or (year == today.year and month < today.month)
+    if not is_past_month:
+        messages.warning(request, "Davom etayotgan joriy oyni muzlatib bo'lmaydi! Faqat o'tgan (yakunlangan) oylarni muzlatish mumkin.")
+        return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 
     from accounts.freeze_services import start_monthly_freeze_timer
     closing, started = start_monthly_freeze_timer(year=year, month=month, user=request.user)
@@ -2987,7 +3008,7 @@ def superadmin_start_month_freeze_timer(request):
             f"Muddati: {deadline_str}. 7 kundan so'ng barcha stikerlar avtomatik muzlatiladi."
         )
     else:
-        messages.warning(request, f"Ushbu oy allaqachon muzlatilgan ({closing.get_status_display()})!")
+        messages.warning(request, f"Ushbu oy allaqachon muzlatilgan ({closing.get_status_display() if closing else 'FROZEN'})!")
 
     return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 
@@ -2996,6 +3017,7 @@ def superadmin_start_month_freeze_timer(request):
 def superadmin_month_freeze_toggle(request):
     """
     Superadmin uchun oyni darhol muzlatish yoki muzdan chiqarish (Manual override).
+    Faqat o'tgan (yakunlangan) oylarni muzlatish mumkin!
     """
     if request.method != 'POST':
         return redirect('superadmin_payroll')
@@ -3006,6 +3028,13 @@ def superadmin_month_freeze_toggle(request):
         year, month = timezone.localdate().year, timezone.localdate().month
 
     action = request.POST.get('action', 'freeze')  # 'freeze' or 'unfreeze'
+    today = timezone.localdate()
+    is_past_month = (year < today.year) or (year == today.year and month < today.month)
+
+    if action == 'freeze' and not is_past_month:
+        messages.warning(request, "Davom etayotgan joriy oyni muzlatib bo'lmaydi! Faqat o'tgan (yakunlangan) oylarni muzlatish mumkin.")
+        return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+
     from accounts.models import MonthlyClosing
     closing, _ = MonthlyClosing.objects.get_or_create(year=year, month=month)
 
@@ -3050,6 +3079,12 @@ def superadmin_ticket_freeze_toggle(request):
         month = int(request.POST.get('month', timezone.localdate().month))
         action_type = request.POST.get('action_type', 'freeze')  # 'freeze' yoki 'unfreeze'
 
+        today = timezone.localdate()
+        is_past_month = (year < today.year) or (year == today.year and month < today.month)
+        if action_type == 'freeze' and not is_past_month:
+            messages.warning(request, "Davom etayotgan joriy oy biletlarini muzlatib bo'lmaydi! Faqat o'tgan oylarni muzlatish mumkin.")
+            return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
+
         worker = get_object_or_404(Worker, id=worker_id)
         if request.user.role == User.Role.BRANCH_ADMIN and worker.branch != request.user.branch:
             messages.error(request, "Siz faqat o'z filialingizdagi xodimlar stikerlarini boshqara olasiz!")
@@ -3085,9 +3120,11 @@ def superadmin_recalculate_unfrozen_tickets(request):
     """
     Tizimdagi barcha biletlarni operatsiyalarning eng so'nggi narxlari bilan
     to'liq qayta hisoblash (re-sync). Faqat Super Admin huquqi bilan bajariladi.
+    Avval o'tgan barcha oylar to'liq muzlatiladi, shunda faqat joriy oydagi biletlar yangilanadi!
     """
     if request.method == 'POST':
-        from accounts.freeze_services import check_and_apply_freeze_timers
+        from accounts.freeze_services import auto_freeze_past_months, check_and_apply_freeze_timers
+        auto_freeze_past_months()
         check_and_apply_freeze_timers()
 
         total_updated = 0
@@ -3097,7 +3134,8 @@ def superadmin_recalculate_unfrozen_tickets(request):
 
         messages.success(
             request,
-            f"✓ Muvaffaqiyatli! {total_updated} ta bilet operatsiyalarning yangi narxlariga to'liq qayta hisoblandi."
+            f"✓ Muvaffaqiyatli! {total_updated} ta bilet operatsiyalarning yangi narxlariga to'liq qayta hisoblandi. "
+            f"O'tgan oylardagi muzlatilgan stikerlar daxlsiz saqlandi."
         )
 
         year = request.POST.get('year')

@@ -142,9 +142,12 @@
     </div>
 
     <!-- MONTHLY FREEZE STATUS & 7-DAY TIMER BANNER -->
+    <!-- MONTHLY FREEZE STATUS & 7-DAY TIMER BANNER -->
     {% if closing_info %}
     <div class="rounded-2xl p-4 sm:p-5 border shadow-xl flex flex-wrap items-center justify-between gap-4 transition-all
-        {% if closing_info.status == 'FROZEN' %}
+        {% if is_current_month %}
+            bg-emerald-950/30 border-emerald-500/30 text-emerald-200
+        {% elif closing_info.status == 'FROZEN' %}
             bg-slate-900/90 border-slate-700/80 text-slate-300
         {% elif closing_info.status == 'PENDING_FREEZE' %}
             bg-amber-950/40 border-amber-500/40 text-amber-200
@@ -154,14 +157,18 @@
 
         <div class="flex items-center gap-3.5">
             <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-inner
-                {% if closing_info.status == 'FROZEN' %}
+                {% if is_current_month %}
+                    bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
+                {% elif closing_info.status == 'FROZEN' %}
                     bg-slate-800 text-slate-400 border border-slate-700
                 {% elif closing_info.status == 'PENDING_FREEZE' %}
                     bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse
                 {% else %}
                     bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
                 {% endif %}">
-                {% if closing_info.status == 'FROZEN' %}
+                {% if is_current_month %}
+                <i class="fa-solid fa-calendar-day"></i>
+                {% elif closing_info.status == 'FROZEN' %}
                 <i class="fa-solid fa-lock"></i>
                 {% elif closing_info.status == 'PENDING_FREEZE' %}
                 <i class="fa-solid fa-hourglass-half"></i>
@@ -174,7 +181,13 @@
                     <span class="text-sm sm:text-base font-black text-white">
                         {{ selected_year }}-yil {{ selected_month_name }} oylik hisob-kitob holati:
                     </span>
-                    {% if closing_info.status == 'FROZEN' %}
+                    {% if is_current_month %}
+                    <span
+                        class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        🟢 JORIY OY (DAVOM ETMOQDA — AKTIV)
+                    </span>
+                    {% elif closing_info.status == 'FROZEN' %}
                     <span
                         class="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-800 text-slate-300 border border-slate-600">
                         🔒 MUZLATILGAN (DAXLSIZ TARIX)
@@ -194,8 +207,10 @@
                 </div>
 
                 <p class="text-xs mt-1 text-slate-300">
-                    {% if closing_info.status == 'FROZEN' %}
-                    Ushbu oy to'liq yopilgan va muzlatilgan ({{ closing_info.closing.frozen_at|date:"d.m.Y H:i" }}).
+                    {% if is_current_month %}
+                    Ushbu oy hali davom etmoqda. Barcha stikerlar faol (muzlatilmagan) — narxlar o'zgarsa yoki "Narxlarni Qayta Hisoblash" bosilsa, joriy oy biletlari avtomatik yangilanadi. O'tgan barcha oylar esa to'liq muzlatilgan va daxlsiz saqlanadi.
+                    {% elif closing_info.status == 'FROZEN' %}
+                    Ushbu oy to'liq yopilgan va muzlatilgan ({{ closing_info.closing.frozen_at|date:"d.m.Y H:i"|default:"Arxiv" }}).
                     Stikerlar qulflangan — yangi operatsiya narxlari bu oyga aslo ta'sir qilmaydi.
                     {% elif closing_info.status == 'PENDING_FREEZE' %}
                     Xodimlarga oyliklar berildi. Chevarlar e'tirozlarini ko'rib chiqish davri ketmoqda. Taymer tugagach
@@ -211,7 +226,11 @@
 
         <!-- Right Side Actions & Countdown -->
         <div class="flex flex-wrap items-center gap-3">
-            {% if closing_info.status == 'PENDING_FREEZE' %}
+            {% if is_current_month %}
+            <span class="px-3.5 py-2 bg-emerald-950/60 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Joriy oy muzlatilmaydi
+            </span>
+            {% elif closing_info.status == 'PENDING_FREEZE' %}
             <div class="bg-amber-950/80 border border-amber-500/50 rounded-xl px-4 py-2 text-center shadow-lg">
                 <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Muzlashiga
                     qoldi:</span>
@@ -879,10 +898,10 @@
         <input type="hidden" name="selected_month" value="{{ selected_month }}">
         <div id="bulk-hidden-inputs"></div>
         <button type="submit"
-            onclick="return confirm('Tanlangan barcha xodimlarga oylik to\'liq berildimi? Tasdiqlangach, ushbu oy uchun 7 kunlik muzlatish taymeri ishga tushadi.');"
+            onclick="return confirm('Tanlangan barcha xodimlarga oylik to\'liq berildimi?{% if not is_current_month %} Tasdiqlangach, ushbu oy uchun 7 kunlik muzlatish taymeri ishga tushadi.{% endif %}');"
             class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 text-slate-950 font-black rounded-2xl text-xs shadow-lg transition flex items-center gap-2 cursor-pointer">
             <i class="fa-solid fa-circle-check text-sm"></i>
-            <span>Tanlanganlarga Maosh Berildi (7 Kunlik Yopish)</span>
+            <span>Tanlanganlarga Maosh Berildi{% if not is_current_month %} (7 Kunlik Yopish){% endif %}</span>
         </button>
     </form>
 </div>
