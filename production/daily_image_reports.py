@@ -428,9 +428,9 @@ def send_single_branch_report(branch: str, target_date: datetime.date = None, ch
         target_chat_id = str(chat_id)
     else:
         if is_hq:
-            target_chat_id = str(getattr(settings, 'TELEGRAM_HQ_REPORT_CHAT_ID', '-2111243086') or os.getenv('TELEGRAM_HQ_REPORT_CHAT_ID', '-2111243086'))
+            target_chat_id = str(getattr(settings, 'TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756') or os.getenv('TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756'))
         else:
-            target_chat_id = str(getattr(settings, 'TELEGRAM_UYCHI_REPORT_CHAT_ID', '-2697507612') or os.getenv('TELEGRAM_UYCHI_REPORT_CHAT_ID', '-2697507612'))
+            target_chat_id = str(getattr(settings, 'TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133') or os.getenv('TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133'))
 
     if not target_chat_id:
         return {'success': False, 'message': f"{branch_key} filiali uchun Telegram Chat ID topilmadi!"}
