@@ -4,6 +4,7 @@ from . import terminal_views
 from . import control_views
 from . import sewing_statistics_views
 from . import passport_views
+from . import master_views
 
 app_name = 'production'
 
@@ -52,5 +53,14 @@ urlpatterns = [
     path('passport-checker/', passport_views.passport_checker_web_view, name='passport_checker'),
     path('passport-checker/api/', passport_views.passport_checker_api, name='passport_checker_api'),
     path('passport-bot/webhook/', passport_views.passport_telegram_webhook, name='passport_telegram_webhook'),
+
+    # Master Katta Planshet (Patoklarga kelgan pastallarni qabul qilish va qaytarish)
+    path('master-tablet/', master_views.master_tablet_view, name='master_tablet'),
+    path('master-tablet/api/identify/', master_views.api_identify_master, name='master_tablet_identify'),
+    path('master-tablet/api/patoks/', master_views.api_get_patoks_summary, name='master_tablet_patoks'),
+    path('master-tablet/api/patok/<int:screen_number>/', master_views.api_get_patok_detail, name='master_tablet_patok_detail'),
+    path('master-tablet/api/accept/', master_views.api_accept_pastal, name='master_tablet_accept'),
+    path('master-tablet/api/reject/', master_views.api_reject_pastal, name='master_tablet_reject'),
+    path('master-tablet/api/logout/', master_views.api_logout_master, name='master_tablet_logout'),
 ]
 

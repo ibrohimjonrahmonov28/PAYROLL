@@ -747,6 +747,32 @@ class CuttingBatch(models.Model):
     fabric_weight_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Mato Og'irligi (kg)")
     fabric_batch_code = models.CharField(max_length=100, blank=True, verbose_name="Mato Partiyasi / Rulon")
     notes = models.TextField(blank=True, verbose_name="Izoh")
+    
+    # Patokka jo'natish va qabul qilish (Dispatch & Reception)
+    class DispatchStatus(models.TextChoices):
+        WAITING = 'WAITING', 'Kutilmoqda (Jo\'natilmagan)'
+        DISPATCHED = 'DISPATCHED', 'Patokka jo\'natildi (Kutilmoqda)'
+        ACCEPTED = 'ACCEPTED', 'Patok qabul qildi'
+        REJECTED = 'REJECTED', 'Qaytarildi (Rad etildi)'
+
+    actual_weight_kg = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Haqiqiy Chiqish Og'irligi (kg)")
+    assigned_branch = models.CharField(max_length=20, choices=[('HQ', 'Kosonsoy (Bosh bino)'), ('UYCHI', 'Uychi')], null=True, blank=True, db_index=True, verbose_name="Biriktirilgan Filial")
+    assigned_screen = models.PositiveSmallIntegerField(null=True, blank=True, db_index=True, verbose_name="Biriktirilgan Patok (Screen)")
+    dispatch_status = models.CharField(max_length=30, choices=DispatchStatus.choices, default=DispatchStatus.WAITING, db_index=True, verbose_name="Patokka topshirish holati")
+    dispatched_at = models.DateTimeField(null=True, blank=True, verbose_name="Jo'natilgan vaqt")
+    dispatched_by = models.CharField(max_length=150, blank=True, verbose_name="Jo'natuvchi")
+    accepted_at = models.DateTimeField(null=True, blank=True, verbose_name="Qabul qilingan vaqt")
+    accepted_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='accepted_batches',
+        verbose_name="Qabul qilgan Master"
+    )
+    rejected_at = models.DateTimeField(null=True, blank=True, verbose_name="Qaytarilgan vaqt")
+    rejection_reason = models.TextField(blank=True, verbose_name="Qaytarish sababi")
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Kesilgan vaqti")
     created_by = models.ForeignKey(
         User,
@@ -1020,6 +1046,17 @@ class Box(models.Model):
     controlled_defect_qty = models.PositiveIntegerField(
         default=0,
         verbose_name="Brak (chiqindi) soni"
+    )
+    assigned_screen = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Biriktirilgan Patok (Screen)"
+    )
+    is_received_by_patok = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Patok qabul qildi"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

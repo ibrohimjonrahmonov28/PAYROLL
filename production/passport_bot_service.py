@@ -1080,8 +1080,10 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         'title': "✅ PATOKKA BERISH MUMKIN!",
         'message': approved_message,
         'details': {
+            'batch_id': batch.id if batch else None,
             'order_number': order.order_number,
             'customer_name': customer_name,
+            'article_name': article.name if article else '',
             'article_code': article.code if article else '',
             'pastal_code': pastal_code,
             'total_boxes': total_boxes_count,
@@ -1091,5 +1093,9 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             'unit_price': float(unit_total_price),
             'scanned_tickets': scanned_tickets_count,
             'pending_tickets': pending_tickets_count,
+            'actual_weight_kg': float(batch.actual_weight_kg) if (batch and batch.actual_weight_kg) else None,
+            'dispatch_status': batch.dispatch_status if batch else None,
+            'assigned_screen': batch.assigned_screen if batch else None,
+            'assigned_branch': batch.assigned_branch if batch else None,
         }
     }

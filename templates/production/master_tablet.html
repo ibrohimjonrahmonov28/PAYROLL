@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MASTER PLANSHET — TERRY JAR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        html,
+        body {
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            background-color: #0b1120;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .touch-btn:active {
+            transform: scale(0.97);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+
+        .pulse-waiting {
+            animation: pulse-ring 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col bg-[#0b1120]">
+
+    <!-- 1. TOP HEADER -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 shadow-lg flex-shrink-0">
+        <div class="max-w-[1700px] mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center text-lg shadow-lg shadow-indigo-600/30 flex-shrink-0">
+                    <i class="fa-solid fa-tablet-screen-button"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base sm:text-lg font-black text-white tracking-wide uppercase">TERRY JAR — MASTER PLANSHET</h1>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            PATOK QABUL QILISH
+                        </span>
+                    </div>
+                    <div class="text-xs text-slate-400">Pastallarni patokka topshirish va qabul qilish tizimi</div>
+                </div>
+            </div>
+
+            <!-- Master Info / Identify Button -->
+            <div class="flex items-center gap-3">
+                <div id="master-info-container" class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-1.5">
+                    {% if master %}
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                        {{ master.first_name|default:master.username|slice:":1"|upper }}
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs font-black text-white leading-tight" id="master-name-display">{{ master.get_full_name|default:master.username }}</div>
+                        <div class="text-[10px] text-slate-400" id="master-branch-display">
+                            {% if master.branch == 'HQ' %}🏢 Kosonsoy (Bosh bino){% else %}🏭 Uychi filiali{% endif %}
+                        </div>
+                    </div>
+                    <button onclick="logoutMaster()" class="ml-2 text-slate-400 hover:text-rose-400 touch-btn p-1.5" title="Sessiyadan chiqish">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                    {% else %}
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-id-badge text-amber-400 text-lg animate-pulse"></i>
+                        <span class="text-xs text-amber-300 font-bold">Master birkasini skanerlang</span>
+                        <button onclick="openIdentifyModal()" class="ml-2 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg touch-btn">
+                            Kiritish
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Invisible Scanner Input for Zebra DS22 -->
+    <input type="text" id="global-scanner-input" class="opacity-0 absolute -top-96 left-0 pointer-events-none" autocomplete="off" autofocus>
+
+    <!-- 2. MAIN CONTENT AREA -->
+    <main class="flex-1 overflow-hidden p-3 sm:p-4 flex flex-col max-w-[1700px] w-full mx-auto">
+
+        <!-- Branch Selector & Patok View Switcher -->
+        <div class="flex items-center justify-between gap-3 mb-3 flex-shrink-0">
+            <!-- Branch Tabs -->
+            <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                <button id="tab-btn-hq" onclick="switchBranch('HQ')" class="px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-md">
+                    <i class="fa-solid fa-building"></i>
+                    <span>KOSONSOY (K1 - K13)</span>
+                </button>
+                <button id="tab-btn-uychi" onclick="switchBranch('UYCHI')" class="px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-industry"></i>
+                    <span>UYCHI (U1 - U27)</span>
+                </button>
+            </div>
+
+            <!-- Back to Patoks Button (Visible only when inside a patok) -->
+            <div id="patok-nav-container" class="hidden">
+                <button onclick="backToPatoksList()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black flex items-center gap-2 border border-slate-700 touch-btn">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Patoklar Ro'yxati</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 1: PATOKS GRID (Barcha patoklar ro'yxati) -->
+        <div id="patoks-grid-view" class="flex-1 overflow-y-auto pr-1">
+            <div id="patoks-grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-6">
+                <!-- Dynamically loaded patok cards -->
+                <div class="col-span-full py-12 text-center text-slate-500">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-400"></i>
+                    <div>Patoklar yuklanmoqda...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: PATOK DETAIL (Tanlangan patok ichidagi kutilayotgan va faol pastallar) -->
+        <div id="patok-detail-view" class="hidden flex-1 overflow-hidden flex flex-col">
+            <!-- Selected Patok Title Banner -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700/80 rounded-2xl p-4 mb-3 flex items-center justify-between flex-shrink-0 shadow-md">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-indigo-600/30" id="detail-patok-badge">
+                        K-1
+                    </div>
+                    <div>
+                        <div class="text-base sm:text-lg font-black text-white" id="detail-patok-title">K-1-Patok</div>
+                        <div class="text-xs text-slate-400" id="detail-patok-sub">Kosonsoy (Bosh bino) • Pastallar qabul qilish stoli</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400 font-bold">Kutilayotgan:</div>
+                        <div class="text-lg font-black text-amber-400" id="detail-waiting-badge">0 ta pastal</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Columns on Tablet / Desktop -->
+            <div class="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-3 pb-6">
+                
+                <!-- Left Column: KUTILAYOTGAN PASTALLAR (QABUL QILISH UCHUN) -->
+                <div class="lg:col-span-7 flex flex-col bg-slate-900/70 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            <h2 class="text-sm font-black text-white uppercase tracking-wider">KUTILAYOTGAN PASTALLAR</h2>
+                        </div>
+                        <span class="text-xs font-bold text-amber-400" id="waiting-count-label">0 ta kutilmoqda</span>
+                    </div>
+
+                    <div id="waiting-pastals-container" class="space-y-3 flex-1 overflow-y-auto pr-1">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right Column: HOZIR TIKILAYOTGAN FAOL PASTALLAR -->
+                <div class="lg:col-span-5 flex flex-col bg-slate-900/70 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                            <h2 class="text-sm font-black text-white uppercase tracking-wider">PATOKDAGI FAOL PASTALLAR</h2>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-400" id="active-count-label">0 ta faol</span>
+                    </div>
+
+                    <div id="active-pastals-container" class="space-y-2.5 flex-1 overflow-y-auto pr-1">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 3. MODAL: MASTER IDENTIFICATION (QR CODE / PIN) -->
+    <div id="identify-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-600/30 text-indigo-400 border border-indigo-500/40 mx-auto flex items-center justify-center text-2xl">
+                <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-black text-white">MASTER BEYDJIGINI SKANERLANG</h3>
+                <p class="text-xs text-slate-400 mt-1">Zebra skaner orqali beydjikdagi QR kodni skanerlang yoki 6 xonali UID raqamingizni yozing</p>
+            </div>
+
+            <div class="relative">
+                <input type="text" id="manual-master-code" placeholder="Masalan: 123456 yoki USER:123456" 
+                    class="w-full bg-slate-800 border-2 border-slate-600 focus:border-indigo-500 rounded-xl px-4 py-3 text-center text-lg font-black text-white placeholder-slate-500 outline-none">
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <button onclick="closeIdentifyModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs touch-btn">
+                    Bekor qilish
+                </button>
+                <button onclick="submitMasterCode()" class="w-1/2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 touch-btn">
+                    Tasdiqlash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MODAL: REJECT PASTAL (QAYTARISH SABABI) -->
+    <div id="reject-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl text-left space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2 text-rose-400 font-black text-sm">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>PASTALNI QAYTARISH</span>
+                </div>
+                <button onclick="closeRejectModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div>
+                <div class="text-xs text-slate-300 font-bold mb-1" id="reject-pastal-title">Pastal №...</div>
+                <p class="text-xs text-slate-400">Pastalni qabul qilmasdan bichuvga qaytarish sababini tanlang yoki yozing:</p>
+            </div>
+
+            <!-- Quick Reason Buttons -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button type="button" onclick="selectReason('Mato brak / nuqsonli')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                    ⚠️ Mato brak / nuqsonli
+                </button>
+                <button type="button" onclick="selectReason('Model / andaza mos emas')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                    👔 Model mos emas
+                </button>
+                <button type="button" onclick="selectReason('Zadel to\'la, joy yo\'q')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                    📦 Zadel to'la, joy yo'q
+                </button>
+                <button type="button" onclick="selectReason('Biletlar / stikerlar to\'liq emas')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                    🎫 Stikerlar yetarli emas
+                </button>
+            </div>
+
+            <textarea id="reject-reason-input" rows="3" placeholder="Batafsil sababni yozing..." 
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 outline-none focus:border-rose-500"></textarea>
+
+            <input type="hidden" id="reject-batch-id" value="">
+
+            <div class="flex items-center gap-2 pt-1">
+                <button onclick="closeRejectModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs touch-btn">
+                    Bekor qilish
+                </button>
+                <button onclick="submitRejectPastal()" class="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 touch-btn">
+                    Qaytarishni tasdiqlash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        let currentBranch = '{{ default_branch|default:"HQ" }}';
+        let currentScreenNumber = null;
+        let isMasterAuthenticated = {% if master %}true{% else %}false{% endif %};
+        let scannerBuffer = '';
+        let scannerTimer = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchBranch(currentBranch);
+            initGlobalScannerListener();
+        });
+
+        // Toast notification helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-rose-600 border-rose-500';
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+
+            toast.className = `${bgClass} border text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-bold transition-all transform translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Global Zebra Barcode Scanner Listener
+        function initGlobalScannerListener() {
+            window.addEventListener('keydown', (e) => {
+                // Ignore keydowns inside input or textarea unless it is global-scanner-input
+                if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.target.id !== 'global-scanner-input') {
+                    return;
+                }
+
+                if (e.key === 'Enter') {
+                    if (scannerBuffer.length >= 3) {
+                        handleScannedBarcode(scannerBuffer.trim());
+                    }
+                    scannerBuffer = '';
+                } else if (e.key.length === 1) {
+                    scannerBuffer += e.key;
+                    clearTimeout(scannerTimer);
+                    scannerTimer = setTimeout(() => {
+                        scannerBuffer = '';
+                    }, 120);
+                }
+            });
+        }
+
+        // Handle Scanned Barcode from Zebra
+        function handleScannedBarcode(barcode) {
+            console.log("Scanned Barcode:", barcode);
+            // 1. Agar foydalanuvchi birkasi bo'lsa (USER:123456 yoki 6 xonali raqam)
+            if (barcode.toUpperCase().startsWith('USER:') || (/^\d{6}$/).test(barcode)) {
+                identifyMaster(barcode);
+                return;
+            }
+
+            // 2. Agar pastal pasporti kodi bo'lsa (PASTAL:12 yoki BATCH:12)
+            const m = barcode.match(/^(?:PASTAL|BATCH)\s*:\s*(\d+)$/i);
+            if (m) {
+                const batchId = m[1];
+                showToast(`Pastal skanerlandi: #${batchId}`, 'success');
+                // Agar patok ichida bo'lsa, qabul qilish modalini chaqirish mumkin
+            }
+        }
+
+        // Master Identification API
+        async function identifyMaster(code) {
+            try {
+                const resp = await fetch('/master-tablet/api/identify/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code })
+                });
+                const res = await resp.json();
+
+                if (res.success) {
+                    isMasterAuthenticated = true;
+                    showToast(`Xush kelibsiz, ${res.master.name}!`, 'success');
+                    updateMasterHeader(res.master);
+                    closeIdentifyModal();
+                    if (res.master.branch) {
+                        switchBranch(res.master.branch);
+                    } else {
+                        loadPatoksSummary();
+                    }
+                } else {
+                    showToast(res.message || "Master topilmadi", 'error');
+                }
+            } catch (err) {
+                showToast("Server bilan aloqa uzildi", 'error');
+            }
+        }
+
+        function updateMasterHeader(master) {
+            const container = document.getElementById('master-info-container');
+            const initial = (master.name || 'M').charAt(0).toUpperCase();
+            container.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                    ${initial}
+                </div>
+                <div class="text-left">
+                    <div class="text-xs font-black text-white leading-tight" id="master-name-display">${master.name}</div>
+                    <div class="text-[10px] text-slate-400" id="master-branch-display">${master.branch_display}</div>
+                </div>
+                <button onclick="logoutMaster()" class="ml-2 text-slate-400 hover:text-rose-400 touch-btn p-1.5" title="Sessiyadan chiqish">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            `;
+        }
+
+        async function logoutMaster() {
+            try {
+                await fetch('/master-tablet/api/logout/', { method: 'POST' });
+                isMasterAuthenticated = false;
+                location.reload();
+            } catch (e) {
+                location.reload();
+            }
+        }
+
+        // Switch Branch (HQ / UYCHI)
+        function switchBranch(branch) {
+            currentBranch = branch;
+            const btnHQ = document.getElementById('tab-btn-hq');
+            const btnUychi = document.getElementById('tab-btn-uychi');
+
+            if (branch === 'HQ') {
+                btnHQ.className = "px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-md";
+                btnUychi.className = "px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 text-slate-400 hover:text-white";
+            } else {
+                btnUychi.className = "px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-md";
+                btnHQ.className = "px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 text-slate-400 hover:text-white";
+            }
+
+            backToPatoksList();
+            loadPatoksSummary();
+        }
+
+        // Load Patoks Summary Grid
+        async function loadPatoksSummary() {
+            const container = document.getElementById('patoks-grid-container');
+            try {
+                const resp = await fetch(`/master-tablet/api/patoks/?branch=${currentBranch}`);
+                const res = await resp.json();
+
+                if (!res.success) {
+                    container.innerHTML = `<div class="col-span-full py-8 text-center text-rose-400">Xatolik yuz berdi</div>`;
+                    return;
+                }
+
+                if (!res.patoks || res.patoks.length === 0) {
+                    container.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Patoklar topilmadi</div>`;
+                    return;
+                }
+
+                container.innerHTML = res.patoks.map(p => {
+                    const hasIncoming = p.waiting_count > 0;
+                    const borderClass = hasIncoming ? 'border-amber-500/80 bg-amber-950/20 shadow-lg shadow-amber-500/10' : 'border-slate-800 bg-slate-900/80 hover:border-slate-700';
+                    const pulseBadge = hasIncoming ? `
+                        <div class="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500 text-slate-950 flex items-center gap-1.5 pulse-waiting">
+                            <i class="fa-solid fa-box-open"></i>
+                            <span>${p.waiting_count} ta kutilmoqda</span>
+                        </div>
+                    ` : `
+                        <div class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-400">
+                            Yangi ish yo'q
+                        </div>
+                    `;
+
+                    return `
+                        <div onclick="openPatokDetail(${p.screen_number}, '${p.patok_code}', '${p.patok_name}')" 
+                            class="rounded-2xl border ${borderClass} p-4 flex flex-col justify-between cursor-pointer transition-all touch-btn hover:scale-[1.02] min-h-[140px]">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="text-xl sm:text-2xl font-black text-white">${p.patok_code}</div>
+                                ${pulseBadge}
+                            </div>
+
+                            <div class="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                                <span class="text-slate-400 font-bold">${p.patok_name}</span>
+                                <span class="font-black text-slate-300">
+                                    ${p.active_count > 0 ? `<i class="fa-solid fa-gear text-indigo-400 mr-1"></i>${p.active_count} ta faol` : ''}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = `<div class="col-span-full py-8 text-center text-rose-400">Ma'lumotlarni yuklab bo'lmadi</div>`;
+            }
+        }
+
+        // Open Patok Detail
+        async function openPatokDetail(screenNumber, patokCode, patokName) {
+            currentScreenNumber = screenNumber;
+
+            document.getElementById('patoks-grid-view').classList.add('hidden');
+            document.getElementById('patok-detail-view').classList.remove('hidden');
+            document.getElementById('patok-nav-container').classList.remove('hidden');
+
+            document.getElementById('detail-patok-badge').innerText = patokCode;
+            document.getElementById('detail-patok-title').innerText = `${patokCode}-Patok (${patokName})`;
+            document.getElementById('detail-patok-sub').innerText = `${currentBranch === 'HQ' ? 'Kosonsoy (Bosh bino)' : 'Uychi filiali'} • Pastallarni qabul qilish va boshqarish`;
+
+            loadPatokPastals(screenNumber);
+        }
+
+        function backToPatoksList() {
+            currentScreenNumber = null;
+            document.getElementById('patok-detail-view').classList.add('hidden');
+            document.getElementById('patoks-grid-view').classList.remove('hidden');
+            document.getElementById('patok-nav-container').classList.add('hidden');
+            loadPatoksSummary();
+        }
+
+        // Load Patok Pastals (Waiting & Active)
+        async function loadPatokPastals(screenNumber) {
+            const waitingBox = document.getElementById('waiting-pastals-container');
+            const activeBox = document.getElementById('active-pastals-container');
+
+            waitingBox.innerHTML = `<div class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-1"></i><div>Yuklanmoqda...</div></div>`;
+            activeBox.innerHTML = `<div class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-1"></i><div>Yuklanmoqda...</div></div>`;
+
+            try {
+                const resp = await fetch(`/master-tablet/api/patok/${screenNumber}/`);
+                const res = await resp.json();
+
+                if (!res.success) {
+                    waitingBox.innerHTML = `<div class="py-6 text-center text-rose-400">Xatolik yuz berdi</div>`;
+                    return;
+                }
+
+                // Update Badges
+                const waitCount = res.waiting_pastals.length;
+                document.getElementById('detail-waiting-badge').innerText = `${waitCount} ta pastal`;
+                document.getElementById('waiting-count-label').innerText = `${waitCount} ta kutilmoqda`;
+                document.getElementById('active-count-label').innerText = `${res.accepted_pastals.length} ta faol`;
+
+                // Render Waiting Pastals
+                if (waitCount === 0) {
+                    waitingBox.innerHTML = `
+                        <div class="py-14 text-center text-slate-500">
+                            <i class="fa-solid fa-box-archive text-3xl mb-2 text-slate-600"></i>
+                            <div class="text-sm font-bold text-slate-400">Hozircha kutilayotgan yangi pastallar yo'q</div>
+                            <div class="text-xs text-slate-500 mt-1">Bichuvdan pastal jo'natilganda shu yerda paydo bo'ladi</div>
+                        </div>
+                    `;
+                } else {
+                    waitingBox.innerHTML = res.waiting_pastals.map(p => {
+                        return `
+                            <div class="bg-slate-800/90 border border-amber-500/40 rounded-2xl p-4 shadow-lg space-y-3">
+                                <div class="flex items-start justify-between gap-2 border-b border-slate-700/60 pb-2.5">
+                                    <div>
+                                        <div class="text-xs font-bold text-amber-400 uppercase tracking-wide">Zakaz: ${p.order_number} (${p.customer_name})</div>
+                                        <div class="text-base sm:text-lg font-black text-white mt-0.5">Pastal №${p.batch_number} • ${p.article_name}</div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                        Kutilmoqda
+                                    </span>
+                                </div>
+
+                                <!-- Pastal Details Grid -->
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                    <div class="bg-slate-900/80 p-2 rounded-xl">
+                                        <div class="text-slate-400 text-[10px] font-bold uppercase">Jami Dona</div>
+                                        <div class="text-sm font-black text-white mt-0.5">${p.total_units.toLocaleString()} ta</div>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-2 rounded-xl">
+                                        <div class="text-slate-400 text-[10px] font-bold uppercase">Haqiqiy Vazn</div>
+                                        <div class="text-sm font-black text-amber-400 mt-0.5">${p.actual_weight_kg > 0 ? p.actual_weight_kg + ' kg' : '—'}</div>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-2 rounded-xl">
+                                        <div class="text-slate-400 text-[10px] font-bold uppercase">Qutilar Soni</div>
+                                        <div class="text-sm font-black text-white mt-0.5">${p.boxes_count} ta quti</div>
+                                    </div>
+                                    <div class="bg-slate-900/80 p-2 rounded-xl">
+                                        <div class="text-slate-400 text-[10px] font-bold uppercase">Jo'natgan</div>
+                                        <div class="text-sm font-black text-indigo-300 mt-0.5 truncate">${p.dispatched_by}</div>
+                                    </div>
+                                </div>
+
+                                <div class="text-[11px] text-slate-400 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock"></i>
+                                    <span>Jo'natilgan vaqti: ${p.dispatched_at}</span>
+                                </div>
+
+                                <!-- Big Action Touch Buttons -->
+                                <div class="grid grid-cols-2 gap-3 pt-1">
+                                    <button onclick="acceptPastal(${p.batch_id})" 
+                                        class="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 touch-btn">
+                                        <i class="fa-solid fa-check text-base"></i>
+                                        <span>QABUL QILISH</span>
+                                    </button>
+
+                                    <button onclick="openRejectModal(${p.batch_id}, '${p.batch_number}', '${p.article_name}')" 
+                                        class="py-3 px-4 rounded-xl bg-slate-700 hover:bg-rose-700 active:bg-rose-800 text-slate-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-600 hover:border-rose-600 touch-btn">
+                                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                                        <span>QAYTARISH</span>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // Render Accepted Pastals
+                if (res.accepted_pastals.length === 0) {
+                    activeBox.innerHTML = `
+                        <div class="py-10 text-center text-slate-500">
+                            <div class="text-xs">Ushbu patokda hozircha faol pastallar yo'q</div>
+                        </div>
+                    `;
+                } else {
+                    activeBox.innerHTML = res.accepted_pastals.map(p => {
+                        return `
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex flex-col gap-2">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="font-black text-white">Pastal №${p.batch_number} • ${p.article_name}</span>
+                                    <span class="font-bold text-emerald-400">${p.total_units} ta (${p.progress_pct}%)</span>
+                                </div>
+                                <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-emerald-500 h-2 rounded-full" style="width: ${p.progress_pct}%"></div>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] text-slate-400">
+                                    <span>Qabul qildi: ${p.accepted_by_name}</span>
+                                    <span>${p.accepted_at}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+            } catch (err) {
+                waitingBox.innerHTML = `<div class="py-6 text-center text-rose-400">Ma'lumotlarni yuklab bo'lmadi</div>`;
+            }
+        }
+
+        // Accept Pastal Action
+        async function acceptPastal(batchId) {
+            if (!isMasterAuthenticated) {
+                openIdentifyModal();
+                showToast("Iltimos, avval master beydjigingizni skanerlang!", "error");
+                return;
+            }
+
+            try {
+                const resp = await fetch('/master-tablet/api/accept/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        batch_id: batchId,
+                        screen_number: currentScreenNumber
+                    })
+                });
+                const res = await resp.json();
+
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    loadPatokPastals(currentScreenNumber);
+                } else {
+                    showToast(res.message || "Xatolik yuz berdi", 'error');
+                }
+            } catch (err) {
+                showToast("Server bilan aloqa uzildi", 'error');
+            }
+        }
+
+        // Reject Pastal Modal
+        function openRejectModal(batchId, batchNumber, articleName) {
+            if (!isMasterAuthenticated) {
+                openIdentifyModal();
+                showToast("Iltimos, avval master beydjigingizni skanerlang!", "error");
+                return;
+            }
+            document.getElementById('reject-batch-id').value = batchId;
+            document.getElementById('reject-pastal-title').innerText = `Pastal №${batchNumber} (${articleName})`;
+            document.getElementById('reject-reason-input').value = '';
+            document.getElementById('reject-modal').classList.remove('hidden');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('reject-modal').classList.add('hidden');
+        }
+
+        function selectReason(reasonText) {
+            document.getElementById('reject-reason-input').value = reasonText;
+        }
+
+        async function submitRejectPastal() {
+            const batchId = document.getElementById('reject-batch-id').value;
+            const reason = document.getElementById('reject-reason-input').value.trim();
+
+            if (!reason) {
+                showToast("Iltimos, qaytarish sababini tanlang yoki yozing!", "error");
+                return;
+            }
+
+            try {
+                const resp = await fetch('/master-tablet/api/reject/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        batch_id: batchId,
+                        reason: reason
+                    })
+                });
+                const res = await resp.json();
+
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    closeRejectModal();
+                    loadPatokPastals(currentScreenNumber);
+                } else {
+                    showToast(res.message || "Xatolik yuz berdi", 'error');
+                }
+            } catch (err) {
+                showToast("Server bilan aloqa uzildi", 'error');
+            }
+        }
+
+        // Identify Modal Helpers
+        function openIdentifyModal() {
+            document.getElementById('identify-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('manual-master-code').focus();
+            }, 100);
+        }
+
+        function closeIdentifyModal() {
+            document.getElementById('identify-modal').classList.add('hidden');
+            document.getElementById('manual-master-code').value = '';
+        }
+
+        function submitMasterCode() {
+            const code = document.getElementById('manual-master-code').value.trim();
+            if (code) {
+                identifyMaster(code);
+            }
+        }
+    </script>
+</body>
+</html>

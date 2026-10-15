@@ -34,6 +34,8 @@ urlpatterns = [
     path('control/', include('production.control_urls')),
     path('production/control/', RedirectView.as_view(url='/control/', permanent=False)),
     path('control/production/control/', RedirectView.as_view(url='/control/', permanent=False)),
+    path('production/master-tablet/', RedirectView.as_view(url='/master-tablet/', permanent=False)),
+    path('production/master-tablet/<path:extra>', RedirectView.as_view(url='/master-tablet/%(extra)s', permanent=False)),
     path('superadmin/', include('accounts.superadmin_urls')),
     path('managers/', include('production.manager_urls')),
     path('cutting/', include('production.cutting_urls')),
