@@ -24,6 +24,10 @@
     <style>
 
         /* High contrast glow effects */
+        .glow-rose {
+            text-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+        }
+
         .glow-amber {
             text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
         }
@@ -107,11 +111,26 @@
                     class="text-2xl md:text-3xl lg:text-4xl font-black digital-font text-amber-400 leading-none tracking-wider">
                     00:00:00</div>
             </div>
+
+            <!-- SANA / KALENDAR TANLASH -->
+            <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 md:py-2 rounded-xl shrink-0">
+                <i class="fa-regular fa-calendar-days text-indigo-400 text-lg"></i>
+                <div class="flex flex-col text-left">
+                    <span class="text-[9px] uppercase font-bold text-slate-400 leading-none">Sana:</span>
+                    <input type="date" value="{{ target_date_iso }}" onchange="onDateChanged(this.value)"
+                        class="bg-transparent text-xs sm:text-sm font-bold text-slate-200 outline-none cursor-pointer mt-0.5">
+                </div>
+                {% if is_custom_date %}
+                <a href="?" class="text-[10px] font-black px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg hover:bg-amber-500 hover:text-slate-950 transition ml-1" title="Bugungi jonli efirga qaytish">
+                    Bugun
+                </a>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Right: Summary Stats & Actions -->
         <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
-            <!-- Summary Stats Card: OPERATSION, DAVOMAD, DAVOMAD/FOIZ, CHEVARLAR KPI, PATOK PKI -->
+            <!-- Summary Stats Card: OPERATSION, DAVOMAD, DAVOMAD/FOIZ, CHEVARLAR KPI, PATOK QUVVATI -->
             <div
                 class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-slate-800 px-4 md:px-5 py-1.5 rounded-xl shrink-0">
                 <div class="text-center px-0.5">
@@ -136,9 +155,9 @@
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOK PKI</span>
-                    <span id="stat-patok-kpi"
-                        class="text-xl md:text-2xl lg:text-3xl font-black text-amber-300 digital-font glow-amber">{{ patok_kpi }}%</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOK QUVVATI</span>
+                    <span id="stat-patok-quvvati"
+                        class="text-xl md:text-2xl lg:text-3xl font-black digital-font {{ quvvat_color_class|default:'text-rose-400 glow-rose' }}">{{ patok_quvvati }}%</span>
                 </div>
             </div>
 
@@ -332,8 +351,17 @@
                 const statAvgKpi = document.getElementById('stat-avg-kpi');
                 if (statAvgKpi && data.avg_screen_kpi !== undefined) statAvgKpi.innerText = `${data.avg_screen_kpi}%`;
 
-                const statPatokKpi = document.getElementById('stat-patok-kpi');
-                if (statPatokKpi && data.patok_kpi !== undefined) statPatokKpi.innerText = `${data.patok_kpi}%`;
+                const statPatokQuvvati = document.getElementById('stat-patok-quvvati') || document.getElementById('stat-patok-kpi');
+                if (statPatokQuvvati) {
+                    const quvvat = (data.patok_quvvati !== undefined) ? data.patok_quvvati : (data.patok_kpi || 0);
+                    statPatokQuvvati.innerText = `${quvvat}%`;
+                    const colorCls = data.quvvat_color_class || (
+                        quvvat < 60 ? 'text-rose-400 glow-rose' :
+                        quvvat < 85 ? 'text-amber-400 glow-amber' :
+                        quvvat < 100 ? 'text-emerald-400 glow-emerald' : 'text-cyan-300 glow-cyan'
+                    );
+                    statPatokQuvvati.className = `text-xl md:text-2xl lg:text-3xl font-black digital-font ${colorCls}`;
+                }
 
                 // Render Table Rows
                 const tbody = document.getElementById('workers-tbody');

@@ -5,13 +5,45 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, Value, Q
 from django.db.models.functions import Coalesce
-from production.models import Ticket, OrderItem, Operation, OperationGroupItem, ArticleOperation
+from production.models import Ticket, OrderItem, Operation, OperationGroupItem, ArticleOperation, Article
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 from accounts.models import Worker
 from django.core.cache import cache
 
 
 MAX_SCREENS = 40
+
+
+def calculate_quvvat_color_info(quvvat: float):
+    """Patok quvvati foizi bo'yicha rang va stil parametrlarini qaytarish"""
+    if quvvat < 60.0:
+        return {
+            'color': 'red',
+            'color_class': 'text-rose-400 glow-rose',
+            'badge_bg': 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
+            'dot_color': 'bg-rose-500',
+        }
+    elif quvvat < 85.0:
+        return {
+            'color': 'amber',
+            'color_class': 'text-amber-400 glow-amber',
+            'badge_bg': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+            'dot_color': 'bg-amber-500',
+        }
+    elif quvvat < 100.0:
+        return {
+            'color': 'emerald',
+            'color_class': 'text-emerald-400 glow-emerald',
+            'badge_bg': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+            'dot_color': 'bg-emerald-400',
+        }
+    else:
+        return {
+            'color': 'cyan',
+            'color_class': 'text-cyan-300 glow-cyan',
+            'badge_bg': 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30',
+            'dot_color': 'bg-cyan-400',
+        }
 
 
 def calculate_screen_aniqlik(screen_number: int, patok_scans):
@@ -157,6 +189,7 @@ def get_screen_data(screen_number: int, target_date=None):
         dazmol_units = 0
 
     if not screen_worker_ids:
+        quvvat_info = calculate_quvvat_color_info(0.0)
         return {
             'screen_number': screen_number,
             'screen_code': get_patok_code(screen_number),
@@ -174,6 +207,10 @@ def get_screen_data(screen_number: int, target_date=None):
             'foiz': 0.0,
             'avg_screen_kpi': 0.0,
             'patok_kpi': 0.0,
+            'patok_quvvati': 0.0,
+            'quvvat_color': quvvat_info['color'],
+            'quvvat_color_class': quvvat_info['color_class'],
+            'quvvat_badge_bg': quvvat_info['badge_bg'],
             'active_workers_count': 0,
             'all_screens_list': list(range(1, MAX_SCREENS + 1)),
         }
@@ -365,7 +402,36 @@ def get_screen_data(screen_number: int, target_date=None):
     davomat = len(workers_list)
     foiz = round((davomat / aniqlik) * 100, 1) if (aniqlik and aniqlik > 0) else 0.0
     avg_screen_kpi = round(total_pct_sum / len(workers_list), 1) if workers_list else 0.0
-    patok_kpi = round((foiz + avg_screen_kpi) / 2, 1)
+
+    # ---------------------------------------------------------
+    # PATOK QUVVATI HISOBLASH (Earned Value / Mehnat Qiymati):
+    # 1. Bugun patokda ishlangan barcha artikullarning to'liq 1 dona narxi x normasi
+    # 2. Bir nechta model bo'lsa, o'rtacha arifmetik reja olinadi
+    # 3. Quvvat = (grand_total_earnings / avg_daily_target) * 100%
+    # ---------------------------------------------------------
+    patok_quvvati = 0.0
+    article_ids = list(tickets.values_list('article_operation__article_id', flat=True).distinct())
+
+    if grand_total_earnings > 0 and article_ids:
+        art_unit_prices = {}
+        for row in ArticleOperation.objects.filter(article_id__in=article_ids, is_active=True).values('article_id').annotate(tot_price=Sum('price_per_unit')):
+            art_unit_prices[row['article_id']] = float(row['tot_price'] or 0.0)
+
+        articles_qs = Article.objects.filter(id__in=article_ids).select_related('model')
+        target_reja_values = []
+        for art in articles_qs:
+            u_price = art_unit_prices.get(art.id, 0.0)
+            norm = art.daily_norm or (art.model.daily_norm if art.model else None) or 1000
+            if u_price > 0 and norm > 0:
+                target_reja_values.append(u_price * float(norm))
+
+        if target_reja_values:
+            avg_daily_target = sum(target_reja_values) / len(target_reja_values)
+            if avg_daily_target > 0:
+                patok_quvvati = round((grand_total_earnings / avg_daily_target) * 100, 1)
+
+    quvvat_info = calculate_quvvat_color_info(patok_quvvati)
+    patok_kpi = patok_quvvati  # To'liq moslik uchun
 
     has_dazmol_op = bool(dazmol_op_ids)
     grand_total_units = dazmol_units if has_dazmol_op else total_scanned_units
@@ -387,6 +453,10 @@ def get_screen_data(screen_number: int, target_date=None):
         'foiz': foiz,
         'avg_screen_kpi': avg_screen_kpi,
         'patok_kpi': patok_kpi,
+        'patok_quvvati': patok_quvvati,
+        'quvvat_color': quvvat_info['color'],
+        'quvvat_color_class': quvvat_info['color_class'],
+        'quvvat_badge_bg': quvvat_info['badge_bg'],
         'active_workers_count': len(workers_list),
         'all_screens_list': list(range(1, MAX_SCREENS + 1)),
     }
