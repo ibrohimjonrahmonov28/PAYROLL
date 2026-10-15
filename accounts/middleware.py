@@ -26,6 +26,10 @@ class MasterTerminalAccessRestrictionMiddleware:
                 allowed_prefixes = (
                     '/terminal/',
                     '/terminal',
+                    '/master-tablet/',
+                    '/master-tablet',
+                    '/production/master-tablet/',
+                    '/production/master-tablet',
                     '/login/',
                     '/logout/',
                     '/accounts/login/',
