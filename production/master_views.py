@@ -131,7 +131,7 @@ def api_get_patoks_summary(request):
         assigned_screen__in=screen_numbers,
         dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED
     ).values('assigned_screen').annotate(
-        count=Count('id'),
+        count=Count('id', distinct=True),
         total_units=Sum('items__quantity')
     )
     dispatched_map = {item['assigned_screen']: item for item in dispatched_batches}
@@ -141,7 +141,7 @@ def api_get_patoks_summary(request):
         assigned_screen__in=screen_numbers,
         dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
     ).values('assigned_screen').annotate(
-        count=Count('id')
+        count=Count('id', distinct=True)
     )
     accepted_map = {item['assigned_screen']: item['count'] for item in accepted_batches}
 
