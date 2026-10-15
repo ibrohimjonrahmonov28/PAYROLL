@@ -15,6 +15,7 @@ Vazifalari:
 import logging
 import re
 from decimal import Decimal
+from django.db.models import Q
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
@@ -191,12 +192,44 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
 
+@sync_to_async
+def resolve_batch_from_details_async(details: dict):
+    """
+    Agar batch_id to'g'ridan-to'g'ri bo'lmasa, box_id yoki boshqa parametrlar orqali CuttingBatch ni topish
+    """
+    if not details:
+        return None
+    batch_id = details.get('batch_id')
+    if batch_id:
+        return batch_id
+
+    box_id = details.get('box_id')
+    if box_id:
+        box = Box.objects.select_related('cutting_batch_item__batch', 'order').filter(id=box_id).first()
+        if box:
+            if box.cutting_batch_item and box.cutting_batch_item.batch:
+                return box.cutting_batch_item.batch_id
+            if box.pastal_number and box.order:
+                batch = CuttingBatch.objects.filter(
+                    order_item__order=box.order
+                ).filter(
+                    Q(pastal_code=box.pastal_number) | Q(batch_number=box.pastal_number)
+                ).first()
+                if batch:
+                    return batch.id
+            batch = CuttingBatch.objects.filter(order_item__order=box.order).order_by('-id').first()
+            if batch:
+                return batch.id
+    return None
+
+
 async def _handle_verification_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result: dict):
     """
     Tekshiruv natijasini yuborish va agar muvaffaqiyatli bo'lsa, kg so'rash rejimiga o'tish
     """
     message_text = result['message']
-    batch_id = result.get('details', {}).get('batch_id')
+    details = result.get('details', {}) or {}
+    batch_id = await resolve_batch_from_details_async(details)
 
     if result.get('success') and batch_id:
         # User sessiyasiga batch_id va kutish holatini o'rnatish

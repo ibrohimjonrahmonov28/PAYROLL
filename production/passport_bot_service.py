@@ -773,6 +773,26 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"Lekin siz skanerlagan #{scanned_box.box_number}-quti — YANGI VA TO'G'RI ✅.\n"
             )
 
+        # Batchni aniqlash (agar avval topilmagan bo'lsa)
+        if not batch and scanned_box:
+            if scanned_box.cutting_batch_item and scanned_box.cutting_batch_item.batch:
+                batch = scanned_box.cutting_batch_item.batch
+            elif scanned_box.pastal_number and scanned_box.order:
+                batch = CuttingBatch.objects.select_related(
+                    'order_item__order__customer',
+                    'order_item__article__model'
+                ).filter(
+                    Q(pastal_code=scanned_box.pastal_number) | Q(batch_number=scanned_box.pastal_number),
+                    order_item__order=scanned_box.order
+                ).first()
+            if not batch and scanned_box.order:
+                batch = CuttingBatch.objects.select_related(
+                    'order_item__order__customer',
+                    'order_item__article__model'
+                ).filter(order_item__order=scanned_box.order).order_by('-id').first()
+
+        batch_id = batch.id if batch else None
+
         return {
             'success': True,
             'can_release': True,
@@ -795,10 +815,21 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 f"🟢 *USHBU QUTINI TIKUV PATOGIGA BERISHGA RUXSAT ETILADI!*"
             ),
             'details': {
+                'batch_id': batch_id,
+                'batch_number': batch.batch_number if batch else None,
+                'pastal_code': pastal_code,
+                'box_id': scanned_box.id,
                 'box_number': scanned_box.box_number,
                 'box_code': scanned_box.box_code,
                 'razmer': scanned_box.razmer,
-                'quantity': scanned_box.quantity
+                'quantity': scanned_box.quantity,
+                'order_number': order.order_number if order else '—',
+                'customer_name': customer_name,
+                'article_name': article.name if article else '',
+                'actual_weight_kg': float(batch.actual_weight_kg) if (batch and batch.actual_weight_kg) else None,
+                'dispatch_status': batch.dispatch_status if batch else None,
+                'assigned_screen': batch.assigned_screen if batch else None,
+                'assigned_branch': batch.assigned_branch if batch else None,
             }
         }
 
