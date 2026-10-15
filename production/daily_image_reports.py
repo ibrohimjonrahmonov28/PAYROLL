@@ -60,17 +60,18 @@ def get_branch_patoks_data(branch: str, target_date: datetime.date = None) -> di
     if is_hq:
         branch_key = 'HQ'
         branch_name = "BOSH BINO (KOSONSOY)"
-        screen_numbers = list(range(1, 14))  # 1..13
+        screen_numbers = list(range(1, 14))  # 1..13 (K1..K13)
     else:
         branch_key = 'UYCHI'
         branch_name = "UYCHI FILIALI"
-        # Uychi uchun faol ekranlarni aniqlash (kamida 14..18)
+        # Uychi filialida 27 ta patok (14..40, ya'ni U1..U27)
+        # Shu kunda skanerlangan barcha Uychi ekranlarini to'liq qamrab olamiz
         max_active = Ticket.objects.filter(
             status=Ticket.Status.SCANNED,
             scanned_at__range=(day_start, day_end),
             screen_number__gte=14
-        ).values_list('screen_number', flat=True).order_by('-screen_number').first() or 18
-        max_screen = max(18, max_active)
+        ).values_list('screen_number', flat=True).order_by('-screen_number').first() or 33
+        max_screen = min(40, max(33, max_active))
         screen_numbers = list(range(14, max_screen + 1))
 
     # 2. Shu kunda skanerlangan barcha biletlar
@@ -179,13 +180,22 @@ def get_branch_patoks_data(branch: str, target_date: datetime.date = None) -> di
         except Exception:
             pass
 
+    # Foydalanuvchi talabi: Faol bo'lgan hamma patoklar ma'lumotlari bo'lsin
+    active_patoks = [p for p in patoks_list if p['is_active']]
+    # Agar shu kunda faol patoklar bo'lsa, barcha faol patoklarni rasm jadvaliga chiqaramiz
+    # Agar birorta ham faol bo'lmasa (masalan, test sanasida), standart ro'yxatni ko'rsatamiz
+    display_patoks = active_patoks if active_patoks else (patoks_list[:13] if is_hq else patoks_list[:15])
+
+    total_norm = sum(p['daily_norm'] for p in display_patoks)
+    total_dazmol = sum(p['dazmol_qty'] for p in display_patoks)
+    total_controlled = sum(p['controlled_qty'] for p in display_patoks)
     avg_branch_pct = round((total_dazmol / total_norm * 100), 1) if total_norm > 0 else 0.0
 
     return {
         'branch_key': branch_key,
         'branch_name': branch_name,
         'target_date': target_date,
-        'patoks': patoks_list,
+        'patoks': display_patoks,
         'total_norm': total_norm,
         'total_dazmol': total_dazmol,
         'total_controlled': total_controlled,
@@ -476,8 +486,6 @@ def send_single_branch_report(branch: str, target_date: datetime.date = None, ch
         files = {'photo': (filename, img_buffer.getvalue(), 'image/png')}
         payload = {
             'chat_id': cid,
-            'caption': caption,
-            'parse_mode': 'Markdown'
         }
         try:
             with httpx.Client(timeout=45.0) as client:

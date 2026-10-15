@@ -3413,5 +3413,88 @@ class SewingStatisticsPastalPipelineTests(TestCase):
         self.assertEqual(pastal_closed['repair_boxes'], 0)
 
 
+class TelegramDailyReportApiTest(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        self.manager = User.objects.create_user(
+            username='manager_report_test',
+            password='testpassword123',
+            role='MANAGER'
+        )
+        self.regular_user = User.objects.create_user(
+            username='user_report_test',
+            password='testpassword123',
+            role='USER'
+        )
+
+    def test_api_send_telegram_daily_report_permissions(self):
+        from django.urls import reverse
+        url = reverse('production:api_send_telegram_daily_report')
+
+        # 1. Unauthenticated user should be redirected to login
+        res = self.client.post(url, {'branch': 'HQ', 'date': '2026-10-14'})
+        self.assertEqual(res.status_code, 302)
+
+        # 2. Regular non-manager user should be forbidden / redirected
+        self.client.login(username='user_report_test', password='testpassword123')
+        res = self.client.post(url, {'branch': 'HQ', 'date': '2026-10-14'})
+        self.assertIn(res.status_code, [302, 403])
+
+    def test_api_send_telegram_daily_report_success_mocked(self):
+        from unittest.mock import patch
+        from django.urls import reverse
+
+        self.client.login(username='manager_report_test', password='testpassword123')
+        url = reverse('production:api_send_telegram_daily_report')
+
+        with patch('production.daily_image_reports.send_single_branch_report') as mock_send_single, \
+             patch('production.daily_image_reports.send_daily_1800_reports') as mock_send_all:
+
+            mock_send_single.return_value = {
+                'success': True,
+                'chat_id': '-1004425170756',
+                'message': 'Rasm muvaffaqiyatli yuborildi'
+            }
+            mock_send_all.return_value = {
+                'HQ': {'success': True, 'chat_id': '-1004425170756'},
+                'UYCHI': {'success': True, 'chat_id': '-1003903019133'}
+            }
+
+            # Test single branch HQ
+            res_hq = self.client.post(url, {'branch': 'HQ', 'date': '2026-10-14'})
+            self.assertEqual(res_hq.status_code, 200)
+            data_hq = res_hq.json()
+            self.assertEqual(data_hq['status'], 'OK')
+
+            # Test branch ALL
+            res_all = self.client.post(url, {'branch': 'ALL', 'date': '2026-10-14'})
+            self.assertEqual(res_all.status_code, 200)
+            data_all = res_all.json()
+            self.assertEqual(data_all['status'], 'OK')
+            self.assertIn('Kosonsoy filiali', data_all['message'])
+            self.assertIn('Uychi filiali', data_all['message'])
+
+    def test_daily_image_report_pure_photo_no_caption(self):
+        from unittest.mock import patch, MagicMock
+        from production.daily_image_reports import send_single_branch_report
+
+        mock_post = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {'ok': True, 'result': {'message_id': 12345}}
+        mock_post.return_value = mock_resp
+
+        with patch('httpx.Client.post', mock_post):
+            res = send_single_branch_report('HQ', target_date=timezone.localdate())
+            self.assertTrue(res['success'])
+            # Verify payload does NOT have 'caption' (chatga faqat rasm yuboriladi)
+            called_kwargs = mock_post.call_args[1]
+            payload = called_kwargs.get('data', {})
+            self.assertNotIn('caption', payload)
+            self.assertNotIn('parse_mode', payload)
+            self.assertIn('chat_id', payload)
+
+
+
 
 

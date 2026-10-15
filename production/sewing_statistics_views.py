@@ -2509,3 +2509,58 @@ def sewing_statistics_close_all_unprinted_boxes_view(request):
 
     return redirect('production:sewing_statistics_orders')
 
+
+@manager_or_superadmin_required
+@require_POST
+def api_send_telegram_daily_report_view(request):
+    """
+    Kunlik rasm-hisobotini Telegram guruhlarga yuborish (Web dashboarddan test qilish yoki yuborish):
+    - date: YYYY-MM-DD
+    - branch: ALL | HQ | UYCHI
+    """
+    from datetime import datetime
+    from .daily_image_reports import send_daily_1800_reports, send_single_branch_report
+
+    date_str = request.POST.get('date', '').strip()
+    branch = request.POST.get('branch', 'ALL').strip().upper()
+
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'status': 'ERROR', 'message': f"Xato sana formati: {date_str}"}, status=400)
+    else:
+        target_date = timezone.localdate()
+
+    if branch == 'ALL':
+        results = send_daily_1800_reports(target_date)
+        hq_res = results.get('HQ', {})
+        uychi_res = results.get('UYCHI', {})
+        success = bool(hq_res.get('success') or uychi_res.get('success'))
+
+        messages_list = []
+        if hq_res.get('success'):
+            messages_list.append(f"✅ Kosonsoy filiali: {hq_res.get('chat_id')} guruhiga rasm yuborildi.")
+        else:
+            messages_list.append(f"❌ Kosonsoy filiali: {hq_res.get('message')}")
+
+        if uychi_res.get('success'):
+            messages_list.append(f"✅ Uychi filiali: {uychi_res.get('chat_id')} guruhiga rasm yuborildi.")
+        else:
+            messages_list.append(f"❌ Uychi filiali: {uychi_res.get('message')}")
+
+        return JsonResponse({
+            'status': 'OK' if success else 'ERROR',
+            'message': '<br>'.join(messages_list),
+            'target_date': str(target_date),
+            'results': results,
+        })
+    else:
+        res = send_single_branch_report(branch, target_date=target_date)
+        return JsonResponse({
+            'status': 'OK' if res.get('success') else 'ERROR',
+            'message': res.get('message', ''),
+            'target_date': str(target_date),
+            'result': res,
+        })
+

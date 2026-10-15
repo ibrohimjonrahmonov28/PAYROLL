@@ -199,6 +199,14 @@
                     Barcha 40 ta patok
                 </a>
             </div>
+
+            <!-- Telegram Test / Send Button -->
+            <button type="button" onclick="openSendTelegramReportModal()"
+                id="btn-telegram-daily-report"
+                class="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-sky-500/20 cursor-pointer border border-sky-400/30">
+                <i class="fa-brands fa-telegram text-sm"></i>
+                <span class="hidden sm:inline">Telegramga Yuborish (Test)</span>
+            </button>
         </div>
 
         <!-- Search Form -->
@@ -1097,6 +1105,86 @@
         {% endif %}
     </div>
 
+    <!-- TELEGRAM REPORT SEND MODAL -->
+    <div id="modal-send-telegram-report" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden transform transition-all duration-200">
+            <!-- Header -->
+            <div class="p-5 border-b border-slate-800 bg-gradient-to-r from-sky-950/40 via-slate-900 to-slate-900 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-brands fa-telegram"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-white">Kunlik Hisobotni Telegramga Yuborish</h3>
+                        <p class="text-xs text-slate-400">Tanlangan sana bo'yicha rasm-hisobot Telegramga yuboriladi</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSendTelegramReportModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <form id="form-send-telegram-report" onsubmit="event.preventDefault(); submitSendTelegramReport();" class="p-6 space-y-4">
+                {% csrf_token %}
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Tanlangan hisobot sanasi</span>
+                        <span class="text-base font-black text-white font-mono" id="telegram-modal-date-display">{{ selected_date_str }}</span>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                        <i class="fa-solid fa-camera mr-1"></i> Faqat PNG Rasm
+                    </span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Qaysi filial guruhiga yuborilsin?</label>
+                    <div class="grid grid-cols-1 gap-2.5">
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-500/50 cursor-pointer transition">
+                            <input type="radio" name="telegram_report_branch" value="ALL" checked class="text-sky-500 focus:ring-sky-500 h-4 w-4 bg-slate-900 border-slate-700 cursor-pointer">
+                            <div class="flex-1">
+                                <span class="text-xs font-bold text-white block">🚀 Barcha filiallar (Kosonsoy & Uychi)</span>
+                                <span class="text-[11px] text-slate-400">Har ikkala filial guruhiga tegishli hisobot rasmi yuboriladi</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition">
+                            <input type="radio" name="telegram_report_branch" value="HQ" class="text-indigo-500 focus:ring-indigo-500 h-4 w-4 bg-slate-900 border-slate-700 cursor-pointer">
+                            <div class="flex-1">
+                                <span class="text-xs font-bold text-white block">🏢 Faqat Kosonsoy (Bosh bino)</span>
+                                <span class="text-[11px] text-slate-400">K1..K13 faol patoklar hisoboti</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-teal-500/50 cursor-pointer transition">
+                            <input type="radio" name="telegram_report_branch" value="UYCHI" class="text-teal-500 focus:ring-teal-500 h-4 w-4 bg-slate-900 border-slate-700 cursor-pointer">
+                            <div class="flex-1">
+                                <span class="text-xs font-bold text-white block">🏭 Faqat Uychi filiali</span>
+                                <span class="text-[11px] text-slate-400">Uychidagi barcha faol patoklar hisoboti</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Status message container -->
+                <div id="telegram-report-status" class="hidden p-3.5 rounded-2xl text-xs"></div>
+
+                <!-- Footer Actions -->
+                <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeSendTelegramReportModal()"
+                        class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer">
+                        Bekor qilish
+                    </button>
+                    <button type="button" id="btn-confirm-send-telegram" onclick="submitSendTelegramReport()"
+                        class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black shadow-lg shadow-sky-500/25 flex items-center gap-2 transition cursor-pointer">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span id="btn-send-text">Yuborish</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 
 <!-- JAVASCRIPT FOR DESKTOP INTERACTION -->
@@ -1176,5 +1264,82 @@
         // Smooth scroll qilish
         drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+
+    // TELEGRAM HISOBOTINI YUBORISH MODALI
+    function openSendTelegramReportModal() {
+        const modal = document.getElementById('modal-send-telegram-report');
+        if (modal) {
+            modal.classList.remove('hidden');
+            const statusBox = document.getElementById('telegram-report-status');
+            if (statusBox) {
+                statusBox.className = 'hidden p-3.5 rounded-2xl text-xs';
+                statusBox.innerHTML = '';
+            }
+        }
+    }
+
+    function closeSendTelegramReportModal() {
+        const modal = document.getElementById('modal-send-telegram-report');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    async function submitSendTelegramReport() {
+        const btn = document.getElementById('btn-confirm-send-telegram');
+        const btnText = document.getElementById('btn-send-text');
+        const statusBox = document.getElementById('telegram-report-status');
+        const selectedBranch = document.querySelector('input[name="telegram_report_branch"]:checked')?.value || 'ALL';
+        const targetDate = '{{ selected_date_str }}';
+
+        if (!btn || !statusBox) return;
+
+        btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+        btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Yuborilmoqda...';
+
+        statusBox.className = 'p-3.5 rounded-2xl text-xs bg-sky-950/60 border border-sky-500/40 text-sky-200 block';
+        statusBox.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin text-sky-400"></i><span>Rasm-hisobot tayyorlanib, Telegramga yuborilmoqda, kuting...</span></div>';
+
+        try {
+            const csrfInput = document.querySelector('#form-send-telegram-report [name=csrfmiddlewaretoken]');
+            const csrfToken = csrfInput ? csrfInput.value : '{{ csrf_token }}';
+
+            const formData = new FormData();
+            formData.append('date', targetDate);
+            formData.append('branch', selectedBranch);
+            formData.append('csrfmiddlewaretoken', csrfToken);
+
+            const response = await fetch("{% url 'production:api_send_telegram_daily_report' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+            if (response.ok && data.status === 'OK') {
+                statusBox.className = 'p-3.5 rounded-2xl text-xs bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 block space-y-1';
+                statusBox.innerHTML = `<div class="font-bold flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i><span>Muvaffaqiyatli yuborildi!</span></div><div class="mt-1">${data.message}</div>`;
+            } else {
+                statusBox.className = 'p-3.5 rounded-2xl text-xs bg-rose-950/70 border border-rose-500/50 text-rose-200 block space-y-1';
+                statusBox.innerHTML = `<div class="font-bold flex items-center gap-2"><i class="fa-solid fa-circle-xmark text-rose-400 text-sm"></i><span>Xatolik yuz berdi:</span></div><div class="mt-1">${data.message || 'Noma\'lum xatolik'}</div>`;
+            }
+        } catch (err) {
+            statusBox.className = 'p-3.5 rounded-2xl text-xs bg-rose-950/70 border border-rose-500/50 text-rose-200 block';
+            statusBox.innerHTML = `<div class="font-bold flex items-center gap-2"><i class="fa-solid fa-circle-xmark text-rose-400 text-sm"></i><span>Tarmoq xatosi:</span></div><div>${err.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            btnText.innerHTML = 'Yuborish';
+        }
+    }
+
+    // Modal tashqarisiga yoki ESC tugmasiga bosilganda yopish
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeSendTelegramReportModal();
+    });
+    document.getElementById('modal-send-telegram-report')?.addEventListener('click', function(e) {
+        if (e.target === this) closeSendTelegramReportModal();
+    });
 </script>
 {% endblock %}
