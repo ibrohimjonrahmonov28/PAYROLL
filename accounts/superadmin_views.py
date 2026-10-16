@@ -3535,18 +3535,28 @@ def superadmin_orders_balance(request):
 
     # 1. Dazmol operatsiyalari ID lari
     dazmol_op_ids = list(Operation.objects.filter(
-        Q(name__iexact='DAZMOL') | Q(name__icontains='YAKUNIY DAZMOL') | Q(name__icontains='OXIRGI DAZMOL')
+        Q(name__iexact='DAZMOL') | Q(name__iexact='YAKUNIY DAZMOL') | Q(name__iexact='OXIRGI DAZMOL')
     ).values_list('id', flat=True))
     if not dazmol_op_ids:
-        dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
+        dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').exclude(
+            Q(name__icontains='TASMA') | Q(name__icontains="CHO'NTAK")
+        ).values_list('id', flat=True))
 
-    # 2. Qutilar bo'yicha patokka kirgan jami miqdor (order_id, article_id)
-    box_map = {}
-    if order_ids:
-        for row in Box.objects.filter(order_id__in=order_ids).values('order_id', 'article_id').annotate(s=Sum('quantity')):
-            box_map[(row['order_id'], row['article_id'])] = int(row['s'] or 0)
+    # 2. Kamida bitta bilet skanerlangan qutilar ID lari (PATOKKA KIRGAN QUTILAR)
+    # 1 ta stikeri urilsa ham, u avtomatik patokka kirgan hisoblanadi.
+    # 0 ta stikeri urilgan qutilar hali bichuv/tayyorlovda bo'lib, patokka kirmagan.
+    scanned_box_ids = set(Ticket.objects.filter(
+        box__order_id__in=order_ids,
+        status=Ticket.Status.SCANNED
+    ).values_list('box_id', flat=True))
 
-    # 3. Dazmol bo'yicha skanerlangan jami miqdor (order_id, article_id)
+    # 3. Patokka kirgan qutilar bo'yicha jami miqdor (order_id, article_id)
+    patok_box_map = {}
+    if scanned_box_ids:
+        for row in Box.objects.filter(id__in=scanned_box_ids).values('order_id', 'article_id').annotate(s=Sum('quantity')):
+            patok_box_map[(row['order_id'], row['article_id'])] = int(row['s'] or 0)
+
+    # 4. Dazmol bo'yicha skanerlangan jami miqdor (order_id, article_id)
     dazmol_map = {}
     if order_ids and dazmol_op_ids:
         for row in Ticket.objects.filter(
@@ -3556,7 +3566,17 @@ def superadmin_orders_balance(request):
         ).values('box__order_id', 'article_operation__article_id').annotate(s=Sum('quantity')):
             dazmol_map[(row['box__order_id'], row['article_operation__article_id'])] = int(row['s'] or 0)
 
-    # 4. 1 dona mahsulotning sdelshina narxi (barcha faol operatsiyalar summasi)
+    # 5. Har bir buyurtma va artikul bo'yicha chevarlar ishlagan jami sdelshina summasi (order_id, article_id)
+    # Bu summa chevarlar topgan haqiqiy sdelshina ish haqi bilan 100% teng bo'ladi
+    earned_money_map = {}
+    if order_ids:
+        for row in Ticket.objects.filter(
+            box__order_id__in=order_ids,
+            status=Ticket.Status.SCANNED
+        ).values('box__order_id', 'article_operation__article_id').annotate(s=Sum('total_amount')):
+            earned_money_map[(row['box__order_id'], row['article_operation__article_id'])] = float(row['s'] or 0.0)
+
+    # 6. 1 dona mahsulotning sdelshina narxi (barcha faol operatsiyalar summasi)
     unit_price_map = {}
     for row in ArticleOperation.objects.filter(is_active=True).values('article_id').annotate(s=Sum('price_per_unit')):
         unit_price_map[row['article_id']] = float(row['s'] or 0.0)
@@ -3565,24 +3585,27 @@ def superadmin_orders_balance(request):
     grand_patok_total = 0
     grand_dazmol_total = 0
     grand_sum_total = 0
-    grand_plan_sum_total = 0
 
     for idx, order in enumerate(orders_qs, start=1):
         articles_data = []
+        seen_art_ids = set()
 
         order_items = list(order.items.all())
         if order_items:
             for it in order_items:
                 art = it.article
-                articles_data.append({
-                    'article_id': art.id,
-                    'article_code': art.code,
-                    'article_name': art.name,
-                    'model_name': art.model.name if art.model else "",
-                    'plan_qty': it.quantity,
-                })
+                if art.id not in seen_art_ids:
+                    seen_art_ids.add(art.id)
+                    articles_data.append({
+                        'article_id': art.id,
+                        'article_code': art.code,
+                        'article_name': art.name,
+                        'model_name': art.model.name if art.model else "",
+                        'plan_qty': it.quantity,
+                    })
         elif order.article:
             art = order.article
+            seen_art_ids.add(art.id)
             articles_data.append({
                 'article_id': art.id,
                 'article_code': art.code,
@@ -3590,7 +3613,24 @@ def superadmin_orders_balance(request):
                 'model_name': art.model.name if art.model else "",
                 'plan_qty': order.total_quantity,
             })
-        else:
+
+        # Shuningdek, qutilar/biletlarda mavjud bo'lgan qo'shimcha artikullar bo'lsa ularni ham kiritamiz
+        extra_art_ids = set(
+            [aid for (oid, aid) in patok_box_map.keys() if oid == order.id and aid and aid not in seen_art_ids] +
+            [aid for (oid, aid) in earned_money_map.keys() if oid == order.id and aid and aid not in seen_art_ids]
+        )
+        if extra_art_ids:
+            for extra_art in Article.objects.filter(id__in=extra_art_ids).select_related('model'):
+                seen_art_ids.add(extra_art.id)
+                articles_data.append({
+                    'article_id': extra_art.id,
+                    'article_code': extra_art.code,
+                    'article_name': extra_art.name,
+                    'model_name': extra_art.model.name if extra_art.model else "",
+                    'plan_qty': 0,
+                })
+
+        if not articles_data:
             articles_data.append({
                 'article_id': None,
                 'article_code': "—",
@@ -3602,23 +3642,21 @@ def superadmin_orders_balance(request):
         order_patok_sum = 0
         order_dazmol_sum = 0
         order_money_sum = 0
-        order_plan_money_sum = 0
 
         rows = []
         for a in articles_data:
             art_id = a['article_id']
-            patok_qty = box_map.get((order.id, art_id), 0) if art_id else 0
+            patok_qty = patok_box_map.get((order.id, art_id), 0) if art_id else 0
             dazmol_qty = dazmol_map.get((order.id, art_id), 0) if art_id else 0
             unit_price = unit_price_map.get(art_id, 0.0) if art_id else 0.0
 
-            total_sum = round(dazmol_qty * unit_price)
-            plan_sum = round(patok_qty * unit_price)
+            # Chevarlar topgan real sdelshina summasi (skanerlangan barcha biletlar summasi)
+            total_sum = round(earned_money_map.get((order.id, art_id), 0.0)) if art_id else 0
             progress_pct = round((dazmol_qty / patok_qty) * 100, 1) if patok_qty > 0 else (100.0 if dazmol_qty > 0 else 0.0)
 
             order_patok_sum += patok_qty
             order_dazmol_sum += dazmol_qty
             order_money_sum += total_sum
-            order_plan_money_sum += plan_sum
 
             rows.append({
                 'article_code': a['article_code'],
@@ -3632,8 +3670,6 @@ def superadmin_orders_balance(request):
                 'unit_price_fmt': f"{unit_price:,.0f}".replace(",", " "),
                 'total_sum': total_sum,
                 'total_sum_fmt': f"{total_sum:,.0f}".replace(",", " "),
-                'plan_sum': plan_sum,
-                'plan_sum_fmt': f"{plan_sum:,.0f}".replace(",", " "),
                 'progress_pct': progress_pct,
             })
 
@@ -3642,7 +3678,6 @@ def superadmin_orders_balance(request):
         grand_patok_total += order_patok_sum
         grand_dazmol_total += order_dazmol_sum
         grand_sum_total += order_money_sum
-        grand_plan_sum_total += order_plan_money_sum
 
         orders_data.append({
             'index': idx,
@@ -3658,8 +3693,6 @@ def superadmin_orders_balance(request):
             'order_dazmol_sum_fmt': f"{order_dazmol_sum:,}".replace(",", " "),
             'order_money_sum': order_money_sum,
             'order_money_sum_fmt': f"{order_money_sum:,.0f}".replace(",", " "),
-            'order_plan_money_sum': order_plan_money_sum,
-            'order_plan_money_sum_fmt': f"{order_plan_money_sum:,.0f}".replace(",", " "),
             'order_progress_pct': order_progress_pct,
         })
 
@@ -3673,8 +3706,6 @@ def superadmin_orders_balance(request):
         'grand_dazmol_total_fmt': f"{grand_dazmol_total:,}".replace(",", " "),
         'grand_sum_total': grand_sum_total,
         'grand_sum_total_fmt': f"{grand_sum_total:,.0f}".replace(",", " "),
-        'grand_plan_sum_total': grand_plan_sum_total,
-        'grand_plan_sum_total_fmt': f"{grand_plan_sum_total:,.0f}".replace(",", " "),
         'grand_progress_pct': grand_progress_pct,
         'total_orders_count': len(orders_data),
         'search_query': search_query,
@@ -3715,17 +3746,28 @@ def superadmin_orders_balance_export_excel(request):
 
     order_ids = list(orders_qs.values_list('id', flat=True))
 
+    # 1. Dazmol operatsiyalari ID lari
     dazmol_op_ids = list(Operation.objects.filter(
-        Q(name__iexact='DAZMOL') | Q(name__icontains='YAKUNIY DAZMOL') | Q(name__icontains='OXIRGI DAZMOL')
+        Q(name__iexact='DAZMOL') | Q(name__iexact='YAKUNIY DAZMOL') | Q(name__iexact='OXIRGI DAZMOL')
     ).values_list('id', flat=True))
     if not dazmol_op_ids:
-        dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
+        dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').exclude(
+            Q(name__icontains='TASMA') | Q(name__icontains="CHO'NTAK")
+        ).values_list('id', flat=True))
 
-    box_map = {}
-    if order_ids:
-        for row in Box.objects.filter(order_id__in=order_ids).values('order_id', 'article_id').annotate(s=Sum('quantity')):
-            box_map[(row['order_id'], row['article_id'])] = int(row['s'] or 0)
+    # 2. Kamida bitta bilet skanerlangan qutilar ID lari (PATOKKA KIRGAN QUTILAR)
+    scanned_box_ids = set(Ticket.objects.filter(
+        box__order_id__in=order_ids,
+        status=Ticket.Status.SCANNED
+    ).values_list('box_id', flat=True))
 
+    # 3. Patokka kirgan qutilar bo'yicha jami miqdor (order_id, article_id)
+    patok_box_map = {}
+    if scanned_box_ids:
+        for row in Box.objects.filter(id__in=scanned_box_ids).values('order_id', 'article_id').annotate(s=Sum('quantity')):
+            patok_box_map[(row['order_id'], row['article_id'])] = int(row['s'] or 0)
+
+    # 4. Dazmol bo'yicha skanerlangan jami miqdor (order_id, article_id)
     dazmol_map = {}
     if order_ids and dazmol_op_ids:
         for row in Ticket.objects.filter(
@@ -3735,6 +3777,16 @@ def superadmin_orders_balance_export_excel(request):
         ).values('box__order_id', 'article_operation__article_id').annotate(s=Sum('quantity')):
             dazmol_map[(row['box__order_id'], row['article_operation__article_id'])] = int(row['s'] or 0)
 
+    # 5. Har bir buyurtma va artikul bo'yicha chevarlar ishlagan jami sdelshina summasi (order_id, article_id)
+    earned_money_map = {}
+    if order_ids:
+        for row in Ticket.objects.filter(
+            box__order_id__in=order_ids,
+            status=Ticket.Status.SCANNED
+        ).values('box__order_id', 'article_operation__article_id').annotate(s=Sum('total_amount')):
+            earned_money_map[(row['box__order_id'], row['article_operation__article_id'])] = float(row['s'] or 0.0)
+
+    # 6. 1 dona mahsulotning sdelshina narxi (barcha faol operatsiyalar summasi)
     unit_price_map = {}
     for row in ArticleOperation.objects.filter(is_active=True).values('article_id').annotate(s=Sum('price_per_unit')):
         unit_price_map[row['article_id']] = float(row['s'] or 0.0)
@@ -3787,15 +3839,30 @@ def superadmin_orders_balance_export_excel(request):
 
     for idx, order in enumerate(orders_qs, start=1):
         articles_data = []
+        seen_art_ids = set()
+
         order_items = list(order.items.all())
         if order_items:
             for it in order_items:
                 art = it.article
-                articles_data.append({'id': art.id, 'code': art.code, 'name': art.name})
+                if art.id not in seen_art_ids:
+                    seen_art_ids.add(art.id)
+                    articles_data.append({'id': art.id, 'code': art.code, 'name': art.name})
         elif order.article:
             art = order.article
+            seen_art_ids.add(art.id)
             articles_data.append({'id': art.id, 'code': art.code, 'name': art.name})
-        else:
+
+        extra_art_ids = set(
+            [aid for (oid, aid) in patok_box_map.keys() if oid == order.id and aid and aid not in seen_art_ids] +
+            [aid for (oid, aid) in earned_money_map.keys() if oid == order.id and aid and aid not in seen_art_ids]
+        )
+        if extra_art_ids:
+            for extra_art in Article.objects.filter(id__in=extra_art_ids):
+                seen_art_ids.add(extra_art.id)
+                articles_data.append({'id': extra_art.id, 'code': extra_art.code, 'name': extra_art.name})
+
+        if not articles_data:
             articles_data.append({'id': None, 'code': "—", 'name': "Model biriktirilmagan"})
 
         start_row = current_row
@@ -3805,10 +3872,10 @@ def superadmin_orders_balance_export_excel(request):
 
         for a in articles_data:
             art_id = a['id']
-            p_qty = box_map.get((order.id, art_id), 0) if art_id else 0
+            p_qty = patok_box_map.get((order.id, art_id), 0) if art_id else 0
             d_qty = dazmol_map.get((order.id, art_id), 0) if art_id else 0
             u_pr = unit_price_map.get(art_id, 0.0) if art_id else 0.0
-            tot_sum = round(d_qty * u_pr)
+            tot_sum = round(earned_money_map.get((order.id, art_id), 0.0)) if art_id else 0
             pct = round((d_qty / p_qty) * 100, 1) if p_qty > 0 else (100.0 if d_qty > 0 else 0.0)
 
             ord_patok += p_qty
