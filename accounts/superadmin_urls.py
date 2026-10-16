@@ -42,5 +42,8 @@ urlpatterns = [
     path('control/defect-reasons/<int:reason_id>/delete/', superadmin_views.superadmin_defect_reason_delete, name='superadmin_defect_reason_delete'),
     path('control/defect-reasons/seed-defaults/', superadmin_views.superadmin_defect_reason_seed_defaults, name='superadmin_defect_reason_seed_defaults'),
     path('control/defect-reasons/toggle-require-scanned/', superadmin_views.superadmin_toggle_require_all_operations_scanned, name='superadmin_toggle_require_all_operations_scanned'),
+    # Zakazlar Balansi
+    path('orders-balance/', superadmin_views.superadmin_orders_balance, name='superadmin_orders_balance'),
+    path('orders-balance/export-excel/', superadmin_views.superadmin_orders_balance_export_excel, name='superadmin_orders_balance_export_excel'),
 ]
 

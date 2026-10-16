@@ -3500,5 +3500,404 @@ def superadmin_defect_reason_seed_defaults(request):
     return redirect('superadmin_defect_reasons')
 
 
+@superadmin_required
+def superadmin_orders_balance(request):
+    """
+    Zakazlar Balansi:
+    Har bir buyurtma va undagi artikullar kesimida:
+    - Patokka kirgan son (Qutilar/pastallar jami miqdori)
+    - Dazmoldan chiqqan son (Dazmol operatsiyasidan o'tgan tayyor mahsulot)
+    - 1 dona ish narxi (To'liq tikuv sdelshina summasi)
+    - Umumiy summa (Dazmol chiqqan son x 1 ish narxi)
+    """
+    search_query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    orders_qs = Order.objects.all().select_related('customer', 'article__model').prefetch_related(
+        'items__article__model'
+    ).order_by('-created_at')
+
+    if search_query:
+        orders_qs = orders_qs.filter(
+            Q(order_number__icontains=search_query) |
+            Q(client_name__icontains=search_query) |
+            Q(customer__name__icontains=search_query) |
+            Q(items__article__code__icontains=search_query) |
+            Q(items__article__name__icontains=search_query) |
+            Q(article__code__icontains=search_query) |
+            Q(article__name__icontains=search_query)
+        ).distinct()
+
+    if status_filter:
+        orders_qs = orders_qs.filter(status=status_filter)
+
+    order_ids = list(orders_qs.values_list('id', flat=True))
+
+    # 1. Dazmol operatsiyalari ID lari
+    dazmol_op_ids = list(Operation.objects.filter(
+        Q(name__iexact='DAZMOL') | Q(name__icontains='YAKUNIY DAZMOL') | Q(name__icontains='OXIRGI DAZMOL')
+    ).values_list('id', flat=True))
+    if not dazmol_op_ids:
+        dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
+
+    # 2. Qutilar bo'yicha patokka kirgan jami miqdor (order_id, article_id)
+    box_map = {}
+    if order_ids:
+        for row in Box.objects.filter(order_id__in=order_ids).values('order_id', 'article_id').annotate(s=Sum('quantity')):
+            box_map[(row['order_id'], row['article_id'])] = int(row['s'] or 0)
+
+    # 3. Dazmol bo'yicha skanerlangan jami miqdor (order_id, article_id)
+    dazmol_map = {}
+    if order_ids and dazmol_op_ids:
+        for row in Ticket.objects.filter(
+            box__order_id__in=order_ids,
+            status=Ticket.Status.SCANNED,
+            article_operation__operation_id__in=dazmol_op_ids
+        ).values('box__order_id', 'article_operation__article_id').annotate(s=Sum('quantity')):
+            dazmol_map[(row['box__order_id'], row['article_operation__article_id'])] = int(row['s'] or 0)
+
+    # 4. 1 dona mahsulotning sdelshina narxi (barcha faol operatsiyalar summasi)
+    unit_price_map = {}
+    for row in ArticleOperation.objects.filter(is_active=True).values('article_id').annotate(s=Sum('price_per_unit')):
+        unit_price_map[row['article_id']] = float(row['s'] or 0.0)
+
+    orders_data = []
+    grand_patok_total = 0
+    grand_dazmol_total = 0
+    grand_sum_total = 0
+    grand_plan_sum_total = 0
+
+    for idx, order in enumerate(orders_qs, start=1):
+        articles_data = []
+
+        order_items = list(order.items.all())
+        if order_items:
+            for it in order_items:
+                art = it.article
+                articles_data.append({
+                    'article_id': art.id,
+                    'article_code': art.code,
+                    'article_name': art.name,
+                    'model_name': art.model.name if art.model else "",
+                    'plan_qty': it.quantity,
+                })
+        elif order.article:
+            art = order.article
+            articles_data.append({
+                'article_id': art.id,
+                'article_code': art.code,
+                'article_name': art.name,
+                'model_name': art.model.name if art.model else "",
+                'plan_qty': order.total_quantity,
+            })
+        else:
+            articles_data.append({
+                'article_id': None,
+                'article_code': "—",
+                'article_name': "Model biriktirilmagan",
+                'model_name': "",
+                'plan_qty': order.total_quantity,
+            })
+
+        order_patok_sum = 0
+        order_dazmol_sum = 0
+        order_money_sum = 0
+        order_plan_money_sum = 0
+
+        rows = []
+        for a in articles_data:
+            art_id = a['article_id']
+            patok_qty = box_map.get((order.id, art_id), 0) if art_id else 0
+            dazmol_qty = dazmol_map.get((order.id, art_id), 0) if art_id else 0
+            unit_price = unit_price_map.get(art_id, 0.0) if art_id else 0.0
+
+            total_sum = round(dazmol_qty * unit_price)
+            plan_sum = round(patok_qty * unit_price)
+            progress_pct = round((dazmol_qty / patok_qty) * 100, 1) if patok_qty > 0 else (100.0 if dazmol_qty > 0 else 0.0)
+
+            order_patok_sum += patok_qty
+            order_dazmol_sum += dazmol_qty
+            order_money_sum += total_sum
+            order_plan_money_sum += plan_sum
+
+            rows.append({
+                'article_code': a['article_code'],
+                'article_name': a['article_name'],
+                'model_name': a['model_name'],
+                'patok_qty': patok_qty,
+                'patok_qty_fmt': f"{patok_qty:,}".replace(",", " "),
+                'dazmol_qty': dazmol_qty,
+                'dazmol_qty_fmt': f"{dazmol_qty:,}".replace(",", " "),
+                'unit_price': unit_price,
+                'unit_price_fmt': f"{unit_price:,.0f}".replace(",", " "),
+                'total_sum': total_sum,
+                'total_sum_fmt': f"{total_sum:,.0f}".replace(",", " "),
+                'plan_sum': plan_sum,
+                'plan_sum_fmt': f"{plan_sum:,.0f}".replace(",", " "),
+                'progress_pct': progress_pct,
+            })
+
+        order_progress_pct = round((order_dazmol_sum / order_patok_sum) * 100, 1) if order_patok_sum > 0 else 0.0
+
+        grand_patok_total += order_patok_sum
+        grand_dazmol_total += order_dazmol_sum
+        grand_sum_total += order_money_sum
+        grand_plan_sum_total += order_plan_money_sum
+
+        orders_data.append({
+            'index': idx,
+            'order': order,
+            'articles_count': len(rows),
+            'rowspan': len(rows) + 1,  # Qatorlar soni: barcha artikullar + 1 ta buyurtma jami qatori
+            'first_row': rows[0] if rows else None,
+            'other_rows': rows[1:] if len(rows) > 1 else [],
+            'all_rows': rows,
+            'order_patok_sum': order_patok_sum,
+            'order_patok_sum_fmt': f"{order_patok_sum:,}".replace(",", " "),
+            'order_dazmol_sum': order_dazmol_sum,
+            'order_dazmol_sum_fmt': f"{order_dazmol_sum:,}".replace(",", " "),
+            'order_money_sum': order_money_sum,
+            'order_money_sum_fmt': f"{order_money_sum:,.0f}".replace(",", " "),
+            'order_plan_money_sum': order_plan_money_sum,
+            'order_plan_money_sum_fmt': f"{order_plan_money_sum:,.0f}".replace(",", " "),
+            'order_progress_pct': order_progress_pct,
+        })
+
+    grand_progress_pct = round((grand_dazmol_total / grand_patok_total) * 100, 1) if grand_patok_total > 0 else 0.0
+
+    context = {
+        'orders_data': orders_data,
+        'grand_patok_total': grand_patok_total,
+        'grand_patok_total_fmt': f"{grand_patok_total:,}".replace(",", " "),
+        'grand_dazmol_total': grand_dazmol_total,
+        'grand_dazmol_total_fmt': f"{grand_dazmol_total:,}".replace(",", " "),
+        'grand_sum_total': grand_sum_total,
+        'grand_sum_total_fmt': f"{grand_sum_total:,.0f}".replace(",", " "),
+        'grand_plan_sum_total': grand_plan_sum_total,
+        'grand_plan_sum_total_fmt': f"{grand_plan_sum_total:,.0f}".replace(",", " "),
+        'grand_progress_pct': grand_progress_pct,
+        'total_orders_count': len(orders_data),
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    return render(request, 'superadmin/orders_balance.html', context)
+
+
+@superadmin_required
+def superadmin_orders_balance_export_excel(request):
+    """
+    Zakazlar Balansi jadvalini Excel (.xlsx) formatida eksport qilish
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    search_query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    orders_qs = Order.objects.all().select_related('customer', 'article__model').prefetch_related(
+        'items__article__model'
+    ).order_by('-created_at')
+
+    if search_query:
+        orders_qs = orders_qs.filter(
+            Q(order_number__icontains=search_query) |
+            Q(client_name__icontains=search_query) |
+            Q(customer__name__icontains=search_query) |
+            Q(items__article__code__icontains=search_query) |
+            Q(items__article__name__icontains=search_query) |
+            Q(article__code__icontains=search_query) |
+            Q(article__name__icontains=search_query)
+        ).distinct()
+
+    if status_filter:
+        orders_qs = orders_qs.filter(status=status_filter)
+
+    order_ids = list(orders_qs.values_list('id', flat=True))
+
+    dazmol_op_ids = list(Operation.objects.filter(
+        Q(name__iexact='DAZMOL') | Q(name__icontains='YAKUNIY DAZMOL') | Q(name__icontains='OXIRGI DAZMOL')
+    ).values_list('id', flat=True))
+    if not dazmol_op_ids:
+        dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
+
+    box_map = {}
+    if order_ids:
+        for row in Box.objects.filter(order_id__in=order_ids).values('order_id', 'article_id').annotate(s=Sum('quantity')):
+            box_map[(row['order_id'], row['article_id'])] = int(row['s'] or 0)
+
+    dazmol_map = {}
+    if order_ids and dazmol_op_ids:
+        for row in Ticket.objects.filter(
+            box__order_id__in=order_ids,
+            status=Ticket.Status.SCANNED,
+            article_operation__operation_id__in=dazmol_op_ids
+        ).values('box__order_id', 'article_operation__article_id').annotate(s=Sum('quantity')):
+            dazmol_map[(row['box__order_id'], row['article_operation__article_id'])] = int(row['s'] or 0)
+
+    unit_price_map = {}
+    for row in ArticleOperation.objects.filter(is_active=True).values('article_id').annotate(s=Sum('price_per_unit')):
+        unit_price_map[row['article_id']] = float(row['s'] or 0.0)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Zakazlar Balansi"
+
+    title_font = Font(name="Calibri", size=16, bold=True, color="1E293B")
+    subtitle_font = Font(name="Calibri", size=10, italic=True, color="64748B")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    subtotal_font = Font(name="Calibri", size=11, bold=True, color="0F172A")
+    subtotal_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    grand_font = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
+    grand_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    ws.merge_cells("A1:H1")
+    ws["A1"] = "TERRY JAR — ZAKAZLAR BALANSI VA ISHLAB CHIQARISH HISOBOTI"
+    ws["A1"].font = title_font
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+
+    ws.merge_cells("A2:H2")
+    ws["A2"] = f"Eksport qilingan vaqt: {timezone.localtime().strftime('%d.%m.%Y %H:%M')}"
+    ws["A2"].font = subtitle_font
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+
+    headers = [
+        "№", "ZAKAZ + NOMERI", "ARTIKUL", "SON (PATOKKA KIRGAN)", 
+        "DAZMOL CHIQQAN SON", "1 ISH SUMMASI (UZS)", "UMUMIY SUMMA (UZS)", "BAJARILISH (%)"
+    ]
+    ws.row_dimensions[4].height = 28
+    for col_idx, h_text in enumerate(headers, start=1):
+        cell = ws.cell(row=4, column=col_idx, value=h_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    current_row = 5
+    grand_patok = 0
+    grand_dazmol = 0
+    grand_money = 0
+
+    for idx, order in enumerate(orders_qs, start=1):
+        articles_data = []
+        order_items = list(order.items.all())
+        if order_items:
+            for it in order_items:
+                art = it.article
+                articles_data.append({'id': art.id, 'code': art.code, 'name': art.name})
+        elif order.article:
+            art = order.article
+            articles_data.append({'id': art.id, 'code': art.code, 'name': art.name})
+        else:
+            articles_data.append({'id': None, 'code': "—", 'name': "Model biriktirilmagan"})
+
+        start_row = current_row
+        ord_patok = 0
+        ord_dazmol = 0
+        ord_money = 0
+
+        for a in articles_data:
+            art_id = a['id']
+            p_qty = box_map.get((order.id, art_id), 0) if art_id else 0
+            d_qty = dazmol_map.get((order.id, art_id), 0) if art_id else 0
+            u_pr = unit_price_map.get(art_id, 0.0) if art_id else 0.0
+            tot_sum = round(d_qty * u_pr)
+            pct = round((d_qty / p_qty) * 100, 1) if p_qty > 0 else (100.0 if d_qty > 0 else 0.0)
+
+            ord_patok += p_qty
+            ord_dazmol += d_qty
+            ord_money += tot_sum
+
+            ws.cell(row=current_row, column=3, value=f"{a['code']} - {a['name']}").border = thin_border
+            ws.cell(row=current_row, column=4, value=p_qty).border = thin_border
+            ws.cell(row=current_row, column=5, value=d_qty).border = thin_border
+            ws.cell(row=current_row, column=6, value=u_pr).border = thin_border
+            ws.cell(row=current_row, column=7, value=tot_sum).border = thin_border
+            ws.cell(row=current_row, column=8, value=f"{pct}%").border = thin_border
+
+            ws.cell(row=current_row, column=4).number_format = '#,##0'
+            ws.cell(row=current_row, column=5).number_format = '#,##0'
+            ws.cell(row=current_row, column=6).number_format = '#,##0'
+            ws.cell(row=current_row, column=7).number_format = '#,##0'
+            ws.cell(row=current_row, column=8).alignment = Alignment(horizontal="center")
+
+            current_row += 1
+
+        end_row = current_row - 1
+        ws.cell(row=start_row, column=1, value=idx).border = thin_border
+        ws.cell(row=start_row, column=2, value=f"#{order.order_number} ({order.client_name or 'Buyurtma'})").border = thin_border
+        if end_row > start_row:
+            ws.merge_cells(start_row=start_row, start_column=1, end_row=end_row, end_column=1)
+            ws.merge_cells(start_row=start_row, start_column=2, end_row=end_row, end_column=2)
+        ws.cell(row=start_row, column=1).alignment = Alignment(horizontal="center", vertical="center")
+        ws.cell(row=start_row, column=2).alignment = Alignment(horizontal="left", vertical="center")
+
+        # Subtotal row for Order
+        ws.cell(row=current_row, column=1, value="").border = thin_border
+        ws.cell(row=current_row, column=2, value="").border = thin_border
+        ws.cell(row=current_row, column=3, value=f"#{order.order_number} JAMI:").border = thin_border
+        ws.cell(row=current_row, column=4, value=ord_patok).border = thin_border
+        ws.cell(row=current_row, column=5, value=ord_dazmol).border = thin_border
+        ws.cell(row=current_row, column=6, value="").border = thin_border
+        ws.cell(row=current_row, column=7, value=ord_money).border = thin_border
+        ord_pct = round((ord_dazmol / ord_patok) * 100, 1) if ord_patok > 0 else 0.0
+        ws.cell(row=current_row, column=8, value=f"{ord_pct}%").border = thin_border
+
+        for c_idx in range(1, 9):
+            c = ws.cell(row=current_row, column=c_idx)
+            c.font = subtotal_font
+            c.fill = subtotal_fill
+            if c_idx in [4, 5, 7]:
+                c.number_format = '#,##0'
+            if c_idx == 8:
+                c.alignment = Alignment(horizontal="center")
+
+        grand_patok += ord_patok
+        grand_dazmol += ord_dazmol
+        grand_money += ord_money
+        current_row += 1
+
+    # Grand Total row
+    ws.cell(row=current_row, column=1, value="").border = thin_border
+    ws.cell(row=current_row, column=2, value="").border = thin_border
+    ws.cell(row=current_row, column=3, value="UMUMIY FABRIKA JAMI:").border = thin_border
+    ws.cell(row=current_row, column=4, value=grand_patok).border = thin_border
+    ws.cell(row=current_row, column=5, value=grand_dazmol).border = thin_border
+    ws.cell(row=current_row, column=6, value="—").border = thin_border
+    ws.cell(row=current_row, column=7, value=grand_money).border = thin_border
+    grand_pct = round((grand_dazmol / grand_patok) * 100, 1) if grand_patok > 0 else 0.0
+    ws.cell(row=current_row, column=8, value=f"{grand_pct}%").border = thin_border
+
+    for c_idx in range(1, 9):
+        c = ws.cell(row=current_row, column=c_idx)
+        c.font = grand_font
+        c.fill = grand_fill
+        if c_idx in [4, 5, 7]:
+            c.number_format = '#,##0'
+        if c_idx == 8:
+            c.alignment = Alignment(horizontal="center")
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+    ws.column_dimensions['A'].width = 6
+    ws.column_dimensions['B'].width = 24
+    ws.column_dimensions['C'].width = 32
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="Zakazlar_Balansi_{timezone.localdate().isoformat()}.xlsx"'
+    wb.save(response)
+    return response
+
+
+
 
 
