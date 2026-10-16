@@ -85,7 +85,7 @@
 
     <!-- HEADER / STATUS BAR -->
     <header class="flex items-center justify-between border-b border-slate-800/80 pb-2.5 mb-2.5 gap-3 flex-shrink-0">
-        <!-- Left: Patok Badge, Terry Jar, and Large Digital Clock -->
+        <!-- Left: Patok Badge, Terry Jar, and Large Digital Clock + Summary Stats Card -->
         <div class="flex items-center gap-3 md:gap-4 shrink-0">
             <!-- Patok Badge -->
             <div
@@ -112,25 +112,7 @@
                     00:00:00</div>
             </div>
 
-            <!-- SANA / KALENDAR TANLASH -->
-            <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 md:py-2 rounded-xl shrink-0">
-                <i class="fa-regular fa-calendar-days text-indigo-400 text-lg"></i>
-                <div class="flex flex-col text-left">
-                    <span class="text-[9px] uppercase font-bold text-slate-400 leading-none">Sana:</span>
-                    <input type="date" value="{{ target_date_iso }}" onchange="onDateChanged(this.value)"
-                        class="bg-transparent text-xs sm:text-sm font-bold text-slate-200 outline-none cursor-pointer mt-0.5">
-                </div>
-                {% if is_custom_date %}
-                <a href="?" class="text-[10px] font-black px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg hover:bg-amber-500 hover:text-slate-950 transition ml-1" title="Bugungi jonli efirga qaytish">
-                    Bugun
-                </a>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Right: Summary Stats & Actions -->
-        <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
-            <!-- Summary Stats Card: OPERATSION, DAVOMAD, DAVOMAD/FOIZ, CHEVARLAR KPI, PATOK QUVVATI -->
+            <!-- Summary Stats Card: OPERATSION, DAVOMAD, CHEVARLAR KPI, PATOK QUVVATI (Vaqt blogiga yaqinlashtirildi) -->
             <div
                 class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-slate-800 px-4 md:px-5 py-1.5 rounded-xl shrink-0">
                 <div class="text-center px-0.5">
@@ -141,11 +123,6 @@
                 <div class="text-center px-0.5">
                     <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">DAVOMAD</span>
                     <span id="stat-davomat" class="text-xl md:text-2xl lg:text-3xl font-black text-cyan-400 digital-font">{{ davomat }}</span>
-                </div>
-                <div class="h-8 w-px bg-slate-800"></div>
-                <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">DAVOMAD/FOIZ</span>
-                    <span id="stat-foiz" class="text-xl md:text-2xl lg:text-3xl font-black text-blue-400 digital-font">{{ foiz }}%</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
@@ -160,7 +137,10 @@
                         class="text-xl md:text-2xl lg:text-3xl font-black digital-font {{ quvvat_color_class|default:'text-rose-400 glow-rose' }}">{{ patok_quvvati }}%</span>
                 </div>
             </div>
+        </div>
 
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
             <!-- Auto-scroll indicator & toggle for TV -->
             <button id="btn-toggle-scroll" onclick="toggleAutoScroll()"
                 class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70"
@@ -272,14 +252,6 @@
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Ushbu kunda ({{ date_str }}) bu ekranga hali ishlar biriktirilmadi</span>
                             <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
-                            <div class="mt-4 flex items-center justify-center gap-2">
-                                <a href="?date=2026-10-09" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition shadow-sm">
-                                    <i class="fa-regular fa-calendar-check"></i> 09.10.2026 (Real tarixiy ma'lumotlarni ko'rish)
-                                </a>
-                                <a href="?date=2026-10-08" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition">
-                                    08.10.2026
-                                </a>
-                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -303,14 +275,8 @@
     <!-- JAVASCRIPT: Auto-refresh, TV Auto-scroll, and live clock -->
     <script>
         const SCREEN_NUMBER = {{ screen_number }};
-        const CURRENT_DATE = "{{ target_date_iso|default:'' }}";
+        const CURRENT_DATE = "{% if is_custom_date %}{{ target_date_iso }}{% endif %}";
         let countdown = 30;
-
-        function onDateChanged(newDate) {
-            if (newDate) {
-                window.location.search = `?date=${encodeURIComponent(newDate)}`;
-            }
-        }
 
         // Clock Update
         function updateClock() {
@@ -344,9 +310,6 @@
 
                 const statDavomat = document.getElementById('stat-davomat');
                 if (statDavomat && data.davomat !== undefined) statDavomat.innerText = data.davomat;
-
-                const statFoiz = document.getElementById('stat-foiz');
-                if (statFoiz && data.foiz !== undefined) statFoiz.innerText = `${data.foiz}%`;
 
                 const statAvgKpi = document.getElementById('stat-avg-kpi');
                 if (statAvgKpi && data.avg_screen_kpi !== undefined) statAvgKpi.innerText = `${data.avg_screen_kpi}%`;

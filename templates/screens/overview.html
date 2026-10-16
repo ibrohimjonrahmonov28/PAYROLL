@@ -152,7 +152,7 @@
 
             <!-- Action Button: Open specific screen TV preserving selected date -->
             <div class="mt-2.5 pt-2 border-t border-slate-800">
-                <a href="{% url 'screens:screen_view' s.screen_number %}{% if target_date_iso %}?date={{ target_date_iso }}{% endif %}" target="_blank"
+                <a href="{% url 'screens:screen_view' s.screen_number %}{% if is_custom_date %}?date={{ target_date_iso }}{% endif %}" target="_blank"
                     class="w-full py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 font-bold rounded-xl text-center text-xs block transition flex items-center justify-center gap-1.5">
                     <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Ekranni Ochish (TV)
                 </a>
