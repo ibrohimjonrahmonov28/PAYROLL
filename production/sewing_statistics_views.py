@@ -1325,10 +1325,6 @@ def sewing_statistics_orders_view(request):
     1-BOSQICH: Zakazlar Ro'yxati (Tikim Jarayoni Statistikasi Bosh Sahifasi)
     - Har bir zakaz bo'yicha umumiy reja, tikimga kirgan dona, dazmol, kontrolda kutayotgan, 1-sort, 2-sort
     """
-    # Agar PLAN roli bo'lsa va maxsus ?view=orders belgilanmagan bo'lsa, kunlik patoklar sahifasiga yo'naltirish
-    if getattr(request.user, 'role', None) == User.Role.PLAN and request.GET.get('view') != 'orders':
-        return redirect('production:sewing_statistics_daily')
-
     status_filter = request.GET.get('status', 'IN_PROGRESS').strip()
     search_q = request.GET.get('q', '').strip()
 
@@ -2448,7 +2444,7 @@ def sewing_statistics_close_order_unprinted_boxes_view(request, order_id: int):
     """
     if getattr(request.user, 'role', None) == User.Role.PLAN:
         messages.error(request, "Plan hisobi faqat ma'lumotlarni ko'rish huquqiga ega!")
-        return redirect('production:sewing_statistics_daily')
+        return redirect('production:sewing_statistics_order_models', order_id=order_id)
 
     order = get_object_or_404(Order, id=order_id)
     boxes = order.boxes.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False, is_printed=False)
@@ -2486,7 +2482,7 @@ def sewing_statistics_close_all_unprinted_boxes_view(request):
     """
     if getattr(request.user, 'role', None) == User.Role.PLAN:
         messages.error(request, "Plan hisobi faqat ma'lumotlarni ko'rish huquqiga ega!")
-        return redirect('production:sewing_statistics_daily')
+        return redirect('production:sewing_statistics_orders')
 
     boxes = Box.objects.exclude(status=Box.Status.CANCELLED).filter(is_controlled=False, is_printed=False)
 

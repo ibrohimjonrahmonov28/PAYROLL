@@ -141,7 +141,7 @@ def calculate_screen_aniqlik(screen_number: int, patok_scans):
         return int(round(avg_diff))
 
 
-def get_screen_data(screen_number: int, target_date=None):
+def get_screen_data(screen_number: int, target_date=None, preloaded=None):
     if target_date is None:
         target_date = timezone.localdate()
 
@@ -149,19 +149,60 @@ def get_screen_data(screen_number: int, target_date=None):
     day_start = timezone.make_aware(datetime.combine(target_date, time.min), tz)
     day_end = timezone.make_aware(datetime.combine(target_date, time.max), tz)
 
-    # Bugun faol bo'lgan barcha xodimlarning oxirgi skanerlangan patokini aniqlash
-    all_today_scans = Ticket.objects.filter(
-        status=Ticket.Status.SCANNED,
-        scanned_at__range=(day_start, day_end),
-        worker__isnull=False
-    ).values('worker_id', 'screen_number', 'scanned_at').order_by('scanned_at')
+    if preloaded is not None:
+        worker_latest_screen = preloaded['worker_latest_screen']
+        dazmol_op_ids = preloaded['dazmol_op_ids']
+    else:
+        # Bugun faol bo'lgan barcha xodimlarning oxirgi skanerlangan patokini aniqlash
+        all_today_scans = Ticket.objects.filter(
+            status=Ticket.Status.SCANNED,
+            scanned_at__range=(day_start, day_end),
+            worker__isnull=False
+        ).values('worker_id', 'screen_number', 'scanned_at').order_by('scanned_at')
 
-    worker_latest_screen = {}
-    for scan in all_today_scans:
-        worker_latest_screen[scan['worker_id']] = scan['screen_number']
+        worker_latest_screen = {}
+        for scan in all_today_scans:
+            worker_latest_screen[scan['worker_id']] = scan['screen_number']
+
+        # Dazmol operatsiyalari ID lari
+        dazmol_op_ids = list(
+            Operation.objects.filter(name__icontains='DAZMOL')
+            .exclude(name__icontains='TASMA')
+            .exclude(name__icontains="CHO'NTAK")
+            .exclude(name__icontains="CHONTAK")
+            .values_list('id', flat=True)
+        )
 
     # Ushbu ekranga oxirgi stikeri to'g'ri kelgan xodimlar
     screen_worker_ids = [w_id for w_id, s_num in worker_latest_screen.items() if s_num == screen_number]
+
+    # Overview sahifasi uchun faol bo'lmagan bo'sh patoklarda ortiqcha SQL so'rov yubormaslik
+    if preloaded is not None and not screen_worker_ids and screen_number not in preloaded.get('active_screens', set()):
+        quvvat_info = calculate_quvvat_color_info(0.0)
+        return {
+            'screen_number': screen_number,
+            'screen_code': get_patok_code(screen_number),
+            'screen_name': get_patok_name(screen_number),
+            'patok_code': get_patok_code(screen_number),
+            'patok_name': get_patok_name(screen_number),
+            'date_str': target_date.strftime("%d.%m.%Y"),
+            'workers': [],
+            'grand_total_earnings': 0,
+            'grand_total_earnings_formatted': "0",
+            'grand_total_units': 0,
+            'dazmol_units': 0,
+            'aniqlik': 0,
+            'davomat': 0,
+            'foiz': 0.0,
+            'avg_screen_kpi': 0.0,
+            'patok_kpi': 0.0,
+            'patok_quvvati': 0.0,
+            'quvvat_color': quvvat_info['color'],
+            'quvvat_color_class': quvvat_info['color_class'],
+            'quvvat_badge_bg': quvvat_info['badge_bg'],
+            'active_workers_count': 0,
+            'all_screens_list': list(range(1, MAX_SCREENS + 1)),
+        }
 
     # Ushbu patokda bugun skanerlangan barcha biletlar
     patok_scans = Ticket.objects.filter(
@@ -172,9 +213,6 @@ def get_screen_data(screen_number: int, target_date=None):
     )
 
     aniqlik = calculate_screen_aniqlik(screen_number, patok_scans)
-
-    # Dazmol operatsiyalari ID lari
-    dazmol_op_ids = list(Operation.objects.filter(name__icontains='DAZMOL').values_list('id', flat=True))
 
     # Bugun dazmoldan o'tgan mahsulotlar soni
     if dazmol_op_ids:
@@ -528,9 +566,40 @@ def all_screens_overview(request):
             'max_screens': MAX_SCREENS,
         })
 
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(effective_date, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(effective_date, time.max), tz)
+
+    all_today_scans = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(day_start, day_end),
+        worker__isnull=False
+    ).values('worker_id', 'screen_number', 'scanned_at').order_by('scanned_at')
+
+    worker_latest_screen = {}
+    active_screens = set()
+    for scan in all_today_scans:
+        worker_latest_screen[scan['worker_id']] = scan['screen_number']
+        if scan['screen_number']:
+            active_screens.add(scan['screen_number'])
+
+    dazmol_op_ids = list(
+        Operation.objects.filter(name__icontains='DAZMOL')
+        .exclude(name__icontains='TASMA')
+        .exclude(name__icontains="CHO'NTAK")
+        .exclude(name__icontains="CHONTAK")
+        .values_list('id', flat=True)
+    )
+
+    preloaded = {
+        'worker_latest_screen': worker_latest_screen,
+        'dazmol_op_ids': dazmol_op_ids,
+        'active_screens': active_screens,
+    }
+
     screens_summary = []
     for s_num in range(1, MAX_SCREENS + 1):
-        data = get_screen_data(s_num, effective_date)
+        data = get_screen_data(s_num, effective_date, preloaded=preloaded)
         screens_summary.append(data)
 
     cache.set(cache_key, screens_summary, timeout=10)

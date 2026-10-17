@@ -1403,7 +1403,7 @@ def superadmin_payroll_export_csv(request):
             int(advances),
             int(salaries),
             int(net_payable),
-            int(w.balance),
+            int(lifetime_balance),
             status_text
         ])
 
@@ -2908,9 +2908,15 @@ def superadmin_payroll_bulk_pay(request):
         user_branch = request.user.branch or User.Branch.UYCHI
         worker_ids = list(Worker.objects.filter(id__in=worker_ids, branch=user_branch).values_list('id', flat=True))
 
+    import calendar
     year = int(request.POST.get('selected_year', timezone.localdate().year))
     month = int(request.POST.get('selected_month', timezone.localdate().month))
     today = timezone.localdate()
+    is_past_month = (year < today.year) or (year == today.year and month < today.month)
+    if is_past_month:
+        effective_payout_date = datetime.date(year, month, calendar.monthrange(year, month)[1])
+    else:
+        effective_payout_date = today
 
     if not worker_ids:
         messages.warning(request, "Hech qanday xodim tanlanmadi!")
@@ -2946,7 +2952,7 @@ def superadmin_payroll_bulk_pay(request):
                     worker=worker,
                     amount=net_payable,
                     payout_type=WorkerPayout.PayoutType.SALARY,
-                    payout_date=today,
+                    payout_date=effective_payout_date,
                     note=f"{year}-{month:02d} oylik maoshi to'liq yopildi",
                     created_by=request.user
                 )
@@ -2954,7 +2960,6 @@ def superadmin_payroll_bulk_pay(request):
                 total_paid_sum += net_payable
 
     if paid_count > 0:
-        is_past_month = (year < today.year) or (year == today.year and month < today.month)
         if is_past_month:
             from accounts.freeze_services import start_monthly_freeze_timer
             closing, _ = start_monthly_freeze_timer(year=year, month=month, user=request.user)
@@ -3162,11 +3167,20 @@ def superadmin_update_worker_branch(request):
             if worker.user:
                 worker.user.branch = new_branch
                 worker.user.save(update_fields=['branch'])
-            messages.success(request, f"✓ {worker.full_name} ({worker.worker_id}) ning filiali '{worker.get_branch_display()}' ga o'zgartirildi.")
+            msg = f"✓ {worker.full_name} ({worker.worker_id}) ning filiali '{worker.get_branch_display()}' ga o'zgartirildi."
+            messages.success(request, msg)
+            return JsonResponse({
+                'status': 'ok',
+                'branch': worker.branch,
+                'branch_display': worker.get_branch_display(),
+                'message': msg,
+            })
         else:
-            messages.error(request, "Noto'g'ri filial tanlandi!")
-        return redirect(request.META.get('HTTP_REFERER') or 'superadmin_payroll')
-    return redirect('superadmin_payroll')
+            return JsonResponse({
+                'status': 'error',
+                'message': "Noto'g'ri filial tanlandi!"
+            }, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 
 # ==============================================================================

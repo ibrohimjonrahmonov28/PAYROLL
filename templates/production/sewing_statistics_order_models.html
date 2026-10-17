@@ -30,7 +30,7 @@
 
     <!-- Right Header Actions: Repairs Link & Close Unprinted Boxes -->
     <div class="flex items-center gap-2">
-        {% if order_totals.unprinted_boxes_count > 0 %}
+        {% if order_totals.unprinted_boxes_count > 0 and request.user.role != 'PLAN' %}
         <form method="POST" action="{% url 'production:sewing_statistics_close_order_unprinted_boxes' order.id %}"
             onsubmit="return confirm('Ushbu buyurtmadagi stiker chop etilmagan {{ order_totals.unprinted_boxes_count }} ta qutini OTK sifat nazoratidan 1-sort qilib to\'liq yopishni tasdiqlaysizmi?');"
             class="inline">
@@ -41,7 +41,7 @@
                 <span>Stikersiz qutilarni OTKdan yopish ({{ order_totals.unprinted_boxes_count }} ta)</span>
             </button>
         </form>
-        {% elif order_totals.waiting_control_boxes > 0 and order.status == 'COMPLETED' %}
+        {% elif order_totals.waiting_control_boxes > 0 and order.status == 'COMPLETED' and request.user.role != 'PLAN' %}
         <form method="POST" action="{% url 'production:sewing_statistics_close_order_unprinted_boxes' order.id %}"
             onsubmit="return confirm('Ushbu tugatilgan buyurtmadagi qolgan {{ order_totals.waiting_control_boxes }} ta qutini OTK sifat nazoratidan 1-sort qilib to\'liq yopishni tasdiqlaysizmi?');"
             class="inline">

@@ -1092,10 +1092,14 @@
         // 3. GLOBAL DOKUMENT TINGLOVCHISI
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closeWorkerSearchModal();
-                closeBoxLookupModal();
-                closeWorkerBalanceModal();
-                closeRevokeTicketModal();
+                if (isAnyModalOpen()) {
+                    closeWorkerSearchModal();
+                    closeBoxLookupModal();
+                    closeWorkerBalanceModal();
+                    closeRevokeTicketModal();
+                    setTimeout(() => scanInput.focus(), 50);
+                    return;
+                }
                 hideStatusBanner();
                 resetScanningSession();
                 return;

@@ -125,9 +125,9 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         self.assertEqual(data['davomat'], 1)
         # 1 / 2 * 100 = 50.0%
         self.assertEqual(data['foiz'], 50.0)
-        # patok_kpi = (foiz + avg_screen_kpi) / 2
-        expected_patok_kpi = round((50.0 + data['avg_screen_kpi']) / 2, 1)
-        self.assertEqual(data['patok_kpi'], expected_patok_kpi)
+        # patok_kpi equals patok_quvvati (50000 / (1500 * 1000) * 100 = 3.3%)
+        self.assertEqual(data['patok_kpi'], data['patok_quvvati'])
+        self.assertEqual(data['patok_quvvati'], 3.3)
 
     def test_screen_template_layout_elements(self):
         # View screen 1
@@ -148,12 +148,12 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         self.assertNotIn(">Online<", html)
         self.assertNotIn("timer-countdown", html)
 
-        # Check that new summary stats exist
+        # Check that summary stats exist (DAVOMAD/FOIZ was removed per user request)
         self.assertIn("OPERATSION", html)
         self.assertIn("DAVOMAD", html)
-        self.assertIn("DAVOMAD/FOIZ", html)
+        self.assertNotIn("DAVOMAD/FOIZ", html)
         self.assertIn("CHEVARLAR KPI", html)
-        self.assertIn("PATOK PKI", html)
+        self.assertIn("PATOK QUVVATI", html)
 
         # View screen 14 -> must show U1-PATOK
         res14 = self.client.get(reverse('screens:screen_view', args=[14]))

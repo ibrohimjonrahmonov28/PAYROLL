@@ -224,7 +224,7 @@
                 <!-- Tugmalar: + Yangi Partiya va Batafsil -->
                 <div class="flex items-center gap-2.5 flex-wrap">
                     <button type="button"
-                        onclick="openAddBatchModal('{{ item_data.item.id }}', '{{ item_data.item.article.code }}', '{{ item_data.next_batch_name }}')"
+                        onclick="openAddBatchModal('{{ item_data.item.id }}', '{{ item_data.item.article.code|escapejs }}', '{{ item_data.next_batch_name|escapejs }}')"
                         class="px-4 py-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center gap-2">
                         <i class="fa-solid fa-circle-plus text-sm"></i> + Yangi Partiya ({{ item_data.next_batch_name
                         }})
@@ -649,9 +649,6 @@
                     </button>
                 </div>
             </div>
-        </form>
-    </div>
-</div>
         </form>
     </div>
 </div>
@@ -1378,6 +1375,10 @@
 
         const editSizesContainer = document.getElementById('edit-sizes-inputs');
         editSizesContainer.innerHTML = '';
+
+        if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch (e) { items = []; }
+        }
 
         if (Array.isArray(items)) {
             items.forEach(it => {

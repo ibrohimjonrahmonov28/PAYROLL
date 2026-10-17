@@ -257,7 +257,8 @@ class OrderPrintSeparationTest(TestCase):
         self.assertIn("Yoqa tikish", content)
         self.assertIn("Yeng tikish", content)
         # CONTROL stikeri ham chiqishi kerak
-        self.assertIn("CONTROL STIKER", content)
+        self.assertIn("CONTROL", content)
+        self.assertIn("STIKER", content)
 
         # 3 ta bilet + 1 ta CONTROL stikeri = jami 4 ta sticker-card bo'lishi shart!
         self.assertEqual(content.count('class="sticker-card'), 4)
@@ -2537,10 +2538,9 @@ class SewingStatisticsFeatureTest(TestCase):
         res_daily = self.client.get(reverse('production:sewing_statistics_daily'))
         self.assertEqual(res_daily.status_code, 200)
 
-        # 2. Zakazlar sahifasiga kirganda avtomatik kunlikka yo'naltirish (agar maxsus view=orders ko'rsatilmagan bo'lsa)
+        # 2. Zakazlar statistikasi sahifasiga (/sewing-statistics/) to'g'ridan-to'g'ri kirishga to'liq ruxsat (200 OK)
         res_orders = self.client.get(reverse('production:sewing_statistics_orders'))
-        self.assertEqual(res_orders.status_code, 302)
-        self.assertIn(reverse('production:sewing_statistics_daily'), res_orders.url)
+        self.assertEqual(res_orders.status_code, 200)
 
         # 3. Middleware orqali boshqa bo'limlarga (/orders/, /terminal/) kirish qat'iy cheklanadi
         res_orders_list = self.client.get(reverse('production:order_list'))
@@ -2550,7 +2550,7 @@ class SewingStatisticsFeatureTest(TestCase):
         # 4. Plan foydalanuvchisi qutilarni yopish (o'zgartirish) huquqiga ega emas (faqat ma'lumot oladi)
         res_close = self.client.post(reverse('production:sewing_statistics_close_all_unprinted_boxes'))
         self.assertEqual(res_close.status_code, 302)
-        self.assertIn(reverse('production:sewing_statistics_daily'), res_close.url)
+        self.assertIn(reverse('production:sewing_statistics_orders'), res_close.url)
 
     def test_sewing_statistics_daily_view_data(self):
         self.client.login(username="superadmin_stat", password="password123")

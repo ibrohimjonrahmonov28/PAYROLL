@@ -365,10 +365,7 @@
         }
 
         /* Dynamic Compact Mode for 30+ boxes */
-            {
-            % if total_boxes_count>32 %
-        }
-
+        {% if total_boxes_count > 32 %}
         table.passport-table th,
         table.passport-table td {
             padding: 1.8px 2px !important;
@@ -388,10 +385,7 @@
         .box-code-badge {
             font-size: 9.5px !important;
         }
-
-            {
-            % endif %
-        }
+        {% endif %}
 
         /* Signatures Grid */
         .signatures-grid {

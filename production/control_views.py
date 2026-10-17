@@ -707,7 +707,6 @@ def control_submit_inspection_api(request):
         # Qutini yangilash (Brak bilan 2-sort bitta narsa - ikkalasi ham 2-sort)
         box.controlled_first_sort_qty += fixed_qty
         box.controlled_second_sort_qty += defect_qty
-        box.controlled_defect_qty += defect_qty
         box.controlled_repair_qty = re_repair_qty
         box.is_controlled = is_closed
         box.status = Box.Status.COMPLETED if is_closed else Box.Status.IN_PROGRESS
@@ -715,7 +714,7 @@ def control_submit_inspection_api(request):
         box.controlled_by = inspector_user
         box.save(update_fields=[
             'controlled_first_sort_qty', 'controlled_second_sort_qty',
-            'controlled_defect_qty', 'controlled_repair_qty',
+            'controlled_repair_qty',
             'is_controlled', 'status', 'controlled_at', 'controlled_by'
         ])
 
@@ -762,7 +761,7 @@ def control_submit_inspection_api(request):
             first_sort_qty=fixed_qty,
             second_sort_qty=defect_qty,
             repair_qty=re_repair_qty,
-            defect_qty=defect_qty,
+            defect_qty=0,
             notes=final_notes
         )
 
