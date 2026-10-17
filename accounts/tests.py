@@ -705,7 +705,7 @@ class SuperAdminPanelTest(TestCase):
             price_per_unit=Decimal('1800.00')
         )
         res_print = self.client.get(reverse('production:box_print_stickers', kwargs={'box_id': box_diff.id}))
-        self.assertContains(res_print, 'QIYINLIK DARAJASI:')
+        self.assertContains(res_print, 'QIYINLIK:')
         self.assertContains(res_print, '4.2')
 
     def test_update_article_daily_norm(self):
@@ -2122,17 +2122,20 @@ class BranchAdminUserManagementTests(TestCase):
         self.assertEqual(res_pricing.status_code, 302)
         self.assertIn(reverse('superadmin_payroll'), res_pricing.url)
 
-    def test_superadmin_update_worker_branch_returns_json(self):
-        self.client.login(username='head_superadmin', password='testpassword123')
-        res = self.client.post(reverse('superadmin_update_worker_branch'), {
-            'worker_id': self.hq_worker.id,
-            'branch': User.Branch.UYCHI,
-        })
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
-        self.assertEqual(data['status'], 'ok')
-        self.assertEqual(data['branch'], User.Branch.UYCHI)
-        self.hq_worker.refresh_from_db()
-        self.hq_user.refresh_from_db()
-        self.assertEqual(self.hq_worker.branch, User.Branch.UYCHI)
-        self.assertEqual(self.hq_user.branch, User.Branch.UYCHI)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

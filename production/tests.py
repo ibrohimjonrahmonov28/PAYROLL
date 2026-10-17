@@ -257,8 +257,7 @@ class OrderPrintSeparationTest(TestCase):
         self.assertIn("Yoqa tikish", content)
         self.assertIn("Yeng tikish", content)
         # CONTROL stikeri ham chiqishi kerak
-        self.assertIn("CONTROL", content)
-        self.assertIn("STIKER", content)
+        self.assertIn("CONTROL STIKER", content)
 
         # 3 ta bilet + 1 ta CONTROL stikeri = jami 4 ta sticker-card bo'lishi shart!
         self.assertEqual(content.count('class="sticker-card'), 4)

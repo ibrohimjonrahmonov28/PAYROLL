@@ -151,8 +151,10 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         # Check that summary stats exist (DAVOMAD/FOIZ was removed per user request)
         self.assertIn("OPERATSION", html)
         self.assertIn("DAVOMAD", html)
-        self.assertNotIn("DAVOMAD/FOIZ", html)
-        self.assertIn("CHEVARLAR KPI", html)
+        self.assertNotIn("CHEVARLAR KPI", html)
+        self.assertNotIn("Bugun Tikilgan", html)
+        self.assertIn("Model Bo'yicha Norma", html)
+        self.assertIn("Umumiy Norma Foizi", html)
         self.assertIn("PATOK QUVVATI", html)
 
         # View screen 14 -> must show U1-PATOK

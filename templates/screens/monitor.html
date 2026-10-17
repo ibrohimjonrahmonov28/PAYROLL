@@ -112,7 +112,7 @@
                     00:00:00</div>
             </div>
 
-            <!-- Summary Stats Card: OPERATSION, DAVOMAD, CHEVARLAR KPI, PATOK QUVVATI (Vaqt blogiga yaqinlashtirildi) -->
+            <!-- Summary Stats Card: OPERATSION, DAVOMAD, PATOK QUVVATI -->
             <div
                 class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-slate-800 px-4 md:px-5 py-1.5 rounded-xl shrink-0">
                 <div class="text-center px-0.5">
@@ -123,12 +123,6 @@
                 <div class="text-center px-0.5">
                     <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">DAVOMAD</span>
                     <span id="stat-davomat" class="text-xl md:text-2xl lg:text-3xl font-black text-cyan-400 digital-font">{{ davomat }}</span>
-                </div>
-                <div class="h-8 w-px bg-slate-800"></div>
-                <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">CHEVARLAR KPI</span>
-                    <span id="stat-avg-kpi"
-                        class="text-xl md:text-2xl lg:text-3xl font-black text-emerald-400 digital-font glow-emerald">{{ avg_screen_kpi }}%</span>
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
@@ -179,11 +173,10 @@
                     <tr>
                         <th class="py-3 px-2 text-center w-14">№</th>
                         <th class="py-3 px-4 w-[26%]">Tikuvchi F.I.SH</th>
-                        <th class="py-3 px-3 text-center w-[13%]">Bugun Tikilgan</th>
-                        <th class="py-3 px-4 text-center w-[24%]">Model Bo'yicha Norma</th>
-                        <th class="py-3 px-3 text-center w-[11%]">Bajarilishi</th>
-                        <th class="py-3 px-4 text-right w-[13%]">Bugungi Ish Haqi</th>
-                        <th class="py-3 px-4 text-right w-[13%]">Oylik Maosh</th>
+                        <th class="py-3 px-4 text-center w-[25%]">Model Bo'yicha Norma</th>
+                        <th class="py-3 px-4 text-center w-[17%]">Umumiy Norma Foizi</th>
+                        <th class="py-3 px-4 text-right w-[16%]">Bugungi Ish Haqi</th>
+                        <th class="py-3 px-4 text-right w-[16%]">Oylik Maosh</th>
                     </tr>
                 </thead>
                 <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-lg">
@@ -198,12 +191,8 @@
                         <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
                             {{ w.full_name }}
                         </td>
-                        <td
-                            class="py-2 px-2.5 text-center font-bold text-amber-400 text-base md:text-lg digital-font whitespace-nowrap">
-                            {{ w.total_units }} <small class="text-xs text-slate-400 font-sans">dona</small>
-                        </td>
 
-                        <!-- Model bo'yicha norma: 50/1500, agar 2 model bo'lsa 500/1000 -->
+                        <!-- 3-USTUN: Model bo'yicha norma: 50/1500, agar 2 model bo'lsa 500/1000 -->
                         <td class="py-2 px-3 text-center">
                             {% if w.models %}
                             <div class="flex flex-wrap items-center justify-center gap-1.5">
@@ -223,12 +212,16 @@
                             {% endif %}
                         </td>
 
-                        <!-- Bajarilishi (Progress Bar) -->
-                        <td class="py-2 px-2.5 text-center">
-                            <div
-                                class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[130px] mx-auto p-0.5 shadow-inner">
-                                <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
-                                    style="width: {{ w.progress_width }}%;"></div>
+                        <!-- 4-USTUN: Umumiy Norma Foizi (Kattaroq ko'rinishda + progress bar) -->
+                        <td class="py-2 px-3 text-center">
+                            <div class="flex flex-col items-center justify-center gap-1">
+                                <span class="text-2xl md:text-3xl font-black digital-font {% if w.is_above_norm %}text-emerald-400 glow-emerald{% elif w.total_percentage >= 70 %}text-amber-400 glow-amber{% else %}text-rose-400 glow-rose{% endif %} leading-none">
+                                    {{ w.total_percentage }}%
+                                </span>
+                                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800 max-w-[120px] mx-auto p-0.5 shadow-inner">
+                                    <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
+                                        style="width: {{ w.progress_width }}%;"></div>
+                                </div>
                             </div>
                         </td>
 
@@ -248,7 +241,7 @@
                     </tr>
                     {% empty %}
                     <tr id="empty-row">
-                        <td colspan="7" class="py-16 text-center text-slate-500">
+                        <td colspan="6" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Ushbu kunda ({{ date_str }}) bu ekranga hali ishlar biriktirilmadi</span>
                             <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
@@ -332,7 +325,7 @@
                 if (!data.workers || data.workers.length === 0) {
                     tbody.innerHTML = `
                     <tr id="empty-row">
-                        <td colspan="7" class="py-16 text-center text-slate-500">
+                        <td colspan="6" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-qrcode text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-xl font-bold block text-slate-400">Ushbu kunda (${data.date_str || ''}) bu ekranga hali ishlar biriktirilmadi</span>
                             <span class="text-sm text-slate-600 mt-1 block">Master Telegram boti orqali skanerlangan biletlar ushbu ekranga yo'naltirilishi bilan natijalar avtomatik paydo bo'ladi.</span>
@@ -362,10 +355,13 @@
                         }
 
                         let barGradient = 'bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]';
+                        let pctColor = 'text-rose-400 glow-rose';
                         if (w.is_above_norm) {
                             barGradient = 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]';
+                            pctColor = 'text-emerald-400 glow-emerald';
                         } else if (w.total_percentage >= 70) {
                             barGradient = 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]';
+                            pctColor = 'text-amber-400 glow-amber';
                         }
 
                         html += `
@@ -378,16 +374,18 @@
                             <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
                                 ${w.full_name}
                             </td>
-                            <td class="py-2 px-2.5 text-center font-bold text-amber-400 text-base md:text-lg digital-font whitespace-nowrap">
-                                ${w.total_units} <small class="text-xs text-slate-400 font-sans">dona</small>
-                            </td>
                             <td class="py-2 px-3 text-center">
                                 ${modelsHtml}
                             </td>
-                            <td class="py-2 px-2.5 text-center">
-                                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 max-w-[130px] mx-auto p-0.5 shadow-inner">
-                                    <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
-                                        style="width: ${w.progress_width}%;"></div>
+                            <td class="py-2 px-3 text-center">
+                                <div class="flex flex-col items-center justify-center gap-1">
+                                    <span class="text-2xl md:text-3xl font-black digital-font ${pctColor} leading-none">
+                                        ${w.total_percentage}%
+                                    </span>
+                                    <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800 max-w-[120px] mx-auto p-0.5 shadow-inner">
+                                        <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
+                                            style="width: ${w.progress_width}%;"></div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="py-2 px-3 text-right font-black text-base md:text-lg text-emerald-400 digital-font glow-emerald whitespace-nowrap">
