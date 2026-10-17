@@ -18,13 +18,14 @@ def _get_active_master(request):
     1. request.session['master_user_id']
     2. Yoki request.user (agar tizimga kirgan bo'lsa)
     """
-    master_id = request.session.get('master_user_id')
-    if master_id:
-        user = User.objects.filter(id=master_id).first()
-        if user:
-            return user
+    if hasattr(request, 'session'):
+        master_id = request.session.get('master_user_id')
+        if master_id:
+            user = User.objects.filter(id=master_id).first()
+            if user:
+                return user
 
-    if request.user.is_authenticated:
+    if hasattr(request, 'user') and request.user.is_authenticated:
         return request.user
 
     return None
@@ -223,16 +224,27 @@ def api_get_patok_detail(request, screen_number):
         'order_item__order',
         'order_item__article',
         'accepted_by'
-    ).order_by('-accepted_at')[:10]
+    ).order_by('-accepted_at')[:15]
 
     accepted_list = []
     for b in accepted_qs:
         article = b.order_item.article if b.order_item else None
         order = b.order_item.order if b.order_item else None
-        total_boxes = Box.objects.filter(cutting_batch_item__batch=b).count()
+        
+        boxes_qs = Box.objects.filter(
+            Q(cutting_batch_item__batch=b) |
+            (Q(pastal_number=b.pastal_code) & Q(order=order))
+        ).distinct()
+        boxes = list(boxes_qs)
+        total_boxes = len(boxes)
+        closed_boxes = sum(1 for bx in boxes if bx.is_controlled and bx.controlled_repair_qty == 0)
+        unclosed_boxes = total_boxes - closed_boxes
+        repair_boxes = sum(1 for bx in boxes if bx.controlled_repair_qty > 0)
+        repair_units = sum(bx.controlled_repair_qty for bx in boxes)
+        is_pastal_closed = (total_boxes > 0 and closed_boxes == total_boxes)
         
         # Skanerlangan biletlar foizi
-        all_tickets = Ticket.objects.filter(box__cutting_batch_item__batch=b)
+        all_tickets = Ticket.objects.filter(box__in=boxes)
         total_t = all_tickets.count()
         scanned_t = all_tickets.filter(status=Ticket.Status.SCANNED).count()
         progress_pct = int((scanned_t / total_t * 100)) if total_t > 0 else 0
@@ -246,6 +258,11 @@ def api_get_patok_detail(request, screen_number):
             'total_units': b.total_quantity,
             'actual_weight_kg': float(b.actual_weight_kg) if b.actual_weight_kg else 0.0,
             'boxes_count': total_boxes,
+            'closed_boxes': closed_boxes,
+            'unclosed_boxes': unclosed_boxes,
+            'repair_boxes': repair_boxes,
+            'repair_units': repair_units,
+            'is_pastal_closed': is_pastal_closed,
             'progress_pct': progress_pct,
             'accepted_at': timezone.localtime(b.accepted_at).strftime("%d.%m.%Y %H:%M") if b.accepted_at else '—',
             'accepted_by_name': b.accepted_by.get_full_name() if b.accepted_by else 'Master',
@@ -296,10 +313,14 @@ def api_accept_pastal(request):
     batch.assigned_screen = sn
     batch.accepted_at = timezone.now()
     batch.accepted_by = master
-    batch.save(update_fields=['dispatch_status', 'assigned_screen', 'accepted_at', 'accepted_by'])
+    batch.assigned_branch = master.branch or ('HQ' if sn <= 13 else 'UYCHI')
+    batch.save(update_fields=['dispatch_status', 'assigned_screen', 'accepted_at', 'accepted_by', 'assigned_branch'])
 
     # Qutilarni biriktirish
-    Box.objects.filter(cutting_batch_item__batch=batch).update(
+    Box.objects.filter(
+        Q(cutting_batch_item__batch=batch) |
+        (Q(pastal_number=batch.pastal_code) & Q(order=batch.order_item.order))
+    ).update(
         assigned_screen=sn,
         is_received_by_patok=True
     )
@@ -351,4 +372,261 @@ def api_reject_pastal(request):
         'success': True,
         'message': f"Pastal #{batch.batch_number} muvaffaqiyatli QAYTARILDI.",
         'batch_id': batch.id,
+    })
+
+
+@require_GET
+def api_get_master_monthly_work(request):
+    """
+    Tizimga kirgan Master foydalanuvchining tanlangan oy bo'yicha qilgan ishlari (qabul qilingan pastallari) hisoboti.
+    Pastal kodi, buyurtma, qutilar soni, yopilgan / yopilmagan holati (barcha qutilari OTK dan o'tgan va ta'miri qolmagan).
+    Parametrlar:
+    - year (standart: joriy yil)
+    - month (standart: joriy oy)
+    - scope: 'MY' (faqat shu master qabul qilganlar) yoki 'BRANCH' (filialdagi barcha qabul qilinganlar)
+    """
+    master = _get_active_master(request)
+    if not master:
+        return JsonResponse({'success': False, 'message': "Iltimos, avval planshetga beydjigingizni skanerlang!"}, status=401)
+
+    today = timezone.localdate()
+    try:
+        selected_year = int(request.GET.get('year', today.year))
+        selected_month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        selected_year = today.year
+        selected_month = today.month
+
+    scope = request.GET.get('scope', 'MY').upper()
+
+    # Queryset
+    batches_qs = CuttingBatch.objects.filter(
+        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        accepted_at__year=selected_year,
+        accepted_at__month=selected_month,
+    )
+
+    if scope == 'MY':
+        batches_qs = batches_qs.filter(accepted_by=master)
+    elif scope == 'BRANCH':
+        branch = request.GET.get('branch') or master.branch or 'HQ'
+        batches_qs = batches_qs.filter(assigned_branch=branch)
+
+    batches_qs = batches_qs.select_related(
+        'order_item__order__customer',
+        'order_item__article__model',
+        'accepted_by'
+    ).order_by('-accepted_at')
+
+    pastals_list = []
+    total_accepted_batches = 0
+    total_units_sum = 0
+    total_closed_pastals = 0
+    total_unclosed_pastals = 0
+    total_repair_boxes_count = 0
+
+    for b in batches_qs:
+        total_accepted_batches += 1
+        article = b.order_item.article if b.order_item else None
+        order = b.order_item.order if b.order_item else None
+        customer_name = order.customer.name if (order and order.customer) else (order.client_name if order else '—')
+
+        # Ushbu pastalning barcha qutilari
+        boxes_qs = Box.objects.filter(
+            Q(cutting_batch_item__batch=b) |
+            (Q(pastal_number=b.pastal_code) & Q(order=order))
+        ).distinct()
+
+        boxes = list(boxes_qs)
+        total_boxes = len(boxes)
+        
+        # Quti yopilgan hisoblanadi: agar is_controlled==True VA controlled_repair_qty == 0
+        closed_boxes = sum(1 for bx in boxes if bx.is_controlled and bx.controlled_repair_qty == 0)
+        unclosed_boxes = total_boxes - closed_boxes
+        repair_boxes = sum(1 for bx in boxes if bx.controlled_repair_qty > 0)
+        repair_units = sum(bx.controlled_repair_qty for bx in boxes)
+        
+        # Pastal to'liq yopilgan: agar kamida 1 ta qutisi bo'lsa va BARCHA qutilari yopilgan bo'lsa
+        is_pastal_closed = (total_boxes > 0 and closed_boxes == total_boxes)
+        
+        if is_pastal_closed:
+            total_closed_pastals += 1
+        else:
+            total_unclosed_pastals += 1
+
+        total_repair_boxes_count += repair_boxes
+        total_units_sum += b.total_quantity
+
+        p_code = get_patok_code(b.assigned_screen) if b.assigned_screen else '—'
+
+        # Skanerlangan biletlar foizi
+        all_tickets = Ticket.objects.filter(box__in=boxes)
+        total_t = all_tickets.count()
+        scanned_t = all_tickets.filter(status=Ticket.Status.SCANNED).count()
+        progress_pct = int((scanned_t / total_t * 100)) if total_t > 0 else 0
+
+        pastals_list.append({
+            'batch_id': b.id,
+            'batch_number': b.batch_number,
+            'pastal_code': b.pastal_code or str(b.batch_number),
+            'order_number': order.order_number if order else '—',
+            'customer_name': customer_name,
+            'article_name': article.name if article else 'Model',
+            'article_code': article.code if article else '',
+            'assigned_screen': b.assigned_screen,
+            'patok_code': p_code,
+            'total_units': b.total_quantity,
+            'total_boxes': total_boxes,
+            'closed_boxes': closed_boxes,
+            'unclosed_boxes': unclosed_boxes,
+            'repair_boxes': repair_boxes,
+            'repair_units': repair_units,
+            'is_pastal_closed': is_pastal_closed,
+            'progress_pct': progress_pct,
+            'accepted_at': timezone.localtime(b.accepted_at).strftime("%d.%m.%Y %H:%M") if b.accepted_at else '—',
+            'accepted_by_name': b.accepted_by.get_full_name() if b.accepted_by else 'Master',
+        })
+
+    month_names = {
+        1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel",
+        5: "May", 6: "Iyun", 7: "Iyul", 8: "Avgust",
+        9: "Sentyabr", 10: "Oktyabr", 11: "Noyabr", 12: "Dekabr"
+    }
+
+    return JsonResponse({
+        'success': True,
+        'year': selected_year,
+        'month': selected_month,
+        'month_name': month_names.get(selected_month, str(selected_month)),
+        'scope': scope,
+        'master_name': master.get_full_name() or master.username,
+        'stats': {
+            'total_pastals': total_accepted_batches,
+            'total_units': total_units_sum,
+            'closed_pastals': total_closed_pastals,
+            'unclosed_pastals': total_unclosed_pastals,
+            'repair_boxes': total_repair_boxes_count,
+        },
+        'pastals': pastals_list,
+    })
+
+
+@require_GET
+def api_get_pastal_boxes_detail(request, batch_id):
+    """
+    Bitta pastalga tegishli barcha qutilarning batafsil ro'yxati va holati.
+    Master qaysi quti tugamaganligini, ta'mirda yoki OTK kutayotganligini ko'rishi uchun.
+    """
+    batch = CuttingBatch.objects.select_related(
+        'order_item__order__customer',
+        'order_item__article__model',
+        'accepted_by'
+    ).filter(id=batch_id).first()
+
+    if not batch:
+        return JsonResponse({'success': False, 'message': "Pastal topilmadi"}, status=404)
+
+    order = batch.order_item.order if batch.order_item else None
+    article = batch.order_item.article if batch.order_item else None
+    customer_name = order.customer.name if (order and order.customer) else (order.client_name if order else '—')
+    p_code = get_patok_code(batch.assigned_screen) if batch.assigned_screen else '—'
+
+    boxes_qs = Box.objects.filter(
+        Q(cutting_batch_item__batch=batch) |
+        (Q(pastal_number=batch.pastal_code) & Q(order=order))
+    ).distinct().order_by('box_number')
+
+    boxes = list(boxes_qs)
+    total_boxes = len(boxes)
+
+    boxes_data = []
+    closed_boxes_count = 0
+    unclosed_boxes_count = 0
+    repair_boxes_count = 0
+    total_repair_units = 0
+
+    for bx in boxes:
+        is_closed = (bx.is_controlled and bx.controlled_repair_qty == 0)
+        if is_closed:
+            closed_boxes_count += 1
+        else:
+            unclosed_boxes_count += 1
+
+        if bx.controlled_repair_qty > 0:
+            repair_boxes_count += 1
+            total_repair_units += bx.controlled_repair_qty
+
+        # Stikerlar holati
+        scanned_tickets_cnt = bx.tickets.filter(status=Ticket.Status.SCANNED).count()
+        total_tickets_cnt = bx.tickets.count()
+
+        # Dazmol stikeri urilganmi
+        has_dazmol = bx.tickets.filter(
+            status=Ticket.Status.SCANNED,
+            article_operation__operation__name__icontains='DAZMOL'
+        ).exclude(
+            article_operation__operation__name__icontains='TASMA'
+        ).exclude(
+            article_operation__operation__name__icontains="CHO'NTAK"
+        ).exists()
+
+        if is_closed:
+            status_mode = 'CLOSED'
+            status_text = f"Yopilgan • OTK 1-sort: {bx.controlled_first_sort_qty}" + (f", 2-sort: {bx.controlled_second_sort_qty}" if bx.controlled_second_sort_qty else "")
+        elif bx.controlled_repair_qty > 0:
+            status_mode = 'REPAIR'
+            status_text = f"Ta'mirda ({bx.controlled_repair_qty} dona nuqsonli)"
+        elif has_dazmol or (total_tickets_cnt > 0 and scanned_tickets_cnt == total_tickets_cnt):
+            status_mode = 'WAITING_OTK'
+            status_text = "Dazmoldan chiqqan • OTK kutmoqda"
+        elif scanned_tickets_cnt > 0:
+            status_mode = 'IN_SEWING'
+            status_text = f"Tikuv jarayonida ({scanned_tickets_cnt}/{total_tickets_cnt} stiker)"
+        else:
+            status_mode = 'PENDING'
+            status_text = "Tikuvga kirmagan (0 stiker)"
+
+        boxes_data.append({
+            'box_id': bx.id,
+            'box_number': bx.box_number,
+            'box_code': bx.box_code,
+            'display_code': bx.display_code,
+            'razmer': bx.razmer or "—",
+            'quantity': bx.quantity,
+            'is_controlled': bx.is_controlled,
+            'first_sort': bx.controlled_first_sort_qty,
+            'second_sort': bx.controlled_second_sort_qty,
+            'repair_qty': bx.controlled_repair_qty,
+            'defect_qty': bx.controlled_defect_qty,
+            'is_closed': is_closed,
+            'scanned_tickets_count': scanned_tickets_cnt,
+            'total_tickets_count': total_tickets_cnt,
+            'status_mode': status_mode,
+            'status_text': status_text,
+        })
+
+    is_pastal_closed = (total_boxes > 0 and closed_boxes_count == total_boxes)
+
+    return JsonResponse({
+        'success': True,
+        'pastal': {
+            'batch_id': batch.id,
+            'batch_number': batch.batch_number,
+            'pastal_code': batch.pastal_code or str(batch.batch_number),
+            'order_number': order.order_number if order else '—',
+            'customer_name': customer_name,
+            'article_name': article.name if article else 'Model',
+            'article_code': article.code if article else '',
+            'patok_code': p_code,
+            'total_units': batch.total_quantity,
+            'total_boxes': total_boxes,
+            'closed_boxes': closed_boxes_count,
+            'unclosed_boxes': unclosed_boxes_count,
+            'repair_boxes': repair_boxes_count,
+            'repair_units': total_repair_units,
+            'is_pastal_closed': is_pastal_closed,
+            'accepted_at': timezone.localtime(batch.accepted_at).strftime("%d.%m.%Y %H:%M") if batch.accepted_at else '—',
+            'accepted_by_name': batch.accepted_by.get_full_name() if batch.accepted_by else 'Master',
+        },
+        'boxes': boxes_data,
     })

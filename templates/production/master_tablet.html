@@ -159,6 +159,21 @@
                     </div>
                 </div>
 
+                <!-- Center: Navigation Tabs -->
+                <div class="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 shadow-inner">
+                    <button onclick="switchTab('patoks')" id="tab-btn-patoks" 
+                        class="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 touch-btn">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span>Patoklar (Qabul qilish)</span>
+                    </button>
+                    <button onclick="switchTab('monthly')" id="tab-btn-monthly" 
+                        class="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all text-slate-400 hover:text-white touch-btn">
+                        <i class="fa-solid fa-clipboard-check text-amber-400"></i>
+                        <span>Mening Oylik Ishlarim</span>
+                        <span id="monthly-badge-count" class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+                    </button>
+                </div>
+
                 <!-- 5-Minute Auto-Logout Timer & Exit Button -->
                 <div class="flex items-center gap-3">
                     <div class="bg-slate-800/90 border border-slate-700/80 rounded-xl px-3 py-1.5 flex items-center gap-2">
@@ -259,6 +274,140 @@
                 </div>
             </div>
 
+            <!-- SECTION C: MENING OYLIK ISHLARIM (MASTER OYLIK HISOBOTI) -->
+            <div id="monthly-work-section" class="hidden flex-1 overflow-y-auto flex flex-col space-y-4 pb-12 pr-1">
+                <!-- Top Toolbar: Month Navigator & Scope Filter -->
+                <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <span>MENING OYLIK ISHLARIM (PASTALLAR)</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                    Oy oxiri hisoboti
+                                </span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Siz qabul qilgan pastallar, ularning qutilari va OTK holati bo'yicha to'liq hisobot
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Month Switcher Controls -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Scope Selector (Mening ishlarim / Filial barchasi) -->
+                        <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs">
+                            <button onclick="setMonthlyScope('MY')" id="scope-btn-my" class="px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition touch-btn">
+                                Mening ishlarim
+                            </button>
+                            <button onclick="setMonthlyScope('BRANCH')" id="scope-btn-branch" class="px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition touch-btn">
+                                Filial bo'yicha
+                            </button>
+                        </div>
+
+                        <!-- Prev / Next Month Navigator -->
+                        <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
+                            <button onclick="changeMonthlyMonth(-1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-btn" title="Oldingi oy">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                            </button>
+                            <div class="px-3 text-xs font-black text-amber-400 min-w-[120px] text-center" id="monthly-current-month-label">
+                                Oktyabr 2026
+                            </div>
+                            <button onclick="changeMonthlyMonth(1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-btn" title="Keyingi oy">
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+
+                        <button onclick="loadMasterMonthlyWork()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center transition touch-btn" title="Yangilash">
+                            <i class="fa-solid fa-rotate text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Monthly KPI Summary Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
+                    <!-- 1. Jami Pastallar -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Qabul Qilingan Pastallar</span>
+                            <span class="text-xl sm:text-2xl font-black text-white block mt-0.5" id="kpi-total-pastals">0 <span class="text-xs font-normal text-slate-400">ta</span></span>
+                            <span class="text-[10px] text-slate-500" id="kpi-total-units">0 dona mahsulot</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                    </div>
+
+                    <!-- 2. To'liq Yopilgan Pastallar -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">To'liq Yopilgan Pastallar</span>
+                            <span class="text-xl sm:text-2xl font-black text-emerald-400 block mt-0.5" id="kpi-closed-pastals">0 <span class="text-xs font-normal text-slate-400">ta</span></span>
+                            <span class="text-[10px] text-emerald-400/80">Barcha qutilar OTK o'tgan</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
+
+                    <!-- 3. Yopilmagan (Jarayonda) -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Yopilmagan Pastallar</span>
+                            <span class="text-xl sm:text-2xl font-black text-amber-400 block mt-0.5" id="kpi-unclosed-pastals">0 <span class="text-xs font-normal text-slate-400">ta</span></span>
+                            <span class="text-[10px] text-amber-400/80">OTK o'tmagan qutisi bor</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                    </div>
+
+                    <!-- 4. Ta'mirda Qolgan Qutilar -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ta'mirda Qolgan</span>
+                            <span class="text-xl sm:text-2xl font-black text-rose-400 block mt-0.5" id="kpi-repair-boxes">0 <span class="text-xs font-normal text-slate-400">ta quti</span></span>
+                            <span class="text-[10px] text-rose-400/80" id="kpi-repair-units">0 dona nuqsonli</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Bar -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+                    <div class="relative flex-1 min-w-[240px] max-w-md">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="monthly-search-input" oninput="applyMonthlyFilters()" placeholder="Pastal kodi, Zakaz yoki Model bo'yicha qidirish..."
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-amber-500">
+                    </div>
+
+                    <!-- Filter buttons -->
+                    <div class="flex items-center gap-1.5 flex-wrap text-xs">
+                        <button onclick="setMonthlyStatusFilter('ALL')" id="flt-monthly-all" class="px-3 py-1.5 rounded-xl font-bold bg-amber-500 text-slate-950 transition touch-btn">
+                            Barchasi (<span id="cnt-flt-all">0</span>)
+                        </button>
+                        <button onclick="setMonthlyStatusFilter('UNCLOSED')" id="flt-monthly-unclosed" class="px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition touch-btn">
+                            ⏳ Yopilmaganlar (<span id="cnt-flt-unclosed">0</span>)
+                        </button>
+                        <button onclick="setMonthlyStatusFilter('CLOSED')" id="flt-monthly-closed" class="px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition touch-btn">
+                            ✅ Yopilganlar (<span id="cnt-flt-closed">0</span>)
+                        </button>
+                        <button onclick="setMonthlyStatusFilter('REPAIR')" id="flt-monthly-repair" class="px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition touch-btn">
+                            ⚠️ Ta'mirlilar (<span id="cnt-flt-repair">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pastals List Grid -->
+                <div id="monthly-pastals-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 pb-8">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -315,6 +464,112 @@
         </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- MODAL: PASTAL QUTILARI NAZORATI (QAYSI QUTI TUGAMAGANLIGI)   -->
+    <!-- ============================================================== -->
+    <div id="pastal-boxes-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl sm:rounded-3xl max-w-5xl w-full h-[92vh] max-h-[92vh] flex flex-col shadow-2xl text-left overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="bg-slate-950 border-b border-slate-800 px-5 py-4 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-base sm:text-lg font-black text-white" id="modal-pastal-title">Pastal №...</h2>
+                            <span id="modal-pastal-header-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Yopilmagan
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span id="modal-pastal-order-model" class="text-slate-300 font-bold">Zakaz #... • Model</span>
+                            <span>•</span>
+                            <span id="modal-pastal-patok" class="text-cyan-400 font-bold">K-1-Patok</span>
+                            <span>•</span>
+                            <span id="modal-pastal-accepted-at" class="text-slate-500">Qabul: ...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="closePastalBoxesModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition touch-btn">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col space-y-4">
+                
+                <!-- Overall Status Banner -->
+                <div id="modal-status-banner" class="rounded-2xl p-3.5 border flex items-center justify-between gap-3 shadow-md">
+                    <!-- Dynamic banner content -->
+                </div>
+
+                <!-- Stats Counters Strip -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Jami Qutilar</span>
+                        <span class="text-base sm:text-lg font-black text-white block mt-0.5" id="modal-cnt-total">0 ta</span>
+                        <span class="text-[10px] text-slate-500" id="modal-cnt-units">0 dona</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block">OTK O'tgan (Yopilgan)</span>
+                        <span class="text-base sm:text-lg font-black text-emerald-400 block mt-0.5" id="modal-cnt-closed">0 ta</span>
+                        <span class="text-[10px] text-emerald-400/80">Tayyor mahsulot</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Tugallanmagan (Qolgan)</span>
+                        <span class="text-base sm:text-lg font-black text-amber-400 block mt-0.5" id="modal-cnt-unclosed">0 ta</span>
+                        <span class="text-[10px] text-amber-400/80">OTK kutmoqda / tikilmoqda</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Ta'mirda Turgan</span>
+                        <span class="text-base sm:text-lg font-black text-rose-400 block mt-0.5" id="modal-cnt-repair">0 ta</span>
+                        <span class="text-[10px] text-rose-400/80" id="modal-cnt-repair-units">0 dona nuqsonli</span>
+                    </div>
+                </div>
+
+                <!-- Filter Pills -->
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 pt-1">
+                    <div class="flex items-center gap-1.5 flex-wrap text-xs">
+                        <button onclick="filterModalBoxes('ALL')" id="modal-flt-all" class="px-3 py-1.5 rounded-xl font-bold bg-indigo-600 text-white touch-btn">
+                            Barchasi (<span id="modal-badge-all">0</span>)
+                        </button>
+                        <button onclick="filterModalBoxes('UNCLOSED')" id="modal-flt-unclosed" class="px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 touch-btn">
+                            ⏳ Tugallanmaganlar (<span id="modal-badge-unclosed">0</span>)
+                        </button>
+                        <button onclick="filterModalBoxes('CLOSED')" id="modal-flt-closed" class="px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 touch-btn">
+                            ✅ Yopilganlar (<span id="modal-badge-closed">0</span>)
+                        </button>
+                        <button onclick="filterModalBoxes('REPAIR')" id="modal-flt-repair" class="px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-rose-300 touch-btn">
+                            ⚠️ Ta'mirlilar (<span id="modal-badge-repair">0</span>)
+                        </button>
+                    </div>
+
+                    <span class="text-[11px] text-slate-400 hidden sm:inline" id="modal-visible-count">0 ta quti</span>
+                </div>
+
+                <!-- Boxes Cards Grid -->
+                <div id="modal-boxes-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
+                    <!-- Populated dynamically -->
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-slate-950 border-t border-slate-800 px-5 py-3.5 flex items-center justify-between flex-shrink-0 text-xs">
+                <span class="text-slate-400">
+                    <i class="fa-solid fa-circle-info text-amber-400 mr-1.5"></i>
+                    Pastal barcha qutilari OTK dan o'tib, ta'mirlar 0 bo'lgandagina to'liq yopiladi.
+                </span>
+                <button onclick="closePastalBoxesModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold touch-btn">
+                    Yopish
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -326,6 +581,16 @@
         let currentScreenNumber = null;
         let autoLogoutSeconds = 300; // 5 daqiqa (300 soniya)
         let timerInterval = null;
+
+        let activeTab = 'patoks';
+        let monthlyYear = {{ now_date.year|default:2026 }};
+        let monthlyMonth = {{ now_date.month|default:10 }};
+        let monthlyScope = 'MY';
+        let monthlyStatusFilter = 'ALL';
+        let cachedMonthlyPastals = [];
+        let currentModalBatchId = null;
+        let currentModalBoxes = [];
+        let modalBoxesFilter = 'ALL';
 
         // Web Audio API beep sound
         function playBeep(frequency = 880, duration = 0.15) {
@@ -373,6 +638,7 @@
             if (isMasterActive) {
                 startAutoLogoutTimer();
                 loadPatoksForBuilding(currentMasterBranch);
+                loadMasterMonthlyWork();
             }
         });
 
@@ -686,18 +952,34 @@
                     `;
                 } else {
                     activeBox.innerHTML = res.accepted_pastals.map(p => {
+                        const isClosedBadge = p.is_pastal_closed 
+                            ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✅ Yopilgan (${p.closed_boxes}/${p.boxes_count})</span>`
+                            : `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">⏳ Yopilmagan (${p.unclosed_boxes} qoldi)</span>`;
+
+                        const repairBadge = (p.repair_boxes > 0)
+                            ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">⚠️ ${p.repair_boxes} ta'mir</span>`
+                            : ``;
+
                         return `
-                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex flex-col gap-2">
+                            <div onclick="openPastalBoxesModal(${p.batch_id})" 
+                                class="bg-slate-800/70 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-xl p-3 flex flex-col gap-2 cursor-pointer transition-all touch-btn group shadow-sm">
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="font-black text-white">Pastal №${p.batch_number} • ${p.article_name}</span>
-                                    <span class="font-bold text-emerald-400">${p.total_units} ta (${p.progress_pct}%)</span>
+                                    <span class="font-black text-white group-hover:text-indigo-300 transition">Pastal №${p.batch_number} • ${p.article_name}</span>
+                                    <span class="font-bold text-emerald-400">${p.total_units} ta</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    ${isClosedBadge}
+                                    ${repairBadge}
                                 </div>
                                 <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
                                     <div class="bg-emerald-500 h-2 rounded-full" style="width: ${p.progress_pct}%"></div>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px] text-slate-400">
                                     <span>Qabul qildi: ${p.accepted_by_name}</span>
-                                    <span>${p.accepted_at}</span>
+                                    <span class="text-indigo-400 font-bold group-hover:underline flex items-center gap-1">
+                                        <span>Qutilarni ko'rish</span>
+                                        <i class="fa-solid fa-chevron-right text-[8px]"></i>
+                                    </span>
                                 </div>
                             </div>
                         `;
@@ -783,6 +1065,494 @@
             } catch (err) {
                 showToast("Server bilan aloqa uzildi", 'error');
             }
+        }
+
+        // ==============================================================
+        // TAB SWITCHING: PATOKLAR vs MENING OYLIK ISHLARIM
+        // ==============================================================
+        function switchTab(tab) {
+            activeTab = tab;
+            const btnPatoks = document.getElementById('tab-btn-patoks');
+            const btnMonthly = document.getElementById('tab-btn-monthly');
+            const patoksGrid = document.getElementById('patoks-grid-section');
+            const patokDetail = document.getElementById('patok-detail-section');
+            const patokNavHeader = document.getElementById('patok-nav-header');
+            const monthlySection = document.getElementById('monthly-work-section');
+
+            if (tab === 'patoks') {
+                btnPatoks.className = "px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 touch-btn";
+                btnMonthly.className = "px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all text-slate-400 hover:text-white touch-btn";
+
+                monthlySection.classList.add('hidden');
+                if (currentScreenNumber) {
+                    patokDetail.classList.remove('hidden');
+                    patokNavHeader.classList.remove('hidden');
+                    patoksGrid.classList.add('hidden');
+                } else {
+                    patoksGrid.classList.remove('hidden');
+                    patokDetail.classList.add('hidden');
+                    patokNavHeader.classList.add('hidden');
+                }
+            } else if (tab === 'monthly') {
+                btnMonthly.className = "px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30 touch-btn";
+                btnPatoks.className = "px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all text-slate-400 hover:text-white touch-btn";
+
+                patoksGrid.classList.add('hidden');
+                patokDetail.classList.add('hidden');
+                patokNavHeader.classList.add('hidden');
+                monthlySection.classList.remove('hidden');
+
+                loadMasterMonthlyWork();
+            }
+        }
+
+        // ==============================================================
+        // MASTER OYLIK HISOBOTI (MENING OYLIK ISHLARIM) LOGIKASI
+        // ==============================================================
+        function changeMonthlyMonth(offset) {
+            monthlyMonth += offset;
+            if (monthlyMonth > 12) {
+                monthlyMonth = 1;
+                monthlyYear += 1;
+            } else if (monthlyMonth < 1) {
+                monthlyMonth = 12;
+                monthlyYear -= 1;
+            }
+            loadMasterMonthlyWork();
+        }
+
+        function setMonthlyScope(scope) {
+            monthlyScope = scope;
+            const btnMy = document.getElementById('scope-btn-my');
+            const btnBranch = document.getElementById('scope-btn-branch');
+            if (scope === 'MY') {
+                btnMy.className = "px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition touch-btn";
+                btnBranch.className = "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition touch-btn";
+            } else {
+                btnBranch.className = "px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition touch-btn";
+                btnMy.className = "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition touch-btn";
+            }
+            loadMasterMonthlyWork();
+        }
+
+        async function loadMasterMonthlyWork() {
+            const container = document.getElementById('monthly-pastals-container');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="col-span-full py-16 text-center text-slate-400">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-indigo-400"></i>
+                    <div class="text-sm font-bold">Oylik hisobot yuklanmoqda...</div>
+                </div>
+            `;
+
+            try {
+                const resp = await fetch(`/master-tablet/api/monthly-work/?year=${monthlyYear}&month=${monthlyMonth}&scope=${monthlyScope}&branch=${currentMasterBranch}`);
+                const res = await resp.json();
+
+                if (!res.success) {
+                    container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">${res.message || "Yuklab bo'lmadi"}</div>`;
+                    return;
+                }
+
+                // Month display
+                const monthLabel = document.getElementById('monthly-current-month-label');
+                if (monthLabel) monthLabel.innerText = `${res.month_name} ${res.year}`;
+
+                // Header tab badge
+                const tabBadge = document.getElementById('monthly-badge-count');
+                if (tabBadge) tabBadge.innerText = res.stats.total_pastals || 0;
+
+                // KPI cards
+                document.getElementById('kpi-total-pastals').innerHTML = `${res.stats.total_pastals} <span class="text-xs font-normal text-slate-400">ta</span>`;
+                document.getElementById('kpi-total-units').innerText = `${res.stats.total_units.toLocaleString()} dona mahsulot`;
+                document.getElementById('kpi-closed-pastals').innerHTML = `${res.stats.closed_pastals} <span class="text-xs font-normal text-slate-400">ta</span>`;
+                document.getElementById('kpi-unclosed-pastals').innerHTML = `${res.stats.unclosed_pastals} <span class="text-xs font-normal text-slate-400">ta</span>`;
+                document.getElementById('kpi-repair-boxes').innerHTML = `${res.stats.repair_boxes} <span class="text-xs font-normal text-slate-400">ta quti</span>`;
+
+                cachedMonthlyPastals = res.pastals || [];
+                updateMonthlyFilterCounts();
+                applyMonthlyFilters();
+
+            } catch (err) {
+                container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">Server bilan aloqa uzildi</div>`;
+            }
+        }
+
+        function updateMonthlyFilterCounts() {
+            const all = cachedMonthlyPastals.length;
+            const unclosed = cachedMonthlyPastals.filter(p => !p.is_pastal_closed).length;
+            const closed = cachedMonthlyPastals.filter(p => p.is_pastal_closed).length;
+            const repair = cachedMonthlyPastals.filter(p => p.repair_boxes > 0).length;
+
+            document.getElementById('cnt-flt-all').innerText = all;
+            document.getElementById('cnt-flt-unclosed').innerText = unclosed;
+            document.getElementById('cnt-flt-closed').innerText = closed;
+            document.getElementById('cnt-flt-repair').innerText = repair;
+        }
+
+        function setMonthlyStatusFilter(filter) {
+            monthlyStatusFilter = filter;
+            const btns = {
+                'ALL': document.getElementById('flt-monthly-all'),
+                'UNCLOSED': document.getElementById('flt-monthly-unclosed'),
+                'CLOSED': document.getElementById('flt-monthly-closed'),
+                'REPAIR': document.getElementById('flt-monthly-repair')
+            };
+
+            for (let k in btns) {
+                if (!btns[k]) continue;
+                if (k === filter) {
+                    btns[k].className = "px-3 py-1.5 rounded-xl font-bold bg-amber-500 text-slate-950 transition touch-btn";
+                } else {
+                    btns[k].className = "px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition touch-btn";
+                }
+            }
+            applyMonthlyFilters();
+        }
+
+        function applyMonthlyFilters() {
+            const container = document.getElementById('monthly-pastals-container');
+            const searchInput = document.getElementById('monthly-search-input');
+            const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+            let list = cachedMonthlyPastals.filter(p => {
+                // Search filter
+                if (q) {
+                    const str = `${p.pastal_code} ${p.batch_number} ${p.order_number} ${p.article_name} ${p.customer_name} ${p.patok_code}`.toLowerCase();
+                    if (!str.includes(q)) return false;
+                }
+
+                // Status filter
+                if (monthlyStatusFilter === 'CLOSED') return p.is_pastal_closed;
+                if (monthlyStatusFilter === 'UNCLOSED') return !p.is_pastal_closed;
+                if (monthlyStatusFilter === 'REPAIR') return (p.repair_boxes > 0);
+                return true;
+            });
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500 bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+                        <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-700"></i>
+                        <div class="text-base font-bold text-slate-400">Hech qanday pastal topilmadi</div>
+                        <div class="text-xs text-slate-600 mt-1">Ushbu oy yoki filtr parametrlari bo'yicha ma'lumot mavjud emas</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(p => {
+                const closedPct = p.total_boxes > 0 ? Math.round((p.closed_boxes / p.total_boxes) * 100) : 0;
+                
+                let statusBadge = '';
+                let cardBorder = 'border-slate-800';
+                if (p.is_pastal_closed) {
+                    statusBadge = `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <i class="fa-solid fa-circle-check"></i> TO'LIQ YOPILGAN (${p.closed_boxes}/${p.total_boxes})
+                        </span>
+                    `;
+                    cardBorder = 'border-emerald-500/30';
+                } else {
+                    statusBadge = `
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            <i class="fa-solid fa-clock-rotate-left"></i> YOPILMAGAN (${p.unclosed_boxes} ta qolgan)
+                        </span>
+                    `;
+                    cardBorder = 'border-amber-500/30';
+                }
+
+                const repairBadge = (p.repair_boxes > 0) ? `
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">
+                        <i class="fa-solid fa-triangle-exclamation"></i> ${p.repair_boxes} TA QUTI TA'MIRDA
+                    </span>
+                ` : '';
+
+                return `
+                    <div onclick="openPastalBoxesModal(${p.batch_id})"
+                        class="bg-slate-900/90 hover:bg-slate-900 ${cardBorder} border-2 rounded-2xl p-4 shadow-xl flex flex-col justify-between gap-3.5 cursor-pointer transition-all hover:scale-[1.01] touch-btn group">
+                        
+                        <div>
+                            <!-- Top header: Pastal & Status -->
+                            <div class="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
+                                <div>
+                                    <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                                        #${p.order_number} • ${p.customer_name}
+                                    </div>
+                                    <h4 class="text-base sm:text-lg font-black text-white group-hover:text-amber-400 transition mt-0.5">
+                                        Pastal №${p.batch_number} • <span class="text-cyan-400 font-mono">${p.pastal_code}</span>
+                                    </h4>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    ${statusBadge}
+                                    ${repairBadge}
+                                </div>
+                            </div>
+
+                            <!-- Model & Units Info -->
+                            <div class="py-2.5 space-y-1.5">
+                                <div class="text-xs text-slate-300 font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-shirt text-slate-500 text-[11px]"></i>
+                                    <span>${p.article_name}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-slate-400">
+                                    <span>Biriktirilgan: <strong class="text-white">${p.patok_code}-Patok</strong></span>
+                                    <span>Jami: <strong class="text-white font-mono">${p.total_units.toLocaleString()}</strong> dona</span>
+                                </div>
+                            </div>
+
+                            <!-- Box Progress Bar -->
+                            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span class="text-slate-400 font-bold">Qutilar OTK holati:</span>
+                                    <span class="font-black ${p.is_pastal_closed ? 'text-emerald-400' : 'text-amber-400'}">
+                                        ${p.closed_boxes} / ${p.total_boxes} ta yopilgan (${closedPct}%)
+                                    </span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                                    <div class="${p.is_pastal_closed ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-emerald-500'} h-2 rounded-full transition-all" style="width: ${closedPct}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer with Big Inspection Button -->
+                        <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                            <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                                <i class="fa-regular fa-clock text-slate-600"></i>
+                                <span>${p.accepted_at}</span>
+                            </span>
+
+                            <button type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600/20 group-hover:bg-indigo-600 border border-indigo-500/40 group-hover:border-indigo-500 text-indigo-300 group-hover:text-white font-black text-xs flex items-center gap-2 transition-all">
+                                <span>Qutilarni Tekshirish</span>
+                                <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==============================================================
+        // PASTAL QUTILARI NAZORATI MODALI (QAYSI QUTI TUGAMAGANLIGI)
+        // ==============================================================
+        async function openPastalBoxesModal(batchId) {
+            currentModalBatchId = batchId;
+            modalBoxesFilter = 'ALL';
+            const modal = document.getElementById('pastal-boxes-modal');
+            modal.classList.remove('hidden');
+
+            const container = document.getElementById('modal-boxes-container');
+            container.innerHTML = `
+                <div class="col-span-full py-16 text-center text-slate-400">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-amber-400"></i>
+                    <div class="text-sm font-bold">Pastal qutilari holati tekshirilmoqda...</div>
+                </div>
+            `;
+
+            try {
+                const resp = await fetch(`/master-tablet/api/pastal/${batchId}/boxes/`);
+                const res = await resp.json();
+
+                if (!res.success) {
+                    container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">${res.message || "Xatolik yuz berdi"}</div>`;
+                    return;
+                }
+
+                const p = res.pastal;
+                currentModalBoxes = res.boxes || [];
+
+                // Header Title
+                document.getElementById('modal-pastal-title').innerText = `Pastal №${p.batch_number} • Kod: ${p.pastal_code}`;
+                document.getElementById('modal-pastal-order-model').innerText = `Zakaz #${p.order_number} • ${p.article_name}`;
+                document.getElementById('modal-pastal-patok').innerText = `${p.patok_code}-Patok`;
+                document.getElementById('modal-pastal-accepted-at').innerText = `Qabul: ${p.accepted_at} (${p.accepted_by_name})`;
+
+                // Header badge
+                const headerBadge = document.getElementById('modal-pastal-header-badge');
+                if (p.is_pastal_closed) {
+                    headerBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                    headerBadge.innerText = "✅ To'liq Yopilgan";
+                } else {
+                    headerBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40";
+                    headerBadge.innerText = `⏳ Yopilmagan (${p.unclosed_boxes} qoldi)`;
+                }
+
+                // Overall status banner
+                const banner = document.getElementById('modal-status-banner');
+                if (p.is_pastal_closed) {
+                    banner.className = "rounded-2xl p-3.5 bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-between gap-3 text-emerald-300 shadow-lg";
+                    banner.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-sm text-white">USHBU PASTAL TO'LIQ YOPILGAN</div>
+                                <div class="text-xs text-emerald-400/90">Barcha ${p.total_boxes} ta quti OTK sifat nazoratidan 1-sort/2-sort bo'lib o'tgan va ta'mirlar qolmagan.</div>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow">100% TAYYOR</span>
+                    `;
+                } else {
+                    banner.className = "rounded-2xl p-3.5 bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-between gap-3 text-amber-300 shadow-lg";
+                    banner.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-sm text-white">USHBU PASTAL HALI YOPILMAGAN</div>
+                                <div class="text-xs text-amber-400/90">${p.unclosed_boxes} ta quti hali OTK dan o'tmagan yoki ta'mirda turibdi. Qaysi quti tugamaganligini quyida ko'ring:</div>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-amber-500 text-slate-950 font-black text-xs rounded-xl shadow">${p.unclosed_boxes} TA QUTI QOLGAN</span>
+                    `;
+                }
+
+                // Stats strip
+                document.getElementById('modal-cnt-total').innerText = `${p.total_boxes} ta`;
+                document.getElementById('modal-cnt-units').innerText = `${p.total_units.toLocaleString()} dona`;
+                document.getElementById('modal-cnt-closed').innerText = `${p.closed_boxes} ta`;
+                document.getElementById('modal-cnt-unclosed').innerText = `${p.unclosed_boxes} ta`;
+                document.getElementById('modal-cnt-repair').innerText = `${p.repair_boxes} ta`;
+                document.getElementById('modal-cnt-repair-units').innerText = `${p.repair_units} dona nuqsonli`;
+
+                // Filter badges
+                document.getElementById('modal-badge-all').innerText = p.total_boxes;
+                document.getElementById('modal-badge-unclosed').innerText = p.unclosed_boxes;
+                document.getElementById('modal-badge-closed').innerText = p.closed_boxes;
+                document.getElementById('modal-badge-repair').innerText = p.repair_boxes;
+
+                // Default filter
+                if (p.unclosed_boxes > 0) {
+                    filterModalBoxes('UNCLOSED');
+                } else {
+                    filterModalBoxes('ALL');
+                }
+
+            } catch (err) {
+                container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">Ma'lumotlarni yuklashda xatolik yuz berdi</div>`;
+            }
+        }
+
+        function filterModalBoxes(filter) {
+            modalBoxesFilter = filter;
+            const btns = {
+                'ALL': document.getElementById('modal-flt-all'),
+                'UNCLOSED': document.getElementById('modal-flt-unclosed'),
+                'CLOSED': document.getElementById('modal-flt-closed'),
+                'REPAIR': document.getElementById('modal-flt-repair')
+            };
+
+            for (let k in btns) {
+                if (!btns[k]) continue;
+                if (k === filter) {
+                    btns[k].className = "px-3 py-1.5 rounded-xl font-bold bg-indigo-600 text-white touch-btn";
+                } else {
+                    btns[k].className = "px-3 py-1.5 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 touch-btn";
+                }
+            }
+
+            renderModalBoxes();
+        }
+
+        function renderModalBoxes() {
+            const container = document.getElementById('modal-boxes-container');
+            let list = currentModalBoxes.filter(b => {
+                if (modalBoxesFilter === 'CLOSED') return b.is_closed;
+                if (modalBoxesFilter === 'UNCLOSED') return !b.is_closed;
+                if (modalBoxesFilter === 'REPAIR') return (b.repair_qty > 0);
+                return true;
+            });
+
+            document.getElementById('modal-visible-count').innerText = `${list.length} ta quti ko'rsatilmoqda`;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-slate-500 bg-slate-950 rounded-2xl border border-slate-800">
+                        <i class="fa-solid fa-check-double text-3xl mb-2 text-slate-700"></i>
+                        <div class="text-sm font-bold text-slate-400">Bu filtr bo'yicha qutilar mavjud emas</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(b => {
+                let cardBg = "bg-slate-950 border-slate-800";
+                let statusBadge = "";
+                let iconHtml = "";
+
+                if (b.is_closed) {
+                    cardBg = "bg-emerald-950/20 border-emerald-500/40";
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✅ YOPILGAN</span>`;
+                    iconHtml = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>`;
+                } else if (b.status_mode === 'REPAIR') {
+                    cardBg = "bg-rose-950/25 border-rose-500/50 animate-pulse";
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">⚠️ TA'MIRDA (${b.repair_qty} dona)</span>`;
+                    iconHtml = `<i class="fa-solid fa-triangle-exclamation text-rose-400 text-sm"></i>`;
+                } else if (b.status_mode === 'WAITING_OTK') {
+                    cardBg = "bg-amber-950/25 border-amber-500/40";
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">⏳ OTK KUTMOQDA</span>`;
+                    iconHtml = `<i class="fa-solid fa-clock text-amber-400 text-sm"></i>`;
+                } else if (b.status_mode === 'IN_SEWING') {
+                    cardBg = "bg-blue-950/20 border-blue-500/30";
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/30">🧵 TIKILMOQDA</span>`;
+                    iconHtml = `<i class="fa-solid fa-spinner text-blue-400 text-sm"></i>`;
+                } else {
+                    cardBg = "bg-slate-950 border-slate-800";
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700">⏸️ TIKUVGA KIRMAGAN</span>`;
+                    iconHtml = `<i class="fa-solid fa-pause text-slate-500 text-sm"></i>`;
+                }
+
+                return `
+                    <div class="${cardBg} border-2 rounded-2xl p-3.5 flex flex-col justify-between gap-2.5 shadow-md transition-all">
+                        <div>
+                            <!-- Header -->
+                            <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                                <div class="flex items-center gap-2">
+                                    ${iconHtml}
+                                    <span class="text-sm font-black text-white">Quti #${b.box_number}</span>
+                                </div>
+                                <span class="text-xs font-mono font-bold text-slate-400">${b.display_code}</span>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="grid grid-cols-2 gap-2 text-xs py-2">
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 block">Razmer</span>
+                                    <span class="text-xs font-black text-cyan-300">${b.razmer}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 block">Dona soni</span>
+                                    <span class="text-xs font-black text-white">${b.quantity} dona</span>
+                                </div>
+                            </div>
+
+                            <!-- Tickets Count -->
+                            <div class="text-[11px] text-slate-400 flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800/80">
+                                <span>Tikuv stikerlari:</span>
+                                <span class="font-bold font-mono text-slate-200">${b.scanned_tickets_count} / ${b.total_tickets_count}</span>
+                            </div>
+                        </div>
+
+                        <!-- Status Footer -->
+                        <div class="pt-2 border-t border-slate-800/80">
+                            <div class="text-[11px] font-bold leading-tight mb-1">
+                                ${statusBadge}
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                                ${b.status_text}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closePastalBoxesModal() {
+            document.getElementById('pastal-boxes-modal').classList.add('hidden');
+            currentModalBatchId = null;
+            currentModalBoxes = [];
         }
     </script>
 </body>

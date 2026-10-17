@@ -61,6 +61,8 @@ urlpatterns = [
     path('master-tablet/api/patok/<int:screen_number>/', master_views.api_get_patok_detail, name='master_tablet_patok_detail'),
     path('master-tablet/api/accept/', master_views.api_accept_pastal, name='master_tablet_accept'),
     path('master-tablet/api/reject/', master_views.api_reject_pastal, name='master_tablet_reject'),
+    path('master-tablet/api/monthly-work/', master_views.api_get_master_monthly_work, name='master_tablet_monthly_work'),
+    path('master-tablet/api/pastal/<int:batch_id>/boxes/', master_views.api_get_pastal_boxes_detail, name='master_tablet_pastal_boxes'),
     path('master-tablet/api/logout/', master_views.api_logout_master, name='master_tablet_logout'),
 ]
 
