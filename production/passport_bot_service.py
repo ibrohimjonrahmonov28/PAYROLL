@@ -1082,6 +1082,8 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             f"\nℹ️ *Eslatma:* Ushbu pastaldan allaqachon {scanned_tickets_count} ta stiker tikuvda urilgan "
             f"({pending_tickets_count} ta qolgan).\n"
         )
+    if batch and batch.rejection_reason:
+        in_progress_notice += f"\n⚠️ *Qaytarilgan pastal sababi:* {batch.rejection_reason}\n"
 
     approved_message = (
         f"✅ *HAMMASI TO'G'RI: PATOKKA BERISH MUMKIN!*\n"

@@ -434,21 +434,21 @@
 
             <!-- Quick Reason Buttons -->
             <div class="grid grid-cols-2 gap-2 text-xs">
-                <button type="button" onclick="selectReason('Mato brak / nuqsonli')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                <button type="button" onclick="selectReason(this.dataset.reason)" data-reason="Mato brak / nuqsonli" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
                     ⚠️ Mato brak
                 </button>
-                <button type="button" onclick="selectReason('Model / andaza mos emas')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                <button type="button" onclick="selectReason(this.dataset.reason)" data-reason="Model / andaza mos emas" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
                     👔 Model mos emas
                 </button>
-                <button type="button" onclick="selectReason('Zadel to\'la, joy yo\'q')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                <button type="button" onclick="selectReason(this.dataset.reason)" data-reason="Zadel to'la, joy yo'q" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
                     📦 Zadel to'la
                 </button>
-                <button type="button" onclick="selectReason('Stikerlar / biletlar to\'liq emas')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
+                <button type="button" onclick="selectReason(this.dataset.reason)" data-reason="Stikerlar / biletlar to'liq emas" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-slate-200 font-semibold touch-btn">
                     🎫 Stikerlar yetarli emas
                 </button>
             </div>
 
-            <textarea id="reject-reason-input" rows="3" placeholder="Batafsil sababni yozing..." 
+            <textarea id="reject-reason-input" rows="3" placeholder="Sababni yozing (ixtiyoriy)..." 
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 outline-none focus:border-rose-500"></textarea>
 
             <input type="hidden" id="reject-batch-id" value="">
@@ -588,6 +588,7 @@
         let monthlyScope = 'MY';
         let monthlyStatusFilter = 'ALL';
         let cachedMonthlyPastals = [];
+        let currentWaitingPastals = [];
         let currentModalBatchId = null;
         let currentModalBoxes = [];
         let modalBoxesFilter = 'ALL';
@@ -877,6 +878,7 @@
                 document.getElementById('active-label-badge').innerText = `${res.accepted_pastals.length} ta faol`;
 
                 // Render Waiting Pastals
+                currentWaitingPastals = res.waiting_pastals || [];
                 if (waitCount === 0) {
                     waitingBox.innerHTML = `
                         <div class="py-14 text-center text-slate-500">
@@ -932,7 +934,7 @@
                                         <span>QABUL QILISH</span>
                                     </button>
 
-                                    <button onclick="openRejectModal(${p.batch_id}, '${p.batch_number}', '${p.article_name}')" 
+                                    <button onclick="openRejectModal(${p.batch_id})" 
                                         class="py-3.5 px-4 rounded-xl bg-slate-700 hover:bg-rose-700 active:bg-rose-800 text-slate-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-600 hover:border-rose-600 touch-btn">
                                         <i class="fa-solid fa-arrow-rotate-left text-base"></i>
                                         <span>QAYTARISH</span>
@@ -1008,6 +1010,7 @@
                     playBeep(980, 0.2);
                     showToast(res.message, 'success');
                     loadPatokPastals(currentScreenNumber);
+                    loadPatoksForBuilding(currentMasterBranch);
                 } else {
                     playBeep(300, 0.25);
                     showToast(res.message || "Xatolik yuz berdi", 'error');
@@ -1018,9 +1021,11 @@
         }
 
         // Reject Pastal Modal
-        function openRejectModal(batchId, batchNumber, articleName) {
+        function openRejectModal(batchId) {
+            const p = (currentWaitingPastals || []).find(x => x.batch_id === Number(batchId));
+            const title = p ? `Pastal №${p.batch_number} (${p.article_name})` : `Pastal #${batchId}`;
             document.getElementById('reject-batch-id').value = batchId;
-            document.getElementById('reject-pastal-title').innerText = `Pastal №${batchNumber} (${articleName})`;
+            document.getElementById('reject-pastal-title').innerText = title;
             document.getElementById('reject-reason-input').value = '';
             document.getElementById('reject-modal').classList.remove('hidden');
         }
@@ -1030,16 +1035,15 @@
         }
 
         function selectReason(reasonText) {
-            document.getElementById('reject-reason-input').value = reasonText;
+            document.getElementById('reject-reason-input').value = reasonText || '';
         }
 
         async function submitRejectPastal() {
             const batchId = document.getElementById('reject-batch-id').value;
-            const reason = document.getElementById('reject-reason-input').value.trim();
+            let reason = (document.getElementById('reject-reason-input').value || '').trim();
 
             if (!reason) {
-                showToast("Iltimos, qaytarish sababini tanlang yoki yozing!", "error");
-                return;
+                reason = "Master tomonidan qaytarildi";
             }
 
             try {
@@ -1058,6 +1062,7 @@
                     showToast(res.message, 'success');
                     closeRejectModal();
                     loadPatokPastals(currentScreenNumber);
+                    loadPatoksForBuilding(currentMasterBranch);
                 } else {
                     playBeep(300, 0.25);
                     showToast(res.message || "Xatolik yuz berdi", 'error');

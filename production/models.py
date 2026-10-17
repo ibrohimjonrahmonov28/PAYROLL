@@ -750,7 +750,7 @@ class CuttingBatch(models.Model):
     
     # Patokka jo'natish va qabul qilish (Dispatch & Reception)
     class DispatchStatus(models.TextChoices):
-        WAITING = 'WAITING', 'Kutilmoqda (Jo\'natilmagan)'
+        WAITING = 'WAITING', 'Oddiy (Jo\'natilmagan)'
         DISPATCHED = 'DISPATCHED', 'Patokka jo\'natildi (Kutilmoqda)'
         ACCEPTED = 'ACCEPTED', 'Patok qabul qildi'
         REJECTED = 'REJECTED', 'Qaytarildi (Rad etildi)'

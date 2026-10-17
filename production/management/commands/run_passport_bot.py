@@ -91,10 +91,16 @@ def dispatch_batch_async(batch_id: int, branch: str, screen_number: int, user_na
     batch.dispatch_status = CuttingBatch.DispatchStatus.DISPATCHED
     batch.dispatched_at = timezone.now()
     batch.dispatched_by = user_name or "Telegram Bot"
-    batch.save(update_fields=['assigned_branch', 'assigned_screen', 'dispatch_status', 'dispatched_at', 'dispatched_by'])
+    batch.rejection_reason = ""
+    batch.rejected_at = None
+    batch.save(update_fields=['assigned_branch', 'assigned_screen', 'dispatch_status', 'dispatched_at', 'dispatched_by', 'rejection_reason', 'rejected_at'])
 
     # Qutilarga ham biriktirilgan patok raqamini belgilash
-    Box.objects.filter(cutting_batch_item__batch=batch).update(assigned_screen=screen_number)
+    order = batch.order_item.order if batch.order_item else None
+    Box.objects.filter(
+        Q(cutting_batch_item__batch=batch) |
+        (Q(pastal_number=batch.pastal_code) & Q(order=order))
+    ).update(assigned_screen=screen_number)
 
     return {
         'batch_id': batch.id,

@@ -341,8 +341,10 @@ def api_accept_pastal(request):
 def api_reject_pastal(request):
     """
     Master pastalni rad etib qaytarganda:
-    - dispatch_status = REJECTED
-    - rejection_reason = sababi
+    - Statusi 'Kutilmoqda' bo'lib qolmasligi uchun ODDIY (WAITING) holatiga qaytariladi.
+    - assigned_screen va assigned_branch tozalanadi (patokdan chiqariladi).
+    - Qutilardan ham assigned_screen va is_received_by_patok olib tashlanadi.
+    - Yuk beradigan odam (bichuv/omborchi) qaytadan tekshirib, qayta jo'natishi (chiqarishi) mumkin bo'ladi.
     """
     master = _get_active_master(request)
     if not master:
@@ -354,23 +356,56 @@ def api_reject_pastal(request):
         data = request.POST
 
     batch_id = data.get('batch_id')
-    reason = (data.get('reason') or 'Master tomonidan qabul qilinmadi').strip()
+    reason = (data.get('reason') or "Master tomonidan qaytarildi").strip()
 
     if not batch_id:
         return JsonResponse({'success': False, 'message': "batch_id berilmadi"}, status=400)
 
-    batch = CuttingBatch.objects.filter(id=batch_id).first()
+    batch = CuttingBatch.objects.select_related('order_item__order', 'order_item__article').filter(id=batch_id).first()
     if not batch:
         return JsonResponse({'success': False, 'message': "Pastal topilmadi"}, status=404)
 
-    batch.dispatch_status = CuttingBatch.DispatchStatus.REJECTED
+    prev_screen = batch.assigned_screen
+    prev_patok_code = get_patok_code(prev_screen) if prev_screen else "Patok"
+    master_name = master.get_full_name() or master.username
+
+    # Oddiy holatga qaytarish (Jo'natilmagan / Kutilmayotgan holat)
+    batch.dispatch_status = CuttingBatch.DispatchStatus.WAITING
+    batch.assigned_screen = None
+    batch.assigned_branch = None
+    batch.dispatched_at = None
+    batch.dispatched_by = ''
+    batch.accepted_at = None
+    batch.accepted_by = None
     batch.rejected_at = timezone.now()
-    batch.rejection_reason = f"[{master.get_full_name() or master.username}]: {reason}"
-    batch.save(update_fields=['dispatch_status', 'rejected_at', 'rejection_reason'])
+    batch.rejection_reason = f"[{master_name}] ({prev_patok_code}): {reason}"
+    batch.save(update_fields=[
+        'dispatch_status',
+        'assigned_screen',
+        'assigned_branch',
+        'dispatched_at',
+        'dispatched_by',
+        'accepted_at',
+        'accepted_by',
+        'rejected_at',
+        'rejection_reason'
+    ])
+
+    # Qutilarni ham patokdan tozalash
+    order = batch.order_item.order if batch.order_item else None
+    Box.objects.filter(
+        Q(cutting_batch_item__batch=batch) |
+        (Q(pastal_number=batch.pastal_code) & Q(order=order))
+    ).update(
+        assigned_screen=None,
+        is_received_by_patok=False
+    )
+
+    article_name = batch.order_item.article.name if batch.order_item and batch.order_item.article else "Mahsulot"
 
     return JsonResponse({
         'success': True,
-        'message': f"Pastal #{batch.batch_number} muvaffaqiyatli QAYTARILDI.",
+        'message': f"Pastal #{batch.batch_number} ({article_name}) muvaffaqiyatli QAYTARILDI va oddiy holatga o'tkazildi.",
         'batch_id': batch.id,
     })
 
