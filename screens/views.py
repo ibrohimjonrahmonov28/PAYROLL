@@ -191,6 +191,7 @@ def get_screen_data(screen_number: int, target_date=None, preloaded=None):
             'grand_total_earnings_formatted': "0",
             'grand_total_units': 0,
             'dazmol_units': 0,
+            'units_label': "Tayyor:",
             'aniqlik': 0,
             'davomat': 0,
             'foiz': 0.0,
@@ -240,6 +241,7 @@ def get_screen_data(screen_number: int, target_date=None, preloaded=None):
             'grand_total_earnings_formatted': "0",
             'grand_total_units': dazmol_units,
             'dazmol_units': dazmol_units,
+            'units_label': "Dazmol:" if dazmol_units > 0 else "Tayyor:",
             'aniqlik': aniqlik,
             'davomat': 0,
             'foiz': 0.0,
@@ -471,8 +473,31 @@ def get_screen_data(screen_number: int, target_date=None, preloaded=None):
     quvvat_info = calculate_quvvat_color_info(patok_quvvati)
     patok_kpi = patok_quvvati  # To'liq moslik uchun
 
-    has_dazmol_op = bool(dazmol_op_ids)
-    grand_total_units = dazmol_units if has_dazmol_op else total_scanned_units
+    if dazmol_units > 0:
+        grand_total_units = dazmol_units
+        units_label = "Dazmol:"
+    else:
+        last_sewing_units = 0
+        if screen_worker_ids:
+            non_dazmol_tickets = tickets.exclude(article_operation__operation_id__in=dazmol_op_ids)
+            art_max_seq = non_dazmol_tickets.values('article_operation__article_id').annotate(
+                max_seq=Max('article_operation__sequence')
+            )
+            if art_max_seq:
+                q_filter = Q()
+                for item in art_max_seq:
+                    q_filter |= Q(
+                        article_operation__article_id=item['article_operation__article_id'],
+                        article_operation__sequence=item['max_seq']
+                    )
+                last_sewing_units = non_dazmol_tickets.filter(q_filter).aggregate(s=Sum('quantity'))['s'] or 0
+
+        if last_sewing_units > 0:
+            grand_total_units = last_sewing_units
+            units_label = "Tikuv:"
+        else:
+            grand_total_units = 0
+            units_label = "Tayyor:"
 
     return {
         'screen_number': screen_number,
@@ -486,6 +511,7 @@ def get_screen_data(screen_number: int, target_date=None, preloaded=None):
         'grand_total_earnings_formatted': f"{grand_total_earnings:,.0f}".replace(",", " "),
         'grand_total_units': grand_total_units,
         'dazmol_units': dazmol_units,
+        'units_label': units_label,
         'aniqlik': aniqlik,
         'davomat': davomat,
         'foiz': foiz,

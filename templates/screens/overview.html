@@ -124,9 +124,11 @@
                         {{ s.patok_quvvati }}%
                     </span>
                 </div>
-                <div class="flex justify-between text-xs text-slate-400">
-                    <span class="text-[11px]">Tikilgan:</span>
-                    <strong class="text-slate-200 digital-font text-xs">{{ s.grand_total_units }} dona</strong>
+                <div class="flex justify-between text-xs text-slate-400" {% if s.units_label == 'Tikuv:' %}title="Dazmol urilmagan, oxirgi tikuv amali bo'yicha hisoblandi"{% endif %}>
+                    <span class="text-[11px] {% if s.units_label == 'Tikuv:' %}text-cyan-400 font-medium{% endif %}">
+                        {{ s.units_label|default:"Tayyor:" }}
+                    </span>
+                    <strong class="{% if s.units_label == 'Tikuv:' %}text-cyan-300{% else %}text-slate-200{% endif %} digital-font text-xs">{{ s.grand_total_units }} dona</strong>
                 </div>
                 <div class="flex justify-between text-xs text-slate-400">
                     <span class="text-[11px]">Chevarlar KPI:</span>

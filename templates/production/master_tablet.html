@@ -208,9 +208,28 @@
 
             <!-- SECTION A: PATOKS GRID (Faqat shu binodagi patoklar) -->
             <div id="patoks-grid-section" class="flex-1 overflow-y-auto pr-1">
-                <div class="mb-3 flex items-center justify-between">
-                    <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400">Patokni tanlang:</h3>
-                    <div class="text-xs font-bold text-indigo-400" id="patoks-count-summary">13 ta patok</div>
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400">Patokni tanlang:</h3>
+                        <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+                            <button type="button" onclick="switchMasterBranch('HQ')" id="branch-btn-hq"
+                                class="px-3 py-1 rounded-lg font-bold transition touch-btn {% if default_branch != 'UYCHI' %}bg-indigo-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                                🏢 Kosonsoy (K1–K13)
+                            </button>
+                            <button type="button" onclick="switchMasterBranch('UYCHI')" id="branch-btn-uychi"
+                                class="px-3 py-1 rounded-lg font-bold transition touch-btn {% if default_branch == 'UYCHI' %}bg-indigo-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                                🏭 Uychi (U1–U27)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="text-xs font-bold text-indigo-400" id="patoks-count-summary">13 ta patok</div>
+                        <button type="button" onclick="loadPatoksForBuilding(currentMasterBranch)"
+                            class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700 touch-btn">
+                            <i class="fa-solid fa-arrows-rotate text-indigo-400"></i>
+                            <span>Yangilash</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="patoks-cards-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-8">
@@ -232,9 +251,16 @@
                         </div>
                     </div>
 
-                    <div class="text-right">
-                        <div class="text-xs text-slate-400 font-bold uppercase">Kutilmoqda:</div>
-                        <div class="text-lg font-black text-amber-400" id="detail-waiting-count-badge">0 ta pastal</div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="if(currentScreenNumber) loadPatokPastals(currentScreenNumber)"
+                            class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700 touch-btn">
+                            <i class="fa-solid fa-arrows-rotate text-indigo-400"></i>
+                            <span class="hidden sm:inline">Yangilash</span>
+                        </button>
+                        <div class="text-right">
+                            <div class="text-xs text-slate-400 font-bold uppercase">Kutilmoqda:</div>
+                            <div class="text-lg font-black text-amber-400" id="detail-waiting-count-badge">0 ta pastal</div>
+                        </div>
                     </div>
                 </div>
 
@@ -558,14 +584,21 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="bg-slate-950 border-t border-slate-800 px-5 py-3.5 flex items-center justify-between flex-shrink-0 text-xs">
+            <div class="bg-slate-950 border-t border-slate-800 px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 flex-shrink-0 text-xs">
                 <span class="text-slate-400">
                     <i class="fa-solid fa-circle-info text-amber-400 mr-1.5"></i>
                     Pastal barcha qutilari OTK dan o'tib, ta'mirlar 0 bo'lgandagina to'liq yopiladi.
                 </span>
-                <button onclick="closePastalBoxesModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold touch-btn">
-                    Yopish
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="modal-reject-pastal-btn" onclick="openRejectModalFromBoxesModal()"
+                        class="hidden px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 border border-rose-500/40 hover:border-rose-500 text-rose-300 hover:text-white font-bold flex items-center gap-1.5 transition touch-btn">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        <span>Pastalni Qaytarish (0 stiker)</span>
+                    </button>
+                    <button onclick="closePastalBoxesModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold touch-btn">
+                        Yopish
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -581,6 +614,9 @@
         let currentScreenNumber = null;
         let autoLogoutSeconds = 300; // 5 daqiqa (300 soniya)
         let timerInterval = null;
+        let autoRefreshInterval = null;
+        let lastKnownWaitingCount = null;
+        let isActionInFlight = false;
 
         let activeTab = 'patoks';
         let monthlyYear = {{ now_date.year|default:2026 }};
@@ -589,9 +625,25 @@
         let monthlyStatusFilter = 'ALL';
         let cachedMonthlyPastals = [];
         let currentWaitingPastals = [];
+        let currentAcceptedPastals = [];
         let currentModalBatchId = null;
+        let currentModalPastal = null;
         let currentModalBoxes = [];
         let modalBoxesFilter = 'ALL';
+
+        // Global background scanner buffer (for scanning badges or pastal QR codes even when master screen is open)
+        let bgScanBuffer = '';
+        let bgScanTimer = null;
+        let standbyDebounceTimer = null;
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         // Web Audio API beep sound
         function playBeep(frequency = 880, duration = 0.15) {
@@ -619,7 +671,7 @@
             const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
 
             toast.className = `${bgClass} border text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-bold transition-all transform translate-y-2 opacity-0 pointer-events-auto`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${message}</span>`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${escapeHtml(message)}</span>`;
             container.appendChild(toast);
 
             setTimeout(() => {
@@ -635,36 +687,207 @@
         // Document Ready Init
         document.addEventListener('DOMContentLoaded', () => {
             initScannerInputFocus();
+            updateBranchButtonsUI(currentMasterBranch);
 
             if (isMasterActive) {
                 startAutoLogoutTimer();
+                startBackgroundAutoRefresh();
                 loadPatoksForBuilding(currentMasterBranch);
                 loadMasterMonthlyWork();
             }
         });
 
-        // Always keep focus on the standby scanner input when waiting
+        function isEnterOrTabKey(e) {
+            if (!e) return false;
+            const k = e.key;
+            const c = e.code;
+            const w = e.which || e.keyCode;
+            return (
+                k === 'Enter' || k === 'Return' || k === 'Tab' || k === '\r' || k === '\n' ||
+                c === 'Enter' || c === 'NumpadEnter' || w === 13 || w === 10 || w === 9
+            );
+        }
+
+        // Always keep focus on the standby scanner input & support global Zebra scans
         function initScannerInputFocus() {
             const input = document.getElementById('standby-scanner-input');
             if (input) {
                 input.focus();
-                // When clicking anywhere on screen while in standby, restore focus
+
                 document.addEventListener('click', (e) => {
                     if (!isMasterActive && e.target.id !== 'standby-scanner-input') {
                         input.focus();
                     }
                 });
 
-                // Listen for Enter key from Zebra scanner
                 input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
+                    if (isEnterOrTabKey(e)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearTimeout(standbyDebounceTimer);
                         const code = input.value.trim();
-                        if (code.length >= 3) {
+                        input.value = '';
+                        if (code.length >= 2) {
                             identifyMasterFromBadge(code);
                         }
-                        input.value = '';
                     }
                 });
+
+                input.addEventListener('input', () => {
+                    clearTimeout(standbyDebounceTimer);
+                    const val = input.value.trim();
+                    if (!val) return;
+                    if (val.includes('\n') || val.includes('\r')) {
+                        input.value = '';
+                        identifyMasterFromBadge(val);
+                        return;
+                    }
+                    // Zebra scanner auto-submit if scanner has no Enter suffix configured
+                    if (val.length >= 6 && /^(USER|WORKER|MASTER|ГЫУК|ЦЩКЛУК)[:;^Ж+]/i.test(val)) {
+                        standbyDebounceTimer = setTimeout(() => {
+                            const curr = input.value.trim();
+                            if (curr.length >= 6) {
+                                input.value = '';
+                                identifyMasterFromBadge(curr);
+                            }
+                        }, 220);
+                    }
+                });
+            }
+
+            // Global keyboard listener for Zebra scanner:
+            // 1) In standby mode if input lost focus, routes keystrokes to standby input
+            // 2) In active Master mode, allows scanning another Master's badge OR scanning a Pastal Passport QR (PASTAL:12)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeRejectModal();
+                    closePastalBoxesModal();
+                    return;
+                }
+
+                const activeEl = document.activeElement;
+                const isTypingInField = activeEl && (
+                    activeEl.tagName === 'INPUT' ||
+                    activeEl.tagName === 'TEXTAREA' ||
+                    activeEl.isContentEditable
+                );
+
+                if (!isMasterActive) {
+                    if (input && activeEl !== input && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                        if (isEnterOrTabKey(e)) {
+                            const code = input.value.trim();
+                            input.value = '';
+                            if (code.length >= 2) {
+                                e.preventDefault();
+                                identifyMasterFromBadge(code);
+                            }
+                            return;
+                        }
+                        if (e.key && e.key.length === 1) {
+                            input.focus();
+                            input.value += e.key;
+                            e.preventDefault();
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                    return;
+                }
+
+                // Active master mode: ignore if user is typing in search or reject reason textarea
+                if (isTypingInField) return;
+
+                if (isEnterOrTabKey(e)) {
+                    if (bgScanBuffer.trim().length >= 3) {
+                        e.preventDefault();
+                        const scanned = bgScanBuffer.trim();
+                        bgScanBuffer = '';
+                        clearTimeout(bgScanTimer);
+                        handleActiveScreenScan(scanned);
+                    } else {
+                        bgScanBuffer = '';
+                    }
+                    return;
+                }
+
+                if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    bgScanBuffer += e.key;
+                    clearTimeout(bgScanTimer);
+                    bgScanTimer = setTimeout(() => {
+                        const scanned = bgScanBuffer.trim();
+                        bgScanBuffer = '';
+                        if (scanned.length >= 5) {
+                            handleActiveScreenScan(scanned);
+                        }
+                    }, 220);
+                }
+            });
+        }
+
+        // Handle Zebra scan while Master Screen is already open
+        async function handleActiveScreenScan(rawCode) {
+            const clean = (rawCode || '').trim();
+            if (!clean) return;
+
+            // 1. If it's a Master/Worker badge scan -> switch active Master
+            if (/^(USER|WORKER|MASTER|ГЫУК|ЦЩКЛУК)[:;^Ж+]/i.test(clean)) {
+                identifyMasterFromBadge(clean);
+                return;
+            }
+
+            // 2. If it's a Pastal Passport / Box / Sticker QR scan -> lookup pastal and open it!
+            try {
+                const resp = await fetch('/master-tablet/api/lookup-pastal/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: clean })
+                });
+                const res = await resp.json();
+                if (res.success && res.batch_id) {
+                    playBeep(980, 0.15);
+                    if (res.dispatch_status === 'DISPATCHED' && res.assigned_screen) {
+                        if (res.assigned_branch && res.assigned_branch !== currentMasterBranch) {
+                            switchMasterBranch(res.assigned_branch, false);
+                        }
+                        switchTab('patoks');
+                        openPatokDetail(res.assigned_screen, res.patok_code, res.patok_name);
+                        showToast(`Pastal #${res.batch_number} (${res.patok_code}-Patokda kutilmoqda)`, 'success');
+                    } else {
+                        openPastalBoxesModal(res.batch_id);
+                    }
+                } else {
+                    // Fallback: try identifying as a master UID
+                    identifyMasterFromBadge(clean);
+                }
+            } catch (e) {
+                // Ignore network error on background scan
+            }
+        }
+
+        function updateBranchButtonsUI(branch) {
+            const btnHq = document.getElementById('branch-btn-hq');
+            const btnUychi = document.getElementById('branch-btn-uychi');
+            if (!btnHq || !btnUychi) return;
+            if (branch === 'UYCHI') {
+                btnUychi.className = "px-3 py-1 rounded-lg font-bold transition touch-btn bg-indigo-600 text-white shadow";
+                btnHq.className = "px-3 py-1 rounded-lg font-bold transition touch-btn text-slate-400 hover:text-white";
+            } else {
+                btnHq.className = "px-3 py-1 rounded-lg font-bold transition touch-btn bg-indigo-600 text-white shadow";
+                btnUychi.className = "px-3 py-1 rounded-lg font-bold transition touch-btn text-slate-400 hover:text-white";
+            }
+        }
+
+        function switchMasterBranch(branch, reload = true) {
+            currentMasterBranch = branch;
+            lastKnownWaitingCount = null;
+            updateBranchButtonsUI(branch);
+            const branchDisplay = (branch === 'HQ') ? "Kosonsoy (Bosh bino)" : "Uychi filiali";
+            const hdrBranch = document.getElementById('header-branch-name');
+            if (hdrBranch) hdrBranch.innerText = branchDisplay;
+            if (reload) {
+                loadPatoksForBuilding(branch);
+                if (activeTab === 'monthly' && monthlyScope === 'BRANCH') {
+                    loadMasterMonthlyWork();
+                }
             }
         }
 
@@ -681,22 +904,31 @@
                 if (res.success) {
                     playBeep(980, 0.15); // Success tone
                     isMasterActive = true;
-                    currentMasterBranch = res.master.branch;
+                    currentMasterBranch = res.master.branch || 'HQ';
+                    lastKnownWaitingCount = null;
 
                     // Update UI elements
                     document.getElementById('header-avatar').innerText = (res.master.name || 'M').charAt(0).toUpperCase();
                     document.getElementById('header-master-name').innerText = res.master.name;
                     document.getElementById('header-branch-name').innerText = res.master.branch_display;
+                    updateBranchButtonsUI(currentMasterBranch);
+
+                    // Close any stale modals from previous session
+                    closeRejectModal();
+                    closePastalBoxesModal();
 
                     // Switch screen from standby to master screen
                     document.getElementById('standby-screen').classList.add('hidden');
                     document.getElementById('master-screen').classList.remove('hidden');
 
                     showToast(`Xush kelibsiz, ${res.master.name}! (${res.master.branch_display})`, 'success');
-                    
-                    // Start 5-minute timer and load building patoks
+
+                    // Start 5-minute timer, background refresh, and load both Patoks + Monthly Work
                     startAutoLogoutTimer();
-                    loadPatoksForBuilding(currentMasterBranch);
+                    startBackgroundAutoRefresh();
+                    switchTab('patoks');
+                    backToPatoksGrid();
+                    loadMasterMonthlyWork();
                 } else {
                     playBeep(300, 0.25); // Error tone
                     showToast(res.message || "Master topilmadi", 'error');
@@ -704,6 +936,21 @@
             } catch (err) {
                 showToast("Server bilan aloqa uzildi", 'error');
             }
+        }
+
+        // 15-Second Silent Background Polling for New Incoming Pastals
+        function startBackgroundAutoRefresh() {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {
+                if (!isMasterActive || isActionInFlight) return;
+                if (activeTab === 'patoks') {
+                    if (currentScreenNumber) {
+                        loadPatokPastals(currentScreenNumber, true);
+                    } else {
+                        loadPatoksForBuilding(currentMasterBranch, true);
+                    }
+                }
+            }, 15000);
         }
 
         // 5-Minute Auto-Logout Timer
@@ -745,6 +992,7 @@
         // Logout Master
         async function logoutMaster(isAuto = false) {
             clearInterval(timerInterval);
+            clearInterval(autoRefreshInterval);
             window.removeEventListener('touchstart', resetTimerOnActivity);
             window.removeEventListener('mousedown', resetTimerOnActivity);
 
@@ -754,6 +1002,17 @@
 
             isMasterActive = false;
             currentScreenNumber = null;
+            cachedMonthlyPastals = [];
+            currentWaitingPastals = [];
+            currentAcceptedPastals = [];
+
+            // Close any open modals & reset tab to patoks
+            closeRejectModal();
+            closePastalBoxesModal();
+            activeTab = 'patoks';
+            document.getElementById('monthly-work-section').classList.add('hidden');
+            const tabBadge = document.getElementById('monthly-badge-count');
+            if (tabBadge) tabBadge.innerText = '0';
 
             // Return to Standby Screen
             document.getElementById('master-screen').classList.add('hidden');
@@ -767,7 +1026,7 @@
             const input = document.getElementById('standby-scanner-input');
             if (input) {
                 input.value = '';
-                input.focus();
+                setTimeout(() => input.focus(), 50);
             }
 
             if (isAuto) {
@@ -777,18 +1036,31 @@
             }
         }
 
-        // Load Patoks for Master's Building ONLY
-        async function loadPatoksForBuilding(branch) {
+        // Load Patoks for Building
+        async function loadPatoksForBuilding(branch, isSilent = false) {
             const container = document.getElementById('patoks-cards-container');
-            container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-400"></i><div>Patoklar yuklanmoqda...</div></div>`;
+            if (!isSilent) {
+                container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-400"></i><div>Patoklar yuklanmoqda...</div></div>`;
+            }
 
             try {
                 const resp = await fetch(`/master-tablet/api/patoks/?branch=${branch}`);
                 const res = await resp.json();
 
                 if (!res.success) {
-                    container.innerHTML = `<div class="col-span-full py-8 text-center text-rose-400">Patoklarni yuklab bo'lmadi</div>`;
+                    if (!isSilent) {
+                        container.innerHTML = `<div class="col-span-full py-8 text-center text-rose-400">Patoklarni yuklab bo'lmadi</div>`;
+                    }
                     return;
+                }
+
+                // Notify if new waiting pastals arrived during background polling
+                if (typeof res.total_waiting_pastals === 'number') {
+                    if (lastKnownWaitingCount !== null && res.total_waiting_pastals > lastKnownWaitingCount) {
+                        playBeep(1046, 0.2);
+                        showToast(`Diqqat! Patokka yangi pastal kelib tushdi (${res.total_waiting_pastals} ta kutilmoqda)`, 'success');
+                    }
+                    lastKnownWaitingCount = res.total_waiting_pastals;
                 }
 
                 document.getElementById('patoks-count-summary').innerText = `${res.patoks.length} ta patok (${res.branch_display})`;
@@ -809,15 +1081,15 @@
                     `;
 
                     return `
-                        <div onclick="openPatokDetail(${p.screen_number}, '${p.patok_code}', '${p.patok_name}')" 
+                        <div onclick="openPatokDetail(${p.screen_number}, '${escapeHtml(p.patok_code)}', '${escapeHtml(p.patok_name)}')" 
                             class="rounded-2xl border ${borderClass} p-4 flex flex-col justify-between cursor-pointer transition-all touch-btn hover:scale-[1.02] min-h-[140px]">
                             <div class="flex items-start justify-between gap-2">
-                                <div class="text-2xl font-black text-white">${p.patok_code}</div>
+                                <div class="text-2xl font-black text-white">${escapeHtml(p.patok_code)}</div>
                                 ${pulseBadge}
                             </div>
 
                             <div class="mt-4 pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                                <span class="text-slate-400 font-bold">${p.patok_name}</span>
+                                <span class="text-slate-400 font-bold">${escapeHtml(p.patok_name)}</span>
                                 <span class="font-black text-slate-300">
                                     ${p.active_count > 0 ? `<i class="fa-solid fa-gear text-indigo-400 mr-1"></i>${p.active_count} ta faol` : ''}
                                 </span>
@@ -827,7 +1099,9 @@
                 }).join('');
 
             } catch (err) {
-                container.innerHTML = `<div class="col-span-full py-8 text-center text-rose-400">Server bilan aloqa uzildi</div>`;
+                if (!isSilent) {
+                    container.innerHTML = `<div class="col-span-full py-8 text-center text-rose-400">Server bilan aloqa uzildi</div>`;
+                }
             }
         }
 
@@ -855,19 +1129,23 @@
         }
 
         // Load Pastals inside selected Patok
-        async function loadPatokPastals(screenNumber) {
+        async function loadPatokPastals(screenNumber, isSilent = false) {
             const waitingBox = document.getElementById('waiting-cards-container');
             const activeBox = document.getElementById('active-cards-container');
 
-            waitingBox.innerHTML = `<div class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-1 text-indigo-400"></i><div>Yuklanmoqda...</div></div>`;
-            activeBox.innerHTML = `<div class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-1 text-indigo-400"></i><div>Yuklanmoqda...</div></div>`;
+            if (!isSilent) {
+                waitingBox.innerHTML = `<div class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-1 text-indigo-400"></i><div>Yuklanmoqda...</div></div>`;
+                activeBox.innerHTML = `<div class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-1 text-indigo-400"></i><div>Yuklanmoqda...</div></div>`;
+            }
 
             try {
                 const resp = await fetch(`/master-tablet/api/patok/${screenNumber}/`);
                 const res = await resp.json();
 
                 if (!res.success) {
-                    waitingBox.innerHTML = `<div class="py-6 text-center text-rose-400">Xatolik yuz berdi</div>`;
+                    if (!isSilent) {
+                        waitingBox.innerHTML = `<div class="py-6 text-center text-rose-400">Xatolik yuz berdi</div>`;
+                    }
                     return;
                 }
 
@@ -879,6 +1157,8 @@
 
                 // Render Waiting Pastals
                 currentWaitingPastals = res.waiting_pastals || [];
+                currentAcceptedPastals = res.accepted_pastals || [];
+
                 if (waitCount === 0) {
                     waitingBox.innerHTML = `
                         <div class="py-14 text-center text-slate-500">
@@ -893,8 +1173,8 @@
                             <div class="bg-slate-800/90 border border-amber-500/40 rounded-2xl p-4 shadow-lg space-y-3">
                                 <div class="flex items-start justify-between gap-2 border-b border-slate-700/60 pb-2.5">
                                     <div>
-                                        <div class="text-xs font-bold text-amber-400 uppercase tracking-wide">Zakaz: ${p.order_number} (${p.customer_name})</div>
-                                        <div class="text-base sm:text-lg font-black text-white mt-0.5">Pastal №${p.batch_number} • ${p.article_name}</div>
+                                        <div class="text-xs font-bold text-amber-400 uppercase tracking-wide">Zakaz: ${escapeHtml(p.order_number)} (${escapeHtml(p.customer_name)})</div>
+                                        <div class="text-base sm:text-lg font-black text-white mt-0.5">Pastal №${p.batch_number} • <span class="text-cyan-400 font-mono">${escapeHtml(p.pastal_code)}</span> • ${escapeHtml(p.article_name)}</div>
                                     </div>
                                     <span class="px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                         Kutilmoqda
@@ -905,7 +1185,7 @@
                                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                                     <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                                         <div class="text-slate-400 text-[10px] font-bold uppercase">Jami Dona</div>
-                                        <div class="text-sm font-black text-white mt-0.5">${p.total_units.toLocaleString()} ta</div>
+                                        <div class="text-sm font-black text-white mt-0.5">${Number(p.total_units || 0).toLocaleString()} ta</div>
                                     </div>
                                     <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                                         <div class="text-slate-400 text-[10px] font-bold uppercase">Haqiqiy Vazn</div>
@@ -917,18 +1197,23 @@
                                     </div>
                                     <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                                         <div class="text-slate-400 text-[10px] font-bold uppercase">Jo'natgan</div>
-                                        <div class="text-sm font-black text-indigo-300 mt-0.5 truncate">${p.dispatched_by}</div>
+                                        <div class="text-sm font-black text-indigo-300 mt-0.5 truncate">${escapeHtml(p.dispatched_by)}</div>
                                     </div>
                                 </div>
 
-                                <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
-                                    <i class="fa-regular fa-clock text-amber-400"></i>
-                                    <span>Jo'natilgan vaqti: ${p.dispatched_at}</span>
+                                <div class="flex items-center justify-between text-[11px] text-slate-400">
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fa-regular fa-clock text-amber-400"></i>
+                                        <span>Jo'natilgan vaqti: ${escapeHtml(p.dispatched_at)}</span>
+                                    </div>
+                                    <button type="button" onclick="openPastalBoxesModal(${p.batch_id})" class="text-indigo-400 hover:text-indigo-300 font-bold underline">
+                                        Qutilarni ko'rish (${p.boxes_count})
+                                    </button>
                                 </div>
 
                                 <!-- Big Touch Action Buttons -->
                                 <div class="grid grid-cols-2 gap-3 pt-1">
-                                    <button onclick="acceptPastal(${p.batch_id})" 
+                                    <button id="accept-btn-${p.batch_id}" onclick="acceptPastal(${p.batch_id})" 
                                         class="py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 touch-btn">
                                         <i class="fa-solid fa-check text-lg"></i>
                                         <span>QABUL QILISH</span>
@@ -956,28 +1241,35 @@
                     activeBox.innerHTML = res.accepted_pastals.map(p => {
                         const isClosedBadge = p.is_pastal_closed 
                             ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✅ Yopilgan (${p.closed_boxes}/${p.boxes_count})</span>`
-                            : `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">⏳ Yopilmagan (${p.unclosed_boxes} qoldi)</span>`;
+                            : `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">⏳ Yopilmagan (${p.unclosed_boxes} quti qoldi)</span>`;
 
                         const repairBadge = (p.repair_boxes > 0)
                             ? `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">⚠️ ${p.repair_boxes} ta'mir</span>`
                             : ``;
 
+                        const undoBtnHtml = p.can_reject
+                            ? `<button type="button" onclick="event.stopPropagation(); openRejectModal(${p.batch_id});" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 transition" title="Tikuvga kirmagan pastalni qaytarish"><i class="fa-solid fa-arrow-rotate-left mr-1"></i>Qaytarish</button>`
+                            : ``;
+
                         return `
                             <div onclick="openPastalBoxesModal(${p.batch_id})" 
                                 class="bg-slate-800/70 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-xl p-3 flex flex-col gap-2 cursor-pointer transition-all touch-btn group shadow-sm">
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="font-black text-white group-hover:text-indigo-300 transition">Pastal №${p.batch_number} • ${p.article_name}</span>
-                                    <span class="font-bold text-emerald-400">${p.total_units} ta</span>
+                                <div class="flex items-center justify-between text-xs gap-2">
+                                    <span class="font-black text-white group-hover:text-indigo-300 transition truncate">Pastal №${p.batch_number} (${escapeHtml(p.pastal_code)}) • ${escapeHtml(p.article_name)}</span>
+                                    <span class="font-bold text-emerald-400 flex-shrink-0">${Number(p.total_units || 0).toLocaleString()} ta</span>
                                 </div>
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    ${isClosedBadge}
-                                    ${repairBadge}
+                                <div class="flex items-center justify-between gap-1.5 flex-wrap">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        ${isClosedBadge}
+                                        ${repairBadge}
+                                    </div>
+                                    ${undoBtnHtml}
                                 </div>
                                 <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
                                     <div class="bg-emerald-500 h-2 rounded-full" style="width: ${p.progress_pct}%"></div>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px] text-slate-400">
-                                    <span>Qabul qildi: ${p.accepted_by_name}</span>
+                                    <span>Qabul: ${escapeHtml(p.accepted_by_name)} • Tikuv: ${p.progress_pct}%</span>
                                     <span class="text-indigo-400 font-bold group-hover:underline flex items-center gap-1">
                                         <span>Qutilarni ko'rish</span>
                                         <i class="fa-solid fa-chevron-right text-[8px]"></i>
@@ -989,12 +1281,24 @@
                 }
 
             } catch (err) {
-                waitingBox.innerHTML = `<div class="py-6 text-center text-rose-400">Ma'lumotlarni yuklab bo'lmadi</div>`;
+                if (!isSilent) {
+                    waitingBox.innerHTML = `<div class="py-6 text-center text-rose-400">Ma'lumotlarni yuklab bo'lmadi</div>`;
+                }
             }
         }
 
-        // Accept Pastal Action
+        // Accept Pastal Action (with double-tap protection)
         async function acceptPastal(batchId) {
+            if (isActionInFlight) return;
+            isActionInFlight = true;
+
+            const btn = document.getElementById(`accept-btn-${batchId}`);
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>TASDIQLANMOQDA...</span>`;
+            }
+
             try {
                 const resp = await fetch('/master-tablet/api/accept/', {
                     method: 'POST',
@@ -1010,24 +1314,45 @@
                     playBeep(980, 0.2);
                     showToast(res.message, 'success');
                     loadPatokPastals(currentScreenNumber);
-                    loadPatoksForBuilding(currentMasterBranch);
+                    loadPatoksForBuilding(currentMasterBranch, true);
+                    loadMasterMonthlyWork();
                 } else {
                     playBeep(300, 0.25);
                     showToast(res.message || "Xatolik yuz berdi", 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = origHtml;
+                    }
                 }
             } catch (err) {
                 showToast("Server bilan aloqa uzildi", 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            } finally {
+                isActionInFlight = false;
             }
         }
 
         // Reject Pastal Modal
         function openRejectModal(batchId) {
-            const p = (currentWaitingPastals || []).find(x => x.batch_id === Number(batchId));
+            const p = (currentWaitingPastals || []).find(x => x.batch_id === Number(batchId))
+                   || (currentAcceptedPastals || []).find(x => x.batch_id === Number(batchId))
+                   || (cachedMonthlyPastals || []).find(x => x.batch_id === Number(batchId))
+                   || (currentModalPastal && currentModalPastal.batch_id === Number(batchId) ? currentModalPastal : null);
             const title = p ? `Pastal №${p.batch_number} (${p.article_name})` : `Pastal #${batchId}`;
             document.getElementById('reject-batch-id').value = batchId;
             document.getElementById('reject-pastal-title').innerText = title;
             document.getElementById('reject-reason-input').value = '';
             document.getElementById('reject-modal').classList.remove('hidden');
+        }
+
+        function openRejectModalFromBoxesModal() {
+            if (!currentModalBatchId) return;
+            const bId = currentModalBatchId;
+            closePastalBoxesModal();
+            openRejectModal(bId);
         }
 
         function closeRejectModal() {
@@ -1039,6 +1364,7 @@
         }
 
         async function submitRejectPastal() {
+            if (isActionInFlight) return;
             const batchId = document.getElementById('reject-batch-id').value;
             let reason = (document.getElementById('reject-reason-input').value || '').trim();
 
@@ -1046,6 +1372,7 @@
                 reason = "Master tomonidan qaytarildi";
             }
 
+            isActionInFlight = true;
             try {
                 const resp = await fetch('/master-tablet/api/reject/', {
                     method: 'POST',
@@ -1061,14 +1388,19 @@
                     playBeep(600, 0.2);
                     showToast(res.message, 'success');
                     closeRejectModal();
-                    loadPatokPastals(currentScreenNumber);
-                    loadPatoksForBuilding(currentMasterBranch);
+                    if (currentScreenNumber) {
+                        loadPatokPastals(currentScreenNumber);
+                    }
+                    loadPatoksForBuilding(currentMasterBranch, true);
+                    loadMasterMonthlyWork();
                 } else {
                     playBeep(300, 0.25);
                     showToast(res.message || "Xatolik yuz berdi", 'error');
                 }
             } catch (err) {
                 showToast("Server bilan aloqa uzildi", 'error');
+            } finally {
+                isActionInFlight = false;
             }
         }
 
@@ -1155,7 +1487,7 @@
                 const res = await resp.json();
 
                 if (!res.success) {
-                    container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">${res.message || "Yuklab bo'lmadi"}</div>`;
+                    container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">${escapeHtml(res.message || "Yuklab bo'lmadi")}</div>`;
                     return;
                 }
 
@@ -1169,7 +1501,7 @@
 
                 // KPI cards
                 document.getElementById('kpi-total-pastals').innerHTML = `${res.stats.total_pastals} <span class="text-xs font-normal text-slate-400">ta</span>`;
-                document.getElementById('kpi-total-units').innerText = `${res.stats.total_units.toLocaleString()} dona mahsulot`;
+                document.getElementById('kpi-total-units').innerText = `${Number(res.stats.total_units || 0).toLocaleString()} dona mahsulot`;
                 document.getElementById('kpi-closed-pastals').innerHTML = `${res.stats.closed_pastals} <span class="text-xs font-normal text-slate-400">ta</span>`;
                 document.getElementById('kpi-unclosed-pastals').innerHTML = `${res.stats.unclosed_pastals} <span class="text-xs font-normal text-slate-400">ta</span>`;
                 document.getElementById('kpi-repair-boxes').innerHTML = `${res.stats.repair_boxes} <span class="text-xs font-normal text-slate-400">ta quti</span>`;
@@ -1281,10 +1613,10 @@
                             <div class="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
                                 <div>
                                     <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
-                                        #${p.order_number} • ${p.customer_name}
+                                        #${escapeHtml(p.order_number)} • ${escapeHtml(p.customer_name)}
                                     </div>
                                     <h4 class="text-base sm:text-lg font-black text-white group-hover:text-amber-400 transition mt-0.5">
-                                        Pastal №${p.batch_number} • <span class="text-cyan-400 font-mono">${p.pastal_code}</span>
+                                        Pastal №${p.batch_number} • <span class="text-cyan-400 font-mono">${escapeHtml(p.pastal_code)}</span>
                                     </h4>
                                 </div>
                                 <div class="flex flex-col items-end gap-1">
@@ -1297,11 +1629,11 @@
                             <div class="py-2.5 space-y-1.5">
                                 <div class="text-xs text-slate-300 font-bold flex items-center gap-1.5">
                                     <i class="fa-solid fa-shirt text-slate-500 text-[11px]"></i>
-                                    <span>${p.article_name}</span>
+                                    <span>${escapeHtml(p.article_name)}</span>
                                 </div>
                                 <div class="flex items-center justify-between text-xs text-slate-400">
-                                    <span>Biriktirilgan: <strong class="text-white">${p.patok_code}-Patok</strong></span>
-                                    <span>Jami: <strong class="text-white font-mono">${p.total_units.toLocaleString()}</strong> dona</span>
+                                    <span>Biriktirilgan: <strong class="text-white">${escapeHtml(p.patok_code)}-Patok</strong></span>
+                                    <span>Jami: <strong class="text-white font-mono">${Number(p.total_units || 0).toLocaleString()}</strong> dona</span>
                                 </div>
                             </div>
 
@@ -1323,7 +1655,7 @@
                         <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
                             <span class="text-[11px] text-slate-500 flex items-center gap-1">
                                 <i class="fa-regular fa-clock text-slate-600"></i>
-                                <span>${p.accepted_at}</span>
+                                <span>${escapeHtml(p.accepted_at)}</span>
                             </span>
 
                             <button type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600/20 group-hover:bg-indigo-600 border border-indigo-500/40 group-hover:border-indigo-500 text-indigo-300 group-hover:text-white font-black text-xs flex items-center gap-2 transition-all">
@@ -1346,6 +1678,9 @@
             const modal = document.getElementById('pastal-boxes-modal');
             modal.classList.remove('hidden');
 
+            const rejectBtn = document.getElementById('modal-reject-pastal-btn');
+            if (rejectBtn) rejectBtn.classList.add('hidden');
+
             const container = document.getElementById('modal-boxes-container');
             container.innerHTML = `
                 <div class="col-span-full py-16 text-center text-slate-400">
@@ -1359,12 +1694,22 @@
                 const res = await resp.json();
 
                 if (!res.success) {
-                    container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">${res.message || "Xatolik yuz berdi"}</div>`;
+                    container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-400 font-bold">${escapeHtml(res.message || "Xatolik yuz berdi")}</div>`;
                     return;
                 }
 
                 const p = res.pastal;
+                currentModalPastal = p;
                 currentModalBoxes = res.boxes || [];
+
+                // Show Reject button in modal footer if 0 stickers scanned
+                if (rejectBtn) {
+                    if (p.can_reject) {
+                        rejectBtn.classList.remove('hidden');
+                    } else {
+                        rejectBtn.classList.add('hidden');
+                    }
+                }
 
                 // Header Title
                 document.getElementById('modal-pastal-title').innerText = `Pastal №${p.batch_number} • Kod: ${p.pastal_code}`;
@@ -1416,7 +1761,7 @@
 
                 // Stats strip
                 document.getElementById('modal-cnt-total').innerText = `${p.total_boxes} ta`;
-                document.getElementById('modal-cnt-units').innerText = `${p.total_units.toLocaleString()} dona`;
+                document.getElementById('modal-cnt-units').innerText = `${Number(p.total_units || 0).toLocaleString()} dona`;
                 document.getElementById('modal-cnt-closed').innerText = `${p.closed_boxes} ta`;
                 document.getElementById('modal-cnt-unclosed').innerText = `${p.unclosed_boxes} ta`;
                 document.getElementById('modal-cnt-repair').innerText = `${p.repair_boxes} ta`;
@@ -1509,6 +1854,16 @@
                     iconHtml = `<i class="fa-solid fa-pause text-slate-500 text-sm"></i>`;
                 }
 
+                let pendingOpsHtml = '';
+                if (!b.is_closed && (b.status_mode === 'IN_SEWING' || b.status_mode === 'PENDING') && b.pending_operations && b.pending_operations.length > 0) {
+                    const opsStr = b.pending_operations.map(escapeHtml).join(', ') + (b.pending_operations_more > 0 ? ` +${b.pending_operations_more} ta` : '');
+                    pendingOpsHtml = `
+                        <div class="mt-1.5 text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-1 leading-snug">
+                            <span class="font-bold text-amber-400">Urilmagan:</span> ${opsStr}
+                        </div>
+                    `;
+                }
+
                 return `
                     <div class="${cardBg} border-2 rounded-2xl p-3.5 flex flex-col justify-between gap-2.5 shadow-md transition-all">
                         <div>
@@ -1518,14 +1873,14 @@
                                     ${iconHtml}
                                     <span class="text-sm font-black text-white">Quti #${b.box_number}</span>
                                 </div>
-                                <span class="text-xs font-mono font-bold text-slate-400">${b.display_code}</span>
+                                <span class="text-xs font-mono font-bold text-slate-400">${escapeHtml(b.display_code)}</span>
                             </div>
 
                             <!-- Details -->
                             <div class="grid grid-cols-2 gap-2 text-xs py-2">
                                 <div>
                                     <span class="text-[10px] uppercase font-bold text-slate-500 block">Razmer</span>
-                                    <span class="text-xs font-black text-cyan-300">${b.razmer}</span>
+                                    <span class="text-xs font-black text-cyan-300">${escapeHtml(b.razmer)}</span>
                                 </div>
                                 <div>
                                     <span class="text-[10px] uppercase font-bold text-slate-500 block">Dona soni</span>
@@ -1538,6 +1893,7 @@
                                 <span>Tikuv stikerlari:</span>
                                 <span class="font-bold font-mono text-slate-200">${b.scanned_tickets_count} / ${b.total_tickets_count}</span>
                             </div>
+                            ${pendingOpsHtml}
                         </div>
 
                         <!-- Status Footer -->
@@ -1546,7 +1902,7 @@
                                 ${statusBadge}
                             </div>
                             <div class="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                                ${b.status_text}
+                                ${escapeHtml(b.status_text)}
                             </div>
                         </div>
                     </div>
@@ -1557,6 +1913,7 @@
         function closePastalBoxesModal() {
             document.getElementById('pastal-boxes-modal').classList.add('hidden');
             currentModalBatchId = null;
+            currentModalPastal = null;
             currentModalBoxes = [];
         }
     </script>

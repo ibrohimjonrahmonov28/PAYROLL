@@ -84,9 +84,11 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
             scanned_at=timezone.now()
         )
 
-        # At this stage, 50 sewing units scanned, but 0 DAZMOL units
+        # At this stage, 50 sewing units scanned, but 0 DAZMOL units -> falls back to Tikuv (50)
         data = get_screen_data(1)
-        self.assertEqual(data['grand_total_units'], 0)
+        self.assertEqual(data['grand_total_units'], 50)
+        self.assertEqual(data['units_label'], "Tikuv:")
+        self.assertEqual(data['dazmol_units'], 0)
         self.assertEqual(data['active_workers_count'], 1)
 
         # 2. Worker 2 scans DAZMOL operation for 44 pieces on Screen 1
@@ -101,9 +103,10 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
             scanned_at=timezone.now()
         )
 
-        # Now, grand_total_units must be 44 (the sum of DAZMOL passed pieces), NOT 50 + 44 = 94
+        # Now, grand_total_units must be 44 (the sum of DAZMOL passed pieces), labeled as Dazmol:
         data_after = get_screen_data(1)
         self.assertEqual(data_after['grand_total_units'], 44)
+        self.assertEqual(data_after['units_label'], "Dazmol:")
         self.assertEqual(data_after['dazmol_units'], 44)
         self.assertEqual(data_after['active_workers_count'], 2)
 

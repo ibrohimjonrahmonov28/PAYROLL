@@ -95,12 +95,9 @@ def dispatch_batch_async(batch_id: int, branch: str, screen_number: int, user_na
     batch.rejected_at = None
     batch.save(update_fields=['assigned_branch', 'assigned_screen', 'dispatch_status', 'dispatched_at', 'dispatched_by', 'rejection_reason', 'rejected_at'])
 
-    # Qutilarga ham biriktirilgan patok raqamini belgilash
-    order = batch.order_item.order if batch.order_item else None
-    Box.objects.filter(
-        Q(cutting_batch_item__batch=batch) |
-        (Q(pastal_number=batch.pastal_code) & Q(order=order))
-    ).update(assigned_screen=screen_number)
+    # Faqat AKTIV qutilarga biriktirilgan patok raqamini belgilash (bo'sh pastal_code xatosiz)
+    from production.master_views import _get_batch_active_boxes
+    _get_batch_active_boxes(batch).update(assigned_screen=screen_number)
 
     return {
         'batch_id': batch.id,
@@ -238,12 +235,38 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
     batch_id = await resolve_batch_from_details_async(details)
 
     if result.get('success') and batch_id:
+        disp_status = details.get('dispatch_status')
+        ass_screen = details.get('assigned_screen')
+        scanned_tkts = details.get('scanned_tickets', 0) or 0
+        p_code_info = get_patok_code(ass_screen) if ass_screen else 'Patok'
+
+        # Agar pastal allaqachon patokda qabul qilingan va tikuv boshlangan bo'lsa, qayta jo'natishni bloklash
+        if disp_status == CuttingBatch.DispatchStatus.ACCEPTED and scanned_tkts > 0:
+            context.user_data.pop('dispatch_state', None)
+            context.user_data.pop('dispatch_batch_id', None)
+            already_msg = (
+                f"{message_text}\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"📌 *HOLATI:* Ushbu pastal allaqachon *{p_code_info}-Patok* tomonidan QABUL QILINGAN "
+                f"va tikuv jarayonida ({scanned_tkts} ta stiker urilgan).\n"
+                f"🔒 _Tikuvga kirgan pastalni boshqa patokka qayta jo'natib bo'lmaydi._"
+            )
+            await update.message.reply_text(already_msg, parse_mode='Markdown')
+            return
+
+        status_note = ""
+        if disp_status == CuttingBatch.DispatchStatus.DISPATCHED and ass_screen:
+            status_note = f"\n⏳ _Eslatma: Hozirda {p_code_info}-Patokda qabul qilinishi kutilmoqda. Qayta jo'natish uchun vazn kiriting:_\n"
+        elif disp_status == CuttingBatch.DispatchStatus.ACCEPTED and ass_screen:
+            status_note = f"\nℹ️ _Eslatma: Hozirda {p_code_info}-Patokda qabul qilingan (0 stiker urilgan). Boshqa patokka o'tkazish uchun vazn kiriting:_\n"
+
         # User sessiyasiga batch_id va kutish holatini o'rnatish
         context.user_data['dispatch_batch_id'] = batch_id
         context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
 
         kg_prompt = (
-            f"{message_text}\n\n"
+            f"{message_text}\n"
+            f"{status_note}\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
             f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_"

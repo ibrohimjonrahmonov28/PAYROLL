@@ -37,10 +37,27 @@ def manager_or_superadmin_required(view_func):
     return wrapper
 
 
+def is_main_dazmol_operation(name, code=None):
+    """
+    Haqiqiy yakuniy kiyim dazmoli ekanini aniqlaydi:
+    - TASMA DAZMOL va CHO'NTAK DAZMOL kabi oraliq operatsiyalar bundan mustasno.
+    """
+    if not name and not code:
+        return False
+    name_u = (name or "").upper()
+    code_u = (code or "").upper()
+    has_dazmol = ('DAZMOL' in name_u) or ('DAZMOL' in code_u)
+    if not has_dazmol:
+        return False
+    # Oraliq dazmol amallari (tasma, cho'ntak) kiyimning yakuniy dazmoli emas
+    is_intermediate = any(excl in name_u or excl in code_u for excl in ('TASMA', "CHO'NTAK", "CHONTAK"))
+    return not is_intermediate
+
+
 def get_dazmol_operation_ids_for_article(article):
     """
     Model uchun dazmol yoki oxirgi tikuv operatsiyasi ID larini qaytaradi:
-    - Agar operatsiya nomida yoki kodida 'DAZMOL' bo'lsa, o'shalarni oladi.
+    - Agar operatsiya nomida yoki kodida 'DAZMOL' bo'lsa (tasma, cho'ntak oraliq dazmollaridan tashqari), o'shalarni oladi.
     - Agar modelda dazmol bo'lmasa, eng oxirgi ketma-ketlikdagi (sequence) operatsiyani oladi.
     """
     ops = list(article.article_operations.select_related('operation').order_by('sequence', 'id'))
@@ -49,13 +66,14 @@ def get_dazmol_operation_ids_for_article(article):
 
     dazmol_ops = [
         ao for ao in ops
-        if 'DAZMOL' in ao.operation.name.upper() or (ao.operation.code and 'DAZMOL' in ao.operation.code.upper())
+        if is_main_dazmol_operation(ao.operation.name, ao.operation.code)
     ]
     if dazmol_ops:
         return {ao.id for ao in dazmol_ops}
 
     # Dazmol bo'lmasa, eng oxirgi operatsiya
     return {ops[-1].id}
+
 
 
 def evaluate_box_progress(box, dazmol_ao_ids=None):
@@ -709,7 +727,7 @@ def sewing_statistics_daily_view(request):
             boxes_by_pastal.setdefault(pcode, []).append(b)
             all_pbox_ids.append(b.id)
 
-    # Dazmoldan o'tgan qutilar ID to'plami
+    # Dazmoldan o'tgan qutilar ID to'plami (faqat yakuniy dazmol)
     dazmol_box_ids_set = set(
         Ticket.objects.filter(
             box_id__in=all_pbox_ids,
@@ -717,6 +735,13 @@ def sewing_statistics_daily_view(request):
         ).filter(
             Q(article_operation__operation__name__icontains='DAZMOL') |
             Q(article_operation__operation__code__icontains='DAZMOL')
+        ).exclude(
+            Q(article_operation__operation__name__icontains='TASMA') |
+            Q(article_operation__operation__code__icontains='TASMA') |
+            Q(article_operation__operation__name__icontains="CHO'NTAK") |
+            Q(article_operation__operation__code__icontains="CHO'NTAK") |
+            Q(article_operation__operation__name__icontains='CHONTAK') |
+            Q(article_operation__operation__code__icontains='CHONTAK')
         ).values_list('box_id', flat=True).distinct()
     )
 
@@ -805,9 +830,9 @@ def sewing_statistics_daily_view(request):
 
         for t in t_list:
             ao = t.article_operation
-            op_name = ao.operation.name.upper() if ao and ao.operation else ""
-            op_code = (ao.operation.code or "").upper() if ao and ao.operation else ""
-            is_dazmol = ('DAZMOL' in op_name or 'DAZMOL' in op_code)
+            op_name = ao.operation.name if ao and ao.operation else ""
+            op_code = ao.operation.code if ao and ao.operation else ""
+            is_dazmol = is_main_dazmol_operation(op_name, op_code)
 
             if is_dazmol:
                 sn_dazmol_qty += t.quantity
@@ -964,9 +989,19 @@ def sewing_statistics_daily_view(request):
             p_order_num = first_b.order.order_number if first_b and first_b.order else "—"
             p_model_name = (first_b.target_article.name if first_b and first_b.target_article else (first_b.article.name if first_b and first_b.article else "—"))
 
-            # Bugungi kunlik dazmol va OTK shu pastal uchun
-            p_today_dazmol = sum(t.quantity for t in t_list if t.box and (t.box.pastal_code or "").strip() == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else '')))
-            p_today_dazmol_boxes = len({t.box_id for t in t_list if t.box and (t.box.pastal_code or "").strip() == pcode and ('DAZMOL' in (t.article_operation.operation.name.upper() if t.article_operation and t.article_operation.operation else ''))})
+            # Bugungi kunlik dazmol va OTK shu pastal uchun (faqat yakuniy dazmol)
+            p_today_dazmol = sum(
+                t.quantity for t in t_list
+                if t.box and (t.box.pastal_code or "").strip() == pcode
+                and t.article_operation and t.article_operation.operation
+                and is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code)
+            )
+            p_today_dazmol_boxes = len({
+                t.box_id for t in t_list
+                if t.box and (t.box.pastal_code or "").strip() == pcode
+                and t.article_operation and t.article_operation.operation
+                and is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code)
+            })
 
             # Bugungi kunlik OTK shu pastal uchun
             p_today_logs = [l for bid in [b.id for b in p_boxes] for l in logs_by_box.get(bid, [])]
@@ -1287,7 +1322,7 @@ def api_sewing_statistics_daily_operations(request):
         if op_id not in operations_map:
             op_name = ao.operation.name
             op_code = ao.operation.code or ""
-            is_dazmol = ('DAZMOL' in op_name.upper() or 'DAZMOL' in op_code.upper())
+            is_dazmol = is_main_dazmol_operation(op_name, op_code)
             operations_map[op_id] = {
                 'operation_id': op_id,
                 'sequence': ao.sequence,

@@ -3494,6 +3494,334 @@ class TelegramDailyReportApiTest(TestCase):
             self.assertIn('chat_id', payload)
 
 
+class IntermediateIroningExclusionTest(TestCase):
+    def test_is_main_dazmol_operation_logic(self):
+        from production.sewing_statistics_views import is_main_dazmol_operation
 
+        # Yakuniy dazmol
+        self.assertTrue(is_main_dazmol_operation("DAZMOL", "DAZMOL"))
+        self.assertTrue(is_main_dazmol_operation("Dazmol", "OP-DAZ"))
+        self.assertTrue(is_main_dazmol_operation("YAKUNIY DAZMOL", "DAZMOL-01"))
+
+        # Oraliq dazmollar (mustasno)
+        self.assertFalse(is_main_dazmol_operation("TASMA DAZMOL", "TASMA DAZMOL"))
+        self.assertFalse(is_main_dazmol_operation("CHO'NTAK DAZMOL", "CHO'NTAK DAZMOL"))
+        self.assertFalse(is_main_dazmol_operation("CHONTAK DAZMOL", "CHONTAK DAZMOL"))
+
+        # Dazmol bo'lmagan amallar
+        self.assertFalse(is_main_dazmol_operation("OLDI AVERLO", "AVERLO-01"))
+        self.assertFalse(is_main_dazmol_operation("", ""))
+        self.assertFalse(is_main_dazmol_operation(None, None))
+
+
+class MasterTabletWorkflowTest(TestCase):
+    """
+    Master Plansheti (/master-tablet/) uchun to'liq avtomatlashtirilgan testlar to'plami:
+    1. Beydjik identifikatsiyasi (USER:, WORKER:, kirill klaviaturasi) va Chiqish (Logout)
+    2. Patoklar ro'yxati (HQ va UYCHI), pastalni qabul qilish va qaytarish
+    3. Bekor qilingan (CANCELLED) quti va faolsiz operatsiya stikerlari pastal yopilishini to'sib qo'ymasligi
+    4. Bo'sh pastal_code ('') boshqa kesim qutilarini tortib ketmasligi
+    5. Adashib qabul qilingan (ACCEPTED) pastalni 0 stiker urilganda qaytarish va stiker urilgach bloklash
+    6. Pastal pasporti QR kodi orqali tezkor qidiruv (/master-tablet/api/lookup-pastal/)
+    7. Oylik ishlar hisoboti va qutilar nazorati modali (pending_operations bilan)
+    """
+
+    def setUp(self):
+        from accounts.models import User, Worker
+        from production.models import (
+            Customer, ProductModel, Article, Operation, ArticleOperation,
+            Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket
+        )
+
+        self.master_hq = User.objects.create_user(
+            username='master_hq_tab',
+            password='password123',
+            first_name='Sardor',
+            last_name='Master',
+            role=User.Role.MASTER,
+            branch=User.Branch.HQ,
+            uid='778899'
+        )
+        self.master_worker = Worker.objects.create(
+            user=self.master_hq,
+            worker_id='W-9988',
+            first_name='Sardor',
+            last_name='Master',
+            branch=User.Branch.HQ
+        )
+        self.branch_admin_uychi = User.objects.create_user(
+            username='badmin_uychi_tab',
+            password='password123',
+            first_name='Uychi',
+            last_name='Admin',
+            role=User.Role.BRANCH_ADMIN,
+            branch=User.Branch.UYCHI,
+            uid='665544'
+        )
+
+        self.customer = Customer.objects.create(name='Tablet Test Client')
+        self.pmodel = ProductModel.objects.create(name='Polo Shirt', code='MD-TAB')
+        self.article = Article.objects.create(name='Polo White', code='ART-TAB', model=self.pmodel)
+
+        self.op1 = Operation.objects.create(name='Yelka tikish', code='OP-YELKA')
+        self.op2 = Operation.objects.create(name='Yoqa tikish', code='OP-YOQA')
+        self.op_inactive = Operation.objects.create(name='Eski amal', code='OP-OLD')
+
+        self.aop1 = ArticleOperation.objects.create(article=self.article, operation=self.op1, price_per_unit=Decimal('500.00'), is_active=True)
+        self.aop2 = ArticleOperation.objects.create(article=self.article, operation=self.op2, price_per_unit=Decimal('700.00'), is_active=True)
+        self.aop_inactive = ArticleOperation.objects.create(article=self.article, operation=self.op_inactive, price_per_unit=Decimal('300.00'), is_active=False)
+
+        self.order = Order.objects.create(
+            order_number='ORD-TAB-01',
+            customer=self.customer,
+            status=Order.Status.IN_PROGRESS
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order,
+            article=self.article,
+            quantity=200
+        )
+        self.item_size = OrderItemSize.objects.create(
+            order_item=self.order_item,
+            size_name='XL',
+            planned_quantity=200
+        )
+
+        # 1-Pastal (bo'sh pastal_code bilan — xavfsizlikni tekshirish uchun)
+        self.batch1 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=1,
+            pastal_code='',
+            actual_weight_kg=Decimal('45.50'),
+            assigned_branch='HQ',
+            assigned_screen=3,
+            dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED,
+            dispatched_at=timezone.now(),
+            dispatched_by='Bichuvchi Ali'
+        )
+        self.cbi1 = CuttingBatchItem.objects.create(
+            batch=self.batch1,
+            order_item_size=self.item_size,
+            quantity=100,
+            status=CuttingBatchItem.Status.METO_CONFIRMED
+        )
+        # 2 ta aktiv quti + 1 ta BEKOR QILINGAN (CANCELLED) quti
+        self.box1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.cbi1,
+            box_number=1,
+            box_code='T1-001',
+            razmer='XL',
+            quantity=50,
+            pastal_number='',
+            status=Box.Status.CREATED
+        )
+        self.box2 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.cbi1,
+            box_number=2,
+            box_code='T1-002',
+            razmer='XL',
+            quantity=50,
+            pastal_number='',
+            status=Box.Status.CREATED
+        )
+        self.box_cancelled = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.cbi1,
+            box_number=3,
+            box_code='T1-003-CNC',
+            razmer='XL',
+            quantity=50,
+            pastal_number='',
+            status=Box.Status.CANCELLED
+        )
+
+        # Stikerlar yaratish (shu jumladan CANCELLED va faolsiz operatsiya stikerlari)
+        for bx in (self.box1, self.box2):
+            Ticket.objects.create(box=bx, article_operation=self.aop1, quantity=50, status=Ticket.Status.PENDING, price_per_unit=Decimal('500'), total_amount=Decimal('25000'))
+            Ticket.objects.create(box=bx, article_operation=self.aop2, quantity=50, status=Ticket.Status.PENDING, price_per_unit=Decimal('700'), total_amount=Decimal('35000'))
+            Ticket.objects.create(box=bx, article_operation=self.aop_inactive, quantity=50, status=Ticket.Status.PENDING, price_per_unit=Decimal('300'), total_amount=Decimal('15000'))
+        Ticket.objects.create(box=self.box_cancelled, article_operation=self.aop1, quantity=50, status=Ticket.Status.CANCELLED, price_per_unit=Decimal('500'), total_amount=Decimal('25000'))
+
+        # 2-Pastal (shu zakazda, u ham pastal_code='' bo'lgan boshqa pastal)
+        self.batch2 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=2,
+            pastal_code='',
+            dispatch_status=CuttingBatch.DispatchStatus.WAITING
+        )
+        self.cbi2 = CuttingBatchItem.objects.create(
+            batch=self.batch2,
+            order_item_size=self.item_size,
+            quantity=50,
+            status=CuttingBatchItem.Status.METO_CONFIRMED
+        )
+        self.box_other_batch = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.cbi2,
+            box_number=4,
+            box_code='T2-004',
+            razmer='XL',
+            quantity=50,
+            pastal_number='',
+            status=Box.Status.CREATED
+        )
+
+    def test_identify_master_formats_and_logout_persistence(self):
+        url_id = reverse('production:master_tablet_identify')
+        url_logout = reverse('production:master_tablet_logout')
+
+        # 1. Kirill klaviaturasida skanerlangan USER:778899 -> ГЫУКЖ778899
+        res_cyr = self.client.post(url_id, data=json.dumps({'code': 'ГЫУКЖ778899'}), content_type='application/json')
+        self.assertEqual(res_cyr.status_code, 200)
+        self.assertTrue(res_cyr.json()['success'])
+        self.assertEqual(res_cyr.json()['master']['id'], self.master_hq.id)
+
+        # 2. WORKER:W-9988 orqali aniqlash
+        res_wrk = self.client.post(url_id, data=json.dumps({'code': 'WORKER:W-9988'}), content_type='application/json')
+        self.assertEqual(res_wrk.status_code, 200)
+        self.assertTrue(res_wrk.json()['success'])
+
+        # 3. Brauzerda login qilingan holatda Chiqish (Logout) bosilganda, sessiya chindan yopilishi
+        self.client.force_login(self.master_hq)
+        res_out = self.client.post(url_logout)
+        self.assertEqual(res_out.status_code, 200)
+
+        # Logoutdan keyin accept chaqirilsa 401 qaytishi shart (request.user ga qaytib qolmasligi kerak!)
+        res_acc = self.client.post(
+            reverse('production:master_tablet_accept'),
+            data=json.dumps({'batch_id': self.batch1.id, 'screen_number': 3}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_acc.status_code, 401)
+
+    def test_accept_pastal_excludes_cancelled_and_other_empty_pastal_boxes(self):
+        # Master beydjik urib kiradi
+        self.client.post(
+            reverse('production:master_tablet_identify'),
+            data=json.dumps({'code': 'USER:778899'}),
+            content_type='application/json'
+        )
+
+        # Patok 3 detail: faqat 2 ta aktiv quti ko'rinishi kerak (box_cancelled va box_other_batch qo'shilmasligi kerak)
+        res_det = self.client.get(reverse('production:master_tablet_patok_detail', args=[3]))
+        self.assertEqual(res_det.status_code, 200)
+        det_data = res_det.json()
+        self.assertEqual(len(det_data['waiting_pastals']), 1)
+        self.assertEqual(det_data['waiting_pastals'][0]['boxes_count'], 2)
+
+        # Pastal 1 ni qabul qilish
+        res_acc = self.client.post(
+            reverse('production:master_tablet_accept'),
+            data=json.dumps({'batch_id': self.batch1.id, 'screen_number': 3}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_acc.status_code, 200)
+        self.assertTrue(res_acc.json()['success'])
+
+        self.box1.refresh_from_db()
+        self.box2.refresh_from_db()
+        self.box_cancelled.refresh_from_db()
+        self.box_other_batch.refresh_from_db()
+
+        self.assertTrue(self.box1.is_received_by_patok)
+        self.assertEqual(self.box1.assigned_screen, 3)
+        self.assertTrue(self.box2.is_received_by_patok)
+        # Bekor qilingan quti va boshqa pastalning bo'sh pastal_number li qutisi o'zgarmasligi shart!
+        self.assertFalse(self.box_cancelled.is_received_by_patok)
+        self.assertFalse(self.box_other_batch.is_received_by_patok)
+        self.assertIsNone(self.box_other_batch.assigned_screen)
+
+    def test_pastal_closure_and_boxes_modal_ignores_cancelled_boxes_and_inactive_ops(self):
+        self.client.post(
+            reverse('production:master_tablet_identify'),
+            data=json.dumps({'code': 'USER:778899'}),
+            content_type='application/json'
+        )
+        self.client.post(
+            reverse('production:master_tablet_accept'),
+            data=json.dumps({'batch_id': self.batch1.id, 'screen_number': 3}),
+            content_type='application/json'
+        )
+
+        # Box 1 da faqat 1-operatsiya urilgan -> Qolgan urilmagan operatsiya: 'Yoqa tikish'
+        t1 = Ticket.objects.get(box=self.box1, article_operation=self.aop1)
+        t1.status = Ticket.Status.SCANNED
+        t1.save()
+
+        res_boxes = self.client.get(reverse('production:master_tablet_pastal_boxes', args=[self.batch1.id]))
+        self.assertEqual(res_boxes.status_code, 200)
+        bdata = res_boxes.json()
+        self.assertEqual(bdata['pastal']['total_boxes'], 2)
+        self.assertFalse(bdata['pastal']['is_pastal_closed'])
+        # Stiker urilgani uchun endi can_reject False bo'lishi kerak
+        self.assertFalse(bdata['pastal']['can_reject'])
+
+        bx1_info = next(x for x in bdata['boxes'] if x['box_id'] == self.box1.id)
+        self.assertEqual(bx1_info['scanned_tickets_count'], 1)
+        self.assertEqual(bx1_info['total_tickets_count'], 2)  # faolsiz aop_inactive kirmaydi!
+        self.assertIn('Yoqa tikish', bx1_info['pending_operations'])
+
+        # Endi stiker urilgan pastalni qaytarishga urinib ko'ramiz -> 400 xato berishi shart!
+        res_rej_fail = self.client.post(
+            reverse('production:master_tablet_reject'),
+            data=json.dumps({'batch_id': self.batch1.id, 'reason': 'Xato'}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_rej_fail.status_code, 400)
+
+        # Endi ikkala aktiv qutini OTK dan o'tkazamiz (controlled_repair_qty=0)
+        for bx in (self.box1, self.box2):
+            bx.is_controlled = True
+            bx.controlled_first_sort_qty = 50
+            bx.controlled_repair_qty = 0
+            bx.save()
+
+        # box_cancelled CANCELLED bo'lishiga qaramay, pastal 100% YOPILGAN (is_pastal_closed=True) bo'lishi shart!
+        res_monthly = self.client.get(reverse('production:master_tablet_monthly_work'))
+        self.assertEqual(res_monthly.status_code, 200)
+        mdata = res_monthly.json()
+        self.assertEqual(mdata['stats']['total_pastals'], 1)
+        self.assertEqual(mdata['stats']['closed_pastals'], 1)
+        self.assertEqual(mdata['stats']['unclosed_pastals'], 0)
+        self.assertTrue(mdata['pastals'][0]['is_pastal_closed'])
+
+    def test_accidental_accept_can_be_rejected_when_zero_scans_and_lookup_api(self):
+        self.client.force_login(self.branch_admin_uychi)
+        # BRANCH_ADMIN /master-tablet/ ga kira olishi shart
+        res_page = self.client.get(reverse('production:master_tablet'))
+        self.assertEqual(res_page.status_code, 200)
+
+        # Pastal 1 ni qabul qilamiz (0 stiker urilgan)
+        self.client.post(
+            reverse('production:master_tablet_accept'),
+            data=json.dumps({'batch_id': self.batch1.id, 'screen_number': 3}),
+            content_type='application/json'
+        )
+        # Lookup API tekshiruvi (PASTAL:<id>)
+        res_lkp = self.client.post(
+            reverse('production:master_tablet_lookup_pastal'),
+            data=json.dumps({'code': f'PASTAL:{self.batch1.id}'}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_lkp.status_code, 200)
+        self.assertEqual(res_lkp.json()['dispatch_status'], CuttingBatch.DispatchStatus.ACCEPTED)
+
+        # 0 ta stiker urilgani uchun ACCEPTED holatidan ham Qaytarish (WAITING holatiga o'tkazish) ishlashi shart
+        res_rej = self.client.post(
+            reverse('production:master_tablet_reject'),
+            data=json.dumps({'batch_id': self.batch1.id, 'reason': 'Adashib bosildi'}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_rej.status_code, 200)
+        self.batch1.refresh_from_db()
+        self.assertEqual(self.batch1.dispatch_status, CuttingBatch.DispatchStatus.WAITING)
+        self.assertIsNone(self.batch1.assigned_screen)
+        self.assertIsNone(self.batch1.accepted_by)
 
 
