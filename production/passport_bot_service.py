@@ -107,7 +107,11 @@ def resolve_code_to_entity(raw_code: str):
     if not raw_code:
         return None, None, None, 'UNKNOWN', ''
 
-    raw = str(raw_code).strip()
+    from production.terminal_views import fix_cyrillic_layout
+    raw = fix_cyrillic_layout(str(raw_code).strip()).strip()
+    if '+' in raw:
+        raw = re.sub(r'^(PASTAL|BATCH|TICKET|TK|CONTROL|BOX|QUTI|PC|ORDER|ZAKAZ)\+', r'\1:', raw, flags=re.IGNORECASE)
+        raw = raw.replace('+', '-')
     clean = raw
 
     # 1. PASTAL / BATCH prefiksi
@@ -130,7 +134,7 @@ def resolve_code_to_entity(raw_code: str):
             'box__article__model',
             'box__cutting_batch_item__batch__order_item__article',
             'article_operation__operation'
-        ).filter(ticket_code=tkt_code).first()
+        ).filter(ticket_code__iexact=tkt_code).first()
         if ticket:
             box = ticket.box
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
@@ -144,7 +148,7 @@ def resolve_code_to_entity(raw_code: str):
             'order__customer',
             'article__model',
             'cutting_batch_item__batch'
-        ).filter(box_code=bx_code).first()
+        ).filter(box_code__iexact=bx_code).first()
         if box:
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
             return batch, box, None, 'BOX_CODE', bx_code
@@ -156,7 +160,7 @@ def resolve_code_to_entity(raw_code: str):
             'box__article__model',
             'box__cutting_batch_item__batch__order_item__article',
             'article_operation__operation'
-        ).filter(ticket_code=raw).first()
+        ).filter(ticket_code__iexact=raw).first()
         if ticket:
             box = ticket.box
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None

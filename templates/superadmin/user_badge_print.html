@@ -287,7 +287,8 @@
                                     </span>
                                     <span
                                         class="text-[6.5px] font-bold tracking-widest uppercase text-slate-500 block leading-none mt-0.5">
-                                        ISHLAB CHIQARISH KOMPLEKSI
+                                        {% if target_user.branch == 'UYCHI' %}UYCHI FILIALI{% else %}BOSH BINO
+                                        (KOSONSOY){% endif %}
                                     </span>
                                 </div>
                             </div>
@@ -304,10 +305,45 @@
                                     class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                                     ADMIN
                                 </span>
+                                {% elif target_user.role == 'BRANCH_ADMIN' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                    FILIAL ADMIN
+                                </span>
                                 {% elif target_user.role == 'MASTER' %}
                                 <span
                                     class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-300">
-                                    MASTER
+                                    PATOK MASTERI
+                                </span>
+                                {% elif target_user.role == 'CONTROL' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-300">
+                                    PATOK KONTROL
+                                </span>
+                                {% elif target_user.role == 'MANAGER' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-300">
+                                    MENEJER
+                                </span>
+                                {% elif target_user.role == 'CUTTER' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-100 text-orange-900 border border-orange-300">
+                                    KESIMCHI
+                                </span>
+                                {% elif target_user.role == 'METO' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-900 border border-cyan-300">
+                                    METO / BARKOD
+                                </span>
+                                {% elif target_user.role == 'STICKER' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-teal-100 text-teal-900 border border-teal-300">
+                                    STIKERCHI
+                                </span>
+                                {% elif target_user.role == 'PLAN' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                                    NORMA / PLAN
                                 </span>
                                 {% else %}
                                 <span
@@ -405,7 +441,8 @@
                             </span>
                             <span
                                 class="text-[6.5px] font-bold tracking-widest uppercase text-slate-500 block leading-none mt-0.5">
-                                ISHLAB CHIQARISH KOMPLEKSI
+                                {% if target_user.branch == 'UYCHI' %}UYCHI FILIALI{% else %}BOSH BINO (KOSONSOY){%
+                                endif %}
                             </span>
                         </div>
                     </div>
@@ -421,10 +458,45 @@
                             class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                             ADMIN
                         </span>
+                        {% elif target_user.role == 'BRANCH_ADMIN' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                            FILIAL ADMIN
+                        </span>
                         {% elif target_user.role == 'MASTER' %}
                         <span
                             class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-300">
-                            MASTER
+                            PATOK MASTERI
+                        </span>
+                        {% elif target_user.role == 'CONTROL' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-300">
+                            PATOK KONTROL
+                        </span>
+                        {% elif target_user.role == 'MANAGER' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-300">
+                            MENEJER
+                        </span>
+                        {% elif target_user.role == 'CUTTER' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-100 text-orange-900 border border-orange-300">
+                            KESIMCHI
+                        </span>
+                        {% elif target_user.role == 'METO' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-900 border border-cyan-300">
+                            METO / BARKOD
+                        </span>
+                        {% elif target_user.role == 'STICKER' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-teal-100 text-teal-900 border border-teal-300">
+                            STIKERCHI
+                        </span>
+                        {% elif target_user.role == 'PLAN' %}
+                        <span
+                            class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                            NORMA / PLAN
                         </span>
                         {% else %}
                         <span

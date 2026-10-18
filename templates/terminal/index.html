@@ -1008,9 +1008,27 @@
             );
         }
 
+        const CYRILLIC_TO_LATIN_MAP = {
+            'й': 'q', 'ц': 'w', 'у': 'e', 'к': 'r', 'е': 't', 'н': 'y', 'г': 'u', 'ш': 'i', 'щ': 'o', 'з': 'p',
+            'ф': 'a', 'ы': 's', 'в': 'd', 'а': 'f', 'п': 'g', 'р': 'h', 'о': 'j', 'л': 'k', 'д': 'l', 'ж': ';',
+            'я': 'z', 'ч': 'x', 'с': 'c', 'м': 'v', 'и': 'b', 'т': 'n', 'ь': 'm',
+            'Й': 'Q', 'Ц': 'W', 'У': 'E', 'К': 'R', 'Е': 'T', 'Н': 'Y', 'Г': 'U', 'Ш': 'I', 'Щ': 'O', 'З': 'P',
+            'Ф': 'A', 'Ы': 'S', 'В': 'D', 'А': 'F', 'П': 'G', 'Р': 'H', 'О': 'J', 'Л': 'K', 'Д': 'L', 'Ж': ':',
+            'Я': 'Z', 'Ч': 'X', 'С': 'C', 'М': 'V', 'И': 'B', 'Т': 'N', 'Ь': 'M', '№': '#'
+        };
+
+        function fixCyrillicScannerText(str) {
+            if (!str) return '';
+            const converted = str.split('').map(ch => CYRILLIC_TO_LATIN_MAP[ch] || ch).join('');
+            if (/^(?:USER|WORKER|MASTER|TICKET|TK|BOX|CONTROL)[+:\s-]|^W[-+]\d+|^#[A-Z0-9]{8}$/i.test(converted.trim())) {
+                return converted;
+            }
+            return str;
+        }
+
         function splitScanTokens(rawText) {
             if (!rawText) return [];
-            const chunks = rawText.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+            const chunks = rawText.split(/[\r\n]+/).map(s => fixCyrillicScannerText(s.trim())).filter(Boolean);
             const tokens = [];
             for (let chunk of chunks) {
                 // Skaner birdaniga ikkita kodni yopishtirib yuborgan bo'lsa xavfsiz ajratish:
@@ -1018,8 +1036,10 @@
                     .replace(/TICKET:TK-/gi, '___TICKTK___')
                     .replace(/TICKET:/gi, '|||TICKET:')
                     .replace(/WORKER:/gi, '|||WORKER:')
+                    .replace(/MASTER:/gi, '|||MASTER:')
                     .replace(/USER:/gi, '|||USER:')
                     .replace(/BOX:/gi, '|||BOX:')
+                    .replace(/CONTROL:/gi, '|||CONTROL:')
                     .replace(/TK-/gi, '|||TK-')
                     .replace(/(#[A-Za-z0-9]{8})/g, '|||$1')
                     .replace(/___TICKTK___/g, '|||TICKET:TK-');
@@ -1158,12 +1178,12 @@
         // 4. SCAN PROCESSING DISPATCHER
         // -------------------------------------------------------------
         function processIncomingScan(rawText) {
-            let text = rawText.trim();
+            let text = fixCyrillicScannerText(rawText.trim());
             if (!text) return;
 
             // Agar skaner klaviatura xatosi tufayli - o'rniga + yuborgan bo'lsa (masalan WX-RF)
             if (text.includes('+')) {
-                text = text.replace(/^(USER|WORKER|TICKET|TK|BOX|CONTROL)\+/i, '$1:');
+                text = text.replace(/^(USER|WORKER|MASTER|TICKET|TK|BOX|CONTROL)\+/i, '$1:');
                 text = text.replace(/\+/g, '-');
             }
 
@@ -1174,19 +1194,25 @@
             if (/^(?:BOX[A-Z\.\s_]*:\s*)/i.test(text)) {
                 text = text.replace(/^(?:BOX[A-Z\.\s_]*:\s*)/i, 'BOX:');
             }
+            if (/^(?:CONTROL[A-Z\.\s_]*:\s*)/i.test(text)) {
+                text = text.replace(/^(?:CONTROL[A-Z\.\s_]*:\s*)/i, 'CONTROL:');
+            }
             if (/^(?:USER[A-Z\.\s_]*:\s*)/i.test(text)) {
                 text = text.replace(/^(?:USER[A-Z\.\s_]*:\s*)/i, 'USER:');
             }
             if (/^(?:WORKER[A-Z\.\s_]*:\s*)/i.test(text)) {
                 text = text.replace(/^(?:WORKER[A-Z\.\s_]*:\s*)/i, 'WORKER:');
             }
+            if (/^(?:MASTER[A-Z\.\s_]*:\s*)/i.test(text)) {
+                text = text.replace(/^(?:MASTER[A-Z\.\s_]*:\s*)/i, 'MASTER:');
+            }
 
-            if (text.startsWith('BOX:') || text.startsWith('box:')) {
+            if (text.startsWith('BOX:') || text.startsWith('box:') || text.startsWith('CONTROL:') || text.startsWith('control:')) {
                 openBoxLookupModal(text);
                 return;
             }
 
-            if (text.startsWith('USER:') || text.startsWith('WORKER:')) {
+            if (text.startsWith('USER:') || text.startsWith('WORKER:') || text.startsWith('MASTER:')) {
                 identifyWorker(text);
                 return;
             }

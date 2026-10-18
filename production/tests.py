@@ -3824,4 +3824,86 @@ class MasterTabletWorkflowTest(TestCase):
         self.assertIsNone(self.batch1.assigned_screen)
         self.assertIsNone(self.batch1.accepted_by)
 
+    def test_patok_control_cancelled_box_guard_and_cyrillic_badges(self):
+        from production.terminal_views import extract_worker_code
+        from production.passport_bot_service import verify_pastal_for_sewing
+
+        # 1. Kirill klaviaturasida urilgan beydjik (USER:554433 -> ГЫУКЖ554433)
+        self.assertEqual(extract_worker_code('ГЫУКЖ554433'), '554433')
+        self.assertEqual(extract_worker_code('ЦЩКЛУКЖЦ-001'), 'W-001')
+
+        # 2. Patok Kontrol: Kirill klaviaturasida operator identifikatsiyasi va quti lookup
+        ctrl_user = User.objects.create_user(
+            username='ctrl_test_op', password='p', role=User.Role.CONTROL
+        )
+        self.client.force_login(ctrl_user)
+
+        res_op = self.client.post(
+            reverse('control:api_identify_operator'),
+            data=json.dumps({'code': f'ГЫУКЖ{ctrl_user.uid}'}),
+            content_type='application/json'
+        )
+        self.assertEqual(res_op.status_code, 200)
+        self.assertEqual(res_op.json()['status'], 'OK')
+
+        # 3. Bekor qilingan (CANCELLED) qutini Patok Kontrolda skanerlash va topshirish BLOKLANISHI SHART!
+        res_cancel_lookup = self.client.get(reverse('control:api_lookup'), {'code': f'CONTROL:{self.box_cancelled.box_code}'})
+        self.assertEqual(res_cancel_lookup.status_code, 400)
+        self.assertEqual(res_cancel_lookup.json()['status'], 'CANCELLED_BOX')
+
+        res_cancel_submit = self.client.post(
+            reverse('control:api_submit'),
+            data=json.dumps({
+                'box_id': self.box_cancelled.id,
+                'mode': 'INITIAL',
+                'total_qty': 50,
+                'second_sort_qty': 0,
+                'repair_qty': 0,
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_cancel_submit.status_code, 400)
+
+        # 4. Oddiy aktiv qutini bir marta INITIAL tekshiruvdan o'tkazish va ikkinchi marta ustma-ust yozishni bloklash
+        w = Worker.objects.create(worker_id='W-777', first_name='Test', last_name='Tikuvchi', is_active=True)
+        Ticket.objects.filter(box=self.box1).update(status=Ticket.Status.SCANNED, worker=w, scanned_at=timezone.now())
+
+        res_ok_submit = self.client.post(
+            reverse('control:api_submit'),
+            data=json.dumps({
+                'box_id': self.box1.id,
+                'mode': 'INITIAL',
+                'total_qty': 50,
+                'second_sort_qty': 2,
+                'repair_qty': 0,
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_ok_submit.status_code, 200)
+
+        # Ikkinchi marta INITIAL yuborilganda bloklanishi shart
+        res_dup_submit = self.client.post(
+            reverse('control:api_submit'),
+            data=json.dumps({
+                'box_id': self.box1.id,
+                'mode': 'INITIAL',
+                'total_qty': 50,
+                'second_sort_qty': 10,
+                'repair_qty': 0,
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_dup_submit.status_code, 400)
+        self.box1.refresh_from_db()
+        self.assertEqual(self.box1.controlled_first_sort_qty, 48)
+
+        # 5. PassportBot: Kirill klaviaturasida PASTAL:<id> (ЗФЫЕФДЖ<id>) tekshiruvi
+        res_bot_warn = verify_pastal_for_sewing(f'ЗФЫЕФДЖ{self.batch1.id}')
+        self.assertIn("QAYTA TAQSIMLANGAN", res_bot_warn['message'])
+
+        self.box_cancelled.delete()
+        res_bot = verify_pastal_for_sewing(f'ЗФЫЕФДЖ{self.batch1.id}')
+        self.assertTrue(res_bot['success'])
+        self.assertTrue(res_bot['can_release'])
+
 

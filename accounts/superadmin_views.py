@@ -798,7 +798,8 @@ def superadmin_users_print_badges(request):
             Q(last_name__icontains=search_q) |
             Q(phone_number__icontains=search_q)
         )
-    if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.CONTROL, User.Role.SCREEN, User.Role.USER]:
+    valid_roles = [choice[0] for choice in User.Role.choices]
+    if role_filter in valid_roles:
         users_qs = users_qs.filter(role=role_filter)
 
     users_list = list(users_qs.order_by('role', 'worker_profile__worker_id', 'id'))
@@ -830,7 +831,7 @@ def superadmin_users_print_badges(request):
     base_counts_qs = User.objects.all()
     if is_branch_admin:
         base_counts_qs = base_counts_qs.filter(branch=user_branch)
-    if role_filter in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.MASTER, User.Role.CONTROL, User.Role.SCREEN, User.Role.USER]:
+    if role_filter in valid_roles:
         base_counts_qs = base_counts_qs.filter(role=role_filter)
     unprinted_badges_count = base_counts_qs.filter(is_badge_printed=False).count()
     printed_badges_count = base_counts_qs.filter(is_badge_printed=True).count()
@@ -856,14 +857,194 @@ def superadmin_users_print_badges(request):
 
 @superadmin_required
 def superadmin_users_download_badges_pdf(request):
-    """20 ta yangi ishchining tayyor A4 PDF faylini yuklab olish"""
-    from django.conf import settings
+    """Filtrlangan foydalanuvchilar (masalan Masterlar, Kontrolchilar yoki Ishchilar) uchun dinamik A4 PDF generatsiya qilish"""
+    import io
     from django.http import FileResponse
-    pdf_path = os.path.join(settings.BASE_DIR, 'A4_YANGI_ISHCHILAR_BIRKALARI.pdf')
-    if not os.path.exists(pdf_path):
-        import scratch_badges_pdf
-        scratch_badges_pdf.create_a4_pdf()
-    return FileResponse(open(pdf_path, 'rb'), as_attachment=True, filename='A4_YANGI_ISHCHILAR_BIRKALARI.pdf')
+    from PIL import Image, ImageDraw, ImageFont
+
+    search_q = request.GET.get('q', '').strip()
+    role_filter = request.GET.get('role', '').strip()
+    badge_status = request.GET.get('badge_status', 'all').strip()
+    ids_param = request.GET.get('ids', '').strip()
+
+    is_branch_admin = getattr(request.user, 'role', '') == User.Role.BRANCH_ADMIN
+    user_branch = getattr(request.user, 'branch', '')
+
+    users_qs = User.objects.select_related('worker_profile').all()
+    if is_branch_admin:
+        users_qs = users_qs.filter(branch=user_branch)
+
+    if ids_param:
+        try:
+            ids_list = [int(i.strip()) for i in ids_param.split(',') if i.strip().isdigit()]
+            if ids_list:
+                users_qs = users_qs.filter(id__in=ids_list)
+        except Exception:
+            pass
+    else:
+        if badge_status == 'unprinted':
+            users_qs = users_qs.filter(is_badge_printed=False)
+        elif badge_status == 'printed':
+            users_qs = users_qs.filter(is_badge_printed=True)
+
+        if search_q:
+            users_qs = users_qs.filter(
+                Q(username__icontains=search_q) |
+                Q(uid__icontains=search_q) |
+                Q(first_name__icontains=search_q) |
+                Q(last_name__icontains=search_q) |
+                Q(phone_number__icontains=search_q)
+            )
+        valid_roles = [choice[0] for choice in User.Role.choices]
+        if role_filter in valid_roles:
+            users_qs = users_qs.filter(role=role_filter)
+
+    users_list = list(users_qs.order_by('role', 'worker_profile__worker_id', 'id'))
+
+    for u in users_list:
+        needs_save = False
+        if not u.uid:
+            u.uid = generate_unique_user_uid()
+            needs_save = True
+        if not u.qr_code:
+            u.generate_qr_code()
+            needs_save = True
+        else:
+            try:
+                if not os.path.exists(u.qr_code.path):
+                    u.generate_qr_code()
+                    needs_save = True
+            except Exception:
+                u.generate_qr_code()
+                needs_save = True
+        if needs_save:
+            u.save(update_fields=['uid', 'qr_code'])
+
+    DPI = 300
+    PAGE_W, PAGE_H = 2480, 3508
+    COLS, ROWS = 2, 4
+    CARDS_PER_PAGE = COLS * ROWS
+    CARD_W, CARD_H = 1080, 740
+    GAP_X, GAP_Y = 100, 70
+    MARGIN_X = (PAGE_W - (COLS * CARD_W + (COLS - 1) * GAP_X)) // 2
+    MARGIN_Y = (PAGE_H - (ROWS * CARD_H + (ROWS - 1) * GAP_Y)) // 2
+
+    font_paths_bold = [
+        '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    ]
+    font_paths_reg = [
+        '/System/Library/Fonts/Supplemental/Arial.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    ]
+    bold_fp = next((p for p in font_paths_bold if os.path.exists(p)), None)
+    reg_fp = next((p for p in font_paths_reg if os.path.exists(p)), None)
+
+    try:
+        if bold_fp and reg_fp:
+            font_bold_title = ImageFont.truetype(bold_fp, 34)
+            font_bold_name_large = ImageFont.truetype(bold_fp, 44)
+            font_small = ImageFont.truetype(reg_fp, 24)
+            font_uid = ImageFont.truetype(bold_fp, 44)
+            font_badge = ImageFont.truetype(bold_fp, 24)
+        else:
+            raise FileNotFoundError()
+    except Exception:
+        font_bold_title = font_bold_name_large = font_small = font_uid = font_badge = ImageFont.load_default()
+
+    role_labels = {
+        User.Role.SUPER_ADMIN: 'SUPER ADMIN',
+        User.Role.ADMIN: 'ADMIN',
+        User.Role.BRANCH_ADMIN: 'FILIAL ADMIN',
+        User.Role.MANAGER: 'MENEJER',
+        User.Role.MASTER: 'PATOK MASTERI',
+        User.Role.CONTROL: 'PATOK KONTROL',
+        User.Role.CUTTER: 'KESIMCHI',
+        User.Role.METO: 'METO / BARKOD',
+        User.Role.STICKER: 'STIKERCHI',
+        User.Role.PLAN: 'NORMA / PLAN',
+        User.Role.SCREEN: 'PATOK EKRAN',
+        User.Role.USER: 'TIKUVCHI / XODIM',
+    }
+
+    pages = []
+    chunks = [users_list[i:i + CARDS_PER_PAGE] for i in range(0, len(users_list), CARDS_PER_PAGE)]
+    for page_idx, chunk in enumerate(chunks, 1):
+        img = Image.new('RGB', (PAGE_W, PAGE_H), color=(255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        header_text = f"TERRY JAR — XODIMLAR VA MASTERLAR BIRKALARI (A4 Varaq {page_idx}/{len(chunks)})"
+        draw.text((MARGIN_X, MARGIN_Y - 55), header_text, fill=(120, 130, 140), font=font_small)
+
+        for idx, u in enumerate(chunk):
+            col = idx % COLS
+            row = idx // COLS
+            x = MARGIN_X + col * (CARD_W + GAP_X)
+            y = MARGIN_Y + row * (CARD_H + GAP_Y)
+
+            card_padding = 18
+            cx, cy = x + card_padding, y + card_padding
+            cw, ch = CARD_W - card_padding * 2, CARD_H - card_padding * 2
+            draw.rounded_rectangle([cx, cy, cx + cw, cy + ch], radius=24, fill=(255, 255, 255), outline=(15, 23, 42), width=5)
+
+            header_y = cy + 45
+            draw.text((cx + 30, header_y), "TERRY JAR FABRIKASI", fill=(15, 23, 42), font=font_bold_title)
+            branch_label = "UYCHI FILIALI" if u.branch == User.Branch.UYCHI else "BOSH BINO (KOSONSOY)"
+            draw.text((cx + 30, header_y + 40), branch_label, fill=(100, 116, 139), font=font_small)
+
+            role_text = role_labels.get(u.role, "XODIM")
+            role_w, role_h = 280, 44
+            rx = cx + cw - role_w - 25
+            draw.rounded_rectangle([rx, header_y + 4, rx + role_w, header_y + 4 + role_h], radius=10, fill=(224, 242, 254), outline=(14, 165, 233), width=2)
+            draw.text((rx + 20, header_y + 10), role_text, fill=(12, 74, 110), font=font_badge)
+
+            draw.line([(cx + 25, cy + 140), (cx + cw - 25, cy + 140)], fill=(226, 232, 240), width=3)
+
+            qr_img = None
+            try:
+                if u.qr_code and os.path.exists(u.qr_code.path):
+                    qr_img = Image.open(u.qr_code.path)
+            except Exception:
+                qr_img = None
+
+            qr_box_size = 310
+            qr_x = cx + cw - qr_box_size - 30
+            qr_y = cy + 170
+            draw.rounded_rectangle([qr_x, qr_y, qr_x + qr_box_size, qr_y + qr_box_size], radius=16, fill=(255, 255, 255), outline=(15, 23, 42), width=4)
+            if qr_img:
+                qr_resized = qr_img.resize((qr_box_size - 24, qr_box_size - 24), Image.Resampling.LANCZOS)
+                img.paste(qr_resized, (qr_x + 12, qr_y + 12))
+
+            info_x, info_y = cx + 30, cy + 170
+            wid_str = u.worker_profile.worker_id if getattr(u, 'worker_profile', None) else f"@{u.username}"
+            draw.rounded_rectangle([info_x, info_y, info_x + 260, info_y + 44], radius=8, fill=(241, 245, 249), outline=(203, 213, 225), width=2)
+            draw.text((info_x + 16, info_y + 8), wid_str[:18], fill=(30, 41, 59), font=font_badge)
+
+            name_y = info_y + 60
+            last_str = (u.last_name or '').upper()[:16]
+            first_str = (u.first_name or u.username or '').upper()[:16]
+            draw.text((info_x, name_y), last_str, fill=(15, 23, 42), font=font_bold_name_large)
+            draw.text((info_x, name_y + 55), first_str, fill=(15, 23, 42), font=font_bold_name_large)
+
+            uid_str = u.uid or "000000"
+            uid_box_y = name_y + 130
+            draw.rounded_rectangle([info_x, uid_box_y, info_x + 410, uid_box_y + 75], radius=14, fill=(15, 23, 42), outline=(15, 23, 42), width=2)
+            draw.text((info_x + 25, uid_box_y + 14), f"UID: {uid_str}", fill=(251, 191, 36), font=font_uid)
+
+            foot_y = cy + ch - 50
+            draw.line([(cx + 25, foot_y), (cx + cw - 25, foot_y)], fill=(226, 232, 240), width=2)
+            draw.text((cx + 30, foot_y + 12), "Skanerlash va avtorizatsiya uchun", fill=(148, 163, 184), font=font_small)
+            draw.text((cx + cw - 260, foot_y + 12), f"USER:{uid_str}", fill=(15, 23, 42), font=font_small)
+
+        pages.append(img)
+
+    if not pages:
+        pages.append(Image.new("RGB", (PAGE_W, PAGE_H), "white"))
+
+    buf = io.BytesIO()
+    pages[0].save(buf, format='PDF', save_all=True, append_images=pages[1:], resolution=DPI)
+    buf.seek(0)
+    filename_suffix = role_filter.lower() if role_filter else "barchasi"
+    return FileResponse(buf, as_attachment=True, filename=f"A4_BIRKALAR_{filename_suffix}.pdf")
 
 
 

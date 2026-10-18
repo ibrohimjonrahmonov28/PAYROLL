@@ -8,10 +8,11 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Sum, Q
 from accounts.models import User, Worker
 from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason, ControlSetting
-from production.terminal_views import extract_worker_code
+from production.terminal_views import extract_worker_code, fix_cyrillic_layout
 
 
 def _get_active_defect_reasons():
@@ -353,6 +354,9 @@ def control_box_lookup_api(request):
     if not raw_code:
         return JsonResponse({'status': 'ERROR', 'message': "Iltimos, quti kodini kiriting yoki skaner qiling!"}, status=400)
 
+    # Kirillcha klaviatura tufayli buzuq kelgan kodlarni (masalan СЩТЕКЩДЖФ10-1) to'g'irlash
+    raw_code = fix_cyrillic_layout(raw_code).strip()
+
     # Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish, masalan CONTROL+A9+1 yoki A9+1)
     if '+' in raw_code:
         raw_code = re.sub(r'^(CONTROL|BOX|TICKET|TK)\+', r'\1:', raw_code, flags=re.IGNORECASE)
@@ -397,6 +401,12 @@ def control_box_lookup_api(request):
             'status': 'NOT_FOUND',
             'message': f"«{raw_code}» kodi bo'yicha quti topilmadi! Faqat Quti ID kodi (masalan: A10-394) yoki CONTROL stikerini skanerlang."
         }, status=404)
+
+    if box.status == Box.Status.CANCELLED or (box.order and box.order.status == 'CANCELLED'):
+        return JsonResponse({
+            'status': 'CANCELLED_BOX',
+            'message': f"🚫 DIQQAT: Quti #{box.box_number} [{box.box_code}] BEKOR QILINGAN (Atmen / qayta taqsimlangan)! Ushbu eski quti stikerini OTK nazoratidan o'tkazish qat'iyan taqiqlanadi."
+        }, status=400)
 
     art = box.target_article
     image_url = None
@@ -505,6 +515,7 @@ def control_box_lookup_api(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+@transaction.atomic
 def control_submit_inspection_api(request):
     """
     Sifat nazorati natijasini saqlash va tasdiqlash API.
@@ -521,9 +532,21 @@ def control_submit_inspection_api(request):
     box_id = data.get('box_id')
     mode = data.get('mode', 'INITIAL')
 
-    box = get_object_or_404(Box, id=box_id)
+    box = get_object_or_404(Box.objects.select_for_update().select_related('order'), id=box_id)
+
+    if box.status == Box.Status.CANCELLED or (box.order and box.order.status == 'CANCELLED'):
+        return JsonResponse({
+            'status': 'ERROR',
+            'message': f"Diqqat! Quti #{box.box_number} [{box.box_code}] BEKOR QILINGAN (Atmen). Uni sifat nazoratidan o'tkazish taqiqlanadi!"
+        }, status=400)
 
     if mode == 'INITIAL':
+        if box.is_controlled or box.controlled_repair_qty > 0:
+            return JsonResponse({
+                'status': 'ERROR',
+                'message': f"Quti #{box.box_number} [{box.box_code}] allaqachon birlamchi sifat nazoratidan o'tgan!"
+            }, status=400)
+
         # Barcha faol operatsiyalar egasi borligini qat'iy tekshirish (faqat agar sozlamada yoqilgan bo'lsa)
         if ControlSetting.is_all_operations_required():
             unscanned_tickets = box.tickets.exclude(

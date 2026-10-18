@@ -1626,6 +1626,20 @@
             }
         });
 
+        const CONTROL_CYRILLIC_MAP = {
+            'й': 'q', 'ц': 'w', 'у': 'e', 'к': 'r', 'е': 't', 'н': 'y', 'г': 'u', 'ш': 'i', 'щ': 'o', 'з': 'p',
+            'ф': 'a', 'ы': 's', 'в': 'd', 'а': 'f', 'п': 'g', 'р': 'h', 'о': 'j', 'л': 'k', 'д': 'l', 'ж': ';',
+            'я': 'z', 'ч': 'x', 'с': 'c', 'м': 'v', 'и': 'b', 'т': 'n', 'ь': 'm',
+            'Й': 'Q', 'Ц': 'W', 'У': 'E', 'К': 'R', 'Е': 'T', 'Н': 'Y', 'Г': 'U', 'Ш': 'I', 'Щ': 'O', 'З': 'P',
+            'Ф': 'A', 'Ы': 'S', 'В': 'D', 'А': 'F', 'П': 'G', 'Р': 'H', 'О': 'J', 'Л': 'K', 'Д': 'L', 'Ж': ':',
+            'Я': 'Z', 'Ч': 'X', 'С': 'C', 'М': 'V', 'И': 'B', 'Т': 'N', 'Ь': 'M', '№': '#'
+        };
+
+        function fixCyrillicScannerInput(str) {
+            if (!str) return '';
+            return str.split('').map(ch => CONTROL_CYRILLIC_MAP[ch] || ch).join('');
+        }
+
         // Skaner avtomatik qabul qilish
         async function handleScannerSubmit(event) {
             if (event) event.preventDefault();
@@ -1634,9 +1648,12 @@
             let inputVal = document.getElementById('scanner-input').value.trim();
             if (!inputVal) return;
 
+            // Kirillcha klaviatura tufayli buzuq kelgan kodlarni (ГЫУКЖ..., СЩТЕКЩДЖ...) to'g'irlash
+            inputVal = fixCyrillicScannerInput(inputVal);
+
             // Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish)
             if (inputVal.includes('+')) {
-                inputVal = inputVal.replace(/^(CONTROL|BOX|TICKET|TK|USER|WORKER)\+/i, '$1:');
+                inputVal = inputVal.replace(/^(CONTROL|BOX|TICKET|TK|USER|WORKER|MASTER)\+/i, '$1:');
                 inputVal = inputVal.replace(/\+/g, '-');
             }
 
@@ -1650,8 +1667,14 @@
                 return;
             }
 
-            // 2. Agar xodim tizimda bo'lsa, lekin adashib xodim birkasini skaner qilsa:
-            if (rawUpper.startsWith('USER:') || rawUpper.startsWith('WORKER:') || (rawUpper.startsWith('W-') && !rawUpper.includes('BOX'))) {
+            // 2. Agar xodim tizimda bo'lsa, lekin adashib xodim birkasini (yoki 6 xonali UID ni) skaner qilsa:
+            if (
+                rawUpper.startsWith('USER:') ||
+                rawUpper.startsWith('WORKER:') ||
+                rawUpper.startsWith('MASTER:') ||
+                (rawUpper.startsWith('W-') && !rawUpper.includes('BOX')) ||
+                /^\d{6}$/.test(inputVal)
+            ) {
                 playSound('beep');
                 if (confirm(`Siz allaqachon tizimdasiz: ${activeOperator.full_name} (${activeOperator.worker_id}).\n\nBoshqa xodimga almashtirmoqchimisiz?`)) {
                     await identifyOperatorDirect(inputVal);
@@ -1669,7 +1692,7 @@
             }
 
             // 4. User talabi: Quti raqami (#456) qabul qilinmaydi! Faqat Quti ID si (masalan A10-394)!
-            if (/^#?\d+$/.test(inputVal)) {
+            if (/^#?\d{1,5}$/.test(inputVal) || inputVal.startsWith('#')) {
                 playSound('error');
                 alert("Quti raqami (#456) qabul qilinmaydi!\n\nIltimos, faqat Quti ID kodi (masalan: A10-394) yoki CONTROL stikerini skanerlang.");
                 clearScannerInput();

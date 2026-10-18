@@ -239,10 +239,10 @@
                 {% endif %}
                 {% endif %}
 
-                <!-- PDF download -->
-                <a href="{% url 'superadmin_users_download_badges_pdf' %}"
+                <!-- PDF download (Filtrlangan ro'yxat bo'yicha) -->
+                <a href="{% url 'superadmin_users_download_badges_pdf' %}?badge_status={{ badge_status|urlencode }}{% if role_filter %}&role={{ role_filter|urlencode }}{% endif %}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if user_ids_str %}&ids={{ user_ids_str|urlencode }}{% endif %}"
                     class="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2">
-                    <i class="fa-solid fa-download"></i> PDF Yuklab Olish
+                    <i class="fa-solid fa-download"></i> PDF Yuklab Olish ({{ total_badges }})
                 </a>
 
                 <!-- Browser Print -->
@@ -273,15 +273,26 @@
                     class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if badge_status == 'printed' and not batch %}bg-emerald-500 text-slate-950 font-black shadow-md{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
                     <i class="fa-solid fa-circle-check"></i> Berilganlar ({{ printed_badges_count }})
                 </a>
-                <a href="{% url 'superadmin_users_print_badges' %}?batch=new"
-                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if batch == 'new' %}bg-purple-500 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
-                    <i class="fa-solid fa-star"></i> Yangi 20 ta
-                </a>
             </div>
 
-            <div class="text-slate-400 font-medium text-[11px] flex items-center gap-2">
-                <i class="fa-solid fa-scissors text-amber-400"></i>
-                <span>Chop etilgandan so'ng nuqtali chiziqlar bo'yicha qaychida qirqib oling.</span>
+            <!-- Rol bo'yicha tezkor filtr -->
+            <div class="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={{ badge_status }}"
+                    class="px-3 py-1.5 rounded-xl font-bold transition {% if not role_filter %}bg-slate-800 text-white shadow-md{% else %}text-slate-400 hover:text-white{% endif %}">
+                    Barcha rollar
+                </a>
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={{ badge_status }}&role=MASTER"
+                    class="px-3 py-1.5 rounded-xl font-black transition flex items-center gap-1.5 {% if role_filter == 'MASTER' %}bg-sky-500 text-slate-950 shadow-md{% else %}text-sky-400 hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-user-gear"></i> Masterlar
+                </a>
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={{ badge_status }}&role=CONTROL"
+                    class="px-3 py-1.5 rounded-xl font-black transition flex items-center gap-1.5 {% if role_filter == 'CONTROL' %}bg-purple-500 text-white shadow-md{% else %}text-purple-400 hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-clipboard-check"></i> Patok Kontrol
+                </a>
+                <a href="{% url 'superadmin_users_print_badges' %}?badge_status={{ badge_status }}&role=USER"
+                    class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 {% if role_filter == 'USER' %}bg-emerald-500 text-slate-950 shadow-md{% else %}text-emerald-400 hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-users"></i> Tikuvchilar
+                </a>
             </div>
         </div>
     </div>
@@ -340,7 +351,7 @@
                                     </span>
                                     <span
                                         class="text-[6.5px] font-bold tracking-widest uppercase text-slate-500 block leading-none mt-0.5">
-                                        ISHLAB CHIQARISH KOMPLEKSI
+                                        {% if u.branch == 'UYCHI' %}UYCHI FILIALI{% else %}BOSH BINO (KOSONSOY){% endif %}
                                     </span>
                                 </div>
                             </div>
@@ -357,10 +368,45 @@
                                     class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                                     ADMIN
                                 </span>
+                                {% elif u.role == 'BRANCH_ADMIN' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                    FILIAL ADMIN
+                                </span>
                                 {% elif u.role == 'MASTER' %}
                                 <span
                                     class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-300">
-                                    MASTER
+                                    PATOK MASTERI
+                                </span>
+                                {% elif u.role == 'CONTROL' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-300">
+                                    PATOK KONTROL
+                                </span>
+                                {% elif u.role == 'MANAGER' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-300">
+                                    MENEJER
+                                </span>
+                                {% elif u.role == 'CUTTER' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-100 text-orange-900 border border-orange-300">
+                                    KESIMCHI
+                                </span>
+                                {% elif u.role == 'METO' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-900 border border-cyan-300">
+                                    METO / BARKOD
+                                </span>
+                                {% elif u.role == 'STICKER' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-teal-100 text-teal-900 border border-teal-300">
+                                    STIKERCHI
+                                </span>
+                                {% elif u.role == 'PLAN' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                                    NORMA / PLAN
                                 </span>
                                 {% else %}
                                 <span

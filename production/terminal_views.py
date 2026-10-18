@@ -51,33 +51,35 @@ def _get_request_param(request, *keys, default=''):
 
 def extract_worker_code(text: str) -> str:
     text = (text or '').strip()
+    converted = fix_cyrillic_layout(text)
+    if re.match(r'^(?:USER|WORKER|MASTER)[+:\s]|^W[-+]\d+', converted, flags=re.IGNORECASE):
+        text = converted
     # Skaner klaviatura xatolarini to'g'rilash (masalan WX-RF skanerlarida + ni - ga o'girish)
     if '+' in text:
-        text = re.sub(r'^(USER|WORKER)\+', r'\1:', text, flags=re.IGNORECASE)
+        text = re.sub(r'^(USER|WORKER|MASTER)\+', r'\1:', text, flags=re.IGNORECASE)
         text = text.replace('+', '-')
-    if text.upper().startswith('WORKER:'):
-        return text[len('WORKER:'):].strip()
-    if text.upper().startswith('USER:'):
-        return text[len('USER:'):].strip()
+    for prefix in ('WORKER:', 'USER:', 'MASTER:'):
+        if text.upper().startswith(prefix):
+            return text[len(prefix):].strip()
     return text
 
 
 def extract_box_code(text: str) -> str:
-    text = (text or '').strip()
+    text = fix_cyrillic_layout((text or '').strip())
     if '+' in text:
         text = re.sub(r'^(BOX|CONTROL|TICKET)\+', r'\1:', text, flags=re.IGNORECASE)
         text = text.replace('+', '-')
     text = re.sub(r'^(?:(?:BOX|CONTROL)[A-Z\.\s_]*:\s*)+', '', text, flags=re.IGNORECASE).strip()
-    if text.startswith('TICKET:'):
+    if text.upper().startswith('TICKET:'):
         text = text[len('TICKET:'):].strip()
-    ticket_match = re.search(r'-([A-Z0-9]{8})(?:-[A-Z0-9]+)?$', text)
+    ticket_match = re.search(r'-([A-Z0-9]{8})(?:-[A-Z0-9]+)?$', text, flags=re.IGNORECASE)
     if ticket_match:
         return ticket_match.group(1)
     return text
 
 
 def extract_ticket_code(text: str) -> str:
-    text = (text or '').strip()
+    text = fix_cyrillic_layout((text or '').strip())
     if '+' in text:
         text = re.sub(r'^(TICKET|TK)\+', r'\1:', text, flags=re.IGNORECASE)
         text = text.replace('+', '-')

@@ -105,7 +105,10 @@ def passport_telegram_webhook(request):
         }
         try:
             with httpx.Client(timeout=10.0) as client:
-                client.post(send_url, json=payload)
+                resp = client.post(send_url, json=payload)
+                if resp.status_code != 200:
+                    clean_text = response_text.replace('*', '').replace('_', '').replace('`', '')
+                    client.post(send_url, json={'chat_id': chat_id, 'text': clean_text})
         except Exception:
             pass
 

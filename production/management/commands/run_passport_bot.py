@@ -159,6 +159,29 @@ def build_patoks_keyboard(batch_id: int, branch: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 
+def _esc_md(val) -> str:
+    """Telegram Markdown v1 da xatolik bermasligi uchun _, *, `, [ belgilarini zararsizlantirish"""
+    if val is None:
+        return ""
+    return str(val).replace('_', ' ').replace('*', '').replace('`', "'").replace('[', '(').replace(']', ')')
+
+
+async def _safe_reply_text(message, text: str, **kwargs):
+    try:
+        return await message.reply_text(text, parse_mode='Markdown', **kwargs)
+    except Exception:
+        clean_text = text.replace('*', '').replace('_', '').replace('`', '')
+        return await message.reply_text(clean_text, **kwargs)
+
+
+async def _safe_edit_text(query, text: str, **kwargs):
+    try:
+        return await query.edit_message_text(text, parse_mode='Markdown', **kwargs)
+    except Exception:
+        clean_text = text.replace('*', '').replace('_', '').replace('`', '')
+        return await query.edit_message_text(clean_text, **kwargs)
+
+
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /start buyrug'i uchun salomlashish va qo'llanma matni
@@ -176,7 +199,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "5️⃣ Tasdiqlab, planshetda qabul qilish uchun patokka jo'natasiz!\n\n"
         "📸 _Hozir tekshirish uchun pasport QR kodini rasmga olib yuboring!_"
     )
-    await update.message.reply_text(welcome_text, parse_mode='Markdown')
+    await _safe_reply_text(update.message, welcome_text)
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -192,7 +215,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Kg kiritgach, filial va patokni tanlab tasdiqlaysiz.\n"
         "• Patok masteri o'z planshetida qabul qilishi bilan ushbu pastal shu patokka to'liq birikadi!"
     )
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+    await _safe_reply_text(update.message, help_text)
 
 
 @sync_to_async
@@ -251,7 +274,7 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
                 f"va tikuv jarayonida ({scanned_tkts} ta stiker urilgan).\n"
                 f"🔒 _Tikuvga kirgan pastalni boshqa patokka qayta jo'natib bo'lmaydi._"
             )
-            await update.message.reply_text(already_msg, parse_mode='Markdown')
+            await _safe_reply_text(update.message, already_msg)
             return
 
         status_note = ""
@@ -271,11 +294,11 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
             f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
             f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_"
         )
-        await update.message.reply_text(kg_prompt, parse_mode='Markdown')
+        await _safe_reply_text(update.message, kg_prompt)
     else:
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
-        await update.message.reply_text(message_text, parse_mode='Markdown')
+        await _safe_reply_text(update.message, message_text)
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -311,12 +334,12 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data['dispatch_state'] = 'WAITING_BRANCH'
 
                 kb = build_branch_keyboard(dispatch_batch_id)
-                await update.message.reply_text(
+                await _safe_reply_text(
+                    update.message,
                     f"⚖️ *Vazn saqlandi:* `{parsed_weight} kg`\n"
-                    f"📋 *Pastal:* #{saved_info['batch_number']} ({saved_info['article_name']}, {saved_info['units']} dona)\n\n"
+                    f"📋 *Pastal:* #{saved_info['batch_number']} ({_esc_md(saved_info['article_name'])}, {saved_info['units']} dona)\n\n"
                     f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*",
-                    reply_markup=kb,
-                    parse_mode='Markdown'
+                    reply_markup=kb
                 )
                 return
 
@@ -348,7 +371,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Iltimos, pasport QR kodini kameraga yaqinroq va aniqroq tutib yuboring "
             "yoki kodni matn ko'rinishida yozing (masalan: `PASTAL:12`)."
         )
-        await update.message.reply_text(error_msg, parse_mode='Markdown')
+        await _safe_reply_text(update.message, error_msg)
         return
 
     # Aniqlangan birinchi QR kodni tekshirish
@@ -366,7 +389,7 @@ async def document_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     mime = (doc.mime_type or '').lower()
     if not (mime.startswith('image/') or doc.file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))):
-        await update.message.reply_text("⚠️ Iltimos, faqat rasm fayllarini yuboring.", parse_mode='Markdown')
+        await _safe_reply_text(update.message, "⚠️ Iltimos, faqat rasm fayllarini yuboring.")
         return
 
     doc_file = await doc.get_file()
@@ -374,7 +397,7 @@ async def document_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     decoded_codes = decode_qr_from_image_bytes(image_bytes)
     if not decoded_codes:
-        await update.message.reply_text("⚠️ Ushbu fayldan QR kod aniqlanmadi.", parse_mode='Markdown')
+        await _safe_reply_text(update.message, "⚠️ Ushbu fayldan QR kod aniqlanmadi.")
         return
 
     result = await async_verify_pastal_for_sewing(decoded_codes[0])
@@ -400,17 +423,17 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 1. Bekor qilish
     if action == 'dp_cnc':
         context.user_data.clear()
-        await query.edit_message_text("❌ *Jo'natish bekor qilindi.* Yangi pastalni tekshirish uchun QR kod yuboring.", parse_mode='Markdown')
+        await _safe_edit_text(query, "❌ *Jo'natish bekor qilindi.* Yangi pastalni tekshirish uchun QR kod yuboring.")
         return
 
     # 2. Filialni qayta tanlash
     if action == 'dp_rebr':
         batch_id = int(parts[1])
         kb = build_branch_keyboard(batch_id)
-        await query.edit_message_text(
+        await _safe_edit_text(
+            query,
             "🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*",
-            reply_markup=kb,
-            parse_mode='Markdown'
+            reply_markup=kb
         )
         return
 
@@ -422,17 +445,17 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         batch_info = await get_batch_info_async(batch_id)
         if not batch_info:
-            await query.edit_message_text("⚠️ Pastal ma'lumotlari topilmadi.", parse_mode='Markdown')
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
             return
 
         kb = build_patoks_keyboard(batch_id, branch)
-        await query.edit_message_text(
-            f"📋 *Pastal:* #{batch_info['batch_number']} ({batch_info['article_name']})\n"
+        await _safe_edit_text(
+            query,
+            f"📋 *Pastal:* #{batch_info['batch_number']} ({_esc_md(batch_info['article_name'])})\n"
             f"🔢 *Miqdor:* {batch_info['units']} dona | ⚖️ *Vazn:* {batch_info['weight']} kg\n"
             f"🏢 *Filial:* {branch_name}\n\n"
             f"🎯 *Qaysi patokka jo'natiladi? Kerakli patokni tanlang:*",
-            reply_markup=kb,
-            parse_mode='Markdown'
+            reply_markup=kb
         )
         return
 
@@ -444,7 +467,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         batch_info = await get_batch_info_async(batch_id)
         if not batch_info:
-            await query.edit_message_text("⚠️ Pastal ma'lumotlari topilmadi.", parse_mode='Markdown')
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
             return
 
         p_code = get_patok_code(screen_number)
@@ -464,15 +487,15 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         confirm_text = (
             f"❓ *TASDIQLASH:*\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📋 *Pastal:* #{batch_info['batch_number']} ({batch_info['article_name']})\n"
+            f"📋 *Pastal:* #{batch_info['batch_number']} ({_esc_md(batch_info['article_name'])})\n"
             f"🔢 *Miqdori:* {batch_info['units']} dona\n"
             f"⚖️ *Haqiqiy vazni:* {batch_info['weight']} kg\n"
             f"🏢 *Filial:* {branch_name}\n"
-            f"🎯 *Mo'ljal Patok:* *{p_code}-Patok* ({p_name})\n"
+            f"🎯 *Mo'ljal Patok:* *{p_code}-Patok* ({_esc_md(p_name)})\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"Ushbu pastalni *{p_code}-Patokka* jo'natishni tasdiqlaysizmi?"
         )
-        await query.edit_message_text(confirm_text, reply_markup=confirm_kb, parse_mode='Markdown')
+        await _safe_edit_text(query, confirm_text, reply_markup=confirm_kb)
         return
 
     # 5. Tasdiqlandi -> Patokka jo'natish (Planshet kutishiga o'tkazish)
@@ -482,11 +505,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         screen_number = int(parts[3])
 
         user = query.from_user
-        user_name = user.full_name or user.username or f"TG_{user.id}"
+        user_name = _esc_md(user.full_name or user.username or f"TG-{user.id}")
 
         res = await dispatch_batch_async(batch_id, branch, screen_number, user_name)
         if not res:
-            await query.edit_message_text("⚠️ Xatolik: Pastal bazadan topilmadi.", parse_mode='Markdown')
+            await _safe_edit_text(query, "⚠️ Xatolik: Pastal bazadan topilmadi.")
             return
 
         context.user_data.clear()
@@ -495,7 +518,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         success_text = (
             f"🚀 *MUVAFFAQIYATLI JO'NATILDI!*\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📋 *Pastal:* #{res['batch_number']} ({res['article_name']})\n"
+            f"📋 *Pastal:* #{res['batch_number']} ({_esc_md(res['article_name'])})\n"
             f"🔢 *Miqdori:* {res['units']} dona\n"
             f"⚖️ *Vazni:* {res['weight']} kg\n"
             f"🏢 *Filial:* {res['branch_display']}\n"
@@ -506,7 +529,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⏳ *{res['patok_code']}-Patok masteri planshet orqali ushbu pastalni QABUL QILISHI kerak.*\n\n"
             f"✅ Pastal holati: `DISPATCHED` (Kutilmoqda)"
         )
-        await query.edit_message_text(success_text, parse_mode='Markdown')
+        await _safe_edit_text(query, success_text)
         return
 
 
