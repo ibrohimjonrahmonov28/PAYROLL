@@ -28,7 +28,7 @@ from .models import (
     CancelledBatchLog,
     ArticleOperation
 )
-from .services import ensure_box_tickets_fresh, generate_box_tickets
+from .services import ensure_box_tickets_fresh, generate_box_tickets, get_patok_code
 
 
 def decode_qr_from_image_bytes(image_bytes: bytes) -> list[str]:
@@ -834,6 +834,7 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
                 'dispatch_status': batch.dispatch_status if batch else None,
                 'assigned_screen': batch.assigned_screen if batch else None,
                 'assigned_branch': batch.assigned_branch if batch else None,
+                'rejection_reason': batch.rejection_reason if batch else '',
             }
         }
 
@@ -1088,6 +1089,12 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         )
     if batch and batch.rejection_reason:
         in_progress_notice += f"\n⚠️ *Qaytarilgan pastal sababi:* {batch.rejection_reason}\n"
+    if batch and batch.dispatch_status == CuttingBatch.DispatchStatus.DISPATCHED:
+        p_c = get_patok_code(batch.assigned_screen) or "Patok"
+        in_progress_notice += f"\n⏳ *Holati:* Ushbu pastal hozirda {p_c}-Patokda kutilmoqda!\n"
+    elif batch and batch.dispatch_status == CuttingBatch.DispatchStatus.ACCEPTED:
+        p_c = get_patok_code(batch.assigned_screen) or "Patok"
+        in_progress_notice += f"\n📌 *Holati:* Ushbu pastal allaqachon {p_c}-Patok tomonidan qabul qilingan!\n"
 
     approved_message = (
         f"✅ *HAMMASI TO'G'RI: PATOKKA BERISH MUMKIN!*\n"
@@ -1134,5 +1141,6 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             'dispatch_status': batch.dispatch_status if batch else None,
             'assigned_screen': batch.assigned_screen if batch else None,
             'assigned_branch': batch.assigned_branch if batch else None,
+            'rejection_reason': batch.rejection_reason if batch else '',
         }
     }

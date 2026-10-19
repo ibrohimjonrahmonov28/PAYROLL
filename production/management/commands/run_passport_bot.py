@@ -78,6 +78,7 @@ def get_batch_info_async(batch_id: int):
         'dispatch_status': batch.dispatch_status,
         'assigned_screen': batch.assigned_screen,
         'assigned_branch': batch.assigned_branch,
+        'rejection_reason': batch.rejection_reason or '',
     }
 
 
@@ -86,6 +87,21 @@ def dispatch_batch_async(batch_id: int, branch: str, screen_number: int, user_na
     batch = CuttingBatch.objects.select_related('order_item__order', 'order_item__article').filter(id=batch_id).first()
     if not batch:
         return None
+
+    # Xavfsizlik tekshiruvi: Agar pastal allaqachon kutilayotgan yoki qabul qilingan bo'lsa
+    if batch.dispatch_status == CuttingBatch.DispatchStatus.DISPATCHED:
+        p_code = get_patok_code(batch.assigned_screen) or "Patok"
+        return {
+            'error': True,
+            'message': f"Diqqat! Ushbu pastal hozirda {p_code}-Patokda kutilmoqda. Qayta jo'natib bo'lmaydi."
+        }
+    if batch.dispatch_status == CuttingBatch.DispatchStatus.ACCEPTED:
+        p_code = get_patok_code(batch.assigned_screen) or "Patok"
+        return {
+            'error': True,
+            'message': f"Diqqat! Ushbu pastal allaqachon {p_code}-Patok tomonidan qabul qilingan. Qayta jo'natib bo'lmaydi."
+        }
+
     batch.assigned_branch = branch
     batch.assigned_screen = screen_number
     batch.dispatch_status = CuttingBatch.DispatchStatus.DISPATCHED
@@ -100,6 +116,7 @@ def dispatch_batch_async(batch_id: int, branch: str, screen_number: int, user_na
     _get_batch_active_boxes(batch).update(assigned_screen=screen_number)
 
     return {
+        'error': False,
         'batch_id': batch.id,
         'batch_number': batch.batch_number,
         'pastal_code': batch.pastal_code or str(batch.batch_number),
@@ -130,15 +147,15 @@ def build_patoks_keyboard(batch_id: int, branch: str) -> InlineKeyboardMarkup:
     """
     Patoklar ro'yxatini 3 ustun ko'rinishida generatsiya qilish:
     - HQ (Kosonsoy): 1..13 (K-1 .. K-13)
-    - UYCHI: 14..40 (U-1 .. U-27)
+    - UYCHI: 14..24 (U-1 .. U-11)
     """
     keyboard = []
     if branch == 'HQ':
         # 1..13
         screen_numbers = list(range(1, 14))
     else:
-        # 14..40
-        screen_numbers = list(range(14, 41))
+        # 14..24 (U1..U11)
+        screen_numbers = list(range(14, 25))
 
     row = []
     for sn in screen_numbers:
@@ -251,60 +268,116 @@ def resolve_batch_from_details_async(details: dict):
 
 async def _handle_verification_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result: dict):
     """
-    Tekshiruv natijasini yuborish va agar muvaffaqiyatli bo'lsa, kg so'rash rejimiga o'tish
+    Tekshiruv natijasini yuborish va jo'natish jarayonini boshqarish:
+    1. Agar pastal allaqachon DISPATCHED (Kutilmoqda) holatida bo'lsa -> Qayta jo'natish BLOKLANADI!
+    2. Agar pastal allaqachon ACCEPTED (Qabul qilingan) holatida bo'lsa -> Qayta jo'natish BLOKLANADI!
+       (Faqat master planshetda Qaytarish (Rad etish) tugmasini bosgandagina qayta jo'natish mumkin bo'ladi)
+    3. Agar pastal WAITING (yangi yoki master qaytargan) holatida bo'lsa:
+       - Agar oldin vazn kiritilgan bo'lsa (actual_weight_kg > 0) -> Qaytadan KG SO'RALMAYDI, darhol filial tanlashga o'tadi!
+       - Agar vazn hali kiritilmagan bo'lsa -> Vazn (kg) so'raladi.
     """
     message_text = result['message']
     details = result.get('details', {}) or {}
     batch_id = await resolve_batch_from_details_async(details)
 
-    if result.get('success') and batch_id:
-        disp_status = details.get('dispatch_status')
-        ass_screen = details.get('assigned_screen')
-        scanned_tkts = details.get('scanned_tickets', 0) or 0
-        p_code_info = get_patok_code(ass_screen) if ass_screen else 'Patok'
-
-        # Agar pastal allaqachon patokda qabul qilingan va tikuv boshlangan bo'lsa, qayta jo'natishni bloklash
-        if disp_status == CuttingBatch.DispatchStatus.ACCEPTED and scanned_tkts > 0:
-            context.user_data.pop('dispatch_state', None)
-            context.user_data.pop('dispatch_batch_id', None)
-            already_msg = (
-                f"{message_text}\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📌 *HOLATI:* Ushbu pastal allaqachon *{p_code_info}-Patok* tomonidan QABUL QILINGAN "
-                f"va tikuv jarayonida ({scanned_tkts} ta stiker urilgan).\n"
-                f"🔒 _Tikuvga kirgan pastalni boshqa patokka qayta jo'natib bo'lmaydi._"
-            )
-            await _safe_reply_text(update.message, already_msg)
-            return
-
-        status_note = ""
-        if disp_status == CuttingBatch.DispatchStatus.DISPATCHED and ass_screen:
-            status_note = f"\n⏳ _Eslatma: Hozirda {p_code_info}-Patokda qabul qilinishi kutilmoqda. Qayta jo'natish uchun vazn kiriting:_\n"
-        elif disp_status == CuttingBatch.DispatchStatus.ACCEPTED and ass_screen:
-            status_note = f"\nℹ️ _Eslatma: Hozirda {p_code_info}-Patokda qabul qilingan (0 stiker urilgan). Boshqa patokka o'tkazish uchun vazn kiriting:_\n"
-
-        # User sessiyasiga batch_id va kutish holatini o'rnatish
-        context.user_data['dispatch_batch_id'] = batch_id
-        context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
-
-        kg_prompt = (
-            f"{message_text}\n"
-            f"{status_note}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
-            f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_"
-        )
-        await _safe_reply_text(update.message, kg_prompt)
-    else:
+    if not result.get('success') or not batch_id:
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
+        context.user_data.pop('dispatch_weight', None)
         await _safe_reply_text(update.message, message_text)
+        return
+
+    batch_info = await get_batch_info_async(batch_id)
+    if not batch_info:
+        context.user_data.pop('dispatch_state', None)
+        context.user_data.pop('dispatch_batch_id', None)
+        context.user_data.pop('dispatch_weight', None)
+        await _safe_reply_text(update.message, message_text)
+        return
+
+    disp_status = batch_info.get('dispatch_status')
+    ass_screen = batch_info.get('assigned_screen')
+    p_code_info = get_patok_code(ass_screen) if ass_screen else 'Patok'
+    existing_weight = batch_info.get('weight') or 0.0
+
+    # 1. AGAR PASTAL HOZIRDA KUTILAYOTGAN BO'LSA (DISPATCHED)
+    if disp_status == CuttingBatch.DispatchStatus.DISPATCHED:
+        context.user_data.pop('dispatch_state', None)
+        context.user_data.pop('dispatch_batch_id', None)
+        context.user_data.pop('dispatch_weight', None)
+
+        dispatched_msg = (
+            f"{message_text}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⏳ *BU PASTAL HOZIRDA KUTILMOQDA!*\n\n"
+            f"📍 Ushbu pastal *{p_code_info}-Patokka* jo'natilgan va hozirda planshetda qabul qilinishi kutilmoqda.\n"
+            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
+            f"ℹ️ _Agar ushbu pastal boshqa patokka berilishi kerak bo'lsa, avval *{p_code_info}-Patok* masteri planshetda uni 'Qaytarish' (Rad etish) qilishi shart._"
+        )
+        await _safe_reply_text(update.message, dispatched_msg)
+        return
+
+    # 2. AGAR PASTAL ALLAQACHON QABUL QILINGAN BO'LSA (ACCEPTED)
+    if disp_status == CuttingBatch.DispatchStatus.ACCEPTED:
+        context.user_data.pop('dispatch_state', None)
+        context.user_data.pop('dispatch_batch_id', None)
+        context.user_data.pop('dispatch_weight', None)
+
+        accepted_msg = (
+            f"{message_text}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📌 *BU PASTAL ALLAQACHON QABUL QILINGAN!*\n\n"
+            f"📍 Ushbu pastal *{p_code_info}-Patok* tomonidan qabul qilingan.\n"
+            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
+            f"ℹ️ _Agar ushbu pastal boshqa patokka o'tkazilishi kerak bo'lsa, avval *{p_code_info}-Patok* masteri planshet orqali ushbu pastalni 'Qaytarish' (Rad etish) qilishi shart._"
+        )
+        await _safe_reply_text(update.message, accepted_msg)
+        return
+
+    # 3. PASTAL JO'NATISHGA TAYYOR (WAITING):
+    context.user_data['dispatch_batch_id'] = batch_id
+
+    rej_reason = batch_info.get('rejection_reason')
+    rejection_note = ""
+    if rej_reason:
+        rejection_note = (
+            f"\n🔄 *Master tomonidan qaytarilgan pastal:*\n"
+            f"💬 _{_esc_md(rej_reason)}_\n"
+        )
+
+    # 3.A: Agar oldin vazn kiritilgan bo'lsa (masalan, master qaytargan pastalda vazn allaqachon bor)
+    # FOYDALANUVCHI TALABI: "BU SAFAR ESA UNGA KG KERAK BOLMAYDI QAYTA"
+    if existing_weight > 0:
+        context.user_data['dispatch_weight'] = existing_weight
+        context.user_data['dispatch_state'] = 'WAITING_BRANCH'
+
+        kb = build_branch_keyboard(batch_id)
+        ready_msg = (
+            f"{message_text}\n"
+            f"{rejection_note}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚖️ *Haqiqiy vazni:* `{existing_weight} kg` _(Oldin kiritilgan vazn saqlangan)_\n\n"
+            f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*"
+        )
+        await _safe_reply_text(update.message, ready_msg, reply_markup=kb)
+        return
+
+    # 3.B: Agar vazn hali umuman kiritilmagan bo'lsa -> Vazn so'raymiz
+    context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
+    kg_prompt = (
+        f"{message_text}\n"
+        f"{rejection_note}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
+        f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_"
+    )
+    await _safe_reply_text(update.message, kg_prompt)
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Matnli xabarlarni qabul qilish:
-    - Agar vazn kutilayotgan bo'lsa: kg ni qabul qiladi va filial tanlashga o'tadi
+    - Agar vazn kutilayotgan yoki filial kutilayotgan bo'lsa va son kiritilsa: vaznni qabul qiladi
     - Aks holda: QR kod matni sifatida tekshiradi
     """
     raw_text = (update.message.text or '').strip()
@@ -314,38 +387,51 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dispatch_state = context.user_data.get('dispatch_state')
     dispatch_batch_id = context.user_data.get('dispatch_batch_id')
 
-    # Agar vazn kutilayotgan bo'lsa va kiritilgan matn son bo'lsa
-    if dispatch_state == 'WAITING_WEIGHT' and dispatch_batch_id:
-        clean_num_text = raw_text.replace(',', '.')
-        is_number = False
-        try:
-            val = float(clean_num_text)
-            if 0.1 <= val <= 20000:
-                is_number = True
-                parsed_weight = Decimal(f"{val:.2f}")
-        except ValueError:
-            is_number = False
+    # Agar vazn yoki filial kutilayotgan bo'lsa va kiritilgan matn son bo'lsa (masalan: 48.5, 48,5, 48.5 kg, 50kg)
+    if dispatch_state in ('WAITING_WEIGHT', 'WAITING_BRANCH') and dispatch_batch_id:
+        m = re.search(r'^\s*(\d+(?:[.,]\d+)?)\s*(?:kg|кг)?\s*$', raw_text, re.IGNORECASE)
+        if m:
+            clean_num_text = m.group(1).replace(',', '.')
+            try:
+                val = float(clean_num_text)
+                if 0.1 <= val <= 20000:
+                    parsed_weight = Decimal(f"{val:.2f}")
+                    saved_info = await save_batch_weight_async(dispatch_batch_id, parsed_weight)
+                    if saved_info:
+                        context.user_data['dispatch_weight'] = float(parsed_weight)
+                        context.user_data['dispatch_state'] = 'WAITING_BRANCH'
 
-        if is_number:
-            # Vaznni saqlash
-            saved_info = await save_batch_weight_async(dispatch_batch_id, parsed_weight)
-            if saved_info:
-                context.user_data['dispatch_weight'] = float(parsed_weight)
-                context.user_data['dispatch_state'] = 'WAITING_BRANCH'
+                        kb = build_branch_keyboard(dispatch_batch_id)
+                        await _safe_reply_text(
+                            update.message,
+                            f"⚖️ *Vazn saqlandi:* `{parsed_weight} kg`\n"
+                            f"📋 *Pastal:* #{saved_info['batch_number']} ({_esc_md(saved_info['article_name'])}, {saved_info['units']} dona)\n\n"
+                            f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*",
+                            reply_markup=kb
+                        )
+                        return
+            except (ValueError, TypeError):
+                pass
 
-                kb = build_branch_keyboard(dispatch_batch_id)
-                await _safe_reply_text(
-                    update.message,
-                    f"⚖️ *Vazn saqlandi:* `{parsed_weight} kg`\n"
-                    f"📋 *Pastal:* #{saved_info['batch_number']} ({_esc_md(saved_info['article_name'])}, {saved_info['units']} dona)\n\n"
-                    f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*",
-                    reply_markup=kb
-                )
-                return
+        # Agar vazn kutilayotgan bo'lsa, lekin foydalanuvchi QR kodga o'xshamaydigan boshqa narsa yozgan bo'lsa
+        # Foydalanuvchini ogohlantiramiz, bekor qilmasdan
+        looks_like_qr = bool(re.search(
+            r'^(PASTAL|BATCH|TICKET|TK|CONTROL|BOX|QUTI|PC|ORDER|ZAKAZ|#|[A-Z0-9]{8})',
+            raw_text,
+            re.IGNORECASE
+        ))
+        if dispatch_state == 'WAITING_WEIGHT' and not looks_like_qr:
+            await _safe_reply_text(
+                update.message,
+                "⚠️ *Iltimos, pastal vaznini to'g'ri sonda kiriting!* (Masalan: `48.5` yoki `52`)\n"
+                "Yoki yangi pastal tekshirish uchun QR kod yuboring."
+            )
+            return
 
-        # Agar son bo'lmasa, lekin yangi QR kod bo'lsa (masalan: PASTAL:15 yoki #8928374), eski holatni tozalaymiz
+        # Agar yangi QR kod bo'lsa, eski holatni tozalaymiz va pastda tekshiramiz
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
+        context.user_data.pop('dispatch_weight', None)
 
     # Oddiy QR kod tekshiruvi
     result = await async_verify_pastal_for_sewing(raw_text)
@@ -470,6 +556,19 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
             return
 
+        # Qayta jo'natish xavfsizlik tekshiruvi
+        if batch_info.get('dispatch_status') == CuttingBatch.DispatchStatus.DISPATCHED:
+            p_code = get_patok_code(batch_info.get('assigned_screen')) or "Patok"
+            context.user_data.clear()
+            await _safe_edit_text(query, f"⏳ *Ushbu pastal hozirda {p_code}-Patokda kutilmoqda!*\n🚫 Uni qayta jo'nata olmaysiz. Master qabul qilishi yoki qaytarishi kerak.")
+            return
+
+        if batch_info.get('dispatch_status') == CuttingBatch.DispatchStatus.ACCEPTED:
+            p_code = get_patok_code(batch_info.get('assigned_screen')) or "Patok"
+            context.user_data.clear()
+            await _safe_edit_text(query, f"📌 *Ushbu pastal allaqachon {p_code}-Patok tomonidan qabul qilingan!*\n🚫 Uni qayta jo'nata olmaysiz.")
+            return
+
         p_code = get_patok_code(screen_number)
         p_name = get_patok_name(screen_number)
         branch_name = "Kosonsoy" if branch == 'HQ' else "Uychi"
@@ -510,6 +609,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         res = await dispatch_batch_async(batch_id, branch, screen_number, user_name)
         if not res:
             await _safe_edit_text(query, "⚠️ Xatolik: Pastal bazadan topilmadi.")
+            return
+
+        if res.get('error'):
+            context.user_data.clear()
+            await _safe_edit_text(query, f"🚫 *{res['message']}*")
             return
 
         context.user_data.clear()

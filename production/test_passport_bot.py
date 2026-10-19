@@ -373,3 +373,52 @@ class PassportVerificationTestCase(TestCase):
         self.assertEqual(res['status_code'], 'NOT_FOUND')
         self.assertIn("USHBU STIKER TIZIMDA TOPILMADI", res['message'])
         self.assertIn("tikuv patogiga chiqarmang", res['message'])
+
+    def test_build_patoks_keyboard_uychi_range(self):
+        """Uychi klaviaturasi faqat 11 ta patok (14..24: U1..U11) bo'lishini tekshirish"""
+        from production.management.commands.run_passport_bot import build_patoks_keyboard
+        kb = build_patoks_keyboard(self.batch.id, 'UYCHI')
+        # Row-lar ichidagi patok tugmalarini yig'ish
+        patok_buttons = []
+        for row in kb.inline_keyboard:
+            for btn in row:
+                if btn.callback_data and btn.callback_data.startswith('dp_pat:'):
+                    patok_buttons.append(btn)
+        self.assertEqual(len(patok_buttons), 11)
+        self.assertEqual(patok_buttons[0].text, "U1-Patok")
+        self.assertEqual(patok_buttons[-1].text, "U11-Patok")
+
+    async def test_dispatch_batch_async_guards(self):
+        """Kutilayotgan (DISPATCHED) yoki qabul qilingan (ACCEPTED) pastal qayta jo'natilishini bloklash"""
+        from production.management.commands.run_passport_bot import dispatch_batch_async
+        # 1. Muvaffaqiyatli jo'natish
+        res1 = await dispatch_batch_async(self.batch.id, 'HQ', 1, 'Tester')
+        self.assertFalse(res1['error'])
+        self.assertEqual(res1['patok_code'], 'K1')
+
+        # 2. Qayta jo'natishga urinish -> Xatolik berishi kerak
+        res2 = await dispatch_batch_async(self.batch.id, 'HQ', 2, 'Tester')
+        self.assertTrue(res2['error'])
+        self.assertIn("kutilmoqda", res2['message'])
+
+        # 3. ACCEPTED holatida ham bloklanishi kerak
+        self.batch.dispatch_status = CuttingBatch.DispatchStatus.ACCEPTED
+        await self.batch.asave(update_fields=['dispatch_status'])
+
+        res3 = await dispatch_batch_async(self.batch.id, 'HQ', 3, 'Tester')
+        self.assertTrue(res3['error'])
+        self.assertIn("qabul qilingan", res3['message'])
+
+    def test_rejected_pastal_preserves_weight_and_notes(self):
+        """Master pastalni qaytarganda vazn o'chib ketmasligi va bot tekshiruvida qaytarilganligi ko'rinishi"""
+        self.batch.actual_weight_kg = Decimal('48.50')
+        self.batch.dispatch_status = CuttingBatch.DispatchStatus.WAITING
+        self.batch.rejection_reason = "[Ali Master] (K1-Patok): Choklarda xatolik bor"
+        self.batch.save()
+
+        res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertTrue(res['success'])
+        self.assertEqual(res['details']['actual_weight_kg'], 48.5)
+        self.assertEqual(res['details']['rejection_reason'], "[Ali Master] (K1-Patok): Choklarda xatolik bor")
+        self.assertIn("Choklarda xatolik bor", res['message'])
+

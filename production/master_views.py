@@ -223,7 +223,7 @@ def api_get_patoks_summary(request):
     branch = request.GET.get('branch') or (master.branch if (master and getattr(master, 'branch', None)) else 'HQ')
 
     is_hq = (branch == 'HQ')
-    screen_numbers = list(range(1, 14)) if is_hq else list(range(14, 41))
+    screen_numbers = list(range(1, 14)) if is_hq else list(range(14, 25))
 
     # Kutilayotgan (DISPATCHED) pastallar (bekor qilingan zakazlarni chiqarib tashlaymiz)
     dispatched_batches = CuttingBatch.objects.filter(
