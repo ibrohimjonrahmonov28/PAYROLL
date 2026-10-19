@@ -2,6 +2,25 @@
 
 {% block title %}Qutilar Vizual Statistikasi & Pipeline — TERRY JAR{% endblock %}
 
+{% block extra_css %}
+<style>
+    .pipeline-scroll::-webkit-scrollbar {
+        height: 5px;
+    }
+    .pipeline-scroll::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.6);
+        border-radius: 4px;
+    }
+    .pipeline-scroll::-webkit-scrollbar-thumb {
+        background: rgba(59, 130, 246, 0.4);
+        border-radius: 4px;
+    }
+    .pipeline-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(59, 130, 246, 0.7);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-6">
 
@@ -31,21 +50,29 @@
 
         <!-- KPI Pill Counters -->
         <div class="flex items-center gap-2 overflow-x-auto">
-            <a href="?status=ALL" class="bg-slate-950 hover:bg-slate-800/80 border border-slate-800 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
-                <span class="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Jami Qutilar</span>
+            <a href="?status=ALL" class="bg-slate-950 hover:bg-slate-800/80 border {% if status_filter == 'ALL' and not unscanned_only %}border-blue-500/50 text-blue-400{% else %}border-slate-800 text-slate-400{% endif %} px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
+                <span class="text-[10px] uppercase font-black tracking-wider block">Jami Qutilar</span>
                 <span class="text-base font-black text-white digital-font">{{ total_boxes_count }}</span>
+            </a>
+            <a href="?status=ACTIVE" class="bg-slate-950 hover:bg-slate-800/80 border {% if status_filter == 'ACTIVE' %}border-emerald-500/60 bg-emerald-950/20{% else %}border-emerald-500/30{% endif %} px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition group">
+                <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block group-hover:text-emerald-300">Faol (Aktiv)</span>
+                <span class="text-base font-black text-emerald-400 digital-font">{{ active_boxes_count }}</span>
+            </a>
+            <a href="?status=CANCELLED" class="bg-slate-950 hover:bg-slate-800/80 border {% if status_filter == 'CANCELLED' %}border-rose-500/60 bg-rose-950/20{% else %}border-rose-500/30{% endif %} px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition group">
+                <span class="text-[10px] text-rose-400 uppercase font-black tracking-wider block group-hover:text-rose-300">Bekor qilingan</span>
+                <span class="text-base font-black text-rose-400 digital-font">{{ cancelled_boxes_count }}</span>
+            </a>
+            <a href="?status=IN_PROGRESS" class="bg-slate-950 hover:bg-slate-800/80 border {% if status_filter == 'IN_PROGRESS' %}border-amber-500/60 bg-amber-950/20{% else %}border-slate-800{% endif %} px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
+                <span class="text-[10px] text-amber-400 uppercase font-black tracking-wider block">Jarayonda</span>
+                <span class="text-base font-black text-amber-400 digital-font">{{ in_progress_boxes_count }}</span>
+            </a>
+            <a href="?status=COMPLETED" class="bg-slate-950 hover:bg-slate-800/80 border {% if status_filter == 'COMPLETED' %}border-emerald-500/60 bg-emerald-950/20{% else %}border-slate-800{% endif %} px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
+                <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block">Bajarildi</span>
+                <span class="text-base font-black text-emerald-400 digital-font">{{ completed_boxes_count }}</span>
             </a>
             <a href="?status=UNSCANNED&unscanned_only=1" class="bg-slate-950 hover:bg-slate-800/80 border border-rose-500/30 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition group">
                 <span class="text-[10px] text-rose-400 uppercase font-black tracking-wider block group-hover:text-rose-300">Skan qilinmagan</span>
                 <span class="text-base font-black text-rose-400 digital-font">{{ unscanned_boxes_count }}</span>
-            </a>
-            <a href="?status=IN_PROGRESS" class="bg-slate-950 hover:bg-slate-800/80 border border-slate-800 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
-                <span class="text-[10px] text-amber-400 uppercase font-black tracking-wider block">Jarayonda</span>
-                <span class="text-base font-black text-amber-400 digital-font">{{ in_progress_boxes_count }}</span>
-            </a>
-            <a href="?status=COMPLETED" class="bg-slate-950 hover:bg-slate-800/80 border border-slate-800 px-3.5 py-2 rounded-2xl text-center flex-shrink-0 transition">
-                <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block">Bajarildi</span>
-                <span class="text-base font-black text-emerald-400 digital-font">{{ completed_boxes_count }}</span>
             </a>
         </div>
     </div>
@@ -151,9 +178,13 @@
                         class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if status_filter == 'ALL' and not unscanned_only %}bg-blue-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                         Barchasi
                     </a>
-                    <a href="?status=UNSCANNED&unscanned_only=1{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if selected_razmer %}&razmer={{ selected_razmer }}{% endif %}"
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if unscanned_only or status_filter == 'UNSCANNED' %}bg-rose-600 text-white shadow shadow-rose-600/30{% else %}text-slate-400 hover:text-rose-400{% endif %}">
-                        <i class="fa-solid fa-hourglass-start mr-1"></i> Skan qilinmagan (0 ta)
+                    <a href="?status=ACTIVE{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if selected_razmer %}&razmer={{ selected_razmer }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 flex items-center gap-1.5 {% if status_filter == 'ACTIVE' and not unscanned_only %}bg-emerald-600 text-white shadow{% else %}text-emerald-400 hover:text-emerald-300{% endif %}">
+                        <i class="fa-solid fa-circle-check text-[11px]"></i> Faol qutilar (Aktiv)
+                    </a>
+                    <a href="?status=CANCELLED{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if selected_razmer %}&razmer={{ selected_razmer }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 flex items-center gap-1.5 {% if status_filter == 'CANCELLED' %}bg-rose-600 text-white shadow shadow-rose-600/30{% else %}text-rose-400 hover:text-rose-300{% endif %}">
+                        <i class="fa-solid fa-ban text-[11px]"></i> Bekor qilingan (Cancel)
                     </a>
                     <a href="?status=IN_PROGRESS{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if selected_razmer %}&razmer={{ selected_razmer }}{% endif %}"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if status_filter == 'IN_PROGRESS' and not unscanned_only %}bg-amber-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
@@ -162,6 +193,10 @@
                     <a href="?status=COMPLETED{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if selected_razmer %}&razmer={{ selected_razmer }}{% endif %}"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if status_filter == 'COMPLETED' and not unscanned_only %}bg-emerald-500 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                         Bajarilgan
+                    </a>
+                    <a href="?status=UNSCANNED&unscanned_only=1{% if q %}&q={{ q }}{% endif %}{% if selected_article_id %}&article_id={{ selected_article_id }}{% endif %}{% if selected_pastal %}&pastal={{ selected_pastal }}{% endif %}{% if selected_razmer %}&razmer={{ selected_razmer }}{% endif %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex-shrink-0 {% if unscanned_only or status_filter == 'UNSCANNED' %}bg-rose-600 text-white shadow shadow-rose-600/30{% else %}text-slate-400 hover:text-rose-400{% endif %}">
+                        <i class="fa-solid fa-hourglass-start mr-1 text-[11px]"></i> Skan qilinmagan (0 ta)
                     </a>
                 </div>
             </div>
@@ -172,43 +207,57 @@
     <div class="space-y-4">
         {% for item in boxes_data %}
         <div
-            class="bg-slate-900 border {% if item.box.id == highlighted_box_id %}border-blue-500 ring-2 ring-blue-500/30 shadow-blue-500/20{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-5 shadow-xl transition">
+            class="bg-slate-900 border {% if item.box.status == 'CANCELLED' %}border-rose-900/50 bg-slate-900/60 opacity-80{% elif item.box.id == highlighted_box_id %}border-blue-500 ring-2 ring-blue-500/30 shadow-blue-500/20{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-5 shadow-xl transition">
 
             <!-- Box Card Header -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                 <div class="flex items-start sm:items-center gap-3.5">
                     <!-- Box Code Badge -->
                     <div
-                        class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
-                        <span class="text-sm font-black text-amber-400 digital-font">#{{ item.box.box_number }}</span>
+                        class="w-11 h-11 rounded-xl {% if item.box.status == 'CANCELLED' %}bg-rose-950/40 border-rose-900/60 text-rose-400{% else %}bg-slate-950 border-slate-800 text-amber-400{% endif %} border flex items-center justify-center flex-shrink-0">
+                        <span class="text-sm font-black digital-font">#{{ item.box.box_number }}</span>
                     </div>
 
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="text-base font-black text-white">
+                            <h3 class="text-base font-black {% if item.box.status == 'CANCELLED' %}text-slate-400 line-through{% else %}text-white{% endif %}">
                                 QUTI #{{ item.box.box_number }}
                             </h3>
                             <span
-                                class="px-2 py-0.5 rounded-md bg-slate-800 text-cyan-400 font-mono text-xs font-bold tracking-wider"
+                                class="px-2 py-0.5 rounded-md {% if item.box.status == 'CANCELLED' %}bg-rose-950/40 text-rose-400 border border-rose-900/40{% else %}bg-slate-800 text-cyan-400{% endif %} font-mono text-xs font-bold tracking-wider"
                                 title="Quti unikal kodi">
                                 [{{ item.box.box_code }}]
                             </span>
 
                             <!-- Status Badge -->
-                            {% if item.box.status == 'COMPLETED' or item.progress_pct == 100 %}
+                            {% if item.box.status == 'CANCELLED' %}
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/20 text-rose-400 border border-rose-500/40 inline-flex items-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-ban"></i> Bekor qilingan (Cancelled)
+                            </span>
+                            {% elif item.box.status == 'COMPLETED' or item.progress_pct == 100 %}
                             <span
                                 class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                                 <i class="fa-solid fa-check mr-1"></i> Bajarildi
+                            </span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                                Aktiv
                             </span>
                             {% elif item.box.status == 'IN_PROGRESS' or item.scanned_tickets > 0 %}
                             <span
                                 class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                                 <i class="fa-solid fa-spinner fa-spin mr-1"></i> Jarayonda
                             </span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                                Aktiv
+                            </span>
                             {% else %}
                             <span
                                 class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
                                 <i class="fa-solid fa-hourglass-start mr-1"></i> Skan qilinmagan (0 ta)
+                            </span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                                Aktiv
                             </span>
                             {% endif %}
                         </div>
@@ -263,17 +312,17 @@
             </div>
 
             <!-- Operations Pipeline Circles -->
-            <div class="pt-5">
+            <div class="pt-4">
                 <div
-                    class="text-[11px] uppercase tracking-wider font-extrabold text-slate-500 mb-3 flex items-center justify-between">
+                    class="text-[11px] uppercase tracking-wider font-extrabold text-slate-500 mb-2 flex items-center justify-between">
                     <span>Ketma-ket operatsiyalar chizig'i (Bosib tafsilotini ko'ring):</span>
                     <span class="text-[10px] text-slate-500 font-mono">{{ item.tickets|length }} ta operatsiya</span>
                 </div>
 
-                <div class="relative flex items-center overflow-x-auto py-3 px-2">
-                    <div class="flex items-center min-w-max gap-4 sm:gap-6">
+                <div class="relative flex items-center overflow-x-auto py-2.5 px-1 pipeline-scroll">
+                    <div class="flex items-center min-w-max gap-1.5 sm:gap-2">
                         {% for t in item.tickets %}
-                        <div class="flex items-center gap-4 sm:gap-6">
+                        <div class="flex items-center gap-1.5 sm:gap-2">
                             <!-- Operation Circle Element -->
                             <div class="flex flex-col items-center group cursor-pointer"
                                 onclick="openStickerModal({{ t.id }})" data-ticket-id="{{ t.id }}"
@@ -289,7 +338,7 @@
                                 data-article="{{ item.target_article.name|default:'' }}">
 
                                 <!-- The Circle Button -->
-                                <button type="button" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-black text-xs transition-all transform group-hover:scale-110 shadow-lg relative
+                                <button type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-black text-xs transition-all transform group-hover:scale-110 shadow-md relative
                                     {% if t.is_scanned %}
                                         bg-blue-600 text-white shadow-blue-600/30 hover:bg-blue-500 ring-2 ring-blue-400/40
                                     {% else %}
@@ -300,27 +349,27 @@
                                     {% endif %}">
 
                                     {% if t.is_scanned %}
-                                    <i class="fa-solid fa-check text-xs"></i>
+                                    <i class="fa-solid fa-check text-[10px]"></i>
                                     {% else %}
-                                    <span class="digital-font">{{ t.sequence }}</span>
+                                    <span class="digital-font text-[11px]">{{ t.sequence }}</span>
                                     {% endif %}
 
                                     <!-- Highlight marker if searched -->
                                     {% if t.is_highlighted %}
-                                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full"></span>
+                                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full"></span>
                                     {% endif %}
                                 </button>
 
                                 <!-- Label below circle -->
-                                <div class="mt-2 text-center max-w-[90px] sm:max-w-[110px]">
+                                <div class="mt-1.5 text-center max-w-[64px] sm:max-w-[74px]">
                                     <span
-                                        class="block text-[11px] font-bold truncate {% if t.is_scanned %}text-blue-300{% else %}text-slate-400{% endif %}"
+                                        class="block text-[10px] leading-tight font-bold truncate {% if t.is_scanned %}text-blue-300{% else %}text-slate-400{% endif %}"
                                         title="{{ t.op_name }}">
                                         {{ t.op_name }}
                                     </span>
                                     <span
-                                        class="inline-flex items-center gap-1 text-[10px] font-mono {% if t.is_scanned %}text-slate-400{% else %}text-rose-400/70{% endif %}">
-                                        <i class="fa-solid fa-qrcode text-[9px] text-cyan-400"></i>
+                                        class="inline-flex items-center gap-0.5 text-[9px] font-mono leading-none mt-0.5 {% if t.is_scanned %}text-slate-400{% else %}text-rose-400/70{% endif %}">
+                                        <i class="fa-solid fa-qrcode text-[8px] text-cyan-400"></i>
                                         <span>{{ t.stiker_id }}</span>
                                     </span>
                                 </div>
@@ -329,7 +378,7 @@
                             <!-- Connecting Arrow/Line between circles (if not last) -->
                             {% if not forloop.last %}
                             <div
-                                class="h-0.5 w-6 sm:w-8 -mt-6 {% if t.is_scanned %}bg-blue-500{% else %}bg-slate-800{% endif %}">
+                                class="h-0.5 w-2.5 sm:w-3.5 -mt-5 {% if t.is_scanned %}bg-blue-500{% else %}bg-slate-800{% endif %}">
                             </div>
                             {% endif %}
                         </div>

@@ -823,30 +823,38 @@ def box_pipeline_statistics_view(request):
         razmer_clean = razmer.strip()
         boxes_qs = boxes_qs.filter(razmer__iexact=razmer_clean).distinct()
 
-    # 4. Holat / Skanerlanmagan qutilar filtri (Faqat belgilanganda!)
-    if unscanned_only or status_filter == 'UNSCANNED':
+    # 4. Holat / Skanerlanmagan qutilar filtri
+    if status_filter == 'ACTIVE':
+        boxes_qs = boxes_qs.exclude(status=Box.Status.CANCELLED)
+    elif status_filter == 'CANCELLED':
+        boxes_qs = boxes_qs.filter(status=Box.Status.CANCELLED)
+    elif unscanned_only or status_filter == 'UNSCANNED':
         boxes_qs = boxes_qs.filter(annotated_scanned_tickets=0).exclude(status=Box.Status.CANCELLED)
     elif status_filter == Box.Status.COMPLETED:
         boxes_qs = boxes_qs.filter(
             Q(status=Box.Status.COMPLETED) | Q(annotated_total_tickets__gt=0, annotated_scanned_tickets=F('annotated_total_tickets'))
-        )
+        ).exclude(status=Box.Status.CANCELLED)
     elif status_filter == Box.Status.IN_PROGRESS:
         boxes_qs = boxes_qs.filter(
             Q(status=Box.Status.IN_PROGRESS) | Q(annotated_scanned_tickets__gt=0, annotated_scanned_tickets__lt=F('annotated_total_tickets'))
-        )
+        ).exclude(status=Box.Status.CANCELLED)
     elif status_filter == Box.Status.CREATED:
         boxes_qs = boxes_qs.filter(
             Q(status=Box.Status.CREATED, annotated_scanned_tickets=0) | Q(annotated_scanned_tickets=0)
-        )
+        ).exclude(status=Box.Status.CANCELLED)
 
     # Tezkor bitta agregatsiya so'rovi (1ms)
     counts = Box.objects.aggregate(
         total=Count('id'),
+        active=Count('id', filter=~Q(status=Box.Status.CANCELLED)),
+        cancelled=Count('id', filter=Q(status=Box.Status.CANCELLED)),
         created=Count('id', filter=Q(status=Box.Status.CREATED)),
         in_prog=Count('id', filter=Q(status=Box.Status.IN_PROGRESS)),
         comp=Count('id', filter=Q(status=Box.Status.COMPLETED))
     )
     total_boxes_count = counts['total'] or 0
+    active_boxes_count = counts['active'] or 0
+    cancelled_boxes_count = counts['cancelled'] or 0
     unscanned_boxes_count = counts['created'] or 0
     in_progress_boxes_count = counts['in_prog'] or 0
     completed_boxes_count = counts['comp'] or 0
@@ -1038,6 +1046,8 @@ def box_pipeline_statistics_view(request):
         'all_sizes_json': json.dumps(sorted_all_sizes),
         'sizes_by_article_json': json.dumps(serializable_sizes_by_article),
         'total_boxes_count': total_boxes_count,
+        'active_boxes_count': active_boxes_count,
+        'cancelled_boxes_count': cancelled_boxes_count,
         'unscanned_boxes_count': unscanned_boxes_count,
         'in_progress_boxes_count': in_progress_boxes_count,
         'completed_boxes_count': completed_boxes_count,
