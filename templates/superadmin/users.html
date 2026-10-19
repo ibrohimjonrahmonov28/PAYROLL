@@ -16,7 +16,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-6">
+<div class="max-w-7xl 2xl:max-w-[1700px] mx-auto space-y-6">
 
     <!-- KPI STAT CARDS (5 CARDS) -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
@@ -547,7 +547,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="py-12 text-center text-slate-500">
+                        <td colspan="10" class="py-12 text-center text-slate-500">
                             <div
                                 class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400 text-xl">
                                 <i class="fa-solid fa-user-slash"></i>
@@ -560,6 +560,92 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- PAGINATION BAR (DESKTOP) -->
+        <div class="bg-slate-950/90 px-6 py-4 border-t border-slate-800 flex items-center justify-between gap-4">
+            <!-- Left Info -->
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <span>Ko'rsatilmoqda:</span>
+                <span class="font-black text-amber-400 font-mono">
+                    {% if total_filtered_count > 0 %}{{ users.start_index }}–{{ users.end_index }}{% else %}0{% endif %}
+                </span>
+                <span>/</span>
+                <span>Jami: <strong class="text-white">{{ total_filtered_count }}</strong> ta xodim</span>
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-500 font-medium">(Har bir sahifada 20 tadan)</span>
+            </div>
+
+            <!-- Right Controls -->
+            {% if users.has_other_pages %}
+            <div class="flex items-center gap-1.5">
+                <!-- First Page -->
+                {% if users.has_previous %}
+                <a href="?page=1{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-bold transition flex items-center gap-1"
+                    title="Birinchi sahifa">
+                    <i class="fa-solid fa-angles-left"></i>
+                </a>
+                <!-- Previous Page -->
+                <a href="?page={{ users.previous_page_number }}{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition flex items-center gap-1.5"
+                    title="Oldingi sahifa">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <span>Oldingi</span>
+                </a>
+                {% else %}
+                <span class="px-2.5 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed">
+                    <i class="fa-solid fa-angles-left"></i>
+                </span>
+                <span class="px-3 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed flex items-center gap-1.5">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <span>Oldingi</span>
+                </span>
+                {% endif %}
+
+                <!-- Page Numbers -->
+                <div class="flex items-center gap-1 mx-1">
+                    {% for p_num in page_range %}
+                        {% if p_num == users.paginator.ELLIPSIS or p_num == '…' %}
+                        <span class="px-2.5 py-1.5 text-slate-600 text-xs font-bold">…</span>
+                        {% elif p_num == users.number %}
+                        <span class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black text-xs shadow-md border border-amber-400 font-mono">
+                            {{ p_num }}
+                        </span>
+                        {% else %}
+                        <a href="?page={{ p_num }}{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
+                            class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold font-mono transition">
+                            {{ p_num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Next Page -->
+                {% if users.has_next %}
+                <a href="?page={{ users.next_page_number }}{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition flex items-center gap-1.5"
+                    title="Keyingi sahifa">
+                    <span>Keyingi</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </a>
+                <!-- Last Page -->
+                <a href="?page={{ users.paginator.num_pages }}{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-bold transition flex items-center gap-1"
+                    title="Oxirgi sahifa ({{ users.paginator.num_pages }})">
+                    <i class="fa-solid fa-angles-right"></i>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed flex items-center gap-1.5">
+                    <span>Keyingi</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </span>
+                <span class="px-2.5 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed">
+                    <i class="fa-solid fa-angles-right"></i>
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 

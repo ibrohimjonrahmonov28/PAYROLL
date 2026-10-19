@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.urls import reverse
 from django.conf import settings
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import User, Worker, WorkerPayout, DailyWorkerClosing, generate_unique_user_uid
 from production.models import Customer, ProductModel, ProductModelOperation, Order, Ticket, Box, Article, Operation, ArticleOperation, OrderItem, OperationGroup, OperationGroupItem, DefectReason, ControlSetting
 from production.excel_reports import compact_ticket_ids
@@ -617,7 +618,20 @@ def superadmin_users(request):
     elif badge_filter == 'printed':
         users_qs = users_qs.filter(is_badge_printed=True)
 
-    users = users_qs.order_by('-date_joined')
+    users_qs = users_qs.order_by('-date_joined')
+    total_filtered_count = users_qs.count()
+
+    paginator = Paginator(users_qs, 20)
+    page_number = request.GET.get('page', 1)
+    try:
+        users = paginator.page(page_number)
+    except PageNotAnInteger:
+        users = paginator.page(1)
+    except EmptyPage:
+        users = paginator.page(paginator.num_pages)
+
+    # Desktop pagination: ixcham va qulay sahifalar ro'yxati (elided)
+    page_range = paginator.get_elided_page_range(users.number, on_each_side=2, on_ends=1)
 
     # Hisoblagichlar
     base_counts_qs = User.objects.all()
@@ -637,6 +651,8 @@ def superadmin_users(request):
 
     return render(request, 'superadmin/users.html', {
         'users': users,
+        'page_range': page_range,
+        'total_filtered_count': total_filtered_count,
         'search_q': search_q,
         'role_filter': role_filter,
         'badge_filter': badge_filter,
