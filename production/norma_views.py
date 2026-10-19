@@ -537,10 +537,18 @@ def norma_canvas_view(request):
 
             is_in_sewing = art.id in scanned_article_ids
 
+            image_url = None
+            if art.image:
+                try:
+                    image_url = art.image.url
+                except Exception:
+                    image_url = None
+
             articles_map[art.id] = {
                 'id': art.id,
                 'code': art.code,
                 'name': art.name,
+                'image_url': image_url,
                 'model_id': pmodel.id if pmodel else None,
                 'model_code': pmodel.code if pmodel else None,
                 'model_name': pmodel.name if pmodel else None,
@@ -576,10 +584,18 @@ def norma_canvas_view(request):
 
             is_in_sewing = art.id in scanned_article_ids
 
+            image_url = None
+            if art.image:
+                try:
+                    image_url = art.image.url
+                except Exception:
+                    image_url = None
+
             articles_map[art.id] = {
                 'id': art.id,
                 'code': art.code,
                 'name': art.name,
+                'image_url': image_url,
                 'model_id': pmodel.id if pmodel else None,
                 'model_code': pmodel.code if pmodel else None,
                 'model_name': pmodel.name if pmodel else 'Model',

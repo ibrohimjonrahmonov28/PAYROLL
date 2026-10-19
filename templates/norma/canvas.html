@@ -445,6 +445,27 @@
         {% endfor %}
 </datalist>
 
+<!-- IMAGE PREVIEW MODAL -->
+<div id="imagePreviewModal"
+    class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 transition-opacity"
+    onclick="closeImagePreviewModal()">
+    <div class="relative bg-[#161b26] border border-[#2a2e39] rounded-2xl p-4 max-w-lg w-full shadow-2xl flex flex-col items-center space-y-3"
+        onclick="event.stopPropagation()">
+        <div class="w-full flex items-center justify-between pb-2 border-b border-[#2a2e39]">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-image text-indigo-400 text-sm"></i>
+                <h4 id="preview-modal-title" class="text-xs font-bold text-white truncate font-mono">Model rasmi</h4>
+            </div>
+            <button onclick="closeImagePreviewModal()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div class="w-full bg-[#0c0f17] rounded-xl border border-[#2a2e39] overflow-hidden flex items-center justify-center p-2 min-h-[240px]">
+            <img id="preview-modal-img" src="" alt="Model" class="max-h-[65vh] w-auto max-w-full rounded-lg object-contain">
+        </div>
+    </div>
+</div>
+
 <!-- STYLES FOR DB DESIGNER PORTS, TABLES AND LINES (app.dbdesign.io style) -->
 <style>
     .db-table {
@@ -762,7 +783,7 @@
         }
     }
 
-    const STORAGE_KEY = 'norma_canvas_table_positions_v8';
+    const STORAGE_KEY = 'norma_canvas_table_positions_v9';
 
     // Default & Saved Positions in localStorage (Clean symmetrical layout)
     function getDefaultPositions() {
@@ -773,7 +794,7 @@
             const orderId = order.id;
             const articles = order.articles || [];
             const artCount = articles.length;
-            const artSpacing = 135;
+            const artSpacing = 165;
             const totalArtSpan = Math.max(0, artCount - 1) * artSpacing;
 
             // Vertically center Zakaz relative to all articles
@@ -843,7 +864,7 @@
             const orderKey = `order-node-${orderId}`;
             const articles = order.articles || [];
             const artCount = articles.length;
-            const artSpacing = 135;
+            const artSpacing = 165;
             const totalArtSpan = Math.max(0, artCount - 1) * artSpacing;
 
             if (!saved[orderKey]) {
@@ -1053,7 +1074,7 @@
             if (order.articles) {
                 order.articles.forEach((art, artIdx) => {
                     const nodeKey = `art-node-${orderId}-${art.id}`;
-                    const artPos = positions[nodeKey] || defaultPositions[nodeKey] || { x: 440, y: orderPos.y + artIdx * 135 };
+                    const artPos = positions[nodeKey] || defaultPositions[nodeKey] || { x: 440, y: orderPos.y + artIdx * 165 };
                     const isReady = art.is_ready;
                     const isChecked = selectedArticleIds.has(art.id);
                     const isActive = art.id === activeArtId;
@@ -1065,13 +1086,28 @@
 
                     const artNode = document.createElement('div');
                     artNode.id = nodeKey;
-                    artNode.className = `db-table absolute z-20 w-64 rounded-md border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none ${isActive ? 'ring-2 ring-indigo-400' : ''}`;
+                    artNode.className = `db-table absolute z-20 w-72 rounded-xl border border-[#2a2e39] bg-[#161b26] shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none transition-shadow ${isActive ? 'ring-2 ring-indigo-400' : ''}`;
                     artNode.style.left = `${artPos.x}px`;
                     artNode.style.top = `${artPos.y}px`;
                     artNode.dataset.orderId = orderId;
                     artNode.dataset.artCode = (art.code || '').toLowerCase();
                     artNode.dataset.artName = (art.name || '').toLowerCase();
                     artNode.dataset.modelName = (art.model_name || '').toLowerCase();
+
+                    const safeModelName = (art.model_name || art.name || 'Model').replace(/"/g, '&quot;');
+                    const safeTitle = (art.model_name || art.name || art.code || '').replace(/'/g, "\\'");
+
+                    const imageHtml = art.image_url
+                        ? `<div class="relative group/thumb cursor-pointer flex-shrink-0" onclick="event.stopPropagation(); openImagePreviewModal('${art.image_url}', '${safeTitle}')" title="Kattalashtirib ko'rish uchun bosing">
+                               <img src="${art.image_url}" alt="${safeModelName}" loading="lazy" decoding="async" class="w-12 h-12 rounded-lg object-cover border border-[#2a2e39] bg-[#0c0f17] shadow-inner transition-transform duration-200 group-hover/thumb:scale-105">
+                               <div class="absolute inset-0 bg-black/35 rounded-lg opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px]">
+                                   <i class="fa-solid fa-magnifying-glass-plus"></i>
+                               </div>
+                           </div>`
+                        : `<div class="w-12 h-12 rounded-lg border border-[#2a2e39] bg-[#0c0f17] flex-shrink-0 flex flex-col items-center justify-center text-slate-500 shadow-inner">
+                               <i class="fa-solid fa-shirt text-sm opacity-60"></i>
+                               <span class="text-[7.5px] uppercase tracking-tighter opacity-50 mt-0.5 font-sans">Rasm yo'q</span>
+                           </div>`;
 
                     artNode.innerHTML = `
                         <!-- Header: ARTIKUL -->
@@ -1088,7 +1124,31 @@
                         </div>
 
                         <!-- Rows -->
-                        <div class="p-2 space-y-1 text-[11px] font-mono">
+                        <div class="p-2 space-y-1.5 text-[11px] font-mono">
+                            <!-- Compact Thumbnail & Model Card -->
+                            <div class="p-1.5 rounded-lg bg-[#0c0f17]/80 border border-[#232936] flex items-center gap-2.5">
+                                ${imageHtml}
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-bold text-white text-xs truncate leading-snug" title="${safeModelName}">
+                                        ${art.model_name || 'Model'}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 truncate mt-0.5" title="${art.name || art.code}">
+                                        ${art.name ? art.name : art.code}
+                                    </div>
+                                    <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                        ${isReady
+                                            ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                                   <i class="fa-solid fa-circle-check text-[8px]"></i> Tayyor
+                                               </span>`
+                                            : `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">
+                                                   <i class="fa-solid fa-clock text-[8px]"></i> Kutilmoqda
+                                               </span>`
+                                        }
+                                        ${art.daily_norm > 0 ? `<span class="text-[10px] text-slate-400 font-mono">N: ${art.daily_norm}</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="relative flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
                                 <!-- Left Target Port for Crow's Foot aligned with ID row -->
                                 <div id="port-art-in-${orderId}-${art.id}" class="port-target"></div>
@@ -1102,16 +1162,11 @@
                                     </span>
                                 </label>
                                 <span class="${isReady ? 'text-emerald-400 font-bold' : 'text-slate-500'} text-[10px] flex items-center gap-1">
-                                    ${isReady ? '<i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> <span class="text-emerald-300 font-sans">Tayyor</span>' : 'Kutilmoqda'}
+                                    ${isReady ? '<i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> <span class="text-emerald-300 font-sans">Bog\'langan</span>' : '<span class="font-sans">Biriktirilmagan</span>'}
                                 </span>
 
                                 <!-- Right Port Handle '+' aligned with ID row -->
                                 <div id="port-art-out-${orderId}-${art.id}" class="port-plus">+</div>
-                            </div>
-
-                            <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
-                                <span class="text-slate-400">MODEL</span>
-                                <span class="font-bold text-white truncate max-w-[130px]" title="${art.model_name || '—'}">${art.model_name || '—'}</span>
                             </div>
 
                             <div class="flex items-center justify-between py-1 px-1.5 rounded hover:bg-[#1f2637] text-slate-300">
@@ -1849,6 +1904,23 @@
 
     function closeOperationsModal() {
         document.getElementById('operationsModal').classList.add('hidden');
+    }
+
+    function openImagePreviewModal(url, title) {
+        if (!url) return;
+        const modal = document.getElementById('imagePreviewModal');
+        const img = document.getElementById('preview-modal-img');
+        const titleEl = document.getElementById('preview-modal-title');
+        if (modal && img) {
+            img.src = url;
+            if (titleEl) titleEl.textContent = title || "Model rasmi";
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeImagePreviewModal() {
+        const modal = document.getElementById('imagePreviewModal');
+        if (modal) modal.classList.add('hidden');
     }
 
     function toggleOpRow(chk) {
