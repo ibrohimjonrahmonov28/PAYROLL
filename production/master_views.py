@@ -599,21 +599,21 @@ def api_get_master_monthly_work(request):
         selected_year = today.year
         selected_month = today.month
 
-    scope = request.GET.get('scope', 'MY').upper()
-
     batches_qs = CuttingBatch.objects.filter(
         dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
         accepted_at__year=selected_year,
         accepted_at__month=selected_month,
+        accepted_by=master,
     ).exclude(
         order_item__order__status=Order.Status.CANCELLED
     )
 
-    if scope == 'MY':
-        batches_qs = batches_qs.filter(accepted_by=master)
-    elif scope == 'BRANCH':
-        branch = request.GET.get('branch') or master.branch or 'HQ'
-        batches_qs = batches_qs.filter(assigned_branch=branch)
+    if master.assigned_screen_number:
+        batches_open_on_screen = CuttingBatch.objects.filter(
+            assigned_screen=master.assigned_screen_number,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        ).exclude(order_item__order__status=Order.Status.CANCELLED)
+        batches_qs = (batches_qs | batches_open_on_screen).distinct()
 
     batches_qs = batches_qs.select_related(
         'order_item__order__customer',
@@ -684,7 +684,7 @@ def api_get_master_monthly_work(request):
         'year': selected_year,
         'month': selected_month,
         'month_name': month_names.get(selected_month, str(selected_month)),
-        'scope': scope,
+        'scope': 'MY',
         'master_name': master.get_full_name() or master.username,
         'stats': {
             'total_pastals': total_accepted_batches,

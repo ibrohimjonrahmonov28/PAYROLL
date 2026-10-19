@@ -323,16 +323,6 @@
 
                     <!-- Month Switcher Controls -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <!-- Scope Selector (Mening ishlarim / Filial barchasi) -->
-                        <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs">
-                            <button onclick="setMonthlyScope('MY')" id="scope-btn-my" class="px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition touch-btn">
-                                Mening ishlarim
-                            </button>
-                            <button onclick="setMonthlyScope('BRANCH')" id="scope-btn-branch" class="px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition touch-btn">
-                                Filial bo'yicha
-                            </button>
-                        </div>
-
                         <!-- Prev / Next Month Navigator -->
                         <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
                             <button onclick="changeMonthlyMonth(-1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-btn" title="Oldingi oy">
@@ -889,9 +879,6 @@
             if (hdrBranch) hdrBranch.innerText = branchDisplay;
             if (reload) {
                 loadPatoksForBuilding(branch);
-                if (activeTab === 'monthly' && monthlyScope === 'BRANCH') {
-                    loadMasterMonthlyWork();
-                }
             }
         }
 
@@ -1467,20 +1454,6 @@
             loadMasterMonthlyWork();
         }
 
-        function setMonthlyScope(scope) {
-            monthlyScope = scope;
-            const btnMy = document.getElementById('scope-btn-my');
-            const btnBranch = document.getElementById('scope-btn-branch');
-            if (scope === 'MY') {
-                btnMy.className = "px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition touch-btn";
-                btnBranch.className = "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition touch-btn";
-            } else {
-                btnBranch.className = "px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition touch-btn";
-                btnMy.className = "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition touch-btn";
-            }
-            loadMasterMonthlyWork();
-        }
-
         async function loadMasterMonthlyWork() {
             const container = document.getElementById('monthly-pastals-container');
             if (!container) return;
@@ -1492,7 +1465,7 @@
             `;
 
             try {
-                const resp = await fetch(`/master-tablet/api/monthly-work/?year=${monthlyYear}&month=${monthlyMonth}&scope=${monthlyScope}&branch=${currentMasterBranch}`);
+                const resp = await fetch(`/master-tablet/api/monthly-work/?year=${monthlyYear}&month=${monthlyMonth}`);
                 const res = await resp.json();
 
                 if (!res.success) {

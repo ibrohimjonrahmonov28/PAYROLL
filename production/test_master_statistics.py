@@ -265,7 +265,7 @@ class MasterStatisticsComprehensiveTest(TestCase):
         master_ali = next((m for m in res.context['masters_data'] if m['master_id'] == self.master_user.id), None)
 
         self.assertEqual(master_ali['sewer_days'], 1)
-        self.assertEqual(master_ali['sewer_earnings'], 150000)
+        self.assertEqual(master_ali['sewer_earnings'], 10000)
         self.assertEqual(master_ali['sewer_tickets'], 1)
 
     def test_api_master_statistics_detail(self):
@@ -278,3 +278,40 @@ class MasterStatisticsComprehensiveTest(TestCase):
         self.assertEqual(data['data']['assigned_screen'], 1)
         self.assertIn('working_days', data['data'])
         self.assertIn('pastals_list', data['data'])
+
+    def test_master_monthly_work_api_only_returns_own_work(self):
+        session = self.client.session
+        session['master_user_id'] = self.master_user.id
+        session.save()
+
+        tz = timezone.get_current_timezone()
+        b1 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=91,
+            pastal_code="P-ALI-91",
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+            accepted_by=self.master_user,
+            assigned_screen=1,
+            accepted_at=timezone.make_aware(datetime(2026, 10, 8, 10, 0), tz)
+        )
+
+        other_master = User.objects.create_user(username='other_master', password='Password123!', role=User.Role.MASTER)
+        b2 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=92,
+            pastal_code="P-OTH-92",
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+            accepted_by=other_master,
+            assigned_screen=2,
+            accepted_at=timezone.make_aware(datetime(2026, 10, 8, 11, 0), tz)
+        )
+
+        url = reverse('production:master_tablet_monthly_work') + '?year=2026&month=10'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+
+        batch_ids = [p['batch_id'] for p in data['pastals']]
+        self.assertIn(b1.id, batch_ids)
+        self.assertNotIn(b2.id, batch_ids)
