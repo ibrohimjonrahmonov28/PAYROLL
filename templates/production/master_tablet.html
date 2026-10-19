@@ -143,18 +143,18 @@
                 <!-- Master Info -->
                 <div class="flex items-center gap-3">
                     <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white font-black text-lg flex items-center justify-center shadow-lg shadow-indigo-600/30 flex-shrink-0" id="header-avatar">
-                        {{ master.first_name|default:master.username|slice:":1"|upper }}
+                        {{ master_initial|default:"M" }}
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h2 class="text-base font-black text-white" id="header-master-name">{{ master.get_full_name|default:master.username }}</h2>
+                            <h2 class="text-base font-black text-white" id="header-master-name">{{ master_name|default:"Master" }}</h2>
                             <span class="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                                 MASTER
                             </span>
                         </div>
                         <div class="text-xs text-amber-400 font-bold flex items-center gap-1.5 mt-0.5" id="header-building-badge">
                             <i class="fa-solid fa-location-dot"></i>
-                            <span id="header-branch-name">{% if master.branch == 'HQ' %}Kosonsoy (Bosh bino){% else %}Uychi filiali{% endif %}</span>
+                            <span id="header-branch-name">{{ master_branch_display|default:"Kosonsoy (Bosh bino)" }}</span>
                         </div>
                     </div>
                 </div>

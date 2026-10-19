@@ -98,8 +98,20 @@ def master_tablet_view(request):
     master = _get_active_master(request)
     default_branch = master.branch if (master and getattr(master, 'branch', None)) else User.Branch.HQ
 
+    master_name = ''
+    master_initial = 'M'
+    master_branch_display = "Kosonsoy (Bosh bino)" if default_branch == User.Branch.HQ else "Uychi filiali"
+    if master:
+        master_name = master.get_full_name() or master.username or 'Master'
+        master_initial = (master.first_name or master.username or 'M')[:1].upper()
+        if getattr(master, 'branch', None):
+            master_branch_display = "Kosonsoy (Bosh bino)" if master.branch == User.Branch.HQ else "Uychi filiali"
+
     context = {
         'master': master,
+        'master_name': master_name,
+        'master_initial': master_initial,
+        'master_branch_display': master_branch_display,
         'default_branch': default_branch,
         'now_date': timezone.localdate(),
     }
