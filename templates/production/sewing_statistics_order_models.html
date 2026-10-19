@@ -3,7 +3,7 @@
 {% block title %}Modellar — Zakaz {{ order.order_number }} — Tikim Statistikasi{% endblock %}
 
 {% block page_header %}
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
     <div class="flex items-center gap-3">
         <a href="{% url 'production:sewing_statistics_orders' %}"
             class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700 shadow-sm"
@@ -28,8 +28,42 @@
         </div>
     </div>
 
-    <!-- Right Header Actions: Repairs Link & Close Unprinted Boxes -->
-    <div class="flex items-center gap-2">
+    <!-- Right Header Actions: Date Picker Navigation, Repairs Link & Close Unprinted Boxes -->
+    <div class="flex items-center gap-2.5 flex-wrap">
+        <!-- Date Selector Controls -->
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl shadow-inner">
+            <a href="?date={{ prev_date_str }}"
+                class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
+                title="Oldingi kun ({{ prev_date_str }})">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+                <span class="hidden sm:inline">Oldingi kun</span>
+            </a>
+
+            <!-- Date Picker Form -->
+            <form method="GET" class="flex items-center gap-1.5">
+                <div class="relative">
+                    <input type="date" name="date" value="{{ selected_date_str }}" onchange="this.form.submit()"
+                        class="bg-slate-950 border border-emerald-500/40 rounded-xl px-2.5 py-1.5 text-xs font-black text-white focus:outline-none focus:border-emerald-400 cursor-pointer shadow-inner">
+                </div>
+
+                {% if not is_today %}
+                <a href="?date={{ today_str }}"
+                    class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1 shadow-md"
+                    title="Bugungi kunga qaytish">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Bugun</span>
+                </a>
+                {% endif %}
+            </form>
+
+            <a href="?date={{ next_date_str }}"
+                class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
+                title="Keyingi kun ({{ next_date_str }})">
+                <span class="hidden sm:inline">Keyingi kun</span>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </a>
+        </div>
+
         {% if order_totals.unprinted_boxes_count > 0 and request.user.role != 'PLAN' %}
         <form method="POST" action="{% url 'production:sewing_statistics_close_order_unprinted_boxes' order.id %}"
             onsubmit="return confirm('Ushbu buyurtmadagi stiker chop etilmagan {{ order_totals.unprinted_boxes_count }} ta qutini OTK sifat nazoratidan 1-sort qilib to\'liq yopishni tasdiqlaysizmi?');"
@@ -92,6 +126,34 @@
     </div>
     {% endif %}
 
+    <!-- Date Context & Formula Legend Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-calendar-day text-emerald-400"></i>
+            <span class="text-slate-400">Sana hisoboti:</span>
+            <span class="font-bold text-white font-mono bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700">
+                {{ selected_date_display }}
+            </span>
+            {% if is_today %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Bugun
+            </span>
+            {% else %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                Tarixiy kun
+            </span>
+            {% endif %}
+        </div>
+        <div class="text-[11px] font-mono flex items-center gap-1.5 text-slate-400">
+            <span class="text-slate-500 font-bold uppercase text-[9px]">Hisob formulasi:</span>
+            <span class="text-slate-300">Oldingi</span>
+            <span class="text-slate-500 font-bold">+</span>
+            <span class="text-emerald-400 font-bold">Shu kunda</span>
+            <span class="text-slate-500 font-bold">=</span>
+            <span class="text-white font-bold">Jami</span>
+        </div>
+    </div>
+
     <!-- Production & Control Pipeline Balance Cards (8 Ustun) -->
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
         <!-- 1. Jami Reja -->
@@ -99,98 +161,153 @@
             <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">1. Jami Reja</span>
             <span class="text-lg font-black text-amber-400 digital-font mt-1 block">{{ order_totals.planned }} <small
                     class="text-[9px] text-slate-500">dona</small></span>
-            <span class="text-[9px] text-slate-500 font-mono block">Buyurtma hajmi</span>
+            <span class="text-[9px] text-amber-400/80 font-mono font-bold block">({{ order_totals.boxes_count }} quti)</span>
         </div>
 
         <!-- 2. Kesilgan -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg flex flex-col justify-between">
-            <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400 block">2. Kesilgan</span>
-            <span class="text-lg font-black text-emerald-400 digital-font mt-1 block">{{ order_totals.cut }} <small
-                    class="text-[9px] text-slate-500">dona</small></span>
-            <span class="text-[9px] text-emerald-400/80 font-mono block">{{ order_balance.cut_pct }}% kesildi</span>
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">2. Kesilgan</span>
+                <span class="text-[9px] font-mono text-emerald-400/80 font-bold">{{ order_totals.cut_pct }}%</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-emerald-400 digital-font block">{{ order_totals.cut_total }}</span>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="Oldingi kunlar: {{ order_totals.cut_prior }} | Tanlangan kunda: +{{ order_totals.cut_today }}">
+                    <span class="text-slate-400">{{ order_totals.cut_prior }}</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if order_totals.cut_today > 0 %}text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20{% else %}text-slate-500{% endif %}">
+                        {% if order_totals.cut_today > 0 %}+{{ order_totals.cut_today }}{% else %}0{% endif %}
+                    </span>
+                </div>
+            </div>
+            <span class="text-[9px] text-slate-500 block font-mono">oldingi + kunlik</span>
         </div>
 
-        <!-- 3. Tikimga Kirgan -->
-        <div
-            class="bg-slate-900 border border-cyan-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-cyan-950/20 to-transparent flex flex-col justify-between">
-            <span class="text-[9px] font-bold uppercase tracking-wider text-cyan-400 block">3. Tikimda</span>
-            <span class="text-lg font-black text-cyan-300 digital-font mt-1 block">{{ order_totals.entered_sewing }}
-                <small class="text-[9px] text-slate-500">dona</small></span>
-            <span class="text-[9px] text-cyan-400 font-mono font-bold block">({{ order_totals.entered_sewing_boxes }}
-                quti urilgan)</span>
-        </div>
-
-        <!-- 4. Dazmoldan O'tgan -->
-        <div
-            class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-indigo-950/20 to-transparent flex flex-col justify-between">
-            <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block">4. Dazmoldan O'tdi</span>
-            <span class="text-lg font-black text-indigo-300 digital-font mt-1 block">{{ order_totals.dazmol }} <small
-                    class="text-[9px] text-slate-500">dona</small></span>
-            <span class="text-[9px] text-indigo-400 font-mono font-bold block">({{ order_totals.dazmol_boxes }} ta
-                quti)</span>
-        </div>
-
-        <!-- 5. Oraliqda / Kontrolgacha Yetib Bormagan -->
-        <div
-            class="bg-slate-900 border {% if order_totals.unreached_control > 0 %}border-amber-500/40 bg-gradient-to-b from-amber-950/20 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between">
-            <span
-                class="text-[9px] font-bold uppercase tracking-wider {% if order_totals.unreached_control > 0 %}text-amber-400{% else %}text-slate-400{% endif %} block">5.
-                Yetib Bormagan</span>
-            <span
-                class="text-lg font-black {% if order_totals.unreached_control > 0 %}text-amber-300{% else %}text-slate-500{% endif %} digital-font mt-1 block">
-                {{ order_totals.unreached_control }} <small class="text-[9px] text-slate-500">dona</small>
+        <!-- 3. Tikim Kutmoqda (Pastallar) -->
+        <div onclick="openWaitingPastalsModal()"
+            class="bg-slate-900 border {% if order_totals.waiting_sewing_qty > 0 %}border-amber-500/50 bg-gradient-to-b from-amber-950/25 to-transparent hover:border-amber-400 ring-1 ring-amber-500/20{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between cursor-pointer hover:scale-[1.02] transition group"
+            title="Tikim kutayotgan pastallar ro'yxatini ko'rish uchun bosing">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider {% if order_totals.waiting_sewing_qty > 0 %}text-amber-400 group-hover:text-amber-300{% else %}text-slate-400{% endif %}">
+                    3. Tikim Kutmoqda
+                </span>
+                <span class="text-[8px] font-mono font-bold {% if order_totals.waiting_sewing_qty > 0 %}bg-amber-500/20 text-amber-300 border border-amber-500/30 group-hover:bg-amber-500/30{% else %}bg-slate-800 text-slate-500 border border-slate-700{% endif %} px-1 py-0.5 rounded flex items-center gap-1">
+                    Pastallar <i class="fa-solid fa-list-ul text-[7px]"></i>
+                </span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black {% if order_totals.waiting_sewing_qty > 0 %}text-amber-300 group-hover:text-amber-200{% else %}text-slate-500{% endif %} digital-font block">
+                    {{ order_totals.waiting_sewing_qty }}
+                </span>
+                <span class="text-[10px] font-mono leading-none mt-1 text-slate-300 block">
+                    {% if order_totals.waiting_pastals_count > 0 %}
+                    <span class="text-amber-300 font-bold">{{ order_totals.waiting_pastals_count }} ta pastal</span>
+                    {% else %}
+                    <span class="text-emerald-400 font-bold">100% kirgan</span>
+                    {% endif %}
+                </span>
+            </div>
+            <span class="text-[9px] {% if order_totals.waiting_sewing_qty > 0 %}text-amber-400/90 group-hover:text-amber-300{% else %}text-slate-500{% endif %} block font-mono font-bold">
+                ({{ order_totals.waiting_sewing_boxes }} quti kutmoqda)
             </span>
-            <span
-                class="text-[9px] {% if order_totals.unreached_control > 0 %}text-amber-400 font-bold{% else %}text-slate-600{% endif %} font-mono block">
-                ({{ order_totals.unreached_control_boxes }} quti oraliqda)
-            </span>
         </div>
 
-        <!-- 6. Kontrolda Kutmoqda -->
-        <div
-            class="bg-slate-900 border border-amber-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-amber-950/20 to-transparent flex flex-col justify-between">
-            <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400 block">6. OTK Kutmoqda</span>
-            <span class="text-lg font-black text-amber-300 digital-font mt-1 block">{{ order_totals.waiting_control }}
-                <small class="text-[9px] text-slate-500">dona</small></span>
-            <span class="text-[9px] text-amber-400 font-mono font-bold block">({{ order_totals.waiting_control_boxes }}
-                ta quti)</span>
+        <!-- 4. Hozir Patokda / Tikuvda (Real WIP) -->
+        <div class="bg-slate-900 border border-sky-500/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-sky-950/30 to-transparent flex flex-col justify-between ring-1 ring-sky-500/20">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-sky-400">4. Hozir Patokda</span>
+                <span class="text-[8px] font-mono font-bold text-sky-300 bg-sky-500/20 px-1 py-0.5 rounded border border-sky-500/30">WIP</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-sky-300 digital-font block">{{ order_totals.real_wip_sewing }}</span>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="Dazmolgacha tikuvda: {{ order_totals.in_sewing_pre_dazmol }} | Ta'mirdagi ishlar: +{{ order_totals.in_repair }}">
+                    <span class="text-sky-300 font-bold">{{ order_totals.in_sewing_pre_dazmol }} tikuv</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if order_totals.in_repair > 0 %}text-amber-400 font-bold{% else %}text-slate-500{% endif %}">{{ order_totals.in_repair }} ta'mir</span>
+                </div>
+            </div>
+            <span class="text-[9px] text-sky-400/90 block font-mono font-bold">({{ order_totals.real_wip_sewing_boxes }} quti jarayonda)</span>
+        </div>
+
+        <!-- 5. Dazmoldan O'tgan -->
+        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-indigo-950/20 to-transparent flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-400">5. Dazmol</span>
+                <span class="text-[9px] font-mono text-indigo-400/80 font-bold">{{ order_totals.dazmol_pct }}%</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-indigo-300 digital-font block">{{ order_totals.dazmol_total }}</span>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="Oldingi kunlar: {{ order_totals.dazmol_prior }} | Tanlangan kunda: +{{ order_totals.dazmol_today }}">
+                    <span class="text-slate-400">{{ order_totals.dazmol_prior }}</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if order_totals.dazmol_today > 0 %}text-indigo-400 font-bold bg-indigo-500/10 px-1 py-0.5 rounded border border-indigo-500/20{% else %}text-slate-500{% endif %}">
+                        {% if order_totals.dazmol_today > 0 %}+{{ order_totals.dazmol_today }}{% else %}0{% endif %}
+                    </span>
+                </div>
+            </div>
+            <span class="text-[9px] text-indigo-400 block font-mono font-bold">({{ order_totals.dazmol_boxes }} quti)</span>
+        </div>
+
+        <!-- 6. OTK Kutmoqda -->
+        <div class="bg-slate-900 border {% if order_totals.waiting_control > 0 %}border-amber-500/40 bg-gradient-to-b from-amber-950/25 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400">6. OTK Kutmoqda</span>
+                <span class="text-[8px] font-mono text-slate-400">Jami</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-amber-300 digital-font block">{{ order_totals.waiting_control }}</span>
+                <div class="text-[9px] font-mono leading-none mt-1 flex items-center justify-start gap-1"
+                    title="OTK tekshirishiga 100% tayyor: {{ order_totals.waiting_control_ready }} dona | Stikeri chala (tikuvchi urmagan): {{ order_totals.waiting_control_missing_ops }} dona">
+                    <span class="text-emerald-400 font-bold" title="OTKchi zudlik bilan tekshirishi shart">{{ order_totals.waiting_control_ready }} tayyor</span>
+                    <span class="text-slate-600 font-bold">/</span>
+                    <span class="{% if order_totals.waiting_control_missing_ops > 0 %}text-rose-400 font-bold{% else %}text-slate-500{% endif %}" title="Tikuvchi / Master stikerni urmagan">{{ order_totals.waiting_control_missing_ops }} chala</span>
+                </div>
+            </div>
+            <span class="text-[9px] text-amber-400 block font-mono font-bold">({{ order_totals.waiting_control_boxes }} quti)</span>
         </div>
 
         <!-- 7. Hozir Ta'mirda -->
-        <div
-            class="bg-slate-900 border {% if order_totals.in_repair > 0 %}border-rose-500/40 bg-gradient-to-b from-rose-950/20 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between">
-            <span
-                class="text-[9px] font-bold uppercase tracking-wider {% if order_totals.in_repair > 0 %}text-rose-400{% else %}text-slate-400{% endif %} block">7.
-                Ta'mirda</span>
-            <span
-                class="text-lg font-black {% if order_totals.in_repair > 0 %}text-rose-300{% else %}text-slate-500{% endif %} digital-font mt-1 block">
+        <div class="bg-slate-900 border {% if order_totals.in_repair > 0 %}border-rose-500/40 bg-gradient-to-b from-rose-950/20 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between">
+            <span class="text-[9px] font-bold uppercase tracking-wider {% if order_totals.in_repair > 0 %}text-rose-400{% else %}text-slate-400{% endif %} block">7. Ta'mirda</span>
+            <span class="text-lg font-black {% if order_totals.in_repair > 0 %}text-rose-300{% else %}text-slate-500{% endif %} digital-font mt-1 block">
                 {{ order_totals.in_repair }} <small class="text-[9px] text-slate-500">dona</small>
             </span>
-            <span
-                class="text-[9px] {% if order_totals.re_repair_boxes > 0 %}text-rose-400 font-bold{% else %}text-slate-400{% endif %} font-mono block">
-                {{ order_totals.in_repair_boxes }} quti {% if order_totals.re_repair_boxes > 0 %}({{
-                order_totals.re_repair_boxes }} qayta){% endif %}
+            <span class="text-[9px] {% if order_totals.re_repair_boxes > 0 %}text-rose-400 font-bold{% else %}text-slate-400{% endif %} font-mono block">
+                {{ order_totals.in_repair_boxes }} quti {% if order_totals.re_repair_boxes > 0 %}({{ order_totals.re_repair_boxes }} qayta){% endif %}
             </span>
         </div>
 
         <!-- 8. Yopilgan (1-Sort / 2-Sort) & Farq -->
-        <div
-            class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent flex flex-col justify-between">
-            <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400 block">8. 1-Sort / 2-Sort</span>
-            <div class="mt-1 flex items-baseline gap-1">
-                <span class="text-lg font-black text-emerald-400 digital-font">{{ order_totals.first_sort }}</span>
-                {% if order_totals.second_sort > 0 %}
-                <span class="text-xs text-rose-400 font-mono font-bold">/ {{ order_totals.second_sort }}</span>
-                {% endif %}
+        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">8. 1 / 2 Sort</span>
+                <span class="text-[9px] font-mono text-emerald-400/80 font-bold">({{ order_totals.controlled_boxes_count }} quti)</span>
+            </div>
+            <div class="my-1">
+                <div class="flex items-baseline justify-start gap-1">
+                    <span class="text-lg font-black text-emerald-400 digital-font">{{ order_totals.first_sort_total }}</span>
+                    {% if order_totals.second_sort_total > 0 %}
+                    <span class="text-xs text-rose-400 font-mono font-bold">/ {{ order_totals.second_sort_total }}</span>
+                    {% endif %}
+                </div>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="OTK 1-sort: {{ order_totals.first_sort_prior }} (oldingi) + {{ order_totals.first_sort_today }} (tanlangan kunda)">
+                    <span class="text-slate-400">{{ order_totals.first_sort_prior }}</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if order_totals.first_sort_today > 0 %}text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20{% else %}text-slate-500{% endif %}">
+                        {% if order_totals.first_sort_today > 0 %}+{{ order_totals.first_sort_today }}{% else %}0{% endif %}
+                    </span>
+                </div>
             </div>
             <div class="text-[9px] font-mono flex items-center justify-between mt-0.5">
-                <span class="text-emerald-400 font-bold">({{ order_totals.controlled_boxes_count }} quti)</span>
+                <span class="text-slate-500">oldingi + kunlik</span>
                 {% if order_totals.control_variance != 0 %}
-                <span
-                    class="{% if order_totals.control_variance > 0 %}text-cyan-400{% else %}text-rose-400{% endif %} font-bold"
+                <span class="{% if order_totals.control_variance > 0 %}text-cyan-400{% else %}text-rose-400{% endif %} font-bold"
                     title="Nazorat qabul qilgan farq">
-                    {% if order_totals.control_variance > 0 %}+{{ order_totals.control_variance }}{% else %}{{
-                    order_totals.control_variance }}{% endif %}
+                    {% if order_totals.control_variance > 0 %}+{{ order_totals.control_variance }}{% else %}{{ order_totals.control_variance }}{% endif %}
                 </span>
                 {% endif %}
             </div>
@@ -271,7 +388,7 @@
                 <p class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
                     <span>Qutilar: <strong class="text-white font-mono">{{ m.boxes_count }} ta</strong> ({{
                         m.total_boxed_qty }} dona)</span>
-                    <span>Kesilgan: <strong class="text-emerald-400 font-mono">{{ m.cut_qty }} dona</strong> ({{
+                    <span>Kesilgan: <strong class="text-emerald-400 font-mono">{{ m.cut_total }} dona</strong> ({{
                         m.cut_pct }}%)</span>
                 </p>
             </div>
@@ -285,7 +402,7 @@
                             <i class="fa-solid fa-scissors text-cyan-400 text-[10px]"></i> Tikimga Kirgan:
                         </span>
                         <span class="font-bold text-cyan-300 font-mono">
-                            {{ m.entered_sewing_qty }} / {{ m.planned_qty }} <small class="text-cyan-400">({{
+                            {{ m.sewing_total }} / {{ m.planned_qty }} <small class="text-cyan-400">({{
                                 m.sewing_pct }}%)</small>
                         </span>
                     </div>
@@ -293,66 +410,66 @@
                         <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
                             style="width: {{ m.sewing_pct }}%"></div>
                     </div>
-                    <span class="text-[10px] text-cyan-400 font-mono font-bold mt-0.5 block">
-                        {{ m.entered_sewing_boxes }} ta qutida stiker urilgan
-                    </span>
+                    <div class="flex items-center justify-between text-[10px] text-cyan-400 font-mono font-bold mt-1">
+                        <span>{{ m.entered_sewing_boxes }} ta qutida stiker urilgan</span>
+                        <span class="text-slate-400 font-normal">({{ m.sewing_prior }} + <span class="{% if m.sewing_today > 0 %}text-cyan-300 font-bold{% else %}text-slate-500{% endif %}">{% if m.sewing_today > 0 %}+{{ m.sewing_today }}{% else %}0{% endif %}</span>)</span>
+                    </div>
                 </div>
 
-                <!-- 4 Columns Stats: Dazmol | Yetib Bormagan | OTK Kutmoqda | Yopilgan & Ta'mir -->
-                <div class="grid grid-cols-4 gap-1.5 pt-1 text-center">
-                    <!-- Dazmol -->
-                    <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Dazmol</span>
+                <!-- 5 Columns Stats: Kutmoqda | WIP Patok | Dazmol | OTK Kutmoqda | 1 / 2 Sort -->
+                <div class="grid grid-cols-5 gap-1 pt-1 text-center">
+                    <!-- Kutmoqda (Pastallar) -->
+                    <div class="bg-slate-950 p-1.5 rounded-xl border {% if m.waiting_sewing_qty > 0 %}border-amber-500/30 bg-amber-950/10{% else %}border-slate-800{% endif %} flex flex-col justify-between">
+                        <span class="text-[8px] font-bold {% if m.waiting_sewing_qty > 0 %}text-amber-400{% else %}text-slate-400{% endif %} uppercase tracking-wider block">Kutmoqda</span>
                         <div class="my-0.5">
-                            <span class="text-xs font-black text-indigo-300 digital-font block">{{ m.dazmol_qty
-                                }}</span>
-                            <span class="text-[9px] text-indigo-400 font-mono block">({{ m.dazmol_boxes }} quti)</span>
+                            <span class="text-xs font-black {% if m.waiting_sewing_qty > 0 %}text-amber-300{% else %}text-slate-500{% endif %} digital-font block">{{ m.waiting_sewing_qty }}</span>
+                            <span class="text-[8px] text-amber-400/80 font-mono block">({{ m.waiting_sewing_boxes }} q)</span>
+                        </div>
+                        <span class="text-[8px] text-slate-500 block font-mono">pastal</span>
+                    </div>
+
+                    <!-- Hozir Patokda (WIP) -->
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-sky-500/30 bg-sky-950/10 flex flex-col justify-between">
+                        <span class="text-[8px] font-bold text-sky-400 uppercase tracking-wider block">Patokda</span>
+                        <div class="my-0.5">
+                            <span class="text-xs font-black text-sky-300 digital-font block">{{ m.real_wip_sewing_qty }}</span>
+                            <span class="text-[8px] text-sky-400 font-mono block">({{ m.real_wip_sewing_boxes }} q)</span>
+                        </div>
+                        <span class="text-[8px] text-slate-500 block font-mono">jarayonda</span>
+                    </div>
+
+                    <!-- Dazmol -->
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-indigo-900/40 flex flex-col justify-between">
+                        <span class="text-[8px] font-bold text-indigo-400 uppercase tracking-wider block">Dazmol</span>
+                        <div class="my-0.5">
+                            <span class="text-xs font-black text-indigo-300 digital-font block">{{ m.dazmol_total }}</span>
+                            <span class="text-[8px] text-indigo-400 font-mono block">({{ m.dazmol_boxes }} q)</span>
                         </div>
                         <span class="text-[8px] text-slate-500 block font-mono">o'tgan</span>
                     </div>
 
-                    <!-- Yetib bormagan -->
-                    <div
-                        class="bg-slate-950 p-2 rounded-xl border {% if m.unreached_control_qty > 0 %}border-amber-500/30{% else %}border-slate-800{% endif %} flex flex-col justify-between">
-                        <span
-                            class="text-[9px] font-bold {% if m.unreached_control_qty > 0 %}text-amber-400{% else %}text-slate-400{% endif %} uppercase tracking-wider block">Oraliqda</span>
+                    <!-- OTK Kutmoqda -->
+                    <div class="bg-slate-950 p-1.5 rounded-xl border {% if m.waiting_control_qty > 0 %}border-amber-500/30{% else %}border-slate-800{% endif %} flex flex-col justify-between">
+                        <span class="text-[8px] font-bold text-amber-400 uppercase tracking-wider block">OTK Kutish</span>
                         <div class="my-0.5">
-                            <span
-                                class="text-xs font-black {% if m.unreached_control_qty > 0 %}text-amber-300{% else %}text-slate-500{% endif %} digital-font block">{{
-                                m.unreached_control_qty }}</span>
-                            <span
-                                class="text-[9px] {% if m.unreached_control_qty > 0 %}text-amber-400{% else %}text-slate-600{% endif %} font-mono block">({{
-                                m.unreached_control_boxes }} quti)</span>
+                            <span class="text-xs font-black text-amber-300 digital-font block">{{ m.waiting_control_qty }}</span>
+                            <span class="text-[8px] font-mono leading-none block mt-0.5">
+                                <span class="text-emerald-400 font-bold" title="Tayyor">{{ m.waiting_control_ready_qty }}t</span>/<span class="{% if m.waiting_control_missing_ops_qty > 0 %}text-rose-400 font-bold{% else %}text-slate-500{% endif %}" title="Chala">{{ m.waiting_control_missing_ops_qty }}ch</span>
+                            </span>
                         </div>
-                        <span class="text-[8px] text-slate-500 block font-mono">yetmagan</span>
-                    </div>
-
-                    <!-- Kutmoqda -->
-                    <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider block">Kutmoqda</span>
-                        <div class="my-0.5">
-                            <span class="text-xs font-black text-amber-400 digital-font block">{{ m.waiting_control_qty
-                                }}</span>
-                            <span class="text-[9px] text-amber-400 font-mono block">({{ m.waiting_control_boxes }}
-                                quti)</span>
-                        </div>
-                        <span class="text-[8px] text-slate-500 block font-mono">OTK navbat</span>
+                        <span class="text-[8px] text-slate-500 block font-mono">({{ m.waiting_control_boxes }} q)</span>
                     </div>
 
                     <!-- 1-Sort / 2-Sort -->
-                    <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider block">1 / 2
-                            Sort</span>
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-emerald-900/40 flex flex-col justify-between">
+                        <span class="text-[8px] font-bold text-emerald-400 uppercase tracking-wider block">1 / 2 Sort</span>
                         <div class="my-0.5">
-                            <span class="text-xs font-black text-emerald-400 digital-font block">{{ m.first_sort_qty
-                                }}</span>
-                            {% if m.second_sort_qty > 0 %}
-                            <span class="text-[8px] text-rose-400 block font-mono font-bold">/ {{ m.second_sort_qty }}
-                                (2-s)</span>
+                            <span class="text-xs font-black text-emerald-400 digital-font block">{{ m.first_sort_total }}</span>
+                            {% if m.second_sort_total > 0 %}
+                            <span class="text-[8px] text-rose-400 block font-mono font-bold">/ {{ m.second_sort_total }} (2-s)</span>
                             {% endif %}
                         </div>
-                        <span class="text-[8px] text-emerald-400 font-mono block">({{ m.controlled_boxes_count }}
-                            quti)</span>
+                        <span class="text-[8px] text-emerald-400 font-mono block">({{ m.controlled_boxes_count }} q)</span>
                     </div>
                 </div>
 
@@ -384,7 +501,7 @@
 
             <!-- Button: Razmerlar va Qutilar Statistikasi -->
             <div class="pt-3 border-t border-slate-800">
-                <a href="{% url 'production:sewing_statistics_model_detail' order.id m.item.id %}"
+                <a href="{% url 'production:sewing_statistics_model_detail' order.id m.item.id %}?date={{ selected_date_str }}"
                     class="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black rounded-xl text-xs shadow-lg transition flex items-center justify-center gap-2 group-hover:shadow-cyan-500/20">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Razmerlar va Qutilar Statistikasi</span>
@@ -402,4 +519,173 @@
     </div>
 
 </div>
+
+<!-- Modal: Tikim Kutayotgan Pastallar va Qutilar (Butun Zakaz) -->
+<div id="modal-waiting-pastals"
+    class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-6 animate-fade-in">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-white/10">
+
+        <!-- Modal Header -->
+        <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg shadow-inner">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                        <span>Tikim Kutayotgan Qutilar va Pastallar</span>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                            {{ order_totals.waiting_sewing_boxes }} ta quti ({{ order_totals.waiting_pastals_count }} ta pastal)
+                        </span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Zakaz: <strong class="text-cyan-400 font-mono">{{ order.order_number }}</strong>
+                        &bull; Birorta ham stikeri skanerlanmagan qutilar (stikeri urilishi bilan avtomatik patokka o'tadi)
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="closeWaitingPastalsModal()"
+                class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal Summary Ribbon -->
+        <div class="grid grid-cols-3 gap-3 p-4 bg-slate-950/40 border-b border-slate-800/80 text-center">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Kutayotgan Qutilar</span>
+                <span class="text-lg font-black text-amber-400 font-mono">{{ order_totals.waiting_sewing_boxes }} ta quti</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Tegishli Pastallar</span>
+                <span class="text-lg font-black text-sky-400 font-mono">{{ order_totals.waiting_pastals_count }} ta pastal</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Jami Ish Soni</span>
+                <span class="text-lg font-black text-emerald-400 font-mono">{{ order_totals.waiting_sewing_qty }} dona</span>
+            </div>
+        </div>
+
+        <!-- Modal Body / Table -->
+        <div class="p-4 sm:p-5 overflow-y-auto flex-1">
+            {% if order_totals.waiting_pastals %}
+            <div class="overflow-x-auto rounded-xl border border-slate-800 shadow-inner">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+                            <th class="py-3 px-3 text-center">#</th>
+                            <th class="py-3 px-3">Pastal Kodi</th>
+                            <th class="py-3 px-3">Model / Artikul</th>
+                            <th class="py-3 px-3">Partiya / Sana</th>
+                            <th class="py-3 px-3">Razmerlar Taqsimoti</th>
+                            <th class="py-3 px-3 text-center">Kutayotgan Qutilar</th>
+                            <th class="py-3 px-3 text-right">Jami Soni</th>
+                            <th class="py-3 px-3 text-center">Holati</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono">
+                        {% for p in order_totals.waiting_pastals %}
+                        <tr class="hover:bg-slate-800/50 transition">
+                            <td class="py-3 px-3 text-center text-slate-500 font-bold">{{ forloop.counter }}</td>
+                            <td class="py-3 px-3">
+                                <span class="px-2 py-1 rounded bg-amber-500/10 text-amber-300 font-black border border-amber-500/20 text-xs">
+                                    {{ p.pastal_code }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 font-sans">
+                                <span class="font-bold text-white text-xs block">
+                                    {{ p.article_display|default:p.pastal_code }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 font-sans">
+                                {% if p.batch_number %}
+                                <div class="font-bold text-white text-xs">Partiya #{{ p.batch_number }}</div>
+                                {% endif %}
+                                <div class="text-[10px] text-slate-400">
+                                    {% if p.created_at %}{{ p.created_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}
+                                </div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="flex flex-wrap gap-1">
+                                    {% for sz, qty in p.sizes_qty.items %}
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">
+                                        <strong class="text-cyan-400">{{ sz }}:</strong> {{ qty }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <span class="font-bold text-slate-200 block">{{ p.boxes_count }} ta</span>
+                                <span class="text-[10px] text-amber-400/80 font-mono block">{{ p.boxes_range_display }}</span>
+                            </td>
+                            <td class="py-3 px-3 text-right">
+                                <span class="font-black text-amber-300 text-sm">{{ p.total_quantity }}</span>
+                                <small class="text-slate-500 text-[10px]"> dona</small>
+                            </td>
+                            <td class="py-3 px-3 text-center font-sans">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                    Tikim kutmoqda
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="py-12 text-center text-slate-400">
+                <i class="fa-solid fa-circle-check text-emerald-400 text-4xl mb-3 block"></i>
+                <h4 class="text-white font-bold text-base">Hozirda barcha qutilar tikimga kirgan!</h4>
+                <p class="text-xs text-slate-500 mt-1">Ushbu buyurtma bo'yicha tikim kutayotgan birorta ham quti yo'q.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between">
+            <span class="text-[11px] text-slate-400">
+                <i class="fa-solid fa-circle-info mr-1 text-amber-400"></i>
+                Qutidagi birinchi stiker o'qilishi bilanoq, u avtomatik 'Tikim Kutmoqda'dan chiqib 'Hozir Patokda (WIP)' hisobiga o'tadi.
+            </span>
+            <button type="button" onclick="closeWaitingPastalsModal()"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer">
+                Yopish
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal Control Scripts -->
+<script>
+    function openWaitingPastalsModal() {
+        const modal = document.getElementById('modal-waiting-pastals');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+    }
+
+    function closeWaitingPastalsModal() {
+        const modal = document.getElementById('modal-waiting-pastals');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeWaitingPastalsModal();
+        }
+    });
+
+    document.getElementById('modal-waiting-pastals')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeWaitingPastalsModal();
+        }
+    });
+</script>
 {% endblock %}

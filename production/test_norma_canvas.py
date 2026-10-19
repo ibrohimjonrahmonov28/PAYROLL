@@ -15,7 +15,6 @@ class NormaCanvasThumbnailTestCase(TestCase):
         )
         self.client.force_login(self.user)
 
-        # Create model & article with image
         self.pmodel = ProductModel.objects.create(
             code='MOD-TEST',
             name='Test Model',
@@ -45,16 +44,13 @@ class NormaCanvasThumbnailTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
         content = response.content.decode('utf-8')
-        # Check modal presence
         self.assertIn('imagePreviewModal', content)
         self.assertIn('openImagePreviewModal', content)
         self.assertIn('closeImagePreviewModal', content)
 
-        # Check serialization in orders_data_json
         orders_json = response.context['orders_data_json']
         self.assertIn('"image_url":', orders_json)
         self.assertIn('test_garment', orders_json)
 
-        # Check v9 storage key and w-72 card width
         self.assertIn('norma_canvas_table_positions_v9', content)
         self.assertIn('w-72', content)

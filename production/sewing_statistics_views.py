@@ -231,6 +231,7 @@ def get_model_pastals_analysis(boxes):
                     'boxes_count': 0,
                     'total_quantity': 0,
                     'sizes_qty': {},
+                    'article_codes': set(),
                     'batch_number': batch_num,
                     'created_at': batch_created,
                     'box_numbers': [],
@@ -241,6 +242,8 @@ def get_model_pastals_analysis(boxes):
             p['total_quantity'] += b.quantity
             p['boxes'].append(b)
             p['box_numbers'].append(b.box_number)
+            if b.article:
+                p['article_codes'].add(b.article.code)
             if rz:
                 p['sizes_qty'][rz] = p['sizes_qty'].get(rz, 0) + b.quantity
         else:
@@ -250,6 +253,7 @@ def get_model_pastals_analysis(boxes):
     waiting_pastals = []
     for pcode, p in sorted(waiting_pastals_map.items(), key=lambda x: (x[1]['batch_number'] or 999, x[0])):
         p['sizes_display'] = ', '.join(f"{sz}: {qty}" for sz, qty in sorted(p['sizes_qty'].items()))
+        p['article_display'] = ', '.join(sorted(p['article_codes'])) if p['article_codes'] else ''
         box_nums = sorted(p['box_numbers'])
         if len(box_nums) > 1:
             p['boxes_range_display'] = f"№{box_nums[0]} – №{box_nums[-1]}"
@@ -1555,19 +1559,42 @@ def sewing_statistics_orders_view(request):
 def sewing_statistics_order_models_view(request, order_id: int):
     """
     2-BOSQICH: Bitta Zakaz Ichidagi Barcha Modellar (Artikullar) Ko'rinishi
-    - Model rasmi, nomi, artikul kodi
-    - Har bir modelning umumiy reja, kesilgan, tikimga kirgan, dazmol, kontrolda kutayotgan va sifat natijasi
-    - "Statistikani ko'rish" tugmasi orqali razmerlar bo'limiga kirish
+    - Kunlik nazorat (Tanlangan sana bo'yicha: prior + today = total)
+    - Kesim, Tikim kutayotgan pastallar, Real WIP, Dazmol, OTK kutayotgan (tayyor vs chala) va 1-sort
+    - Har bir modelning o'z statistikasi va "Statistikani ko'rish" tugmasi orqali razmerlar bo'limiga kirish
     """
+    from datetime import datetime, time, timedelta
+
+    # Sana filtri
+    date_str = request.GET.get('date', '').strip()
+    selected_date = None
+    if date_str:
+        for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d-%m-%Y', '%Y/%m/%d', '%d/%m/%Y'):
+            try:
+                selected_date = datetime.strptime(date_str, fmt).date()
+                break
+            except ValueError:
+                pass
+    if not selected_date:
+        selected_date = timezone.localdate()
+
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(selected_date, time.max), tz)
+
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+    is_today = (selected_date == timezone.localdate())
+
     order = get_object_or_404(
         Order.objects.select_related('customer').prefetch_related(
             'items__article__model',
             'items__article__article_operations__operation',
-            'items__sizes',
+            'items__sizes__cutting_items__batch',
             Prefetch(
                 'boxes',
                 queryset=Box.objects.exclude(status=Box.Status.CANCELLED).select_related(
-                    'article'
+                    'article', 'controlled_by', 'cutting_batch_item__batch'
                 ).prefetch_related(
                     Prefetch(
                         'tickets',
@@ -1586,27 +1613,58 @@ def sewing_statistics_order_models_view(request, order_id: int):
     )
 
     boxes = list(order.boxes.all())
+    pastals_info = get_model_pastals_analysis(boxes)
+
     models_data = []
 
     order_totals = {
         'planned': 0,
+        'cut_prior': 0,
+        'cut_today': 0,
+        'cut_total': 0,
         'cut': 0,
+        'cut_pct': 0.0,
         'boxed': 0,
         'boxes_count': len(boxes),
+        'waiting_sewing_qty': pastals_info['waiting_sewing_qty'],
+        'waiting_sewing_boxes': pastals_info['waiting_sewing_boxes'],
+        'waiting_pastals_count': pastals_info['waiting_pastals_count'],
+        'waiting_pastals': pastals_info['waiting_pastals'],
+        'sewing_prior': 0,
+        'sewing_today': 0,
+        'sewing_total': 0,
         'entered_sewing': 0,
         'entered_sewing_boxes': 0,
+        'in_sewing_pre_dazmol': 0,
+        'in_sewing_pre_dazmol_boxes': 0,
+        'real_wip_sewing': 0,
+        'real_wip_sewing_boxes': 0,
+        'dazmol_prior': 0,
+        'dazmol_today': 0,
+        'dazmol_total': 0,
         'dazmol': 0,
         'dazmol_boxes': 0,
+        'dazmol_pct': 0.0,
         'unreached_control': 0,
         'unreached_control_boxes': 0,
         'waiting_control': 0,
         'waiting_control_boxes': 0,
+        'waiting_control_ready': 0,
+        'waiting_control_ready_boxes': 0,
+        'waiting_control_missing_ops': 0,
+        'waiting_control_missing_ops_boxes': 0,
         'unprinted_boxes_count': sum(1 for b in boxes if not b.is_printed and not b.is_controlled),
         'in_repair': 0,
         'in_repair_boxes': 0,
         're_repair': 0,
         're_repair_boxes': 0,
+        'first_sort_prior': 0,
+        'first_sort_today': 0,
+        'first_sort_total': 0,
         'first_sort': 0,
+        'second_sort_prior': 0,
+        'second_sort_today': 0,
+        'second_sort_total': 0,
         'second_sort': 0,
         'controlled_boxes_count': 0,
         'control_variance': 0,
@@ -1626,6 +1684,65 @@ def sewing_statistics_order_models_view(request, order_id: int):
         cut_qty = item.total_cut_quantity
         model_balance = calculate_pipeline_balance(art_boxes, planned_qty, cut_qty, dazmol_ao_ids)
 
+        # 1. Kesim delta
+        cutting_items = []
+        for s in item.sizes.all():
+            cutting_items.extend(list(s.cutting_items.select_related('batch')))
+        if cutting_items:
+            m_cut_prior = sum(ci.quantity for ci in cutting_items if ci.batch and ci.batch.created_at and ci.batch.created_at < day_start)
+            m_cut_today = sum(ci.quantity for ci in cutting_items if ci.batch and ci.batch.created_at and day_start <= ci.batch.created_at <= day_end)
+        else:
+            m_cut_prior = sum(b.quantity for b in art_boxes if b.created_at and b.created_at < day_start)
+            m_cut_today = sum(b.quantity for b in art_boxes if b.created_at and day_start <= b.created_at <= day_end)
+        m_cut_total = m_cut_prior + m_cut_today
+
+        # 2. Tikim delta
+        m_sewing_prior = 0
+        m_sewing_today = 0
+        for b in art_boxes:
+            scanned_ts = [t.scanned_at for t in b.tickets.all() if t.status == Ticket.Status.SCANNED and t.scanned_at]
+            if scanned_ts:
+                min_ts = min(scanned_ts)
+                if min_ts < day_start:
+                    m_sewing_prior += b.quantity
+                elif day_start <= min_ts <= day_end:
+                    m_sewing_today += b.quantity
+        m_sewing_total = m_sewing_prior + m_sewing_today
+
+        # 3. Dazmol delta
+        m_dazmol_prior = 0
+        m_dazmol_today = 0
+        for b in art_boxes:
+            dz_tickets = [t for t in b.tickets.all() if t.article_operation_id in dazmol_ao_ids and t.status == Ticket.Status.SCANNED and t.scanned_at]
+            if dz_tickets:
+                min_dz = min(t.scanned_at for t in dz_tickets)
+                if min_dz < day_start:
+                    m_dazmol_prior += b.quantity
+                elif day_start <= min_dz <= day_end:
+                    m_dazmol_today += b.quantity
+        m_dazmol_total = m_dazmol_prior + m_dazmol_today
+
+        # 4. OTK delta
+        m_first_sort_prior = 0
+        m_first_sort_today = 0
+        m_second_sort_prior = 0
+        m_second_sort_today = 0
+        for b in art_boxes:
+            if b.is_controlled and b.controlled_at:
+                if b.controlled_at < day_start:
+                    m_first_sort_prior += (b.controlled_first_sort_qty or 0)
+                    m_second_sort_prior += (b.controlled_second_sort_qty or 0)
+                elif day_start <= b.controlled_at <= day_end:
+                    m_first_sort_today += (b.controlled_first_sort_qty or 0)
+                    m_second_sort_today += (b.controlled_second_sort_qty or 0)
+        m_first_sort_total = m_first_sort_prior + m_first_sort_today
+        m_second_sort_total = m_second_sort_prior + m_second_sort_today
+
+        # Ushbu model uchun kutayotgan pastallar
+        art_pastals_info = get_model_pastals_analysis(art_boxes)
+        m_waiting_sewing_qty = art_pastals_info['waiting_sewing_qty']
+        m_waiting_sewing_boxes = art_pastals_info['waiting_sewing_boxes']
+
         article_image_url = None
         if art.image:
             try:
@@ -1639,26 +1756,51 @@ def sewing_statistics_order_models_view(request, order_id: int):
             'article_image_url': article_image_url,
             'model_name': art.model.name if art.model else art.name,
             'planned_qty': planned_qty,
-            'cut_qty': cut_qty,
-            'cut_pct': model_balance['cut_pct'],
+            'cut_qty': m_cut_total,
+            'cut_prior': m_cut_prior,
+            'cut_today': m_cut_today,
+            'cut_total': m_cut_total,
+            'cut_pct': round((m_cut_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'total_boxed_qty': total_boxed_qty,
             'boxes_count': len(art_boxes),
-            'entered_sewing_qty': model_balance['entered_sewing_qty'],
+            'waiting_sewing_qty': m_waiting_sewing_qty,
+            'waiting_sewing_boxes': m_waiting_sewing_boxes,
+            'entered_sewing_qty': m_sewing_total,
+            'sewing_prior': m_sewing_prior,
+            'sewing_today': m_sewing_today,
+            'sewing_total': m_sewing_total,
             'entered_sewing_boxes': model_balance['entered_sewing_boxes'],
-            'sewing_pct': model_balance['sewing_pct'],
-            'dazmol_qty': model_balance['dazmol_qty'],
+            'sewing_pct': round((m_sewing_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
+            'in_sewing_pre_dazmol_qty': model_balance['in_sewing_pre_dazmol_qty'],
+            'in_sewing_pre_dazmol_boxes': model_balance['in_sewing_pre_dazmol_boxes'],
+            'real_wip_sewing_qty': model_balance['real_wip_sewing_qty'],
+            'real_wip_sewing_boxes': model_balance['real_wip_sewing_boxes'],
+            'dazmol_qty': m_dazmol_total,
+            'dazmol_prior': m_dazmol_prior,
+            'dazmol_today': m_dazmol_today,
+            'dazmol_total': m_dazmol_total,
             'dazmol_boxes': model_balance['dazmol_boxes'],
-            'dazmol_pct': model_balance['dazmol_pct'],
+            'dazmol_pct': round((m_dazmol_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'unreached_control_qty': model_balance['unreached_control_qty'],
             'unreached_control_boxes': model_balance['unreached_control_boxes'],
             'waiting_control_qty': model_balance['waiting_control_qty'],
             'waiting_control_boxes': model_balance['waiting_control_boxes'],
+            'waiting_control_ready_qty': model_balance['waiting_control_ready_qty'],
+            'waiting_control_ready_boxes': model_balance['waiting_control_ready_boxes'],
+            'waiting_control_missing_ops_qty': model_balance['waiting_control_missing_ops_qty'],
+            'waiting_control_missing_ops_boxes': model_balance['waiting_control_missing_ops_boxes'],
             'in_repair_qty': model_balance['in_repair_qty'],
             'in_repair_boxes': model_balance['in_repair_boxes'],
             're_repair_qty': model_balance['re_repair_qty'],
             're_repair_boxes': model_balance['re_repair_boxes'],
-            'first_sort_qty': model_balance['first_sort_qty'],
-            'second_sort_qty': model_balance['second_sort_qty'],
+            'first_sort_qty': m_first_sort_total,
+            'first_sort_prior': m_first_sort_prior,
+            'first_sort_today': m_first_sort_today,
+            'first_sort_total': m_first_sort_total,
+            'second_sort_qty': m_second_sort_total,
+            'second_sort_prior': m_second_sort_prior,
+            'second_sort_today': m_second_sort_today,
+            'second_sort_total': m_second_sort_total,
             'repair_qty': model_balance['in_repair_qty'],
             'controlled_boxes_count': model_balance['controlled_boxes_count'],
             'control_variance': model_balance['net_variance'],
@@ -1668,35 +1810,78 @@ def sewing_statistics_order_models_view(request, order_id: int):
         })
 
         order_totals['planned'] += planned_qty
-        order_totals['cut'] += cut_qty
+        order_totals['cut_prior'] += m_cut_prior
+        order_totals['cut_today'] += m_cut_today
+        order_totals['cut_total'] += m_cut_total
+        order_totals['cut'] += m_cut_total
         order_totals['boxed'] += total_boxed_qty
-        order_totals['entered_sewing'] += model_balance['entered_sewing_qty']
+
+        order_totals['sewing_prior'] += m_sewing_prior
+        order_totals['sewing_today'] += m_sewing_today
+        order_totals['sewing_total'] += m_sewing_total
+        order_totals['entered_sewing'] += m_sewing_total
         order_totals['entered_sewing_boxes'] += model_balance['entered_sewing_boxes']
-        order_totals['dazmol'] += model_balance['dazmol_qty']
+        order_totals['in_sewing_pre_dazmol'] += model_balance['in_sewing_pre_dazmol_qty']
+        order_totals['in_sewing_pre_dazmol_boxes'] += model_balance['in_sewing_pre_dazmol_boxes']
+        order_totals['real_wip_sewing'] += model_balance['real_wip_sewing_qty']
+        order_totals['real_wip_sewing_boxes'] += model_balance['real_wip_sewing_boxes']
+
+        order_totals['dazmol_prior'] += m_dazmol_prior
+        order_totals['dazmol_today'] += m_dazmol_today
+        order_totals['dazmol_total'] += m_dazmol_total
+        order_totals['dazmol'] += m_dazmol_total
         order_totals['dazmol_boxes'] += model_balance['dazmol_boxes']
+
         order_totals['unreached_control'] += model_balance['unreached_control_qty']
         order_totals['unreached_control_boxes'] += model_balance['unreached_control_boxes']
         order_totals['waiting_control'] += model_balance['waiting_control_qty']
         order_totals['waiting_control_boxes'] += model_balance['waiting_control_boxes']
+        order_totals['waiting_control_ready'] += model_balance['waiting_control_ready_qty']
+        order_totals['waiting_control_ready_boxes'] += model_balance['waiting_control_ready_boxes']
+        order_totals['waiting_control_missing_ops'] += model_balance['waiting_control_missing_ops_qty']
+        order_totals['waiting_control_missing_ops_boxes'] += model_balance['waiting_control_missing_ops_boxes']
+
         order_totals['in_repair'] += model_balance['in_repair_qty']
         order_totals['in_repair_boxes'] += model_balance['in_repair_boxes']
         order_totals['re_repair'] += model_balance['re_repair_qty']
         order_totals['re_repair_boxes'] += model_balance['re_repair_boxes']
-        order_totals['first_sort'] += model_balance['first_sort_qty']
-        order_totals['second_sort'] += model_balance['second_sort_qty']
+
+        order_totals['first_sort_prior'] += m_first_sort_prior
+        order_totals['first_sort_today'] += m_first_sort_today
+        order_totals['first_sort_total'] += m_first_sort_total
+        order_totals['first_sort'] += m_first_sort_total
+        order_totals['second_sort_prior'] += m_second_sort_prior
+        order_totals['second_sort_today'] += m_second_sort_today
+        order_totals['second_sort_total'] += m_second_sort_total
+        order_totals['second_sort'] += m_second_sort_total
+
         order_totals['controlled_boxes_count'] += model_balance['controlled_boxes_count']
         order_totals['control_variance'] += model_balance['net_variance']
 
+    # Foizlar va ogohlantirishlar
+    order_totals['cut_pct'] = round((order_totals['cut_total'] / order_totals['planned'] * 100), 1) if order_totals['planned'] > 0 else 0.0
+    order_totals['dazmol_pct'] = round((order_totals['dazmol_total'] / order_totals['planned'] * 100), 1) if order_totals['planned'] > 0 else 0.0
+
+    total_closed_qty = order_totals['first_sort_total'] + order_totals['second_sort_total']
+    if total_closed_qty > 0:
+        order_totals['brak_rate_pct'] = round((order_totals['second_sort_total'] / total_closed_qty * 100), 1)
+        order_totals['is_brak_warning'] = bool(order_totals['brak_rate_pct'] > 10.0)
+
     # Butun zakaz balansi
-    order_balance = calculate_pipeline_balance(boxes, order_totals['planned'], order_totals['cut'])
-    order_totals['brak_rate_pct'] = order_balance['brak_rate_pct']
-    order_totals['is_brak_warning'] = order_balance['is_brak_warning']
+    order_balance = calculate_pipeline_balance(boxes, order_totals['planned'], order_totals['cut_total'])
 
     return render(request, 'production/sewing_statistics_order_models.html', {
         'order': order,
         'models_data': models_data,
         'order_totals': order_totals,
         'order_balance': order_balance,
+        'selected_date': selected_date,
+        'selected_date_str': selected_date.strftime('%Y-%m-%d'),
+        'selected_date_display': selected_date.strftime('%d.%m.%Y'),
+        'prev_date_str': prev_date.strftime('%Y-%m-%d'),
+        'next_date_str': next_date.strftime('%Y-%m-%d'),
+        'today_str': timezone.localdate().strftime('%Y-%m-%d'),
+        'is_today': is_today,
     })
 
 
