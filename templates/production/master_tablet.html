@@ -692,7 +692,11 @@
             if (isMasterActive) {
                 startAutoLogoutTimer();
                 startBackgroundAutoRefresh();
+                {% if master_assigned_screen %}
+                openPatokDetail({{ master_assigned_screen }}, '{{ master_patok_code|default:"P" }}', '{{ master_patok_code|default:"Patok" }}');
+                {% else %}
                 loadPatoksForBuilding(currentMasterBranch);
+                {% endif %}
                 loadMasterMonthlyWork();
             }
         });
@@ -927,7 +931,12 @@
                     startAutoLogoutTimer();
                     startBackgroundAutoRefresh();
                     switchTab('patoks');
-                    backToPatoksGrid();
+                    if (res.master.assigned_screen) {
+                        const pCode = res.master.patok_code || `P-${res.master.assigned_screen}`;
+                        openPatokDetail(res.master.assigned_screen, pCode, `${pCode}-Patok`);
+                    } else {
+                        backToPatoksGrid();
+                    }
                     loadMasterMonthlyWork();
                 } else {
                     playBeep(300, 0.25); // Error tone

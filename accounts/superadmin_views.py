@@ -327,6 +327,11 @@ def superadmin_users(request):
             phone_number = request.POST.get('phone_number', '').strip()
             telegram_user_id = request.POST.get('telegram_user_id', '').strip() or None
 
+            assigned_screen_val = request.POST.get('assigned_screen', '').strip()
+            assigned_screen = int(assigned_screen_val) if assigned_screen_val and assigned_screen_val.isdigit() else None
+            if role != User.Role.MASTER:
+                assigned_screen = None
+
             if not first_name or not password:
                 messages.error(request, "Ism va parol kiritilishi shart!")
             elif username and User.objects.filter(username=username).exists():
@@ -339,6 +344,7 @@ def superadmin_users(request):
                     email=email,
                     role=role,
                     branch=branch,
+                    assigned_screen=assigned_screen,
                     phone_number=phone_number,
                     telegram_user_id=int(telegram_user_id) if telegram_user_id else None,
                     is_staff=(role in [User.Role.SUPER_ADMIN, User.Role.ADMIN]),
@@ -346,6 +352,15 @@ def superadmin_users(request):
                 )
                 user.set_password(password)
                 user.save()
+
+                if role == User.Role.MASTER and assigned_screen:
+                    from accounts.models import MasterPatokHistory
+                    MasterPatokHistory.objects.create(
+                        user=user,
+                        screen_number=assigned_screen,
+                        start_date=timezone.localdate(),
+                        is_active=True
+                    )
 
                 # Agar Oddiy User sifatida yaratilsa, unga avtomatik Worker profili ham ochiladi
                 if role == User.Role.USER and not hasattr(user, 'worker_profile'):
@@ -420,6 +435,30 @@ def superadmin_users(request):
             else:
                 user.telegram_user_id = None
 
+            assigned_screen_val = request.POST.get('assigned_screen', '').strip()
+            new_assigned_screen = int(assigned_screen_val) if assigned_screen_val and assigned_screen_val.isdigit() else None
+            old_assigned_screen = user.assigned_screen
+
+            if new_role == User.Role.MASTER:
+                user.assigned_screen = new_assigned_screen
+                if old_role != User.Role.MASTER or old_assigned_screen != new_assigned_screen:
+                    from accounts.models import MasterPatokHistory
+                    today = timezone.localdate()
+                    MasterPatokHistory.objects.filter(user=user, is_active=True).update(is_active=False, end_date=today)
+                    if new_assigned_screen:
+                        MasterPatokHistory.objects.create(
+                            user=user,
+                            screen_number=new_assigned_screen,
+                            start_date=today,
+                            is_active=True
+                        )
+            else:
+                if old_role == User.Role.MASTER and user.assigned_screen:
+                    from accounts.models import MasterPatokHistory
+                    today = timezone.localdate()
+                    MasterPatokHistory.objects.filter(user=user, is_active=True).update(is_active=False, end_date=today)
+                user.assigned_screen = None
+
             new_password = request.POST.get('new_password', '').strip()
             if new_password:
                 user.set_password(new_password)
@@ -451,6 +490,21 @@ def superadmin_users(request):
                     unlinked_worker.phone_number = user.phone_number
                     unlinked_worker.branch = user.branch
                     unlinked_worker.save(update_fields=['user', 'first_name', 'last_name', 'phone_number', 'branch'])
+                else:
+                    next_id = Worker.objects.count() + 1
+                    worker_code = f"W-{next_id:03d}"
+                    while Worker.objects.filter(worker_id=worker_code).exists():
+                        next_id += 1
+                        worker_code = f"W-{next_id:03d}"
+                    Worker.objects.create(
+                        user=user,
+                        worker_id=worker_code,
+                        first_name=user.first_name,
+                        last_name=user.last_name,
+                        phone_number=user.phone_number,
+                        branch=user.branch,
+                        is_active=True
+                    )
 
             messages.success(request, f"{user.get_full_name() or user.username or 'Foydalanuvchi'} ma'lumotlari muvaffaqiyatli yangilandi.")
 
@@ -469,10 +523,55 @@ def superadmin_users(request):
             elif new_role not in User.Role.values:
                 messages.error(request, "Noto'g'ri rol tanlandi!")
             else:
+                old_role = user.role
                 user.role = new_role
                 user.is_staff = (new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN])
                 user.is_superuser = (new_role == User.Role.SUPER_ADMIN)
-                user.save(update_fields=['role', 'is_staff', 'is_superuser'])
+                update_fields = ['role', 'is_staff', 'is_superuser']
+
+                if old_role == User.Role.MASTER and new_role != User.Role.MASTER:
+                    from accounts.models import MasterPatokHistory
+                    MasterPatokHistory.objects.filter(user=user, is_active=True).update(is_active=False, end_date=timezone.localdate())
+                    user.assigned_screen = None
+                    update_fields.append('assigned_screen')
+
+                user.save(update_fields=update_fields)
+
+                # Agar Oddiy User qilib o'zgartirilsa va Worker profili bo'lmasa, ochiladi yoki faollashtiriladi
+                if new_role == User.Role.USER:
+                    worker = Worker.objects.filter(user=user).first()
+                    if worker:
+                        if not worker.is_active:
+                            worker.is_active = True
+                            worker.save(update_fields=['is_active'])
+                    else:
+                        unlinked_worker = Worker.objects.filter(
+                            user__isnull=True,
+                            first_name__iexact=user.first_name,
+                            last_name__iexact=user.last_name
+                        ).first()
+                        if unlinked_worker:
+                            unlinked_worker.user = user
+                            unlinked_worker.is_active = True
+                            unlinked_worker.phone_number = user.phone_number
+                            unlinked_worker.branch = user.branch
+                            unlinked_worker.save(update_fields=['user', 'first_name', 'last_name', 'phone_number', 'branch', 'is_active'])
+                        else:
+                            next_id = Worker.objects.count() + 1
+                            worker_code = f"W-{next_id:03d}"
+                            while Worker.objects.filter(worker_id=worker_code).exists():
+                                next_id += 1
+                                worker_code = f"W-{next_id:03d}"
+                            Worker.objects.create(
+                                user=user,
+                                worker_id=worker_code,
+                                first_name=user.first_name,
+                                last_name=user.last_name,
+                                phone_number=user.phone_number,
+                                branch=user.branch,
+                                is_active=True
+                            )
+
                 messages.success(request, f"'{user.get_full_name() or user.username or 'Foydalanuvchi'}' foydalanuvchisi roli '{user.get_role_display()}' ga o'zgartirildi.")
 
         elif action == 'delete_user':

@@ -418,6 +418,11 @@
                                     class="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                     <i class="fa-brands fa-telegram text-[11px]"></i> Master
                                 </span>
+                                {% if u.assigned_screen %}
+                                <span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black px-2 py-0.5 rounded-md inline-flex items-center gap-1" title="Biriktirilgan Patok">
+                                    <i class="fa-solid fa-desktop text-[10px]"></i> {{ u.assigned_patok_name }}
+                                </span>
+                                {% endif %}
                                 {% elif u.role == 'CONTROL' %}
                                 <span
                                     class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
@@ -512,6 +517,7 @@
                                 data-last-name="{{ u.last_name|default:'' }}" data-email="{{ u.email|default:'' }}"
                                 data-role="{{ u.role }}" data-phone="{{ u.phone_number|default:'' }}"
                                 data-tg-id="{{ u.telegram_user_id|default:'' }}" data-branch="{{ u.branch }}"
+                                data-assigned-screen="{{ u.assigned_screen|default:'' }}"
                                 onclick="openEditUserModalFromBtn(this)">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
@@ -768,7 +774,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Roli *</label>
-                    <select name="role" required
+                    <select name="role" id="create-role" required onchange="toggleCreatePatokWrapper(this.value)"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-bold">
                         <option value="USER" selected>👤 Oddiy User (Xodim / Tikuvchi)</option>
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
@@ -796,6 +802,46 @@
                     </select>
                     {% endif %}
                 </div>
+            </div>
+
+            <!-- Biriktirilgan Patok (Faqat Master uchun) -->
+            <div id="create-user-patok-wrapper" class="hidden bg-sky-950/30 border border-sky-500/30 rounded-xl p-3">
+                <label class="block text-xs font-bold text-sky-400 uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-desktop mr-1"></i> Biriktirilgan Patok (Master uchun)
+                </label>
+                <select name="assigned_screen" id="create-assigned-screen"
+                    class="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3.5 py-2 text-sm text-sky-300 focus:outline-none focus:border-sky-500 font-bold">
+                    <option value="">— Patok tanlanmagan (Barchasini ko'rish) —</option>
+                    <optgroup label="🏢 Kosonsoy (Bosh bino)">
+                        <option value="1">K1-Patok (1-Ekran)</option>
+                        <option value="2">K2-Patok (2-Ekran)</option>
+                        <option value="3">K3-Patok (3-Ekran)</option>
+                        <option value="4">K4-Patok (4-Ekran)</option>
+                        <option value="5">K5-Patok (5-Ekran)</option>
+                        <option value="6">K6-Patok (6-Ekran)</option>
+                        <option value="7">K7-Patok (7-Ekran)</option>
+                        <option value="8">K8-Patok (8-Ekran)</option>
+                        <option value="9">K9-Patok (9-Ekran)</option>
+                        <option value="10">K10-Patok (10-Ekran)</option>
+                        <option value="11">K11-Patok (11-Ekran)</option>
+                        <option value="12">K12-Patok (12-Ekran)</option>
+                        <option value="13">K13-Patok (13-Ekran)</option>
+                    </optgroup>
+                    <optgroup label="📍 Uychi filiali">
+                        <option value="14">U1-Patok (14-Ekran)</option>
+                        <option value="15">U2-Patok (15-Ekran)</option>
+                        <option value="16">U3-Patok (16-Ekran)</option>
+                        <option value="17">U4-Patok (17-Ekran)</option>
+                        <option value="18">U5-Patok (18-Ekran)</option>
+                        <option value="19">U6-Patok (19-Ekran)</option>
+                        <option value="20">U7-Patok (20-Ekran)</option>
+                        <option value="21">U8-Patok (21-Ekran)</option>
+                        <option value="22">U9-Patok (22-Ekran)</option>
+                        <option value="23">U10-Patok (23-Ekran)</option>
+                        <option value="24">U11-Patok (24-Ekran)</option>
+                    </optgroup>
+                </select>
+                <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok ichiga kiradi.</p>
             </div>
 
             <!-- Telefon & Email -->
@@ -874,7 +920,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Roli</label>
-                    <select name="role" id="edit-role"
+                    <select name="role" id="edit-role" onchange="toggleEditPatokWrapper(this.value)"
                         class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-bold">
                         <option value="USER">👤 Oddiy User (Xodim / Tikuvchi)</option>
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
@@ -902,6 +948,46 @@
                     </select>
                     {% endif %}
                 </div>
+            </div>
+
+            <!-- Biriktirilgan Patok (Faqat Master uchun) -->
+            <div id="edit-user-patok-wrapper" class="hidden bg-sky-950/30 border border-sky-500/30 rounded-xl p-3">
+                <label class="block text-xs font-bold text-sky-400 uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-desktop mr-1"></i> Biriktirilgan Patok (Master uchun)
+                </label>
+                <select name="assigned_screen" id="edit-assigned-screen"
+                    class="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3.5 py-2 text-sm text-sky-300 focus:outline-none focus:border-sky-500 font-bold">
+                    <option value="">— Patok tanlanmagan (Barchasini ko'rish) —</option>
+                    <optgroup label="🏢 Kosonsoy (Bosh bino)">
+                        <option value="1">K1-Patok (1-Ekran)</option>
+                        <option value="2">K2-Patok (2-Ekran)</option>
+                        <option value="3">K3-Patok (3-Ekran)</option>
+                        <option value="4">K4-Patok (4-Ekran)</option>
+                        <option value="5">K5-Patok (5-Ekran)</option>
+                        <option value="6">K6-Patok (6-Ekran)</option>
+                        <option value="7">K7-Patok (7-Ekran)</option>
+                        <option value="8">K8-Patok (8-Ekran)</option>
+                        <option value="9">K9-Patok (9-Ekran)</option>
+                        <option value="10">K10-Patok (10-Ekran)</option>
+                        <option value="11">K11-Patok (11-Ekran)</option>
+                        <option value="12">K12-Patok (12-Ekran)</option>
+                        <option value="13">K13-Patok (13-Ekran)</option>
+                    </optgroup>
+                    <optgroup label="📍 Uychi filiali">
+                        <option value="14">U1-Patok (14-Ekran)</option>
+                        <option value="15">U2-Patok (15-Ekran)</option>
+                        <option value="16">U3-Patok (16-Ekran)</option>
+                        <option value="17">U4-Patok (17-Ekran)</option>
+                        <option value="18">U5-Patok (18-Ekran)</option>
+                        <option value="19">U6-Patok (19-Ekran)</option>
+                        <option value="20">U7-Patok (20-Ekran)</option>
+                        <option value="21">U8-Patok (21-Ekran)</option>
+                        <option value="22">U9-Patok (22-Ekran)</option>
+                        <option value="23">U10-Patok (23-Ekran)</option>
+                        <option value="24">U11-Patok (24-Ekran)</option>
+                    </optgroup>
+                </select>
+                <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok ichiga kiradi.</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -1232,8 +1318,34 @@
 </div>
 
 <script>
+    function toggleCreatePatokWrapper(role) {
+        const wrapper = document.getElementById('create-user-patok-wrapper');
+        const select = document.getElementById('create-assigned-screen');
+        if (wrapper) {
+            if (role === 'MASTER') {
+                wrapper.classList.remove('hidden');
+            } else {
+                wrapper.classList.add('hidden');
+                if (select) select.value = '';
+            }
+        }
+    }
+
+    function toggleEditPatokWrapper(role) {
+        const wrapper = document.getElementById('edit-user-patok-wrapper');
+        const select = document.getElementById('edit-assigned-screen');
+        if (wrapper) {
+            if (role === 'MASTER') {
+                wrapper.classList.remove('hidden');
+            } else {
+                wrapper.classList.add('hidden');
+                if (select) select.value = '';
+            }
+        }
+    }
+
     // Edit Modal
-    function openEditUserModal(id, username, fn, ln, email, role, phone, tgId, branch) {
+    function openEditUserModal(id, username, fn, ln, email, role, phone, tgId, branch, assignedScreen) {
         document.getElementById('edit-user-id').value = id || '';
         const nameDisplay = (fn || '') + (ln ? ' ' + ln : '');
         const titleSpan = document.getElementById('edit-username-span') || document.getElementById('edit-name-span');
@@ -1252,6 +1364,13 @@
         }
         document.getElementById('edit-phone').value = phone || '';
         document.getElementById('edit-tg-id').value = tgId || '';
+
+        const patokSelect = document.getElementById('edit-assigned-screen');
+        if (patokSelect) {
+            patokSelect.value = assignedScreen || '';
+        }
+        toggleEditPatokWrapper(role || 'USER');
+
         document.getElementById('edit-user-modal').classList.remove('hidden');
     }
 
@@ -1265,7 +1384,8 @@
             btn.getAttribute('data-role'),
             btn.getAttribute('data-phone'),
             btn.getAttribute('data-tg-id'),
-            btn.getAttribute('data-branch')
+            btn.getAttribute('data-branch'),
+            btn.getAttribute('data-assigned-screen')
         );
     }
 

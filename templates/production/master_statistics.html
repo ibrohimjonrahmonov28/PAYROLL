@@ -1,0 +1,598 @@
+{% extends 'base.html' %}
+
+{% block title %}Masterlar Statistikasi & Oylik Quvvat — Terry Jar{% endblock %}
+
+{% block page_header %}
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+        <div
+            class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-lg">
+            <i class="fa-solid fa-user-check"></i>
+        </div>
+        <div>
+            <h2 class="text-base font-black text-white leading-tight">Masterlar Statistikasi & Oylik Quvvat</h2>
+            <p class="text-xs text-slate-400">Patok quvvati (ish kunlari arifmetik o'rtachasi), pastallar yopilishi va yo'qotish tahlili</p>
+        </div>
+    </div>
+
+    <!-- Month Switcher & Actions -->
+    <div class="flex items-center gap-2 flex-wrap">
+        <!-- Oylik navigatsiya -->
+        <div class="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 shadow-inner">
+            <a href="?month={{ prev_month_str }}{% if branch_filter != 'ALL' %}&branch={{ branch_filter }}{% endif %}"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                title="Oldingi oy">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </a>
+
+            <form method="GET" class="px-2">
+                {% if branch_filter != 'ALL' %}
+                <input type="hidden" name="branch" value="{{ branch_filter }}">
+                {% endif %}
+                <input type="month" name="month" value="{{ month_str }}" onchange="this.form.submit()"
+                    class="bg-transparent text-xs font-black text-white border-none focus:outline-none cursor-pointer uppercase tracking-wider font-mono">
+            </form>
+
+            <a href="?month={{ next_month_str }}{% if branch_filter != 'ALL' %}&branch={{ branch_filter }}{% endif %}"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                title="Keyingi oy">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </a>
+        </div>
+
+        <a href="{% url 'production:master_tablet' %}" target="_blank"
+            class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-tablet-screen-button"></i>
+            <span>Master Plansheti</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- FILIALLAR FILTRI (Agar Superadmin bo'lsa) -->
+    {% if not is_branch_admin %}
+    <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl w-fit shadow-md">
+        <span class="text-xs font-bold text-slate-500 uppercase px-2.5">Filial:</span>
+        <a href="?month={{ month_str }}&branch=ALL"
+            class="px-3 py-1.5 rounded-xl text-xs font-black transition {% if branch_filter == 'ALL' %}bg-sky-500 text-slate-950 shadow-sm{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+            Barchasi
+        </a>
+        <a href="?month={{ month_str }}&branch=HQ"
+            class="px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if branch_filter == 'HQ' %}bg-sky-500 text-slate-950 shadow-sm{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+            <i class="fa-solid fa-building text-[10px]"></i> Kosonsoy (Bosh bino)
+        </a>
+        <a href="?month={{ month_str }}&branch=UYCHI"
+            class="px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 {% if branch_filter == 'UYCHI' %}bg-sky-500 text-slate-950 shadow-sm{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+            <i class="fa-solid fa-location-dot text-[10px]"></i> Uychi filiali
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- 6 TA ASOSIY KPI CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <!-- 1. Faol Masterlar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Faol Masterlar</span>
+                <div class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-white digital-font">{{ grand_total_masters }} <small
+                    class="text-xs text-slate-400 font-sans font-normal">nafar</small></div>
+            <div class="text-[11px] text-slate-500 mt-1">{{ grand_working_days }} master-kun</div>
+        </div>
+
+        <!-- 2. O'rtacha Patok Quvvati -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">O'rtacha Quvvat</span>
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-emerald-400 digital-font">{{ grand_avg_quvvat }}%</div>
+            <div class="text-[11px] text-slate-500 mt-1">Faqat ish kunlari o'rtachasi</div>
+        </div>
+
+        <!-- 3. Jami Qabul Qilingan Pastallar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Qabul Qilingan</span>
+                <div class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-white digital-font">{{ grand_total_pastals }} <small
+                    class="text-xs text-slate-400 font-sans font-normal">ta pastal</small></div>
+            <div class="text-[11px] text-slate-400 mt-1 font-mono">Kirdi: {{ grand_in_qty|default:0 }} ta</div>
+        </div>
+
+        <!-- 4. Yopilgan Pastallar (100% OTK) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Yopilgan</span>
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-emerald-400 digital-font">{{ grand_closed_pastals }} <small
+                    class="text-xs text-emerald-400/70 font-sans font-normal">ta</small></div>
+            <div class="text-[11px] text-emerald-400/80 mt-1 font-mono">Chiqdi: {{ grand_out_qty|default:0 }} ta</div>
+        </div>
+
+        <!-- 5. Hali Ochiq Pastallar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Ochiq Pastallar</span>
+                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-amber-400 digital-font">{{ grand_open_pastals }} <small
+                    class="text-xs text-amber-400/70 font-sans font-normal">ta</small></div>
+            <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+                <span class="text-amber-400" title="OTK kutmoqda">{{ grand_waiting_otk }} OTK</span> •
+                <span class="text-sky-400" title="Tikuvda">{{ grand_in_sewing }} tikuv</span>
+            </div>
+        </div>
+
+        <!-- 6. Yo'qotish / Farq -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Yo'qotish / Farq</span>
+                <div class="w-7 h-7 rounded-lg {% if grand_diff < 0 %}bg-rose-500/20 text-rose-400{% else %}bg-slate-800 text-slate-400{% endif %} flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-scale-unbalanced"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black digital-font {% if grand_diff < 0 %}text-rose-400{% elif grand_diff > 0 %}text-sky-400{% else %}text-slate-300{% endif %}">
+                {% if grand_diff > 0 %}+{% endif %}{{ grand_diff }} <small class="text-xs font-sans font-normal text-slate-400">dona</small>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Chiqdi - Kirdi farqi</div>
+        </div>
+    </div>
+
+    <!-- MASTERLAR ASOSIY JADVALI -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-table-list text-sky-400"></i>
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Masterlar Oylik Reytingi va Hisoboti</h3>
+                <span class="text-xs text-slate-400">({{ month_name_uz }})</span>
+            </div>
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Yopilgan
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 ml-2"></span> OTK kutmoqda
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-500 ml-2"></span> Tikuvda
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300 border-collapse">
+                <thead class="bg-slate-950/80 text-[11px] text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                        <th class="py-3 px-3 text-center w-10">#</th>
+                        <th class="py-3 px-4">Master</th>
+                        <th class="py-3 px-4">Biriktirilgan Patok</th>
+                        <th class="py-3 px-3 text-center">Ish Kunlari</th>
+                        <th class="py-3 px-4 text-center">O'rtacha Quvvat</th>
+                        <th class="py-3 px-4 text-center">Pastallar (Jami / Yop / Och)</th>
+                        <th class="py-3 px-3 text-right">Kirdi (Meto)</th>
+                        <th class="py-3 px-3 text-right">Chiqdi (OTK)</th>
+                        <th class="py-3 px-3 text-right">Yo'qotish (Farq)</th>
+                        <th class="py-3 px-4 text-center">Tikuvchi (Gibrid)</th>
+                        <th class="py-3 px-4 text-right">Amal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 font-medium">
+                    {% for m in masters_data %}
+                    <tr class="hover:bg-slate-800/40 transition group cursor-pointer" onclick="openMasterModal({{ m.master_id }})">
+                        <!-- # -->
+                        <td class="py-3 px-3 text-center text-slate-500 font-mono font-bold">{{ forloop.counter }}</td>
+
+                        <!-- Master info -->
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr {% if m.is_currently_master %}from-sky-600 to-indigo-600 text-white{% else %}from-slate-700 to-slate-800 text-slate-300{% endif %} font-black flex items-center justify-center text-xs shadow-sm flex-shrink-0">
+                                    {{ m.master_name|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <strong class="text-white text-xs block font-bold group-hover:text-sky-300 transition">{{ m.master_name }}</strong>
+                                    <div class="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                                        <span class="font-mono">@{{ m.username }}</span>
+                                        <span>•</span>
+                                        <span class="text-slate-500">{{ m.branch_display }}</span>
+                                        {% if not m.is_currently_master %}
+                                        <span class="px-1.5 py-0.2 bg-slate-800 text-amber-300 rounded text-[10px] font-bold" title="Hozirgi roli oddiy user">
+                                            {{ m.role_display }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Biriktirilgan Patok -->
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            {% if m.assigned_screen %}
+                            <span class="bg-sky-500/15 border border-sky-500/30 text-sky-300 px-2.5 py-1 rounded-lg text-xs font-black inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-desktop text-[10px]"></i> {{ m.assigned_patok_name }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-500">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Master Ish Kunlari -->
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <span class="px-2.5 py-1 bg-slate-800/80 border border-slate-700 text-white rounded-lg font-bold font-mono text-xs">
+                                {{ m.master_working_days }} kun
+                            </span>
+                        </td>
+
+                        <!-- O'rtacha Quvvat (%) -->
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            <span class="px-3 py-1 rounded-xl font-black digital-font text-sm inline-block {% if m.avg_quvvat_percent >= 100 %}bg-cyan-500/20 text-cyan-300 border border-cyan-500/40{% elif m.avg_quvvat_percent >= 85 %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40{% elif m.avg_quvvat_percent >= 60 %}bg-amber-500/20 text-amber-300 border border-amber-500/40{% else %}bg-rose-500/20 text-rose-300 border border-rose-500/40{% endif %}">
+                                {{ m.avg_quvvat_percent }}%
+                            </span>
+                        </td>
+
+                        <!-- Pastallar (Jami / Yopilgan / Ochiq) -->
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-1.5 font-bold font-mono">
+                                <span class="text-white" title="Jami pastallar">{{ m.total_pastals }}</span>
+                                <span class="text-slate-600">/</span>
+                                <span class="text-emerald-400" title="To'liq yopilgan">{{ m.closed_pastals }}</span>
+                                <span class="text-slate-600">/</span>
+                                <span class="{% if m.open_pastals > 0 %}text-amber-400{% else %}text-slate-500{% endif %}" title="Ochiq pastallar">{{ m.open_pastals }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Kirdi (Meto) -->
+                        <td class="py-3 px-3 text-right font-mono font-bold text-white whitespace-nowrap">
+                            {{ m.total_in_qty }}
+                        </td>
+
+                        <!-- Chiqdi (OTK) -->
+                        <td class="py-3 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
+                            {{ m.total_out_qty }}
+                        </td>
+
+                        <!-- Yo'qotish (Farq) -->
+                        <td class="py-3 px-3 text-right font-mono font-bold whitespace-nowrap">
+                            {% if m.total_diff < 0 %}
+                            <span class="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">
+                                {{ m.total_diff }}
+                            </span>
+                            {% elif m.total_diff > 0 %}
+                            <span class="text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/30">
+                                +{{ m.total_diff }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400 bg-slate-800 px-2 py-0.5 rounded">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Tikuvchi sifatida ishlaganmi (Gibrid) -->
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            {% if m.sewer_days > 0 %}
+                            <div class="text-[11px]" title="{{ m.sewer_tickets }} ta stiker scan qilingan">
+                                <span class="text-emerald-400 font-bold">{{ m.sewer_days }} kun</span>
+                                <span class="text-slate-500 block font-mono text-[10px]">{{ m.sewer_earnings_formatted }} UZS</span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 text-[11px]">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Amallar -->
+                        <td class="py-3 px-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                            <button onclick="openMasterModal({{ m.master_id }})"
+                                class="px-2.5 py-1.5 bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white rounded-lg text-xs font-bold transition inline-flex items-center gap-1.5 border border-slate-700 hover:border-sky-500">
+                                <i class="fa-solid fa-chart-pie"></i>
+                                <span>Tafsilot</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="py-10 text-center text-slate-500">
+                            <i class="fa-solid fa-users-slash text-2xl block mb-2 opacity-50"></i>
+                            <span>Ushbu oy uchun masterlar ma'lumotlari topilmadi.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= INTERACTIVE DRILLDOWN MODAL ================= -->
+<div id="master-detail-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- Modal Header -->
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div id="modal-master-avatar" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white font-black flex items-center justify-center text-base shadow-lg">
+                    M
+                </div>
+                <div>
+                    <h3 id="modal-master-name" class="text-base font-black text-white leading-tight">Master Nomi</h3>
+                    <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                        <span id="modal-master-username" class="font-mono text-sky-400">@username</span>
+                        <span>•</span>
+                        <span id="modal-master-patok" class="font-bold text-white">Patok</span>
+                        <span>•</span>
+                        <span id="modal-master-branch" class="text-slate-400">Filial</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeMasterModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+
+        <!-- Modal KPI Ribbon -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 bg-slate-950/40 border-b border-slate-800/80 flex-shrink-0">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Master Ish Kunlari</span>
+                <span id="modal-kpi-days" class="text-lg font-black text-white digital-font">0 kun</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">O'rtacha Quvvat</span>
+                <span id="modal-kpi-quvvat" class="text-lg font-black text-emerald-400 digital-font">0%</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Pastallar Balansi</span>
+                <span id="modal-kpi-pastals" class="text-lg font-black text-white digital-font">0 / 0</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Yo'qotish (Chiqdi - Kirdi)</span>
+                <span id="modal-kpi-diff" class="text-lg font-black text-slate-300 digital-font">0 dona</span>
+            </div>
+        </div>
+
+        <!-- Modal Tabs -->
+        <div class="flex items-center gap-2 px-5 pt-3 border-b border-slate-800 flex-shrink-0 bg-slate-900">
+            <button id="modal-tab-pastals-btn" onclick="switchModalTab('pastals')"
+                class="px-4 py-2 border-b-2 border-sky-500 text-sky-400 font-black text-xs transition flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>Pastallar & Yo'qotish Tahlili</span>
+                <span id="modal-pastals-badge" class="px-1.5 py-0.2 bg-sky-500/20 text-sky-300 rounded-full text-[10px] font-bold">0</span>
+            </button>
+            <button id="modal-tab-days-btn" onclick="switchModalTab('days')"
+                class="px-4 py-2 border-b-2 border-transparent text-slate-400 hover:text-white font-bold text-xs transition flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Kunlik Patok Quvvati</span>
+                <span id="modal-days-badge" class="px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded-full text-[10px] font-bold">0</span>
+            </button>
+        </div>
+
+        <!-- Modal Tab Content Area -->
+        <div class="p-4 overflow-y-auto flex-1">
+            <!-- TAB 1: PASTALLAR RO'YXATI -->
+            <div id="modal-tab-pastals" class="space-y-3">
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-xs text-slate-300 border-collapse">
+                        <thead class="bg-slate-950 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="py-2.5 px-3">Pastal Kodi</th>
+                                <th class="py-2.5 px-3">Buyurtma / Model</th>
+                                <th class="py-2.5 px-2 text-center">Patok</th>
+                                <th class="py-2.5 px-3 text-right">Kirdi (Meto)</th>
+                                <th class="py-2.5 px-3 text-right">Chiqdi (OTK)</th>
+                                <th class="py-2.5 px-3 text-right">Yo'qotish (Farq)</th>
+                                <th class="py-2.5 px-2 text-center">Ta'mir / Brak</th>
+                                <th class="py-2.5 px-3 text-center">Holati</th>
+                                <th class="py-2.5 px-3 text-right">Qabul Vaqti</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-pastals-table-body" class="divide-y divide-slate-800/60 font-medium">
+                            <!-- JS orqali to'ldiriladi -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: KUNLIK ISH KUNLARI VA PATOK QUVVATI -->
+            <div id="modal-tab-days" class="hidden space-y-3">
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-xs text-slate-300 border-collapse">
+                        <thead class="bg-slate-950 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="py-2.5 px-4">Sana</th>
+                                <th class="py-2.5 px-4">Patok</th>
+                                <th class="py-2.5 px-4 text-center">Skanerlangan Stikerlar</th>
+                                <th class="py-2.5 px-4 text-right">Mehnat Qiymati (UZS)</th>
+                                <th class="py-2.5 px-4 text-center">Patok Quvvati (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-days-table-body" class="divide-y divide-slate-800/60 font-medium">
+                            <!-- JS orqali to'ldiriladi -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-3 border-t border-slate-800 bg-slate-950 flex justify-end flex-shrink-0">
+            <button onclick="closeMasterModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+                Yopish
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ALL_MASTERS_DATA = {{ masters_data_json|safe }};
+    const mastersMap = {};
+    ALL_MASTERS_DATA.forEach(m => {
+        mastersMap[m.master_id] = m;
+    });
+
+    let currentMasterData = null;
+
+    function openMasterModal(masterId) {
+        currentMasterData = mastersMap[masterId];
+        if (!currentMasterData) return;
+
+        // Header
+        document.getElementById('modal-master-avatar').innerText = (currentMasterData.master_name || 'M')[0].toUpperCase();
+        document.getElementById('modal-master-name').innerText = currentMasterData.master_name;
+        document.getElementById('modal-master-username').innerText = '@' + currentMasterData.username;
+        document.getElementById('modal-master-patok').innerText = currentMasterData.assigned_patok_name || 'Patok biriktirilmagan';
+        document.getElementById('modal-master-branch').innerText = currentMasterData.branch_display;
+
+        // KPI Ribbon
+        document.getElementById('modal-kpi-days').innerText = currentMasterData.master_working_days + ' kun';
+        document.getElementById('modal-kpi-quvvat').innerText = currentMasterData.avg_quvvat_percent + '%';
+        document.getElementById('modal-kpi-pastals').innerText = `${currentMasterData.closed_pastals} yopilgan / ${currentMasterData.open_pastals} ochiq`;
+
+        const diffEl = document.getElementById('modal-kpi-diff');
+        const diff = currentMasterData.total_diff;
+        if (diff < 0) {
+            diffEl.innerText = diff + ' dona (yo\'qotish)';
+            diffEl.className = 'text-lg font-black text-rose-400 digital-font';
+        } else if (diff > 0) {
+            diffEl.innerText = '+' + diff + ' dona (ortiqcha)';
+            diffEl.className = 'text-lg font-black text-sky-400 digital-font';
+        } else {
+            diffEl.innerText = '0 dona (aniq)';
+            diffEl.className = 'text-lg font-black text-emerald-400 digital-font';
+        }
+
+        // Badges
+        document.getElementById('modal-pastals-badge').innerText = currentMasterData.total_pastals;
+        document.getElementById('modal-days-badge').innerText = currentMasterData.master_working_days;
+
+        // Populate Pastals Table
+        renderModalPastals(currentMasterData.pastals_list);
+
+        // Populate Working Days Table
+        renderModalDays(currentMasterData.working_days);
+
+        // Reset to first tab
+        switchModalTab('pastals');
+
+        // Show Modal
+        document.getElementById('master-detail-modal').classList.remove('hidden');
+    }
+
+    function closeMasterModal() {
+        document.getElementById('master-detail-modal').classList.add('hidden');
+    }
+
+    function switchModalTab(tabName) {
+        const pastalsTab = document.getElementById('modal-tab-pastals');
+        const daysTab = document.getElementById('modal-tab-days');
+        const pastalsBtn = document.getElementById('modal-tab-pastals-btn');
+        const daysBtn = document.getElementById('modal-tab-days-btn');
+
+        if (tabName === 'pastals') {
+            pastalsTab.classList.remove('hidden');
+            daysTab.classList.add('hidden');
+            pastalsBtn.className = 'px-4 py-2 border-b-2 border-sky-500 text-sky-400 font-black text-xs transition flex items-center gap-2';
+            daysBtn.className = 'px-4 py-2 border-b-2 border-transparent text-slate-400 hover:text-white font-bold text-xs transition flex items-center gap-2';
+        } else {
+            pastalsTab.classList.add('hidden');
+            daysTab.classList.remove('hidden');
+            daysBtn.className = 'px-4 py-2 border-b-2 border-sky-500 text-sky-400 font-black text-xs transition flex items-center gap-2';
+            pastalsBtn.className = 'px-4 py-2 border-b-2 border-transparent text-slate-400 hover:text-white font-bold text-xs transition flex items-center gap-2';
+        }
+    }
+
+    function renderModalPastals(pastals) {
+        const tbody = document.getElementById('modal-pastals-table-body');
+        tbody.innerHTML = '';
+
+        if (!pastals || pastals.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-500">Bu master uchun pastallar topilmadi.</td></tr>`;
+            return;
+        }
+
+        pastals.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-800/40 transition';
+
+            let diffBadge = '';
+            if (p.diff < 0) {
+                diffBadge = `<span class="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded font-mono font-bold">${p.diff}</span>`;
+            } else if (p.diff > 0) {
+                diffBadge = `<span class="text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded font-mono font-bold">+${p.diff}</span>`;
+            } else {
+                diffBadge = `<span class="text-emerald-400 font-mono font-bold">0</span>`;
+            }
+
+            let statusBadge = '';
+            if (p.status_color === 'emerald') {
+                statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Yopilgan</span>`;
+            } else if (p.status_color === 'amber') {
+                statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">OTK kutmoqda</span>`;
+            } else {
+                statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-500/20 text-sky-400 border border-sky-500/30">Tikuvda</span>`;
+            }
+
+            tr.innerHTML = `
+                <td class="py-2.5 px-3 font-mono font-black text-sky-400">${p.pastal_code}</td>
+                <td class="py-2.5 px-3">
+                    <strong class="text-white block">${p.order_number}</strong>
+                    <span class="text-[11px] text-slate-400 truncate block max-w-[180px]">${p.article_name} (${p.article_code})</span>
+                </td>
+                <td class="py-2.5 px-2 text-center font-bold text-slate-300 font-mono">${p.patok_code}</td>
+                <td class="py-2.5 px-3 text-right font-mono font-bold text-white">${p.in_qty}</td>
+                <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">${p.out_qty} <span class="text-[10px] text-slate-500">(${p.first_sort}+${p.second_sort})</span></td>
+                <td class="py-2.5 px-3 text-right">${diffBadge}</td>
+                <td class="py-2.5 px-2 text-center font-mono text-[11px] text-slate-400">${p.repair} / ${p.defect}</td>
+                <td class="py-2.5 px-3 text-center whitespace-nowrap">${statusBadge}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500 font-mono text-[11px] whitespace-nowrap">${p.accepted_at}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderModalDays(days) {
+        const tbody = document.getElementById('modal-days-table-body');
+        tbody.innerHTML = '';
+
+        if (!days || days.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-500">Ish kunlari topilmadi (0 ta stiker).</td></tr>`;
+            return;
+        }
+
+        days.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-800/40 transition';
+
+            let quvvatColorClass = 'text-rose-400 bg-rose-500/10 border-rose-500/30';
+            if (d.quvvat >= 100) quvvatColorClass = 'text-cyan-300 bg-cyan-500/20 border-cyan-500/40';
+            else if (d.quvvat >= 85) quvvatColorClass = 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40';
+            else if (d.quvvat >= 60) quvvatColorClass = 'text-amber-300 bg-amber-500/20 border-amber-500/40';
+
+            tr.innerHTML = `
+                <td class="py-2.5 px-4 font-mono font-bold text-white">${d.date_str}</td>
+                <td class="py-2.5 px-4 font-bold text-sky-400 font-mono">${d.patok_name}</td>
+                <td class="py-2.5 px-4 text-center font-mono font-bold text-slate-300">${d.tickets_count} ta</td>
+                <td class="py-2.5 px-4 text-right font-mono font-bold text-emerald-400">${d.earnings_formatted} UZS</td>
+                <td class="py-2.5 px-4 text-center">
+                    <span class="px-2.5 py-0.5 rounded-lg border font-black digital-font ${quvvatColorClass}">
+                        ${d.quvvat}%
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Modalni ESC bosganda yopish
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMasterModal();
+    });
+</script>
+{% endblock %}

@@ -1,16 +1,20 @@
 import json
 import re
-from datetime import datetime
-from django.shortcuts import render
+import calendar
+from datetime import datetime, date, time
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncDate
 
-from accounts.models import User, Worker
-from production.models import CuttingBatch, Box, Ticket, Order
+from accounts.models import User, Worker, MasterPatokHistory
+from production.models import CuttingBatch, Box, Ticket, Order, Article, ArticleOperation
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 
 
@@ -107,11 +111,16 @@ def master_tablet_view(request):
         if getattr(master, 'branch', None):
             master_branch_display = "Kosonsoy (Bosh bino)" if master.branch == User.Branch.HQ else "Uychi filiali"
 
+    master_assigned_screen = master.assigned_screen_number if master else None
+    master_patok_code = get_patok_code(master_assigned_screen) if master_assigned_screen else None
+
     context = {
         'master': master,
         'master_name': master_name,
         'master_initial': master_initial,
         'master_branch_display': master_branch_display,
+        'master_assigned_screen': master_assigned_screen,
+        'master_patok_code': master_patok_code,
         'default_branch': default_branch,
         'now_date': timezone.localdate(),
     }
@@ -176,6 +185,8 @@ def api_identify_master(request):
     request.session.modified = True
 
     branch = user.branch or User.Branch.HQ
+    sn = user.assigned_screen_number
+    p_code = get_patok_code(sn) if sn else None
 
     return JsonResponse({
         'success': True,
@@ -186,6 +197,8 @@ def api_identify_master(request):
             'role': user.get_role_display(),
             'branch': branch,
             'branch_display': "Kosonsoy (Bosh bino)" if branch == User.Branch.HQ else "Uychi filiali",
+            'assigned_screen': sn,
+            'patok_code': p_code,
         }
     })
 
@@ -884,4 +897,464 @@ def api_lookup_pastal_by_code(request):
         'patok_code': p_code,
         'patok_name': p_name,
     })
+
+
+def _get_master_statistics_data(master, month_start_date, month_end_date, month_start_dt, month_end_dt, screen_day_stats, article_targets):
+    """
+    Bitta master foydalanuvchi bo'yicha oylik to'liq hisobotni yig'adi:
+    1. Ish kunlari (faqat kamida 1 ta stiker urilgan kunlar) va o'rtacha patok quvvati (%)
+    2. Pastallar balansi: Kirdi (Meto), Chiqdi (1-s + 2-s), Ta'mir, Brak, Yo'qotish (Farq)
+    3. Yopilgan va ochiq pastallar
+    4. Gibrid: Oddiy tikuvchi bo'lib ishlagan kunlari va topgan ishbay maoshi
+    """
+    today = timezone.localdate()
+
+    # 1. Master biriktirilgan kunlar va patoklar xaritasi: {cur_date: screen_number}
+    histories = list(MasterPatokHistory.objects.filter(
+        user=master,
+        start_date__lte=month_end_date
+    ).filter(
+        Q(end_date__gte=month_start_date) | Q(end_date__isnull=True)
+    ).order_by('start_date'))
+
+    day_screen_map = {}
+    if histories:
+        for h in histories:
+            s_date = max(h.start_date, month_start_date)
+            e_date = min(h.end_date or today, month_end_date)
+            cur = s_date
+            while cur <= e_date:
+                day_screen_map[cur] = h.screen_number
+                cur += timezone.timedelta(days=1)
+    else:
+        if master.role == User.Role.MASTER and master.assigned_screen_number:
+            sn = master.assigned_screen_number
+            s_date = max(master.date_joined.date(), month_start_date)
+            e_date = min(today, month_end_date)
+            cur = s_date
+            while cur <= e_date:
+                day_screen_map[cur] = sn
+                cur += timezone.timedelta(days=1)
+
+    # 2. Master ish kunlari va kunlik patok quvvati
+    working_days = []
+    quvvat_sum = 0.0
+
+    for cur_date, sn in sorted(day_screen_map.items()):
+        stats = screen_day_stats.get((sn, cur_date))
+        if stats and stats['tickets'] > 0:
+            grand_total_earnings = stats['earnings']
+            article_ids = stats['article_ids']
+            target_reja_values = [article_targets[aid] for aid in article_ids if aid in article_targets]
+            if target_reja_values:
+                avg_daily_target = sum(target_reja_values) / len(target_reja_values)
+                quvvat = round((grand_total_earnings / avg_daily_target) * 100, 1) if avg_daily_target > 0 else 0.0
+            else:
+                quvvat = 0.0
+
+            quvvat_sum += quvvat
+            working_days.append({
+                'date': cur_date.strftime("%Y-%m-%d"),
+                'date_str': cur_date.strftime("%d.%m.%Y"),
+                'screen_number': sn,
+                'patok_code': get_patok_code(sn),
+                'patok_name': get_patok_name(sn),
+                'tickets_count': stats['tickets'],
+                'earnings': grand_total_earnings,
+                'earnings_formatted': f"{grand_total_earnings:,.0f}".replace(",", " "),
+                'quvvat': quvvat,
+            })
+
+    master_working_days_count = len(working_days)
+    avg_quvvat_percent = round(quvvat_sum / master_working_days_count, 1) if master_working_days_count > 0 else 0.0
+
+    # 3. Pastallar monitoringi (Yopilgan / Ochiq / Yo'qotish farqi)
+    batches_qs = CuttingBatch.objects.filter(
+        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+    ).exclude(
+        order_item__order__status=Order.Status.CANCELLED
+    )
+
+    batches_accepted_in_month = batches_qs.filter(
+        accepted_by=master,
+        accepted_at__range=(month_start_dt, month_end_dt)
+    )
+
+    if master.role == User.Role.MASTER and master.assigned_screen_number:
+        batches_open_on_screen = batches_qs.filter(
+            assigned_screen=master.assigned_screen_number
+        )
+        combined_batches = (batches_accepted_in_month | batches_open_on_screen).distinct()
+    else:
+        combined_batches = batches_accepted_in_month.distinct()
+
+    combined_batches = combined_batches.select_related(
+        'order_item__order__customer',
+        'order_item__article__model',
+        'accepted_by'
+    ).prefetch_related('items').order_by('-accepted_at')
+
+    pastals_list = []
+    closed_pastals_count = 0
+    open_pastals_count = 0
+    waiting_otk_count = 0
+    in_sewing_count = 0
+
+    total_in_qty = 0
+    total_out_qty = 0
+    total_first_sort = 0
+    total_second_sort = 0
+    total_repair = 0
+    total_defect = 0
+
+    for b in combined_batches:
+        st = _compute_batch_box_and_ticket_stats(b)
+        boxes = list(_get_batch_active_boxes(b))
+        is_closed = st['is_pastal_closed']
+
+        in_qty = b.total_real_quantity or sum(bx.quantity for bx in boxes) or b.total_quantity
+        first_sort = sum(bx.controlled_first_sort_qty for bx in boxes)
+        second_sort = sum(bx.controlled_second_sort_qty for bx in boxes)
+        repair = sum(bx.controlled_repair_qty for bx in boxes)
+        defect = sum(bx.controlled_defect_qty for bx in boxes)
+        out_qty = first_sort + second_sort
+        diff = out_qty - in_qty
+
+        if is_closed:
+            closed_pastals_count += 1
+            status_label = "Yopilgan"
+            status_color = "emerald"
+        else:
+            open_pastals_count += 1
+            if st['progress_pct'] >= 100 or (st['total_tickets'] > 0 and st['total_tickets'] == st['scanned_tickets']):
+                waiting_otk_count += 1
+                status_label = "OTK kutmoqda"
+                status_color = "amber"
+            else:
+                in_sewing_count += 1
+                status_label = "Tikuvda"
+                status_color = "sky"
+
+        total_in_qty += in_qty
+        total_out_qty += out_qty
+        total_first_sort += first_sort
+        total_second_sort += second_sort
+        total_repair += repair
+        total_defect += defect
+
+        order = b.order_item.order if b.order_item else None
+        article = b.order_item.article if b.order_item else None
+        customer_name = order.customer.name if (order and order.customer) else (order.client_name if order else '—')
+        p_code = get_patok_code(b.assigned_screen) if b.assigned_screen else '—'
+
+        pastals_list.append({
+            'batch_id': b.id,
+            'batch_number': b.batch_number,
+            'pastal_code': b.pastal_code or str(b.batch_number),
+            'order_number': order.order_number if order else '—',
+            'customer_name': customer_name,
+            'article_name': article.name if article else 'Model',
+            'article_code': article.code if article else '',
+            'assigned_screen': b.assigned_screen,
+            'patok_code': p_code,
+            'in_qty': in_qty,
+            'out_qty': out_qty,
+            'first_sort': first_sort,
+            'second_sort': second_sort,
+            'repair': repair,
+            'defect': defect,
+            'diff': diff,
+            'is_closed': is_closed,
+            'status_label': status_label,
+            'status_color': status_color,
+            'progress_pct': st['progress_pct'],
+            'total_boxes': st['total_boxes'],
+            'closed_boxes': st['closed_boxes'],
+            'accepted_at': timezone.localtime(b.accepted_at).strftime("%d.%m.%Y %H:%M") if b.accepted_at else '—',
+        })
+
+    total_diff = total_out_qty - total_in_qty
+    loss_pct = round((abs(total_diff) / total_in_qty * 100), 1) if (total_in_qty > 0 and total_diff < 0) else 0.0
+
+    # 4. Gibrid: Oddiy tikuvchi sifatida ishlagan kunlari va topgan puli
+    worker = Worker.objects.filter(user=master).first()
+    if worker:
+        worker_tickets = Ticket.objects.filter(
+            worker=worker,
+            status=Ticket.Status.SCANNED,
+            scanned_at__range=(month_start_dt, month_end_dt)
+        )
+        sewer_tickets_count = worker_tickets.count()
+        sewer_earnings = int(worker_tickets.aggregate(tot=Sum('total_amount'))['tot'] or 0)
+        sewer_days_count = worker_tickets.annotate(d=TruncDate('scanned_at')).values('d').distinct().count()
+    else:
+        sewer_tickets_count = 0
+        sewer_earnings = 0
+        sewer_days_count = 0
+
+    return {
+        'master_id': master.id,
+        'master_name': master.get_full_name() or master.username,
+        'username': master.username,
+        'current_role': master.role,
+        'role_display': master.get_role_display(),
+        'is_currently_master': (master.role == User.Role.MASTER),
+        'branch': master.branch or 'HQ',
+        'branch_display': "Kosonsoy" if master.branch == 'HQ' else "Uychi",
+        'assigned_screen': master.assigned_screen_number,
+        'assigned_patok_name': master.assigned_patok_name or "—",
+        'master_working_days': master_working_days_count,
+        'avg_quvvat_percent': avg_quvvat_percent,
+        'working_days': working_days,
+        'total_pastals': len(pastals_list),
+        'closed_pastals': closed_pastals_count,
+        'open_pastals': open_pastals_count,
+        'waiting_otk_pastals': waiting_otk_count,
+        'in_sewing_pastals': in_sewing_count,
+        'total_in_qty': total_in_qty,
+        'total_out_qty': total_out_qty,
+        'total_first_sort': total_first_sort,
+        'total_second_sort': total_second_sort,
+        'total_repair': total_repair,
+        'total_defect': total_defect,
+        'total_diff': total_diff,
+        'loss_pct': loss_pct,
+        'pastals_list': pastals_list,
+        'sewer_days': sewer_days_count,
+        'sewer_earnings': sewer_earnings,
+        'sewer_earnings_formatted': f"{sewer_earnings:,.0f}".replace(",", " "),
+        'sewer_tickets': sewer_tickets_count,
+    }
+
+
+@login_required(login_url='root_login')
+def master_statistics_view(request):
+    """
+    Superadmin & Filial Admini uchun Masterlar Statistikasi Dashboardi:
+    - Oylik filtr (?month=YYYY-MM)
+    - Filial filtri (?branch=HQ|UYCHI|ALL)
+    - Ish kunlari arifmetik o'rtacha Patok Quvvati (%)
+    - Pastallar yopilishi va yo'qotish (farq) tahlili
+    - Tikuvchi ishbay maoshi gibrid ko'rinishi
+    """
+    user = request.user
+    is_super = user.is_superadmin() or user.is_superuser
+    is_branch_admin = (user.role == User.Role.BRANCH_ADMIN)
+    is_mgr = getattr(user, 'is_manager', lambda: False)() or user.role in [
+        User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER, User.Role.PLAN
+    ]
+    if not (is_super or is_mgr):
+        messages.error(request, "Ushbu sahifaga kirish uchun ruxsat yo'q!")
+        return redirect('root_login')
+
+    today = timezone.localdate()
+    month_str = request.GET.get('month', '').strip()
+    if not month_str or not re.match(r'^\d{4}-\d{2}$', month_str):
+        month_str = today.strftime('%Y-%m')
+
+    year, month = map(int, month_str.split('-'))
+    _, last_day = calendar.monthrange(year, month)
+    month_start_date = date(year, month, 1)
+    month_end_date = date(year, month, last_day)
+
+    tz = timezone.get_current_timezone()
+    month_start_dt = timezone.make_aware(datetime.combine(month_start_date, time.min), tz)
+    month_end_dt = timezone.make_aware(datetime.combine(month_end_date, time.max), tz)
+
+    # Oldingi va keyingi oylar
+    prev_month_date = (month_start_date - timezone.timedelta(days=1)).replace(day=1)
+    prev_month_str = prev_month_date.strftime('%Y-%m')
+    next_month_date = (month_end_date + timezone.timedelta(days=1))
+    next_month_str = next_month_date.strftime('%Y-%m')
+
+    uzbek_months = {
+        1: "Yanvar", 2: "Fevral", 3: "Mart", 4: "Aprel",
+        5: "May", 6: "Iyun", 7: "Iyul", 8: "Avgust",
+        9: "Sentyabr", 10: "Oktyabr", 11: "Noyabr", 12: "Dekabr"
+    }
+    month_name_uz = f"{uzbek_months[month]} {year}"
+
+    # Filial filtri
+    branch_filter = request.GET.get('branch', 'ALL')
+    if is_branch_admin:
+        branch_filter = user.branch or 'HQ'
+
+    # Reja va norma xaritalari
+    article_operation_prices = {}
+    for row in ArticleOperation.objects.filter(is_active=True).values('article_id').annotate(tot_price=Sum('price_per_unit')):
+        article_operation_prices[row['article_id']] = float(row['tot_price'] or 0.0)
+
+    article_targets = {}
+    for art in Article.objects.select_related('model').all():
+        norm = art.daily_norm or (art.model.daily_norm if art.model else None) or 1000
+        u_price = article_operation_prices.get(art.id, 0.0)
+        article_targets[art.id] = (u_price * float(norm)) if (u_price > 0 and norm > 0) else 1000.0
+
+    # Shu oy bo'yicha barcha skanerlangan biletlar
+    ticket_logs = Ticket.objects.filter(
+        scanned_at__range=(month_start_dt, month_end_dt),
+        status=Ticket.Status.SCANNED,
+        box__assigned_screen__isnull=False
+    ).annotate(
+        scan_day=TruncDate('scanned_at')
+    ).values(
+        'box__assigned_screen',
+        'scan_day',
+        'article_operation__article_id'
+    ).annotate(
+        tickets_count=Count('id'),
+        earnings=Sum('total_amount')
+    )
+
+    screen_day_stats = {}
+    for row in ticket_logs:
+        key = (row['box__assigned_screen'], row['scan_day'])
+        if key not in screen_day_stats:
+            screen_day_stats[key] = {'tickets': 0, 'earnings': 0, 'article_ids': set()}
+        screen_day_stats[key]['tickets'] += row['tickets_count']
+        screen_day_stats[key]['earnings'] += int(row['earnings'] or 0)
+        if row['article_operation__article_id']:
+            screen_day_stats[key]['article_ids'].add(row['article_operation__article_id'])
+
+    # Shu oyda ishlagan barcha masterlar
+    master_histories = MasterPatokHistory.objects.filter(
+        start_date__lte=month_end_date
+    ).filter(
+        Q(end_date__gte=month_start_date) | Q(end_date__isnull=True)
+    ).select_related('user')
+
+    master_user_ids = set(master_histories.values_list('user_id', flat=True))
+
+    current_masters = User.objects.filter(role=User.Role.MASTER)
+    master_user_ids.update(current_masters.values_list('id', flat=True))
+
+    accepted_master_ids = CuttingBatch.objects.filter(
+        accepted_at__range=(month_start_dt, month_end_dt),
+        accepted_by__isnull=False
+    ).values_list('accepted_by_id', flat=True)
+    master_user_ids.update(accepted_master_ids)
+
+    masters_qs = User.objects.filter(id__in=master_user_ids).order_by('first_name', 'last_name')
+    if branch_filter in ['HQ', 'UYCHI']:
+        masters_qs = masters_qs.filter(branch=branch_filter)
+
+    masters_data = []
+    for m in masters_qs:
+        m_stat = _get_master_statistics_data(
+            m, month_start_date, month_end_date, month_start_dt, month_end_dt,
+            screen_day_stats, article_targets
+        )
+        masters_data.append(m_stat)
+
+    # Eng yuqori quvvat va ish kuni bo'yicha tartiblash
+    masters_data.sort(key=lambda x: (x['avg_quvvat_percent'], x['master_working_days']), reverse=True)
+
+    # Umumiy KPI lar
+    grand_total_masters = len(masters_data)
+    grand_working_days = sum(m['master_working_days'] for m in masters_data)
+    all_quvvats = [m['avg_quvvat_percent'] for m in masters_data if m['master_working_days'] > 0]
+    grand_avg_quvvat = round(sum(all_quvvats) / len(all_quvvats), 1) if all_quvvats else 0.0
+
+    grand_total_pastals = sum(m['total_pastals'] for m in masters_data)
+    grand_closed_pastals = sum(m['closed_pastals'] for m in masters_data)
+    grand_open_pastals = sum(m['open_pastals'] for m in masters_data)
+    grand_waiting_otk = sum(m['waiting_otk_pastals'] for m in masters_data)
+    grand_in_sewing = sum(m['in_sewing_pastals'] for m in masters_data)
+
+    grand_in_qty = sum(m['total_in_qty'] for m in masters_data)
+    grand_out_qty = sum(m['total_out_qty'] for m in masters_data)
+    grand_diff = grand_out_qty - grand_in_qty
+    grand_sewer_earnings = sum(m['sewer_earnings'] for m in masters_data)
+
+    context = {
+        'month_str': month_str,
+        'year': year,
+        'month': month,
+        'month_name_uz': month_name_uz,
+        'prev_month_str': prev_month_str,
+        'next_month_str': next_month_str,
+        'branch_filter': branch_filter,
+        'is_branch_admin': is_branch_admin,
+        'user_branch': user.branch,
+        'masters_data': masters_data,
+        'masters_data_json': json.dumps(masters_data, ensure_ascii=False),
+        'grand_total_masters': grand_total_masters,
+        'grand_working_days': grand_working_days,
+        'grand_avg_quvvat': grand_avg_quvvat,
+        'grand_total_pastals': grand_total_pastals,
+        'grand_closed_pastals': grand_closed_pastals,
+        'grand_open_pastals': grand_open_pastals,
+        'grand_waiting_otk': grand_waiting_otk,
+        'grand_in_sewing': grand_in_sewing,
+        'grand_in_qty': grand_in_qty,
+        'grand_out_qty': grand_out_qty,
+        'grand_diff': grand_diff,
+        'grand_sewer_earnings': grand_sewer_earnings,
+        'grand_sewer_earnings_formatted': f"{grand_sewer_earnings:,.0f}".replace(",", " "),
+    }
+    return render(request, 'production/master_statistics.html', context)
+
+
+@login_required(login_url='root_login')
+@require_GET
+def api_master_statistics_detail(request, user_id):
+    """
+    Modal uchun Master tafsiloti API si
+    """
+    master = get_object_or_404(User, id=user_id)
+    today = timezone.localdate()
+    month_str = request.GET.get('month', '').strip()
+    if not month_str or not re.match(r'^\d{4}-\d{2}$', month_str):
+        month_str = today.strftime('%Y-%m')
+
+    year, month = map(int, month_str.split('-'))
+    _, last_day = calendar.monthrange(year, month)
+    month_start_date = date(year, month, 1)
+    month_end_date = date(year, month, last_day)
+
+    tz = timezone.get_current_timezone()
+    month_start_dt = timezone.make_aware(datetime.combine(month_start_date, time.min), tz)
+    month_end_dt = timezone.make_aware(datetime.combine(month_end_date, time.max), tz)
+
+    article_operation_prices = {}
+    for row in ArticleOperation.objects.filter(is_active=True).values('article_id').annotate(tot_price=Sum('price_per_unit')):
+        article_operation_prices[row['article_id']] = float(row['tot_price'] or 0.0)
+
+    article_targets = {}
+    for art in Article.objects.select_related('model').all():
+        norm = art.daily_norm or (art.model.daily_norm if art.model else None) or 1000
+        u_price = article_operation_prices.get(art.id, 0.0)
+        article_targets[art.id] = (u_price * float(norm)) if (u_price > 0 and norm > 0) else 1000.0
+
+    ticket_logs = Ticket.objects.filter(
+        scanned_at__range=(month_start_dt, month_end_dt),
+        status=Ticket.Status.SCANNED,
+        box__assigned_screen__isnull=False
+    ).annotate(
+        scan_day=TruncDate('scanned_at')
+    ).values(
+        'box__assigned_screen',
+        'scan_day',
+        'article_operation__article_id'
+    ).annotate(
+        tickets_count=Count('id'),
+        earnings=Sum('total_amount')
+    )
+
+    screen_day_stats = {}
+    for row in ticket_logs:
+        key = (row['box__assigned_screen'], row['scan_day'])
+        if key not in screen_day_stats:
+            screen_day_stats[key] = {'tickets': 0, 'earnings': 0, 'article_ids': set()}
+        screen_day_stats[key]['tickets'] += row['tickets_count']
+        screen_day_stats[key]['earnings'] += int(row['earnings'] or 0)
+        if row['article_operation__article_id']:
+            screen_day_stats[key]['article_ids'].add(row['article_operation__article_id'])
+
+    data = _get_master_statistics_data(
+        master, month_start_date, month_end_date, month_start_dt, month_end_dt,
+        screen_day_stats, article_targets
+    )
+    return JsonResponse({'success': True, 'data': data})
+
 

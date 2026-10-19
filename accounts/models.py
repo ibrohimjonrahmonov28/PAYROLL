@@ -74,6 +74,12 @@ class User(AbstractUser):
         verbose_name="Birka berilgan / chop etilgan",
         help_text="Xodimga ID birka (beydjik) chop etib berilganmi?"
     )
+    assigned_screen = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Biriktirilgan Patok (Screen)"
+    )
 
     def generate_qr_code(self):
         if not self.uid:
@@ -146,9 +152,13 @@ class User(AbstractUser):
     @property
     def assigned_screen_number(self):
         """
-        SCREEN roli foydalanuvchisi uchun biriktirilgan ekran raqami (1..40).
-        Masalan, ekran1 -> 1, ..., ekran40 -> 40, yoki k1 -> 1, u1 -> 14.
+        Foydalanuvchiga biriktirilgan patok raqami (1..40).
+        Agar to'g'ridan-to'g'ri assigned_screen bo'lsa (Master yoki boshqa), o'shani qaytaradi.
+        Agar SCREEN roli bo'lsa, username dan raqamni parse qiladi.
         """
+        if self.assigned_screen:
+            return self.assigned_screen
+
         if self.role == self.Role.SCREEN:
             import re
             u_clean = (self.username or '').strip().upper()
@@ -167,6 +177,22 @@ class User(AbstractUser):
                     pass
             return 1
         return None
+
+    @property
+    def assigned_patok_code(self):
+        sn = self.assigned_screen_number
+        if not sn:
+            return ""
+        from production.services import get_patok_code
+        return get_patok_code(sn)
+
+    @property
+    def assigned_patok_name(self):
+        sn = self.assigned_screen_number
+        if not sn:
+            return ""
+        from production.services import get_patok_name
+        return get_patok_name(sn)
 
     def is_regular_user(self):
         return self.role == self.Role.USER
@@ -440,6 +466,30 @@ class MonthlyClosing(models.Model):
 
     def __str__(self):
         return f"{self.year}-{self.month:02d} | {self.get_status_display()}"
+
+
+class MasterPatokHistory(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='patok_assignments',
+        verbose_name="Master"
+    )
+    screen_number = models.PositiveSmallIntegerField(verbose_name="Patok raqami")
+    start_date = models.DateField(default=timezone.localdate, verbose_name="Boshlanish sanasi")
+    end_date = models.DateField(null=True, blank=True, verbose_name="Tugash sanasi")
+    is_active = models.BooleanField(default=True, verbose_name="Hozir faolmi")
+    notes = models.CharField(max_length=255, blank=True, verbose_name="Izoh")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Master Patok Tarixi"
+        verbose_name_plural = "Master Patok Tarixlari"
+        ordering = ['-start_date', '-id']
+
+    def __str__(self):
+        status = "Faol" if self.is_active else f"{self.end_date} gacha"
+        return f"{self.user.get_full_name() or self.user.username} -> {self.screen_number}-Patok ({status})"
 
 
 
