@@ -65,14 +65,21 @@ def save_batch_weight_async(batch_id: int, weight: Decimal):
 
 @sync_to_async
 def get_batch_info_async(batch_id: int):
-    batch = CuttingBatch.objects.select_related('order_item__order', 'order_item__article').filter(id=batch_id).first()
+    batch = CuttingBatch.objects.select_related(
+        'order_item__order__customer',
+        'order_item__article'
+    ).filter(id=batch_id).first()
     if not batch:
         return None
+    order = batch.order_item.order if (batch.order_item and batch.order_item.order) else None
+    customer_name = order.customer.name if (order and order.customer and hasattr(order.customer, 'name')) else getattr(order, 'client_name', '—') if order else '—'
     return {
         'batch_id': batch.id,
         'batch_number': batch.batch_number,
         'pastal_code': batch.pastal_code or str(batch.batch_number),
         'article_name': batch.order_item.article.name if batch.order_item and batch.order_item.article else 'Model',
+        'order_number': order.order_number if order else '—',
+        'customer_name': customer_name,
         'units': batch.total_quantity,
         'weight': float(batch.actual_weight_kg) if batch.actual_weight_kg else 0.0,
         'dispatch_status': batch.dispatch_status,
@@ -137,6 +144,62 @@ def dispatch_batch_async(batch_id: int, branch: str, screen_number: int, user_na
     }
 
 
+def build_pastal_card_text(batch_info: dict) -> str:
+    """Pastal haqida chiroyli va tushunarli kartochka matni"""
+    p_code = batch_info.get('pastal_code') or str(batch_info.get('batch_number'))
+    b_num = batch_info.get('batch_number')
+    art_name = _esc_md(batch_info.get('article_name', 'Model'))
+    ord_num = _esc_md(batch_info.get('order_number', '—'))
+    cust_name = _esc_md(batch_info.get('customer_name', '—'))
+    units = batch_info.get('units', 0)
+    weight = batch_info.get('weight', 0.0)
+    wt_text = f"`{weight} kg` ✅" if weight > 0 else "_(Kiritilmagan)_ ⚠️"
+    rej_reason = batch_info.get('rejection_reason')
+
+    rej_block = ""
+    if rej_reason:
+        rej_block = f"\n🔄 *Master qaytargan:* _{_esc_md(rej_reason)}_\n"
+
+    return (
+        f"📋 *PASTAL PASPORTI:* #{b_num} (`{p_code}`)\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📋 *Zakaz:* {ord_num} ({cust_name})\n"
+        f"👕 *Model:* {art_name}\n"
+        f"🔢 *Miqdori:* {units:,} dona\n"
+        f"⚖️ *Haqiqiy vazni:* {wt_text}\n"
+        f"🛡 *Holati:* Jo'natishga tayyor ✅\n"
+        f"{rej_block}"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👇 *Kerakli amalni tanlang:*"
+    ).replace(",", " ")
+
+
+def build_pastal_action_keyboard(batch_id: int, has_weight: bool) -> InlineKeyboardMarkup:
+    """
+    Foydalanuvchi talabi:
+    - Agar bu pastal hali kutilmoqda bo'lsa button chiqadi:
+      - Agar kg hali bo'lmasa: [⚖️ Kg kiritish], [🚀 Jo'natish], [🔍 Tekshirish]
+      - Agar kg kiritilgan bo'lsa: 'bu yerda bitta kg kiritilgan bolsa bu button chiqmaydi'
+        faqat [🚀 Jo'natish], [🔍 Tekshirish] chiqadi!
+    """
+    rows = []
+    if not has_weight:
+        rows.append([
+            InlineKeyboardButton("⚖️ Kg kiritish", callback_data=f"dp_ask_wt:{batch_id}"),
+            InlineKeyboardButton("🚀 Jo'natish", callback_data=f"dp_send:{batch_id}")
+        ])
+    else:
+        rows.append([
+            InlineKeyboardButton("🚀 Jo'natish", callback_data=f"dp_send:{batch_id}")
+        ])
+
+    rows.append([
+        InlineKeyboardButton("🔍 Tekshirish", callback_data=f"dp_check:{batch_id}"),
+        InlineKeyboardButton("❌ Bekor qilish", callback_data=f"dp_cnc:{batch_id}")
+    ])
+    return InlineKeyboardMarkup(rows)
+
+
 def build_branch_keyboard(batch_id: int) -> InlineKeyboardMarkup:
     """Filial tanlash klaviaturasi"""
     keyboard = [
@@ -145,6 +208,7 @@ def build_branch_keyboard(batch_id: int) -> InlineKeyboardMarkup:
             InlineKeyboardButton("🏭 Uychi filiali", callback_data=f"dp_br:{batch_id}:UYCHI"),
         ],
         [
+            InlineKeyboardButton("🔙 Orqaga", callback_data=f"dp_back_card:{batch_id}"),
             InlineKeyboardButton("❌ Bekor qilish", callback_data=f"dp_cnc:{batch_id}")
         ]
     ]
@@ -273,15 +337,18 @@ def resolve_batch_from_details_async(details: dict):
 
 async def _handle_verification_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result: dict):
     """
-    Tekshiruv natijasini yuborish va jo'natish jarayonini boshqarish:
+    Tekshiruv natijasini yuborish va pastal kartochkasini chiqarish:
     1. Agar pastal allaqachon DISPATCHED (Kutilmoqda) holatida bo'lsa -> Qayta jo'natish BLOKLANADI!
     2. Agar pastal allaqachon ACCEPTED (Qabul qilingan) holatida bo'lsa -> Qayta jo'natish BLOKLANADI!
        (Faqat master planshetda Qaytarish (Rad etish) tugmasini bosgandagina qayta jo'natish mumkin bo'ladi)
     3. Agar pastal WAITING (yangi yoki master qaytargan) holatida bo'lsa:
-       - Har doim vazn so'rash ekrani ko'rsatiladi (kg kiritish so'raladi).
-       - Agar oldin kiritilgan vazn mavjud bo'lsa, '⏩ Oldingi vaznni qoldirish' tugmasi ham taqdim etiladi.
+       - Pastal kartochkasi chiqariladi
+       - Foydalanuvchi talabi bo'yicha:
+         * Agar kg kiritilmagan bo'lsa: [⚖️ Kg kiritish] va [🚀 Jo'natish], [🔍 Tekshirish]
+         * Agar kg kiritilgan bo'lsa: 'bu yerda bitta kg kiritilgan bolsa bu button chiqmaydi'
+           faqat [🚀 Jo'natish] va [🔍 Tekshirish] chiqadi!
     """
-    message_text = result['message']
+    message_text = result.get('message', '')
     details = result.get('details', {}) or {}
     batch_id = await resolve_batch_from_details_async(details)
 
@@ -301,7 +368,6 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
         return
 
     disp_status = batch_info.get('dispatch_status')
-    existing_weight = batch_info.get('weight') or 0.0
 
     # 1. AGAR PASTAL HOZIRDA KUTILAYOTGAN BO'LSA (DISPATCHED)
     if disp_status == CuttingBatch.DispatchStatus.DISPATCHED:
@@ -320,42 +386,17 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
         return
 
     # 3. PASTAL JO'NATISHGA TAYYOR (WAITING / REJECTED):
+    weight = batch_info.get('weight') or 0.0
+    has_weight = (weight > 0)
+
     context.user_data['dispatch_batch_id'] = batch_id
-    context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
+    context.user_data['dispatch_state'] = 'WAITING_WEIGHT' if not has_weight else 'WAITING_BRANCH'
+    if has_weight:
+        context.user_data['dispatch_weight'] = weight
 
-    rej_reason = batch_info.get('rejection_reason')
-    rejection_note = ""
-    if rej_reason:
-        rejection_note = (
-            f"\n🔄 *Master tomonidan qaytarilgan pastal:*\n"
-            f"💬 _{_esc_md(rej_reason)}_\n"
-        )
-
-    existing_wt_note = ""
-    prompt_buttons = []
-    if existing_weight > 0:
-        existing_wt_note = (
-            f"\n⚖️ *Oldingi saqlangan vazn:* `{existing_weight} kg`\n"
-            f"_(Yangi vaznni yozishingiz yoki oldingisini qoldirishingiz mumkin)_\n"
-        )
-        prompt_buttons.append([
-            InlineKeyboardButton(f"⏩ Oldingi vaznni qoldirish ({existing_weight} kg)", callback_data=f"dp_keep_wt:{batch_id}")
-        ])
-
-    prompt_buttons.append([
-        InlineKeyboardButton("❌ Bekor qilish", callback_data=f"dp_cnc:{batch_id}")
-    ])
-    prompt_kb = InlineKeyboardMarkup(prompt_buttons)
-
-    kg_prompt = (
-        f"{message_text}\n"
-        f"{rejection_note}"
-        f"{existing_wt_note}"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
-        f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_"
-    )
-    await _safe_reply_text(update.message, kg_prompt, reply_markup=prompt_kb)
+    card_text = build_pastal_card_text(batch_info)
+    kb = build_pastal_action_keyboard(batch_id, has_weight=has_weight)
+    await _safe_reply_text(update.message, card_text, reply_markup=kb)
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -489,7 +530,131 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     parts = data.split(':')
     action = parts[0]
 
-    # 0. Oldingi vaznni qoldirish
+    # 0. Orqaga kartochkaga qaytish
+    if action == 'dp_back_card':
+        batch_id = int(parts[1])
+        batch_info = await get_batch_info_async(batch_id)
+        if not batch_info:
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
+            return
+
+        weight = batch_info.get('weight') or 0.0
+        has_weight = (weight > 0)
+        card_text = build_pastal_card_text(batch_info)
+        kb = build_pastal_action_keyboard(batch_id, has_weight=has_weight)
+        await _safe_edit_text(query, card_text, reply_markup=kb)
+        return
+
+    # 1. Vazn (kg) kiritish tugmasi
+    # Foydalanuvchi talabi: "agar kg hali bolmasa kg kiritish boladi"
+    if action == 'dp_ask_wt':
+        batch_id = int(parts[1])
+        batch_info = await get_batch_info_async(batch_id)
+        if not batch_info:
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
+            return
+
+        context.user_data['dispatch_batch_id'] = batch_id
+        context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
+
+        back_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Orqaga", callback_data=f"dp_back_card:{batch_id}"),
+             InlineKeyboardButton("❌ Bekor qilish", callback_data=f"dp_cnc:{batch_id}")]
+        ])
+        await _safe_edit_text(
+            query,
+            f"📋 *Pastal:* #{batch_info['batch_number']} ({_esc_md(batch_info['article_name'])})\n\n"
+            f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
+            f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_",
+            reply_markup=back_kb
+        )
+        return
+
+    # 2. Jo'natish tugmasi
+    # Foydalanuvchi talabi: "agar jonatish uchun bolsa jonatish... jonatish bosganda malumot beradi va jonatadigan filial chiqadi va qolgan oldin qilganimizdek boladi"
+    if action == 'dp_send':
+        batch_id = int(parts[1])
+        batch_info = await get_batch_info_async(batch_id)
+        if not batch_info:
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
+            return
+
+        # Holat tekshiruvi
+        if batch_info.get('dispatch_status') == CuttingBatch.DispatchStatus.DISPATCHED:
+            p_code = get_patok_code(batch_info.get('assigned_screen')) or "Patok"
+            context.user_data.clear()
+            await _safe_edit_text(query, f"⏳ *Ushbu pastal hozirda {p_code}-Patokda kutilmoqda!*\n🚫 Uni qayta jo'nata olmaysiz.")
+            return
+
+        if batch_info.get('dispatch_status') == CuttingBatch.DispatchStatus.ACCEPTED:
+            p_code = get_patok_code(batch_info.get('assigned_screen')) or "Patok"
+            context.user_data.clear()
+            await _safe_edit_text(query, f"📌 *Ushbu pastal allaqachon {p_code}-Patok tomonidan qabul qilingan!*\n🚫 Uni qayta jo'nata olmaysiz.")
+            return
+
+        weight = batch_info.get('weight') or 0.0
+        if weight <= 0:
+            context.user_data['dispatch_batch_id'] = batch_id
+            context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
+            back_kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Orqaga", callback_data=f"dp_back_card:{batch_id}"),
+                 InlineKeyboardButton("❌ Bekor qilish", callback_data=f"dp_cnc:{batch_id}")]
+            ])
+            await _safe_edit_text(
+                query,
+                f"📋 *Pastal:* #{batch_info['batch_number']} ({_esc_md(batch_info['article_name'])}, {batch_info['units']} dona)\n"
+                f"⚠️ *Vazn hali kiritilmagan!*\n\n"
+                f"⚖️ *Iltimos, pastalni patokka jo'natish uchun uning haqiqiy vaznini (kg) kiriting:*\n"
+                f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_",
+                reply_markup=back_kb
+            )
+            return
+
+        # Vazn kiritilgan bo'lsa: ma'lumot beradi va jo'natadigan filial chiqadi
+        context.user_data['dispatch_batch_id'] = batch_id
+        context.user_data['dispatch_weight'] = weight
+        context.user_data['dispatch_state'] = 'WAITING_BRANCH'
+
+        kb = build_branch_keyboard(batch_id)
+        await _safe_edit_text(
+            query,
+            f"📋 *Pastal:* #{batch_info['batch_number']} ({_esc_md(batch_info['article_name'])}, {batch_info['units']} dona)\n"
+            f"⚖️ *Haqiqiy vazni:* `{weight} kg`\n\n"
+            f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*",
+            reply_markup=kb
+        )
+        return
+
+    # 3. To'liq tekshirish tugmasi
+    # Foydalanuvchi talabi: "agar tekshrish uchun bolsa tekshirish biladi"
+    if action == 'dp_check':
+        batch_id = int(parts[1])
+        batch_info = await get_batch_info_async(batch_id)
+        if not batch_info:
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
+            return
+
+        res = await async_verify_pastal_for_sewing(f"PASTAL:{batch_id}")
+        message_text = res.get('message', '')
+        weight = batch_info.get('weight') or 0.0
+
+        check_buttons = []
+        if res.get('can_release'):
+            check_buttons.append([
+                InlineKeyboardButton("🚀 Jo'natish", callback_data=f"dp_send:{batch_id}")
+            ])
+            if weight <= 0:
+                check_buttons[0].insert(0, InlineKeyboardButton("⚖️ Kg kiritish", callback_data=f"dp_ask_wt:{batch_id}"))
+
+        check_buttons.append([
+            InlineKeyboardButton("🔙 Orqaga", callback_data=f"dp_back_card:{batch_id}"),
+            InlineKeyboardButton("❌ Yopish", callback_data=f"dp_cnc:{batch_id}")
+        ])
+
+        await _safe_edit_text(query, message_text, reply_markup=InlineKeyboardMarkup(check_buttons))
+        return
+
+    # 4. Oldingi vaznni qoldirish
     if action == 'dp_keep_wt':
         batch_id = int(parts[1])
         batch_info = await get_batch_info_async(batch_id)

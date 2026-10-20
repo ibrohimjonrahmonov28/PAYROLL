@@ -496,5 +496,52 @@ class PassportVerificationTestCase(TestCase):
         self.assertEqual(b_prio.id, new_batch.id)
         self.assertEqual(b_prio.dispatch_status, CuttingBatch.DispatchStatus.WAITING)
 
+    def test_pastal_card_and_action_keyboard(self):
+        """
+        Foydalanuvchi talabi bo'yicha:
+        - Agar kg kiritilmagan bo'lsa: [⚖️ Kg kiritish] va [🚀 Jo'natish], [🔍 Tekshirish]
+        - Agar kg kiritilgan bo'lsa: [⚖️ Kg kiritish] chiqmaydi, faqat [🚀 Jo'natish], [🔍 Tekshirish]
+        """
+        from production.management.commands.run_passport_bot import (
+            build_pastal_card_text,
+            build_pastal_action_keyboard
+        )
+
+        batch_info = {
+            'batch_id': 10,
+            'batch_number': 5,
+            'pastal_code': 'P-05',
+            'article_name': 'Test Model',
+            'order_number': 'ORD-55',
+            'customer_name': 'Client A',
+            'units': 200,
+            'weight': 0.0,
+            'dispatch_status': 'WAITING',
+            'rejection_reason': ''
+        }
+
+        # 1. Vazn kiritilmagan holat
+        card_text_no_wt = build_pastal_card_text(batch_info)
+        self.assertIn("*PASTAL PASPORTI:* #5", card_text_no_wt)
+        self.assertIn("Kiritilmagan", card_text_no_wt)
+
+        kb_no_wt = build_pastal_action_keyboard(10, has_weight=False)
+        buttons_no_wt = [btn.text for row in kb_no_wt.inline_keyboard for btn in row]
+        self.assertIn("⚖️ Kg kiritish", buttons_no_wt)
+        self.assertIn("🚀 Jo'natish", buttons_no_wt)
+        self.assertIn("🔍 Tekshirish", buttons_no_wt)
+
+        # 2. Vazn kiritilgan holat: "bu yerda bitta kg kiritilgan bolsa bu button chiqmaydi"
+        batch_info['weight'] = 45.5
+        card_text_wt = build_pastal_card_text(batch_info)
+        self.assertIn("45.5 kg", card_text_wt)
+
+        kb_wt = build_pastal_action_keyboard(10, has_weight=True)
+        buttons_wt = [btn.text for row in kb_wt.inline_keyboard for btn in row]
+        self.assertNotIn("⚖️ Kg kiritish", buttons_wt)
+        self.assertIn("🚀 Jo'natish", buttons_wt)
+        self.assertIn("🔍 Tekshirish", buttons_wt)
+
+
 
 
