@@ -422,3 +422,41 @@ class PassportVerificationTestCase(TestCase):
         self.assertEqual(res['details']['rejection_reason'], "[Ali Master] (K1-Patok): Choklarda xatolik bor")
         self.assertIn("Choklarda xatolik bor", res['message'])
 
+    def test_dispatched_and_accepted_and_closed_pastal_verification_guards(self):
+        """
+        Pastal holatini tekshirish:
+        1. Agar DISPATCHED (kutilmoqda) bo'lsa -> can_release=False, DISPATCHED_WAITING
+        2. Agar ACCEPTED (qabul qilingan) bo'lsa -> can_release=False, ALREADY_ACCEPTED
+        3. Agar barcha qutilar yopilgan bo'lsa -> can_release=False, PASTAL_CLOSED
+        """
+        # 1. DISPATCHED holati
+        self.batch.dispatch_status = CuttingBatch.DispatchStatus.DISPATCHED
+        self.batch.assigned_screen = 2
+        self.batch.save()
+
+        res_disp = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res_disp['can_release'])
+        self.assertEqual(res_disp['status_code'], 'DISPATCHED_WAITING')
+        self.assertIn("KUTILMOQDA", res_disp['message'])
+        self.assertIn("K2-Patok", res_disp['message'])
+
+        # 2. ACCEPTED holati
+        self.batch.dispatch_status = CuttingBatch.DispatchStatus.ACCEPTED
+        self.batch.save()
+
+        res_acc = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res_acc['can_release'])
+        self.assertEqual(res_acc['status_code'], 'ALREADY_ACCEPTED')
+        self.assertIn("ALLAQACHON QABUL QILINGAN", res_acc['message'])
+        self.assertIn("K2-Patok", res_acc['message'])
+
+        # 3. YOPILGAN holati: Barcha qutilar nazoratdan o'tgan
+        for item in self.batch.items.all():
+            item.boxes.update(is_controlled=True, controlled_first_sort_qty=50, controlled_repair_qty=0)
+
+        res_closed = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertFalse(res_closed['can_release'])
+        self.assertEqual(res_closed['status_code'], 'PASTAL_CLOSED')
+        self.assertIn("TO'LIQ YOPILGAN", res_closed['message'])
+
+

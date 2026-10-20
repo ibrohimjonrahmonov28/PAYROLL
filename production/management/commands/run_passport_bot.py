@@ -83,6 +83,14 @@ def get_batch_info_async(batch_id: int):
 
 
 @sync_to_async
+def is_batch_code_exists_async(raw_str: str) -> bool:
+    if not raw_str.isdigit():
+        return False
+    val = int(raw_str)
+    return CuttingBatch.objects.filter(Q(id=val) | Q(pastal_code=raw_str) | Q(batch_number=val)).exists()
+
+
+@sync_to_async
 def dispatch_batch_async(batch_id: int, branch: str, screen_number: int, user_name: str):
     batch = CuttingBatch.objects.select_related('order_item__order', 'order_item__article').filter(id=batch_id).first()
     if not batch:
@@ -280,7 +288,7 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
     details = result.get('details', {}) or {}
     batch_id = await resolve_batch_from_details_async(details)
 
-    if not result.get('success') or not batch_id:
+    if not result.get('success') or not batch_id or not result.get('can_release'):
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
         context.user_data.pop('dispatch_weight', None)
@@ -305,16 +313,7 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
         context.user_data.pop('dispatch_weight', None)
-
-        dispatched_msg = (
-            f"{message_text}\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⏳ *BU PASTAL HOZIRDA KUTILMOQDA!*\n\n"
-            f"📍 Ushbu pastal *{p_code_info}-Patokka* jo'natilgan va hozirda planshetda qabul qilinishi kutilmoqda.\n"
-            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
-            f"ℹ️ _Agar ushbu pastal boshqa patokka berilishi kerak bo'lsa, avval *{p_code_info}-Patok* masteri planshetda uni 'Qaytarish' (Rad etish) qilishi shart._"
-        )
-        await _safe_reply_text(update.message, dispatched_msg)
+        await _safe_reply_text(update.message, message_text)
         return
 
     # 2. AGAR PASTAL ALLAQACHON QABUL QILINGAN BO'LSA (ACCEPTED)
@@ -322,16 +321,7 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
         context.user_data.pop('dispatch_weight', None)
-
-        accepted_msg = (
-            f"{message_text}\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📌 *BU PASTAL ALLAQACHON QABUL QILINGAN!*\n\n"
-            f"📍 Ushbu pastal *{p_code_info}-Patok* tomonidan qabul qilingan.\n"
-            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
-            f"ℹ️ _Agar ushbu pastal boshqa patokka o'tkazilishi kerak bo'lsa, avval *{p_code_info}-Patok* masteri planshet orqali ushbu pastalni 'Qaytarish' (Rad etish) qilishi shart._"
-        )
-        await _safe_reply_text(update.message, accepted_msg)
+        await _safe_reply_text(update.message, message_text)
         return
 
     # 3. PASTAL JO'NATISHGA TAYYOR (WAITING):
@@ -389,8 +379,14 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Agar vazn yoki filial kutilayotgan bo'lsa va kiritilgan matn son bo'lsa (masalan: 48.5, 48,5, 48.5 kg, 50kg)
     if dispatch_state in ('WAITING_WEIGHT', 'WAITING_BRANCH') and dispatch_batch_id:
+        has_kg_suffix = bool(re.search(r'(?:kg|кг)', raw_text, re.IGNORECASE))
+        has_decimal = ('.' in raw_text or ',' in raw_text)
+        is_pastal_code = False
+        if raw_text.isdigit() and not has_kg_suffix and not has_decimal:
+            is_pastal_code = await is_batch_code_exists_async(raw_text)
+
         m = re.search(r'^\s*(\d+(?:[.,]\d+)?)\s*(?:kg|кг)?\s*$', raw_text, re.IGNORECASE)
-        if m:
+        if m and not is_pastal_code:
             clean_num_text = m.group(1).replace(',', '.')
             try:
                 val = float(clean_num_text)
@@ -419,7 +415,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             r'^(PASTAL|BATCH|TICKET|TK|CONTROL|BOX|QUTI|PC|ORDER|ZAKAZ|#|[A-Z0-9]{8})',
             raw_text,
             re.IGNORECASE
-        ))
+        )) or is_pastal_code
         if dispatch_state == 'WAITING_WEIGHT' and not looks_like_qr:
             await _safe_reply_text(
                 update.message,

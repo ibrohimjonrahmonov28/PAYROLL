@@ -1081,6 +1081,149 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         size_lines.append(f"• *{s_name}:* {data['boxes']} ta quti ({data['qty']} dona) — Narxlar to'liq ✅")
     sizes_text = "\n".join(size_lines)
 
+    # --------------------------------------------------------------------------
+    # 7. HOLAT TEKSHIRUVI: YOPILGAN / KUTILMOQDA / QABUL QILINGAN
+    # --------------------------------------------------------------------------
+    # 7.1. Barcha qutilari to'liq yopilgan bo'lsa
+    is_pastal_closed = (
+        total_boxes_count > 0 and
+        all(bx.is_controlled and bx.controlled_repair_qty == 0 for bx in active_boxes)
+    )
+    if is_pastal_closed:
+        p_c = get_patok_code(batch.assigned_screen) if (batch and batch.assigned_screen) else "Tikuv"
+        closed_message = (
+            f"🏁 *USHBU PASTAL ALLAQACHON TO'LIQ YOPILGAN!*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
+            f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
+            f"🏷 *Pastal kodi:* {pastal_code}\n"
+            f"✂️ *Kesim:* #{batch_num} | *Bichuvchi:* {cutter_name}\n"
+            f"📦 *Jami qutilar:* {total_boxes_count} ta quti ({total_units:,} dona)\n"
+            f"🏁 *Holati:* Barcha qutilari tikilib, OTK nazoratidan to'liq o'tgan va yopilgan ({p_c}-Patok).\n\n"
+            f"🚫 *Ushbu pastalni qayta patokka jo'natib bo'lmaydi!*"
+        ).replace(",", " ")
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'PASTAL_CLOSED',
+            'title': "🏁 PASTAL TO'LIQ YOPILGAN",
+            'message': closed_message,
+            'details': {
+                'batch_id': batch.id if batch else None,
+                'box_id': scanned_box.id if scanned_box else (first_box.id if first_box else None),
+                'order_number': order.order_number,
+                'customer_name': customer_name,
+                'article_name': article.name if article else '',
+                'article_code': article.code if article else '',
+                'pastal_code': pastal_code,
+                'total_boxes': total_boxes_count,
+                'total_units': total_units,
+                'total_tickets': total_tickets_count,
+                'total_amount': float(total_batch_amount),
+                'unit_price': float(unit_total_price),
+                'scanned_tickets': scanned_tickets_count,
+                'pending_tickets': pending_tickets_count,
+                'actual_weight_kg': float(batch.actual_weight_kg) if (batch and batch.actual_weight_kg) else None,
+                'dispatch_status': batch.dispatch_status if batch else None,
+                'assigned_screen': batch.assigned_screen if batch else None,
+                'assigned_branch': batch.assigned_branch if batch else None,
+                'rejection_reason': batch.rejection_reason if batch else '',
+            }
+        }
+
+    # 7.2. Agar pastal hozirda kutilayotgan bo'lsa (DISPATCHED)
+    if batch and batch.dispatch_status == CuttingBatch.DispatchStatus.DISPATCHED:
+        p_c = get_patok_code(batch.assigned_screen) or "Patok"
+        wt_str = f"`{float(batch.actual_weight_kg)} kg`" if batch.actual_weight_kg else "_(Kiritilmagan)_"
+        dispatched_message = (
+            f"⏳ *BU PASTAL HOZIRDA KUTILMOQDA!*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
+            f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
+            f"🏷 *Pastal kodi:* {pastal_code}\n"
+            f"✂️ *Kesim:* #{batch_num} | *Bichuvchi:* {cutter_name}\n"
+            f"📦 *Jami qutilar:* {total_boxes_count} ta quti ({total_units:,} dona)\n"
+            f"⚖️ *Vazni:* {wt_str}\n\n"
+            f"📍 Ushbu pastal *{p_c}-Patokka* jo'natilgan va hozirda planshetda qabul qilinishi kutilmoqda.\n"
+            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
+            f"ℹ️ _Agar ushbu pastal boshqa patokka berilishi kerak bo'lsa, avval *{p_c}-Patok* masteri planshetda uni 'Qaytarish' (Rad etish) qilishi shart._"
+        ).replace(",", " ")
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'DISPATCHED_WAITING',
+            'title': "⏳ PASTAL HOZIRDA KUTILMOQDA",
+            'message': dispatched_message,
+            'details': {
+                'batch_id': batch.id,
+                'box_id': scanned_box.id if scanned_box else (first_box.id if first_box else None),
+                'order_number': order.order_number,
+                'customer_name': customer_name,
+                'article_name': article.name if article else '',
+                'article_code': article.code if article else '',
+                'pastal_code': pastal_code,
+                'total_boxes': total_boxes_count,
+                'total_units': total_units,
+                'total_tickets': total_tickets_count,
+                'total_amount': float(total_batch_amount),
+                'unit_price': float(unit_total_price),
+                'scanned_tickets': scanned_tickets_count,
+                'pending_tickets': pending_tickets_count,
+                'actual_weight_kg': float(batch.actual_weight_kg) if batch.actual_weight_kg else None,
+                'dispatch_status': batch.dispatch_status,
+                'assigned_screen': batch.assigned_screen,
+                'assigned_branch': batch.assigned_branch,
+                'rejection_reason': batch.rejection_reason or '',
+            }
+        }
+
+    # 7.3. Agar pastal allaqachon qabul qilingan bo'lsa (ACCEPTED)
+    if batch and batch.dispatch_status == CuttingBatch.DispatchStatus.ACCEPTED:
+        p_c = get_patok_code(batch.assigned_screen) or "Patok"
+        wt_str = f"`{float(batch.actual_weight_kg)} kg`" if batch.actual_weight_kg else "_(Kiritilmagan)_"
+        accepted_message = (
+            f"📌 *BU PASTAL ALLAQACHON QABUL QILINGAN!*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📋 *Zakaz:* {order.order_number} ({customer_name})\n"
+            f"👕 *Model:* {article.name if article else '—'} ({article.code if article else '—'})\n"
+            f"🏷 *Pastal kodi:* {pastal_code}\n"
+            f"✂️ *Kesim:* #{batch_num} | *Bichuvchi:* {cutter_name}\n"
+            f"📦 *Jami qutilar:* {total_boxes_count} ta quti ({total_units:,} dona)\n"
+            f"⚖️ *Vazni:* {wt_str}\n\n"
+            f"📍 Ushbu pastal *{p_c}-Patok* tomonidan qabul qilingan va hozirda tikuv jarayonida.\n"
+            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
+            f"ℹ️ _Agar ushbu pastal boshqa patokka o'tkazilishi kerak bo'lsa, avval *{p_c}-Patok* masteri planshet orqali uni 'Qaytarish' (Rad etish) qilishi shart._"
+        ).replace(",", " ")
+        return {
+            'success': False,
+            'can_release': False,
+            'status_code': 'ALREADY_ACCEPTED',
+            'title': "📌 PASTAL QABUL QILINGAN",
+            'message': accepted_message,
+            'details': {
+                'batch_id': batch.id,
+                'box_id': scanned_box.id if scanned_box else (first_box.id if first_box else None),
+                'order_number': order.order_number,
+                'customer_name': customer_name,
+                'article_name': article.name if article else '',
+                'article_code': article.code if article else '',
+                'pastal_code': pastal_code,
+                'total_boxes': total_boxes_count,
+                'total_units': total_units,
+                'total_tickets': total_tickets_count,
+                'total_amount': float(total_batch_amount),
+                'unit_price': float(unit_total_price),
+                'scanned_tickets': scanned_tickets_count,
+                'pending_tickets': pending_tickets_count,
+                'actual_weight_kg': float(batch.actual_weight_kg) if batch.actual_weight_kg else None,
+                'dispatch_status': batch.dispatch_status,
+                'assigned_screen': batch.assigned_screen,
+                'assigned_branch': batch.assigned_branch,
+                'rejection_reason': batch.rejection_reason or '',
+            }
+        }
+
+    # 7.4. FAQAT SHUNDA (WAITING / REJECTED): TIKUV PATOGIGA TARQATISHGA RUXSAT ETILADI!
     in_progress_notice = ""
     if scanned_tickets_count > 0:
         in_progress_notice = (
@@ -1089,12 +1232,6 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         )
     if batch and batch.rejection_reason:
         in_progress_notice += f"\n⚠️ *Qaytarilgan pastal sababi:* {batch.rejection_reason}\n"
-    if batch and batch.dispatch_status == CuttingBatch.DispatchStatus.DISPATCHED:
-        p_c = get_patok_code(batch.assigned_screen) or "Patok"
-        in_progress_notice += f"\n⏳ *Holati:* Ushbu pastal hozirda {p_c}-Patokda kutilmoqda!\n"
-    elif batch and batch.dispatch_status == CuttingBatch.DispatchStatus.ACCEPTED:
-        p_c = get_patok_code(batch.assigned_screen) or "Patok"
-        in_progress_notice += f"\n📌 *Holati:* Ushbu pastal allaqachon {p_c}-Patok tomonidan qabul qilingan!\n"
 
     approved_message = (
         f"✅ *HAMMASI TO'G'RI: PATOKKA BERISH MUMKIN!*\n"
@@ -1125,6 +1262,7 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         'message': approved_message,
         'details': {
             'batch_id': batch.id if batch else None,
+            'box_id': scanned_box.id if scanned_box else (first_box.id if first_box else None),
             'order_number': order.order_number,
             'customer_name': customer_name,
             'article_name': article.name if article else '',
