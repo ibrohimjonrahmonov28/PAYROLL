@@ -13,7 +13,7 @@ from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncDate
 
-from accounts.models import User, Worker, MasterPatokHistory
+from accounts.models import User, Worker, MasterPatokHistory, MasterAbsentDay
 from production.models import CuttingBatch, Box, Ticket, Order, Article, ArticleOperation
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 
@@ -175,6 +175,7 @@ def api_identify_master(request):
         User.Role.BRANCH_ADMIN,
         User.Role.MANAGER,
         User.Role.CONTROL,
+        User.Role.TECHNOLOGIST,
     ]
     if user.role not in allowed_roles:
         return JsonResponse({
@@ -1046,37 +1047,64 @@ def _get_master_statistics_data(master, month_start_date, month_end_date, month_
                 day_screen_map[cur] = sn
                 cur += timezone.timedelta(days=1)
 
-    # 2. Master ish kunlari va kunlik patok quvvati
+    # 2. Master kelmagan / kasal bo'lgan kunlari (MasterAbsentDay)
+    absent_dates = set(
+        MasterAbsentDay.objects.filter(
+            user=master,
+            date__range=(month_start_date, month_end_date)
+        ).values_list('date', flat=True)
+    )
+
+    for abs_d in absent_dates:
+        if abs_d not in day_screen_map:
+            day_screen_map[abs_d] = master.assigned_screen_number or 1
+
+    # 3. Master ish kunlari va kunlik patok quvvati
     working_days = []
     quvvat_sum = 0.0
+    active_working_days_count = 0
 
     for cur_date, sn in sorted(day_screen_map.items()):
         stats = screen_day_stats.get((sn, cur_date))
-        if stats and stats['tickets'] > 0:
-            grand_total_earnings = stats['earnings']
-            article_ids = stats['article_ids']
-            target_reja_values = [article_targets[aid] for aid in article_ids if aid in article_targets]
-            if target_reja_values:
-                avg_daily_target = sum(target_reja_values) / len(target_reja_values)
-                quvvat = round((grand_total_earnings / avg_daily_target) * 100, 1) if avg_daily_target > 0 else 0.0
-            else:
-                quvvat = 0.0
+        is_absent = (cur_date in absent_dates)
 
-            quvvat_sum += quvvat
+        if (stats and stats['tickets'] > 0) or is_absent:
+            if stats and stats['tickets'] > 0:
+                grand_total_earnings = stats['earnings']
+                article_ids = stats['article_ids']
+                target_reja_values = [article_targets[aid] for aid in article_ids if aid in article_targets]
+                if target_reja_values:
+                    avg_daily_target = sum(target_reja_values) / len(target_reja_values)
+                    quvvat = round((grand_total_earnings / avg_daily_target) * 100, 1) if avg_daily_target > 0 else 0.0
+                else:
+                    quvvat = 0.0
+                tickets_cnt = stats['tickets']
+            else:
+                grand_total_earnings = 0
+                quvvat = 0.0
+                tickets_cnt = 0
+
+            # Muhim qoida: Agar master kelmagan / kasal bo'lsa, bu kun o'rtacha arifmetik hisob-kitobdan chiqariladi!
+            if not is_absent and tickets_cnt > 0:
+                quvvat_sum += quvvat
+                active_working_days_count += 1
+
             working_days.append({
                 'date': cur_date.strftime("%Y-%m-%d"),
                 'date_str': cur_date.strftime("%d.%m.%Y"),
                 'screen_number': sn,
                 'patok_code': get_patok_code(sn),
                 'patok_name': get_patok_name(sn),
-                'tickets_count': stats['tickets'],
+                'tickets_count': tickets_cnt,
                 'earnings': grand_total_earnings,
                 'earnings_formatted': f"{grand_total_earnings:,.0f}".replace(",", " "),
                 'quvvat': quvvat,
+                'is_absent': is_absent,
             })
 
-    master_working_days_count = len(working_days)
+    master_working_days_count = active_working_days_count
     avg_quvvat_percent = round(quvvat_sum / master_working_days_count, 1) if master_working_days_count > 0 else 0.0
+    absent_days_count = len([w for w in working_days if w['is_absent']])
 
     # 3. Pastallar monitoringi (Yopilgan / Ochiq / Yo'qotish farqi)
     batches_qs = CuttingBatch.objects.filter(
@@ -1214,6 +1242,7 @@ def _get_master_statistics_data(master, month_start_date, month_end_date, month_
         'assigned_screen': master.assigned_screen_number,
         'assigned_patok_name': master.assigned_patok_name or "—",
         'master_working_days': master_working_days_count,
+        'absent_days_count': absent_days_count,
         'avg_quvvat_percent': avg_quvvat_percent,
         'working_days': working_days,
         'total_pastals': len(pastals_list),
@@ -1251,7 +1280,7 @@ def master_statistics_view(request):
     is_super = user.is_superadmin() or user.is_superuser
     is_branch_admin = (user.role == User.Role.BRANCH_ADMIN)
     is_mgr = getattr(user, 'is_manager', lambda: False)() or user.role in [
-        User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER, User.Role.PLAN
+        User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER, User.Role.PLAN, User.Role.TECHNOLOGIST
     ]
     if not (is_super or is_mgr):
         messages.error(request, "Ushbu sahifaga kirish uchun ruxsat yo'q!")
@@ -1466,5 +1495,74 @@ def api_master_statistics_detail(request, user_id):
         screen_day_stats, article_targets
     )
     return JsonResponse({'success': True, 'data': data})
+
+
+@login_required(login_url='root_login')
+@require_POST
+def api_toggle_master_absent_day(request):
+    """
+    Superadmin, Admin yoki Katta Texnolog tomonidan masterning ma'lum kungi kelmaganligini (kasallik / sababli)
+    belgilash yoki qaytarib ish kuni qilish uchun toggle API.
+    Kutiladi: POST { "user_id": 12, "date": "2026-10-15", "reason": "Kasal bo'ldi" }
+    """
+    user = request.user
+    is_allowed = (
+        user.is_superadmin() or user.is_superuser or
+        user.role in [
+            User.Role.SUPER_ADMIN,
+            User.Role.ADMIN,
+            User.Role.BRANCH_ADMIN,
+            User.Role.TECHNOLOGIST,
+            User.Role.MANAGER,
+        ]
+    )
+    if not is_allowed:
+        return JsonResponse({'success': False, 'message': "Ruxsat etilmagan amal!"}, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else request.POST
+    except Exception:
+        data = request.POST
+
+    user_id = data.get('user_id')
+    date_str = (data.get('date') or '').strip()
+    reason = (data.get('reason') or '').strip()
+
+    if not user_id or not date_str:
+        return JsonResponse({'success': False, 'message': "Master ID yoki sana berilmadi"}, status=400)
+
+    try:
+        absent_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({'success': False, 'message': "Sana formati noto'g'ri (YYYY-MM-DD kutiladi)"}, status=400)
+
+    master = get_object_or_404(User, id=user_id)
+
+    # Agar filial admini bo'lsa va master boshqa filialda bo'lsa cheklash
+    if user.role == User.Role.BRANCH_ADMIN and user.branch and master.branch != user.branch:
+        return JsonResponse({'success': False, 'message': "Siz faqat o'z filialingiz masterlarini o'zgartira olasiz!"}, status=403)
+
+    existing = MasterAbsentDay.objects.filter(user=master, date=absent_date).first()
+    if existing:
+        existing.delete()
+        is_absent = False
+        msg = f"{master.get_full_name() or master.username} uchun {absent_date.strftime('%d.%m.%Y')} sanasi ISH KUNI deb belgilandi (o'rtacha quvvatga qo'shildi)."
+    else:
+        MasterAbsentDay.objects.create(
+            user=master,
+            date=absent_date,
+            reason=reason or "Kelmagan / Kasal",
+            created_by=user
+        )
+        is_absent = True
+        msg = f"{master.get_full_name() or master.username} uchun {absent_date.strftime('%d.%m.%Y')} sanasi KELMAGAN (KASAL) deb belgilandi va hisob-kitobdan chiqarildi."
+
+    return JsonResponse({
+        'success': True,
+        'is_absent': is_absent,
+        'message': msg,
+        'date': date_str,
+    })
+
 
 

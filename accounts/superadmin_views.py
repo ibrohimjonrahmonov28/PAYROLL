@@ -743,6 +743,7 @@ def superadmin_users(request):
     controllers_count = base_counts_qs.filter(role=User.Role.CONTROL).count()
     screens_count = base_counts_qs.filter(role=User.Role.SCREEN).count()
     plan_count = base_counts_qs.filter(role=User.Role.PLAN).count()
+    technologists_count = base_counts_qs.filter(role=User.Role.TECHNOLOGIST).count()
     admins_count = base_counts_qs.filter(role=User.Role.ADMIN).count()
     superadmins_count = base_counts_qs.filter(role=User.Role.SUPER_ADMIN).count()
     unprinted_badges_count = base_counts_qs.filter(is_badge_printed=False).count()
@@ -761,6 +762,7 @@ def superadmin_users(request):
         'controllers_count': controllers_count,
         'screens_count': screens_count,
         'plan_count': plan_count,
+        'technologists_count': technologists_count,
         'admins_count': admins_count,
         'superadmins_count': superadmins_count,
         'unprinted_badges_count': unprinted_badges_count,
@@ -1072,6 +1074,7 @@ def superadmin_users_download_badges_pdf(request):
         User.Role.ADMIN: 'ADMIN',
         User.Role.BRANCH_ADMIN: 'FILIAL ADMIN',
         User.Role.MANAGER: 'MENEJER',
+        User.Role.TECHNOLOGIST: 'KATTA TEXNOLOG',
         User.Role.MASTER: 'PATOK MASTERI',
         User.Role.CONTROL: 'PATOK KONTROL',
         User.Role.CUTTER: 'KESIMCHI',

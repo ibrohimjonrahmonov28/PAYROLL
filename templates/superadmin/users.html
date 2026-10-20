@@ -148,6 +148,10 @@
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'PLAN' %}bg-emerald-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-emerald-400{% endif %}">
                     <i class="fa-solid fa-calendar-day mr-1"></i> Plan ({{ plan_count }})
                 </a>
+                <a href="{% url 'superadmin_users' %}?role=TECHNOLOGIST{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'TECHNOLOGIST' %}bg-violet-600 text-white shadow-sm font-black{% else %}text-slate-400 hover:text-violet-400{% endif %}">
+                    <i class="fa-solid fa-gears mr-1"></i> Texnolog ({{ technologists_count|default:0 }})
+                </a>
                 {% if not is_branch_admin %}
                 <a href="{% url 'superadmin_users' %}?role=ADMIN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'ADMIN' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
@@ -432,6 +436,11 @@
                                 <span
                                     class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-calendar-day text-[11px]"></i> Plan (Reja)
+                                </span>
+                                {% elif u.role == 'TECHNOLOGIST' %}
+                                <span
+                                    class="bg-violet-500/20 text-violet-300 border border-violet-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-gears text-[11px]"></i> Katta Texnolog
                                 </span>
                                 {% else %}
                                 <span
@@ -780,6 +789,7 @@
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
                         <option value="PLAN">📊 Plan (Rejalashtirish / Tikim Statistikasi)</option>
+                        <option value="TECHNOLOGIST">⚙️ Katta Texnolog (Pastal & Patoklar Nazorati)</option>
                         {% if not is_branch_admin %}
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
@@ -926,6 +936,7 @@
                         <option value="MASTER">📱 Master (Telegram Bot Skaner)</option>
                         <option value="CONTROL">🔍 Kontrolchi (Sifat Nazorati / OTK)</option>
                         <option value="PLAN">📊 Plan (Rejalashtirish / Tikim Statistikasi)</option>
+                        <option value="TECHNOLOGIST">⚙️ Katta Texnolog (Pastal & Patoklar Nazorati)</option>
                         {% if not is_branch_admin %}
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
@@ -1100,6 +1111,18 @@
                                 class="fa-solid fa-calendar-day mr-1"></i>
                             Plan (Rejalashtirish)</strong>
                         <span class="text-[11px] text-slate-400">Kunlik tikim va patoklar statistikasini kuzatish</span>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="role" value="TECHNOLOGIST" id="role-radio-technologist"
+                        class="text-violet-500 focus:ring-0">
+                    <div>
+                        <strong class="text-sm font-bold text-violet-400 block"><i
+                                class="fa-solid fa-gears mr-1"></i>
+                            Katta Texnolog</strong>
+                        <span class="text-[11px] text-slate-400">Barcha patoklar pastallarini nazorat qilish va qabul qilish</span>
                     </div>
                 </label>
 
@@ -1411,6 +1434,9 @@
         } else if (currentRole === 'PLAN') {
             const rPlan = document.getElementById('role-radio-plan');
             if (rPlan) rPlan.checked = true;
+        } else if (currentRole === 'TECHNOLOGIST') {
+            const rTech = document.getElementById('role-radio-technologist');
+            if (rTech) rTech.checked = true;
         } else {
             document.getElementById('role-radio-user').checked = true;
         }
@@ -1448,6 +1474,10 @@
             badgeElement.style.background = '#e0f2fe';
             badgeElement.style.color = '#075985';
             badgeElement.style.borderColor = '#bae6fd';
+        } else if (roleKey === 'TECHNOLOGIST') {
+            badgeElement.style.background = '#ede9fe';
+            badgeElement.style.color = '#5b21b6';
+            badgeElement.style.borderColor = '#ddd6fe';
         } else {
             badgeElement.style.background = '#ecfdf5';
             badgeElement.style.color = '#065f46';

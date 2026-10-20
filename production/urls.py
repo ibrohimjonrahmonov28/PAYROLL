@@ -69,5 +69,6 @@ urlpatterns = [
     # Masterlar Statistikasi (Oylik Quvvat va Pastallar Yopilishi / Yo'qotish Hisoboti)
     path('master-statistics/', master_views.master_statistics_view, name='master_statistics'),
     path('master-statistics/api/detail/<int:user_id>/', master_views.api_master_statistics_detail, name='api_master_statistics_detail'),
+    path('master-statistics/api/toggle-absent/', master_views.api_toggle_master_absent_day, name='api_master_statistics_toggle_absent'),
 ]
 

@@ -231,6 +231,11 @@
                             <span class="px-2.5 py-1 bg-slate-800/80 border border-slate-700 text-white rounded-lg font-bold font-mono text-xs">
                                 {{ m.master_working_days }} kun
                             </span>
+                            {% if m.absent_days_count > 0 %}
+                            <span class="ml-1 px-1.5 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded text-[10px] font-bold" title="{{ m.absent_days_count }} kun kelmagan / kasal (hisobdan chiqarilgan)">
+                                <i class="fa-solid fa-user-slash text-[9px]"></i> -{{ m.absent_days_count }}
+                            </span>
+                            {% endif %}
                         </td>
 
                         <!-- O'rtacha Quvvat (%) -->
@@ -411,6 +416,7 @@
                                 <th class="py-2.5 px-4 text-center">Skanerlangan Stikerlar</th>
                                 <th class="py-2.5 px-4 text-right">Mehnat Qiymati (UZS)</th>
                                 <th class="py-2.5 px-4 text-center">Patok Quvvati (%)</th>
+                                <th class="py-2.5 px-4 text-center">Holati / Amal</th>
                             </tr>
                         </thead>
                         <tbody id="modal-days-table-body" class="divide-y divide-slate-800/60 font-medium">
@@ -562,32 +568,102 @@
         tbody.innerHTML = '';
 
         if (!days || days.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-500">Ish kunlari topilmadi (0 ta stiker).</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">Ish kunlari topilmadi (0 ta stiker).</td></tr>`;
             return;
         }
 
         days.forEach(d => {
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-800/40 transition';
+            tr.className = d.is_absent ? 'bg-rose-950/20 hover:bg-rose-900/30 transition' : 'hover:bg-slate-800/40 transition';
 
             let quvvatColorClass = 'text-rose-400 bg-rose-500/10 border-rose-500/30';
             if (d.quvvat >= 100) quvvatColorClass = 'text-cyan-300 bg-cyan-500/20 border-cyan-500/40';
             else if (d.quvvat >= 85) quvvatColorClass = 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40';
             else if (d.quvvat >= 60) quvvatColorClass = 'text-amber-300 bg-amber-500/20 border-amber-500/40';
 
+            let quvvatHtml = '';
+            let statusActionHtml = '';
+
+            if (d.is_absent) {
+                quvvatHtml = `<span class="px-2 py-0.5 rounded-lg border border-slate-700 font-mono text-xs text-slate-500 line-through" title="Kelmagan/kasal sababli o'rtacha quvvatga kiritilmaydi">${d.quvvat}%</span>`;
+                statusActionHtml = `
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 inline-flex items-center gap-1" title="Kasal yoki sababli kelmagan">
+                            <i class="fa-solid fa-user-slash text-[9px]"></i> Kelmagan / Kasal
+                        </span>
+                        <button onclick="toggleMasterAbsentDay(${currentMasterData.master_id}, '${d.date}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold border border-slate-700 hover:border-slate-500 transition" title="Ish kuni deb hisoblash">
+                            <i class="fa-solid fa-rotate-left mr-0.5"></i> Ish kuni qilish
+                        </button>
+                    </div>
+                `;
+            } else {
+                quvvatHtml = `<span class="px-2.5 py-0.5 rounded-lg border font-black digital-font ${quvvatColorClass}">${d.quvvat}%</span>`;
+                statusActionHtml = `
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Ish kuni
+                        </span>
+                        <button onclick="toggleMasterAbsentDay(${currentMasterData.master_id}, '${d.date}')" class="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/30 hover:border-rose-500/50 transition" title="Master kelmagan / kasal bo'lgan deb belgilash (o'rtacha quvvatdan chiqarish)">
+                            <i class="fa-solid fa-user-slash mr-0.5"></i> Kelmagan
+                        </button>
+                    </div>
+                `;
+            }
+
             tr.innerHTML = `
                 <td class="py-2.5 px-4 font-mono font-bold text-white">${d.date_str}</td>
                 <td class="py-2.5 px-4 font-bold text-sky-400 font-mono">${d.patok_name}</td>
                 <td class="py-2.5 px-4 text-center font-mono font-bold text-slate-300">${d.tickets_count} ta</td>
                 <td class="py-2.5 px-4 text-right font-mono font-bold text-emerald-400">${d.earnings_formatted} UZS</td>
-                <td class="py-2.5 px-4 text-center">
-                    <span class="px-2.5 py-0.5 rounded-lg border font-black digital-font ${quvvatColorClass}">
-                        ${d.quvvat}%
-                    </span>
-                </td>
+                <td class="py-2.5 px-4 text-center">${quvvatHtml}</td>
+                <td class="py-2.5 px-4 text-center whitespace-nowrap">${statusActionHtml}</td>
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    async function toggleMasterAbsentDay(masterId, dateStr) {
+        if (!confirm(`Sana: ${dateStr}\nUshbu kungi master holatini o'zgartirmoqchimisiz?`)) {
+            return;
+        }
+
+        try {
+            const resp = await fetch('{% url "production:api_master_statistics_toggle_absent" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}',
+                },
+                body: JSON.stringify({
+                    user_id: masterId,
+                    date: dateStr
+                })
+            });
+            const res = await resp.json();
+            if (res.success) {
+                window.location.reload();
+            } else {
+                alert(res.message || "Xatolik yuz berdi");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Aloqa xatosi yuz berdi");
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 
     // Modalni ESC bosganda yopish

@@ -4,7 +4,7 @@ from django.test import TestCase, Client
 from django.utils import timezone
 from django.urls import reverse
 
-from accounts.models import User, Worker, MasterPatokHistory
+from accounts.models import User, Worker, MasterPatokHistory, MasterAbsentDay
 from production.models import (
     Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket,
     Customer, OrderItemSize, CuttingBatch, CuttingBatchItem
@@ -501,4 +501,135 @@ class MasterStatisticsComprehensiveTest(TestCase):
         )
         self.assertEqual(res_lookup.status_code, 403)
         self.assertFalse(res_lookup.json()['success'])
+
+    def test_technologist_role_and_cross_patok_acceptance(self):
+        """
+        Katta Texnolog tekshiruvi:
+        1. Beydjigi orqali Master Tablet sessiyasiga kira oladi.
+        2. Mas’ul master kasal bo'lsa, Katta Texnolog ixtiyoriy patok (masalan Screen 2) uchun pastal qabul qila oladi.
+        """
+        technologist = User.objects.create_user(
+            username='texnolog_karim',
+            password='Password123!',
+            role=User.Role.TECHNOLOGIST,
+            uid='TECH-999',
+            first_name='Karim',
+            last_name='Texnologov',
+            branch=User.Branch.HQ
+        )
+
+        # 1. Planshetga login (identify)
+        res_id = self.client.post(
+            reverse('production:master_tablet_identify'),
+            data={'code': 'USER:TECH-999'},
+            content_type='application/json'
+        )
+        self.assertEqual(res_id.status_code, 200)
+        self.assertTrue(res_id.json()['success'])
+        self.assertFalse(res_id.json()['master']['is_strictly_master'])
+
+        # 2. Begona patokka (Screen 2) pastal jo'natilgan
+        batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=55,
+            pastal_code="P-55",
+            assigned_screen=2,
+            dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED
+        )
+        box = Box.objects.create(
+            order=self.order,
+            box_code="BX-55-1",
+            box_number=1,
+            quantity=50,
+            assigned_screen=2
+        )
+
+        # 3. Katta Texnolog 2-patok uchun pastalni qabul qiladi
+        res_accept = self.client.post(
+            reverse('production:master_tablet_accept'),
+            data={'batch_id': batch.id, 'screen_number': 2},
+            content_type='application/json'
+        )
+        self.assertEqual(res_accept.status_code, 200)
+        self.assertTrue(res_accept.json()['success'])
+
+        batch.refresh_from_db()
+        self.assertEqual(batch.dispatch_status, CuttingBatch.DispatchStatus.ACCEPTED)
+        self.assertEqual(batch.accepted_by, technologist)
+        self.assertEqual(batch.assigned_screen, 2)
+
+    def test_master_absent_day_exclusion_from_working_days_and_quvvat(self):
+        """
+        Master kelmagan / kasal bo'lgan kun o'rtacha arifmetik quvvatdan chiqarilishi shart:
+        - 2 kun ish bo'lgan
+        - 1-kun 100% quvvat, 2-kun 50% quvvat bo'lsa (o'rtacha 75%)
+        - 2-kun MasterAbsentDay deb belgilansa, ish kuni 1 kun, o'rtacha quvvat 100% bo'lishi kerak.
+        """
+        tz = timezone.get_current_timezone()
+        day1 = date(2026, 10, 10)
+        dt1 = timezone.make_aware(datetime.combine(day1, time(10, 0)), tz)
+        day2 = date(2026, 10, 11)
+        dt2 = timezone.make_aware(datetime.combine(day2, time(10, 0)), tz)
+
+        box1 = Box.objects.create(
+            order=self.order,
+            box_code="BX-ABS-1",
+            box_number=1,
+            quantity=1000,
+            assigned_screen=1
+        )
+        # Day 1: 1000 dona x 200 = 200,000 UZS (100% quvvat, chunki norm = 1000)
+        Ticket.objects.create(
+            box=box1,
+            article_operation=self.art_op,
+            quantity=1000,
+            total_amount=Decimal("200000.00"),
+            status=Ticket.Status.SCANNED,
+            scanned_at=dt1
+        )
+        # Day 2: 500 dona x 200 = 100,000 UZS (50% quvvat)
+        Ticket.objects.create(
+            box=box1,
+            article_operation=self.art_op,
+            quantity=500,
+            total_amount=Decimal("100000.00"),
+            status=Ticket.Status.SCANNED,
+            scanned_at=dt2
+        )
+
+        # Dastlabki holat: 2 kun, o'rtacha quvvat 75%
+        url = reverse('production:master_statistics') + '?month=2026-10'
+        res = self.client.get(url)
+        master_stat = next(m for m in res.context['masters_data'] if m['master_id'] == self.master_user.id)
+        self.assertEqual(master_stat['master_working_days'], 2)
+        self.assertEqual(master_stat['avg_quvvat_percent'], 75.0)
+        self.assertEqual(master_stat['absent_days_count'], 0)
+
+        # 2-kunni KELMAGAN / KASAL (MasterAbsentDay) deb belgilash API orqali
+        toggle_url = reverse('production:api_master_statistics_toggle_absent')
+        res_toggle = self.client.post(
+            toggle_url,
+            data={'user_id': self.master_user.id, 'date': '2026-10-11', 'reason': 'Kasal bo\'ldi'},
+            content_type='application/json'
+        )
+        self.assertEqual(res_toggle.status_code, 200)
+        self.assertTrue(res_toggle.json()['success'])
+        self.assertTrue(res_toggle.json()['is_absent'])
+
+        # Endi statistika tekshiriladi: Day 2 tashlab ketiladi!
+        res_after = self.client.get(url)
+        master_stat_after = next(m for m in res_after.context['masters_data'] if m['master_id'] == self.master_user.id)
+        # Ish kuni faqat 1 kun
+        self.assertEqual(master_stat_after['master_working_days'], 1)
+        # O'rtacha quvvat endi 75% emas, balki to'liq 100.0%!
+        self.assertEqual(master_stat_after['avg_quvvat_percent'], 100.0)
+        self.assertEqual(master_stat_after['absent_days_count'], 1)
+
+        # Detail API da ham is_absent=True ko'rinishi
+        detail_url = reverse('production:api_master_statistics_detail', kwargs={'user_id': self.master_user.id}) + '?month=2026-10'
+        res_detail = self.client.get(detail_url)
+        d_data = res_detail.json()['data']
+        absent_day_row = next(w for w in d_data['working_days'] if w['date'] == '2026-10-11')
+        self.assertTrue(absent_day_row['is_absent'])
+
 

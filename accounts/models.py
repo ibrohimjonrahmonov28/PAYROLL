@@ -27,6 +27,7 @@ class User(AbstractUser):
         ADMIN = 'ADMIN', 'Admin'
         BRANCH_ADMIN = 'BRANCH_ADMIN', 'Filial Admini'
         MANAGER = 'MANAGER', 'Menejer'
+        TECHNOLOGIST = 'TECHNOLOGIST', 'Katta Texnolog'
         CUTTER = 'CUTTER', 'Kesimchi (Bichuv)'
         METO = 'METO', 'Metochi (Nomerovka)'
         STICKER = 'STICKER', 'Stiker Chiqaruvchi'
@@ -490,6 +491,36 @@ class MasterPatokHistory(models.Model):
     def __str__(self):
         status = "Faol" if self.is_active else f"{self.end_date} gacha"
         return f"{self.user.get_full_name() or self.user.username} -> {self.screen_number}-Patok ({status})"
+
+
+class MasterAbsentDay(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='absent_days',
+        verbose_name="Master"
+    )
+    date = models.DateField(db_index=True, verbose_name="Kelmadi / Kasal sanasi")
+    reason = models.CharField(max_length=200, default="Kasal / Kelmadi", blank=True, verbose_name="Sabab")
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='marked_master_absences',
+        verbose_name="Belgilagan xodim"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Master Kelmagan Kun"
+        verbose_name_plural = "Master Kelmagan Kunlari"
+        unique_together = ('user', 'date')
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.username} - {self.date} ({self.reason})"
+
 
 
 
