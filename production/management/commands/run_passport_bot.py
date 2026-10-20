@@ -260,14 +260,11 @@ def resolve_batch_from_details_async(details: dict):
         if box:
             if box.cutting_batch_item and box.cutting_batch_item.batch:
                 return box.cutting_batch_item.batch_id
-            if box.pastal_number and box.order:
-                batch = CuttingBatch.objects.filter(
-                    order_item__order=box.order
-                ).filter(
-                    Q(pastal_code=box.pastal_number) | Q(batch_number=box.pastal_number)
-                ).first()
-                if batch:
-                    return batch.id
+            if box.pastal_number:
+                from production.passport_bot_service import _find_best_cutting_batch
+                b = _find_best_cutting_batch(box.pastal_number)
+                if b:
+                    return b.id
             batch = CuttingBatch.objects.filter(order_item__order=box.order).order_by('-id').first()
             if batch:
                 return batch.id
@@ -281,8 +278,8 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
     2. Agar pastal allaqachon ACCEPTED (Qabul qilingan) holatida bo'lsa -> Qayta jo'natish BLOKLANADI!
        (Faqat master planshetda Qaytarish (Rad etish) tugmasini bosgandagina qayta jo'natish mumkin bo'ladi)
     3. Agar pastal WAITING (yangi yoki master qaytargan) holatida bo'lsa:
-       - Agar oldin vazn kiritilgan bo'lsa (actual_weight_kg > 0) -> Qaytadan KG SO'RALMAYDI, darhol filial tanlashga o'tadi!
-       - Agar vazn hali kiritilmagan bo'lsa -> Vazn (kg) so'raladi.
+       - Har doim vazn so'rash ekrani ko'rsatiladi (kg kiritish so'raladi).
+       - Agar oldin kiritilgan vazn mavjud bo'lsa, '⏩ Oldingi vaznni qoldirish' tugmasi ham taqdim etiladi.
     """
     message_text = result['message']
     details = result.get('details', {}) or {}
@@ -304,8 +301,6 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
         return
 
     disp_status = batch_info.get('dispatch_status')
-    ass_screen = batch_info.get('assigned_screen')
-    p_code_info = get_patok_code(ass_screen) if ass_screen else 'Patok'
     existing_weight = batch_info.get('weight') or 0.0
 
     # 1. AGAR PASTAL HOZIRDA KUTILAYOTGAN BO'LSA (DISPATCHED)
@@ -324,8 +319,9 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
         await _safe_reply_text(update.message, message_text)
         return
 
-    # 3. PASTAL JO'NATISHGA TAYYOR (WAITING):
+    # 3. PASTAL JO'NATISHGA TAYYOR (WAITING / REJECTED):
     context.user_data['dispatch_batch_id'] = batch_id
+    context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
 
     rej_reason = batch_info.get('rejection_reason')
     rejection_note = ""
@@ -335,40 +331,38 @@ async def _handle_verification_result(update: Update, context: ContextTypes.DEFA
             f"💬 _{_esc_md(rej_reason)}_\n"
         )
 
-    # 3.A: Agar oldin vazn kiritilgan bo'lsa (masalan, master qaytargan pastalda vazn allaqachon bor)
-    # FOYDALANUVCHI TALABI: "BU SAFAR ESA UNGA KG KERAK BOLMAYDI QAYTA"
+    existing_wt_note = ""
+    prompt_buttons = []
     if existing_weight > 0:
-        context.user_data['dispatch_weight'] = existing_weight
-        context.user_data['dispatch_state'] = 'WAITING_BRANCH'
-
-        kb = build_branch_keyboard(batch_id)
-        ready_msg = (
-            f"{message_text}\n"
-            f"{rejection_note}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⚖️ *Haqiqiy vazni:* `{existing_weight} kg` _(Oldin kiritilgan vazn saqlangan)_\n\n"
-            f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*"
+        existing_wt_note = (
+            f"\n⚖️ *Oldingi saqlangan vazn:* `{existing_weight} kg`\n"
+            f"_(Yangi vaznni yozishingiz yoki oldingisini qoldirishingiz mumkin)_\n"
         )
-        await _safe_reply_text(update.message, ready_msg, reply_markup=kb)
-        return
+        prompt_buttons.append([
+            InlineKeyboardButton(f"⏩ Oldingi vaznni qoldirish ({existing_weight} kg)", callback_data=f"dp_keep_wt:{batch_id}")
+        ])
 
-    # 3.B: Agar vazn hali umuman kiritilmagan bo'lsa -> Vazn so'raymiz
-    context.user_data['dispatch_state'] = 'WAITING_WEIGHT'
+    prompt_buttons.append([
+        InlineKeyboardButton("❌ Bekor qilish", callback_data=f"dp_cnc:{batch_id}")
+    ])
+    prompt_kb = InlineKeyboardMarkup(prompt_buttons)
+
     kg_prompt = (
         f"{message_text}\n"
-        f"{rejection_note}\n"
+        f"{rejection_note}"
+        f"{existing_wt_note}"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"⚖️ *Iltimos, pastalning haqiqiy vaznini (kg) kiriting:*\n"
         f"_(Pastal tortilgandagi haqiqiy kg ni matn shaklida yozing, masalan: `48.5` yoki `52`)_"
     )
-    await _safe_reply_text(update.message, kg_prompt)
+    await _safe_reply_text(update.message, kg_prompt, reply_markup=prompt_kb)
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Matnli xabarlarni qabul qilish:
-    - Agar vazn kutilayotgan yoki filial kutilayotgan bo'lsa va son kiritilsa: vaznni qabul qiladi
-    - Aks holda: QR kod matni sifatida tekshiradi
+    - Agar vazn kutilayotgan bo'lsa va son kiritilsa (masalan: 48.5, 50, 52 kg): vaznni qabul qiladi
+    - Aks holda: QR kod yoki pastal kodi/raqami sifatida tekshiradi
     """
     raw_text = (update.message.text or '').strip()
     if not raw_text:
@@ -377,16 +371,10 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dispatch_state = context.user_data.get('dispatch_state')
     dispatch_batch_id = context.user_data.get('dispatch_batch_id')
 
-    # Agar vazn yoki filial kutilayotgan bo'lsa va kiritilgan matn son bo'lsa (masalan: 48.5, 48,5, 48.5 kg, 50kg)
-    if dispatch_state in ('WAITING_WEIGHT', 'WAITING_BRANCH') and dispatch_batch_id:
-        has_kg_suffix = bool(re.search(r'(?:kg|кг)', raw_text, re.IGNORECASE))
-        has_decimal = ('.' in raw_text or ',' in raw_text)
-        is_pastal_code = False
-        if raw_text.isdigit() and not has_kg_suffix and not has_decimal:
-            is_pastal_code = await is_batch_code_exists_async(raw_text)
-
+    # 1. Agar vazn kutilayotgan bo'lsa va son kiritilsa
+    if dispatch_state == 'WAITING_WEIGHT' and dispatch_batch_id:
         m = re.search(r'^\s*(\d+(?:[.,]\d+)?)\s*(?:kg|кг)?\s*$', raw_text, re.IGNORECASE)
-        if m and not is_pastal_code:
+        if m:
             clean_num_text = m.group(1).replace(',', '.')
             try:
                 val = float(clean_num_text)
@@ -409,27 +397,26 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except (ValueError, TypeError):
                 pass
 
-        # Agar vazn kutilayotgan bo'lsa, lekin foydalanuvchi QR kodga o'xshamaydigan boshqa narsa yozgan bo'lsa
-        # Foydalanuvchini ogohlantiramiz, bekor qilmasdan
+        # Agar vazn emas, balki yangi QR kod yuborilmagan bo'lsa, foydalanuvchini ogohlantirish
         looks_like_qr = bool(re.search(
             r'^(PASTAL|BATCH|TICKET|TK|CONTROL|BOX|QUTI|PC|ORDER|ZAKAZ|#|[A-Z0-9]{8})',
             raw_text,
             re.IGNORECASE
-        )) or is_pastal_code
-        if dispatch_state == 'WAITING_WEIGHT' and not looks_like_qr:
+        ))
+        if not looks_like_qr:
             await _safe_reply_text(
                 update.message,
                 "⚠️ *Iltimos, pastal vaznini to'g'ri sonda kiriting!* (Masalan: `48.5` yoki `52`)\n"
-                "Yoki yangi pastal tekshirish uchun QR kod yuboring."
+                "Yoki yangi pastal tekshirish uchun uning QR kodini yuboring."
             )
             return
 
-        # Agar yangi QR kod bo'lsa, eski holatni tozalaymiz va pastda tekshiramiz
+        # Yangi QR kod kelsa eski holatni tozalab yangisini tekshirish
         context.user_data.pop('dispatch_state', None)
         context.user_data.pop('dispatch_batch_id', None)
         context.user_data.pop('dispatch_weight', None)
 
-    # Oddiy QR kod tekshiruvi
+    # 2. Oddiy QR kod yoki pastal kodi/raqami tekshiruvi
     result = await async_verify_pastal_for_sewing(raw_text)
     await _handle_verification_result(update, context, result)
 
@@ -501,6 +488,27 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data or ""
     parts = data.split(':')
     action = parts[0]
+
+    # 0. Oldingi vaznni qoldirish
+    if action == 'dp_keep_wt':
+        batch_id = int(parts[1])
+        batch_info = await get_batch_info_async(batch_id)
+        if not batch_info:
+            await _safe_edit_text(query, "⚠️ Pastal ma'lumotlari topilmadi.")
+            return
+
+        weight = batch_info.get('weight') or 0.0
+        context.user_data['dispatch_weight'] = weight
+        context.user_data['dispatch_state'] = 'WAITING_BRANCH'
+        kb = build_branch_keyboard(batch_id)
+        await _safe_edit_text(
+            query,
+            f"⚖️ *Vazn saqlandi:* `{weight} kg`\n"
+            f"📋 *Pastal:* #{batch_info['batch_number']} ({_esc_md(batch_info['article_name'])}, {batch_info['units']} dona)\n\n"
+            f"🏢 *Ushbu pastal qaysi filialga jo'natiladi? Tanlang:*",
+            reply_markup=kb
+        )
+        return
 
     # 1. Bekor qilish
     if action == 'dp_cnc':

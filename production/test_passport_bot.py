@@ -459,4 +459,42 @@ class PassportVerificationTestCase(TestCase):
         self.assertEqual(res_closed['status_code'], 'PASTAL_CLOSED')
         self.assertIn("TO'LIQ YOPILGAN", res_closed['message'])
 
+    def test_flexible_pastal_resolution_and_priority(self):
+        """
+        Foydalanuvchi turli formatlarda pastal raqamini yozganda to'g'ri topilishi:
+        - "1" yoki "12"
+        - "PASTAL 12", "KESIM 12", "P-12", "12-pastal"
+        - Eski ACCEPTED va yangi WAITING batchlar bo'lsa, WAITING ustuvor bo'lishi
+        """
+        from production.passport_bot_service import resolve_code_to_entity
+
+        # 1. Mavjud batch raqamini turli formatlarda tekshirish
+        b_num = str(self.batch.batch_number)
+        for cand in [b_num, f"PASTAL {b_num}", f"KESIM {b_num}", f"P-{b_num}", f"{b_num}-pastal", f"PC:{b_num}"]:
+            b_found, _, _, res_type, _ = resolve_code_to_entity(cand)
+            self.assertIsNotNone(b_found, f"Failed for candidate: {cand}")
+            self.assertEqual(b_found.id, self.batch.id)
+
+        # 2. Prioritet tekshiruvi:
+        # Eski batch ACCEPTED, yangi batch WAITING bir xil batch_number (yoki pastal_code) bilan
+        from production.models import CuttingBatchItem
+        old_batch = self.batch
+        old_batch.dispatch_status = CuttingBatch.DispatchStatus.ACCEPTED
+        old_batch.pastal_code = "TEST-PC-99"
+        old_batch.save()
+
+        new_batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=old_batch.batch_number + 1,
+            pastal_code="TEST-PC-99",
+            dispatch_status=CuttingBatch.DispatchStatus.WAITING
+        )
+
+        # "TEST-PC-99" qidirilganda yangi WAITING batch topilishi shart
+        b_prio, _, _, _, _ = resolve_code_to_entity("TEST-PC-99")
+        self.assertIsNotNone(b_prio)
+        self.assertEqual(b_prio.id, new_batch.id)
+        self.assertEqual(b_prio.dispatch_status, CuttingBatch.DispatchStatus.WAITING)
+
+
 

@@ -107,6 +107,77 @@ def resolve_code_to_entity(raw_code: str):
     if not raw_code:
         return None, None, None, 'UNKNOWN', ''
 
+def _find_best_cutting_batch(identifier: str):
+    """
+    Pastal kodi yoki raqami bo'yicha eng to'g'ri CuttingBatch ni topish.
+    Prioritet:
+    1. Hozirda tikuvga jo'natilishi kerak bo'lgan aktiv pastallar:
+       - dispatch_status = WAITING yoki REJECTED (eng yuqori prioritet!)
+       - dispatch_status = DISPATCHED (kutilmoqda)
+       - dispatch_status = ACCEPTED (qabul qilingan)
+    2. Yangi yaratilganlar birinchi (created_at DESC, id DESC)
+    """
+    clean_id = str(identifier or '').strip()
+    if not clean_id:
+        return None
+
+    from django.db.models import Case, When, Value, IntegerField, Q
+
+    # Prefiks va qo'shimchalarni tozalash (masalan: "PASTAL 12", "KESIM:12", "PC-12", "12-pastal")
+    norm = re.sub(r'^(?:PASTAL|BATCH|KESIM|PC|P)[\s:\-_]*', '', clean_id, flags=re.IGNORECASE)
+    norm = re.sub(r'[\s\-_]*(?:PASTAL|BATCH|KESIM|PC|P)$', '', norm, flags=re.IGNORECASE).strip()
+    if not norm:
+        norm = clean_id
+
+    q_filter = (
+        Q(pastal_code__iexact=norm) |
+        Q(pastal_code__iexact=clean_id) |
+        Q(partiya_number__iexact=norm) |
+        Q(partiya_number__iexact=clean_id) |
+        Q(name__iexact=norm)
+    )
+
+    if norm.isdigit():
+        num = int(norm)
+        q_filter |= Q(batch_number=num) | Q(id=num)
+    elif clean_id.isdigit():
+        num = int(clean_id)
+        q_filter |= Q(batch_number=num) | Q(id=num)
+
+    qs = CuttingBatch.objects.select_related(
+        'order_item__order__customer',
+        'order_item__article__model'
+    ).filter(q_filter)
+
+    priority_order = Case(
+        When(dispatch_status=CuttingBatch.DispatchStatus.WAITING, then=Value(1)),
+        When(dispatch_status=CuttingBatch.DispatchStatus.REJECTED, then=Value(1)),
+        When(dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED, then=Value(2)),
+        When(dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED, then=Value(3)),
+        default=Value(4),
+        output_field=IntegerField()
+    )
+
+    return qs.annotate(disp_prio=priority_order).order_by('disp_prio', '-created_at', '-id').first()
+
+
+def resolve_code_to_entity(raw_code: str):
+    """
+    Kiritilgan matndan qaysi obyekt ekanligini aniqlash:
+    - PASTAL:45, BATCH:45 -> CuttingBatch
+    - TICKET:TK-ORD-1-... -> Ticket
+    - CONTROL:A9-234 -> Box
+    - TK-ORD-1-... -> Ticket
+    - Stiker kodi (#489DA37F yoki 489DA37F) -> Ticket
+    - Quti kodi (A9-234, B3-102) -> Box
+    - Pastal kodi yoki raqami (masalan: 12, PASTAL 12, KESIM 12, PC:12, 09-382) -> CuttingBatch
+    - Son (masalan: 12) -> CuttingBatch
+    
+    Qaytadi: (batch, box, ticket, resolved_type, clean_code)
+    """
+    if not raw_code:
+        return None, None, None, 'UNKNOWN', ''
+
     from production.terminal_views import fix_cyrillic_layout
     raw = fix_cyrillic_layout(str(raw_code).strip()).strip()
     if '+' in raw:
@@ -114,8 +185,8 @@ def resolve_code_to_entity(raw_code: str):
         raw = raw.replace('+', '-')
     clean = raw
 
-    # 1. PASTAL / BATCH prefiksi
-    # Masalan: PASTAL:45, BATCH:45, PC:12, PASTAL: 45
+    # 1. PASTAL / BATCH prefiksi (masalan: PASTAL:45, BATCH:45)
+    # Pasport QR kodida aynan PASTAL:<id> shaklida bo'ladi
     m_pastal = re.match(r'^(?:PASTAL|BATCH)\s*:\s*(\d+)$', raw, re.IGNORECASE)
     if m_pastal:
         batch_id = int(m_pastal.group(1))
@@ -123,10 +194,11 @@ def resolve_code_to_entity(raw_code: str):
             'order_item__order__customer',
             'order_item__article__model'
         ).filter(id=batch_id).first()
+        if not batch:
+            batch = _find_best_cutting_batch(str(batch_id))
         return batch, None, None, 'PASTAL_ID', str(batch_id)
 
-    # 2. TICKET prefiksi
-    # Masalan: TICKET:TK-ORD-1-...
+    # 2. TICKET prefiksi (masalan: TICKET:TK-ORD-1-...)
     if raw.upper().startswith('TICKET:'):
         tkt_code = raw[7:].strip()
         ticket = Ticket.objects.select_related(
@@ -138,10 +210,11 @@ def resolve_code_to_entity(raw_code: str):
         if ticket:
             box = ticket.box
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
             return batch, box, ticket, 'TICKET_CODE', tkt_code
 
-    # 3. CONTROL prefiksi
-    # Masalan: CONTROL:A9-234
+    # 3. CONTROL prefiksi (masalan: CONTROL:A9-234)
     if raw.upper().startswith('CONTROL:'):
         bx_code = raw[8:].strip()
         box = Box.objects.select_related(
@@ -151,6 +224,8 @@ def resolve_code_to_entity(raw_code: str):
         ).filter(box_code__iexact=bx_code).first()
         if box:
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
             return batch, box, None, 'BOX_CODE', bx_code
 
     # 4. To'g'ridan-to'g'ri ticket_code (TK-...)
@@ -164,6 +239,8 @@ def resolve_code_to_entity(raw_code: str):
         if ticket:
             box = ticket.box
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
             return batch, box, ticket, 'TICKET_CODE', raw
 
     # 5. Stiker kodi (8 xonali, masalan: 489DA37F yoki #489DA37F)
@@ -178,6 +255,8 @@ def resolve_code_to_entity(raw_code: str):
         if ticket:
             box = ticket.box
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
             return batch, box, ticket, 'STIKER_CODE', stiker_candidate
 
     # 6. Quti kodi (masalan: A9-234, B3-102)
@@ -189,54 +268,11 @@ def resolve_code_to_entity(raw_code: str):
         ).filter(box_code__iexact=raw).first()
         if box:
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
             return batch, box, None, 'BOX_CODE', raw.upper()
 
-    # 7. Pastal kodi (masalan: PC: 12 yoki to'g'ridan-to'g'ri pastal kodi)
-    pc_clean = raw
-    if pc_clean.upper().startswith('PC:'):
-        pc_clean = pc_clean[3:].strip()
-    
-    batches = list(CuttingBatch.objects.select_related(
-        'order_item__order__customer',
-        'order_item__article__model'
-    ).filter(pastal_code__iexact=pc_clean).order_by('-created_at')[:2])
-    if len(batches) == 1:
-        return batches[0], None, None, 'PASTAL_CODE', pc_clean
-
-    # 8. Sof son bo'lsa (masalan: "45")
-    if raw.isdigit():
-        num = int(raw)
-        # Avval Batch ID deb tekshiramiz
-        batch = CuttingBatch.objects.select_related(
-            'order_item__order__customer',
-            'order_item__article__model'
-        ).filter(id=num).first()
-        if batch:
-            return batch, None, None, 'PASTAL_ID', str(num)
-
-        # Quti ID deb tekshiramiz
-        box = Box.objects.select_related(
-            'order__customer',
-            'article__model',
-            'cutting_batch_item__batch'
-        ).filter(id=num).first()
-        if box:
-            batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
-            return batch, box, None, 'BOX_ID', str(num)
-
-        # Ticket ID deb tekshiramiz
-        ticket = Ticket.objects.select_related(
-            'box__order__customer',
-            'box__article__model',
-            'box__cutting_batch_item__batch__order_item__article',
-            'article_operation__operation'
-        ).filter(id=num).first()
-        if ticket:
-            box = ticket.box
-            batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
-            return batch, box, ticket, 'TICKET_ID', str(num)
-
-    # 9. BOX: yoki QUTI: prefiksi
+    # 7. BOX: yoki QUTI: prefiksi
     if raw.upper().startswith(('BOX:', 'QUTI:')):
         bx_clean = raw.split(':', 1)[1].strip()
         box = Box.objects.select_related(
@@ -246,9 +282,11 @@ def resolve_code_to_entity(raw_code: str):
         ).filter(box_code__iexact=bx_clean).first()
         if box:
             batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
             return batch, box, None, 'BOX_CODE', bx_clean
 
-    # 10. Zakaz raqami (masalan: ORD-101, ZAK-001, ORDER:ZAK-001)
+    # 8. Zakaz raqami (masalan: ORD-101, ZAK-001, ORDER:ZAK-001)
     cand_ord_num = raw
     if cand_ord_num.upper().startswith(('ORDER:', 'ZAKAZ:')):
         cand_ord_num = cand_ord_num.split(':', 1)[1].strip()
@@ -260,6 +298,39 @@ def resolve_code_to_entity(raw_code: str):
         ).filter(order_item__order=cand_order).first()
         bx_first = cand_order.boxes.first()
         return b_first, bx_first, None, 'ORDER_NUMBER', cand_order.order_number
+
+    # 9. Pastal raqami yoki kodi (foydalanuvchi yaratayotgan pastal raqamini yozganda)
+    # Masalan: "12", "PASTAL 12", "KESIM 12", "PC:12", "P-12", "09-382", "12-pastal"
+    batch = _find_best_cutting_batch(raw)
+    if batch:
+        return batch, None, None, 'PASTAL_CODE', raw
+
+    # 10. Sof son bo'lsa va yuqorida batch topilmagan bo'lsa -> Quti ID yoki Ticket ID bo'yicha tekshirish
+    if raw.isdigit():
+        num = int(raw)
+        box = Box.objects.select_related(
+            'order__customer',
+            'article__model',
+            'cutting_batch_item__batch'
+        ).filter(id=num).first()
+        if box:
+            batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
+            return batch, box, None, 'BOX_ID', str(num)
+
+        ticket = Ticket.objects.select_related(
+            'box__order__customer',
+            'box__article__model',
+            'box__cutting_batch_item__batch__order_item__article',
+            'article_operation__operation'
+        ).filter(id=num).first()
+        if ticket:
+            box = ticket.box
+            batch = box.cutting_batch_item.batch if (box.cutting_batch_item and box.cutting_batch_item.batch) else None
+            if not batch and box.pastal_number:
+                batch = _find_best_cutting_batch(box.pastal_number)
+            return batch, box, ticket, 'TICKET_ID', str(num)
 
     return None, None, None, 'UNKNOWN', raw
 
@@ -573,14 +644,12 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         if scanned_box.cutting_batch_item and scanned_box.cutting_batch_item.batch:
             batch = scanned_box.cutting_batch_item.batch
         elif scanned_box.pastal_number:
-            batch = CuttingBatch.objects.select_related(
-                'order_item__order__customer',
-                'order_item__article__model'
-            ).filter(
-                order_item__order=scanned_box.order,
-                order_item__article=scanned_box.target_article,
-                pastal_code=scanned_box.pastal_number
-            ).first()
+            batch = _find_best_cutting_batch(scanned_box.pastal_number)
+    elif not batch and scanned_ticket and scanned_ticket.box:
+        if scanned_ticket.box.cutting_batch_item and scanned_ticket.box.cutting_batch_item.batch:
+            batch = scanned_ticket.box.cutting_batch_item.batch
+        elif scanned_ticket.box.pastal_number:
+            batch = _find_best_cutting_batch(scanned_ticket.box.pastal_number)
 
     # Barcha tegishli qutilarni olish
     boxes_query = Q()
@@ -781,14 +850,8 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         if not batch and scanned_box:
             if scanned_box.cutting_batch_item and scanned_box.cutting_batch_item.batch:
                 batch = scanned_box.cutting_batch_item.batch
-            elif scanned_box.pastal_number and scanned_box.order:
-                batch = CuttingBatch.objects.select_related(
-                    'order_item__order__customer',
-                    'order_item__article__model'
-                ).filter(
-                    Q(pastal_code=scanned_box.pastal_number) | Q(batch_number=scanned_box.pastal_number),
-                    order_item__order=scanned_box.order
-                ).first()
+            elif scanned_box.pastal_number:
+                batch = _find_best_cutting_batch(scanned_box.pastal_number)
             if not batch and scanned_box.order:
                 batch = CuttingBatch.objects.select_related(
                     'order_item__order__customer',
