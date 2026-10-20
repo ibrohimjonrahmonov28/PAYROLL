@@ -888,16 +888,13 @@
                 const res = await resp.json();
                 if (res.success && res.batch_id) {
                     playBeep(980, 0.15);
-                    if (res.dispatch_status === 'DISPATCHED' && res.assigned_screen) {
+                    if (res.assigned_screen) {
+                        currentScreenNumber = res.assigned_screen;
                         if (res.assigned_branch && res.assigned_branch !== currentMasterBranch) {
                             switchMasterBranch(res.assigned_branch, false);
                         }
-                        switchTab('patoks');
-                        openPatokDetail(res.assigned_screen, res.patok_code, res.patok_name);
-                        showToast(`Pastal #${res.batch_number} (${res.patok_code}-Patokda kutilmoqda)`, 'success');
-                    } else {
-                        openPastalBoxesModal(res.batch_id);
                     }
+                    openPastalBoxesModal(res.batch_id);
                 } else {
                     // Fallback: try identifying as a master UID
                     identifyMasterFromBadge(clean);
@@ -1278,7 +1275,7 @@
                                     <button onclick="openPastalBoxesModal(${p.batch_id})" 
                                         class="py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 touch-btn">
                                         <i class="fa-solid fa-eye text-base"></i>
-                                        <span>KO'RISH VA QABUL QILISH</span>
+                                        <span>KO'RISH</span>
                                     </button>
                                 </div>
                             </div>
