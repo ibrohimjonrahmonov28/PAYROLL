@@ -398,3 +398,107 @@ class MasterStatisticsComprehensiveTest(TestCase):
         self.assertEqual(batch.dispatch_status, CuttingBatch.DispatchStatus.ACCEPTED)
         self.assertEqual(batch.accepted_by, self.master_user)
 
+    def test_strictly_master_isolation_and_box_operations(self):
+        # 1. Master Ali (assigned_screen = 1 / K1-Patok)
+        session = self.client.session
+        session['master_user_id'] = self.master_user.id
+        session.save()
+
+        # 2. Master summary FAQAT 1-patokni qaytarishi kerak
+        url_summary = reverse('production:master_tablet_patoks')
+        res_summary = self.client.get(url_summary)
+        self.assertEqual(res_summary.status_code, 200)
+        data_summary = res_summary.json()
+        self.assertTrue(data_summary['success'])
+        self.assertEqual(len(data_summary['patoks']), 1)
+        self.assertEqual(data_summary['patoks'][0]['screen_number'], 1)
+        self.assertEqual(data_summary['patoks'][0]['patok_code'], 'K1')
+
+        # 3. Master begona patokni (masalan 2-patok) ochishga urinsa 403 olishi kerak
+        url_foreign_patok = reverse('production:master_tablet_patok_detail', kwargs={'screen_number': 2})
+        res_foreign = self.client.get(url_foreign_patok)
+        self.assertEqual(res_foreign.status_code, 403)
+        self.assertFalse(res_foreign.json()['success'])
+
+        # 4. Master o'zining 1-patog'ini muammosiz ko'ra oladi
+        url_own_patok = reverse('production:master_tablet_patok_detail', kwargs={'screen_number': 1})
+        res_own = self.client.get(url_own_patok)
+        self.assertEqual(res_own.status_code, 200)
+        self.assertTrue(res_own.json()['success'])
+
+        # 5. Quti va uning operatsiyasini tekshiramiz
+        batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=11,
+            pastal_code="P-11",
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+            accepted_by=self.master_user
+        )
+        batch_item = CuttingBatchItem.objects.create(
+            batch=batch,
+            order_item_size=self.size,
+            quantity=50,
+            real_quantity=50
+        )
+        box = Box.objects.create(
+            order=self.order,
+            box_number=1,
+            box_code="BX-11-1",
+            razmer="M",
+            quantity=50,
+            cutting_batch_item=batch_item
+        )
+        worker = Worker.objects.create(
+            worker_id="TIK-007",
+            first_name="Nodira",
+            last_name="Tikuvchi",
+            is_active=True
+        )
+        ticket = Ticket.objects.create(
+            box=box,
+            article_operation=self.art_op,
+            ticket_code="TCK-11-1-1",
+            quantity=50,
+            status=Ticket.Status.SCANNED,
+            worker=worker,
+            screen_number=1,
+            scanned_at=timezone.now()
+        )
+
+        # 6. Pasport modalida har bir qutining operatsiyalari, kim qilgani va patogi chiqishi kerak
+        url_boxes = reverse('production:master_tablet_pastal_boxes', kwargs={'batch_id': batch.id})
+        res_boxes = self.client.get(url_boxes)
+        self.assertEqual(res_boxes.status_code, 200)
+        data_boxes = res_boxes.json()
+        self.assertTrue(data_boxes['success'])
+
+        boxes_list = data_boxes['boxes']
+        self.assertEqual(len(boxes_list), 1)
+        b_item = boxes_list[0]
+        self.assertEqual(b_item['scanned_tickets_count'], 1)
+        self.assertEqual(len(b_item['operations']), 1)
+        op_info = b_item['operations'][0]
+        self.assertEqual(op_info['ticket_id'], ticket.id)
+        self.assertTrue(op_info['is_scanned'])
+        self.assertEqual(op_info['worker_name'], "Nodira Tikuvchi")
+        self.assertEqual(op_info['patok_code'], "K1")
+        self.assertTrue(len(op_info['scanned_at']) > 0)
+
+        # 7. Begona patokka tegishli pastalni lookup qilganda 403 olishi kerak
+        foreign_batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=22,
+            pastal_code="P-22",
+            assigned_screen=2,
+            dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED
+        )
+        url_lookup = reverse('production:master_tablet_lookup_pastal')
+        res_lookup = self.client.post(
+            url_lookup,
+            data={'code': f"PASTAL:{foreign_batch.id}"},
+            content_type='application/json'
+        )
+        self.assertEqual(res_lookup.status_code, 403)
+        self.assertFalse(res_lookup.json()['success'])
+

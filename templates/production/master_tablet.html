@@ -164,7 +164,7 @@
                     <button onclick="switchTab('patoks')" id="tab-btn-patoks" 
                         class="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 touch-btn">
                         <i class="fa-solid fa-boxes-stacked"></i>
-                        <span>Patoklar (Qabul qilish)</span>
+                        <span id="tab-patoks-label">{% if is_strictly_master and master_patok_code %}{{ master_patok_code }}-Patog'im{% else %}Patoklar (Qabul qilish){% endif %}</span>
                     </button>
                     <button onclick="switchTab('monthly')" id="tab-btn-monthly" 
                         class="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all text-slate-400 hover:text-white touch-btn">
@@ -197,11 +197,17 @@
             
             <!-- Navigation Breadcrumb / Patok Header -->
             <div id="patok-nav-header" class="hidden items-center justify-between mb-3 flex-shrink-0">
-                <button onclick="backToPatoksGrid()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black flex items-center gap-2 border border-slate-700 touch-btn">
+                <button id="btn-back-to-patoks" onclick="backToPatoksGrid()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black flex items-center gap-2 border border-slate-700 touch-btn">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Barcha Patoklar</span>
                 </button>
-                <div class="text-xs text-slate-400 font-bold">
+                <div id="strictly-master-lock-badge" class="{% if not is_strictly_master or not master_assigned_screen %}hidden{% endif %} items-center gap-2">
+                    <span class="px-3.5 py-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-indigo-400"></i>
+                        <span id="master-exclusive-badge-text">{{ master_patok_code }}-Patok (Faqat sizning patog'ingiz)</span>
+                    </span>
+                </div>
+                <div id="nav-building-info" class="text-xs text-slate-400 font-bold {% if is_strictly_master and master_assigned_screen %}hidden{% endif %}">
                     <span id="nav-building-label">Kosonsoy</span> patoklari
                 </div>
             </div>
@@ -209,7 +215,7 @@
             <!-- SECTION A: PATOKS GRID (Faqat shu binodagi patoklar) -->
             <div id="patoks-grid-section" class="flex-1 overflow-y-auto pr-1">
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" id="branch-selector-container">
                         <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400">Patokni tanlang:</h3>
                         <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
                             <button type="button" onclick="switchMasterBranch('HQ')" id="branch-btn-hq"
@@ -609,7 +615,13 @@
                         </button>
                     </div>
 
-                    <span class="text-[11px] text-slate-400 hidden sm:inline" id="modal-visible-count">0 ta quti</span>
+                    <div class="flex items-center gap-2.5">
+                        <button type="button" onclick="toggleAllBoxOperations()" class="text-xs text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-800 transition touch-btn">
+                            <i class="fa-solid fa-list-check text-indigo-400"></i>
+                            <span id="btn-toggle-all-ops-text">Barcha operatsiyalar</span>
+                        </button>
+                        <span class="text-[11px] text-slate-400 hidden sm:inline" id="modal-visible-count">0 ta quti</span>
+                    </div>
                 </div>
 
                 <!-- Boxes Cards Grid -->
@@ -650,6 +662,9 @@
     <script>
         // State variables
         let isMasterActive = {% if master %}true{% else %}false{% endif %};
+        let isStrictlyMaster = {% if is_strictly_master %}true{% else %}false{% endif %};
+        let masterAssignedScreen = {% if master_assigned_screen %}{{ master_assigned_screen }}{% else %}null{% endif %};
+        let masterPatokCode = '{{ master_patok_code|default:"" }}';
         let currentMasterBranch = '{{ master.branch|default:"HQ" }}';
         let currentScreenNumber = null;
         let autoLogoutSeconds = 300; // 5 daqiqa (300 soniya)
@@ -724,19 +739,46 @@
             }, 4000);
         }
 
+        function updateStrictlyMasterUI() {
+            const btnBack = document.getElementById('btn-back-to-patoks');
+            const lockBadge = document.getElementById('strictly-master-lock-badge');
+            const lockBadgeText = document.getElementById('master-exclusive-badge-text');
+            const branchContainer = document.getElementById('branch-selector-container');
+            const navBuildingInfo = document.getElementById('nav-building-info');
+            const tabPatoksLabel = document.getElementById('tab-patoks-label');
+
+            if (isStrictlyMaster && masterAssignedScreen) {
+                if (btnBack) btnBack.classList.add('hidden');
+                if (lockBadge) lockBadge.classList.remove('hidden');
+                if (lockBadgeText) lockBadgeText.innerText = `${masterPatokCode || 'P'}-Patok (Faqat sizning patog'ingiz)`;
+                if (branchContainer) branchContainer.classList.add('hidden');
+                if (navBuildingInfo) navBuildingInfo.classList.add('hidden');
+                if (tabPatoksLabel) tabPatoksLabel.innerText = `${masterPatokCode || 'P'}-Patog'im`;
+            } else {
+                if (btnBack) btnBack.classList.remove('hidden');
+                if (lockBadge) lockBadge.classList.add('hidden');
+                if (branchContainer) branchContainer.classList.remove('hidden');
+                if (navBuildingInfo) navBuildingInfo.classList.remove('hidden');
+                if (tabPatoksLabel) tabPatoksLabel.innerText = "Patoklar (Qabul qilish)";
+            }
+        }
+
         // Document Ready Init
         document.addEventListener('DOMContentLoaded', () => {
             initScannerInputFocus();
             updateBranchButtonsUI(currentMasterBranch);
+            updateStrictlyMasterUI();
 
             if (isMasterActive) {
                 startAutoLogoutTimer();
                 startBackgroundAutoRefresh();
-                {% if master_assigned_screen %}
-                openPatokDetail({{ master_assigned_screen }}, '{{ master_patok_code|default:"P" }}', '{{ master_patok_code|default:"Patok" }}');
-                {% else %}
-                loadPatoksForBuilding(currentMasterBranch);
-                {% endif %}
+                if (isStrictlyMaster && masterAssignedScreen) {
+                    openPatokDetail(masterAssignedScreen, masterPatokCode || 'P', (masterPatokCode || 'Patok') + '-Patok');
+                } else if (masterAssignedScreen) {
+                    openPatokDetail(masterAssignedScreen, masterPatokCode || 'P', (masterPatokCode || 'Patok') + '-Patok');
+                } else {
+                    loadPatoksForBuilding(currentMasterBranch);
+                }
                 loadMasterMonthlyWork();
             }
         });
@@ -889,12 +931,19 @@
                 if (res.success && res.batch_id) {
                     playBeep(980, 0.15);
                     if (res.assigned_screen) {
+                        if (isStrictlyMaster && masterAssignedScreen && Number(res.assigned_screen) !== Number(masterAssignedScreen)) {
+                            showToast(`Ushbu pastal boshqa patokka tegishli!`, 'error');
+                            return;
+                        }
                         currentScreenNumber = res.assigned_screen;
-                        if (res.assigned_branch && res.assigned_branch !== currentMasterBranch) {
+                        if (!isStrictlyMaster && res.assigned_branch && res.assigned_branch !== currentMasterBranch) {
                             switchMasterBranch(res.assigned_branch, false);
                         }
                     }
                     openPastalBoxesModal(res.batch_id);
+                } else if (res.message) {
+                    playBeep(300, 0.25);
+                    showToast(res.message, 'error');
                 } else {
                     // Fallback: try identifying as a master UID
                     identifyMasterFromBadge(clean);
@@ -942,8 +991,13 @@
                 if (res.success) {
                     playBeep(980, 0.15); // Success tone
                     isMasterActive = true;
+                    isStrictlyMaster = !!res.master.is_strictly_master;
+                    masterAssignedScreen = res.master.assigned_screen || null;
+                    masterPatokCode = res.master.patok_code || '';
                     currentMasterBranch = res.master.branch || 'HQ';
                     lastKnownWaitingCount = null;
+
+                    updateStrictlyMasterUI();
 
                     // Update UI elements
                     document.getElementById('header-avatar').innerText = (res.master.name || 'M').charAt(0).toUpperCase();
@@ -965,7 +1019,9 @@
                     startAutoLogoutTimer();
                     startBackgroundAutoRefresh();
                     switchTab('patoks');
-                    if (res.master.assigned_screen) {
+                    if (isStrictlyMaster && masterAssignedScreen) {
+                        openPatokDetail(masterAssignedScreen, masterPatokCode, `${masterPatokCode}-Patok`);
+                    } else if (res.master.assigned_screen) {
                         const pCode = res.master.patok_code || `P-${res.master.assigned_screen}`;
                         openPatokDetail(res.master.assigned_screen, pCode, `${pCode}-Patok`);
                     } else {
@@ -1044,6 +1100,10 @@
             } catch (e) {}
 
             isMasterActive = false;
+            isStrictlyMaster = false;
+            masterAssignedScreen = null;
+            masterPatokCode = '';
+            updateStrictlyMasterUI();
             currentScreenNumber = null;
             cachedMonthlyPastals = [];
             currentWaitingPastals = [];
@@ -1150,6 +1210,10 @@
 
         // Open Patok Detail
         async function openPatokDetail(screenNumber, patokCode, patokName) {
+            if (isStrictlyMaster && masterAssignedScreen && Number(screenNumber) !== Number(masterAssignedScreen)) {
+                showToast(`Siz faqat o'zingizga biriktirilgan ${masterPatokCode || 'P'}-Patokni ko'ra olasiz!`, 'error');
+                return;
+            }
             currentScreenNumber = screenNumber;
 
             document.getElementById('patoks-grid-section').classList.add('hidden');
@@ -1164,6 +1228,9 @@
         }
 
         function backToPatoksGrid() {
+            if (isStrictlyMaster && masterAssignedScreen) {
+                return; // Master o'z patog'idan chiqib ketolmaydi
+            }
             currentScreenNumber = null;
             document.getElementById('patok-detail-section').classList.add('hidden');
             document.getElementById('patoks-grid-section').classList.remove('hidden');
@@ -1488,7 +1555,13 @@
                 btnMonthly.className = "px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all text-slate-400 hover:text-white touch-btn";
 
                 monthlySection.classList.add('hidden');
-                if (currentScreenNumber) {
+                if (isStrictlyMaster && masterAssignedScreen) {
+                    currentScreenNumber = masterAssignedScreen;
+                    patokDetail.classList.remove('hidden');
+                    patokNavHeader.classList.remove('hidden');
+                    patoksGrid.classList.add('hidden');
+                    loadPatokPastals(masterAssignedScreen);
+                } else if (currentScreenNumber) {
                     patokDetail.classList.remove('hidden');
                     patokNavHeader.classList.remove('hidden');
                     patoksGrid.classList.add('hidden');
@@ -2013,6 +2086,51 @@
                     `;
                 }
 
+                let opsListHtml = '';
+                if (b.operations && b.operations.length > 0) {
+                    opsListHtml = b.operations.map(op => {
+                        if (op.is_scanned) {
+                            return `
+                                <div class="bg-slate-900/90 border border-emerald-500/30 rounded-lg p-2 text-xs flex flex-col gap-1 shadow-sm">
+                                    <div class="flex items-start justify-between gap-1.5">
+                                        <div class="font-bold text-white flex items-center gap-1.5 leading-tight">
+                                            <i class="fa-solid fa-circle-check text-emerald-400 text-xs flex-shrink-0"></i>
+                                            <span>${op.sequence ? op.sequence + '. ' : ''}${escapeHtml(op.operation_name)}</span>
+                                        </div>
+                                        <span class="px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-black text-[10px] flex-shrink-0">
+                                            ${escapeHtml(op.patok_code)}-Patok
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                                        <span class="text-indigo-300 font-bold flex items-center gap-1 truncate">
+                                            <i class="fa-solid fa-user text-[10px] text-indigo-400"></i>
+                                            <span>${escapeHtml(op.worker_name || 'Ishchi')}</span>
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 flex items-center gap-1 flex-shrink-0">
+                                            <i class="fa-regular fa-clock text-[9px]"></i>
+                                            <span>${escapeHtml(op.scanned_at)}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-2 text-xs flex items-center justify-between gap-2 opacity-75">
+                                    <div class="font-bold text-slate-300 flex items-center gap-1.5 truncate">
+                                        <i class="fa-regular fa-clock text-amber-400 text-xs flex-shrink-0"></i>
+                                        <span class="leading-tight truncate">${op.sequence ? op.sequence + '. ' : ''}${escapeHtml(op.operation_name)}</span>
+                                    </div>
+                                    <span class="text-[10px] text-amber-400/90 font-semibold flex-shrink-0">
+                                        ⏳ Urilmagan
+                                    </span>
+                                </div>
+                            `;
+                        }
+                    }).join('');
+                } else {
+                    opsListHtml = `<div class="py-2 text-center text-[11px] text-slate-500">Operatsiyalar ro'yxati mavjud emas</div>`;
+                }
+
                 return `
                     <div class="${cardBg} border-2 rounded-2xl p-3.5 flex flex-col justify-between gap-2.5 shadow-md transition-all">
                         <div>
@@ -2043,6 +2161,21 @@
                                 <span class="font-bold font-mono text-slate-200">${b.scanned_tickets_count} / ${b.total_tickets_count}</span>
                             </div>
                             ${pendingOpsHtml}
+
+                            <!-- Expandable Box Operations Accordion -->
+                            <div class="mt-2">
+                                <button type="button" onclick="toggleBoxOperations(${b.box_id})" 
+                                    class="w-full py-1.5 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 active:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white flex items-center justify-between text-xs font-bold transition">
+                                    <span class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-list-check text-indigo-400"></i>
+                                        <span>Operatsiyalar (${b.scanned_tickets_count}/${b.total_tickets_count})</span>
+                                    </span>
+                                    <i id="box-ops-arrow-${b.box_id}" class="box-ops-arrow fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
+                                </button>
+                                <div id="box-ops-drawer-${b.box_id}" class="box-ops-drawer hidden mt-1.5 space-y-1.5 bg-slate-950 p-2 rounded-xl border border-slate-800/90 max-h-56 overflow-y-auto">
+                                    ${opsListHtml}
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Status Footer -->
@@ -2059,11 +2192,56 @@
             }).join('');
         }
 
+        let areAllOpsExpanded = false;
+
+        function toggleBoxOperations(boxId) {
+            const drawer = document.getElementById(`box-ops-drawer-${boxId}`);
+            const arrow = document.getElementById(`box-ops-arrow-${boxId}`);
+            if (!drawer) return;
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+                if (arrow) arrow.classList.add('rotate-180');
+            } else {
+                drawer.classList.add('hidden');
+                if (arrow) arrow.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleAllBoxOperations() {
+            areAllOpsExpanded = !areAllOpsExpanded;
+            const drawers = document.querySelectorAll('.box-ops-drawer');
+            const arrows = document.querySelectorAll('.box-ops-arrow');
+            const btnText = document.getElementById('btn-toggle-all-ops-text');
+
+            drawers.forEach(d => {
+                if (areAllOpsExpanded) {
+                    d.classList.remove('hidden');
+                } else {
+                    d.classList.add('hidden');
+                }
+            });
+
+            arrows.forEach(a => {
+                if (areAllOpsExpanded) {
+                    a.classList.add('rotate-180');
+                } else {
+                    a.classList.remove('rotate-180');
+                }
+            });
+
+            if (btnText) {
+                btnText.innerText = areAllOpsExpanded ? "Operatsiyalarni yopish" : "Barcha operatsiyalar";
+            }
+        }
+
         function closePastalBoxesModal() {
             document.getElementById('pastal-boxes-modal').classList.add('hidden');
             currentModalBatchId = null;
             currentModalPastal = null;
             currentModalBoxes = [];
+            areAllOpsExpanded = false;
+            const btnText = document.getElementById('btn-toggle-all-ops-text');
+            if (btnText) btnText.innerText = "Barcha operatsiyalar";
         }
     </script>
 </body>

@@ -113,6 +113,7 @@ def master_tablet_view(request):
 
     master_assigned_screen = master.assigned_screen_number if master else None
     master_patok_code = get_patok_code(master_assigned_screen) if master_assigned_screen else None
+    is_strictly_master = (master.role == User.Role.MASTER) if master else False
 
     context = {
         'master': master,
@@ -121,6 +122,7 @@ def master_tablet_view(request):
         'master_branch_display': master_branch_display,
         'master_assigned_screen': master_assigned_screen,
         'master_patok_code': master_patok_code,
+        'is_strictly_master': is_strictly_master,
         'default_branch': default_branch,
         'now_date': timezone.localdate(),
     }
@@ -199,6 +201,7 @@ def api_identify_master(request):
             'branch_display': "Kosonsoy (Bosh bino)" if branch == User.Branch.HQ else "Uychi filiali",
             'assigned_screen': sn,
             'patok_code': p_code,
+            'is_strictly_master': (user.role == User.Role.MASTER),
         }
     })
 
@@ -220,10 +223,17 @@ def api_get_patoks_summary(request):
     Parametr: ?branch=HQ yoki UYCHI
     """
     master = _get_active_master(request)
-    branch = request.GET.get('branch') or (master.branch if (master and getattr(master, 'branch', None)) else 'HQ')
 
-    is_hq = (branch == 'HQ')
-    screen_numbers = list(range(1, 14)) if is_hq else list(range(14, 25))
+    # Agar foydalanuvchi oddiy MASTER bo'lsa va unga patok biriktirilgan bo'lsa:
+    # U FAQAT o'zining patog'ini ko'radi, boshqa patoklar unga berilmaydi!
+    if master and master.role == User.Role.MASTER and master.assigned_screen_number:
+        branch = master.branch or User.Branch.HQ
+        is_hq = (branch == User.Branch.HQ)
+        screen_numbers = [master.assigned_screen_number]
+    else:
+        branch = request.GET.get('branch') or (master.branch if (master and getattr(master, 'branch', None)) else 'HQ')
+        is_hq = (branch == 'HQ')
+        screen_numbers = list(range(1, 14)) if is_hq else list(range(14, 25))
 
     # Kutilayotgan (DISPATCHED) pastallar (bekor qilingan zakazlarni chiqarib tashlaymiz)
     dispatched_batches = CuttingBatch.objects.filter(
@@ -326,6 +336,17 @@ def api_get_patok_detail(request, screen_number):
     2. Faol qabul qilingan pastallar (ACCEPTED) — Ish jarayonida
     """
     screen_number = int(screen_number)
+    master = _get_active_master(request)
+
+    # Agar MASTER roli bo'lsa va unga boshqa patok berilgan bo'lsa, begona patokni ochishni bloklaymiz
+    if master and master.role == User.Role.MASTER and master.assigned_screen_number:
+        if screen_number != master.assigned_screen_number:
+            p_code_allowed = get_patok_code(master.assigned_screen_number)
+            return JsonResponse({
+                'success': False,
+                'message': f"Siz faqat o'zingizga biriktirilgan {p_code_allowed}-Patokni ko'ra olasiz!"
+            }, status=403)
+
     p_code = get_patok_code(screen_number)
     p_name = get_patok_name(screen_number)
 
@@ -455,6 +476,16 @@ def api_accept_pastal(request):
         return JsonResponse({'success': False, 'message': "batch_id yoki screen_number berilmadi"}, status=400)
 
     sn = int(screen_number)
+
+    # Agar MASTER roli bo'lsa va boshqa patok uchun qabul qilmoqchi bo'lsa, cheklaymiz
+    if master.role == User.Role.MASTER and master.assigned_screen_number:
+        if sn != master.assigned_screen_number:
+            p_code_allowed = get_patok_code(master.assigned_screen_number)
+            return JsonResponse({
+                'success': False,
+                'message': f"Siz faqat o'zingizga biriktirilgan {p_code_allowed}-Patok uchun pastal qabul qila olasiz!"
+            }, status=403)
+
     p_code = get_patok_code(sn)
 
     with transaction.atomic():
@@ -722,13 +753,23 @@ def api_get_pastal_boxes_detail(request, batch_id):
     if not batch:
         return JsonResponse({'success': False, 'message': "Pastal topilmadi"}, status=404)
 
+    master = _get_active_master(request)
+    if master and master.role == User.Role.MASTER and master.assigned_screen_number:
+        if batch.assigned_screen and batch.assigned_screen != master.assigned_screen_number:
+            p_code_allowed = get_patok_code(master.assigned_screen_number)
+            return JsonResponse({
+                'success': False,
+                'message': f"Ushbu pastal boshqa patokka tegishli. Siz faqat {p_code_allowed}-Patok pastallarini ko'ra olasiz!"
+            }, status=403)
+
     order = batch.order_item.order if batch.order_item else None
     article = batch.order_item.article if batch.order_item else None
     customer_name = order.customer.name if (order and order.customer) else (order.client_name if order else '—')
     p_code = get_patok_code(batch.assigned_screen) if batch.assigned_screen else '—'
 
     boxes_qs = _get_batch_active_boxes(batch).prefetch_related(
-        'tickets__article_operation__operation'
+        'tickets__article_operation__operation',
+        'tickets__worker'
     ).order_by('box_number')
 
     boxes = list(boxes_qs)
@@ -769,12 +810,35 @@ def api_get_pastal_boxes_detail(request, batch_id):
         # Hali urilmagan operatsiyalar nomlari (Master qaysi operatsiya qolganini ko'rishi uchun)
         pending_ops = []
         has_dazmol = False
+        bx_operations = []
+
         for t in all_bx_tickets:
-            op_name = (
-                t.article_operation.operation.name
-                if (t.article_operation and t.article_operation.operation)
-                else ''
-            )
+            op = t.article_operation.operation if t.article_operation else None
+            op_name = op.name if op else "Operatsiya"
+            op_code = op.code if op else ""
+            seq = t.article_operation.sequence if t.article_operation else 0
+
+            worker_name = ""
+            if t.worker:
+                worker_name = t.worker.full_name or t.worker.worker_id or "Ishchi"
+
+            patok_code = get_patok_code(t.screen_number) if t.screen_number else "—"
+            scanned_at_str = timezone.localtime(t.scanned_at).strftime("%d.%m.%Y %H:%M") if t.scanned_at else ""
+
+            bx_operations.append({
+                'ticket_id': t.id,
+                'ticket_code': t.ticket_code,
+                'stiker_code': t.stiker_code or "",
+                'sequence': seq,
+                'operation_name': op_name,
+                'operation_code': op_code,
+                'is_scanned': (t.status == Ticket.Status.SCANNED),
+                'worker_name': worker_name,
+                'patok_code': patok_code,
+                'screen_number': t.screen_number,
+                'scanned_at': scanned_at_str,
+            })
+
             op_upper = op_name.upper()
             if t.status == Ticket.Status.SCANNED:
                 if 'DAZMOL' in op_upper and 'TASMA' not in op_upper and "CHO'NTAK" not in op_upper:
@@ -782,6 +846,8 @@ def api_get_pastal_boxes_detail(request, batch_id):
             else:
                 if op_name and op_name not in pending_ops:
                     pending_ops.append(op_name)
+
+        bx_operations.sort(key=lambda x: (x['sequence'] or 999, x['ticket_id']))
 
         if is_closed:
             status_mode = 'CLOSED'
@@ -817,6 +883,7 @@ def api_get_pastal_boxes_detail(request, batch_id):
             'total_tickets_count': total_tickets_cnt,
             'pending_operations': pending_ops[:5],
             'pending_operations_more': max(0, len(pending_ops) - 5),
+            'operations': bx_operations,
             'status_mode': status_mode,
             'status_text': status_text,
         })
@@ -914,6 +981,15 @@ def api_lookup_pastal_by_code(request):
             'success': False,
             'message': f"Ushbu kod bo'yicha pastal topilmadi: {raw_code}"
         }, status=404)
+
+    master = _get_active_master(request)
+    if master and master.role == User.Role.MASTER and master.assigned_screen_number:
+        if batch.assigned_screen and batch.assigned_screen != master.assigned_screen_number:
+            p_code_allowed = get_patok_code(master.assigned_screen_number)
+            return JsonResponse({
+                'success': False,
+                'message': f"Ushbu pastal boshqa patokka tegishli. Siz faqat {p_code_allowed}-Patok pastallarini ochishingiz mumkin!"
+            }, status=403)
 
     sn = batch.assigned_screen
     p_code = get_patok_code(sn) if sn else '—'
