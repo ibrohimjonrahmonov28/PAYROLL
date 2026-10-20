@@ -134,15 +134,21 @@ def _find_best_cutting_batch(identifier: str):
         Q(pastal_code__iexact=clean_id) |
         Q(partiya_number__iexact=norm) |
         Q(partiya_number__iexact=clean_id) |
-        Q(name__iexact=norm)
+        Q(name__iexact=norm) |
+        Q(pastal_code__iexact=clean_id.replace(' ', '-')) |
+        Q(pastal_code__iexact=clean_id.replace('-', ' ')) |
+        Q(order_item__order__order_number__iexact=clean_id) |
+        Q(order_item__order__order_number__iexact=norm)
     )
 
     if norm.isdigit():
         num = int(norm)
         q_filter |= Q(batch_number=num) | Q(id=num)
+        q_filter |= Q(pastal_code__endswith=f"-{num}") | Q(pastal_code__endswith=f"/{num}")
     elif clean_id.isdigit():
         num = int(clean_id)
         q_filter |= Q(batch_number=num) | Q(id=num)
+        q_filter |= Q(pastal_code__endswith=f"-{num}") | Q(pastal_code__endswith=f"/{num}")
 
     qs = CuttingBatch.objects.select_related(
         'order_item__order__customer',
@@ -730,33 +736,30 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             c_b = list(item.boxes.filter(status=Box.Status.CANCELLED).order_by('box_number'))
             a_b = list(item.boxes.exclude(status=Box.Status.CANCELLED).order_by('box_number'))
 
-            if c_b and not a_b:
+            active_qty = sum(b.quantity for b in a_b)
+            target_qty = item.effective_quantity or item.quantity
+
+            if not a_b:
                 problematic_sizes.append(s_name)
                 c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
                 cancelled_reports.append(
-                    f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
-                    f"   • Barcha qutilar bekor qilingan: {c_range} (Yangi qutilar yaratilmagan ❌)"
+                    f"❌ *Razmer {s_name}* ({target_qty} dona):\n"
+                    f"   • Qutilar mavjud emas (barchasi atmen bo'lgan yoki yaratilmagan ❌)"
                 )
-            elif c_b and a_b:
+            elif c_b and active_qty < target_qty:
                 problematic_sizes.append(s_name)
                 c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else f"#{a_b[0].box_number}"
                 cancelled_reports.append(
-                    f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
+                    f"❌ *Razmer {s_name}* ({target_qty} dona):\n"
                     f"   • Eski atmen qutilar: {c_range} ({len(c_b)} ta quti ATMEN ❌)\n"
-                    f"   • Yangi to'g'ri qutilar: {a_range} ({len(a_b)} ta quti ✅)"
-                )
-            elif not a_b:
-                problematic_sizes.append(s_name)
-                cancelled_reports.append(
-                    f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
-                    f"   • Qutilar hali yaratilmagan (Metoda tasdiqlanmagan ❌)"
+                    f"   • Faol qutilar: {a_range} (faqat {active_qty} dona, qolgani yetishmaydi ❌)"
                 )
             else:
                 clean_sizes.append(s_name)
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
                 clean_reports.append(
-                    f"✅ *Razmer {s_name}* ({item.quantity} dona, {len(a_b)} ta quti):\n"
+                    f"✅ *Razmer {s_name}* ({active_qty} dona, {len(a_b)} ta quti):\n"
                     f"   • Qutilar: {a_range} (To'liq to'g'ri ✅)"
                 )
     else:
@@ -770,33 +773,28 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             c_b = [b for b in b_list if b.status == Box.Status.CANCELLED]
             a_b = [b for b in b_list if b.status != Box.Status.CANCELLED]
             tot_qty = sum(b.quantity for b in b_list)
-            if c_b and not a_b:
+            active_qty = sum(b.quantity for b in a_b)
+            if not a_b:
                 problematic_sizes.append(rz)
                 c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
                 cancelled_reports.append(
                     f"❌ *Razmer {rz}* ({tot_qty} dona):\n"
                     f"   • Barcha qutilar bekor qilingan: {c_range} (Yangi qutilar yo'q ❌)"
                 )
-            elif c_b and a_b:
+            elif c_b and active_qty < tot_qty:
                 problematic_sizes.append(rz)
                 c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else f"#{a_b[0].box_number}"
                 cancelled_reports.append(
                     f"❌ *Razmer {rz}* ({tot_qty} dona):\n"
                     f"   • Eski atmen qutilar: {c_range} ({len(c_b)} ta quti ATMEN ❌)\n"
-                    f"   • Yangi to'g'ri qutilar: {a_range} ({len(a_b)} ta quti ✅)"
-                )
-            elif not a_b:
-                problematic_sizes.append(rz)
-                cancelled_reports.append(
-                    f"❌ *Razmer {rz}*:\n"
-                    f"   • Qutilar mavjud emas ❌"
+                    f"   • Faol qutilar: {a_range} (faqat {active_qty} dona ❌)"
                 )
             else:
                 clean_sizes.append(rz)
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
                 clean_reports.append(
-                    f"✅ *Razmer {rz}* ({tot_qty} dona, {len(a_b)} ta quti):\n"
+                    f"✅ *Razmer {rz}* ({active_qty} dona, {len(a_b)} ta quti):\n"
                     f"   • Qutilar: {a_range} (To'liq to'g'ri ✅)"
                 )
 
@@ -1265,12 +1263,11 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             f"📦 *Jami qutilar:* {total_boxes_count} ta quti ({total_units:,} dona)\n"
             f"⚖️ *Vazni:* {wt_str}\n\n"
             f"📍 Ushbu pastal *{p_c}-Patokka* jo'natilgan va hozirda planshetda qabul qilinishi kutilmoqda.\n"
-            f"🚫 *Siz uni hozir qayta jo'nata olmaysiz!*\n\n"
-            f"ℹ️ _Agar ushbu pastal boshqa patokka berilishi kerak bo'lsa, avval *{p_c}-Patok* masteri planshetda uni 'Qaytarish' (Rad etish) qilishi shart._"
+            f"ℹ️ _Siz vazn kiritishingiz yoki pastalni boshqa patokka qayta yo'naltirishingiz mumkin._\n"
         ).replace(",", " ")
         return {
-            'success': False,
-            'can_release': False,
+            'success': True,
+            'can_release': True,
             'status_code': 'DISPATCHED_WAITING',
             'title': "⏳ PASTAL HOZIRDA KUTILMOQDA",
             'message': dispatched_message,

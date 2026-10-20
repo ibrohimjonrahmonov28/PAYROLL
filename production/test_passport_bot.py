@@ -389,19 +389,19 @@ class PassportVerificationTestCase(TestCase):
         self.assertEqual(patok_buttons[-1].text, "U11-Patok")
 
     async def test_dispatch_batch_async_guards(self):
-        """Kutilayotgan (DISPATCHED) yoki qabul qilingan (ACCEPTED) pastal qayta jo'natilishini bloklash"""
+        """Kutilayotgan (DISPATCHED) pastal qayta jo'natilishi mumkin, ammo qabul qilingan (ACCEPTED) bloklanadi"""
         from production.management.commands.run_passport_bot import dispatch_batch_async
         # 1. Muvaffaqiyatli jo'natish
         res1 = await dispatch_batch_async(self.batch.id, 'HQ', 1, 'Tester')
         self.assertFalse(res1['error'])
         self.assertEqual(res1['patok_code'], 'K1')
 
-        # 2. Qayta jo'natishga urinish -> Xatolik berishi kerak
+        # 2. Hali qabul qilinmagan (DISPATCHED) bo'lsa, patokni qayta tanlash mumkin
         res2 = await dispatch_batch_async(self.batch.id, 'HQ', 2, 'Tester')
-        self.assertTrue(res2['error'])
-        self.assertIn("kutilmoqda", res2['message'])
+        self.assertFalse(res2['error'])
+        self.assertEqual(res2['patok_code'], 'K2')
 
-        # 3. ACCEPTED holatida ham bloklanishi kerak
+        # 3. ACCEPTED holatida esa qat'iy bloklanishi kerak
         self.batch.dispatch_status = CuttingBatch.DispatchStatus.ACCEPTED
         await self.batch.asave(update_fields=['dispatch_status'])
 
@@ -425,7 +425,7 @@ class PassportVerificationTestCase(TestCase):
     def test_dispatched_and_accepted_and_closed_pastal_verification_guards(self):
         """
         Pastal holatini tekshirish:
-        1. Agar DISPATCHED (kutilmoqda) bo'lsa -> can_release=False, DISPATCHED_WAITING
+        1. Agar DISPATCHED (kutilmoqda) bo'lsa -> can_release=True (buttonlar chiqishi uchun), DISPATCHED_WAITING
         2. Agar ACCEPTED (qabul qilingan) bo'lsa -> can_release=False, ALREADY_ACCEPTED
         3. Agar barcha qutilar yopilgan bo'lsa -> can_release=False, PASTAL_CLOSED
         """
@@ -435,7 +435,7 @@ class PassportVerificationTestCase(TestCase):
         self.batch.save()
 
         res_disp = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
-        self.assertFalse(res_disp['can_release'])
+        self.assertTrue(res_disp['can_release'])
         self.assertEqual(res_disp['status_code'], 'DISPATCHED_WAITING')
         self.assertIn("KUTILMOQDA", res_disp['message'])
         self.assertIn("K2-Patok", res_disp['message'])
@@ -576,6 +576,31 @@ class PassportVerificationTestCase(TestCase):
         self.assertTrue(res_passport['success'])
         self.assertTrue(res_passport['can_release'])
         self.assertEqual(res_passport['status_code'], 'APPROVED')
+
+    def test_re_split_covered_batch_is_approved_and_can_release(self):
+        """
+        Metoda qutilar qayta bo'lingan (re-split), ammo yangi aktiv qutilar soni
+        to'liq (100%) qoplangan bo'lsa, 'AYRIM RAZMERLAR QAYTA TAQSIMLANGAN' deb bloklamasdan,
+        'PATOKKA BERISH MUMKIN' deb ruxsat berishi shart!
+        """
+        # Eski bekor qilingan quti qo'shamiz (Metoda bo'lingan deb)
+        Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item_m,
+            pastal_number=self.batch.pastal_code,
+            razmer=self.batch_item_m.order_item_size.size_name,
+            quantity=100,
+            status=Box.Status.CANCELLED,
+            box_number=8888
+        )
+        # self.boxes_m (2 ta 50 donalik aktiv qutilar) mavjud, jami: 100 dona == target_qty
+        res = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertTrue(res['success'])
+        self.assertTrue(res['can_release'])
+        self.assertEqual(res['status_code'], 'APPROVED')
+        self.assertIn("PATOKKA BERISH MUMKIN", res['message'])
+
 
 
 
