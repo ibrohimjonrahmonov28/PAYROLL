@@ -2123,6 +2123,176 @@ class BranchAdminUserManagementTests(TestCase):
         self.assertIn(reverse('superadmin_payroll'), res_pricing.url)
 
 
+class SuperAdminOrdersBalanceTests(TestCase):
+    def setUp(self):
+        from production.models import OrderItemSize, CuttingBatch, CuttingBatchItem
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username='balance_superadmin',
+            password='testpassword123',
+            role=User.Role.SUPER_ADMIN,
+        )
+        self.worker = Worker.objects.create(
+            worker_id='W-BAL1',
+            first_name='Madina',
+            last_name='Karimova',
+        )
+
+        self.article = Article.objects.create(code='MOD-BAL-1', name='Tunika Model')
+        self.op_sew = Operation.objects.create(code='OP-SEW-1', name='Yelka tikish')
+        self.op_dazmol = Operation.objects.create(code='OP-DAZ-1', name='DAZMOL')
+
+        # 1 ta ish summasi = 1000 + 500 = 1500 UZS
+        self.ao_sew = ArticleOperation.objects.create(
+            article=self.article,
+            operation=self.op_sew,
+            price_per_unit=Decimal('1000.00'),
+            sequence=1,
+            is_active=True,
+        )
+        self.ao_dazmol = ArticleOperation.objects.create(
+            article=self.article,
+            operation=self.op_dazmol,
+            price_per_unit=Decimal('500.00'),
+            sequence=2,
+            is_active=True,
+        )
+
+        self.order = Order.objects.create(
+            order_number='ORD-BAL-100',
+            client_name='Buyurtmachi A',
+            total_quantity=200,
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order,
+            article=self.article,
+            quantity=200,
+        )
+        self.size_m = OrderItemSize.objects.create(
+            order_item=self.order_item,
+            size_name='48',
+            planned_quantity=200,
+        )
+        self.batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=1,
+            pastal_code='10-500',
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        # Kesildi: 150 dona (3 ta quti x 50 dona)
+        self.batch_item = CuttingBatchItem.objects.create(
+            batch=self.batch,
+            order_item_size=self.size_m,
+            quantity=150,
+            real_quantity=150,
+            status=CuttingBatchItem.Status.STICKERS_PRINTED,
+        )
+
+        # Box 1 (50 dona): Yelka tikish + DAZMOL skanerlangan -> Dazmoldan o'tgan (50 dona)
+        self.box1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=1,
+            quantity=50,
+            status=Box.Status.IN_PROGRESS,
+        )
+        Ticket.objects.create(
+            box=self.box1,
+            article_operation=self.ao_sew,
+            quantity=50,
+            price_per_unit=Decimal('1000.00'),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=timezone.now(),
+        )
+        Ticket.objects.create(
+            box=self.box1,
+            article_operation=self.ao_dazmol,
+            quantity=50,
+            price_per_unit=Decimal('500.00'),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=timezone.now(),
+        )
+
+        # Box 2 (50 dona): Faqat Yelka tikish skanerlangan, hali dazmol bo'lmagan -> Patokda (50 dona)
+        self.box2 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=2,
+            quantity=50,
+            status=Box.Status.IN_PROGRESS,
+        )
+        Ticket.objects.create(
+            box=self.box2,
+            article_operation=self.ao_sew,
+            quantity=50,
+            price_per_unit=Decimal('1000.00'),
+            status=Ticket.Status.SCANNED,
+            worker=self.worker,
+            scanned_at=timezone.now(),
+        )
+        Ticket.objects.create(
+            box=self.box2,
+            article_operation=self.ao_dazmol,
+            quantity=50,
+            price_per_unit=Decimal('500.00'),
+            status=Ticket.Status.PENDING,
+        )
+
+        # Box 3 (50 dona): Patokka qabul qilingan (batch ACCEPTED), hali dazmol bo'lmagan -> Patokda (50 dona)
+        self.box3 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=3,
+            quantity=50,
+            status=Box.Status.CREATED,
+        )
+
+        # Box 4 (50 dona): CANCELLED (bekor qilingan quti hisobga kirmasligi kerak)
+        self.box_cancelled = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=4,
+            quantity=50,
+            status=Box.Status.CANCELLED,
+        )
+
+    def test_orders_balance_metrics_and_excel_export(self):
+        self.client.force_login(self.superadmin)
+        res = self.client.get(reverse('superadmin_orders_balance'))
+        self.assertEqual(res.status_code, 200)
+
+        orders_data = res.context['orders_data']
+        self.assertEqual(len(orders_data), 1)
+        row = orders_data[0]['first_row']
+
+        # 1. Kesildi = 150 dona
+        self.assertEqual(row['cut_qty'], 150)
+        # 2. Patokdagi son (hali dazmol bo'lmagan: Box 2 + Box 3) = 100 dona
+        self.assertEqual(row['patok_qty'], 100)
+        # 3. Dazmoldan o'tgan son (Box 1) = 50 dona
+        self.assertEqual(row['dazmol_qty'], 50)
+        # 4. 1 ta ish summasi = 1500 UZS
+        self.assertEqual(row['unit_price'], 1500.0)
+        # 5. Sarflangan summa (Box 1: 50*1000 + 50*500 = 75,000; Box 2: 50*1000 = 50,000 -> Jami: 125,000 UZS)
+        self.assertEqual(row['total_sum'], 125000)
+        # 6. Foiz = 50 / 150 * 100 = 33.3%
+        self.assertEqual(row['progress_pct'], 33.3)
+
+        # Excel export tekshiruvi
+        res_excel = self.client.get(reverse('superadmin_orders_balance_export_excel'))
+        self.assertEqual(res_excel.status_code, 200)
+        self.assertIn(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            res_excel['Content-Type'],
+        )
+
+
 
 
 

@@ -20,7 +20,7 @@
                         </span>
                     </h1>
                     <p class="text-xs text-slate-400 mt-0.5">
-                        Har bir buyurtma va artikul kesimida: patokka kirgan, dazmoldan chiqqan tayyor mahsulotlar va chevarlar ishlagan sdelshina summasi balansi
+                        Har bir model kesimida: nechta kesilgani, patokda hali dazmol bo'lmagan qutilar soni, dazmoldan o'tgan tayyor soni, 1 ta ish narxi va chevarlarga sarflangan umumiy summa
                     </p>
                 </div>
             </div>
@@ -41,37 +41,37 @@
 
     <!-- SUMMARY KPI STATS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 1. Jami Zakazlar -->
+        <!-- 1. Jami Kesilgan -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
             <div>
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Buyurtmalar Soni</span>
-                <span class="text-2xl font-black text-white digital-font mt-1 block">{{ total_orders_count }} <span class="text-xs font-normal text-slate-400">ta</span></span>
-                <span class="text-[11px] text-slate-500">Filtrdagi barcha zakazlar</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Jami Kesilgan</span>
+                <span class="text-2xl font-black text-white digital-font mt-1 block">{{ grand_cut_total_fmt }} <span class="text-xs font-normal text-slate-400">dona</span></span>
+                <span class="text-[11px] text-slate-500">{{ total_orders_count }} ta buyurtma bo'yicha</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-scissors"></i>
+            </div>
+        </div>
+
+        <!-- 2. Patokdagi Son (Dazmol bo'lmagan) -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Patokdagi Son</span>
+                <span class="text-2xl font-black text-amber-400 digital-font mt-1 block">{{ grand_patok_total_fmt }} <span class="text-xs font-normal text-slate-400">dona</span></span>
+                <span class="text-[11px] text-amber-400/80">Patokda hali dazmol bo'lmagan qutilar</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-boxes-stacked"></i>
             </div>
         </div>
 
-        <!-- 2. Patokka Kirgan Jami -->
+        <!-- 3. Dazmoldan O'tgan (Tayyor) -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
             <div>
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Patokka Kirgan Jami</span>
-                <span class="text-2xl font-black text-amber-400 digital-font mt-1 block">{{ grand_patok_total_fmt }} <span class="text-xs font-normal text-slate-400">dona</span></span>
-                <span class="text-[11px] text-amber-400/80">Kamida 1 ta stikeri urilgan qutilar</span>
-            </div>
-            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-arrow-right-to-bracket"></i>
-            </div>
-        </div>
-
-        <!-- 3. Dazmoldan Chiqqan (Tayyor) -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-            <div>
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Dazmol Chiqqan (Tayyor)</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Dazmoldan O'tgan Son</span>
                 <span class="text-2xl font-black text-emerald-400 digital-font mt-1 block">{{ grand_dazmol_total_fmt }} <span class="text-xs font-normal text-slate-400">dona</span></span>
                 <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-                    <i class="fa-solid fa-circle-check text-[10px]"></i> {{ grand_progress_pct }}% bajarildi
+                    <i class="fa-solid fa-circle-check text-[10px]"></i> {{ grand_progress_pct }}% kesimga nisbatan tayyor
                 </span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl">
@@ -79,12 +79,12 @@
             </div>
         </div>
 
-        <!-- 4. Jami Sdelshina Summasi -->
+        <!-- 4. Chevarlarga Sarflangan Pul -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-lg">
             <div>
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Jami Sdelshina Summasi</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Sarflangan Summa</span>
                 <span class="text-2xl font-black text-cyan-300 digital-font mt-1 block">{{ grand_sum_total_fmt }} <span class="text-xs font-normal text-slate-400">UZS</span></span>
-                <span class="text-[11px] text-cyan-400/80">Chevarlar ishlagan haqiqiy sdelshina</span>
+                <span class="text-[11px] text-cyan-400/80">Chevarlarga sarflangan jami pul</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-coins"></i>
@@ -127,20 +127,33 @@
         </div>
     </form>
 
-    <!-- MASTER TABLE: RASM TARTIBIDAGI STRUKTURA -->
+    <!-- MASTER TABLE -->
     <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-950/95 border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider font-extrabold">
                         <th class="py-3.5 px-3 text-center w-14 border-r border-slate-800/80">NOMER</th>
-                        <th class="py-3.5 px-4 min-w-[220px] border-r border-slate-800/80">ZAKAZ + NOMERI</th>
-                        <th class="py-3.5 px-4 min-w-[220px] border-r border-slate-800/80">ARTIKUL</th>
-                        <th class="py-3.5 px-4 text-right min-w-[170px] border-r border-slate-800/80">SON (PATOKKA KIRGAN)</th>
-                        <th class="py-3.5 px-4 text-right min-w-[170px] border-r border-slate-800/80">DAZMOL CHIQQAN SON</th>
-                        <th class="py-3.5 px-4 text-right min-w-[150px] border-r border-slate-800/80">1 ISH SUMMASI</th>
-                        <th class="py-3.5 px-4 text-right min-w-[180px] border-r border-slate-800/80">UMUMIY SUMMA</th>
-                        <th class="py-3.5 px-3 text-center w-28">FOIZ / HOLAT</th>
+                        <th class="py-3.5 px-4 min-w-[200px] border-r border-slate-800/80">ZAKAZ + NOMERI</th>
+                        <th class="py-3.5 px-4 min-w-[210px] border-r border-slate-800/80">MODEL / ARTIKUL</th>
+                        <th class="py-3.5 px-4 text-right min-w-[140px] border-r border-slate-800/80">
+                            KESILDI
+                            <span class="block text-[9px] font-normal text-slate-500 normal-case">Nechta kesildi</span>
+                        </th>
+                        <th class="py-3.5 px-4 text-right min-w-[165px] border-r border-slate-800/80">
+                            PATOKDAGI SON
+                            <span class="block text-[9px] font-normal text-amber-400/80 normal-case">Hali dazmol bo'lmagan</span>
+                        </th>
+                        <th class="py-3.5 px-4 text-right min-w-[165px] border-r border-slate-800/80">
+                            DAZMOLDAN O'TGAN
+                            <span class="block text-[9px] font-normal text-emerald-400/80 normal-case">Umumiy tayyor son</span>
+                        </th>
+                        <th class="py-3.5 px-4 text-right min-w-[145px] border-r border-slate-800/80">1 TA ISH SUMMASI</th>
+                        <th class="py-3.5 px-4 text-right min-w-[180px] border-r border-slate-800/80">
+                            SARFLANGAN PUL
+                            <span class="block text-[9px] font-normal text-cyan-400/80 normal-case">Chevarlarga ketgan summa</span>
+                        </th>
+                        <th class="py-3.5 px-3 text-center w-24">FOIZ</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800 text-xs text-slate-300">
@@ -164,7 +177,7 @@
                                         <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-500 group-hover:text-amber-400"></i>
                                     </a>
                                     <span class="text-slate-400 text-[11px] font-semibold mt-0.5">
-                                        {{ o.order.client_name|default:o.order.customer.name|default:"Buyurtmachi ko'rsatilmagan" }}
+                                        {{ o.client_display }}
                                     </span>
                                     <div class="mt-2 flex items-center gap-1.5">
                                         {% if o.order.status == 'COMPLETED' %}
@@ -193,23 +206,28 @@
                                 {% endif %}
                             </td>
 
-                            <!-- SON (PATOKKA KIRGAN) -->
-                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-slate-200">
+                            <!-- KESILDI -->
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-blue-300">
+                                {{ o.first_row.cut_qty_fmt }} <span class="text-[10px] font-normal text-slate-500">dona</span>
+                            </td>
+
+                            <!-- PATOKDAGI SON (HALI DAZMOL BO'LMAGAN) -->
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-amber-300">
                                 {{ o.first_row.patok_qty_fmt }} <span class="text-[10px] font-normal text-slate-500">dona</span>
                             </td>
 
-                            <!-- DAZMOL CHIQQAN SON -->
+                            <!-- DAZMOLDAN O'TGAN SON -->
                             <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-black text-emerald-400">
                                 {{ o.first_row.dazmol_qty_fmt }} <span class="text-[10px] font-normal text-slate-500">dona</span>
                             </td>
 
-                            <!-- 1 ISH SUMMASI -->
+                            <!-- 1 TA ISH SUMMASI -->
                             <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-slate-300">
                                 {{ o.first_row.unit_price_fmt }} <span class="text-[10px] font-normal text-slate-500">UZS</span>
                             </td>
 
-                            <!-- UMUMIY SUMMA -->
-                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-black text-amber-300">
+                            <!-- SARFLANGAN PUL -->
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-black text-cyan-300">
                                 {{ o.first_row.total_sum_fmt }} <span class="text-[10px] font-normal text-slate-500">UZS</span>
                             </td>
 
@@ -231,7 +249,10 @@
                                 <span class="text-[10px] text-slate-400 block font-normal">Model: {{ row.model_name }}</span>
                                 {% endif %}
                             </td>
-                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-slate-200">
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-blue-300">
+                                {{ row.cut_qty_fmt }} <span class="text-[10px] font-normal text-slate-500">dona</span>
+                            </td>
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-amber-300">
                                 {{ row.patok_qty_fmt }} <span class="text-[10px] font-normal text-slate-500">dona</span>
                             </td>
                             <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-black text-emerald-400">
@@ -240,7 +261,7 @@
                             <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-bold text-slate-300">
                                 {{ row.unit_price_fmt }} <span class="text-[10px] font-normal text-slate-500">UZS</span>
                             </td>
-                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-black text-amber-300">
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800/60 digital-font font-black text-cyan-300">
                                 {{ row.total_sum_fmt }} <span class="text-[10px] font-normal text-slate-500">UZS</span>
                             </td>
                             <td class="py-2.5 px-3 text-center">
@@ -256,7 +277,10 @@
                             <td class="py-2.5 px-4 border-r border-slate-800 text-amber-400 uppercase tracking-wider font-extrabold">
                                 #{{ o.order.order_number }} JAMI:
                             </td>
-                            <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-slate-100">
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-blue-200">
+                                {{ o.order_cut_sum_fmt }} <span class="text-[10px] font-normal text-slate-400">dona</span>
+                            </td>
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-amber-300">
                                 {{ o.order_patok_sum_fmt }} <span class="text-[10px] font-normal text-slate-400">dona</span>
                             </td>
                             <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-emerald-300 text-sm">
@@ -265,7 +289,7 @@
                             <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-slate-500 text-[11px]">
                                 —
                             </td>
-                            <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-amber-400 text-sm">
+                            <td class="py-2.5 px-4 text-right border-r border-slate-800 digital-font text-cyan-300 text-sm">
                                 {{ o.order_money_sum_fmt }} <span class="text-[10px] font-normal text-slate-400">UZS</span>
                             </td>
                             <td class="py-2.5 px-3 text-center">
@@ -278,7 +302,7 @@
 
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="py-16 text-center text-slate-500">
+                        <td colspan="9" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-boxes-packing text-5xl mb-3 block text-slate-700"></i>
                             <span class="text-lg font-bold block text-slate-400">Hech qanday buyurtma topilmadi</span>
                             <span class="text-xs text-slate-600 mt-1 block">Qidiruv parametrlarini o'zgartirib qayta urinib ko'ring.</span>
@@ -295,7 +319,10 @@
                         <td colspan="3" class="py-4 px-4 text-amber-400 uppercase tracking-wider border-r border-slate-800">
                             <i class="fa-solid fa-chart-simple mr-2"></i> UMUMIY BARCHA ZAKAZLAR BO'YICHA JAMI:
                         </td>
-                        <td class="py-4 px-4 text-right digital-font text-slate-200 border-r border-slate-800">
+                        <td class="py-4 px-4 text-right digital-font text-blue-300 border-r border-slate-800">
+                            {{ grand_cut_total_fmt }} <span class="text-xs font-normal text-slate-400">dona</span>
+                        </td>
+                        <td class="py-4 px-4 text-right digital-font text-amber-300 border-r border-slate-800">
                             {{ grand_patok_total_fmt }} <span class="text-xs font-normal text-slate-400">dona</span>
                         </td>
                         <td class="py-4 px-4 text-right digital-font text-emerald-400 text-base border-r border-slate-800">
@@ -304,7 +331,7 @@
                         <td class="py-4 px-4 text-right digital-font text-slate-500 text-xs border-r border-slate-800">
                             —
                         </td>
-                        <td class="py-4 px-4 text-right digital-font text-amber-300 text-base border-r border-slate-800">
+                        <td class="py-4 px-4 text-right digital-font text-cyan-300 text-base border-r border-slate-800">
                             {{ grand_sum_total_fmt }} <span class="text-xs font-normal text-slate-400">UZS</span>
                         </td>
                         <td class="py-4 px-3 text-center">
