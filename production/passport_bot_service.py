@@ -654,13 +654,17 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
     # Barcha tegishli qutilarni olish
     boxes_query = Q()
     if batch:
-        boxes_query |= Q(cutting_batch_item__batch=batch)
-        if batch.pastal_code:
-            boxes_query |= Q(
+        has_batch_item_boxes = Box.objects.filter(cutting_batch_item__batch=batch).exists()
+        if has_batch_item_boxes:
+            boxes_query = Q(cutting_batch_item__batch=batch)
+        elif batch.pastal_code:
+            boxes_query = Q(
                 order=batch.order_item.order,
                 article=batch.order_item.article,
                 pastal_number=batch.pastal_code
             )
+        else:
+            boxes_query = Q(cutting_batch_item__batch=batch)
     elif scanned_box:
         if scanned_box.pastal_number and scanned_box.order:
             boxes_query = Q(
@@ -726,20 +730,73 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             c_b = list(item.boxes.filter(status=Box.Status.CANCELLED).order_by('box_number'))
             a_b = list(item.boxes.exclude(status=Box.Status.CANCELLED).order_by('box_number'))
 
-            if c_b:
+            if c_b and not a_b:
                 problematic_sizes.append(s_name)
                 c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
-                a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
+                cancelled_reports.append(
+                    f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
+                    f"   • Barcha qutilar bekor qilingan: {c_range} (Yangi qutilar yaratilmagan ❌)"
+                )
+            elif c_b and a_b:
+                problematic_sizes.append(s_name)
+                c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
+                a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else f"#{a_b[0].box_number}"
                 cancelled_reports.append(
                     f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
                     f"   • Eski atmen qutilar: {c_range} ({len(c_b)} ta quti ATMEN ❌)\n"
                     f"   • Yangi to'g'ri qutilar: {a_range} ({len(a_b)} ta quti ✅)"
+                )
+            elif not a_b:
+                problematic_sizes.append(s_name)
+                cancelled_reports.append(
+                    f"❌ *Razmer {s_name}* ({item.quantity} dona):\n"
+                    f"   • Qutilar hali yaratilmagan (Metoda tasdiqlanmagan ❌)"
                 )
             else:
                 clean_sizes.append(s_name)
                 a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
                 clean_reports.append(
                     f"✅ *Razmer {s_name}* ({item.quantity} dona, {len(a_b)} ta quti):\n"
+                    f"   • Qutilar: {a_range} (To'liq to'g'ri ✅)"
+                )
+    else:
+        # Batch bo'lmaganda mavjud qutilardan razmerlar bo'yicha tahlil qilish
+        size_boxes_map = {}
+        for b in all_related_boxes:
+            rz = b.razmer or "Noma'lum"
+            size_boxes_map.setdefault(rz, []).append(b)
+
+        for rz, b_list in sorted(size_boxes_map.items()):
+            c_b = [b for b in b_list if b.status == Box.Status.CANCELLED]
+            a_b = [b for b in b_list if b.status != Box.Status.CANCELLED]
+            tot_qty = sum(b.quantity for b in b_list)
+            if c_b and not a_b:
+                problematic_sizes.append(rz)
+                c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
+                cancelled_reports.append(
+                    f"❌ *Razmer {rz}* ({tot_qty} dona):\n"
+                    f"   • Barcha qutilar bekor qilingan: {c_range} (Yangi qutilar yo'q ❌)"
+                )
+            elif c_b and a_b:
+                problematic_sizes.append(rz)
+                c_range = f"#{c_b[0].box_number} – #{c_b[-1].box_number}" if len(c_b) > 1 else f"#{c_b[0].box_number}"
+                a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else f"#{a_b[0].box_number}"
+                cancelled_reports.append(
+                    f"❌ *Razmer {rz}* ({tot_qty} dona):\n"
+                    f"   • Eski atmen qutilar: {c_range} ({len(c_b)} ta quti ATMEN ❌)\n"
+                    f"   • Yangi to'g'ri qutilar: {a_range} ({len(a_b)} ta quti ✅)"
+                )
+            elif not a_b:
+                problematic_sizes.append(rz)
+                cancelled_reports.append(
+                    f"❌ *Razmer {rz}*:\n"
+                    f"   • Qutilar mavjud emas ❌"
+                )
+            else:
+                clean_sizes.append(rz)
+                a_range = f"#{a_b[0].box_number} – #{a_b[-1].box_number}" if len(a_b) > 1 else (f"#{a_b[0].box_number}" if a_b else "yo'q")
+                clean_reports.append(
+                    f"✅ *Razmer {rz}* ({tot_qty} dona, {len(a_b)} ta quti):\n"
                     f"   • Qutilar: {a_range} (To'liq to'g'ri ✅)"
                 )
 
@@ -901,8 +958,8 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
             }
         }
 
-    # 6.C: PASPORT SKANERLANGANDA VA PASTALDA BEKOR BO'LGAN QUTILAR MAVJUD BO'LSA
-    if len(cancelled_boxes) > 0:
+    # 6.C: PASPORT SKANERLANGANDA VA AYRIM RAZMERLARDA BEKOR BO'LGAN QUTILAR MAVJUD BO'LSA
+    if len(problematic_sizes) > 0 and len(cancelled_reports) > 0:
         prob_str = ", ".join(problematic_sizes) if problematic_sizes else "ba'zi razmerlar"
         clean_str = ", ".join(clean_sizes) if clean_sizes else "boshqa razmerlar"
 
@@ -1312,7 +1369,8 @@ def verify_pastal_for_sewing(raw_code: str) -> dict:
         f"• Barcha qutilardagi barcha stikerlar bazada to'liq mavjud (Tikuvda 'Topilmadi' xatosi bo'lmaydi) ✅\n"
         f"• Barcha operatsiyalar narxlari to'liq kiritilgan ✅\n"
         f"{in_progress_notice}\n"
-        f"🛡 *Holati:* Barcha {total_boxes_count} ta quti to'liq AKTIV, bekor qilingan (atmen) qutilar yo'q.\n"
+        f"🛡 *Holati:* Barcha {total_boxes_count} ta quti to'liq AKTIV"
+        f"{f', arxivlangan eski qutilar: {len(cancelled_boxes)} ta' if len(cancelled_boxes) > 0 else ', bekor qilingan (atmen) qutilar yo\'q'}.\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🟢 *TIKUV PATOGIGA TARQATISHGA RUXSAT ETILADI!*"
     ).replace(",", " ")

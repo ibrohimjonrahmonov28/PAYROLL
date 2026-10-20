@@ -542,6 +542,42 @@ class PassportVerificationTestCase(TestCase):
         self.assertIn("🚀 Jo'natish", buttons_wt)
         self.assertIn("🔍 Tekshirish", buttons_wt)
 
+    def test_verify_batch_with_clean_sizes_not_blocked_by_stray_cancelled_boxes(self):
+        """
+        10-276 holati bo'yicha:
+        Pastaldagi barcha razmerlar to'g'ri va faol bo'lsa, bazada eski atmen qutilar bo'lsa ham
+        soxta 'AYRIM RAZMERLAR QAYTA TAQSIMLANGAN' xatosi bilan to'xtab qolmasligi shart!
+        """
+        # 1. Stray (begona / eski) CANCELLED quti yaratish
+        Box.objects.create(
+            order=self.order,
+            article=self.article,
+            pastal_number="10-276",
+            razmer="48",
+            quantity=50,
+            status=Box.Status.CANCELLED,
+            box_number=9999
+        )
+
+        # Batchning pastal kodini "10-276" qilish
+        self.batch.pastal_code = "10-276"
+        self.batch.save(update_fields=['pastal_code'])
+
+        # 2. "10-276" kodi orqali tekshirish
+        res = verify_pastal_for_sewing("10-276")
+        self.assertTrue(res['success'])
+        self.assertTrue(res['can_release'])
+        self.assertEqual(res['status_code'], 'APPROVED')
+        self.assertIn("PATOKKA BERISH MUMKIN", res['message'])
+        self.assertNotIn("AYRIM RAZMERLAR QAYTA TAQSIMLANGAN", res['message'])
+
+        # 3. PASTAL:<batch_id> orqali tekshirish
+        res_passport = verify_pastal_for_sewing(f"PASTAL:{self.batch.id}")
+        self.assertTrue(res_passport['success'])
+        self.assertTrue(res_passport['can_release'])
+        self.assertEqual(res_passport['status_code'], 'APPROVED')
+
+
 
 
 
