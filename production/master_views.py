@@ -348,6 +348,13 @@ def api_get_patok_detail(request, screen_number):
         active_boxes_qs = _get_batch_active_boxes(b)
         total_boxes = active_boxes_qs.count()
 
+        article_image_url = ""
+        if article and getattr(article, 'image', None):
+            try:
+                article_image_url = article.image.url
+            except Exception:
+                article_image_url = ""
+
         waiting_list.append({
             'batch_id': b.id,
             'batch_number': b.batch_number,
@@ -356,6 +363,8 @@ def api_get_patok_detail(request, screen_number):
             'customer_name': customer_name,
             'article_name': article.name if article else 'Model',
             'article_code': article.code if article else '',
+            'article_image_url': article_image_url,
+            'cutter_name': b.cutter_name or '—',
             'total_units': b.total_real_quantity or b.total_quantity,
             'actual_weight_kg': float(b.actual_weight_kg) if b.actual_weight_kg else 0.0,
             'boxes_count': total_boxes,
@@ -819,6 +828,22 @@ def api_get_pastal_boxes_detail(request, batch_id):
         and closed_boxes_count == 0
     )
 
+    article_image_url = ""
+    if article and getattr(article, 'image', None):
+        try:
+            article_image_url = article.image.url
+        except Exception:
+            article_image_url = ""
+
+    size_stats = {}
+    for bx in boxes:
+        sz = bx.razmer or "Noma'lum"
+        if sz not in size_stats:
+            size_stats[sz] = {'size': sz, 'boxes_count': 0, 'quantity': 0}
+        size_stats[sz]['boxes_count'] += 1
+        size_stats[sz]['quantity'] += bx.quantity
+    sizes_summary = sorted(list(size_stats.values()), key=lambda x: str(x['size']))
+
     return JsonResponse({
         'success': True,
         'pastal': {
@@ -829,8 +854,12 @@ def api_get_pastal_boxes_detail(request, batch_id):
             'customer_name': customer_name,
             'article_name': article.name if article else 'Model',
             'article_code': article.code if article else '',
+            'article_image_url': article_image_url,
+            'cutter_name': batch.cutter_name or '—',
+            'actual_weight_kg': float(batch.actual_weight_kg) if batch.actual_weight_kg else 0.0,
             'dispatch_status': batch.dispatch_status,
             'assigned_screen': batch.assigned_screen,
+            'assigned_branch': batch.assigned_branch,
             'patok_code': p_code,
             'total_units': total_boxes_units or batch.total_real_quantity or batch.total_quantity,
             'total_boxes': total_boxes,
@@ -839,9 +868,14 @@ def api_get_pastal_boxes_detail(request, batch_id):
             'repair_boxes': repair_boxes_count,
             'repair_units': total_repair_units,
             'is_pastal_closed': is_pastal_closed,
+            'can_accept': (batch.dispatch_status == CuttingBatch.DispatchStatus.DISPATCHED),
             'can_reject': can_reject,
+            'created_at': timezone.localtime(batch.created_at).strftime("%d.%m.%Y %H:%M") if batch.created_at else '—',
+            'dispatched_at': timezone.localtime(batch.dispatched_at).strftime("%d.%m.%Y %H:%M") if batch.dispatched_at else '—',
+            'dispatched_by': batch.dispatched_by or 'Bichuv',
             'accepted_at': timezone.localtime(batch.accepted_at).strftime("%d.%m.%Y %H:%M") if batch.accepted_at else '—',
             'accepted_by_name': (batch.accepted_by.get_full_name() or batch.accepted_by.username) if batch.accepted_by else 'Master',
+            'sizes_summary': sizes_summary,
         },
         'boxes': boxes_data,
     })

@@ -315,3 +315,86 @@ class MasterStatisticsComprehensiveTest(TestCase):
         batch_ids = [p['batch_id'] for p in data['pastals']]
         self.assertIn(b1.id, batch_ids)
         self.assertNotIn(b2.id, batch_ids)
+
+    def test_pastal_passport_modal_api_and_acceptance(self):
+        # 1. Pastal yaratamiz (DISPATCHED - Kutilmoqda holatida)
+        batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=99,
+            pastal_code="P-TEST-99",
+            dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED,
+            assigned_screen=1,
+            assigned_branch=User.Branch.HQ,
+            actual_weight_kg=Decimal("45.50"),
+            cutter_name="Jasur Bichuvchi"
+        )
+        batch_item = CuttingBatchItem.objects.create(
+            batch=batch,
+            order_item_size=self.size,
+            quantity=200,
+            real_quantity=200
+        )
+        box1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=batch_item,
+            box_code="BX-TEST-1",
+            box_number=1,
+            razmer="M",
+            quantity=100
+        )
+        box2 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=batch_item,
+            box_code="BX-TEST-2",
+            box_number=2,
+            razmer="M",
+            quantity=100
+        )
+
+        # 2. api_get_patok_detail tekshiramiz
+        url_patok = reverse('production:master_tablet_patok_detail', kwargs={'screen_number': 1})
+        res_patok = self.client.get(url_patok)
+        self.assertEqual(res_patok.status_code, 200)
+        data_patok = res_patok.json()
+        self.assertTrue(data_patok['success'])
+        waiting = data_patok['waiting_pastals']
+        self.assertEqual(len(waiting), 1)
+        self.assertEqual(waiting[0]['batch_id'], batch.id)
+        self.assertEqual(waiting[0]['cutter_name'], "Jasur Bichuvchi")
+        self.assertEqual(waiting[0]['actual_weight_kg'], 45.5)
+
+        # 3. api_get_pastal_boxes_detail (Pasport modal API) tekshiramiz
+        url_boxes = reverse('production:master_tablet_pastal_boxes', kwargs={'batch_id': batch.id})
+        res_boxes = self.client.get(url_boxes)
+        self.assertEqual(res_boxes.status_code, 200)
+        data_boxes = res_boxes.json()
+        self.assertTrue(data_boxes['success'])
+        pastal = data_boxes['pastal']
+        self.assertEqual(pastal['cutter_name'], "Jasur Bichuvchi")
+        self.assertEqual(pastal['actual_weight_kg'], 45.5)
+        self.assertTrue(pastal['can_accept'])
+        self.assertEqual(len(pastal['sizes_summary']), 1)
+        self.assertEqual(pastal['sizes_summary'][0]['size'], "M")
+        self.assertEqual(pastal['sizes_summary'][0]['boxes_count'], 2)
+        self.assertEqual(pastal['sizes_summary'][0]['quantity'], 200)
+
+        # 4. Master qabul qilishni tasdiqlaydi
+        session = self.client.session
+        session['master_user_id'] = self.master_user.id
+        session.save()
+
+        url_accept = reverse('production:master_tablet_accept')
+        res_accept = self.client.post(
+            url_accept,
+            data={'batch_id': batch.id, 'screen_number': 1},
+            content_type='application/json'
+        )
+        self.assertEqual(res_accept.status_code, 200)
+        self.assertTrue(res_accept.json()['success'])
+
+        batch.refresh_from_db()
+        self.assertEqual(batch.dispatch_status, CuttingBatch.DispatchStatus.ACCEPTED)
+        self.assertEqual(batch.accepted_by, self.master_user)
+
