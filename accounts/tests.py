@@ -2293,6 +2293,51 @@ class SuperAdminOrdersBalanceTests(TestCase):
         )
 
 
+class BranchAdminUychiAccessTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.uychi_admin = User.objects.create_user(
+            username="uychi_admin_test",
+            password="testpassword123",
+            role=User.Role.BRANCH_ADMIN,
+            branch='UYCHI'
+        )
+
+    def test_branch_admin_access_sewing_statistics_orders(self):
+        self.client.login(username="uychi_admin_test", password="testpassword123")
+        res = self.client.get(reverse('production:sewing_statistics_orders'))
+        self.assertEqual(res.status_code, 200)
+
+    def test_branch_admin_access_sewing_statistics_daily_defaults_to_uychi(self):
+        self.client.login(username="uychi_admin_test", password="testpassword123")
+        res = self.client.get(reverse('production:sewing_statistics_daily'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['branch_filter'], 'UYCHI')
+
+    def test_branch_admin_access_screens_overview_defaults_to_uychi(self):
+        self.client.login(username="uychi_admin_test", password="testpassword123")
+        res = self.client.get(reverse('screens:overview'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['branch_param'], 'UYCHI')
+        screens = res.context['screens']
+        self.assertEqual(len(screens), 27)
+        self.assertEqual(screens[0]['screen_number'], 14)
+        self.assertEqual(screens[-1]['screen_number'], 40)
+
+    def test_branch_admin_access_single_screen(self):
+        self.client.login(username="uychi_admin_test", password="testpassword123")
+        res = self.client.get(reverse('screens:screen_view', args=[14]))
+        self.assertEqual(res.status_code, 200)
+
+    def test_branch_admin_login_next_redirect(self):
+        res = self.client.post(reverse('root_login') + '?next=/screens/overview/', {
+            'username': 'uychi_admin_test',
+            'password': 'testpassword123'
+        })
+        self.assertRedirects(res, '/screens/overview/', fetch_redirect_response=False)
+
+
+
 
 
 

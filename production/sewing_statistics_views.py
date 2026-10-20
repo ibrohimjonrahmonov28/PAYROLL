@@ -679,6 +679,9 @@ def sewing_statistics_daily_view(request):
         day_end = timezone.make_aware(datetime.combine(selected_date, time(23, 59, 59, 999999)), tz)
 
     patok_filter = request.GET.get('patok', '').strip().upper()
+    branch_filter = request.GET.get('branch', '').strip().upper()
+    if not branch_filter and request.user.is_authenticated and getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and getattr(request.user, 'branch', None) == 'UYCHI':
+        branch_filter = 'UYCHI'
     search_q = request.GET.get('q', '').strip()
     show_all_patoks = request.GET.get('all', '0') == '1'
 
@@ -820,6 +823,11 @@ def sewing_statistics_daily_view(request):
     all_worked_pastals = set()
 
     for sn in screens_to_process:
+        if branch_filter == 'HQ' and sn > 13:
+            continue
+        elif branch_filter == 'UYCHI' and sn <= 13:
+            continue
+
         p_code = get_patok_code(sn)
         p_name = get_patok_name(sn)
 
@@ -1369,6 +1377,7 @@ def sewing_statistics_daily_view(request):
         'next_date_str': next_date.isoformat(),
         'is_today': is_today,
         'patok_filter': patok_filter,
+        'branch_filter': branch_filter,
         'search_q': search_q,
         'show_all_patoks': show_all_patoks,
         'patoks_data': patoks_data,

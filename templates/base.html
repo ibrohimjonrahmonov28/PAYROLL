@@ -78,6 +78,12 @@
                 <span>Masterlar Statistikasi</span>
             </a>
 
+            <a href="{% url 'screens:overview' %}{% if request.user.branch == 'UYCHI' %}?branch=UYCHI{% endif %}"
+                class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.app_name == 'screens' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-table-cells w-5 text-center text-amber-400 text-base"></i>
+                <span>{% if request.user.branch == 'UYCHI' %}Uychi Patoklari (U1–U27){% else %}Sex Ekranlari (TV){% endif %}</span>
+            </a>
+
             {% if request.user.is_authenticated and request.user.role != 'ADMIN' and request.user.role != 'PLAN' %}
             <a href="{% url 'production:terminal_home' %}"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/30 transition shadow-sm">

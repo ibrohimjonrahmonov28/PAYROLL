@@ -87,6 +87,8 @@ def login_view(request):
                 if user.role == User.Role.MASTER:
                     return redirect('production:terminal_home')
                 if user.role == User.Role.BRANCH_ADMIN:
+                    if next_url and next_url.startswith('/'):
+                        return redirect(next_url)
                     return redirect('superadmin_payroll')
                 if user.role == User.Role.PLAN:
                     if next_url and next_url.startswith('/sewing-statistics'):
