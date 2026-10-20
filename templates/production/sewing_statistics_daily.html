@@ -81,17 +81,17 @@
             </span>
         </div>
 
-        <!-- KPI 4: O'rtacha Norma Bajarilishi -->
-        <div class="bg-slate-900 border {% if kpis.avg_norm_pct >= 100 %}border-emerald-900/50 bg-gradient-to-b from-emerald-950/25 to-transparent{% elif kpis.avg_norm_pct >= 80 %}border-cyan-900/40 bg-gradient-to-b from-cyan-950/25 to-transparent{% else %}border-amber-900/40 bg-gradient-to-b from-amber-950/25 to-transparent{% endif %} rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+        <!-- KPI 4: O'rtacha Patok Quvvati -->
+        <div class="bg-slate-900 border {% if kpis.avg_patok_quvvati >= 100 %}border-cyan-900/50 bg-gradient-to-b from-cyan-950/25 to-transparent{% elif kpis.avg_patok_quvvati >= 80 %}border-emerald-900/40 bg-gradient-to-b from-emerald-950/25 to-transparent{% else %}border-amber-900/40 bg-gradient-to-b from-amber-950/25 to-transparent{% endif %} rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %}">Kunlik Norma</span>
-                <i class="fa-solid fa-bullseye {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %} text-xs"></i>
+                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.avg_patok_quvvati >= 100 %}text-cyan-400{% elif kpis.avg_patok_quvvati >= 80 %}text-emerald-400{% else %}text-amber-400{% endif %}">Patok Quvvati</span>
+                <i class="fa-solid fa-bolt {% if kpis.avg_patok_quvvati >= 100 %}text-cyan-400{% elif kpis.avg_patok_quvvati >= 80 %}text-emerald-400{% else %}text-amber-400{% endif %} text-xs"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1.5">
-                <span class="text-2xl font-black {% if kpis.avg_norm_pct >= 100 %}text-emerald-400{% elif kpis.avg_norm_pct >= 80 %}text-cyan-400{% else %}text-amber-400{% endif %} digital-font">{{ kpis.avg_norm_pct }}%</span>
+                <span class="text-2xl font-black {% if kpis.avg_patok_quvvati >= 100 %}text-cyan-300{% elif kpis.avg_patok_quvvati >= 80 %}text-emerald-400{% else %}text-amber-400{% endif %} digital-font">{{ kpis.avg_patok_quvvati }}%</span>
             </div>
             <span class="text-[10px] text-slate-400 font-mono mt-1 block truncate">
-                {{ kpis.total_completed_norm }} / {{ kpis.total_planned_norm }} dona
+                O'rtacha quvvat (unumdorlik)
             </span>
         </div>
 
@@ -251,8 +251,8 @@
                         <th class="py-3.5 px-3 min-w-[170px]">Zakaz & Modellar</th>
                         <th class="py-3.5 px-3 min-w-[180px]">Tikayotgan Pastallar</th>
                         <th class="py-3.5 px-3 text-center min-w-[140px]">Davomat & Aniqlik</th>
-                        <th class="py-3.5 px-3 text-center min-w-[160px]">KPI & Norma</th>
-                        <th class="py-3.5 px-3 text-center">Kunlik Dazmol</th>
+                        <th class="py-3.5 px-3 text-center min-w-[150px]">Patok Quvvati</th>
+                        <th class="py-3.5 px-3 text-center min-w-[140px]">Kunlik Dazmol</th>
                         <th class="py-3.5 px-3 text-center">Bugun OTK</th>
                         <th class="py-3.5 px-3 text-center">Ta'mir / Brak</th>
                         <th class="py-3.5 px-4 text-center w-28">Batafsil</th>
@@ -312,28 +312,62 @@
                             {% endif %}
                         </td>
 
-                        <!-- 3. Tikayotgan Pastallar (Ixcham deduplicated nishonlar) -->
+                        <!-- 3. Tikayotgan Pastallar (Asosiy va Qo'shimcha) -->
                         <td class="py-3 px-3 align-middle">
-                            {% if p.pastals %}
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                {% for pastal in p.pastals %}
-                                <button type="button"
-                                    onclick="openPastalFromBadge('{{ p.patok_code }}', '{{ pastal.pastal_code }}')"
-                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition border shadow-sm cursor-pointer {% if pastal.is_closed %}bg-emerald-950/70 border-emerald-600/70 text-emerald-300 hover:border-emerald-400{% else %}bg-slate-950 border-cyan-800/70 text-cyan-300 hover:border-cyan-400 hover:bg-slate-800/80{% endif %}"
-                                    title="Pastal {{ pastal.pastal_code }}: {{ pastal.total_qty }} dona ({{ pastal.total_boxes }}q) | Dazmol: {{ pastal.dazmol_qty }} | Oraliq: {{ pastal.waiting_otk_qty }} | OTK: {{ pastal.controlled_qty }} ({{ pastal.completion_pct }}%)">
-                                    <i class="fa-solid fa-layer-group text-[10px]"></i>
-                                    <span class="font-black">{{ pastal.pastal_code }}</span>
-                                    {% if pastal.is_closed %}
-                                    <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-black">✓ 100%</span>
+                            <div class="space-y-1.5 min-w-[180px]">
+                                <!-- Asosiy Pastallar -->
+                                <div>
+                                    <div class="flex items-center gap-1 mb-1">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                                            <i class="fa-solid fa-star text-[8px]"></i>
+                                            <span>Asosiy:</span>
+                                        </span>
+                                    </div>
+                                    {% if p.primary_pastals %}
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        {% for pastal in p.primary_pastals %}
+                                        <button type="button"
+                                            onclick="openPastalFromBadge('{{ p.patok_code }}', '{{ pastal.pastal_code }}')"
+                                            class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono transition border shadow-sm cursor-pointer {% if pastal.is_closed %}bg-emerald-950/70 border-emerald-600/70 text-emerald-300 hover:border-emerald-400{% else %}bg-slate-950 border-emerald-600/50 text-emerald-300 hover:border-emerald-400 hover:bg-slate-800/80{% endif %}"
+                                            title="Asosiy Pastal {{ pastal.pastal_code }}: {{ pastal.total_qty }} dona ({{ pastal.total_boxes }}q) | Dazmol: {{ pastal.dazmol_qty }} | Oraliq: {{ pastal.waiting_otk_qty }} | OTK: {{ pastal.controlled_qty }} ({{ pastal.completion_pct }}%)">
+                                            <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                            <span class="font-black">{{ pastal.pastal_code }}</span>
+                                            {% if pastal.is_closed %}
+                                            <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-black">✓ 100%</span>
+                                            {% else %}
+                                            <span class="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-emerald-400 font-bold">{{ pastal.completion_pct }}%</span>
+                                            {% endif %}
+                                        </button>
+                                        {% endfor %}
+                                    </div>
                                     {% else %}
-                                    <span class="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-cyan-400 font-bold">{{ pastal.completion_pct }}%</span>
+                                    <span class="text-slate-600 font-mono text-[11px] italic">Biriktirilmagan</span>
                                     {% endif %}
-                                </button>
-                                {% endfor %}
+                                </div>
+
+                                <!-- Qo'shimcha Pastallar -->
+                                {% if p.extra_pastals %}
+                                <div class="pt-1 border-t border-slate-800/60">
+                                    <div class="flex items-center gap-1 mb-1">
+                                        <span class="text-[9px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                                            <i class="fa-solid fa-plus-circle text-[8px]"></i>
+                                            <span>Qo'shimcha:</span>
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        {% for pastal in p.extra_pastals %}
+                                        <button type="button"
+                                            onclick="openPastalFromBadge('{{ p.patok_code }}', '{{ pastal.pastal_code }}')"
+                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-mono transition border shadow-sm cursor-pointer {% if pastal.is_closed %}bg-amber-950/50 border-amber-600/50 text-amber-300{% else %}bg-slate-950 border-amber-800/50 text-amber-300 hover:border-amber-400 hover:bg-slate-800/80{% endif %}"
+                                            title="Qo'shimcha Pastal {{ pastal.pastal_code }}: {{ pastal.total_qty }} dona ({{ pastal.total_boxes }}q) | OTK: {{ pastal.controlled_qty }} ({{ pastal.completion_pct }}%)">
+                                            <span class="font-bold">{{ pastal.pastal_code }}</span>
+                                            <span class="text-[9px] text-amber-400/80">({{ pastal.completion_pct }}%)</span>
+                                        </button>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% else %}
-                            <span class="text-slate-600 font-mono text-xs">—</span>
-                            {% endif %}
                         </td>
 
                         <!-- 4. Davomat & Aniqlik -->
@@ -358,48 +392,62 @@
                             {% endif %}
                         </td>
 
-                        <!-- 5. KPI & Norma -->
+                        <!-- 5. Patok Quvvati -->
                         <td class="py-3 px-3 text-center align-middle">
                             {% if p.is_active %}
-                            <div class="flex flex-col items-center gap-1 min-w-[140px]">
-                                <div class="flex items-center justify-between w-full px-0.5 text-[11px] font-mono">
-                                    <span class="text-slate-400" title="O'rtacha KPI">KPI: <strong class="text-cyan-300">{{ p.avg_kpi }}%</strong></span>
-                                    <span class="font-bold {% if p.patok_kpi >= 100 %}text-emerald-400{% elif p.patok_kpi >= 80 %}text-cyan-300{% else %}text-amber-400{% endif %}" title="Patok KPI">
-                                        Patok: {{ p.patok_kpi }}%
+                            <div class="flex flex-col items-center gap-1 min-w-[130px]">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <span class="text-base font-black digital-font {{ p.quvvat_color_class }}">
+                                        {{ p.patok_quvvati }}%
                                     </span>
                                 </div>
                                 <!-- Progress Bar -->
                                 <div class="w-full bg-slate-950 rounded-full h-1.5 border border-slate-800 overflow-hidden shadow-inner">
-                                    <div class="h-full rounded-full transition-all duration-300 {% if p.is_norm_completed %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif p.norm_percentage >= 80 %}bg-gradient-to-r from-cyan-500 to-blue-500{% else %}bg-gradient-to-r from-amber-500 to-rose-500{% endif %}"
-                                        style="width: {% if p.norm_percentage > 100 %}100{% else %}{{ p.norm_percentage }}{% endif %}%;">
+                                    <div class="h-full rounded-full transition-all duration-300 {% if p.patok_quvvati >= 100 %}bg-gradient-to-r from-cyan-500 to-teal-400{% elif p.patok_quvvati >= 80 %}bg-gradient-to-r from-emerald-500 to-teal-400{% elif p.patok_quvvati >= 50 %}bg-gradient-to-r from-amber-500 to-yellow-400{% else %}bg-gradient-to-r from-rose-500 to-red-600{% endif %}"
+                                        style="width: {% if p.patok_quvvati > 100 %}100{% else %}{{ p.patok_quvvati }}{% endif %}%;">
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between w-full px-0.5 text-[10px] font-mono text-slate-400">
-                                    <span>{{ p.completed_norm_units }}/{{ p.daily_norm }}</span>
-                                    <span class="{% if p.is_norm_completed %}text-emerald-400 font-bold{% else %}text-amber-400{% endif %}">
-                                        {{ p.norm_percentage }}%
-                                    </span>
-                                </div>
+                                <span class="text-[10px] text-slate-400 font-mono">
+                                    {% if p.patok_quvvati >= 100 %}
+                                    <span class="text-cyan-300 font-bold">Yuqori quvvat</span>
+                                    {% elif p.patok_quvvati >= 80 %}
+                                    <span class="text-emerald-400 font-bold">Normada</span>
+                                    {% elif p.patok_quvvati >= 50 %}
+                                    <span class="text-amber-400 font-bold">O'rtacha</span>
+                                    {% else %}
+                                    <span class="text-rose-400 font-bold">Past quvvat</span>
+                                    {% endif %}
+                                </span>
                             </div>
                             {% else %}
                             <span class="text-slate-600 font-mono text-xs">—</span>
                             {% endif %}
                         </td>
 
-                        <!-- 6. Kunlik Dazmol -->
+                        <!-- 6. Kunlik Dazmol (Dual Nazorat) -->
                         <td class="py-3 px-3 text-center align-middle">
-                            {% if p.daily_dazmol_qty > 0 %}
-                            <div class="inline-flex flex-col items-center">
-                                <span class="font-black text-indigo-300 digital-font text-base">
-                                    {{ p.daily_dazmol_qty }}
-                                </span>
-                                <span class="text-[10px] text-indigo-400/80 font-mono font-bold">
-                                    {{ p.daily_dazmol_boxes_count }} quti
-                                </span>
+                            <div class="inline-flex flex-col items-center gap-1.5 min-w-[130px]">
+                                <!-- 1. Asosiy pastallar dazmoli (butun fabrika bo'yicha) -->
+                                {% if p.pastal_dazmol_items %}
+                                <div class="flex items-center justify-center gap-1 flex-wrap">
+                                    {% for item in p.pastal_dazmol_items %}
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-black bg-indigo-950/90 text-indigo-300 border border-indigo-700/60 shadow-sm"
+                                          title="Pastal {{ item.code }}: Bugun butun fabrika bo'yicha {{ item.qty }} dona dazmoldan o'tdi">
+                                        {{ item.qty }}/{{ item.code }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="text-slate-600 font-mono text-[11px]">—</span>
+                                {% endif %}
+
+                                <!-- 2. Ushbu patok dazmolchisining ishlari soni -->
+                                <div class="pt-1 border-t border-slate-800/80 w-full text-center">
+                                    <span class="text-[10px] text-slate-400 font-mono block">
+                                        Patok dazmoli: <strong class="{% if p.patok_dazmol_qty > 0 %}text-emerald-400{% else %}text-slate-500{% endif %} font-black">{{ p.patok_dazmol_qty }}</strong> dona
+                                    </span>
+                                </div>
                             </div>
-                            {% else %}
-                            <span class="text-slate-600 font-mono text-xs">0</span>
-                            {% endif %}
                         </td>
 
                         <!-- 7. Bugun OTK O'tgan -->
@@ -529,11 +577,11 @@
                                         <span class="text-xl font-black text-emerald-300 digital-font block mt-1">{{ p.patok_kpi }}%</span>
                                         <span class="text-[10px] text-slate-500 mt-0.5 block">(Davomat% + KPI)/2</span>
                                     </div>
-                                    <!-- 6. Kunlik Norma -->
+                                    <!-- 6. Patok Quvvati -->
                                     <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-inner">
-                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">6. Kunlik Norma</span>
-                                        <span class="text-xl font-black {% if p.is_norm_completed %}text-emerald-400{% else %}text-amber-400{% endif %} digital-font block mt-1">{{ p.norm_percentage }}%</span>
-                                        <span class="text-[10px] text-slate-400 font-mono mt-0.5 block truncate">{{ p.completed_norm_units }}/{{ p.daily_norm }}</span>
+                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">6. Patok Quvvati</span>
+                                        <span class="text-xl font-black {{ p.quvvat_color_class }} digital-font block mt-1">{{ p.patok_quvvati }}%</span>
+                                        <span class="text-[10px] text-slate-500 mt-0.5 block">Mehnat unumdorligi</span>
                                     </div>
                                     <!-- 7. Kunlik Dazmol -->
                                     <div class="bg-slate-950 border border-indigo-900/40 rounded-xl p-3 shadow-inner">
@@ -697,6 +745,11 @@
                                             class="pastal-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 {% if forloop.first %}bg-cyan-600 text-white shadow-md{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
                                             <i class="fa-solid fa-layer-group text-[10px]"></i>
                                             <span>Pastal {{ pastal.pastal_code }}</span>
+                                            {% if pastal.is_primary %}
+                                            <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Asosiy</span>
+                                            {% else %}
+                                            <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">Qo'shimcha</span>
+                                            {% endif %}
                                             {% if pastal.is_closed %}
                                             <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-black border border-emerald-500/30">✓ 100% Yopildi</span>
                                             {% else %}
@@ -770,8 +823,11 @@
                                                 <span>Oraliq (OTK kutmoqda):</span>
                                                 <span>{{ pastal.waiting_otk_qty }} ta ({{ pastal.waiting_otk_boxes }}q)</span>
                                             </div>
-                                            <div class="mt-1.5 text-[10px] text-slate-400 border-t border-slate-800/80 pt-1 font-mono">
-                                                Bugun dazmol: {{ pastal.today_dazmol_qty }} dona ({{ pastal.today_dazmol_boxes }} quti)
+                                            <div class="mt-1.5 text-[10px] text-slate-400 border-t border-slate-800/80 pt-1 font-mono flex items-center justify-between">
+                                                <span>Bugun fabrikada: <strong class="text-indigo-300">{{ pastal.today_factory_dazmol_qty }} dona</strong></span>
+                                                {% if pastal.today_dazmol_qty > 0 %}
+                                                <span class="text-indigo-400 font-bold">({{ pastal.today_dazmol_qty }} shu patok)</span>
+                                                {% endif %}
                                             </div>
                                         </div>
 

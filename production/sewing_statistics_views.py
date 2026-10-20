@@ -3,7 +3,7 @@ from decimal import Decimal
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Sum
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.core.paginator import Paginator
@@ -13,7 +13,7 @@ from django.utils import timezone
 from accounts.models import User
 from production.models import (
     Order, OrderItem, Box, Ticket, ArticleOperation, BoxQualityInspectionLog,
-    DailyPatokProgress
+    DailyPatokProgress, CuttingBatch
 )
 from production.services import get_patok_name, get_patok_code, get_patok_login
 from screens.views import get_screen_data
@@ -711,14 +711,58 @@ def sewing_statistics_daily_view(request):
         )
     }
 
-    # Faol pastal kodlari
-    active_pastal_codes = {b.pastal_code.strip() for b in today_boxes_dict.values() if b.pastal_code and b.pastal_code.strip()}
+    # 1. Patokka rasman biriktirilgan (ACCEPTED) partiyalar
+    assigned_batches_qs = CuttingBatch.objects.filter(
+        assigned_screen__isnull=False,
+        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+    ).select_related('order_item__order', 'order_item__article__model')
 
-    # Barcha ushbu pastallarga tegishli qutilarni bitta tezkor so'rovda olamiz
+    screen_assigned_pastals_map = {}
+    all_assigned_pastal_codes = set()
+    for batch in assigned_batches_qs:
+        pcode = (batch.pastal_code or f"K{batch.batch_number}").strip()
+        if pcode and batch.assigned_screen:
+            screen_assigned_pastals_map.setdefault(batch.assigned_screen, set()).add(pcode)
+            all_assigned_pastal_codes.add(pcode)
+
+    # Shuningdek, Box.assigned_screen bo'yicha biriktirilgan pastallar
+    for b_row in Box.objects.filter(assigned_screen__isnull=False).exclude(status=Box.Status.CANCELLED).values('assigned_screen', 'pastal_number', 'cutting_batch_item__batch__pastal_code'):
+        sn_b = b_row['assigned_screen']
+        pcode_b = (b_row['pastal_number'] or b_row['cutting_batch_item__batch__pastal_code'] or '').strip()
+        if pcode_b and sn_b:
+            screen_assigned_pastals_map.setdefault(sn_b, set()).add(pcode_b)
+            all_assigned_pastal_codes.add(pcode_b)
+
+    # 2. Bugun butun fabrika bo'yicha har bir pastaldan qancha DAZMOL chiqqani (qayerdan chiqsa ham!)
+    today_dazmol_by_pastal = {}
+    today_dazmol_tickets = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(day_start, day_end)
+    ).filter(
+        Q(article_operation__operation__name__icontains='DAZMOL') |
+        Q(article_operation__operation__code__icontains='DAZMOL')
+    ).exclude(
+        Q(article_operation__operation__name__icontains='TASMA') |
+        Q(article_operation__operation__code__icontains='TASMA') |
+        Q(article_operation__operation__name__icontains="CHO'NTAK") |
+        Q(article_operation__operation__code__icontains="CHO'NTAK") |
+        Q(article_operation__operation__name__icontains='CHONTAK') |
+        Q(article_operation__operation__code__icontains='CHONTAK')
+    ).values('box__pastal_number', 'box__cutting_batch_item__batch__pastal_code').annotate(s=Sum('quantity'))
+
+    for row in today_dazmol_tickets:
+        code = (row['box__pastal_number'] or row['box__cutting_batch_item__batch__pastal_code'] or '').strip()
+        if code:
+            today_dazmol_by_pastal[code] = today_dazmol_by_pastal.get(code, 0) + int(row['s'] or 0)
+
+    # 3. Bugungi va biriktirilgan barcha tegishli pastallar qutilarini olish
+    active_pastal_codes = {b.pastal_code.strip() for b in today_boxes_dict.values() if b.pastal_code and b.pastal_code.strip()}
+    all_relevant_pastal_codes = set(active_pastal_codes) | set(all_assigned_pastal_codes)
+
     all_pastal_boxes = list(
         Box.objects.filter(
-            Q(pastal_number__in=active_pastal_codes) |
-            Q(cutting_batch_item__batch__pastal_code__in=active_pastal_codes)
+            Q(pastal_number__in=all_relevant_pastal_codes) |
+            Q(cutting_batch_item__batch__pastal_code__in=all_relevant_pastal_codes)
         ).exclude(status=Box.Status.CANCELLED).distinct().select_related(
             'order__customer', 'article__model', 'cutting_batch_item__batch'
         )
@@ -758,7 +802,7 @@ def sewing_statistics_daily_view(request):
     for log in inspection_logs:
         logs_by_box.setdefault(log.box_id, []).append(log)
 
-    active_screens = sorted(tickets_by_screen.keys())
+    active_screens = sorted(set(tickets_by_screen.keys()) | {sn for sn, pset in screen_assigned_pastals_map.items() if pset})
     screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
 
     patoks_data = []
@@ -783,19 +827,49 @@ def sewing_statistics_daily_view(request):
             continue
 
         t_list = tickets_by_screen.get(sn, [])
-        is_active = len(t_list) > 0
 
         # Ushbu patokning bugungi qutilari
         sn_box_ids = {t.box_id for t in t_list}
         sn_today_boxes = [today_boxes_dict[bid] for bid in sn_box_ids if bid in today_boxes_dict]
 
-        # Zakazlar va Modellarni yaxlitlash
+        # Ushbu patokka rasman biriktirilgan pastallar (Asosiy)
+        assigned_pastal_codes = screen_assigned_pastals_map.get(sn, set())
+
+        # Bugun ushbu patokda skanerlangan pastallar
+        sn_scanned_pastal_codes = set()
+        for b in sn_today_boxes:
+            pcode = (b.pastal_code or "").strip()
+            if pcode:
+                sn_scanned_pastal_codes.add(pcode)
+
+        # Asosiy pastallarni filtrlash: agar butunlay yopilgan bo'lsa va bugun hech qanday harakat bo'lmagan bo'lsa, chiqarmaymiz
+        filtered_assigned_codes = set()
+        for pcode in assigned_pastal_codes:
+            p_boxes = boxes_by_pastal.get(pcode, [])
+            total_p_boxes = len(p_boxes)
+            closed_p_boxes = len([b for b in p_boxes if b.is_controlled])
+            repair_qty = sum(b.controlled_repair_qty for b in p_boxes)
+            is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes and repair_qty == 0)
+            has_activity_today = (pcode in sn_scanned_pastal_codes) or (today_dazmol_by_pastal.get(pcode, 0) > 0)
+            if not is_pastal_closed or has_activity_today or total_p_boxes == 0:
+                filtered_assigned_codes.add(pcode)
+
+        sn_primary_pastal_codes = sorted(list(filtered_assigned_codes))
+        sn_extra_pastal_codes = sorted([c for c in sn_scanned_pastal_codes if c not in filtered_assigned_codes])
+        sn_pastal_codes = sn_primary_pastal_codes + sn_extra_pastal_codes
+
+        # Zakazlar va Modellarni yaxlitlash (bugun skanerlangan + biriktirilgan qutilar)
         orders_dict = {}
         models_dict = {}
-        sn_pastal_codes_set = set()
         sn_norms = []
 
-        for b in sn_today_boxes:
+        all_sn_candidate_boxes = list(sn_today_boxes)
+        for pcode in sn_primary_pastal_codes:
+            for b in boxes_by_pastal.get(pcode, []):
+                if b not in all_sn_candidate_boxes:
+                    all_sn_candidate_boxes.append(b)
+
+        for b in all_sn_candidate_boxes:
             if b.order:
                 all_worked_orders.add(b.order.order_number)
                 orders_dict[b.order_id] = {
@@ -807,7 +881,7 @@ def sewing_statistics_daily_view(request):
             if art:
                 m_name = (art.name or (art.model.name if art.model else "—"))
                 art_norm = art.daily_norm or (art.model.daily_norm if art.model else 0) or 1200
-                if art_norm > 0:
+                if art_norm > 0 and art_norm not in sn_norms:
                     sn_norms.append(art_norm)
 
                 models_dict[art.id] = {
@@ -819,10 +893,7 @@ def sewing_statistics_daily_view(request):
                 }
             pcode = (b.pastal_code or "").strip()
             if pcode:
-                sn_pastal_codes_set.add(pcode)
                 all_worked_pastals.add(pcode)
-
-        sn_pastal_codes = sorted(list(sn_pastal_codes_set))
 
         # Patok kunlik normasi (modellar normasi asosida)
         patok_daily_norm = int(sum(sn_norms) / len(sn_norms)) if sn_norms else 1200
@@ -903,17 +974,21 @@ def sewing_statistics_daily_view(request):
         is_norm_completed = (completed_for_norm >= patok_daily_norm)
         norm_diff = completed_for_norm - patok_daily_norm
 
-        # Screens moduli orqali hisoblangan aniqlik, davomat, foizlar va tikuvchilar
+        # Screens moduli orqali hisoblangan aniqlik, davomat, foizlar, patok quvvati va tikuvchilar
         screen_data = get_screen_data(sn, selected_date)
         sn_aniqlik = screen_data.get('aniqlik', 0)
         sn_davomat = screen_data.get('davomat', 0)
         sn_davomat_foiz = screen_data.get('foiz', 0.0)
         sn_avg_kpi = screen_data.get('avg_screen_kpi', 0.0)
         sn_patok_kpi = screen_data.get('patok_kpi', 0.0)
+        sn_patok_quvvati = screen_data.get('patok_quvvati', 0.0)
+        sn_quvvat_color = screen_data.get('quvvat_color', 'emerald')
+        sn_quvvat_color_class = screen_data.get('quvvat_color_class', '')
+        sn_quvvat_badge_bg = screen_data.get('quvvat_badge_bg', '')
         sn_workers = screen_data.get('workers', [])
 
         # DailyPatokProgress ga saqlash / muhrlash (Bugun real-time, kecha va undan oldingi kunlar muzlatilgan snapshot)
-        if is_active:
+        if len(t_list) > 0:
             DailyPatokProgress.objects.update_or_create(
                 screen_number=sn,
                 date=selected_date,
@@ -942,6 +1017,9 @@ def sewing_statistics_daily_view(request):
         all_patok_pastals_closed = (len(sn_pastal_codes) > 0)
 
         for pcode in sn_pastal_codes:
+            is_primary_pastal = (pcode in filtered_assigned_codes)
+            today_factory_dazmol = today_dazmol_by_pastal.get(pcode, 0)
+
             p_boxes = boxes_by_pastal.get(pcode, [])
             total_p_boxes = len(p_boxes)
             p_total_qty = sum(b.quantity for b in p_boxes)
@@ -1104,6 +1182,7 @@ def sewing_statistics_daily_view(request):
                 })
 
             pastals_detail_list.append({
+                'is_primary': is_primary_pastal,
                 'pastal_code': pcode,
                 'order_number': p_order_num,
                 'model_name': p_model_name,
@@ -1120,6 +1199,7 @@ def sewing_statistics_daily_view(request):
                 'in_sewing_qty': in_sewing_qty,
                 'dazmol_boxes': dazmol_boxes_count,
                 'dazmol_qty': dazmol_qty,
+                'today_factory_dazmol_qty': today_factory_dazmol,
                 'today_dazmol_qty': p_today_dazmol,
                 'today_dazmol_boxes': p_today_dazmol_boxes,
                 'waiting_otk_boxes': waiting_otk_boxes_count,
@@ -1152,6 +1232,30 @@ def sewing_statistics_daily_view(request):
             )
             if not matches_search:
                 continue
+
+        primary_pastals = [p for p in pastals_detail_list if p['is_primary']]
+        extra_pastals = [p for p in pastals_detail_list if not p['is_primary']]
+
+        # Dual Dazmol nazorati:
+        # 1. Asosiy pastallar bo'yicha bugun butun fabrikada chiqqan dazmol (450/A1, 560/A2)
+        pastal_dazmol_items = [
+            {
+                'code': p['pastal_code'],
+                'qty': p['today_factory_dazmol_qty'],
+            }
+            for p in primary_pastals
+        ]
+        if not pastal_dazmol_items and extra_pastals:
+            pastal_dazmol_items = [
+                {
+                    'code': p['pastal_code'],
+                    'qty': p['today_factory_dazmol_qty'],
+                }
+                for p in extra_pastals if p['today_factory_dazmol_qty'] > 0
+            ]
+
+        # Patok faolligi: stikerlar bo'lsa yoki biriktirilgan asosiy pastali bo'lsa
+        is_active = (len(t_list) > 0) or (len(primary_pastals) > 0)
 
         total_daily_dazmol_qty += sn_dazmol_qty
         total_daily_controlled_qty += sn_controlled_qty
@@ -1199,6 +1303,8 @@ def sewing_statistics_daily_view(request):
             'is_active': is_active,
             'orders': list(orders_dict.values()),
             'models': list(models_dict.values()),
+            'primary_pastals': primary_pastals,
+            'extra_pastals': extra_pastals,
             'pastals': pastals_detail_list,
             'pastals_count': len(pastals_detail_list),
             'pastals_summary': patok_summary,
@@ -1213,8 +1319,14 @@ def sewing_statistics_daily_view(request):
             'davomat_foiz': sn_davomat_foiz,
             'avg_kpi': sn_avg_kpi,
             'patok_kpi': sn_patok_kpi,
+            'patok_quvvati': sn_patok_quvvati,
+            'quvvat_color': sn_quvvat_color,
+            'quvvat_color_class': sn_quvvat_color_class,
+            'quvvat_badge_bg': sn_quvvat_badge_bg,
             'workers': sn_workers,
             'workers_count': len(sn_workers),
+            'pastal_dazmol_items': pastal_dazmol_items,
+            'patok_dazmol_qty': sn_dazmol_qty,
             'dazmol_qty': sn_dazmol_qty,
             'daily_dazmol_qty': sn_dazmol_qty,
             'dazmol_boxes_count': len(sn_dazmol_box_ids),
@@ -1248,6 +1360,7 @@ def sewing_statistics_daily_view(request):
     total_workers = sum(p.get('davomat', 0) for p in active_patok_items)
     avg_kpi_overall = round((sum(p.get('avg_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     avg_patok_kpi_overall = round((sum(p.get('patok_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
+    avg_patok_quvvati = round((sum(p.get('patok_quvvati', 0.0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
 
     context = {
         'selected_date': selected_date,
@@ -1260,10 +1373,11 @@ def sewing_statistics_daily_view(request):
         'show_all_patoks': show_all_patoks,
         'patoks_data': patoks_data,
         'kpis': {
-            'active_patoks': total_active_patoks,
+            'active_patoks': len(active_patok_items),
             'total_workers': total_workers,
             'avg_kpi_overall': avg_kpi_overall,
             'avg_patok_kpi_overall': avg_patok_kpi_overall,
+            'avg_patok_quvvati': avg_patok_quvvati,
             'total_orders': len(all_worked_orders),
             'total_pastals': len(all_worked_pastals),
             'total_planned_norm': total_planned_norm,

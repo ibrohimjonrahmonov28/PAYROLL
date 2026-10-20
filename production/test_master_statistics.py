@@ -632,4 +632,127 @@ class MasterStatisticsComprehensiveTest(TestCase):
         absent_day_row = next(w for w in d_data['working_days'] if w['date'] == '2026-10-11')
         self.assertTrue(absent_day_row['is_absent'])
 
+    def test_sewing_statistics_daily_primary_and_extra_pastals(self):
+        """
+        Kunlik tikim monitoringida:
+        1. Patokka biriktirilgan (ACCEPTED) pastal Asosiy bo'lib chiqishi
+        2. Boshqa patokdan chevarlar skanerlagan pastal Qo'shimcha bo'lib chiqishi
+        3. Dazmol dual nazorati (butun fabrika bo'yicha dazmol: 450/A1 + patok dazmoli)
+        4. Patok quvvati to'g'ri hisoblanishi
+        """
+        today = timezone.localdate()
+        # 1. Asosiy pastal: Batch 1 -> Screen 1 ga biriktirilgan
+        batch1 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=1,
+            pastal_code="A1",
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        )
+        box_a1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            pastal_number="A1",
+            quantity=100,
+            box_number=1,
+            assigned_screen=1
+        )
+
+        # 2. Qo'shimcha pastal: Batch 2 -> Screen 2 ga biriktirilgan, lekin Screen 1 chevarlari skanerlagan
+        batch2 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=2,
+            pastal_code="D3",
+            assigned_screen=2,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        )
+        box_d3 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            pastal_number="D3",
+            quantity=50,
+            box_number=2,
+            assigned_screen=2
+        )
+
+        # Dazmol operatsiyasi
+        dazmol_op = Operation.objects.create(code="DAZMOL-TEST", name="DAZMOL VA BUKLASH")
+        art_dazmol = ArticleOperation.objects.create(
+            article=self.article,
+            operation=dazmol_op,
+            price_per_unit=Decimal("150.00"),
+            sequence=2,
+            is_active=True
+        )
+
+        # Worker
+        worker1 = Worker.objects.create(
+            first_name="Zuhra",
+            last_name="Tikuvchi",
+            worker_id="W-1001"
+        )
+
+        # Screen 1 da tikuvchi box_d3 (Qo'shimcha) operatsiyasini skanerladi
+        Ticket.objects.create(
+            box=box_d3,
+            article_operation=self.art_op,
+            worker=worker1,
+            quantity=30,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=timezone.now()
+        )
+
+        # Boshqa patokda (Screen 3) kimdir A1 pastalni dazmol qildi (butun fabrika dazmoli!)
+        Ticket.objects.create(
+            box=box_a1,
+            article_operation=art_dazmol,
+            worker=worker1,
+            quantity=45,
+            status=Ticket.Status.SCANNED,
+            screen_number=3,
+            scanned_at=timezone.now()
+        )
+
+        # Screen 1 ning o'zida ham patok dazmoli skanerlandi
+        Ticket.objects.create(
+            box=box_d3,
+            article_operation=art_dazmol,
+            worker=worker1,
+            quantity=20,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=timezone.now()
+        )
+
+        url = reverse('production:sewing_statistics_daily') + f'?date={today.isoformat()}'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        # K1 patok ma'lumotlarini tekshirish
+        k1_data = next(p for p in res.context['patoks_data'] if p['screen_number'] == 1)
+        self.assertTrue(k1_data['is_active'])
+
+        # Asosiy pastallar ro'yxatida A1 bo'lishi kerak
+        primary_codes = [p['pastal_code'] for p in k1_data['primary_pastals']]
+        self.assertIn("A1", primary_codes)
+
+        # Qo'shimcha pastallar ro'yxatida D3 bo'lishi kerak
+        extra_codes = [p['pastal_code'] for p in k1_data['extra_pastals']]
+        self.assertIn("D3", extra_codes)
+
+        # Dazmol dual nazorati:
+        # A1 uchun butun fabrikada chiqqan dazmol = 45 dona
+        self.assertEqual(len(k1_data['pastal_dazmol_items']), 1)
+        self.assertEqual(k1_data['pastal_dazmol_items'][0]['code'], "A1")
+        self.assertEqual(k1_data['pastal_dazmol_items'][0]['qty'], 45)
+
+        # Patok dazmoli (Screen 1 ning o'zida chiqqan) = 20 dona
+        self.assertEqual(k1_data['patok_dazmol_qty'], 20)
+
+        # Patok quvvati mavjudligi
+        self.assertIn('patok_quvvati', k1_data)
+        self.assertIn('avg_patok_quvvati', res.context['kpis'])
+
+
 
