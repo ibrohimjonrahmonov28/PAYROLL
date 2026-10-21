@@ -4029,6 +4029,7 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
 
         self.order = Order.objects.create(order_number='ORD-DAZMOL-01', customer=self.customer, status=Order.Status.IN_PROGRESS)
         self.order_item = OrderItem.objects.create(order=self.order, article=self.article, quantity=200)
+        self.size = OrderItemSize.objects.create(order_item=self.order_item, size_name='L', planned_quantity=200)
 
         # Batch 1 assigned to screen 1 (K1)
         self.batch1 = CuttingBatch.objects.create(
@@ -4038,7 +4039,7 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
             assigned_screen=1,
             dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
         )
-        self.bitem1 = CuttingBatchItem.objects.create(batch=self.batch1, quantity=100, real_quantity=100)
+        self.bitem1 = CuttingBatchItem.objects.create(batch=self.batch1, order_item_size=self.size, quantity=100, real_quantity=100)
         self.box1 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=1, quantity=50, pastal_number='P-101', assigned_screen=1)
         self.box2 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=2, quantity=50, pastal_number='P-101', assigned_screen=1)
 
@@ -4050,7 +4051,7 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
             assigned_screen=1,
             dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
         )
-        self.bitem2 = CuttingBatchItem.objects.create(batch=self.batch2, quantity=100, real_quantity=100)
+        self.bitem2 = CuttingBatchItem.objects.create(batch=self.batch2, order_item_size=self.size, quantity=100, real_quantity=100)
         self.box3 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem2, box_number=3, quantity=60, pastal_number='P-102', assigned_screen=1)
 
         now = timezone.now()
