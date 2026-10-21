@@ -4080,5 +4080,121 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
         self.assertIn('60/P-102', html)
 
 
+class MetoHubAndWaybillLogisticsTest(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        from django.test import RequestFactory
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.contrib.messages.middleware import MessageMiddleware
+        from production.models import (
+            Customer, ProductModel, Article, Operation, ArticleOperation,
+            Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Waybill
+        )
+        self.rf = RequestFactory()
+        self.superadmin = User.objects.create_superuser(
+            username='admin_metohub_test',
+            password='password123',
+            first_name='Admin',
+            last_name='Hub'
+        )
+        self.customer = Customer.objects.create(name='Customer Hub')
+        self.pmodel = ProductModel.objects.create(name='Model Hub', code='MH-02')
+        self.article = Article.objects.create(name='Article Hub', code='AH-02', model=self.pmodel)
+
+        self.order = Order.objects.create(order_number='ORD-HUB-02', customer=self.customer, status=Order.Status.IN_PROGRESS)
+        self.order_item = OrderItem.objects.create(order=self.order, article=self.article, quantity=200)
+        self.size = OrderItemSize.objects.create(order_item=self.order_item, size_name='M', planned_quantity=200)
+
+        # Batch 1 (Meto Skladida turgan tayyor pastal)
+        self.batch1 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=201,
+            pastal_code='HUB-201',
+            actual_weight_kg=Decimal('48.50')
+        )
+        self.bitem1 = CuttingBatchItem.objects.create(
+            batch=self.batch1,
+            order_item_size=self.size,
+            quantity=100,
+            real_quantity=100,
+            status=CuttingBatchItem.Status.STICKERS_PRINTED
+        )
+        self.box1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.bitem1,
+            box_number=1,
+            quantity=100,
+            is_printed=True
+        )
+
+    def _process_req(self, req, session_dict=None):
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.contrib.messages.middleware import MessageMiddleware
+        req.user = self.superadmin
+        sm = SessionMiddleware(lambda r: None)
+        sm.process_request(req)
+        if session_dict:
+            for k, v in session_dict.items():
+                req.session[k] = v
+        req.session.save()
+        mm = MessageMiddleware(lambda r: None)
+        mm.process_request(req)
+        return req
+
+    def test_full_cart_waybill_and_receipt_lifecycle(self):
+        from production.models import Waybill
+        from production.meto_hub_views import (
+            meto_hub_dashboard_view,
+            meto_hub_cart_add_view,
+            meto_hub_waybill_create_view,
+            meto_hub_waybill_accept_view,
+            meto_hub_dispatch_uychi_view,
+        )
+
+        # 1. Meto Skladida ko'rinishini tekshirish
+        req = self._process_req(self.rf.get('/meto-hub/?tab=sklad'))
+        res = meto_hub_dashboard_view(req)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('HUB-201', res.content.decode('utf-8'))
+
+        # 2. Savatchaga qo'shish
+        req = self._process_req(self.rf.post(f'/meto-hub/cart/add/{self.batch1.id}/'))
+        res_add = meto_hub_cart_add_view(req, self.batch1.id)
+        self.assertIn(self.batch1.id, req.session['waybill_cart'])
+
+        # 3. Yuk Xati yaratish
+        req = self._process_req(self.rf.post('/meto-hub/waybill/create/', {
+            'vehicle_number': '50 B 999 BB',
+            'driver_name': 'Sobir',
+            'destination_branch': 'UYCHI'
+        }), session_dict={'waybill_cart': [self.batch1.id]})
+        res_wb = meto_hub_waybill_create_view(req)
+        self.assertEqual(res_wb.status_code, 302)
+
+        wb = Waybill.objects.filter(vehicle_number='50 B 999 BB').first()
+        self.assertIsNotNone(wb)
+        self.assertEqual(wb.status, Waybill.Status.IN_TRANSIT)
+
+        # 4. Uychi qabul qilishi
+        req = self._process_req(self.rf.post(f'/meto-hub/waybill/{wb.id}/accept/'))
+        res_acc = meto_hub_waybill_accept_view(req, wb.id)
+        self.assertEqual(res_acc.status_code, 302)
+        wb.refresh_from_db()
+        self.assertEqual(wb.status, Waybill.Status.RECEIVED)
+
+        self.batch1.refresh_from_db()
+        self.assertEqual(self.batch1.dispatch_status, CuttingBatch.DispatchStatus.ACCEPTED)
+
+        # 5. Uychi patogiga berish (U1 -> Screen 14)
+        req = self._process_req(self.rf.post(f'/meto-hub/uychi/dispatch/{self.batch1.id}/', {'screen_number': '14'}))
+        res_disp = meto_hub_dispatch_uychi_view(req, self.batch1.id)
+        self.assertEqual(res_disp.status_code, 302)
+
+        self.batch1.refresh_from_db()
+        self.assertEqual(self.batch1.assigned_screen, 14)
+
+
+
 
 

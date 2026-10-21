@@ -1,0 +1,290 @@
+{% extends 'meto_hub/base_meto_hub.html' %}
+
+{% block title %}Uychi Filiali — Sklad & Qabul Qilish{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Uychi Top Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+            <h1 class="text-xl font-black text-white flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 text-sm">
+                    <i class="fa-solid fa-building-flag"></i>
+                </span>
+                <span>Uychi Filiali Ombori & Yuk Qabul Qilish</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Kosondan kelayotgan yuklarni qabul qilish va Uychi patoklariga (U1 — U14) taqsimlash
+            </p>
+        </div>
+
+        <a href="{% url 'meto_hub_dashboard' %}"
+            class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-left text-[10px]"></i> Koson Bosh Skladiga Qaytish
+        </a>
+    </div>
+
+    <!-- 1. KUTILAYOTGAN YUK XATLARI (IN TRANSIT) -->
+    <div class="space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-truck-moving text-purple-400 animate-pulse"></i> Kutilayotgan Yuk Xatlari (Moshina yo'lda)
+            </h2>
+            <span class="text-xs font-mono font-bold text-slate-400">{{ incoming_waybills.count }} ta moshina</span>
+        </div>
+
+        {% if incoming_waybills %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for w in incoming_waybills %}
+            <div class="bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-900 border-2 border-purple-500/40 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-base font-black text-white font-mono tracking-wider">{{ w.waybill_number }}</span>
+                            <span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold">
+                                Yo'lda
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">
+                            Chiqarilgan: <span class="font-mono text-slate-300">{{ w.dispatched_at|default:w.created_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="text-right">
+                        <span class="text-xs font-mono font-bold text-white block">{{ w.vehicle_number|default:"—" }}</span>
+                        <span class="text-[10px] text-slate-400">{{ w.driver_name|default:"Haydovchi" }}</span>
+                    </div>
+                </div>
+
+                <!-- Stats summary -->
+                <div class="grid grid-cols-3 gap-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center font-mono">
+                    <div>
+                        <span class="text-[10px] text-slate-500 block uppercase">Pastallar</span>
+                        <strong class="text-purple-300 text-sm font-black">{{ w.total_batches_count }} ta</strong>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block uppercase">Jami Dona</span>
+                        <strong class="text-emerald-400 text-sm font-black">{{ w.total_quantity }} ta</strong>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block uppercase">Og'irlik</span>
+                        <strong class="text-amber-400 text-sm font-black">{{ w.total_weight_kg|floatformat:1 }} kg</strong>
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex items-center justify-between pt-1">
+                    <a href="{% url 'meto_hub_waybill_detail' w.id %}"
+                        class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye text-[11px]"></i> Ko'rib chiqish
+                    </a>
+
+                    <form method="POST" action="{% url 'meto_hub_waybill_accept' w.id %}"
+                        onsubmit="return confirm('Moshinani qabul qilib, barcha {{ w.total_batches_count }} ta pastalni Uychi omboriga kiritasizmi?');" class="inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                            <i class="fa-solid fa-circle-check"></i> Qabul Qilish (Uychi)
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-6 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-500 text-xs">
+            <i class="fa-solid fa-road text-2xl text-slate-700 block mb-1"></i>
+            Hozirda Kosondan Uychiga kelayotgan moshina yoki yuk xati yo'q.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 2. UYCHI OMBORI (HOZIRGI TAYYOR QOLDIQLAR) -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <div>
+                <span class="text-sm font-black text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-warehouse"></i> Uychi Filiali Ombori (Tayyor Pastallar)
+                </span>
+                <span class="text-xs text-slate-400 block mt-0.5">
+                    Kosondan qabul qilingan, lekin hali birorta Uychi patogiga berilmagan erkin pastallar
+                </span>
+            </div>
+            <span class="text-xs font-mono font-bold text-cyan-400">{{ uychi_sklad_batches.count }} ta pastal</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60 font-semibold">
+                        <th class="py-3 px-4">Pastal Kodi / Nomi</th>
+                        <th class="py-3 px-4">Zakaz & Model</th>
+                        <th class="py-3 px-4 text-center">Jami Dona</th>
+                        <th class="py-3 px-4 text-center">Vazni (kg)</th>
+                        <th class="py-3 px-4">Kelgan Yuk Xati</th>
+                        <th class="py-3 px-4 text-right">Patokka Berish</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for b in uychi_sklad_batches %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4">
+                            <div class="font-mono font-black text-white text-sm">{{ b.pastal_code|default:"—" }}</div>
+                            <div class="text-[11px] text-slate-400">{{ b.name }}</div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-cyan-300">{{ b.order_item.order.order_number }}</div>
+                            <div class="text-[11px] text-slate-300">{{ b.order_item.article.name }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-black text-emerald-400 text-sm">
+                            {{ b.total_cut_qty }} dona
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-amber-300">
+                            {% if b.actual_weight_kg %}{{ b.actual_weight_kg }} kg{% elif b.fabric_weight_kg %}{{ b.fabric_weight_kg }} kg{% else %}—{% endif %}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if b.waybill %}
+                            <a href="{% url 'meto_hub_waybill_detail' b.waybill.id %}"
+                                class="text-purple-300 hover:text-purple-200 font-mono font-bold">
+                                {{ b.waybill.waybill_number }}
+                            </a>
+                            <span class="text-[10px] text-slate-500 block font-mono">{{ b.accepted_at|date:"d.m.Y H:i" }}</span>
+                            {% else %}
+                            <span class="text-slate-500">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <button type="button" onclick="openUychiDispatchModal({{ b.id }}, '{{ b.pastal_code|default:b.name }}', {{ b.total_cut_qty }})"
+                                class="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-shirt text-[10px]"></i> Uychi Patogiga
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-boxes-packing text-2xl text-slate-700 block mb-1"></i>
+                            Uychi omborida hozircha erkin pastal yo'q.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. YAQINDA QABUL QILINGAN YUK XATLARI TARIXI -->
+    {% if history_waybills %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-clock-rotate-left"></i> Yaqinda Qabul Qilingan Yuk Xatlari Tarixi
+            </span>
+            <span class="text-xs font-mono text-slate-500">{{ history_waybills.count }} ta</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-950/60 font-semibold font-sans">
+                        <th class="py-2.5 px-4">Raqami</th>
+                        <th class="py-2.5 px-4">Moshina & Haydovchi</th>
+                        <th class="py-2.5 px-4 text-center">Pastallar</th>
+                        <th class="py-2.5 px-4 text-center">Jami Dona</th>
+                        <th class="py-2.5 px-4 text-center">Og'irlik</th>
+                        <th class="py-2.5 px-4">Qabul qilgan</th>
+                        <th class="py-2.5 px-4 text-right">Pasport / A4</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/40">
+                    {% for w in history_waybills %}
+                    <tr class="hover:bg-slate-800/30 transition text-slate-300">
+                        <td class="py-2.5 px-4 font-bold text-white">
+                            <a href="{% url 'meto_hub_waybill_detail' w.id %}" class="hover:text-cyan-400">{{ w.waybill_number }}</a>
+                        </td>
+                        <td class="py-2.5 px-4">{{ w.vehicle_number|default:"—" }} ({{ w.driver_name|default:"—" }})</td>
+                        <td class="py-2.5 px-4 text-center text-purple-300 font-bold">{{ w.total_batches_count }} ta</td>
+                        <td class="py-2.5 px-4 text-center text-emerald-400 font-black">{{ w.total_quantity }} dona</td>
+                        <td class="py-2.5 px-4 text-center text-amber-300">{{ w.total_weight_kg|floatformat:1 }} kg</td>
+                        <td class="py-2.5 px-4 font-sans text-[11px] text-slate-400">
+                            {{ w.received_by.get_full_name|default:w.received_by.username }}
+                            <span class="block text-[10px] text-slate-500 font-mono">{{ w.received_at|date:"d.m.Y H:i" }}</span>
+                        </td>
+                        <td class="py-2.5 px-4 text-right font-sans">
+                            <a href="{% url 'meto_hub_waybill_print' w.id %}" target="_blank"
+                                class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition inline-flex items-center gap-1">
+                                <i class="fa-solid fa-print"></i> A4
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- MODAL: UYCHI PATOGIGA BERISH -->
+<div id="uychiDispatchModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shirt text-purple-400"></i>
+                <span class="font-black text-white text-sm">Uychi Patogiga Berish</span>
+            </div>
+            <button onclick="closeUychiDispatchModal()" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="uychiDispatchForm" class="space-y-4">
+            {% csrf_token %}
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                <div class="text-[11px] text-slate-400">Pastal: <strong id="uychiModalPastalName" class="text-white font-mono"></strong></div>
+                <div class="text-[11px] text-slate-400">Dona: <strong id="uychiModalQty" class="text-emerald-400 font-mono"></strong></div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-2">Qaysi Uychi Patogiga berilsin?</label>
+                <div class="grid grid-cols-4 gap-2">
+                    {% for p in uychi_patoks %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="screen_number" value="{{ p.number }}" required class="peer sr-only">
+                        <div class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center peer-checked:border-purple-500 peer-checked:bg-purple-950/40 peer-checked:text-purple-300 hover:border-slate-700 transition">
+                            <span class="font-black text-xs block font-mono">{{ p.code }}</span>
+                            <span class="text-[9px] text-slate-500 block">Patok</span>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="closeUychiDispatchModal()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-lg transition">
+                    Uychi Patogiga Berish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openUychiDispatchModal(batchId, name, qty) {
+        document.getElementById('uychiModalPastalName').innerText = name;
+        document.getElementById('uychiModalQty').innerText = qty + ' dona';
+        document.getElementById('uychiDispatchForm').action = '/meto-hub/uychi/dispatch/' + batchId + '/';
+        document.getElementById('uychiDispatchModal').classList.remove('hidden');
+    }
+    function closeUychiDispatchModal() {
+        document.getElementById('uychiDispatchModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

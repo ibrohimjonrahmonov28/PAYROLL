@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="uz" class="h-full bg-slate-950 text-slate-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meto Markazi & Logistika — TERRY JAR{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .digital-font {
+            font-family: 'Times New Roman', Times, serif;
+        }
+    </style>
+    {% include 'includes/theme_head.html' %}
+</head>
+
+<body class="h-full flex flex-col bg-slate-950 text-slate-100">
+
+    <!-- Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand -->
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'meto_hub_dashboard' %}" class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-cyan-500/20">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-black tracking-wider text-white uppercase block leading-none">
+                                Meto Markazi
+                            </span>
+                            <span class="text-[10px] text-cyan-400 font-bold tracking-widest uppercase block mt-0.5">
+                                Sklad & Logistika
+                            </span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Navigation Tabs / Links -->
+                <nav class="hidden md:flex items-center gap-2">
+                    <a href="{% url 'meto_hub_dashboard' %}?tab=sklad"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'meto_hub_dashboard' %}bg-cyan-500/20 text-cyan-300 border border-cyan-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                        <i class="fa-solid fa-warehouse text-xs"></i>
+                        <span>Koson (Bosh Sklad)</span>
+                    </a>
+                    <a href="{% url 'meto_hub_uychi' %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'meto_hub_uychi' %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                        <i class="fa-solid fa-truck-ramp-box text-xs"></i>
+                        <span>Uychi Filiali</span>
+                    </a>
+                    <a href="{% url 'meto_dashboard' %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-300 hover:bg-slate-800/80 transition flex items-center gap-1.5 border border-slate-800"
+                        title="Eski Meto bo'limiga o'tish">
+                        <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        <span>Eski Meto</span>
+                    </a>
+                </nav>
+
+                <!-- User profile & Logout -->
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-xs font-bold text-white leading-tight">
+                            {{ request.user.get_full_name|default:request.user.username }}
+                        </div>
+                        <div class="text-[10px] text-cyan-400 font-mono">
+                            {{ request.user.get_role_display }} ({{ request.user.get_branch_display }})
+                        </div>
+                    </div>
+                    <a href="{% url 'root_logout' %}"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 border border-slate-700/60 text-slate-400 text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span class="hidden sm:inline">Chiqish</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full space-y-2">
+        {% for message in messages %}
+        <div class="p-3.5 rounded-xl text-xs font-medium flex items-center justify-between border shadow-lg transition {% if message.tags == 'error' %}bg-rose-950/80 border-rose-800 text-rose-200{% elif message.tags == 'warning' %}bg-amber-950/80 border-amber-800 text-amber-200{% elif message.tags == 'success' %}bg-emerald-950/80 border-emerald-800 text-emerald-200{% else %}bg-slate-900 border-slate-700 text-slate-200{% endif %}">
+            <div class="flex items-center gap-2.5">
+                {% if message.tags == 'error' %}<i class="fa-solid fa-circle-xmark text-rose-400 text-base"></i>
+                {% elif message.tags == 'warning' %}<i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
+                {% elif message.tags == 'success' %}<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+                {% else %}<i class="fa-solid fa-circle-info text-cyan-400 text-base"></i>{% endif %}
+                <span>{{ message }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white px-2 py-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
+        TERRY JAR ERP &copy; 2026 — Meto Markazi & Logistika Tizimi
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

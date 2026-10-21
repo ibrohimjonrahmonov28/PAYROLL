@@ -1,0 +1,231 @@
+{% extends 'meto_hub/base_meto_hub.html' %}
+
+{% block title %}Yuk Xati: {{ waybill.waybill_number }} — TERRY JAR{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+
+    <!-- Top Action Bar -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <a href="{% url 'meto_hub_dashboard' %}?tab=yukxatlari"
+            class="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-arrow-left"></i> Yuk Xatlari Ro'yxatiga Qaytish
+        </a>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'meto_hub_waybill_print' waybill.id %}" target="_blank"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> A4 Chop Etish (Nakladnaya)
+            </a>
+
+            {% if waybill.status == 'IN_TRANSIT' %}
+            <form method="POST" action="{% url 'meto_hub_waybill_accept' waybill.id %}"
+                onsubmit="return confirm('Ushbu yuk xatidagi barcha pastallarni qabul qilasizmi? Ular Uychi ombor balansiga kiritiladi.');" class="inline">
+                {% csrf_token %}
+                <button type="submit"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i> Qabul Qilish (Uychi)
+                </button>
+            </form>
+            <button type="button" onclick="openRejectModal()"
+                class="px-3 py-2 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                <i class="fa-solid fa-ban"></i> Rad etish
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Waybill Main Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+        <!-- Header -->
+        <div class="p-6 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl font-black text-white font-mono tracking-wider">
+                        {{ waybill.waybill_number }}
+                    </span>
+                    {% if waybill.status == 'IN_TRANSIT' %}
+                    <span class="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-road animate-pulse"></i> Yo'lda (Yetkazilmoqda)
+                    </span>
+                    {% elif waybill.status == 'RECEIVED' %}
+                    <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i> Qabul Qilingan
+                    </span>
+                    {% elif waybill.status == 'REJECTED' %}
+                    <span class="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-ban"></i> Qaytarilgan / Rad etilgan
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-slate-400 mt-1">
+                    Rasmiy Filiallararo Yuk Xati &bull; Yaratilgan: <span class="font-mono text-slate-300">{{ waybill.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+            </div>
+
+            <!-- Total badges -->
+            <div class="flex items-center gap-3 font-mono">
+                <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-500 block uppercase">Jami Pastallar</span>
+                    <strong class="text-purple-300 text-base font-black">{{ waybill.total_batches_count }} ta</strong>
+                </div>
+                <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-500 block uppercase">Jami Mahsulot</span>
+                    <strong class="text-emerald-400 text-base font-black">{{ waybill.total_quantity }} dona</strong>
+                </div>
+                <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-500 block uppercase">Jami Og'irlik</span>
+                    <strong class="text-amber-400 text-base font-black">{{ waybill.total_weight_kg|floatformat:1 }} kg</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Grid: Route & Vehicle -->
+        <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-slate-800 text-xs">
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Yo'nalish</span>
+                <div class="font-bold text-white text-sm">
+                    {{ waybill.get_source_branch_display }}
+                    <span class="text-cyan-400 mx-1">➔</span>
+                    {{ waybill.get_destination_branch_display }}
+                </div>
+                <div class="text-[11px] text-slate-400">
+                    Tuzuvchi: <strong class="text-slate-200">{{ waybill.created_by.get_full_name|default:waybill.created_by.username }}</strong>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Moshina & Haydovchi</span>
+                <div class="font-mono font-bold text-white text-sm">
+                    {{ waybill.vehicle_number|default:"—" }}
+                </div>
+                <div class="text-[11px] text-slate-400">
+                    {{ waybill.driver_name|default:"Haydovchi ko'rsatilmagan" }}
+                    {% if waybill.driver_phone %}<span class="font-mono text-cyan-400">({{ waybill.driver_phone }})</span>{% endif %}
+                </div>
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Qabul Ma'lumotlari</span>
+                {% if waybill.received_by %}
+                <div class="text-emerald-400 font-bold">
+                    Qabul qildi: {{ waybill.received_by.get_full_name|default:waybill.received_by.username }}
+                </div>
+                <div class="text-[11px] text-slate-400 font-mono">
+                    {{ waybill.received_at|date:"d.m.Y H:i" }}
+                </div>
+                {% elif waybill.rejected_by %}
+                <div class="text-rose-400 font-bold">
+                    Rad etdi: {{ waybill.rejected_by.get_full_name|default:waybill.rejected_by.username }}
+                </div>
+                <div class="text-[11px] text-rose-300/80 italic">
+                    Sababi: {{ waybill.rejection_reason }}
+                </div>
+                {% else %}
+                <div class="text-purple-300 font-bold">
+                    Hozirda yetkazilmoqda...
+                </div>
+                <div class="text-[11px] text-slate-500">
+                    Uychi filiali tomonidan tasdiqlanishi kutilmoqda
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if waybill.notes %}
+        <div class="px-6 py-3 bg-slate-950/40 border-b border-slate-800 text-xs text-amber-300/90 italic">
+            <strong>Izoh:</strong> {{ waybill.notes }}
+        </div>
+        {% endif %}
+
+        <!-- Batches Table -->
+        <div class="p-6 space-y-3">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-cyan-400"></i> Ushbu Yuk Xatidagi Pastallar Ro'yxati
+            </h3>
+
+            <div class="overflow-x-auto border border-slate-800 rounded-xl">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950 font-semibold">
+                            <th class="py-3 px-3 text-center w-12">#</th>
+                            <th class="py-3 px-4">Pastal Kodi / Nomi</th>
+                            <th class="py-3 px-4">Zakaz & Model</th>
+                            <th class="py-3 px-4 text-center">Jami Dona</th>
+                            <th class="py-3 px-4 text-center">Og'irligi (kg)</th>
+                            <th class="py-3 px-4 text-center">Qutilar</th>
+                            <th class="py-3 px-4 text-right">Pasport</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono">
+                        {% for b in batches %}
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="py-3 px-3 text-center text-slate-500">{{ forloop.counter }}</td>
+                            <td class="py-3 px-4">
+                                <span class="font-black text-white text-sm">{{ b.pastal_code|default:"—" }}</span>
+                                <span class="text-[11px] text-slate-400 font-sans block">{{ b.name }}</span>
+                            </td>
+                            <td class="py-3 px-4 font-sans">
+                                <div class="font-bold text-cyan-300">{{ b.order_item.order.order_number }}</div>
+                                <div class="text-[11px] text-slate-300">{{ b.order_item.article.name }} ({{ b.order_item.article.code }})</div>
+                            </td>
+                            <td class="py-3 px-4 text-center font-black text-emerald-400 text-sm">
+                                {{ b.total_cut_qty }} dona
+                            </td>
+                            <td class="py-3 px-4 text-center font-bold text-amber-300">
+                                {% if b.actual_weight_kg %}{{ b.actual_weight_kg }} kg{% elif b.fabric_weight_kg %}{{ b.fabric_weight_kg }} kg{% else %}—{% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-center text-purple-300 font-bold">
+                                {{ b.boxes.count }} ta
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
+                                    class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-sans font-bold transition inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-file-lines text-[10px]"></i> Pasport
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-slate-950 font-bold text-xs border-t-2 border-slate-700">
+                        <tr>
+                            <td colspan="3" class="py-3.5 px-4 text-right uppercase tracking-wider text-slate-400">Jami Yig'indi:</td>
+                            <td class="py-3.5 px-4 text-center font-mono font-black text-emerald-400 text-sm">{{ waybill.total_quantity }} dona</td>
+                            <td class="py-3.5 px-4 text-center font-mono font-black text-amber-400 text-sm">{{ waybill.total_weight_kg|floatformat:1 }} kg</td>
+                            <td class="py-3.5 px-4 text-center font-mono font-black text-purple-300 text-sm">{{ waybill.total_boxes_count }} ta</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Rad etish -->
+<div id="rejectModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <span class="font-bold text-rose-400 text-sm">Yuk Xatini Rad Etish</span>
+            <button onclick="closeRejectModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form method="POST" action="{% url 'meto_hub_waybill_reject' waybill.id %}" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Rad etish / Qaytarish sababi *</label>
+                <textarea name="rejection_reason" rows="3" required placeholder="Masalan: 1 ta pastalda mato nuqsoni borligi sababli qaytarildi"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-rose-500"></textarea>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="closeRejectModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl">Bekor qilish</button>
+                <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg">Tasdiqlash va Qaytarish</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRejectModal() { document.getElementById('rejectModal').classList.remove('hidden'); }
+    function closeRejectModal() { document.getElementById('rejectModal').classList.add('hidden'); }
+</script>
+{% endblock %}

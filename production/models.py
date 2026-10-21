@@ -732,12 +732,136 @@ class OrderItemSize(models.Model):
         return f"{self.order_item.article.code} [{self.size_name}]: {self.planned_quantity} ta (Kesildi: {self.total_cut_quantity})"
 
 
+def generate_unique_waybill_number():
+    today_str = timezone.now().strftime('%Y%m')
+    prefix = f"YX-{today_str}-"
+    last = Waybill.objects.filter(waybill_number__startswith=prefix).order_by('-waybill_number').first()
+    if last:
+        try:
+            num = int(last.waybill_number.split('-')[-1]) + 1
+        except Exception:
+            num = 1
+    else:
+        num = 1
+    return f"{prefix}{num:04d}"
+
+
+class Waybill(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Qoralama'
+        IN_TRANSIT = 'IN_TRANSIT', 'Yo\'lda (Jo\'natildi)'
+        RECEIVED = 'RECEIVED', 'Qabul qilindi'
+        REJECTED = 'REJECTED', 'Qaytarildi'
+
+    waybill_number = models.CharField(
+        max_length=50,
+        unique=True,
+        default=generate_unique_waybill_number,
+        db_index=True,
+        verbose_name="Yuk Xati Raqami"
+    )
+    source_branch = models.CharField(
+        max_length=50,
+        default='HQ',
+        choices=[('HQ', 'Kosonsoy (Bosh bino)'), ('UYCHI', 'Uychi')],
+        verbose_name="Jo'natuvchi Filial"
+    )
+    destination_branch = models.CharField(
+        max_length=50,
+        default='UYCHI',
+        choices=[('HQ', 'Kosonsoy (Bosh bino)'), ('UYCHI', 'Uychi')],
+        verbose_name="Qabul qiluvchi Filial"
+    )
+    vehicle_number = models.CharField(max_length=50, blank=True, verbose_name="Moshina Raqami")
+    driver_name = models.CharField(max_length=150, blank=True, verbose_name="Haydovchi")
+    driver_phone = models.CharField(max_length=50, blank=True, verbose_name="Haydovchi Telefoni")
+    notes = models.TextField(blank=True, verbose_name="Izoh")
+
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.IN_TRANSIT,
+        db_index=True,
+        verbose_name="Holati"
+    )
+
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_waybills',
+        verbose_name="Tuzuvchi"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqt")
+    dispatched_at = models.DateTimeField(null=True, blank=True, verbose_name="Jo'natilgan vaqt")
+
+    received_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='received_waybills',
+        verbose_name="Qabul qiluvchi"
+    )
+    received_at = models.DateTimeField(null=True, blank=True, verbose_name="Qabul qilingan vaqt")
+
+    rejected_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='rejected_waybills',
+        verbose_name="Rad etuvchi"
+    )
+    rejected_at = models.DateTimeField(null=True, blank=True, verbose_name="Rad etilgan vaqt")
+    rejection_reason = models.TextField(blank=True, verbose_name="Rad etish sababi")
+
+    class Meta:
+        verbose_name = "Yuk Xati"
+        verbose_name_plural = "Yuk Xatlari"
+        ordering = ['-id']
+
+    def __str__(self):
+        return f"{self.waybill_number} ({self.get_source_branch_display()} -> {self.get_destination_branch_display()})"
+
+    @property
+    def total_batches_count(self):
+        return self.batches.count()
+
+    @property
+    def total_quantity(self):
+        return sum(b.total_cut_qty for b in self.batches.all())
+
+    @property
+    def total_boxes_count(self):
+        return Box.objects.filter(
+            cutting_batch_item__batch__in=self.batches.all()
+        ).exclude(status='CANCELLED').count()
+
+    @property
+    def total_weight_kg(self):
+        total = Decimal('0.00')
+        for b in self.batches.all():
+            w = b.actual_weight_kg or b.fabric_weight_kg or Decimal('0.00')
+            total += w
+        return total
+
+
 class CuttingBatch(models.Model):
     order_item = models.ForeignKey(
         OrderItem,
         on_delete=models.CASCADE,
         related_name='cutting_batches',
         verbose_name="Zakaz Modeli"
+    )
+    waybill = models.ForeignKey(
+        Waybill,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='batches',
+        verbose_name="Biriktirilgan Yuk Xati"
     )
     batch_number = models.PositiveIntegerField(verbose_name="Kesim Raqami")
     name = models.CharField(max_length=100, blank=True, verbose_name="Kesim Nomi")
@@ -806,8 +930,17 @@ class CuttingBatch(models.Model):
         return sum(it.effective_quantity for it in self.items.all())
 
     @property
+    def total_cut_qty(self):
+        real = self.total_real_quantity
+        return real if real > 0 else self.total_quantity
+
+    @property
     def is_all_meto_confirmed(self):
         return self.items.exists() and all(it.status == CuttingBatchItem.Status.METO_CONFIRMED for it in self.items.all())
+
+    @property
+    def boxes(self):
+        return Box.objects.filter(cutting_batch_item__batch=self)
 
     def __str__(self):
         return f"{self.order_item.order.order_number} -> {self.order_item.article.code} | {self.name} ({self.total_quantity} dona)"

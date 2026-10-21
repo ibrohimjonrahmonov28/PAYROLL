@@ -1,0 +1,671 @@
+{% extends 'meto_hub/base_meto_hub.html' %}
+
+{% block title %}Meto Markazi — Sklad & Logistika{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- 1. Sklad (Asosiy) -->
+        <a href="?tab=sklad"
+            class="bg-slate-900 border {% if active_tab == 'sklad' %}border-cyan-500 ring-2 ring-cyan-500/30{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-4 transition shadow-lg group">
+            <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                <span class="font-bold flex items-center gap-1.5 text-cyan-400">
+                    <i class="fa-solid fa-boxes-stacked"></i> Meto Skladi (Ombor)
+                </span>
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-white font-mono">{{ sklad_count }}</span>
+                <span class="text-xs text-slate-400 font-semibold">ta pastal</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-2 font-mono">
+                <span class="text-emerald-400 font-bold">{{ sklad_total_qty }} dona</span>
+                <span class="text-amber-400 font-bold">{{ sklad_total_weight|floatformat:1 }} kg</span>
+            </div>
+        </a>
+
+        <!-- 2. Meto Kutilmoqda -->
+        <a href="?tab=kutilmoqda"
+            class="bg-slate-900 border {% if active_tab == 'kutilmoqda' %}border-amber-500 ring-2 ring-amber-500/30{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-4 transition shadow-lg group">
+            <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                <span class="font-bold flex items-center gap-1.5 text-amber-400">
+                    <i class="fa-solid fa-clock-rotate-left"></i> 1. Meto Kutilmoqda
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-amber-300 font-mono">{{ kutilmoqda_count }}</span>
+                <span class="text-xs text-slate-400 font-semibold">ta pastal</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 border-t border-slate-800/80 pt-2">
+                Kesilgan, qutilarga bo'linmagan
+            </div>
+        </a>
+
+        <!-- 3. Stiker Kutilmoqda -->
+        <a href="?tab=stikerlar"
+            class="bg-slate-900 border {% if active_tab == 'stikerlar' %}border-blue-500 ring-2 ring-blue-500/30{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-4 transition shadow-lg group">
+            <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                <span class="font-bold flex items-center gap-1.5 text-blue-400">
+                    <i class="fa-solid fa-barcode"></i> 2. Stiker Kutilmoqda
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-blue-300 font-mono">{{ stikerlar_count }}</span>
+                <span class="text-xs text-slate-400 font-semibold">ta pastal</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 border-t border-slate-800/80 pt-2">
+                Meto bo'lgan, chop etilishi kutilmoqda
+            </div>
+        </a>
+
+        <!-- 4. Yuk Xatlari -->
+        <a href="?tab=yukxatlari"
+            class="bg-slate-900 border {% if active_tab == 'yukxatlari' %}border-purple-500 ring-2 ring-purple-500/30{% else %}border-slate-800 hover:border-slate-700{% endif %} rounded-2xl p-4 transition shadow-lg group">
+            <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                <span class="font-bold flex items-center gap-1.5 text-purple-400">
+                    <i class="fa-solid fa-truck-fast"></i> 4. Yuk Xatlari
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-purple-300 font-mono">{{ waybills_count }}</span>
+                <span class="text-xs text-slate-400 font-semibold">ta nakladnaya</span>
+            </div>
+            <div class="mt-2 text-[11px] text-purple-400 border-t border-slate-800/80 pt-2 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-road text-[10px]"></i> {{ in_transit_count }} ta moshina yo'lda
+            </div>
+        </a>
+    </div>
+
+    <!-- Live Cart Bar (Uychi Yuk Xati Savatchasi) -->
+    {% if cart.count > 0 %}
+    <div class="bg-gradient-to-r from-purple-950/80 to-slate-900 border-2 border-purple-500/50 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-purple-600/30 border border-purple-500/60 flex items-center justify-center text-purple-300 text-xl">
+                <i class="fa-solid fa-cart-shopping"></i>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Uychi Yuk Xati Savatchasi</span>
+                    <span class="px-2 py-0.5 rounded-full bg-purple-500 text-white font-mono text-xs font-black">{{ cart.count }}</span>
+                </div>
+                <div class="text-sm font-black text-white mt-0.5 flex items-center gap-3 font-mono">
+                    <span>{{ cart.total_qty }} dona</span>
+                    <span class="text-slate-500">•</span>
+                    <span class="text-amber-400">{{ cart.total_weight|floatformat:1 }} kg</span>
+                    <span class="text-slate-500">•</span>
+                    <span class="text-cyan-400">{{ cart.total_boxes }} ta quti</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected pastals pills -->
+        <div class="flex items-center gap-1.5 flex-wrap max-w-xl">
+            {% for b in cart.batches %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-950 border border-purple-700/60 rounded-lg text-xs font-mono text-purple-200">
+                <span>{{ b.pastal_code|default:b.name }}</span>
+                <span class="text-[10px] text-slate-500">({{ b.total_cut_qty }} ta)</span>
+                <form method="POST" action="{% url 'meto_hub_cart_remove' b.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-rose-400 hover:text-rose-300 font-bold ml-1" title="Savatchadan chiqarish">
+                        <i class="fa-solid fa-xmark text-[10px]"></i>
+                    </button>
+                </form>
+            </span>
+            {% endfor %}
+        </div>
+
+        <!-- Cart actions -->
+        <div class="flex items-center gap-2">
+            <form method="POST" action="{% url 'meto_hub_cart_clear' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">
+                    Tozalash
+                </button>
+            </form>
+            <button type="button" onclick="openWaybillModal()"
+                class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-truck"></i> Yuk Xatini Rasmiylashtirish
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation Tabs & Search -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="?tab=sklad{% if q %}&q={{ q }}{% endif %}"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active_tab == 'sklad' %}bg-cyan-600 text-white shadow-lg shadow-cyan-600/30{% else %}bg-slate-900 text-slate-400 hover:text-white border border-slate-800{% endif %}">
+                <i class="fa-solid fa-warehouse"></i>
+                <span>Meto Skladi (Ombor)</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono {% if active_tab == 'sklad' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">{{ sklad_count }}</span>
+            </a>
+            <a href="?tab=kutilmoqda{% if q %}&q={{ q }}{% endif %}"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active_tab == 'kutilmoqda' %}bg-amber-600 text-white shadow-lg shadow-amber-600/30{% else %}bg-slate-900 text-slate-400 hover:text-white border border-slate-800{% endif %}">
+                <i class="fa-solid fa-scissors"></i>
+                <span>1. Meto Kutilmoqda</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono {% if active_tab == 'kutilmoqda' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">{{ kutilmoqda_count }}</span>
+            </a>
+            <a href="?tab=stikerlar{% if q %}&q={{ q }}{% endif %}"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active_tab == 'stikerlar' %}bg-blue-600 text-white shadow-lg shadow-blue-600/30{% else %}bg-slate-900 text-slate-400 hover:text-white border border-slate-800{% endif %}">
+                <i class="fa-solid fa-barcode"></i>
+                <span>2. Stiker Kutilmoqda</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono {% if active_tab == 'stikerlar' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">{{ stikerlar_count }}</span>
+            </a>
+            <a href="?tab=yukxatlari{% if q %}&q={{ q }}{% endif %}"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active_tab == 'yukxatlari' %}bg-purple-600 text-white shadow-lg shadow-purple-600/30{% else %}bg-slate-900 text-slate-400 hover:text-white border border-slate-800{% endif %}">
+                <i class="fa-solid fa-truck-fast"></i>
+                <span>4. Yuk Xatlari</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono {% if active_tab == 'yukxatlari' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">{{ waybills_count }}</span>
+            </a>
+        </div>
+
+        <!-- Search input -->
+        <form method="GET" class="flex items-center gap-2">
+            <input type="hidden" name="tab" value="{{ active_tab }}">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input type="text" name="q" value="{{ q }}" placeholder="Pastal kodi, model, zakaz..."
+                    class="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-64">
+            </div>
+            <button type="submit" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+                Qidirish
+            </button>
+            {% if q %}
+            <a href="?tab={{ active_tab }}" class="text-slate-500 hover:text-white text-xs px-1">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- TAB 1: METO SKLADI (TAYYOR OMBOR) -->
+    {% if active_tab == 'sklad' %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-cyan-400"></i> Meto Skladi (Hozirgi Tayyor Qoldiqlar)
+                </span>
+                <span class="text-xs text-slate-400">
+                    — stikerlari chiqqan, hali hech qaysi patokka berilmagan erkin pastallar
+                </span>
+            </div>
+            <span class="text-xs text-cyan-400 font-mono font-bold">{{ sklad_count }} ta pastal</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60 font-semibold">
+                        <th class="py-3 px-4">Pastal Kodi / Nomi</th>
+                        <th class="py-3 px-4">Zakaz & Model</th>
+                        <th class="py-3 px-4 text-center">Jami Dona</th>
+                        <th class="py-3 px-4 text-center">Vazni (kg)</th>
+                        <th class="py-3 px-4 text-center">Qutilar</th>
+                        <th class="py-3 px-4">Bichuvchi & Sana</th>
+                        <th class="py-3 px-4 text-right">Harakat (Taqsimlash)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for b in tab_items %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <!-- Pastal Kodi -->
+                        <td class="py-3.5 px-4">
+                            <div class="font-mono font-black text-white text-sm">
+                                {{ b.pastal_code|default:"—" }}
+                            </div>
+                            <div class="text-[11px] text-slate-400">
+                                {{ b.name }} (Partiya #{{ b.batch_number }})
+                            </div>
+                        </td>
+
+                        <!-- Zakaz & Model -->
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-cyan-300">
+                                {{ b.order_item.order.order_number }}
+                            </div>
+                            <div class="text-[11px] text-slate-300">
+                                {{ b.order_item.article.name }} ({{ b.order_item.article.code }})
+                            </div>
+                            <div class="text-[10px] text-slate-500">
+                                {{ b.order_item.order.customer.name }}
+                            </div>
+                        </td>
+
+                        <!-- Jami dona -->
+                        <td class="py-3.5 px-4 text-center font-mono font-black text-emerald-400 text-sm">
+                            {{ b.total_cut_qty }} dona
+                        </td>
+
+                        <!-- Vazni kg -->
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-amber-300 text-xs">
+                            {% if b.actual_weight_kg %}{{ b.actual_weight_kg }} kg{% elif b.fabric_weight_kg %}{{ b.fabric_weight_kg }} kg{% else %}—{% endif %}
+                        </td>
+
+                        <!-- Qutilar soni -->
+                        <td class="py-3.5 px-4 text-center font-mono text-purple-300 font-bold">
+                            {{ b.boxes.count }} ta
+                        </td>
+
+                        <!-- Bichuvchi -->
+                        <td class="py-3.5 px-4 text-slate-400 text-[11px]">
+                            <div>{{ b.cutter_name|default:"—" }}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">{{ b.created_at|date:"d.m.Y H:i" }}</div>
+                        </td>
+
+                        <!-- Harakat tugmalari -->
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <!-- 1. Koson Patogiga berish -->
+                                <button type="button" onclick="openKosonDispatchModal({{ b.id }}, '{{ b.pastal_code|default:b.name }}', {{ b.total_cut_qty }})"
+                                    class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                                    title="Koson patogiga berish (skladdan chiqarish)">
+                                    <i class="fa-solid fa-shirt text-[10px]"></i> Koson Patogiga
+                                </button>
+
+                                <!-- 2. Uychi Yuk Xatiga qo'shish (Savatcha) -->
+                                {% if b.id in cart_batch_ids %}
+                                <form method="POST" action="{% url 'meto_hub_cart_remove' b.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="px-2.5 py-1.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                                        title="Savatchadan chiqarish">
+                                        <i class="fa-solid fa-check text-emerald-400"></i> Savatchada <i class="fa-solid fa-xmark text-[10px] text-rose-400 ml-0.5"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{% url 'meto_hub_cart_add' b.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                                        title="Uychi filialiga jo'natish savatchasiga qo'shish">
+                                        <i class="fa-solid fa-cart-plus text-[10px]"></i> Uychi Yukiga
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <!-- Pasport chop etish -->
+                                <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
+                                    class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition"
+                                    title="A4 Pasportini ko'rish">
+                                    <i class="fa-solid fa-file-lines"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-boxes-packing text-3xl mb-2 text-slate-700 block"></i>
+                            Meto skladida hozircha erkin pastallar yo'q.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 2: METO KUTILMOQDA -->
+    {% if active_tab == 'kutilmoqda' %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-sm font-black text-amber-300 flex items-center gap-2">
+                <i class="fa-solid fa-scissors"></i> 1. Meto Kutilayotgan Kesimlar
+            </span>
+            <span class="text-xs text-slate-400 font-mono">{{ kutilmoqda_count }} ta pastal</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60 font-semibold">
+                        <th class="py-3 px-4">Pastal Kodi / Nomi</th>
+                        <th class="py-3 px-4">Zakaz & Model</th>
+                        <th class="py-3 px-4 text-center">Kesilgan Soni</th>
+                        <th class="py-3 px-4 text-center">Og'irligi (kg)</th>
+                        <th class="py-3 px-4">Bichuvchi</th>
+                        <th class="py-3 px-4 text-right">Amal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for b in tab_items %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4">
+                            <div class="font-mono font-black text-white text-sm">{{ b.pastal_code|default:b.name }}</div>
+                            <div class="text-[11px] text-slate-500">Partiya #{{ b.batch_number }}</div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-cyan-300">{{ b.order_item.order.order_number }}</div>
+                            <div class="text-[11px] text-slate-400">{{ b.order_item.article.name }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-black text-amber-400 text-sm">
+                            {{ b.total_cut_qty }} dona
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono text-slate-400">
+                            {{ b.fabric_weight_kg|default:"—" }} kg
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-400 text-[11px]">
+                            {{ b.cutter_name|default:"—" }}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <a href="{% url 'meto_order_detail' b.order_item.order.id %}?open_batch={{ b.id }}"
+                                class="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-barcode"></i> Meto Qilish
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-500">
+                            Meto kutilayotgan pastallar yo'q. Barchasi taqsimlangan!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 3: STIKER KUTILMOQDA -->
+    {% if active_tab == 'stikerlar' %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-sm font-black text-blue-300 flex items-center gap-2">
+                <i class="fa-solid fa-barcode"></i> 2. Stiker Chiqarilishi Kutilayotgan Pastallar
+            </span>
+            <span class="text-xs text-slate-400 font-mono">{{ stikerlar_count }} ta pastal</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60 font-semibold">
+                        <th class="py-3 px-4">Pastal Kodi / Nomi</th>
+                        <th class="py-3 px-4">Zakaz & Model</th>
+                        <th class="py-3 px-4 text-center">Tasdiqlangan Soni</th>
+                        <th class="py-3 px-4 text-center">Qutilar</th>
+                        <th class="py-3 px-4 text-right">Amallar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for b in tab_items %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4">
+                            <div class="font-mono font-black text-white text-sm">{{ b.pastal_code|default:b.name }}</div>
+                            <div class="text-[11px] text-slate-500">Partiya #{{ b.batch_number }}</div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-cyan-300">{{ b.order_item.order.order_number }}</div>
+                            <div class="text-[11px] text-slate-400">{{ b.order_item.article.name }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-black text-emerald-400 text-sm">
+                            {{ b.total_cut_qty }} dona
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono text-blue-300 font-bold">
+                            {{ b.boxes.count }} ta quti
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{% url 'stickers_batch_boxes' b.id %}" target="_blank"
+                                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                    <i class="fa-solid fa-print"></i> Stikerlarni Chop Etish
+                                </a>
+                                <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
+                                    class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                    <i class="fa-solid fa-file-lines"></i> Pasport (A4)
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-12 text-center text-slate-500">
+                            Stiker chiqarilishi kutilayotgan pastallar yo'q.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB 4: YUK XATLARI JURNALI -->
+    {% if active_tab == 'yukxatlari' %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-sm font-black text-purple-300 flex items-center gap-2">
+                <i class="fa-solid fa-truck-fast"></i> 4. Filiallararo Yuk Xatlari Jurnali
+            </span>
+            <span class="text-xs text-slate-400 font-mono">{{ waybills_count }} ta nakladnaya</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950/60 font-semibold">
+                        <th class="py-3 px-4">Yuk Xati Raqami</th>
+                        <th class="py-3 px-4">Yo'nalish</th>
+                        <th class="py-3 px-4">Moshina & Haydovchi</th>
+                        <th class="py-3 px-4 text-center">Pastallar</th>
+                        <th class="py-3 px-4 text-center">Jami Dona</th>
+                        <th class="py-3 px-4 text-center">Jami kg</th>
+                        <th class="py-3 px-4 text-center">Holati</th>
+                        <th class="py-3 px-4 text-right">Amal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for w in tab_items %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4">
+                            <div class="font-mono font-black text-white text-sm">{{ w.waybill_number }}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">{{ w.created_at|date:"d.m.Y H:i" }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-300">
+                            {{ w.get_source_branch_display }} ➔ <span class="text-cyan-300">{{ w.get_destination_branch_display }}</span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-mono font-bold text-white">{{ w.vehicle_number|default:"—" }}</div>
+                            <div class="text-[11px] text-slate-400">{{ w.driver_name|default:"—" }} {% if w.driver_phone %}({{ w.driver_phone }}){% endif %}</div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-purple-300">
+                            {{ w.total_batches_count }} ta
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-black text-emerald-400">
+                            {{ w.total_quantity }} dona
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-amber-300">
+                            {{ w.total_weight_kg|floatformat:1 }} kg
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if w.status == 'IN_TRANSIT' %}
+                            <span class="px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-road text-[9px] animate-pulse"></i> Yo'lda
+                            </span>
+                            {% elif w.status == 'RECEIVED' %}
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-circle-check text-[9px]"></i> Qabul qilingan
+                            </span>
+                            {% elif w.status == 'REJECTED' %}
+                            <span class="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-ban text-[9px]"></i> Qaytarilgan
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 text-[10px] font-medium">
+                                {{ w.get_status_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{% url 'meto_hub_waybill_detail' w.id %}"
+                                    class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-eye text-[10px]"></i> Ko'rish
+                                </a>
+                                <a href="{% url 'meto_hub_waybill_print' w.id %}" target="_blank"
+                                    class="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-print text-[10px]"></i> A4
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500">
+                            Yuk xatlari mavjud emas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- MODAL 1: KOSON PATOGIGA BERISH -->
+<div id="kosonDispatchModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shirt text-emerald-400"></i>
+                <span class="font-black text-white text-sm">Koson Patogiga Berish</span>
+            </div>
+            <button onclick="closeKosonDispatchModal()" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="kosonDispatchForm" class="space-y-4">
+            {% csrf_token %}
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                <div class="text-[11px] text-slate-400">Pastal: <strong id="kosonModalPastalName" class="text-white font-mono"></strong></div>
+                <div class="text-[11px] text-slate-400">Dona: <strong id="kosonModalQty" class="text-emerald-400 font-mono"></strong></div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-2">Qaysi Patokka berilsin?</label>
+                <div class="grid grid-cols-4 gap-2">
+                    {% for p in koson_patoks %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="screen_number" value="{{ p.number }}" required class="peer sr-only">
+                        <div class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-center peer-checked:border-emerald-500 peer-checked:bg-emerald-950/40 peer-checked:text-emerald-300 hover:border-slate-700 transition">
+                            <span class="font-black text-xs block font-mono">{{ p.code }}</span>
+                            <span class="text-[9px] text-slate-500 block">Patok</span>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="closeKosonDispatchModal()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition">
+                    Patokka Berish va Skladdan Chiqarish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: UYCHI YUK XATINI RASMIYLASHTIRISH -->
+<div id="waybillModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-truck text-purple-400"></i>
+                <span class="font-black text-white text-sm">Uychi Filialiga Yuk Xati Tuzish</span>
+            </div>
+            <button onclick="closeWaybillModal()" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'meto_hub_waybill_create' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="destination_branch" value="UYCHI">
+
+            <div class="bg-purple-950/30 border border-purple-800/40 rounded-xl p-3 flex items-center justify-between text-xs font-mono">
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Pastallar soni:</span>
+                    <strong class="text-purple-300 text-sm font-black">{{ cart.count }} ta</strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Jami mahsulot:</span>
+                    <strong class="text-emerald-400 text-sm font-black">{{ cart.total_qty }} dona</strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Jami vazni:</span>
+                    <strong class="text-amber-400 text-sm font-black">{{ cart.total_weight|floatformat:1 }} kg</strong>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Moshina Raqami *</label>
+                    <input type="text" name="vehicle_number" placeholder="50 A 123 AA" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white uppercase font-mono font-bold focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Haydovchi Ismi</label>
+                    <input type="text" name="driver_name" placeholder="Ali Valiyev"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Haydovchi Telefoni</label>
+                    <input type="text" name="driver_phone" placeholder="+998 90 123 45 67"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Qo'shimcha Izoh</label>
+                    <input type="text" name="notes" placeholder="Ehtiyotkorlik bilan yetkazilsin"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="closeWaybillModal()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> Yuk Xatini Rasmiylashtirish va Jo'natish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openKosonDispatchModal(batchId, name, qty) {
+        document.getElementById('kosonModalPastalName').innerText = name;
+        document.getElementById('kosonModalQty').innerText = qty + ' dona';
+        document.getElementById('kosonDispatchForm').action = '/meto-hub/dispatch/koson/' + batchId + '/';
+        document.getElementById('kosonDispatchModal').classList.remove('hidden');
+    }
+    function closeKosonDispatchModal() {
+        document.getElementById('kosonDispatchModal').classList.add('hidden');
+    }
+
+    function openWaybillModal() {
+        document.getElementById('waybillModal').classList.remove('hidden');
+    }
+    function closeWaybillModal() {
+        document.getElementById('waybillModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}
