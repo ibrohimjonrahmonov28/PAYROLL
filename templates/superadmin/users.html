@@ -822,6 +822,7 @@
                 <select name="assigned_screen" id="create-assigned-screen"
                     class="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3.5 py-2 text-sm text-sky-300 focus:outline-none focus:border-sky-500 font-bold">
                     <option value="">— Patok tanlanmagan (Barchasini ko'rish) —</option>
+                    {% if not is_branch_admin or user_branch == 'HQ' %}
                     <optgroup label="🏢 Kosonsoy (Bosh bino)">
                         <option value="1">K1-Patok (1-Ekran)</option>
                         <option value="2">K2-Patok (2-Ekran)</option>
@@ -837,6 +838,8 @@
                         <option value="12">K12-Patok (12-Ekran)</option>
                         <option value="13">K13-Patok (13-Ekran)</option>
                     </optgroup>
+                    {% endif %}
+                    {% if not is_branch_admin or user_branch == 'UYCHI' %}
                     <optgroup label="📍 Uychi filiali">
                         <option value="14">U1-Patok (14-Ekran)</option>
                         <option value="15">U2-Patok (15-Ekran)</option>
@@ -849,7 +852,24 @@
                         <option value="22">U9-Patok (22-Ekran)</option>
                         <option value="23">U10-Patok (23-Ekran)</option>
                         <option value="24">U11-Patok (24-Ekran)</option>
+                        <option value="25">U12-Patok (25-Ekran)</option>
+                        <option value="26">U13-Patok (26-Ekran)</option>
+                        <option value="27">U14-Patok (27-Ekran)</option>
+                        <option value="28">U15-Patok (28-Ekran)</option>
+                        <option value="29">U16-Patok (29-Ekran)</option>
+                        <option value="30">U17-Patok (30-Ekran)</option>
+                        <option value="31">U18-Patok (31-Ekran)</option>
+                        <option value="32">U19-Patok (32-Ekran)</option>
+                        <option value="33">U20-Patok (33-Ekran)</option>
+                        <option value="34">U21-Patok (34-Ekran)</option>
+                        <option value="35">U22-Patok (35-Ekran)</option>
+                        <option value="36">U23-Patok (36-Ekran)</option>
+                        <option value="37">U24-Patok (37-Ekran)</option>
+                        <option value="38">U25-Patok (38-Ekran)</option>
+                        <option value="39">U26-Patok (39-Ekran)</option>
+                        <option value="40">U27-Patok (40-Ekran)</option>
                     </optgroup>
+                    {% endif %}
                 </select>
                 <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok ichiga kiradi.</p>
             </div>
@@ -969,6 +989,7 @@
                 <select name="assigned_screen" id="edit-assigned-screen"
                     class="w-full bg-slate-950 border border-sky-500/40 rounded-xl px-3.5 py-2 text-sm text-sky-300 focus:outline-none focus:border-sky-500 font-bold">
                     <option value="">— Patok tanlanmagan (Barchasini ko'rish) —</option>
+                    {% if not is_branch_admin or user_branch == 'HQ' %}
                     <optgroup label="🏢 Kosonsoy (Bosh bino)">
                         <option value="1">K1-Patok (1-Ekran)</option>
                         <option value="2">K2-Patok (2-Ekran)</option>
@@ -984,6 +1005,8 @@
                         <option value="12">K12-Patok (12-Ekran)</option>
                         <option value="13">K13-Patok (13-Ekran)</option>
                     </optgroup>
+                    {% endif %}
+                    {% if not is_branch_admin or user_branch == 'UYCHI' %}
                     <optgroup label="📍 Uychi filiali">
                         <option value="14">U1-Patok (14-Ekran)</option>
                         <option value="15">U2-Patok (15-Ekran)</option>
@@ -996,7 +1019,24 @@
                         <option value="22">U9-Patok (22-Ekran)</option>
                         <option value="23">U10-Patok (23-Ekran)</option>
                         <option value="24">U11-Patok (24-Ekran)</option>
+                        <option value="25">U12-Patok (25-Ekran)</option>
+                        <option value="26">U13-Patok (26-Ekran)</option>
+                        <option value="27">U14-Patok (27-Ekran)</option>
+                        <option value="28">U15-Patok (28-Ekran)</option>
+                        <option value="29">U16-Patok (29-Ekran)</option>
+                        <option value="30">U17-Patok (30-Ekran)</option>
+                        <option value="31">U18-Patok (31-Ekran)</option>
+                        <option value="32">U19-Patok (32-Ekran)</option>
+                        <option value="33">U20-Patok (33-Ekran)</option>
+                        <option value="34">U21-Patok (34-Ekran)</option>
+                        <option value="35">U22-Patok (35-Ekran)</option>
+                        <option value="36">U23-Patok (36-Ekran)</option>
+                        <option value="37">U24-Patok (37-Ekran)</option>
+                        <option value="38">U25-Patok (38-Ekran)</option>
+                        <option value="39">U26-Patok (39-Ekran)</option>
+                        <option value="40">U27-Patok (40-Ekran)</option>
                     </optgroup>
+                    {% endif %}
                 </select>
                 <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok ichiga kiradi.</p>
             </div>

@@ -2122,6 +2122,33 @@ class BranchAdminUserManagementTests(TestCase):
         self.assertEqual(res_pricing.status_code, 302)
         self.assertIn(reverse('superadmin_payroll'), res_pricing.url)
 
+    def test_branch_admin_can_create_master_with_uychi_patoks_u1_to_u27(self):
+        self.client.login(username='uychi_admin', password='testpassword123')
+        res = self.client.get('/superadmin/users/')
+        self.assertEqual(res.status_code, 200)
+        # Check all Uychi patoks are in the dropdown
+        self.assertContains(res, 'U1-Patok (14-Ekran)')
+        self.assertContains(res, 'U12-Patok (25-Ekran)')
+        self.assertContains(res, 'U27-Patok (40-Ekran)')
+        # Kosonsoy patoks should be hidden for Uychi admin
+        self.assertNotContains(res, 'K1-Patok (1-Ekran)')
+
+        # Create master assigned to U27 (screen 40)
+        res_post = self.client.post(reverse('superadmin_users'), {
+            'action': 'create_user',
+            'first_name': 'Dilshod',
+            'last_name': 'Master',
+            'password': 'masterpassword123',
+            'role': User.Role.MASTER,
+            'assigned_screen': '40',
+        })
+        self.assertEqual(res_post.status_code, 302)
+        master = User.objects.get(first_name='Dilshod', last_name='Master')
+        self.assertEqual(master.role, User.Role.MASTER)
+        self.assertEqual(master.branch, User.Branch.UYCHI)
+        self.assertEqual(master.assigned_screen, 40)
+        self.assertEqual(master.assigned_patok_name, 'U27-Patok')
+
 
 class SuperAdminOrdersBalanceTests(TestCase):
     def setUp(self):
