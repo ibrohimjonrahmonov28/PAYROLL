@@ -52,14 +52,18 @@
                 {% endif %}
             </h1>
             <p class="text-slate-400 text-xs mt-1">
-                Sana: <span class="text-amber-400 font-bold">{{ date_str }}</span> | {% if is_uychi_admin %}Uychi filiali (U1–U27) monitoringi{% else %}Barcha 40 ta patok monitoringi{% endif %}
+                Sana: <span class="text-amber-400 font-bold">{{ date_str }}</span> | {% if is_uychi_admin %}Uychi
+                filiali (U1–U27) monitoringi{% else %}Barcha 40 ta patok monitoringi{% endif %}
                 {% if is_custom_date %}
-                <span class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span
+                    class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     <i class="fa-solid fa-clock-rotate-left mr-1"></i>Arxiv Tarix
                 </span>
                 {% else %}
-                <span class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping mr-1"></span>Jonli Bugun
+                <span
+                    class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping mr-1"></span>Jonli
+                    Bugun
                 </span>
                 {% endif %}
             </p>
@@ -67,11 +71,13 @@
 
         <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <!-- SANA / KALENDAR TANLASH -->
-            <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl shrink-0">
+            <div
+                class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl shrink-0">
                 <i class="fa-regular fa-calendar-days text-indigo-400 text-base"></i>
                 <div class="flex flex-col text-left">
                     <span class="text-[9px] uppercase font-bold text-slate-400 leading-none">Sana:</span>
-                    <input type="date" id="overview-date-input" value="{{ target_date_iso }}" onchange="changeOverviewDate(this.value)"
+                    <input type="date" id="overview-date-input" value="{{ target_date_iso }}"
+                        onchange="changeOverviewDate(this.value)"
                         class="bg-transparent text-xs sm:text-sm font-bold text-slate-200 outline-none cursor-pointer mt-0.5">
                 </div>
                 {% if is_custom_date %}
@@ -128,11 +134,14 @@
                         {{ s.patok_quvvati }}%
                     </span>
                 </div>
-                <div class="flex justify-between text-xs text-slate-400" {% if s.units_label == 'Tikuv:' %}title="Dazmol urilmagan, oxirgi tikuv amali bo'yicha hisoblandi"{% endif %}>
+                <div class="flex justify-between text-xs text-slate-400" {% if s.units_label=='Tikuv:'
+                    %}title="Dazmol urilmagan, oxirgi tikuv amali bo'yicha hisoblandi" {% endif %}>
                     <span class="text-[11px] {% if s.units_label == 'Tikuv:' %}text-cyan-400 font-medium{% endif %}">
                         {{ s.units_label|default:"Tayyor:" }}
                     </span>
-                    <strong class="{% if s.units_label == 'Tikuv:' %}text-cyan-300{% else %}text-slate-200{% endif %} digital-font text-xs">{{ s.grand_total_units }} dona</strong>
+                    <strong
+                        class="{% if s.units_label == 'Tikuv:' %}text-cyan-300{% else %}text-slate-200{% endif %} digital-font text-xs">{{
+                        s.grand_total_units }} dona</strong>
                 </div>
                 <div class="flex justify-between text-xs text-slate-400">
                     <span class="text-[11px]">Chevarlar KPI:</span>
@@ -158,7 +167,8 @@
 
             <!-- Action Button: Open specific screen TV preserving selected date -->
             <div class="mt-2.5 pt-2 border-t border-slate-800">
-                <a href="{% url 'screens:screen_view' s.screen_number %}{% if is_custom_date %}?date={{ target_date_iso }}{% endif %}" target="_blank"
+                <a href="{% url 'screens:screen_view' s.screen_number %}{% if is_custom_date %}?date={{ target_date_iso }}{% endif %}"
+                    target="_blank"
                     class="w-full py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 font-bold rounded-xl text-center text-xs block transition flex items-center justify-center gap-1.5">
                     <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Ekranni Ochish (TV)
                 </a>

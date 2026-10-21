@@ -78,13 +78,11 @@
                 <span>Masterlar Statistikasi</span>
             </a>
 
-            {% if request.user.is_authenticated and request.user.role == 'BRANCH_ADMIN' and request.user.branch == 'UYCHI' %}
             <a href="{% url 'screens:overview' %}"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.app_name == 'screens' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-table-cells w-5 text-center text-amber-400 text-base"></i>
-                <span>Uychi Patoklari (U1–U27)</span>
+                <span>Sex Ekranlari (TV)</span>
             </a>
-            {% endif %}
 
             {% if request.user.is_authenticated and request.user.role != 'ADMIN' and request.user.role != 'PLAN' %}
             <a href="{% url 'production:terminal_home' %}"
@@ -102,7 +100,8 @@
                 <i class="fa-solid fa-tablet-screen-button w-5 text-center text-indigo-400 text-base"></i>
                 <div class="flex-1 min-w-0">
                     <span class="block leading-tight">Master Plansheti</span>
-                    <span class="text-[10px] text-indigo-400/80 font-normal uppercase tracking-wider">Pastal Qabul & Nazorat</span>
+                    <span class="text-[10px] text-indigo-400/80 font-normal uppercase tracking-wider">Pastal Qabul &
+                        Nazorat</span>
                 </div>
             </a>
             {% endif %}
@@ -163,7 +162,8 @@
                     <strong class="text-slate-200 block truncate text-xs">{{ request.user.username }}</strong>
                     <span class="text-[10px] text-amber-400 font-semibold uppercase">
                         {% if request.user.role == 'SUPER_ADMIN' %}Super Admin{% elif request.user.role == 'ADMIN'
-                        %}Orders Admin{% elif request.user.role == 'PLAN' %}Plan (Reja){% elif request.user.role == 'MASTER' %}Master{% else %}Foydalanuvchi{% endif %}
+                        %}Orders Admin{% elif request.user.role == 'PLAN' %}Plan (Reja){% elif request.user.role ==
+                        'MASTER' %}Master{% else %}Foydalanuvchi{% endif %}
                     </span>
                 </div>
             </div>
@@ -228,15 +228,18 @@
 
         <!-- Flash messages (Floating Toast - does not push content down) -->
         {% if messages %}
-        <div id="flash-toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        <div id="flash-toast-container"
+            class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
             {% for message in messages %}
             <div
                 class="payroll-toast pointer-events-auto p-3.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-md border {% if message.tags == 'error' %}bg-rose-950/95 text-rose-200 border-rose-700/80 shadow-rose-950/50{% elif message.tags == 'success' %}bg-emerald-950/95 text-emerald-200 border-emerald-700/80 shadow-emerald-950/50{% else %}bg-amber-950/95 text-amber-200 border-amber-700/80 shadow-amber-950/50{% endif %}">
                 <div class="flex items-center gap-2.5">
-                    <i class="fa-solid {% if message.tags == 'error' %}fa-circle-xmark text-rose-400{% elif message.tags == 'success' %}fa-circle-check text-emerald-400{% else %}fa-circle-info text-amber-400{% endif %} text-sm"></i>
+                    <i
+                        class="fa-solid {% if message.tags == 'error' %}fa-circle-xmark text-rose-400{% elif message.tags == 'success' %}fa-circle-check text-emerald-400{% else %}fa-circle-info text-amber-400{% endif %} text-sm"></i>
                     <span>{{ message }}</span>
                 </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white p-0.5 cursor-pointer">
+                <button type="button" onclick="this.parentElement.remove()"
+                    class="text-slate-400 hover:text-white p-0.5 cursor-pointer">
                     <i class="fa-solid fa-xmark text-xs"></i>
                 </button>
             </div>

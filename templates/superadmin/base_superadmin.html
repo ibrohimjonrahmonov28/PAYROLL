@@ -69,13 +69,14 @@
             </a>
 
             <div class="pt-3 border-t border-slate-800 my-2">
-                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Tikim & Monitoring</span>
+                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Tikim &
+                    Monitoring</span>
             </div>
 
             <a href="{% url 'screens:overview' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.app_name == 'screens' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-table-cells w-5 text-center text-amber-400"></i>
-                <span>{% if request.user.branch == 'UYCHI' %}Uychi Patoklari (U1–U27){% else %}Sex Ekranlari (TV){% endif %}</span>
+                <span>Sex Ekranlari (TV)</span>
             </a>
 
             <a href="{% url 'production:sewing_statistics_daily' %}"
@@ -97,7 +98,8 @@
             </a>
 
             <div class="pt-4 border-t border-slate-800 my-3">
-                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Skaner & Terminal</span>
+                <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Skaner &
+                    Terminal</span>
             </div>
 
             <a href="{% url 'production:terminal_home' %}"
@@ -105,7 +107,8 @@
                 <i class="fa-solid fa-barcode w-5 text-center text-emerald-400"></i>
                 <div class="flex-1 min-w-0">
                     <span class="block leading-tight">Master Terminali</span>
-                    <span class="text-[10px] text-emerald-400/80 font-normal uppercase tracking-wider">Zebra DS22 Skaner</span>
+                    <span class="text-[10px] text-emerald-400/80 font-normal uppercase tracking-wider">Zebra DS22
+                        Skaner</span>
                 </div>
             </a>
 
@@ -114,7 +117,8 @@
                 <i class="fa-solid fa-tablet-screen-button w-5 text-center text-indigo-400"></i>
                 <div class="flex-1 min-w-0">
                     <span class="block leading-tight">Master Plansheti</span>
-                    <span class="text-[10px] text-indigo-400/80 font-normal uppercase tracking-wider">Pastal Qabul & Nazorat</span>
+                    <span class="text-[10px] text-indigo-400/80 font-normal uppercase tracking-wider">Pastal Qabul &
+                        Nazorat</span>
                 </div>
             </a>
             {% else %}
@@ -299,15 +303,18 @@
 
         <!-- Flash messages (Floating Toast - does not push content down) -->
         {% if messages %}
-        <div id="flash-toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        <div id="flash-toast-container"
+            class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
             {% for message in messages %}
             <div
                 class="payroll-toast pointer-events-auto p-3.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-md border {% if message.tags == 'error' %}bg-rose-950/95 text-rose-200 border-rose-700/80 shadow-rose-950/50{% elif message.tags == 'success' %}bg-emerald-950/95 text-emerald-200 border-emerald-700/80 shadow-emerald-950/50{% else %}bg-amber-950/95 text-amber-200 border-amber-700/80 shadow-amber-950/50{% endif %}">
                 <div class="flex items-center gap-2.5">
-                    <i class="fa-solid {% if message.tags == 'error' %}fa-circle-xmark text-rose-400{% elif message.tags == 'success' %}fa-circle-check text-emerald-400{% else %}fa-circle-info text-amber-400{% endif %} text-sm"></i>
+                    <i
+                        class="fa-solid {% if message.tags == 'error' %}fa-circle-xmark text-rose-400{% elif message.tags == 'success' %}fa-circle-check text-emerald-400{% else %}fa-circle-info text-amber-400{% endif %} text-sm"></i>
                     <span>{{ message }}</span>
                 </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white p-0.5 cursor-pointer">
+                <button type="button" onclick="this.parentElement.remove()"
+                    class="text-slate-400 hover:text-white p-0.5 cursor-pointer">
                     <i class="fa-solid fa-xmark text-xs"></i>
                 </button>
             </div>

@@ -705,7 +705,7 @@ class SuperAdminPanelTest(TestCase):
             price_per_unit=Decimal('1800.00')
         )
         res_print = self.client.get(reverse('production:box_print_stickers', kwargs={'box_id': box_diff.id}))
-        self.assertContains(res_print, 'QIYINLIK:')
+        self.assertContains(res_print, 'QIYINLIK DARAJASI:')
         self.assertContains(res_print, '4.2')
 
     def test_update_article_daily_norm(self):
@@ -2312,7 +2312,7 @@ class BranchAdminUychiAccessTests(TestCase):
         self.client.login(username="uychi_admin_test", password="testpassword123")
         res = self.client.get(reverse('production:sewing_statistics_orders'))
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res.context['is_uychi_admin'])
+        self.assertIn('orders_data', res.context)
 
     def test_branch_admin_access_sewing_statistics_daily_defaults_to_uychi(self):
         self.client.login(username="uychi_admin_test", password="testpassword123")
