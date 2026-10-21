@@ -221,15 +221,15 @@ def build_patoks_keyboard(batch_id: int, branch: str) -> InlineKeyboardMarkup:
     """
     Patoklar ro'yxatini 3 ustun ko'rinishida generatsiya qilish:
     - HQ (Kosonsoy): 1..13 (K-1 .. K-13)
-    - UYCHI: 14..24 (U-1 .. U-11)
+    - UYCHI: 14..40 (U-1 .. U-27)
     """
     keyboard = []
     if branch == 'HQ':
         # 1..13
         screen_numbers = list(range(1, 14))
     else:
-        # 14..24 (U1..U11)
-        screen_numbers = list(range(14, 25))
+        # 14..40 (U1..U27)
+        screen_numbers = list(range(14, 41))
 
     row = []
     for sn in screen_numbers:

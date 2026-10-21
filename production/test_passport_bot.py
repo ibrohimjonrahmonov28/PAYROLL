@@ -375,7 +375,7 @@ class PassportVerificationTestCase(TestCase):
         self.assertIn("tikuv patogiga chiqarmang", res['message'])
 
     def test_build_patoks_keyboard_uychi_range(self):
-        """Uychi klaviaturasi faqat 11 ta patok (14..24: U1..U11) bo'lishini tekshirish"""
+        """Uychi klaviaturasi barcha 27 ta patok (14..40: U1..U27) bo'lishini tekshirish"""
         from production.management.commands.run_passport_bot import build_patoks_keyboard
         kb = build_patoks_keyboard(self.batch.id, 'UYCHI')
         # Row-lar ichidagi patok tugmalarini yig'ish
@@ -384,9 +384,9 @@ class PassportVerificationTestCase(TestCase):
             for btn in row:
                 if btn.callback_data and btn.callback_data.startswith('dp_pat:'):
                     patok_buttons.append(btn)
-        self.assertEqual(len(patok_buttons), 11)
+        self.assertEqual(len(patok_buttons), 27)
         self.assertEqual(patok_buttons[0].text, "U1-Patok")
-        self.assertEqual(patok_buttons[-1].text, "U11-Patok")
+        self.assertEqual(patok_buttons[-1].text, "U27-Patok")
 
     async def test_dispatch_batch_async_guards(self):
         """Kutilayotgan (DISPATCHED) pastal qayta jo'natilishi mumkin, ammo qabul qilingan (ACCEPTED) bloklanadi"""

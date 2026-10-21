@@ -512,7 +512,7 @@ class MasterStatisticsComprehensiveTest(TestCase):
             username='texnolog_karim',
             password='Password123!',
             role=User.Role.TECHNOLOGIST,
-            uid='TECH-999',
+            uid='T99999',
             first_name='Karim',
             last_name='Texnologov',
             branch=User.Branch.HQ
@@ -521,7 +521,7 @@ class MasterStatisticsComprehensiveTest(TestCase):
         # 1. Planshetga login (identify)
         res_id = self.client.post(
             reverse('production:master_tablet_identify'),
-            data={'code': 'USER:TECH-999'},
+            data={'code': 'USER:T99999'},
             content_type='application/json'
         )
         self.assertEqual(res_id.status_code, 200)
@@ -753,6 +753,34 @@ class MasterStatisticsComprehensiveTest(TestCase):
         # Patok quvvati mavjudligi
         self.assertIn('patok_quvvati', k1_data)
         self.assertIn('avg_patok_quvvati', res.context['kpis'])
+
+    def test_api_get_patoks_summary_branches_all_screens(self):
+        """Master tablet patoklar xulosasida Kosonsoy (13 ta: K1..K13) va Uychi (27 ta: U1..U27) to'liq chiqishini tekshirish"""
+        url_summary = reverse('production:master_tablet_patoks')
+
+        # 1. Kosonsoy (HQ) tekshiruvi: 13 ta patok (K1..K13)
+        res_hq = self.client.get(f"{url_summary}?branch=HQ")
+        self.assertEqual(res_hq.status_code, 200)
+        data_hq = res_hq.json()
+        self.assertTrue(data_hq['success'])
+        self.assertEqual(len(data_hq['patoks']), 13)
+        self.assertEqual(data_hq['patoks'][0]['patok_code'], 'K1')
+        self.assertEqual(data_hq['patoks'][0]['screen_number'], 1)
+        self.assertEqual(data_hq['patoks'][-1]['patok_code'], 'K13')
+        self.assertEqual(data_hq['patoks'][-1]['screen_number'], 13)
+
+        # 2. Uychi tekshiruvi: 27 ta patok (U1..U27, ekranlar 14..40)
+        res_uychi = self.client.get(f"{url_summary}?branch=UYCHI")
+        self.assertEqual(res_uychi.status_code, 200)
+        data_uychi = res_uychi.json()
+        self.assertTrue(data_uychi['success'])
+        self.assertEqual(len(data_uychi['patoks']), 27)
+        self.assertEqual(data_uychi['patoks'][0]['patok_code'], 'U1')
+        self.assertEqual(data_uychi['patoks'][0]['screen_number'], 14)
+        self.assertEqual(data_uychi['patoks'][12]['patok_code'], 'U13')
+        self.assertEqual(data_uychi['patoks'][12]['screen_number'], 26)
+        self.assertEqual(data_uychi['patoks'][-1]['patok_code'], 'U27')
+        self.assertEqual(data_uychi['patoks'][-1]['screen_number'], 40)
 
 
 
