@@ -14,10 +14,19 @@
             </div>
 
             {% if b_it.is_confirmed %}
-            <span
-                class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                ✓ Tasdiqlangan
-            </span>
+            <div class="flex items-center gap-1.5">
+                {% if b_it.is_resplit %}
+                <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1"
+                    title="Ushbu razmer qayta taqsimlangan">
+                    <i class="fa-solid fa-rotate-right text-[9px]"></i> Qayta taqsimlangan
+                </span>
+                {% endif %}
+                <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    ✓ Tasdiqlangan
+                </span>
+            </div>
             {% else %}
             <span
                 class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -91,6 +100,17 @@
         {% else %}
         <!-- Tasdiqlangan Natija Ma'lumotlari -->
         <div class="space-y-2.5 text-xs">
+            {% if b_it.is_resplit %}
+            <!-- Qayta taqsimlash haqida ogohlantirish banneri -->
+            <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-300 flex items-start gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i>
+                <div class="space-y-0.5">
+                    <div class="font-bold text-amber-200">Diqqat: Razmer qayta taqsimlangan!</div>
+                    <div class="text-[10px] text-amber-400/80">Oldingi bekor qilingan qutilar o'rniga yangi qutilar yaratilgan. Quyida bekor qilingan qutilar ko'rsatilgan.</div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
                 <span class="text-slate-400">Tasdiqlangan Aniq Son:</span>
                 <span class="font-black text-emerald-400 font-mono text-sm">{{ b_it.real_quantity }} dona</span>
@@ -98,16 +118,33 @@
             <div
                 class="flex items-center justify-between bg-slate-950 p-2 rounded-xl border border-slate-800 text-[11px]">
                 <span class="text-slate-400">Meto Oralig'i:</span>
-                <span class="font-mono text-cyan-300 font-bold">#{{ b_it.meto_number_start }} — #{{ b_it.meto_number_end
-                    }}</span>
+                <span class="font-mono text-cyan-300 font-bold">#{{ b_it.meto_number_start }} — #{{ b_it.meto_number_end }}</span>
             </div>
-            {% if b_it.meto_worker_name %}
-            <div class="text-[11px] text-slate-400">
-                Metochi: <strong class="text-white">{{ b_it.meto_worker_name }}</strong>
+
+            <!-- Operator va Bo'lingan Vaqt -->
+            <div class="grid grid-cols-2 gap-2 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80 text-[11px]">
+                <div>
+                    <span class="text-slate-500 block text-[10px]">Taqsimlagan:</span>
+                    <strong class="text-white flex items-center gap-1 truncate" title="{{ b_it.meto_worker_name|default:'Noma\'lum' }}">
+                        <i class="fa-solid fa-user text-cyan-400 text-[10px]"></i>
+                        {{ b_it.meto_worker_name|default:"—" }}
+                    </strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[10px]">Bo'lingan vaqt:</span>
+                    <strong class="text-cyan-300 font-mono flex items-center gap-1">
+                        <i class="fa-regular fa-clock text-cyan-400 text-[10px]"></i>
+                        {% if b_it.meto_completed_at %}
+                            {{ b_it.meto_completed_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                </div>
             </div>
-            {% endif %}
+
             {% if b_it.meto_notes %}
-            <div class="text-[11px] text-amber-300 italic">
+            <div class="text-[11px] text-amber-300 italic bg-amber-950/20 border border-amber-900/30 p-2 rounded-lg">
                 Izoh: {{ b_it.meto_notes }}
             </div>
             {% endif %}
@@ -116,7 +153,7 @@
             <div class="pt-2 border-t border-slate-800 space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-purple-300 font-bold flex items-center gap-1.5 text-[11px]">
-                        <i class="fa-solid fa-boxes-packing"></i> {{ b_it.boxes_count }} ta quti yaratilgan
+                        <i class="fa-solid fa-boxes-packing"></i> {{ b_it.boxes_count }} ta faol quti
                     </span>
 
                     <!-- O'ZGARTIRISH (RE-SPLIT) TUGMASI: To stiker chiqquncha ruxsat etiladi -->
@@ -163,7 +200,7 @@
                 </div>
                 {% endif %}
 
-                <!-- Har bir quti kartochkalari (tezkor ko'rish) -->
+                <!-- Har bir faol quti kartochkalari -->
                 {% if b_it.boxes %}
                 <div class="space-y-1 pt-1 max-h-36 overflow-y-auto pr-1">
                     {% for box in b_it.boxes %}
@@ -171,6 +208,7 @@
                         class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2 flex items-center justify-between text-[11px]">
                         <div class="flex items-center gap-2">
                             <span class="font-bold text-white font-mono">{{ box.display_title }}</span>
+                            <span class="text-slate-500 text-[10px] font-mono">(ID: {{ box.id }})</span>
                             <span class="text-emerald-400 font-black digital-font">{{ box.quantity }} dona</span>
                         </div>
                         <div class="flex items-center gap-1.5">
@@ -190,6 +228,41 @@
                         </div>
                     </div>
                     {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Bekor qilingan (atmen) qutilar ro'yxati -->
+                {% if b_it.cancelled_boxes %}
+                <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="text-rose-400 font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-ban text-[10px]"></i> Bekor qilingan qutilar ({{ b_it.cancelled_boxes_count }} ta)
+                        </span>
+                        <span class="text-[10px] text-slate-500">Yaroqsiz / Eskirgan</span>
+                    </div>
+
+                    <div class="space-y-1 max-h-28 overflow-y-auto pr-1">
+                        {% for cbox in b_it.cancelled_boxes %}
+                        <div class="bg-rose-950/20 border border-rose-900/30 rounded-lg p-1.5 px-2.5 flex items-center justify-between text-[11px] opacity-75 hover:opacity-100 transition">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-slate-400 line-through font-semibold">
+                                    {{ cbox.display_title }}
+                                </span>
+                                <span class="text-slate-500 text-[10px] font-mono">
+                                    (ID: {{ cbox.id }}{% if cbox.box_code %}, {{ cbox.box_code }}{% endif %})
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-rose-400/80 line-through font-mono text-[11px]">
+                                    {{ cbox.quantity }} dona
+                                </span>
+                                <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9px] font-bold">
+                                    Bekor bo'lgan
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
                 {% endif %}
             </div>

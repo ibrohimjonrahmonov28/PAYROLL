@@ -135,7 +135,9 @@
                 <span class="text-2xl font-black text-indigo-300 digital-font">{{ kpis.dazmol_qty }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">Bugun dazmoldan chiqqan</span>
+            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">
+                {% if kpis.primary_dazmol_qty > 0 %}Asosiy pastallar: {{ kpis.primary_dazmol_qty }} dona{% else %}Bugun dazmoldan chiqqan{% endif %}
+            </span>
         </div>
 
         <!-- KPI 7: Bugun OTK Qabul Qildi -->
@@ -283,7 +285,8 @@
                         <th class="py-3.5 px-3 min-w-[180px]">Tikayotgan Pastallar</th>
                         <th class="py-3.5 px-3 text-center min-w-[140px]">Davomat & Aniqlik</th>
                         <th class="py-3.5 px-3 text-center min-w-[150px]">Patok Quvvati</th>
-                        <th class="py-3.5 px-3 text-center min-w-[140px]">Kunlik Dazmol</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">Asosiy Dazmol</th>
+                        <th class="py-3.5 px-3 text-center min-w-[140px]">Pastallar Dazmoli</th>
                         <th class="py-3.5 px-3 text-center">Bugun OTK</th>
                         <th class="py-3.5 px-3 text-center">Ta'mir / Brak</th>
                         <th class="py-3.5 px-4 text-center w-28">Batafsil</th>
@@ -470,7 +473,21 @@
                             {% endif %}
                         </td>
 
-                        <!-- 6. Kunlik Dazmol (Dual Nazorat) -->
+                        <!-- 6. Asosiy Dazmol (Asosiy pastallar bo'yicha yig'indi) -->
+                        <td class="py-3 px-3 text-center align-middle">
+                            {% if p.primary_dazmol_total > 0 %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-indigo-300 digital-font">
+                                    {{ p.primary_dazmol_total }}
+                                </span>
+                                <span class="text-[10px] text-slate-500 font-semibold">dona</span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 7. Pastallar Dazmoli (Taqsimot va Patok Dazmoli) -->
                         <td class="py-3 px-3 text-center align-middle">
                             <div class="inline-flex flex-col items-center gap-1.5 min-w-[130px]">
                                 <!-- 1. Asosiy pastallar dazmoli (butun fabrika bo'yicha) -->
@@ -478,7 +495,7 @@
                                 <div class="flex items-center justify-center gap-1 flex-wrap">
                                     {% for item in p.pastal_dazmol_items %}
                                     <span
-                                        class="px-2 py-0.5 rounded-md text-[11px] font-mono font-black bg-indigo-950/90 text-indigo-300 border border-indigo-700/60 shadow-sm"
+                                        class="px-2 py-0.5 rounded-md text-[11px] font-mono font-black {% if item.qty > 0 %}bg-indigo-950/90 text-indigo-300 border border-indigo-700/60 shadow-sm{% else %}bg-slate-900 text-slate-500 border border-slate-800{% endif %}"
                                         title="Pastal {{ item.code }}: Bugun butun fabrika bo'yicha {{ item.qty }} dona dazmoldan o'tdi">
                                         {{ item.qty }}/{{ item.code }}
                                     </span>
@@ -559,7 +576,7 @@
                     {% if p.is_active %}
                     <tr id="drawer-{{ p.patok_code }}"
                         class="hidden bg-slate-950/95 border-t border-b border-cyan-900/40">
-                        <td colspan="9" class="p-4 sm:p-6">
+                        <td colspan="10" class="p-4 sm:p-6">
                             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-5">
 
                                 <!-- Drawer Top Bar: Title, Status & Close Button -->
@@ -667,11 +684,9 @@
                                     <div class="bg-slate-950 border border-indigo-900/40 rounded-xl p-3 shadow-inner">
                                         <span
                                             class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">7.
-                                            Dazmol</span>
-                                        <span class="text-xl font-black text-indigo-300 digital-font block mt-1">{{
-                                            p.daily_dazmol_qty }}</span>
-                                        <span class="text-[10px] text-indigo-400/80 font-mono mt-0.5 block">{{
-                                            p.daily_dazmol_boxes_count }} ta quti</span>
+                                            Asosiy Dazmol</span>
+                                        <span class="text-xl font-black text-indigo-300 digital-font block mt-1">{% if p.primary_dazmol_total > 0 %}{{ p.primary_dazmol_total }}{% else %}{{ p.daily_dazmol_qty }}{% endif %} dona</span>
+                                        <span class="text-[10px] text-indigo-400/80 font-mono mt-0.5 block">Patok: {{ p.daily_dazmol_qty }} dona</span>
                                     </div>
                                     <!-- 8. OTK O'tgan -->
                                     <div class="bg-slate-950 border border-emerald-900/40 rounded-xl p-3 shadow-inner">

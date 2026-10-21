@@ -127,10 +127,16 @@ def meto_order_detail(request, order_id: int):
             confirmed_items_count = sum(1 for bi in b_items if bi.status != CuttingBatchItem.Status.CUT_ENTERED)
             total_items_count = len(b_items)
             has_pending = confirmed_items_count < total_items_count
-            active_boxes_count = sum(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) for bi in b_items)
+            active_boxes_count = sum(
+                len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED and (not b.tickets.exists() or b.tickets.exclude(status=Ticket.Status.CANCELLED).exists())])
+                for bi in b_items
+            )
             total_boxes_count = active_boxes_count
             has_boxes = total_boxes_count > 0
-            needs_boxes_generation = (not has_pending) and any(len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED]) == 0 for bi in b_items)
+            needs_boxes_generation = (not has_pending) and any(
+                len([b for b in bi.boxes.all() if b.status != Box.Status.CANCELLED and (not b.tickets.exists() or b.tickets.exclude(status=Ticket.Status.CANCELLED).exists())]) == 0
+                for bi in b_items
+            )
 
             batches_data.append({
                 'batch': batch,
@@ -178,6 +184,7 @@ def meto_batch_items_view(request, batch_id: int):
             'order_item__article'
         ).prefetch_related(
             'items__order_item_size',
+            'items__meto_completed_by',
             'items__boxes__tickets'
         ),
         id=batch_id
@@ -188,9 +195,23 @@ def meto_batch_items_view(request, batch_id: int):
 
     batch_items_data = []
     for b_it in batch.items.all().order_by('order_item_size__id'):
-        boxes = list(b_it.boxes.exclude(status=Box.Status.CANCELLED))
-        has_printed = any(b.is_printed for b in boxes)
-        has_scanned = any(t.status == Ticket.Status.SCANNED for b in boxes for t in b.tickets.all())
+        all_boxes = list(b_it.boxes.all().order_by('box_number', 'id'))
+        active_boxes = []
+        cancelled_boxes = []
+        for b in all_boxes:
+            has_valid_tickets = b.tickets.exclude(status=Ticket.Status.CANCELLED).exists()
+            if b.status == Box.Status.CANCELLED or (b.tickets.exists() and not has_valid_tickets):
+                cancelled_boxes.append(b)
+            else:
+                active_boxes.append(b)
+
+        has_printed = any(b.is_printed for b in active_boxes)
+        has_scanned = any(t.status == Ticket.Status.SCANNED for b in active_boxes for t in b.tickets.all())
+        worker_display = b_it.meto_worker_name or (
+            b_it.meto_completed_by.get_full_name() or b_it.meto_completed_by.username
+            if b_it.meto_completed_by else ""
+        )
+
         batch_items_data.append({
             'item': b_it,
             'id': b_it.id,
@@ -203,11 +224,14 @@ def meto_batch_items_view(request, batch_id: int):
             'effective_quantity': b_it.effective_quantity,
             'meto_number_start': b_it.meto_number_start or "1",
             'meto_number_end': b_it.meto_number_end or str(b_it.quantity),
-            'meto_worker_name': b_it.meto_worker_name,
+            'meto_worker_name': worker_display,
             'meto_notes': b_it.meto_notes,
             'meto_completed_at': b_it.meto_completed_at,
-            'boxes_count': len(boxes),
-            'boxes': boxes,
+            'boxes_count': len(active_boxes),
+            'boxes': active_boxes,
+            'cancelled_boxes': cancelled_boxes,
+            'cancelled_boxes_count': len(cancelled_boxes),
+            'is_resplit': len(cancelled_boxes) > 0,
             'can_reset': b_it.status != CuttingBatchItem.Status.CUT_ENTERED and not has_scanned,
             'has_printed': has_printed,
         })

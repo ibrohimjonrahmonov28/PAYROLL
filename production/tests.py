@@ -3907,3 +3907,177 @@ class MasterTabletWorkflowTest(TestCase):
         self.assertTrue(res_bot['can_release'])
 
 
+class MetoBatchSplitAndCancelledBoxesTest(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        from django.test import RequestFactory
+        from production.models import (
+            Customer, ProductModel, Article, Operation, ArticleOperation,
+            Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket
+        )
+        self.rf = RequestFactory()
+        self.user = User.objects.create_user(
+            username='meto_test_user',
+            password='password123',
+            role=User.Role.METO,
+            first_name='Meto',
+            last_name='Operator'
+        )
+        self.customer = Customer.objects.create(name='Test Customer')
+        self.pmodel = ProductModel.objects.create(name='Test Model', code='TM-01')
+        self.article = Article.objects.create(name='Test Article', code='ART-01', model=self.pmodel)
+        self.op = Operation.objects.create(name='Bichish', code='OP-BICH')
+        self.aop = ArticleOperation.objects.create(article=self.article, operation=self.op, price_per_unit=Decimal('200.00'), is_active=True)
+
+        self.order = Order.objects.create(order_number='ORD-METO-01', customer=self.customer, status=Order.Status.IN_PROGRESS)
+        self.order_item = OrderItem.objects.create(order=self.order, article=self.article, quantity=100)
+        self.size = OrderItemSize.objects.create(order_item=self.order_item, size_name='M', planned_quantity=100)
+
+        self.batch = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=1,
+            pastal_code='PC-01'
+        )
+        self.batch_item = CuttingBatchItem.objects.create(
+            batch=self.batch,
+            order_item_size=self.size,
+            quantity=80,
+            real_quantity=80,
+            status=CuttingBatchItem.Status.METO_CONFIRMED,
+            meto_worker_name='Ibrohim Rahmonov',
+            meto_completed_at=timezone.now()
+        )
+
+        # Cancelled box
+        self.box_cancelled = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=1,
+            box_code='B-OLD',
+            quantity=40,
+            status=Box.Status.CANCELLED
+        )
+        Ticket.objects.create(box=self.box_cancelled, article_operation=self.aop, ticket_code='TK-OLD-1', quantity=40, status=Ticket.Status.CANCELLED)
+
+        # Active boxes
+        self.box_active1 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=2,
+            box_code='B-NEW-1',
+            quantity=40,
+            status=Box.Status.CREATED
+        )
+        Ticket.objects.create(box=self.box_active1, article_operation=self.aop, ticket_code='TK-NEW-1', quantity=40, status=Ticket.Status.PENDING)
+
+        self.box_active2 = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            cutting_batch_item=self.batch_item,
+            box_number=3,
+            box_code='B-NEW-2',
+            quantity=40,
+            status=Box.Status.CREATED
+        )
+        Ticket.objects.create(box=self.box_active2, article_operation=self.aop, ticket_code='TK-NEW-2', quantity=40, status=Ticket.Status.PENDING)
+
+    def test_meto_batch_items_view_renders_split_audit_and_cancelled_boxes(self):
+        from production.meto_views import meto_batch_items_view
+
+        req = self.rf.get(f'/meto/batches/{self.batch.id}/items/')
+        req.user = self.user
+
+        res = meto_batch_items_view(req, self.batch.id)
+        self.assertEqual(res.status_code, 200)
+
+        html = res.content.decode('utf-8')
+        # Check operator and re-split warnings
+        self.assertIn('Ibrohim Rahmonov', html)
+        self.assertIn('Qayta taqsimlangan', html)
+        self.assertIn('Bekor qilingan qutilar', html)
+        self.assertIn('B-OLD', html)
+        self.assertIn('B-NEW-1', html)
+        self.assertIn('B-NEW-2', html)
+        self.assertIn('2 ta faol quti', html)
+
+
+class DailySewingStatisticsAsosiyDazmolTest(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        from django.test import RequestFactory
+        from production.models import (
+            Customer, ProductModel, Article, Operation, ArticleOperation,
+            Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket
+        )
+        self.rf = RequestFactory()
+        self.superadmin = User.objects.create_superuser(
+            username='admin_stats_test',
+            password='password123',
+            first_name='Admin',
+            last_name='User'
+        )
+        self.customer = Customer.objects.create(name='Test Customer Dazmol')
+        self.pmodel = ProductModel.objects.create(name='Model Dazmol', code='MD-01')
+        self.article = Article.objects.create(name='Article Dazmol', code='AD-01', model=self.pmodel)
+        self.op_tikuv = Operation.objects.create(name='Tikuv', code='OP-TIKUV')
+        self.op_dazmol = Operation.objects.create(name='DAZMOL', code='OP-DAZMOL')
+
+        self.aop_tikuv = ArticleOperation.objects.create(article=self.article, operation=self.op_tikuv, sequence=1, price_per_unit=Decimal('100.00'), is_active=True)
+        self.aop_dazmol = ArticleOperation.objects.create(article=self.article, operation=self.op_dazmol, sequence=2, price_per_unit=Decimal('50.00'), is_active=True)
+
+        self.order = Order.objects.create(order_number='ORD-DAZMOL-01', customer=self.customer, status=Order.Status.IN_PROGRESS)
+        self.order_item = OrderItem.objects.create(order=self.order, article=self.article, quantity=200)
+
+        # Batch 1 assigned to screen 1 (K1)
+        self.batch1 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=101,
+            pastal_code='P-101',
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        )
+        self.bitem1 = CuttingBatchItem.objects.create(batch=self.batch1, quantity=100, real_quantity=100)
+        self.box1 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=1, quantity=50, pastal_number='P-101', assigned_screen=1)
+        self.box2 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=2, quantity=50, pastal_number='P-101', assigned_screen=1)
+
+        # Batch 2 assigned to screen 1 (K1)
+        self.batch2 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=102,
+            pastal_code='P-102',
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        )
+        self.bitem2 = CuttingBatchItem.objects.create(batch=self.batch2, quantity=100, real_quantity=100)
+        self.box3 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem2, box_number=3, quantity=60, pastal_number='P-102', assigned_screen=1)
+
+        now = timezone.now()
+        # Scan tikuv and dazmol on box 1 (P-101): 50 pcs
+        Ticket.objects.create(box=self.box1, article_operation=self.aop_tikuv, ticket_code='T-T1', quantity=50, status=Ticket.Status.SCANNED, screen_number=1, scanned_at=now)
+        Ticket.objects.create(box=self.box1, article_operation=self.aop_dazmol, ticket_code='T-D1', quantity=50, status=Ticket.Status.SCANNED, screen_number=1, scanned_at=now)
+
+        # Scan dazmol on box 3 (P-102): 60 pcs
+        Ticket.objects.create(box=self.box3, article_operation=self.aop_dazmol, ticket_code='T-D3', quantity=60, status=Ticket.Status.SCANNED, screen_number=1, scanned_at=now)
+
+    def test_sewing_statistics_daily_view_calculates_primary_dazmol_total(self):
+        from production.sewing_statistics_views import sewing_statistics_daily_view
+        today_str = timezone.localdate().isoformat()
+        req = self.rf.get(f'/sewing-statistics/daily/?date={today_str}')
+        req.user = self.superadmin
+
+        res = sewing_statistics_daily_view(req)
+        self.assertEqual(res.status_code, 200)
+
+        html = res.content.decode('utf-8')
+        self.assertIn('Asosiy Dazmol', html)
+        self.assertIn('Pastallar Dazmoli', html)
+        # Sum of P-101 (50) and P-102 (60) is 110 dona
+        self.assertIn('110', html)
+        self.assertIn('50/P-101', html)
+        self.assertIn('60/P-102', html)
+
+
+
+

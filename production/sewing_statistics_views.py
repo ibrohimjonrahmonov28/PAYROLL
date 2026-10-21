@@ -840,12 +840,24 @@ def sewing_statistics_daily_view(request):
         sn_box_ids = {t.box_id for t in t_list}
         sn_today_boxes = [today_boxes_dict[bid] for bid in sn_box_ids if bid in today_boxes_dict]
 
+        # Ushbu patokda haqiqatda tikilgan (Dazmol bo'lmagan) biletlar qutilari
+        # Bu dazmolchilar boshqa patok biletlarini skaner qilganda patokka soxta pastallar qo'shilib ketishini oldini oladi
+        sn_sewing_boxes = [
+            today_boxes_dict[t.box_id] for t in t_list
+            if t.box_id in today_boxes_dict and not (
+                t.article_operation and t.article_operation.operation and
+                is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code)
+            )
+        ]
+        # Agar patokda faqat dazmol skanerlangan bo'lsa (tikuv bo'lmasa), sn_today_boxes dan foydalanamiz
+        active_sewing_boxes = sn_sewing_boxes if sn_sewing_boxes else sn_today_boxes
+
         # Ushbu patokka rasman biriktirilgan pastallar (Asosiy)
         assigned_pastal_codes = screen_assigned_pastals_map.get(sn, set())
 
-        # Bugun ushbu patokda skanerlangan pastallar
+        # Bugun ushbu patokda skanerlangan pastallar (Haqiqiy tikuv biletlari bo'yicha)
         sn_scanned_pastal_codes = set()
-        for b in sn_today_boxes:
+        for b in active_sewing_boxes:
             pcode = (b.pastal_code or "").strip()
             if pcode:
                 sn_scanned_pastal_codes.add(pcode)
@@ -871,7 +883,7 @@ def sewing_statistics_daily_view(request):
         models_dict = {}
         sn_norms = []
 
-        all_sn_candidate_boxes = list(sn_today_boxes)
+        all_sn_candidate_boxes = list(active_sewing_boxes)
         for pcode in sn_primary_pastal_codes:
             for b in boxes_by_pastal.get(pcode, []):
                 if b not in all_sn_candidate_boxes:
@@ -1262,6 +1274,9 @@ def sewing_statistics_daily_view(request):
                 for p in extra_pastals if p['today_factory_dazmol_qty'] > 0
             ]
 
+        # Foydalanuvchi talabi: Asosiy pastallar bo'yicha qilingan dazmollarning umumiy yig'indisi (qo'lda qo'shib o'tirmaslik uchun)
+        primary_dazmol_total = sum(item['qty'] for item in pastal_dazmol_items)
+
         # Patok faolligi: stikerlar bo'lsa yoki biriktirilgan asosiy pastali bo'lsa
         is_active = (len(t_list) > 0) or (len(primary_pastals) > 0)
 
@@ -1334,6 +1349,7 @@ def sewing_statistics_daily_view(request):
             'workers': sn_workers,
             'workers_count': len(sn_workers),
             'pastal_dazmol_items': pastal_dazmol_items,
+            'primary_dazmol_total': primary_dazmol_total,
             'patok_dazmol_qty': sn_dazmol_qty,
             'dazmol_qty': sn_dazmol_qty,
             'daily_dazmol_qty': sn_dazmol_qty,
@@ -1369,6 +1385,7 @@ def sewing_statistics_daily_view(request):
     avg_kpi_overall = round((sum(p.get('avg_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     avg_patok_kpi_overall = round((sum(p.get('patok_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     avg_patok_quvvati = round((sum(p.get('patok_quvvati', 0.0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
+    total_primary_dazmol_qty = sum(p.get('primary_dazmol_total', 0) for p in patoks_data)
 
     context = {
         'selected_date': selected_date,
@@ -1393,6 +1410,7 @@ def sewing_statistics_daily_view(request):
             'total_completed_norm': total_completed_norm,
             'avg_norm_pct': avg_norm_pct,
             'dazmol_qty': total_daily_dazmol_qty,
+            'primary_dazmol_qty': total_primary_dazmol_qty,
             'controlled_qty': total_daily_controlled_qty,
             'first_sort_qty': total_daily_first_sort,
             'second_sort_qty': total_daily_second_sort,
