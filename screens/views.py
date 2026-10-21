@@ -543,6 +543,14 @@ def screen_view(request, screen_number=None, screen_identifier=None):
     parsed = parse_patok_number(raw)
     sn = parsed if (parsed and 1 <= parsed <= MAX_SCREENS) else 1
 
+    is_uychi_admin = (
+        request.user.is_authenticated and
+        getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and
+        getattr(request.user, 'branch', None) == 'UYCHI'
+    )
+    if is_uychi_admin and sn < 14:
+        sn = 14
+
     date_param = request.GET.get('date')
     target_date = parse_date_param(date_param)
 
@@ -581,11 +589,18 @@ def all_screens_overview(request):
     target_date = parse_date_param(date_param)
     effective_date = target_date or timezone.localdate()
 
-    branch_param = request.GET.get('branch', '').strip().upper()
-    if not branch_param and request.user.is_authenticated and getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and getattr(request.user, 'branch', None) == 'UYCHI':
-        branch_param = 'UYCHI'
+    is_uychi_admin = (
+        request.user.is_authenticated and
+        getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and
+        getattr(request.user, 'branch', None) == 'UYCHI'
+    )
 
-    cache_key = f"all_screens_overview_data_{effective_date.isoformat()}_{branch_param or 'ALL'}"
+    if is_uychi_admin:
+        cache_key = f"all_screens_overview_data_{effective_date.isoformat()}_UYCHI"
+        screens_range = list(range(14, MAX_SCREENS + 1))
+    else:
+        cache_key = f"all_screens_overview_data_{effective_date.isoformat()}"
+        screens_range = list(range(1, MAX_SCREENS + 1))
 
     cached_summary = cache.get(cache_key)
     if cached_summary is not None:
@@ -595,7 +610,7 @@ def all_screens_overview(request):
             'target_date_iso': effective_date.strftime('%Y-%m-%d'),
             'is_custom_date': bool(target_date and target_date != timezone.localdate()),
             'max_screens': MAX_SCREENS,
-            'branch_param': branch_param,
+            'is_uychi_admin': is_uychi_admin,
         })
 
     tz = timezone.get_current_timezone()
@@ -629,13 +644,6 @@ def all_screens_overview(request):
         'active_screens': active_screens,
     }
 
-    if branch_param == 'UYCHI':
-        screens_range = list(range(14, MAX_SCREENS + 1))
-    elif branch_param == 'HQ':
-        screens_range = list(range(1, 14))
-    else:
-        screens_range = list(range(1, MAX_SCREENS + 1))
-
     screens_summary = []
     for s_num in screens_range:
         data = get_screen_data(s_num, effective_date, preloaded=preloaded)
@@ -648,5 +656,5 @@ def all_screens_overview(request):
         'target_date_iso': effective_date.strftime('%Y-%m-%d'),
         'is_custom_date': bool(target_date and target_date != timezone.localdate()),
         'max_screens': MAX_SCREENS,
-        'branch_param': branch_param,
+        'is_uychi_admin': is_uychi_admin,
     })

@@ -679,9 +679,11 @@ def sewing_statistics_daily_view(request):
         day_end = timezone.make_aware(datetime.combine(selected_date, time(23, 59, 59, 999999)), tz)
 
     patok_filter = request.GET.get('patok', '').strip().upper()
-    branch_filter = request.GET.get('branch', '').strip().upper()
-    if not branch_filter and request.user.is_authenticated and getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and getattr(request.user, 'branch', None) == 'UYCHI':
-        branch_filter = 'UYCHI'
+    is_uychi_admin = (
+        request.user.is_authenticated and
+        getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and
+        getattr(request.user, 'branch', None) == 'UYCHI'
+    )
     search_q = request.GET.get('q', '').strip()
     show_all_patoks = request.GET.get('all', '0') == '1'
 
@@ -823,9 +825,7 @@ def sewing_statistics_daily_view(request):
     all_worked_pastals = set()
 
     for sn in screens_to_process:
-        if branch_filter == 'HQ' and sn > 13:
-            continue
-        elif branch_filter == 'UYCHI' and sn <= 13:
+        if is_uychi_admin and sn <= 13:
             continue
 
         p_code = get_patok_code(sn)
@@ -1377,7 +1377,7 @@ def sewing_statistics_daily_view(request):
         'next_date_str': next_date.isoformat(),
         'is_today': is_today,
         'patok_filter': patok_filter,
-        'branch_filter': branch_filter,
+        'is_uychi_admin': is_uychi_admin,
         'search_q': search_q,
         'show_all_patoks': show_all_patoks,
         'patoks_data': patoks_data,
@@ -1529,6 +1529,18 @@ def sewing_statistics_orders_view(request):
             Q(items__article__code__icontains=search_q)
         ).distinct()
 
+    is_uychi_admin = (
+        request.user.is_authenticated and
+        getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and
+        getattr(request.user, 'branch', None) == 'UYCHI'
+    )
+    if is_uychi_admin:
+        orders_qs = orders_qs.filter(
+            Q(boxes__assigned_screen__gte=14) |
+            Q(boxes__tickets__screen_number__gte=14) |
+            Q(boxes__cutting_batch_item__batch__assigned_branch='UYCHI')
+        ).distinct()
+
     orders_list = []
     overall_kpis = {
         'total_orders': 0,
@@ -1556,6 +1568,13 @@ def sewing_statistics_orders_view(request):
     for ord_obj in orders_qs:
         total_planned = sum(item.total_planned_quantity for item in ord_obj.items.all()) or ord_obj.total_quantity or 0
         boxes = list(ord_obj.boxes.all())
+        if is_uychi_admin:
+            boxes = [
+                b for b in boxes
+                if (b.assigned_screen and b.assigned_screen >= 14) or
+                   any(t.screen_number and t.screen_number >= 14 for t in b.tickets.all()) or
+                   (b.cutting_batch_item and b.cutting_batch_item.batch.assigned_branch == 'UYCHI')
+            ]
         total_boxed = sum(b.quantity for b in boxes)
 
         # Har bir artikul uchun dazmol operatsiyalari keshini tayyorlash
@@ -1675,6 +1694,7 @@ def sewing_statistics_orders_view(request):
         'status_filter': status_filter,
         'search_q': search_q,
         'overall_kpis': overall_kpis,
+        'is_uychi_admin': is_uychi_admin,
     })
 
 

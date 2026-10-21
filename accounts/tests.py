@@ -2296,6 +2296,11 @@ class SuperAdminOrdersBalanceTests(TestCase):
 class BranchAdminUychiAccessTests(TestCase):
     def setUp(self):
         self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username="superadmin_test",
+            password="testpassword123",
+            role=User.Role.SUPER_ADMIN
+        )
         self.uychi_admin = User.objects.create_user(
             username="uychi_admin_test",
             password="testpassword123",
@@ -2307,27 +2312,50 @@ class BranchAdminUychiAccessTests(TestCase):
         self.client.login(username="uychi_admin_test", password="testpassword123")
         res = self.client.get(reverse('production:sewing_statistics_orders'))
         self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.context['is_uychi_admin'])
 
     def test_branch_admin_access_sewing_statistics_daily_defaults_to_uychi(self):
         self.client.login(username="uychi_admin_test", password="testpassword123")
         res = self.client.get(reverse('production:sewing_statistics_daily'))
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.context['branch_filter'], 'UYCHI')
+        self.assertTrue(res.context['is_uychi_admin'])
+        for p in res.context['patoks_data']:
+            self.assertGreaterEqual(p['screen_number'], 14)
 
     def test_branch_admin_access_screens_overview_defaults_to_uychi(self):
         self.client.login(username="uychi_admin_test", password="testpassword123")
         res = self.client.get(reverse('screens:overview'))
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.context['branch_param'], 'UYCHI')
+        self.assertTrue(res.context['is_uychi_admin'])
         screens = res.context['screens']
         self.assertEqual(len(screens), 27)
         self.assertEqual(screens[0]['screen_number'], 14)
         self.assertEqual(screens[-1]['screen_number'], 40)
 
+    def test_superadmin_screens_overview_untouched(self):
+        self.client.login(username="superadmin_test", password="testpassword123")
+        res = self.client.get(reverse('screens:overview'))
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.context['is_uychi_admin'])
+        screens = res.context['screens']
+        self.assertEqual(len(screens), 40)
+        self.assertEqual(screens[0]['screen_number'], 1)
+        self.assertEqual(screens[-1]['screen_number'], 40)
+
+    def test_superadmin_sewing_statistics_daily_untouched(self):
+        self.client.login(username="superadmin_test", password="testpassword123")
+        res = self.client.get(reverse('production:sewing_statistics_daily'))
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.context['is_uychi_admin'])
+
     def test_branch_admin_access_single_screen(self):
         self.client.login(username="uychi_admin_test", password="testpassword123")
         res = self.client.get(reverse('screens:screen_view', args=[14]))
         self.assertEqual(res.status_code, 200)
+        # Attempting to access screen 1 as Uychi admin forces screen 14
+        res_forced = self.client.get(reverse('screens:screen_view', args=[1]))
+        self.assertEqual(res_forced.status_code, 200)
+        self.assertEqual(res_forced.context['screen_number'], 14)
 
     def test_branch_admin_login_next_redirect(self):
         res = self.client.post(reverse('root_login') + '?next=/screens/overview/', {

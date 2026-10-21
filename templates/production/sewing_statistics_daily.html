@@ -10,12 +10,14 @@
         </div>
         <div>
             <div class="flex items-center gap-2">
-                <h2 class="text-lg font-black text-white leading-tight">Kunlik Tikim va Pastallar Monitoringi</h2>
+                <h2 class="text-lg font-black text-white leading-tight">
+                    {% if is_uychi_admin %}Uychi Filiali Tikim Monitoringi (U1–U27){% else %}Kunlik Tikim va Pastallar Monitoringi{% endif %}
+                </h2>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     Desktop Versiya
                 </span>
             </div>
-            <p class="text-xs text-slate-400">Patoklar, pastallar, kunlik dazmol va razmerlar kesimidagi ta'mir/mato balansi</p>
+            <p class="text-xs text-slate-400">{% if is_uychi_admin %}Uychi patoklari (U1–U27), pastallar, kunlik dazmol va razmerlar kesimidagi ta'mir/mato balansi{% else %}Patoklar, pastallar, kunlik dazmol va razmerlar kesimidagi ta'mir/mato balansi{% endif %}</p>
         </div>
     </div>
 
@@ -154,7 +156,7 @@
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col xl:flex-row items-center justify-between gap-4">
         <!-- Date Selector Controls -->
         <div class="flex items-center gap-2 flex-wrap w-full xl:w-auto">
-            <a href="?date={{ prev_date_str }}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
+            <a href="?date={{ prev_date_str }}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
                 class="px-3 py-2 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5"
                 title="Oldingi kun">
                 <i class="fa-solid fa-chevron-left"></i>
@@ -163,7 +165,6 @@
 
             <!-- Date Picker Form -->
             <form method="GET" class="flex items-center gap-2">
-                {% if branch_filter %}<input type="hidden" name="branch" value="{{ branch_filter }}">{% endif %}
                 {% if patok_filter %}<input type="hidden" name="patok" value="{{ patok_filter }}">{% endif %}
                 {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
                 {% if show_all_patoks %}<input type="hidden" name="all" value="1">{% endif %}
@@ -174,7 +175,7 @@
                 </div>
 
                 {% if not is_today %}
-                <a href="?date={% now 'Y-m-d' %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
+                <a href="?date={% now 'Y-m-d' %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
                     class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1 shadow-md">
                     <i class="fa-solid fa-calendar-check"></i>
                     <span>Bugun</span>
@@ -182,36 +183,20 @@
                 {% endif %}
             </form>
 
-            <a href="?date={{ next_date_str }}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
+            <a href="?date={{ next_date_str }}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
                 class="px-3 py-2 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5"
                 title="Keyingi kun">
                 <span class="hidden md:inline">Keyingi kun</span>
                 <i class="fa-solid fa-chevron-right"></i>
             </a>
 
-            <!-- Branch Switcher (Barcha / Kosonsoy / Uychi) -->
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex items-center text-xs">
-                <a href="?date={{ selected_date_str }}&branch=ALL{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
-                    class="px-2.5 py-1 rounded-lg font-bold transition {% if not branch_filter or branch_filter == 'ALL' %}bg-amber-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                    Barchasi
-                </a>
-                <a href="?date={{ selected_date_str }}&branch=HQ{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
-                    class="px-2.5 py-1 rounded-lg font-bold transition {% if branch_filter == 'HQ' %}bg-emerald-600 text-white font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                    🏭 Kosonsoy (K1–K13)
-                </a>
-                <a href="?date={{ selected_date_str }}&branch=UYCHI{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
-                    class="px-2.5 py-1 rounded-lg font-bold transition {% if branch_filter == 'UYCHI' %}bg-sky-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-                    📍 Uychi (U1–U27)
-                </a>
-            </div>
-
             <!-- Active / All Toggle -->
             <div class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex items-center text-xs">
-                <a href="?date={{ selected_date_str }}&all=0{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                <a href="?date={{ selected_date_str }}&all=0{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-2.5 py-1 rounded-lg font-bold transition {% if not show_all_patoks %}bg-emerald-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                     Faqat faol patoklar
                 </a>
-                <a href="?date={{ selected_date_str }}&all=1{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                <a href="?date={{ selected_date_str }}&all=1{% if patok_filter %}&patok={{ patok_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-2.5 py-1 rounded-lg font-bold transition {% if show_all_patoks %}bg-slate-800 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                     Barcha 40 ta patok
                 </a>
@@ -229,14 +214,13 @@
         <!-- Search Form -->
         <form method="GET" class="relative w-full xl:w-96">
             <input type="hidden" name="date" value="{{ selected_date_str }}">
-            {% if branch_filter %}<input type="hidden" name="branch" value="{{ branch_filter }}">{% endif %}
             {% if show_all_patoks %}<input type="hidden" name="all" value="1">{% endif %}
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
             <input type="text" name="q" value="{{ search_q }}"
                 placeholder="Zakaz raqami, model, pastal kodi yoki patok..."
                 class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner transition">
             {% if search_q %}
-            <a href="?date={{ selected_date_str }}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
+            <a href="?date={{ selected_date_str }}{% if show_all_patoks %}&all=1{% endif %}"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1"
                 title="Tozalash">
                 <i class="fa-solid fa-xmark"></i>
@@ -1171,7 +1155,7 @@
                 {{ selected_date|date:"d.m.Y" }} sanasida operatsiya stikerlari skanerlanmagan yoki kiritilgan qidiruv bo'yicha hech qanday natija yo'q.
             </p>
             <div class="pt-2">
-                <a href="?date={% now 'Y-m-d' %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition inline-flex items-center gap-1.5 shadow-md">
+                <a href="?date={% now 'Y-m-d' %}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition inline-flex items-center gap-1.5 shadow-md">
                     <i class="fa-solid fa-calendar-day"></i> Bugungi kunga o'tish
                 </a>
             </div>

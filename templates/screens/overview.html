@@ -45,16 +45,14 @@
         <div>
             <h1 class="text-xl md:text-2xl font-black text-white flex items-center gap-3">
                 <i class="fa-solid fa-table-cells text-amber-400"></i>
-                {% if branch_param == 'UYCHI' %}
+                {% if is_uychi_admin %}
                 TERRY JAR — UYCHI FILIALI PATOKLARI (U1–U27)
-                {% elif branch_param == 'HQ' %}
-                TERRY JAR — KOSONSOY BOSH BINO PATOKLARI (K1–K13)
                 {% else %}
                 TERRY JAR — BARCHA 40 TA TIKUV PATOKI
                 {% endif %}
             </h1>
             <p class="text-slate-400 text-xs mt-1">
-                Sana: <span class="text-amber-400 font-bold">{{ date_str }}</span> | {% if branch_param == 'UYCHI' %}Uychi filiali (U1–U27) monitoringi{% elif branch_param == 'HQ' %}Kosonsoy bosh bino (K1–K13) monitoringi{% else %}Barcha 40 ta patok monitoringi{% endif %}
+                Sana: <span class="text-amber-400 font-bold">{{ date_str }}</span> | {% if is_uychi_admin %}Uychi filiali (U1–U27) monitoringi{% else %}Barcha 40 ta patok monitoringi{% endif %}
                 {% if is_custom_date %}
                 <span class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     <i class="fa-solid fa-clock-rotate-left mr-1"></i>Arxiv Tarix
@@ -68,22 +66,6 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
-            <!-- FILIAL TANLASH (BOSH BINO & UYCHI) -->
-            <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs shrink-0">
-                <a href="?branch=ALL{% if is_custom_date %}&date={{ target_date_iso }}{% endif %}"
-                    class="px-2.5 py-1.5 rounded-lg font-bold transition {% if not branch_param or branch_param == 'ALL' %}bg-amber-500 text-slate-950 shadow font-black{% else %}text-slate-400 hover:text-white{% endif %}">
-                    Barchasi (40 ta)
-                </a>
-                <a href="?branch=HQ{% if is_custom_date %}&date={{ target_date_iso }}{% endif %}"
-                    class="px-2.5 py-1.5 rounded-lg font-bold transition {% if branch_param == 'HQ' %}bg-emerald-600 text-white shadow font-black{% else %}text-slate-400 hover:text-white{% endif %}">
-                    🏭 Kosonsoy (K1–K13)
-                </a>
-                <a href="?branch=UYCHI{% if is_custom_date %}&date={{ target_date_iso }}{% endif %}"
-                    class="px-2.5 py-1.5 rounded-lg font-bold transition {% if branch_param == 'UYCHI' %}bg-sky-500 text-slate-950 shadow font-black{% else %}text-slate-400 hover:text-white{% endif %}">
-                    📍 Uychi (U1–U27)
-                </a>
-            </div>
-
             <!-- SANA / KALENDAR TANLASH -->
             <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl shrink-0">
                 <i class="fa-regular fa-calendar-days text-indigo-400 text-base"></i>
@@ -93,7 +75,7 @@
                         class="bg-transparent text-xs sm:text-sm font-bold text-slate-200 outline-none cursor-pointer mt-0.5">
                 </div>
                 {% if is_custom_date %}
-                <a href="?{% if branch_param %}branch={{ branch_param }}{% endif %}"
+                <a href="?"
                     class="text-[10px] font-black px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg hover:bg-amber-500 hover:text-slate-950 transition ml-1"
                     title="Bugungi kunga qaytish">
                     <i class="fa-solid fa-rotate-left"></i> Bugun
