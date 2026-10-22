@@ -1,30 +1,32 @@
 import io
 import os
 import datetime
+import calendar
 import httpx
 from decimal import Decimal
 from PIL import Image, ImageDraw, ImageFont
 
-import re
-from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
 from django.db.models import Sum, Q, Count
 
-from production.models import Ticket, Box, BoxQualityInspectionLog, Article, DailyPatokProgress
-from production.services import get_patok_code, get_patok_name, parse_patok_number
+from production.models import Ticket, Box, CuttingBatch, Article, OperationGroup, OperationGroupItem, DailyPatokProgress
+from production.services import get_patok_code, get_patok_name
+from production.sewing_statistics_views import is_main_dazmol_operation
+from screens.views import get_screen_data, calculate_screen_aniqlik
 
 
 def _get_font(size: int = 14, bold: bool = False):
     """
     Turli OS va muhitlar (macOS, Linux, Docker Debian) uchun mos shriftni topish.
-    Agar tizimda TrueType shrift topilmasa, Pillow'ning o'rnatilgan shriftidan foydalanadi.
+    Kirillcha (Ў, Қ, Ғ, Ҳ) harflarini to'liq qo'llab-quvvatlaydigan shriftlar.
     """
     candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
-        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
         "Arial.ttf"
     ]
     for p in candidates:
@@ -39,465 +41,448 @@ def _get_font(size: int = 14, bold: bool = False):
         return ImageFont.load_default()
 
 
-def get_branch_patoks_data(branch: str, target_date: datetime.date = None) -> dict:
+def get_operation_group_difficulty(group: OperationGroup) -> float:
+    """Guruhdagi faol operatsiyalarning qiyinlik darajalari yig'indisi (Aniqlik)"""
+    if not group:
+        return 0.0
+    items = group.items.filter(is_active=True)
+    val = sum(float(it.difficulty or 1.0) for it in items)
+    return round(val, 2)
+
+
+def get_branch_daily_report_data(branch: str, target_date: datetime.date = None) -> dict:
     """
-    Ko'rsatilgan filial bo'yicha kunlik patoklar hisobot ma'lumotlarini to'playdi:
-    - branch: 'HQ' (Bosh bino / Kosonsoy, 1..13 patoklar) yoki 'UYCHI' (Uychi, 14.. patoklar)
-    - target_date: hisobot sanasi (default: bugun)
+    Kosonsoy yoki Uychi filiali bo'yicha kunlik 18:00 hisobot ma'lumotlarini to'playdi:
+    5 ta ustun:
+    1. Паток № (1-паток..13-паток yoki 1-паток..21-паток)
+    2. Маҳсулот & Дазмол (Дазмол soni / Narxlar shabloni nomi, masalan: 329 / DC BELBOG'LI XALAT)
+    3. Давомот (Real faol chevarlar soni)
+    4. Операционка (Shablonning aniqlik yig'indisi)
+    5. Паток қуввати (%)
     """
     if target_date is None:
         target_date = timezone.localdate()
 
-    tz = timezone.get_current_timezone()
-    day_start = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time.min), tz)
-    now = timezone.localtime()
-    
-    if target_date == now.date():
-        day_end = timezone.now()
-    else:
-        day_end = timezone.make_aware(datetime.datetime.combine(target_date, datetime.time(23, 59, 59, 999999)), tz)
+    is_hq = (str(branch).upper() in ['HQ', 'KOSON', 'KOSONSOY', 'BOSH'])
 
-    # 1. Filialga tegishli patoklar raqamini aniqlash
-    is_hq = (str(branch).upper() == 'HQ' or 'BOSH' in str(branch).upper())
     if is_hq:
         branch_key = 'HQ'
-        branch_name = "BOSH BINO (KOSONSOY)"
+        branch_title = "КОСОНСОЙ ТУМАНИ"
+        branch_name_short = "Косонсой"
         screen_numbers = list(range(1, 14))  # 1..13 (K1..K13)
     else:
         branch_key = 'UYCHI'
-        branch_name = "UYCHI FILIALI"
-        # Uychi filialida 27 ta patok (14..40, ya'ni U1..U27)
-        # Shu kunda skanerlangan barcha Uychi ekranlarini to'liq qamrab olamiz
+        branch_title = "УЙЧИ ТУМАНИ"
+        branch_name_short = "Уйчи"
+        # Uychida 14 dan boshlab bugun faol bo'lgan barcha patoklar (kamida 14..34 ya'ni 21 ta patok, to 40 gacha)
         max_active = Ticket.objects.filter(
             status=Ticket.Status.SCANNED,
-            scanned_at__range=(day_start, day_end),
+            scanned_at__date=target_date,
             screen_number__gte=14
-        ).values_list('screen_number', flat=True).order_by('-screen_number').first() or 33
-        max_screen = min(40, max(33, max_active))
+        ).values_list('screen_number', flat=True).order_by('-screen_number').first() or 34
+        max_screen = min(40, max(34, max_active))
         screen_numbers = list(range(14, max_screen + 1))
 
-    # 2. Shu kunda skanerlangan barcha biletlar
-    tickets_qs = Ticket.objects.filter(
+    # Shu kungi barcha skanerlangan biletlar
+    all_tickets = list(Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__range=(day_start, day_end),
+        scanned_at__date=target_date,
         screen_number__in=screen_numbers
     ).select_related(
         'article_operation__operation',
-        'article_operation__article',
-        'box'
-    )
+        'article_operation__article__operation_group',
+        'article_operation__article__model',
+        'box__cutting_batch_item__batch__order_item__article__operation_group'
+    ))
 
     tickets_by_screen = {}
-    box_ids_by_screen = {}
-    for t in tickets_qs:
+    for t in all_tickets:
         tickets_by_screen.setdefault(t.screen_number, []).append(t)
-        if t.box_id:
-            box_ids_by_screen.setdefault(t.screen_number, set()).add(t.box_id)
 
-    # 3. OTK jurnallarini olish (butun kunlik inspection logs)
-    inspection_logs = list(
-        BoxQualityInspectionLog.objects.filter(
-            created_at__range=(day_start, day_end)
-        ).select_related('box__order', 'box__article', 'box__cutting_batch_item__batch')
-    )
-    otk_box_ids = {l.box_id for l in inspection_logs if l.box_id}
-    otk_box_screens = {}
-    if otk_box_ids:
-        otk_ticket_screens = Ticket.objects.filter(
-            box_id__in=otk_box_ids,
-            screen_number__isnull=False
-        ).values('box_id', 'screen_number').annotate(c=Count('id')).order_by('box_id', '-c')
-        for row in otk_ticket_screens:
-            bid = row['box_id']
-            if bid not in otk_box_screens:
-                otk_box_screens[bid] = row['screen_number']
+    # Patoklarga biriktirilgan (ACCEPTED) pastallar
+    assigned_batches = list(CuttingBatch.objects.filter(
+        assigned_screen__in=screen_numbers,
+        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+    ).select_related(
+        'order_item__article__operation_group',
+        'order_item__article__model'
+    ))
+    assigned_by_screen = {}
+    for b in assigned_batches:
+        assigned_by_screen.setdefault(b.assigned_screen, []).append(b)
 
-    otk_by_screen = defaultdict(lambda: {'controlled_qty': 0, 'first_sort': 0, 'repair': 0, 'second': 0})
-    for l in inspection_logs:
-        b = l.box
-        b_sn = otk_box_screens.get(l.box_id) if l.box_id else None
-        if not b_sn and b and b.assigned_screen:
-            b_sn = b.assigned_screen
-        if not b_sn and b and b.cutting_batch_item and b.cutting_batch_item.batch and b.cutting_batch_item.batch.assigned_screen:
-            b_sn = b.cutting_batch_item.batch.assigned_screen
-        if not b_sn and l.inspector:
-            b_sn = parse_patok_number(l.inspector.username)
-        if not b_sn and l.notes and '[Terminal:' in l.notes:
-            m = re.search(r'\[Terminal:\s*([^\]]+)\]', l.notes)
-            if m:
-                b_sn = parse_patok_number(m.group(1))
-
-        if b_sn:
-            eff_2nd = l.second_sort_qty or (l.defect_qty if l.action_type == BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0)
-            total_l = l.inspected_qty or (l.first_sort_qty + eff_2nd + l.repair_qty)
-            otk_by_screen[b_sn]['controlled_qty'] += total_l
-            otk_by_screen[b_sn]['first_sort'] += l.first_sort_qty
-            otk_by_screen[b_sn]['repair'] += l.repair_qty
-            otk_by_screen[b_sn]['second'] += eff_2nd
-
-    # 4. Har bir patok bo'yicha hisoblash
-    patoks_list = []
-    total_norm = 0
-    total_dazmol = 0
-    total_controlled = 0
+    rows = []
+    total_dazmol_sum = 0
+    total_davomat_sum = 0
+    quvvat_values = []
+    dominant_aniqlik_sum = 0
 
     for sn in screen_numbers:
-        p_code = get_patok_code(sn)
-        p_name = get_patok_name(sn)
-        t_list = tickets_by_screen.get(sn, [])
+        patok_num = sn if is_hq else (sn - 13)
+        patok_title = f"{patok_num}-паток"
 
-        # Kunlik norma
-        art_ids = {t.article_operation.article_id for t in t_list if t.article_operation and t.article_operation.article_id}
-        sn_norms = []
-        if art_ids:
-            for art in Article.objects.filter(id__in=art_ids):
-                norm = art.daily_norm or (art.model.daily_norm if art.model else 0) or 1200
-                if norm > 0:
-                    sn_norms.append(norm)
-        patok_norm = int(sum(sn_norms) / len(sn_norms)) if sn_norms else 1200
+        sn_tickets = tickets_by_screen.get(sn, [])
+        sn_assigned = assigned_by_screen.get(sn, [])
 
-        # Dazmoldan chiqqan soni
-        dazmol_qty = 0
-        for t in t_list:
+        # Ekran statistikasi (Davomat, Aniqlik, Quvvat)
+        screen_data = get_screen_data(sn, target_date)
+        davomat = screen_data.get('davomat', 0)
+        patok_quvvati = float(screen_data.get('patok_quvvati', 0.0))
+
+        # 1. Asosiy Dazmol biletlarini ajratish
+        dazmol_tickets = [
+            t for t in sn_tickets
+            if t.article_operation and t.article_operation.operation and
+            is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code)
+        ]
+
+        # 2. Narxlar shablonlari bo'yicha dazmollarni guruhlash
+        shablon_dazmol_map = {}  # {group_obj or name: count}
+        for t in dazmol_tickets:
             ao = t.article_operation
-            op_name = ao.operation.name.upper() if ao and ao.operation else ""
-            op_code = (ao.operation.code or "").upper() if ao and ao.operation else ""
-            if 'DAZMOL' in op_name or 'DAZMOL' in op_code:
-                dazmol_qty += t.quantity
+            art = ao.article if ao else None
+            group = art.operation_group if art else None
 
-        # Kontroldan (OTK) o'tgan soni (Jami tekshirildi: 1-sort + 2-sort + ta'mir)
-        controlled_qty = otk_by_screen[sn]['controlled_qty']
+            # Pastaldan tekshirish (fallback)
+            if not group and t.box and t.box.cutting_batch_item and t.box.cutting_batch_item.batch:
+                b_art = t.box.cutting_batch_item.batch.order_item.article if t.box.cutting_batch_item.batch.order_item else None
+                if b_art and b_art.operation_group:
+                    group = b_art.operation_group
 
-        # Foiz
-        pct = round((dazmol_qty / patok_norm * 100), 1) if patok_norm > 0 else 0.0
+            group_key = group.name if group else (art.name if art else "Noma'lum")
+            group_obj = group
+            shablon_dazmol_map.setdefault(group_key, {'group': group_obj, 'qty': 0})
+            shablon_dazmol_map[group_key]['qty'] += t.quantity
 
-        patok_item = {
+        # 3. Agar dazmol bo'lmagan, lekin biriktirilgan pastal bo'lsa (0 dona bilan ko'rsatamiz)
+        for b in sn_assigned:
+            art = b.order_item.article if b.order_item else None
+            group = art.operation_group if art else None
+            group_key = group.name if group else (art.name if art else "Noma'lum")
+            if group_key not in shablon_dazmol_map:
+                shablon_dazmol_map[group_key] = {'group': group, 'qty': 0}
+
+        # 4. Mahsulotlar ro'yxatini shakllantirish
+        products = []
+        patok_dazmol_total = 0
+        max_group_aniqlik = 0.0
+
+        if shablon_dazmol_map:
+            # Dazmol soni bo'yicha kamayish tartibida saralaymiz
+            sorted_groups = sorted(shablon_dazmol_map.items(), key=lambda x: x[1]['qty'], reverse=True)
+            for g_key, g_info in sorted_groups:
+                g_qty = g_info['qty']
+                patok_dazmol_total += g_qty
+                g_obj = g_info['group']
+
+                if g_obj:
+                    g_aniqlik = get_operation_group_difficulty(g_obj)
+                else:
+                    g_aniqlik = float(screen_data.get('aniqlik', 0.0))
+
+                aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else round(g_aniqlik, 1)
+                if g_aniqlik > max_group_aniqlik:
+                    max_group_aniqlik = g_aniqlik
+
+                products.append({
+                    'shablon_name': g_key,
+                    'dazmol_qty': g_qty,
+                    'display_str': f"{g_qty} / {g_key}",
+                    'aniqlik': aniqlik_display,
+                })
+        else:
+            # Birorta ham pastal yoki dazmol bo'lmagan holat
+            g_aniqlik = float(screen_data.get('aniqlik', 0.0))
+            aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else (round(g_aniqlik, 1) if g_aniqlik > 0 else "—")
+            products.append({
+                'shablon_name': "—",
+                'dazmol_qty': 0,
+                'display_str': "0 / —",
+                'aniqlik': aniqlik_display,
+            })
+            max_group_aniqlik = g_aniqlik
+
+        total_dazmol_sum += patok_dazmol_total
+        total_davomat_sum += davomat
+        dominant_aniqlik_sum += (max_group_aniqlik if max_group_aniqlik > 0 else float(screen_data.get('aniqlik', 0.0)))
+
+        is_active = (len(sn_tickets) > 0 or patok_dazmol_total > 0 or davomat > 0)
+        if is_active:
+            quvvat_values.append(patok_quvvati)
+
+        row_item = {
             'screen_number': sn,
-            'patok_code': p_code,
-            'patok_name': p_name,
-            'daily_norm': patok_norm,
-            'dazmol_qty': dazmol_qty,
-            'controlled_qty': controlled_qty,
-            'percent': pct,
-            'is_active': (len(t_list) > 0 or dazmol_qty > 0 or controlled_qty > 0)
+            'patok_num': patok_num,
+            'patok_title': patok_title,
+            'products': products,
+            'dazmol_total': patok_dazmol_total,
+            'davomat': davomat,
+            'patok_quvvati': patok_quvvati,
+            'is_active': is_active,
         }
-        patoks_list.append(patok_item)
+        rows.append(row_item)
 
-        total_norm += patok_norm
-        total_dazmol += dazmol_qty
-        total_controlled += controlled_qty
-
-        # DailyPatokProgress ga sinxronlash
-        try:
+        # DailyPatokProgress ga muhrlash (Tarix va Arxiv uchun)
+        if is_active:
             DailyPatokProgress.objects.update_or_create(
                 screen_number=sn,
                 date=target_date,
                 defaults={
-                    'patok_code': p_code,
-                    'daily_norm': patok_norm,
-                    'completed_units': dazmol_qty,
-                    'completion_percentage': Decimal(str(pct)),
-                    'dazmol_qty': dazmol_qty,
-                    'controlled_qty': controlled_qty,
-                    'is_completed': (dazmol_qty >= patok_norm)
+                    'patok_code': get_patok_code(sn),
+                    'dazmol_qty': patok_dazmol_total,
+                    'davomat': davomat,
+                    'aniqlik': max_group_aniqlik if max_group_aniqlik > 0 else float(screen_data.get('aniqlik', 0.0)),
+                    'patok_kpi': Decimal(str(round(patok_quvvati, 2))),
                 }
             )
-        except Exception:
-            pass
 
-    # Foydalanuvchi talabi: Faol bo'lgan hamma patoklar ma'lumotlari bo'lsin
-    active_patoks = [p for p in patoks_list if p['is_active']]
-    # Agar shu kunda faol patoklar bo'lsa, barcha faol patoklarni rasm jadvaliga chiqaramiz
-    # Agar birorta ham faol bo'lmasa (masalan, test sanasida), standart ro'yxatni ko'rsatamiz
-    display_patoks = active_patoks if active_patoks else (patoks_list[:13] if is_hq else patoks_list[:15])
-
-    total_norm = sum(p['daily_norm'] for p in display_patoks)
-    total_dazmol = sum(p['dazmol_qty'] for p in display_patoks)
-    total_controlled = sum(p['controlled_qty'] for p in display_patoks)
-    avg_branch_pct = round((total_dazmol / total_norm * 100), 1) if total_norm > 0 else 0.0
+    # Jami hisob-kitoblar
+    avg_quvvat = round(sum(quvvat_values) / len(quvvat_values), 1) if quvvat_values else 0.0
+    davomat_foiz = round((total_davomat_sum / dominant_aniqlik_sum * 100), 1) if dominant_aniqlik_sum > 0 else 0.0
 
     return {
         'branch_key': branch_key,
-        'branch_name': branch_name,
+        'branch_title': branch_title,
+        'branch_name_short': branch_name_short,
         'target_date': target_date,
-        'patoks': display_patoks,
-        'total_norm': total_norm,
-        'total_dazmol': total_dazmol,
-        'total_controlled': total_controlled,
-        'avg_percent': avg_branch_pct,
+        'rows': rows,
+        'total_dazmol': total_dazmol_sum,
+        'total_davomat': total_davomat_sum,
+        'avg_quvvat': avg_quvvat,
+        'davomat_foiz': davomat_foiz,
+        'active_patoks_count': len(quvvat_values),
+        'total_patoks_count': len(rows),
     }
 
 
-def generate_branch_report_image(branch_data: dict) -> io.BytesIO:
+def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     """
-    Pillow kutubxonasi orqali filial hisoboti uchun yuqori sifatli (1080px kenglikda)
-    zamonaviy korporativ dizayndagi PNG rasm chizadi.
+    Pillow kutubxonasi yordamida foydalanuvchi taqdim etgan Excel uslubidagi
+    5 ustunli yuqori sifatli (1260px kenglikda) PNG rasm chizadi.
+    Ustunlar:
+    1. Паток №
+    2. Маҳсулот & Дазмол
+    3. Давомот
+    4. Операционка
+    5. Паток қуввати
     """
-    branch_key = branch_data['branch_key']
-    branch_name = branch_data['branch_name']
-    target_date = branch_data['target_date']
-    patoks = branch_data['patoks']
-    total_norm = branch_data['total_norm']
-    total_dazmol = branch_data['total_dazmol']
-    total_controlled = branch_data['total_controlled']
-    avg_percent = branch_data['avg_percent']
+    branch_title = report_data['branch_title']
+    target_date = report_data['target_date']
+    rows = report_data['rows']
+    total_dazmol = report_data['total_dazmol']
+    total_davomat = report_data['total_davomat']
+    avg_quvvat = report_data['avg_quvvat']
+    davomat_foiz = report_data['davomat_foiz']
 
-    # Ochiq rangli (Light Theme) dizayn sxemasi
-    is_hq = (branch_key == 'HQ')
-
-    # Asosiy aksent ranglar
-    header_accent = (67, 56, 202) if is_hq else (13, 148, 136)       # Indigo (HQ) yoki Teal (Uychi)
-    badge_accent_bg = (238, 242, 255) if is_hq else (240, 253, 250)
-    bg_color = (244, 246, 250)                                       # Ochiq silliq fon (#F4F6FA)
-    card_bg = (255, 255, 255)                                        # Oq fon (#FFFFFF)
-    row_alt_bg = (248, 250, 252)                                     # Yengil chiziqli fon (#F8FAFC)
-    border_color = (226, 232, 240)                                   # Yengil hoshiya (#E2E8F0)
-    text_dark = (15, 23, 42)                                         # To'q qora-ko'k matn (#0F172A)
-    text_muted = (100, 116, 139)                                     # Kulrang matn (#64748B)
-    text_dazmol = (5, 150, 105)                                       # To'q yashil (#059669)
-    text_otk = (2, 132, 199)                                         # To'q moviy (#0284C7)
-    total_bg = (238, 242, 255) if is_hq else (240, 253, 250)
+    # Ranglar sxemasi (Excel uslubidagi ochiq, tiniq dizayn)
+    bg_color = (255, 255, 255)                  # Butun varaq oq
+    grid_color = (210, 220, 230)                # Katak chiziqlari (yengil kulrang)
+    border_dark = (15, 23, 42)                  # Asosiy ramka qora
+    header_bg = (220, 238, 255)                 # Sarlavha och moviy fon (#DCEEFF)
+    header_text_color = (15, 23, 42)            # Sarlavha matni to'q ko'k/qora
+    row_alt_bg = (248, 250, 252)                # Juft qatorlar foni
+    total_bg = (218, 235, 254)                  # Jami qatori foni (#DAEBFE)
+    text_color = (15, 23, 42)                   # Asosiy matn qora
+    text_green = (5, 150, 105)                  # Quvvat yashil
+    text_muted = (100, 116, 139)                # Yordamchi matn kulrang
 
     # Shriftlar
-    font_brand = _get_font(13, bold=True)
-    font_title = _get_font(24, bold=True)
-    font_subtitle = _get_font(13, bold=False)
-    font_badge = _get_font(14, bold=True)
-    font_header = _get_font(13, bold=True)
-    font_row = _get_font(14, bold=False)
-    font_row_bold = _get_font(14, bold=True)
-    font_total = _get_font(15, bold=True)
-    font_footer = _get_font(11, bold=False)
+    font_main_title = _get_font(26, bold=True)
+    font_sub_title = _get_font(14, bold=False)
+    font_th = _get_font(15, bold=True)
+    font_cell = _get_font(14, bold=False)
+    font_cell_bold = _get_font(14, bold=True)
+    font_total = _get_font(16, bold=True)
+    font_sub_pct = _get_font(13, bold=True)
 
-    width = 1080
-    header_height = 130
-    th_height = 44
-    row_height = 38
-    total_height = 54
-    footer_height = 42
+    # Jadval o'lchamlari va ustun kengliklari
+    width = 1260
+    margin_x = 30
+    margin_top = 30
+    margin_bottom = 30
 
-    height = header_height + th_height + (len(patoks) * row_height) + total_height + footer_height + 40
+    col_w_patok = 130
+    col_w_product = 570
+    col_w_davomat = 130
+    col_w_op = 170
+    col_w_quvvat = 200
 
-    img = Image.new('RGB', (width, height), bg_color)
+    table_width = col_w_patok + col_w_product + col_w_davomat + col_w_op + col_w_quvvat
+    start_x = margin_x
+
+    # Har bir qator balandligini hisoblash (dinamik)
+    base_line_h = 24
+    row_heights = []
+    for r in rows:
+        p_count = max(1, len(r['products']))
+        h = max(40, 12 + (p_count * base_line_h))
+        row_heights.append(h)
+
+    header_box_h = 80
+    th_height = 46
+    total_row_h = 56
+    table_content_h = sum(row_heights)
+
+    total_height = margin_top + header_box_h + th_height + table_content_h + total_row_h + margin_bottom + 10
+
+    img = Image.new('RGB', (width, total_height), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # 1. TASHQI RAMKA VA HEADER (Ochiq oq karta)
-    padding = 24
-    content_width = width - (padding * 2)
+    # 1. SARLAVHA (Header Text)
+    title_text = branch_title
+    sub_text = f"Сана: {target_date.strftime('%d.%m.%Y')}   |   Соат: 18:00 ҳолатига"
 
-    # Header qutisi (Oq fon, chiroyli soya chegarasi)
-    draw.rounded_rectangle(
-        [(padding, padding), (width - padding, padding + header_height - 10)],
-        radius=16,
-        fill=card_bg,
-        outline=header_accent,
-        width=2
-    )
+    draw.text((width // 2, margin_top + 16), title_text, fill=text_color, font=font_main_title, anchor="mm")
+    draw.text((width // 2, margin_top + 50), sub_text, fill=text_muted, font=font_sub_title, anchor="mm")
 
-    # Header bezak yorlig'i (Brand badge)
-    draw.rounded_rectangle(
-        [(padding + 20, padding + 16), (padding + 235, padding + 40)],
-        radius=8,
-        fill=badge_accent_bg,
-        outline=header_accent,
-        width=1
-    )
-    draw.text((padding + 32, padding + 20), "TERRY JAR MANUFACTURING", fill=header_accent, font=font_brand)
+    # 2. JADVAL SARLAVHASI (Table TH)
+    table_y = margin_top + header_box_h
+    x0 = start_x
+    x1 = x0 + col_w_patok
+    x2 = x1 + col_w_product
+    x3 = x2 + col_w_davomat
+    x4 = x3 + col_w_op
+    x5 = x4 + col_w_quvvat
 
-    # Sarlavha (To'q matn)
-    draw.text((padding + 20, padding + 48), branch_name, fill=text_dark, font=font_title)
-    sub_text = f"Sana: {target_date.strftime('%d.%m.%Y')}   |   Vaqt: 18:00 (O'zbekiston)   |   Holat: Kunlik Hisobot"
-    draw.text((padding + 20, padding + 85), sub_text, fill=text_muted, font=font_subtitle)
+    # TH Foni
+    draw.rectangle([(x0, table_y), (x5, table_y + th_height)], fill=header_bg, outline=border_dark, width=2)
 
-    # Header o'ng tomon: Filial o'rtacha foizi ko'rsatkichi
-    kpi_box_w = 210
-    kpi_box_x = width - padding - kpi_box_w - 20
-    draw.rounded_rectangle(
-        [(kpi_box_x, padding + 18), (kpi_box_x + kpi_box_w, padding + header_height - 28)],
-        radius=12,
-        fill=badge_accent_bg,
-        outline=header_accent,
-        width=1
-    )
-    draw.text((kpi_box_x + 18, padding + 26), "FILIAL KPI (O'RTACHA)", fill=text_muted, font=font_footer)
-    draw.text((kpi_box_x + 18, padding + 46), f"{avg_percent}%", fill=text_dazmol, font=_get_font(28, bold=True))
+    # TH Ajratuvchi chiziqlar
+    for x in [x1, x2, x3, x4]:
+        draw.line([(x, table_y), (x, table_y + th_height)], fill=border_dark, width=1)
 
-    # 2. JADVAL QUTISI (Oq fon)
-    table_top = padding + header_height + 6
-    table_bottom = table_top + th_height + (len(patoks) * row_height) + total_height
-    draw.rounded_rectangle(
-        [(padding, table_top), (width - padding, table_bottom)],
-        radius=16,
-        fill=card_bg,
-        outline=border_color,
-        width=1
-    )
+    # TH Matnlari
+    draw.text((x0 + col_w_patok // 2, table_y + th_height // 2), "Паток №", fill=header_text_color, font=font_th, anchor="mm")
+    draw.text((x1 + 16, table_y + th_height // 2), "Маҳсулот & Дазмол (Дазмол / Нархлар шаблони)", fill=header_text_color, font=font_th, anchor="lm")
+    draw.text((x2 + col_w_davomat // 2, table_y + th_height // 2), "Давомот", fill=header_text_color, font=font_th, anchor="mm")
+    draw.text((x3 + col_w_op // 2, table_y + th_height // 2), "Операционка", fill=header_text_color, font=font_th, anchor="mm")
+    draw.text((x4 + col_w_quvvat // 2, table_y + th_height // 2), "Паток қуввати", fill=header_text_color, font=font_th, anchor="mm")
 
-    # Ustun koordinatalari (X pozitsiyalar)
-    col_num_x = padding + 20
-    col_patok_x = padding + 65
-    col_norma_x = padding + 340
-    col_dazmol_x = padding + 550
-    col_otk_x = padding + 760
-    col_pct_x = width - padding - 40
+    # 3. JADVAL QATORLARI (Data Rows)
+    curr_y = table_y + th_height
+    for idx, (r, row_h) in enumerate(zip(rows, row_heights)):
+        row_bg = row_alt_bg if (idx % 2 == 1) else (255, 255, 255)
+        draw.rectangle([(x0, curr_y), (x5, curr_y + row_h)], fill=row_bg, outline=grid_color, width=1)
 
-    # Jadval Header qatori (Ochiq kulrang fon)
-    draw.rectangle([(padding + 1, table_top + 1), (width - padding - 1, table_top + th_height)], fill=(241, 245, 249))
-    draw.line([(padding, table_top + th_height), (width - padding, table_top + th_height)], fill=border_color, width=1)
+        # Tashqi chegaralarni qoraroq chizamiz
+        draw.line([(x0, curr_y), (x0, curr_y + row_h)], fill=border_dark, width=2)
+        draw.line([(x5, curr_y), (x5, curr_y + row_h)], fill=border_dark, width=2)
 
-    draw.text((col_num_x, table_top + 13), "#", fill=text_muted, font=font_header)
-    draw.text((col_patok_x, table_top + 13), "PATOK NOMI", fill=(71, 85, 105), font=font_header)
-    draw.text((col_norma_x, table_top + 13), "KUNLIK NORMA", fill=(71, 85, 105), font=font_header, anchor="ra")
-    draw.text((col_dazmol_x, table_top + 13), "DAZMOLDAN CHIQQAN", fill=(71, 85, 105), font=font_header, anchor="ra")
-    draw.text((col_otk_x, table_top + 13), "KONTROL (OTK)", fill=(71, 85, 105), font=font_header, anchor="ra")
-    draw.text((col_pct_x, table_top + 13), "BAJARILISH (%)", fill=(71, 85, 105), font=font_header, anchor="ra")
+        # Ichki vertikal chiziqlar
+        for x in [x1, x2, x3, x4]:
+            draw.line([(x, curr_y), (x, curr_y + row_h)], fill=grid_color, width=1)
 
-    # 3. PATOKLAR QATORLARI (Oq / yengil ochiq kulrang chiziqlar)
-    cur_y = table_top + th_height
-    for idx, p in enumerate(patoks, 1):
-        row_bg = row_alt_bg if (idx % 2 == 0) else card_bg
-        draw.rectangle([(padding + 1, cur_y), (width - padding - 1, cur_y + row_height)], fill=row_bg)
-        draw.line([(padding, cur_y + row_height), (width - padding, cur_y + row_height)], fill=(241, 245, 249), width=1)
+        # 1-ustun: Patok nomi (O'rtada)
+        draw.text((x0 + col_w_patok // 2, curr_y + row_h // 2), r['patok_title'], fill=text_color, font=font_cell_bold, anchor="mm")
 
-        y_text = cur_y + 10
+        # 2-ustun va 4-ustun: Mahsulotlar va Operatsionka
+        prods = r['products']
+        p_count = len(prods)
+        start_prod_y = curr_y + (row_h - (p_count * base_line_h)) // 2 + (base_line_h // 2)
 
-        # #
-        draw.text((col_num_x, y_text), str(idx), fill=text_muted, font=font_row)
-        # Patok nomi
-        p_name = p['patok_name']
-        draw.text((col_patok_x, y_text), p_name, fill=text_dark, font=font_row_bold)
-        # Norma
-        draw.text((col_norma_x, y_text), f"{p['daily_norm']:,}".replace(",", " "), fill=text_muted, font=font_row, anchor="ra")
-        # Dazmol
-        d_val = f"{p['dazmol_qty']:,}".replace(",", " ")
-        draw.text((col_dazmol_x, y_text), d_val, fill=text_dazmol, font=font_row_bold, anchor="ra")
-        # OTK
-        otk_val = f"{p['controlled_qty']:,}".replace(",", " ")
-        draw.text((col_otk_x, y_text), otk_val, fill=text_otk, font=font_row_bold, anchor="ra")
+        for p_idx, p in enumerate(prods):
+            line_y = start_prod_y + (p_idx * base_line_h)
 
-        # Foiz nishoni (Badge - Ochiq fonda mos ranglar)
-        pct = p['percent']
-        pct_str = f"{pct:.1f}%"
-        if pct >= 100:
-            badge_bg = (209, 250, 229)
-            badge_fg = (6, 95, 70)
-        elif pct >= 80:
-            badge_bg = (220, 252, 231)
-            badge_fg = (22, 101, 52)
-        elif pct >= 50:
-            badge_bg = (254, 243, 199)
-            badge_fg = (146, 64, 14)
+            # Mahsulot nomi va dazmol soni (Chapga qarab)
+            prod_text = p['display_str']
+            # Dazmol qismini ajratib ko'rsatamiz
+            draw.text((x1 + 16, line_y), prod_text, fill=text_color, font=font_cell, anchor="lm")
+
+            # Operatsionka (O'rtada)
+            op_str = str(p['aniqlik'])
+            draw.text((x3 + col_w_op // 2, line_y), op_str, fill=text_color, font=font_cell_bold, anchor="mm")
+
+        # 3-ustun: Davomot (O'rtada)
+        davomat_str = str(r['davomat']) if r['davomat'] > 0 else "—"
+        draw.text((x2 + col_w_davomat // 2, curr_y + row_h // 2), davomat_str, fill=text_color, font=font_cell_bold, anchor="mm")
+
+        # 5-ustun: Patok quvvati (O'rtada)
+        quvvat_val = r['patok_quvvati']
+        if r['is_active'] and quvvat_val > 0:
+            quvvat_str = f"{quvvat_val:.1f}%"
+            draw.text((x4 + col_w_quvvat // 2, curr_y + row_h // 2), quvvat_str, fill=text_green, font=font_cell_bold, anchor="mm")
         else:
-            badge_bg = (255, 228, 230) if p['is_active'] else (241, 245, 249)
-            badge_fg = (159, 18, 57) if p['is_active'] else text_muted
+            draw.text((x4 + col_w_quvvat // 2, curr_y + row_h // 2), "—", fill=text_muted, font=font_cell, anchor="mm")
 
-        badge_w = 70
-        badge_h = 24
-        bx1 = col_pct_x - badge_w
-        by1 = cur_y + 7
-        draw.rounded_rectangle([(bx1, by1), (bx1 + badge_w, by1 + badge_h)], radius=6, fill=badge_bg)
-        draw.text((bx1 + (badge_w // 2), by1 + 4), pct_str, fill=badge_fg, font=font_badge, anchor="mt")
+        curr_y += row_h
 
-        cur_y += row_height
+    # 4. YIG'INDI (ЖАМИ) QATORI
+    draw.rectangle([(x0, curr_y), (x5, curr_y + total_row_h)], fill=total_bg, outline=border_dark, width=2)
+    for x in [x1, x2, x3, x4]:
+        draw.line([(x, curr_y), (x, curr_y + total_row_h)], fill=border_dark, width=1)
 
-    # 4. JAMI / O'RTACHA QATORI (Ochiq aksentli fon)
-    total_y = cur_y
-    draw.rectangle([(padding + 1, total_y), (width - padding - 1, total_y + total_height - 1)], fill=total_bg)
-    draw.line([(padding, total_y), (width - padding, total_y)], fill=header_accent, width=2)
+    # ЖАМИ
+    draw.text((x0 + col_w_patok // 2, curr_y + total_row_h // 2), "ЖАМИ", fill=border_dark, font=font_total, anchor="mm")
 
-    ty_text = total_y + 16
-    draw.text((col_num_x, ty_text), "Σ", fill=header_accent, font=font_total)
-    draw.text((col_patok_x, ty_text), "JAMI / O'RTACHA:", fill=text_dark, font=font_total)
-    draw.text((col_norma_x, ty_text), f"{total_norm:,}".replace(",", " "), fill=text_dark, font=font_total, anchor="ra")
-    draw.text((col_dazmol_x, ty_text), f"{total_dazmol:,} dona".replace(",", " "), fill=text_dazmol, font=font_total, anchor="ra")
-    draw.text((col_otk_x, ty_text), f"{total_controlled:,} dona".replace(",", " "), fill=text_otk, font=font_total, anchor="ra")
+    # Jami Dazmol
+    tot_dazmol_str = f"{total_dazmol:,} дона".replace(",", " ")
+    draw.text((x1 + 16, curr_y + total_row_h // 2), tot_dazmol_str, fill=border_dark, font=font_total, anchor="lm")
 
-    # Umumiy foiz nishoni (Aksent rangli tugma)
-    tot_badge_w = 80
-    tot_badge_h = 28
-    tbx1 = col_pct_x - tot_badge_w
-    tby1 = total_y + 13
-    draw.rounded_rectangle([(tbx1, tby1), (tbx1 + tot_badge_w, tby1 + tot_badge_h)], radius=8, fill=header_accent)
-    draw.text((tbx1 + (tot_badge_w // 2), tby1 + 5), f"{avg_percent:.1f}%", fill=(255, 255, 255), font=_get_font(15, bold=True), anchor="mt")
+    # Jami Davomat va pastida Davomat %
+    draw.text((x2 + col_w_davomat // 2, curr_y + (total_row_h // 2) - 8), str(total_davomat), fill=border_dark, font=font_total, anchor="mm")
+    if davomat_foiz > 0:
+        draw.text((x2 + col_w_davomat // 2, curr_y + (total_row_h // 2) + 12), f"({davomat_foiz:.0f}%)", fill=text_muted, font=font_sub_pct, anchor="mm")
 
-    # 5. FOOTER QISMI (Ochiq mayda matn)
-    foot_y = table_bottom + 14
-    draw.text(
-        (padding + 8, foot_y),
-        "Ushbu hisobot Terry Jar ERP tizimi tomonidan har kuni soat 18:00 da avtomatik tarzda shakllantiriladi.",
-        fill=text_muted,
-        font=font_footer
-    )
-    draw.text(
-        (width - padding - 8, foot_y),
-        "terryjar.uz",
-        fill=text_muted,
-        font=font_footer,
-        anchor="ra"
-    )
+    # Operatsionka jami: bo'sh yoki chiziqcha ("—")
+    draw.text((x3 + col_w_op // 2, curr_y + total_row_h // 2), "—", fill=text_muted, font=font_total, anchor="mm")
+
+    # O'rtacha patok quvvati
+    avg_quvvat_str = f"{avg_quvvat:.1f}%"
+    draw.text((x4 + col_w_quvvat // 2, curr_y + total_row_h // 2), avg_quvvat_str, fill=border_dark, font=font_total, anchor="mm")
 
     buf = io.BytesIO()
-    img.save(buf, format='PNG', optimize=True)
+    img.save(buf, format='PNG', quality=95)
     buf.seek(0)
     return buf
 
 
-def send_single_branch_report(branch: str, target_date: datetime.date = None, chat_id: str = None, bot_token: str = None) -> dict:
+def send_single_branch_report(branch_key: str, target_date: datetime.date = None) -> dict:
     """
-    Muayyan filial (HQ yoki UYCHI) uchun kunlik hisobot rasmini generatsiya qilib,
-    tegishli Telegram guruhiga yuboruvchi funksiya.
+    Belgilangan filial hisobot rasmini generatsiya qilib Telegram guruhga jo'natish:
+    - KOSON (HQ): -1004425170756 (-4425170756)
+    - UYCHI: -1003903019133 (-3903019133)
     """
     if target_date is None:
         target_date = timezone.localdate()
 
-    is_hq = (str(branch).upper() == 'HQ' or 'BOSH' in str(branch).upper())
-    branch_key = 'HQ' if is_hq else 'UYCHI'
-
-    # Bot token
-    token = bot_token or getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or os.getenv('BOT_TOKEN', '') or '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg'
+    is_hq = (str(branch_key).upper() in ['HQ', 'KOSON', 'KOSONSOY', 'BOSH'])
+    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
     if not token:
-        return {'success': False, 'message': "Telegram BOT_TOKEN sozlanmagan!"}
+        return {'success': False, 'message': "TELEGRAM_BOT_TOKEN sozlamalarda topilmadi!"}
 
-    # Chat ID
-    if chat_id:
-        target_chat_id = str(chat_id)
+    if is_hq:
+        target_chat_id = str(getattr(settings, 'TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756') or '-1004425170756')
+        branch_name = "КОСОНСОЙ"
+        b_code = "HQ"
     else:
-        if is_hq:
-            target_chat_id = str(getattr(settings, 'TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756') or os.getenv('TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756'))
-        else:
-            target_chat_id = str(getattr(settings, 'TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133') or os.getenv('TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133'))
+        target_chat_id = str(getattr(settings, 'TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133') or '-1003903019133')
+        branch_name = "УЙЧИ"
+        b_code = "UYCHI"
 
-    if not target_chat_id:
-        return {'success': False, 'message': f"{branch_key} filiali uchun Telegram Chat ID topilmadi!"}
-
-    # Ma'lumotlarni yig'ish va rasm chizish
     try:
-        data = get_branch_patoks_data(branch_key, target_date)
-        img_buffer = generate_branch_report_image(data)
+        report_data = get_branch_daily_report_data(b_code, target_date)
+        img_buf = generate_branch_report_image(report_data)
     except Exception as e:
-        return {'success': False, 'message': f"Rasm hisobotini shakllantirishda xatolik: {str(e)}"}
+        return {'success': False, 'message': f"Hisobot rasmini tayyorlashda xatolik: {str(e)}"}
 
-    # Telegram caption matni
-    b_name = data['branch_name']
-    tot_dazmol = f"{data['total_dazmol']:,}".replace(",", " ")
-    tot_otk = f"{data['total_controlled']:,}".replace(",", " ")
-    tot_norm = f"{data['total_norm']:,}".replace(",", " ")
-    avg_pct = data['avg_percent']
+    tot_dazmol = f"{report_data['total_dazmol']:,}".replace(",", " ")
+    tot_davomat = report_data['total_davomat']
+    avg_quvvat = report_data['avg_quvvat']
+    davomat_foiz = report_data['davomat_foiz']
 
     caption = (
-        f"📊 *TERRY JAR — KUNLIK ISHLAB CHIQARISH HISOBOTI*\n"
-        f"🏢 *Filial:* {b_name}\n"
-        f"📅 *Sana:* {target_date.strftime('%d.%m.%Y')} (18:00 holatiga)\n\n"
-        f"📈 *Filial o'rtacha foizi:* *{avg_pct}%*\n"
-        f"👕 *Dazmoldan chiqqan:* *{tot_dazmol} dona*\n"
-        f"✅ *Kontroldan o'tgan (OTK):* *{tot_otk} dona*\n"
-        f"🎯 *Kunlik reja (Norma):* {tot_norm} dona\n\n"
-        f"📌 _Barcha patoklar bo'yicha batafsil tafsilotlar yuqoridagi rasmda aks etgan._"
+        f"📊 *TERRY JAR — КУНЛИК ИШЛАБ ЧИҚАРИШ ҲИСОБОТИ*\n"
+        f"🏢 *Филиал:* {branch_name}\n"
+        f"📅 *Сана:* {target_date.strftime('%d.%m.%Y')} (18:00 ҳолатига)\n\n"
+        f"👕 *Дазмолдан ўтган:* *{tot_dazmol} дона*\n"
+        f"👥 *Жами давомот:* *{tot_davomat} нафар* ({davomat_foiz:.0f}% таъминланганлик)\n"
+        f"⚡ *Ўртача паток қуввати:* *{avg_quvvat}%*\n\n"
+        f"📌 _Барча патоклар ва маҳсулотлар бўйича батафсил маълумот юқоридаги расмда кўрсатилган._"
     )
 
-    filename = f"Hisobot_{branch_key}_{target_date.strftime('%Y_%m_%d')}.png"
+    filename = f"Hisobot_{b_code}_{target_date.strftime('%Y_%m_%d')}.png"
 
-    # Telegram API orqali rasm yuborish (Superguruh va oddiy guruh ID fallback bilan)
+    # Chat ID formatlash (-100... yoki -...)
     chat_candidates = [target_chat_id]
     if not target_chat_id.startswith("-100") and target_chat_id.startswith("-"):
         chat_candidates.append(f"-100{target_chat_id[1:]}")
@@ -508,9 +493,11 @@ def send_single_branch_report(branch: str, target_date: datetime.date = None, ch
     last_error = ""
 
     for cid in chat_candidates:
-        files = {'photo': (filename, img_buffer.getvalue(), 'image/png')}
+        files = {'photo': (filename, img_buf.getvalue(), 'image/png')}
         payload = {
             'chat_id': cid,
+            'caption': caption,
+            'parse_mode': 'Markdown',
         }
         try:
             with httpx.Client(timeout=45.0) as client:
@@ -519,29 +506,27 @@ def send_single_branch_report(branch: str, target_date: datetime.date = None, ch
                 if res.status_code == 200 and res_data.get('ok'):
                     return {
                         'success': True,
-                        'branch': branch_key,
+                        'branch': b_code,
                         'chat_id': cid,
-                        'message': f"{b_name} hisobot rasmi Telegram guruhga ({cid}) muvaffaqiyatli yuborildi."
+                        'message': f"{branch_name} hisoboti Telegram guruhga ({cid}) muvaffaqiyatli yuborildi."
                     }
                 else:
-                    last_error = res_data.get('description', 'Noma\'lum xatolik')
+                    last_error = res_data.get('description', f"HTTP {res.status_code}")
         except Exception as ex:
             last_error = str(ex)
 
     return {
         'success': False,
-        'branch': branch_key,
+        'branch': b_code,
         'chat_id': target_chat_id,
-        'message': f"Telegramga rasm yuborishda xatolik: {last_error}"
+        'message': f"Telegramga yuborishda xatolik: {last_error}"
     }
 
 
 def send_daily_1800_reports(target_date: datetime.date = None) -> dict:
     """
-    Har kuni soat 18:00 da ikkala filial uchun alohida-alohida hisobot rasmlarini
-    o'zlarining tegishli guruhlariga jo'natish:
-    1. Bosh bino -> TELEGRAM_HQ_REPORT_CHAT_ID (-2111243086)
-    2. Uychi filiali -> TELEGRAM_UYCHI_REPORT_CHAT_ID (-2697507612)
+    Har kuni 18:00 da O'zbekiston vaqti bilan ikkala filial hisobot rasmlarini
+    o'zlarining Telegram guruhlariga yuborish.
     """
     if target_date is None:
         target_date = timezone.localdate()

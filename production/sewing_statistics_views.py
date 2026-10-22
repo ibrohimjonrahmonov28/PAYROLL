@@ -1090,7 +1090,7 @@ def sewing_statistics_daily_view(request):
         sn_workers = screen_data.get('workers', [])
 
         # DailyPatokProgress ga saqlash / muhrlash (Bugun real-time, kecha va undan oldingi kunlar muzlatilgan snapshot)
-        if len(t_list) > 0 or sn_total_inspected > 0 or sn_dazmol_qty > 0 or len(primary_pastals) > 0:
+        if len(t_list) > 0 or sn_total_inspected > 0 or sn_dazmol_qty > 0 or len(sn_primary_pastal_codes) > 0:
             DailyPatokProgress.objects.update_or_create(
                 screen_number=sn,
                 date=selected_date,
@@ -3345,3 +3345,159 @@ def sewing_statistics_otk_view(request):
     return render(request, 'production/sewing_statistics_otk.html', context)
 
 
+
+
+@manager_or_superadmin_required
+def sewing_statistics_daily_report_view(request):
+    """
+    Kunlik Ishlab Chiqarish Hisoboti (18:00 Monitoringi):
+    - Kosonsoy (K1..K13) va Uychi (U1..U21 / U40 gacha) patoklari
+    - 5 ta ustun:
+      1. Паток №
+      2. Маҳсулот & Дазмол (Дазмол / Нархлар шаблони)
+      3. Давомот
+      4. Операционка (Аниқлик)
+      5. Паток қуввати (%)
+    - Telegramga jo'natish (Test) tugmalari (Koson: -4425170756, Uychi: -3903019133)
+    - Rasmni ko'rish / yuklab olish
+    - Oylik Excel hisobotini yuklab olish
+    """
+    from production.daily_image_reports import get_branch_daily_report_data
+
+    date_str = request.GET.get('date', '').strip()
+    active_tab = request.GET.get('tab', 'koson').lower()
+    if active_tab not in ['koson', 'uychi']:
+        active_tab = 'koson'
+
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            selected_date = timezone.localdate()
+    else:
+        selected_date = timezone.localdate()
+
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+    is_today = (selected_date == timezone.localdate())
+
+    koson_data = get_branch_daily_report_data('HQ', selected_date)
+    uychi_data = get_branch_daily_report_data('UYCHI', selected_date)
+
+    current_data = koson_data if active_tab == 'koson' else uychi_data
+
+    context = {
+        'selected_date': selected_date,
+        'selected_date_str': selected_date.isoformat(),
+        'prev_date_str': prev_date.isoformat(),
+        'next_date_str': next_date.isoformat(),
+        'is_today': is_today,
+        'active_tab': active_tab,
+        'koson_data': koson_data,
+        'uychi_data': uychi_data,
+        'current_data': current_data,
+        'current_year': selected_date.year,
+        'current_month': selected_date.month,
+    }
+    return render(request, 'production/sewing_statistics_daily_report.html', context)
+
+
+@manager_or_superadmin_required
+@require_POST
+def api_send_branch_daily_report(request):
+    """
+    Telegramga filial hisobot rasmini jo'natish (Test yoki qo'lda jo'natish):
+    - branch: 'HQ' (Kosonsoy) yoki 'UYCHI' yoki 'ALL'
+    """
+    from production.daily_image_reports import send_single_branch_report, send_daily_1800_reports
+
+    branch = request.POST.get('branch', 'HQ').upper()
+    date_str = request.POST.get('date', '').strip()
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = timezone.localdate()
+    else:
+        target_date = timezone.localdate()
+
+    if branch == 'ALL':
+        res = send_daily_1800_reports(target_date)
+        success = res.get('success', False)
+        msg = f"Ikkala filial hisoboti jo'natildi. Koson: {res['HQ'].get('message')}, Uychi: {res['UYCHI'].get('message')}"
+    else:
+        res = send_single_branch_report(branch, target_date)
+        success = res.get('success', False)
+        msg = res.get('message', '')
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1':
+        return JsonResponse({'success': success, 'message': msg})
+
+    if success:
+        messages.success(request, f"✅ {msg}")
+    else:
+        messages.error(request, f"⚠️ {msg}")
+
+    tab_name = 'koson' if branch in ['HQ', 'KOSON'] else 'uychi'
+    return redirect(f"/sewing-statistics/daily-report/?date={target_date.isoformat()}&tab={tab_name}")
+
+
+@manager_or_superadmin_required
+def sewing_statistics_daily_report_image_preview(request):
+    """
+    Hisobot rasmini brauzerda jonli ko'rish (Preview) yoki yuklab olish (Download):
+    - branch: 'HQ' yoki 'UYCHI'
+    - date: YYYY-MM-DD
+    """
+    from django.http import HttpResponse
+    from production.daily_image_reports import get_branch_daily_report_data, generate_branch_report_image
+
+    branch = request.GET.get('branch', 'HQ').upper()
+    date_str = request.GET.get('date', '').strip()
+    download = request.GET.get('download') == '1'
+
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = timezone.localdate()
+    else:
+        target_date = timezone.localdate()
+
+    b_code = 'HQ' if branch in ['HQ', 'KOSON'] else 'UYCHI'
+    data = get_branch_daily_report_data(b_code, target_date)
+    img_buf = generate_branch_report_image(data)
+
+    resp = HttpResponse(img_buf.getvalue(), content_type='image/png')
+    filename = f"Hisobot_{b_code}_{target_date.isoformat()}.png"
+    disposition = 'attachment' if download else 'inline'
+    resp['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+    return resp
+
+
+@manager_or_superadmin_required
+def export_monthly_daily_report_excel(request):
+    """
+    Tanlangan oy bo'yicha barcha kunlik ishlab chiqarish ko'rsatkichlarini Excel (.xlsx) qilib berish.
+    """
+    from django.http import HttpResponse
+    from production.excel_reports import generate_monthly_patok_production_excel
+
+    try:
+        year = int(request.GET.get('year', timezone.localdate().year))
+        month = int(request.GET.get('month', timezone.localdate().month))
+        if month < 1 or month > 12:
+            month = timezone.localdate().month
+    except (ValueError, TypeError):
+        year = timezone.localdate().year
+        month = timezone.localdate().month
+
+    excel_buf = generate_monthly_patok_production_excel(year, month)
+    filename = f"TerryJar_Oylik_Tikim_Hisoboti_{year}_{month:02d}.xlsx"
+
+    resp = HttpResponse(
+        excel_buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return resp

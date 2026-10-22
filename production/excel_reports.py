@@ -1707,3 +1707,365 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     buffer.seek(0)
     return buffer
 
+
+
+def generate_monthly_patok_production_excel(year: int, month: int) -> io.BytesIO:
+    """
+    Oy bo'yicha (1-kundan oxirgi kungacha) har bir patokning
+    Dazmol, Davomat va Quvvat ko'rsatkichlarini jamlab,
+    rahbariyat tahlil qilib xulosa chiqarishi uchun professional Excel fayl (.xlsx) shakllantiradi.
+    Varaqlar:
+    1. Жами фабрика (Кунлик жамланма)
+    2. Косонсой тумани (К1..К13)
+    3. Уйчи тумани (У1..У21+)
+    """
+    if not HAS_OPENPYXL:
+        raise ImportError("Serverda 'openpyxl' kutubxonasi o'rnatilmagan.")
+
+    from production.models import DailyPatokProgress
+    import calendar
+
+    wb = openpyxl.Workbook()
+
+    # Ranglar va stillar
+    font_title = Font(name='Arial', size=14, bold=True, color='0F172A')
+    font_sub = Font(name='Arial', size=10, italic=True, color='64748B')
+    font_header = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+    font_sub_header = Font(name='Arial', size=10, bold=True, color='0F172A')
+    font_data = Font(name='Arial', size=10, color='0F172A')
+    font_total = Font(name='Arial', size=11, bold=True, color='0F172A')
+
+    header_fill_dark = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
+    header_fill_blue = PatternFill(start_color='0284C7', end_color='0284C7', fill_type='solid')
+    header_fill_purple = PatternFill(start_color='7C3AED', end_color='7C3AED', fill_type='solid')
+    sub_header_fill = PatternFill(start_color='E2E8F0', end_color='E2E8F0', fill_type='solid')
+    total_fill = PatternFill(start_color='BAE6FD', end_color='BAE6FD', fill_type='solid')
+    row_alt_fill = PatternFill(start_color='F8FAFC', end_color='F8FAFC', fill_type='solid')
+
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_left = Alignment(horizontal='left', vertical='center')
+    align_right = Alignment(horizontal='right', vertical='center')
+
+    thin_border_side = Side(style='thin', color='CBD5E1')
+    cell_border = Border(left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thin_border_side)
+    thick_bottom_side = Side(style='double', color='0F172A')
+    total_border = Border(top=thin_border_side, bottom=thick_bottom_side, left=thin_border_side, right=thin_border_side)
+
+    _, last_day = calendar.monthrange(year, month)
+    days = list(range(1, last_day + 1))
+    month_name_uz = ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktyabr", "Noyabr", "Dekabr"][month]
+
+    # Bazadan shu oyning barcha DailyPatokProgress yozuvlarini olamiz
+    start_date = datetime.date(year, month, 1)
+    end_date = datetime.date(year, month, last_day)
+    progress_qs = list(DailyPatokProgress.objects.filter(date__range=(start_date, end_date)))
+
+    # progress_map[(screen_number, day)] = progress_obj
+    prog_map = {(p.screen_number, p.date.day): p for p in progress_qs}
+
+    # -------------------------------------------------------------
+    # 1-VARAQ: ЖАМИ ФАБРИКА (Кунлик жамланма)
+    # -------------------------------------------------------------
+    ws1 = wb.active
+    ws1.title = "Жами фабрика"
+
+    ws1.merge_cells('A1:J1')
+    ws1['A1'] = f"TERRY JAR — ФАБРИКА КУНЛИК ИШЛАБ ЧИҚАРИШ ҲИСОБОТИ ({month_name_uz} {year})"
+    ws1['A1'].font = font_title
+    ws1['A1'].alignment = align_center
+
+    ws1.merge_cells('A2:J2')
+    ws1['A2'] = f"Шахсий бошқарув мониторинги: Косонсой ва Уйчи филиалларининг кунбай кўрсаткичлари"
+    ws1['A2'].font = font_sub
+    ws1['A2'].alignment = align_center
+
+    # Sarlavhalar (Header row 4 & 5)
+    ws1.merge_cells('A4:A5')
+    ws1['A4'] = "Сана"
+    ws1['A4'].fill = header_fill_dark
+    ws1['A4'].font = font_header
+    ws1['A4'].alignment = align_center
+
+    ws1.merge_cells('B4:D4')
+    ws1['B4'] = "КОСОНСОЙ ФИЛИАЛИ"
+    ws1['B4'].fill = header_fill_blue
+    ws1['B4'].font = font_header
+    ws1['B4'].alignment = align_center
+
+    ws1.merge_cells('E4:G4')
+    ws1['E4'] = "УЙЧИ ФИЛИАЛИ"
+    ws1['E4'].fill = header_fill_purple
+    ws1['E4'].font = font_header
+    ws1['E4'].alignment = align_center
+
+    ws1.merge_cells('H4:J4')
+    ws1['H4'] = "ЖАМИ ФАБРИКА"
+    ws1['H4'].fill = header_fill_dark
+    ws1['H4'].font = font_header
+    ws1['H4'].alignment = align_center
+
+    sub_cols = ["Дазмол", "Давомот", "Қувват %", "Дазмол", "Давомот", "Қувват %", "Дазмол", "Давомот", "Қувват %"]
+    for idx, c_name in enumerate(sub_cols, start=2):
+        c = ws1.cell(row=5, column=idx, value=c_name)
+        c.fill = sub_header_fill
+        c.font = font_sub_header
+        c.alignment = align_center
+        c.border = cell_border
+
+    ws1.cell(row=4, column=1).border = cell_border
+    ws1.cell(row=5, column=1).border = cell_border
+
+    tot_k_dazmol = 0
+    tot_k_davomat_sum = 0
+    tot_k_quvvat_list = []
+
+    tot_u_dazmol = 0
+    tot_u_davomat_sum = 0
+    tot_u_quvvat_list = []
+
+    row_idx = 6
+    for d_num in days:
+        cur_d = datetime.date(year, month, d_num)
+        # Kosonsoy (1..13)
+        k_items = [prog_map.get((sn, d_num)) for sn in range(1, 14) if (sn, d_num) in prog_map]
+        k_dazmol = sum(p.dazmol_qty for p in k_items)
+        k_davomat = sum(p.davomat for p in k_items)
+        k_quvvats = [float(p.patok_kpi) for p in k_items if p.patok_kpi > 0]
+        k_avg_q = round(sum(k_quvvats) / len(k_quvvats), 1) if k_quvvats else 0.0
+
+        # Uychi (14..40)
+        u_items = [prog_map.get((sn, d_num)) for sn in range(14, 41) if (sn, d_num) in prog_map]
+        u_dazmol = sum(p.dazmol_qty for p in u_items)
+        u_davomat = sum(p.davomat for p in u_items)
+        u_quvvats = [float(p.patok_kpi) for p in u_items if p.patok_kpi > 0]
+        u_avg_q = round(sum(u_quvvats) / len(u_quvvats), 1) if u_quvvats else 0.0
+
+        # Jami
+        j_dazmol = k_dazmol + u_dazmol
+        j_davomat = k_davomat + u_davomat
+        all_quvvats = k_quvvats + u_quvvats
+        j_avg_q = round(sum(all_quvvats) / len(all_quvvats), 1) if all_quvvats else 0.0
+
+        tot_k_dazmol += k_dazmol
+        tot_k_davomat_sum += k_davomat
+        if k_avg_q > 0:
+            tot_k_quvvat_list.append(k_avg_q)
+
+        tot_u_dazmol += u_dazmol
+        tot_u_davomat_sum += u_davomat
+        if u_avg_q > 0:
+            tot_u_quvvat_list.append(u_avg_q)
+
+        row_fill = row_alt_fill if (d_num % 2 == 0) else None
+
+        row_vals = [
+            f"{d_num:02d}.{month:02d}.{year}",
+            k_dazmol, k_davomat, f"{k_avg_q:.1f}%" if k_avg_q > 0 else "—",
+            u_dazmol, u_davomat, f"{u_avg_q:.1f}%" if u_avg_q > 0 else "—",
+            j_dazmol, j_davomat, f"{j_avg_q:.1f}%" if j_avg_q > 0 else "—"
+        ]
+
+        for col_idx, val in enumerate(row_vals, start=1):
+            cell = ws1.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = font_data
+            cell.alignment = align_center if col_idx != 1 else align_left
+            cell.border = cell_border
+            if row_fill:
+                cell.fill = row_fill
+            if col_idx in [2, 5, 8] and isinstance(val, (int, float)):
+                cell.number_format = '#,##0'
+
+        row_idx += 1
+
+    # JAMI qatori
+    ws1.cell(row=row_idx, column=1, value="ЖАМИ ОЙЛИК").alignment = align_left
+    ws1.cell(row=row_idx, column=2, value=tot_k_dazmol).number_format = '#,##0'
+    avg_k_davomat = round(tot_k_davomat_sum / len(days)) if days else 0
+    ws1.cell(row=row_idx, column=3, value=avg_k_davomat)
+    avg_k_q = round(sum(tot_k_quvvat_list) / len(tot_k_quvvat_list), 1) if tot_k_quvvat_list else 0.0
+    ws1.cell(row=row_idx, column=4, value=f"{avg_k_q:.1f}%")
+
+    ws1.cell(row=row_idx, column=5, value=tot_u_dazmol).number_format = '#,##0'
+    avg_u_davomat = round(tot_u_davomat_sum / len(days)) if days else 0
+    ws1.cell(row=row_idx, column=6, value=avg_u_davomat)
+    avg_u_q = round(sum(tot_u_quvvat_list) / len(tot_u_quvvat_list), 1) if tot_u_quvvat_list else 0.0
+    ws1.cell(row=row_idx, column=7, value=f"{avg_u_q:.1f}%")
+
+    tot_j_dazmol = tot_k_dazmol + tot_u_dazmol
+    ws1.cell(row=row_idx, column=8, value=tot_j_dazmol).number_format = '#,##0'
+    ws1.cell(row=row_idx, column=9, value=round(avg_k_davomat + avg_u_davomat))
+    all_month_q = tot_k_quvvat_list + tot_u_quvvat_list
+    avg_j_q = round(sum(all_month_q) / len(all_month_q), 1) if all_month_q else 0.0
+    ws1.cell(row=row_idx, column=10, value=f"{avg_j_q:.1f}%")
+
+    for col_idx in range(1, 11):
+        c = ws1.cell(row=row_idx, column=col_idx)
+        c.font = font_total
+        c.fill = total_fill
+        c.border = total_border
+        if col_idx not in [1, 4, 7, 10]:
+            c.alignment = align_center
+        elif col_idx in [4, 7, 10]:
+            c.alignment = align_center
+
+    col_widths1 = [14, 13, 11, 12, 13, 11, 12, 14, 12, 13]
+    for idx, w in enumerate(col_widths1, start=1):
+        ws1.column_dimensions[get_column_letter(idx)].width = w
+
+    # -------------------------------------------------------------
+    # 2-VARAQ: КОСОНСОЙ ТУМАНИ (Патоклар кесимида)
+    # -------------------------------------------------------------
+    ws2 = wb.create_sheet(title="Косонсой тумани")
+    ws2.merge_cells('A1:P1')
+    ws2['A1'] = f"КОСОНСОЙ ФИЛИАЛИ — ПАТОКЛАР ОЙЛИК ИШЛАБ ЧИҚАРИШ ({month_name_uz} {year})"
+    ws2['A1'].font = font_title
+    ws2['A1'].alignment = align_center
+
+    # Sarlavhalar
+    headers_branch = ["Паток №"] + [f"{d_num}-кун\nДазмол" for d_num in days] + ["Жами Дазмол", "Ўртача Давомот", "Ўртача Қувват"]
+    ws2.row_dimensions[3].height = 28
+    for col_idx, h_text in enumerate(headers_branch, start=1):
+        c = ws2.cell(row=3, column=col_idx, value=h_text)
+        c.fill = header_fill_blue if col_idx == 1 or col_idx > len(days) + 1 else sub_header_fill
+        c.font = font_header if (col_idx == 1 or col_idx > len(days) + 1) else font_sub_header
+        c.alignment = align_center
+        c.border = cell_border
+
+    b_row = 4
+    for sn in range(1, 14):
+        patok_label = f"{sn}-паток"
+        p_dazmols = []
+        p_davomats = []
+        p_quvvats = []
+
+        row_cells = [patok_label]
+        for d_num in days:
+            p_obj = prog_map.get((sn, d_num))
+            d_val = p_obj.dazmol_qty if p_obj else 0
+            p_dazmols.append(d_val)
+            if p_obj:
+                if p_obj.davomat > 0:
+                    p_davomats.append(p_obj.davomat)
+                if p_obj.patok_kpi > 0:
+                    p_quvvats.append(float(p_obj.patok_kpi))
+            row_cells.append(d_val if d_val > 0 else 0)
+
+        tot_p_d = sum(p_dazmols)
+        avg_p_dav = round(sum(p_davomats) / len(p_davomats), 1) if p_davomats else 0.0
+        avg_p_q = round(sum(p_quvvats) / len(p_quvvats), 1) if p_quvvats else 0.0
+
+        row_cells.extend([tot_p_d, avg_p_dav, f"{avg_p_q:.1f}%"])
+
+        for col_idx, v in enumerate(row_cells, start=1):
+            c = ws2.cell(row=b_row, column=col_idx, value=v)
+            c.font = font_data
+            c.alignment = align_center if col_idx != 1 else align_left
+            c.border = cell_border
+            if col_idx > 1 and col_idx <= len(days) + 2 and isinstance(v, (int, float)):
+                c.number_format = '#,##0'
+
+        b_row += 1
+
+    # Branch total row
+    tot_cells = ["ЖАМИ:"]
+    for d_num in days:
+        day_sum = sum(prog_map.get((sn, d_num)).dazmol_qty for sn in range(1, 14) if (sn, d_num) in prog_map)
+        tot_cells.append(day_sum)
+
+    tot_cells.extend([tot_k_dazmol, avg_k_davomat, f"{avg_k_q:.1f}%"])
+    for col_idx, v in enumerate(tot_cells, start=1):
+        c = ws2.cell(row=b_row, column=col_idx, value=v)
+        c.font = font_total
+        c.fill = total_fill
+        c.border = total_border
+        c.alignment = align_center if col_idx != 1 else align_left
+        if isinstance(v, (int, float)):
+            c.number_format = '#,##0'
+
+    ws2.column_dimensions['A'].width = 12
+    for d_num in days:
+        ws2.column_dimensions[get_column_letter(d_num + 1)].width = 9
+    ws2.column_dimensions[get_column_letter(len(days) + 2)].width = 14
+    ws2.column_dimensions[get_column_letter(len(days) + 3)].width = 15
+    ws2.column_dimensions[get_column_letter(len(days) + 4)].width = 14
+
+    # -------------------------------------------------------------
+    # 3-VARAQ: УЙЧИ ТУМАНИ (Патоклар кесимида)
+    # -------------------------------------------------------------
+    ws3 = wb.create_sheet(title="Уйчи тумани")
+    ws3.merge_cells('A1:P1')
+    ws3['A1'] = f"УЙЧИ ФИЛИАЛИ — ПАТОКЛАР ОЙЛИК ИШЛАБ ЧИҚАРИШ ({month_name_uz} {year})"
+    ws3['A1'].font = font_title
+    ws3['A1'].alignment = align_center
+
+    ws3.row_dimensions[3].height = 28
+    for col_idx, h_text in enumerate(headers_branch, start=1):
+        c = ws3.cell(row=3, column=col_idx, value=h_text)
+        c.fill = header_fill_purple if col_idx == 1 or col_idx > len(days) + 1 else sub_header_fill
+        c.font = font_header if (col_idx == 1 or col_idx > len(days) + 1) else font_sub_header
+        c.alignment = align_center
+        c.border = cell_border
+
+    u_row = 4
+    for sn in range(14, 35):  # U1..U21
+        p_num = sn - 13
+        patok_label = f"{p_num}-паток"
+        p_dazmols = []
+        p_davomats = []
+        p_quvvats = []
+
+        row_cells = [patok_label]
+        for d_num in days:
+            p_obj = prog_map.get((sn, d_num))
+            d_val = p_obj.dazmol_qty if p_obj else 0
+            p_dazmols.append(d_val)
+            if p_obj:
+                if p_obj.davomat > 0:
+                    p_davomats.append(p_obj.davomat)
+                if p_obj.patok_kpi > 0:
+                    p_quvvats.append(float(p_obj.patok_kpi))
+            row_cells.append(d_val if d_val > 0 else 0)
+
+        tot_p_d = sum(p_dazmols)
+        avg_p_dav = round(sum(p_davomats) / len(p_davomats), 1) if p_davomats else 0.0
+        avg_p_q = round(sum(p_quvvats) / len(p_quvvats), 1) if p_quvvats else 0.0
+
+        row_cells.extend([tot_p_d, avg_p_dav, f"{avg_p_q:.1f}%"])
+
+        for col_idx, v in enumerate(row_cells, start=1):
+            c = ws3.cell(row=u_row, column=col_idx, value=v)
+            c.font = font_data
+            c.alignment = align_center if col_idx != 1 else align_left
+            c.border = cell_border
+            if col_idx > 1 and col_idx <= len(days) + 2 and isinstance(v, (int, float)):
+                c.number_format = '#,##0'
+
+        u_row += 1
+
+    # Uychi total row
+    tot_cells_u = ["ЖАМИ:"]
+    for d_num in days:
+        day_sum = sum(prog_map.get((sn, d_num)).dazmol_qty for sn in range(14, 41) if (sn, d_num) in prog_map)
+        tot_cells_u.append(day_sum)
+
+    tot_cells_u.extend([tot_u_dazmol, avg_u_davomat, f"{avg_u_q:.1f}%"])
+    for col_idx, v in enumerate(tot_cells_u, start=1):
+        c = ws3.cell(row=u_row, column=col_idx, value=v)
+        c.font = font_total
+        c.fill = total_fill
+        c.border = total_border
+        c.alignment = align_center if col_idx != 1 else align_left
+        if isinstance(v, (int, float)):
+            c.number_format = '#,##0'
+
+    ws3.column_dimensions['A'].width = 12
+    for d_num in days:
+        ws3.column_dimensions[get_column_letter(d_num + 1)].width = 9
+    ws3.column_dimensions[get_column_letter(len(days) + 2)].width = 14
+    ws3.column_dimensions[get_column_letter(len(days) + 3)].width = 15
+    ws3.column_dimensions[get_column_letter(len(days) + 4)].width = 14
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf

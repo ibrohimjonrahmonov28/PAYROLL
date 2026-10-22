@@ -40,6 +40,10 @@ urlpatterns = [
     # Tikim Jarayoni Statistikasi (Umumiy Zakaz, Modellar va Razmerlar bo'yicha)
     path('sewing-statistics/', sewing_statistics_views.sewing_statistics_orders_view, name='sewing_statistics_orders'),
     path('sewing-statistics/daily/', sewing_statistics_views.sewing_statistics_daily_view, name='sewing_statistics_daily'),
+    path('sewing-statistics/daily-report/', sewing_statistics_views.sewing_statistics_daily_report_view, name='sewing_statistics_daily_report'),
+    path('sewing-statistics/daily-report/send-telegram/', sewing_statistics_views.api_send_branch_daily_report, name='api_send_branch_daily_report'),
+    path('sewing-statistics/daily-report/image-preview/', sewing_statistics_views.sewing_statistics_daily_report_image_preview, name='sewing_statistics_daily_report_image_preview'),
+    path('sewing-statistics/daily-report/export-monthly/', sewing_statistics_views.export_monthly_daily_report_excel, name='export_monthly_daily_report_excel'),
     path('sewing-statistics/otk/', sewing_statistics_views.sewing_statistics_otk_view, name='sewing_statistics_otk'),
     path('sewing-statistics/inspectors/', sewing_statistics_views.sewing_statistics_otk_view, name='sewing_statistics_inspectors'),
     path('sewing-statistics/api/send-telegram-daily-report/', sewing_statistics_views.api_send_telegram_daily_report_view, name='api_send_telegram_daily_report'),
