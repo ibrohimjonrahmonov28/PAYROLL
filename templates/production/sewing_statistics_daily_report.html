@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kunlik Ishlab Chiqarish Hisoboti (18:00) — Terry Jar{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Navigation & Title Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{% url 'production:sewing_statistics_orders' %}" class="hover:text-cyan-400 transition">
+                    Tikim Statistikasi
+                </a>
+                <span>/</span>
+                <span class="text-slate-200 font-semibold">Kunlik Hisobot (18:00)</span>
+            </div>
+            <h1 class="text-xl font-black text-white flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white text-base shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </span>
+                <span>Kunlik Ishlab Chiqarish Hisoboti</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono font-bold">
+                    18:00 Monitoringi
+                </span>
+            </h1>
+        </div>
+
+        <!-- Date Navigation & Quick Actions -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- Date Navigator -->
+            <form method="GET" class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                <input type="hidden" name="tab" value="{{ active_tab }}">
+                <a href="?date={{ prev_date_str }}&tab={{ active_tab }}"
+                    class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                    title="Oldingi kun">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </a>
+
+                <input type="date" name="date" value="{{ selected_date_str }}" onchange="this.form.submit()"
+                    class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
+
+                <a href="?date={{ next_date_str }}&tab={{ active_tab }}"
+                    class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                    title="Keyingi kun">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </a>
+
+                {% if not is_today %}
+                <a href="?tab={{ active_tab }}"
+                    class="px-2.5 py-1 text-[11px] font-bold bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/30 rounded-lg transition">
+                    Bugun
+                </a>
+                {% endif %}
+            </form>
+
+            <!-- Image Preview Button -->
+            <button type="button" onclick="openImageModal()"
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="fa-solid fa-image text-cyan-400"></i>
+                <span>Rasmni Ko'rish</span>
+            </button>
+
+            <!-- Download Image Button -->
+            <a href="{% url 'production:sewing_statistics_daily_report_image_preview' %}?branch={% if active_tab == 'koson' %}HQ{% else %}UYCHI{% endif %}&date={{ selected_date_str }}&download=1"
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2"
+                title="PNG rasmni kompyuterga yuklab olish">
+                <i class="fa-solid fa-download text-emerald-400"></i>
+                <span>Yuklab Olish (PNG)</span>
+            </a>
+
+            <!-- Monthly Excel Export Modal Trigger -->
+            <button type="button" onclick="openMonthlyModal()"
+                class="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Oylik Excel (.xlsx)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Branch Tabs & Telegram Send Actions -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- Tabs: Kosonsoy vs Uychi -->
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl">
+            <a href="?date={{ selected_date_str }}&tab=koson"
+                class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active_tab == 'koson' %}bg-cyan-600 text-white shadow-lg shadow-cyan-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                <i class="fa-solid fa-city"></i>
+                <span>Косонсой тумани (1..13-паток)</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono {% if active_tab == 'koson' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">
+                    {{ koson_data.total_dazmol }} dona
+                </span>
+            </a>
+
+            <a href="?date={{ selected_date_str }}&tab=uychi"
+                class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active_tab == 'uychi' %}bg-purple-600 text-white shadow-lg shadow-purple-600/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                <i class="fa-solid fa-building-flag"></i>
+                <span>Уйчи тумани (1..21-паток)</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono {% if active_tab == 'uychi' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %}">
+                    {{ uychi_data.total_dazmol }} dona
+                </span>
+            </a>
+        </div>
+
+        <!-- Telegram Send Button (Specific for active branch) -->
+        <div class="flex items-center gap-2">
+            {% if active_tab == 'koson' %}
+            <form method="POST" action="{% url 'production:api_send_branch_daily_report' %}"
+                onsubmit="return confirm('Haqiqatan ham Kosonsoy hisobot rasmini Telegram guruhga (-4425170756) yubormoqchimisiz?');">
+                {% csrf_token %}
+                <input type="hidden" name="branch" value="HQ">
+                <input type="hidden" name="date" value="{{ selected_date_str }}">
+                <button type="submit"
+                    class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-600/20 transition flex items-center gap-2">
+                    <i class="fa-brands fa-telegram text-base"></i>
+                    <span>Koson guruhiga jo'natish (-4425170756)</span>
+                </button>
+            </form>
+            {% else %}
+            <form method="POST" action="{% url 'production:api_send_branch_daily_report' %}"
+                onsubmit="return confirm('Haqiqatan ham Uychi hisobot rasmini Telegram guruhga (-3903019133) yubormoqchimisiz?');">
+                {% csrf_token %}
+                <input type="hidden" name="branch" value="UYCHI">
+                <input type="hidden" name="date" value="{{ selected_date_str }}">
+                <button type="submit"
+                    class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/20 transition flex items-center gap-2">
+                    <i class="fa-brands fa-telegram text-base"></i>
+                    <span>Uychi guruhiga jo'natish (-3903019133)</span>
+                </button>
+            </form>
+            {% endif %}
+
+            <form method="POST" action="{% url 'production:api_send_branch_daily_report' %}"
+                onsubmit="return confirm('Ikkala filial hisobot rasmini bir vaqtda tegishli Telegram guruhlariga yuborasizmi?');">
+                {% csrf_token %}
+                <input type="hidden" name="branch" value="ALL">
+                <input type="hidden" name="date" value="{{ selected_date_str }}">
+                <button type="submit"
+                    class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-2"
+                    title="Koson va Uychi guruhlariga bir vaqtda yuborish">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <span>Ikkala guruhga jo'natish</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- 1. Dazmoldan o'tgan jami -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <i class="fa-solid fa-shirt text-cyan-400 mr-1"></i> Дазмолдан ўтган
+            </span>
+            <div class="flex items-baseline gap-2 mt-2">
+                <span class="text-3xl font-black text-cyan-400 font-mono">
+                    {{ current_data.total_dazmol|default:0 }}
+                </span>
+                <span class="text-xs text-slate-400 font-semibold">дона</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
+                {{ current_data.branch_title }} бўйича кунлик тайёр маҳсулот
+            </div>
+        </div>
+
+        <!-- 2. Jami Davomot -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <i class="fa-solid fa-users text-purple-400 mr-1"></i> Давомот
+            </span>
+            <div class="flex items-baseline gap-2 mt-2">
+                <span class="text-3xl font-black text-white font-mono">
+                    {{ current_data.total_davomat|default:0 }}
+                </span>
+                <span class="text-xs text-slate-400 font-semibold">нафар</span>
+            </div>
+            <div class="mt-2 text-[11px] text-emerald-400 font-bold border-t border-slate-800/80 pt-1.5">
+                {% if current_data.davomat_foiz > 0 %}{{ current_data.davomat_foiz }}% таъминланганлик{% else %}—{% endif %}
+            </div>
+        </div>
+
+        <!-- 3. O'rtacha Patok Quvvati -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Ўртача паток қуввати
+            </span>
+            <div class="flex items-baseline gap-2 mt-2">
+                <span class="text-3xl font-black text-emerald-400 font-mono">
+                    {{ current_data.avg_quvvat|default:"0.0" }}%
+                </span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
+                Барча фаол патоклар бўйича ўртача меъёр
+            </div>
+        </div>
+
+        <!-- 4. Faol Patoklar Soni -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <i class="fa-solid fa-layer-group text-blue-400 mr-1"></i> Патоклар сони
+            </span>
+            <div class="flex items-baseline gap-2 mt-2">
+                <span class="text-3xl font-black text-blue-300 font-mono">
+                    {{ current_data.active_patoks_count }} / {{ current_data.total_patoks_count }}
+                </span>
+                <span class="text-xs text-slate-400 font-semibold">фаол</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
+                Умумий патоклардан фаоллари
+            </div>
+        </div>
+    </div>
+
+    <!-- 5-COLUMN MAIN REPORT TABLE -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-cyan-400"></i>
+                    {{ current_data.branch_title }} — Ишлаб чиқариш жадвали
+                </span>
+                <span class="text-xs text-slate-500">
+                    ({{ selected_date|date:"d.m.Y" }} ҳолатига)
+                </span>
+            </div>
+            <span class="text-xs text-slate-400 font-mono font-bold">
+                18:00 Натижалари
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950 font-bold">
+                        <th class="py-3 px-4 w-28 text-center">Паток №</th>
+                        <th class="py-3 px-4">Маҳсулот & Дазмол (Дазмол / Нархлар шаблони)</th>
+                        <th class="py-3 px-4 w-28 text-center">Давомот</th>
+                        <th class="py-3 px-4 w-32 text-center">Операционка</th>
+                        <th class="py-3 px-4 w-36 text-center">Паток қуввати</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 font-mono">
+                    {% for r in current_data.rows %}
+                    <tr class="hover:bg-slate-800/40 transition {% if not r.is_active %}opacity-50{% endif %}">
+                        <!-- 1. Patok nomi -->
+                        <td class="py-3.5 px-4 text-center font-bold text-white text-sm">
+                            {{ r.patok_title }}
+                        </td>
+
+                        <!-- 2. Mahsulot va Dazmol (bir nechta bo'lishi mumkin) -->
+                        <td class="py-3.5 px-4 font-sans">
+                            <div class="space-y-1">
+                                {% for p in r.products %}
+                                <div class="flex items-center gap-2 text-xs">
+                                    <span class="font-mono font-black {% if p.dazmol_qty > 0 %}text-cyan-400{% else %}text-slate-500{% endif %} min-w-[40px]">
+                                        {{ p.dazmol_qty }} ta
+                                    </span>
+                                    <span class="text-slate-600">/</span>
+                                    <span class="font-semibold text-slate-200">
+                                        {{ p.shablon_name }}
+                                    </span>
+                                </div>
+                                {% empty %}
+                                <span class="text-slate-500 text-xs">0 / —</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <!-- 3. Davomot -->
+                        <td class="py-3.5 px-4 text-center font-bold text-sm text-slate-200">
+                            {% if r.davomat > 0 %}{{ r.davomat }}{% else %}<span class="text-slate-600">—</span>{% endif %}
+                        </td>
+
+                        <!-- 4. Operatsionka (Aniqlik) -->
+                        <td class="py-3.5 px-4 text-center font-bold text-xs text-amber-300">
+                            <div class="space-y-1">
+                                {% for p in r.products %}
+                                <div>{{ p.aniqlik }}</div>
+                                {% empty %}
+                                <span class="text-slate-600">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <!-- 5. Patok quvvati -->
+                        <td class="py-3.5 px-4 text-center font-bold text-sm">
+                            {% if r.is_active and r.patok_quvvati > 0 %}
+                            <span class="text-emerald-400">{{ r.patok_quvvati|floatformat:1 }}%</span>
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-12 text-center text-slate-500">
+                            Ushbu sana bo'yicha patoklar ma'lumotlari topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+                <!-- JAMI FOOTER ROW -->
+                <tfoot>
+                    <tr class="bg-cyan-950/40 border-t-2 border-cyan-500/50 font-mono font-black text-sm">
+                        <td class="py-4 px-4 text-center text-white font-sans uppercase tracking-wider">
+                            ЖАМИ
+                        </td>
+                        <td class="py-4 px-4 text-cyan-300 text-base font-sans">
+                            {{ current_data.total_dazmol|default:0 }} дона
+                        </td>
+                        <td class="py-4 px-4 text-center text-white text-base">
+                            <div>{{ current_data.total_davomat|default:0 }}</div>
+                            {% if current_data.davomat_foiz > 0 %}
+                            <div class="text-[11px] text-slate-400 font-normal">({{ current_data.davomat_foiz|floatformat:0 }}%)</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-4 text-center text-slate-500">
+                            —
+                        </td>
+                        <td class="py-4 px-4 text-center text-emerald-400 text-base">
+                            {{ current_data.avg_quvvat|default:"0.0" }}%
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL: IMAGE PREVIEW -->
+<div id="imagePreviewModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-image text-cyan-400"></i>
+                <span>{{ current_data.branch_title }} — 18:00 Hisobot Rasmi</span>
+                <span class="text-xs text-slate-400">({{ selected_date|date:"d.m.Y" }})</span>
+            </h3>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'production:sewing_statistics_daily_report_image_preview' %}?branch={% if active_tab == 'koson' %}HQ{% else %}UYCHI{% endif %}&date={{ selected_date_str }}&download=1"
+                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> Yuklab Olish
+                </a>
+                <button type="button" onclick="closeImageModal()" class="text-slate-400 hover:text-white p-1.5">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-4 overflow-auto flex items-center justify-center bg-slate-950">
+            <img id="reportImagePreview"
+                src="{% url 'production:sewing_statistics_daily_report_image_preview' %}?branch={% if active_tab == 'koson' %}HQ{% else %}UYCHI{% endif %}&date={{ selected_date_str }}"
+                alt="Hisobot rasmi"
+                class="rounded-xl shadow-lg border border-slate-800 max-w-full h-auto">
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: MONTHLY EXCEL EXPORT -->
+<div id="monthlyModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                <span>Oylik Excel Hisobotini Yuklab Olish</span>
+            </h3>
+            <button type="button" onclick="closeMonthlyModal()" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form method="GET" action="{% url 'production:export_monthly_daily_report_excel' %}" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Yilni tanlang</label>
+                <input type="number" name="year" value="{{ current_year }}" min="2024" max="2035"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Oyni tanlang</label>
+                <select name="month" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                    <option value="1" {% if current_month == 1 %}selected{% endif %}>Yanvar</option>
+                    <option value="2" {% if current_month == 2 %}selected{% endif %}>Fevral</option>
+                    <option value="3" {% if current_month == 3 %}selected{% endif %}>Mart</option>
+                    <option value="4" {% if current_month == 4 %}selected{% endif %}>Aprel</option>
+                    <option value="5" {% if current_month == 5 %}selected{% endif %}>May</option>
+                    <option value="6" {% if current_month == 6 %}selected{% endif %}>Iyun</option>
+                    <option value="7" {% if current_month == 7 %}selected{% endif %}>Iyul</option>
+                    <option value="8" {% if current_month == 8 %}selected{% endif %}>Avgust</option>
+                    <option value="9" {% if current_month == 9 %}selected{% endif %}>Sentabr</option>
+                    <option value="10" {% if current_month == 10 %}selected{% endif %}>Oktyabr</option>
+                    <option value="11" {% if current_month == 11 %}selected{% endif %}>Noyabr</option>
+                    <option value="12" {% if current_month == 12 %}selected{% endif %}>Dekabr</option>
+                </select>
+            </div>
+            <p class="text-[11px] text-slate-400">
+                Fayl ichida 3 ta varaq bo'ladi:
+                <br>• 1-varaq: <strong>Жами фабрика</strong> (kunlik jamlanma)
+                <br>• 2-varaq: <strong>Косонсой тумани</strong> (patoklar kesimida)
+                <br>• 3-varaq: <strong>Уйчи тумани</strong> (patoklar kesimida)
+            </p>
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="closeMonthlyModal()"
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-emerald-600/30">
+                    <i class="fa-solid fa-download"></i> Yuklab Olish (.xlsx)
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openImageModal() {
+        document.getElementById('imagePreviewModal').classList.remove('hidden');
+    }
+    function closeImageModal() {
+        document.getElementById('imagePreviewModal').classList.add('hidden');
+    }
+    function openMonthlyModal() {
+        document.getElementById('monthlyModal').classList.remove('hidden');
+    }
+    function closeMonthlyModal() {
+        document.getElementById('monthlyModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

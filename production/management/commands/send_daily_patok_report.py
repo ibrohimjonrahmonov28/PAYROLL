@@ -5,7 +5,7 @@ from django.utils import timezone
 from production.daily_image_reports import (
     send_single_branch_report,
     send_daily_1800_reports,
-    get_branch_patoks_data,
+    get_branch_daily_report_data,
     generate_branch_report_image
 )
 
@@ -58,7 +58,7 @@ class Command(BaseCommand):
         if save_file:
             target_branch = 'HQ' if branch in ['HQ', 'ALL'] else 'UYCHI'
             self.stdout.write(f"Rasm faylga saqlanmoqda: {save_file} (Filial: {target_branch})...")
-            data = get_branch_patoks_data(target_branch, target_date)
+            data = get_branch_daily_report_data(target_branch, target_date)
             img_buf = generate_branch_report_image(data)
             with open(save_file, 'wb') as f:
                 f.write(img_buf.getvalue())

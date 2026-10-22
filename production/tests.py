@@ -4464,6 +4464,17 @@ class SewingStatisticsOtkViewTest(TestCase):
         self.assertEqual(u1_daily['daily_second_sort_qty'], 0)
         self.assertEqual(u1_daily['daily_repair_qty'], 2)
 
+    def test_sewing_statistics_daily_report_renders(self):
+        self.client.force_login(self.superadmin)
+        res_koson = self.client.get('/sewing-statistics/daily-report/?tab=koson')
+        self.assertEqual(res_koson.status_code, 200)
+        self.assertIn('koson_data', res_koson.context)
+
+        res_uychi = self.client.get('/sewing-statistics/daily-report/?tab=uychi')
+        self.assertEqual(res_uychi.status_code, 200)
+        self.assertIn('uychi_data', res_uychi.context)
+
+
 
 
 

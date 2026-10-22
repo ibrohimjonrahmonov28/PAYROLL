@@ -85,6 +85,12 @@
                 <span>Kunlik Patoklar (Tikim)</span>
             </a>
 
+            <a href="{% url 'production:sewing_statistics_daily_report' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name == 'sewing_statistics_daily_report' %}bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-file-invoice w-5 text-center text-cyan-400"></i>
+                <span>Kunlik Hisobot (18:00)</span>
+            </a>
+
             <a href="{% url 'production:sewing_statistics_orders' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.url_name in 'sewing_statistics_orders,sewing_statistics_order_models,sewing_statistics_model_detail' %}bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-chart-line w-5 text-center text-cyan-400"></i>
