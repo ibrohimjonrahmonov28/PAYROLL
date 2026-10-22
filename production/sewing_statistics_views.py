@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
@@ -760,9 +761,75 @@ def sewing_statistics_daily_view(request):
         if code:
             today_dazmol_by_pastal[code] = today_dazmol_by_pastal.get(code, 0) + int(row['s'] or 0)
 
-    # 3. Bugungi va biriktirilgan barcha tegishli pastallar qutilarini olish
+    # 3. Shu kuni tekshirilgan barcha Sifat Nazorati (OTK) loglari
+    inspection_logs = list(
+        BoxQualityInspectionLog.objects.filter(
+            created_at__range=(day_start, day_end)
+        ).select_related(
+            'box__order__customer',
+            'box__article__model',
+            'box__cutting_batch_item__batch'
+        )
+    )
+    otk_box_ids = {l.box_id for l in inspection_logs if l.box_id}
+    otk_box_screens_map = {}
+    if otk_box_ids:
+        otk_ticket_screens = Ticket.objects.filter(
+            box_id__in=otk_box_ids,
+            screen_number__isnull=False
+        ).values('box_id', 'screen_number').annotate(c=Count('id')).order_by('box_id', '-c')
+        for row in otk_ticket_screens:
+            bid = row['box_id']
+            if bid not in otk_box_screens_map:
+                otk_box_screens_map[bid] = row['screen_number']
+
+    boxes_for_otk = {b.id: b for b in Box.objects.filter(id__in=otk_box_ids).select_related(
+        'order__customer', 'article__model', 'cutting_batch_item__batch'
+    )}
+
+    logs_by_box = defaultdict(list)
+    patok_otk_summary = defaultdict(lambda: {
+        'controlled_qty': 0,
+        'first_sort_qty': 0,
+        'second_sort_qty': 0,
+        'repair_qty': 0,
+        'defect_qty': 0,
+        'boxes': [],
+    })
+
+    otk_pastal_codes = set()
+    for l in inspection_logs:
+        if l.box_id:
+            logs_by_box[l.box_id].append(l)
+
+        b = boxes_for_otk.get(l.box_id) or (today_boxes_dict.get(l.box_id))
+        if b:
+            pcode = (b.pastal_code or '').strip()
+            if pcode:
+                otk_pastal_codes.add(pcode)
+
+        b_sn = otk_box_screens_map.get(l.box_id) if l.box_id else None
+        if not b_sn and b and b.assigned_screen:
+            b_sn = b.assigned_screen
+        if not b_sn and b and b.cutting_batch_item and b.cutting_batch_item.batch and b.cutting_batch_item.batch.assigned_screen:
+            b_sn = b.cutting_batch_item.batch.assigned_screen
+
+        if b_sn:
+            pos = patok_otk_summary[b_sn]
+            eff_2nd = l.second_sort_qty or (l.defect_qty if l.action_type == BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0)
+            eff_def = l.defect_qty if l.action_type != BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0
+
+            pos['first_sort_qty'] += l.first_sort_qty
+            pos['second_sort_qty'] += eff_2nd
+            pos['controlled_qty'] += (l.first_sort_qty + eff_2nd)
+            pos['repair_qty'] += l.repair_qty
+            pos['defect_qty'] += eff_def
+            if b and b not in pos['boxes']:
+                pos['boxes'].append(b)
+
+    # 4. Bugungi, OTK o'tgan va biriktirilgan barcha tegishli pastallar qutilarini olish
     active_pastal_codes = {b.pastal_code.strip() for b in today_boxes_dict.values() if b.pastal_code and b.pastal_code.strip()}
-    all_relevant_pastal_codes = set(active_pastal_codes) | set(all_assigned_pastal_codes)
+    all_relevant_pastal_codes = set(active_pastal_codes) | set(all_assigned_pastal_codes) | otk_pastal_codes
 
     all_pastal_boxes = list(
         Box.objects.filter(
@@ -798,16 +865,11 @@ def sewing_statistics_daily_view(request):
         ).values_list('box_id', flat=True).distinct()
     )
 
-    # Shu kuni tekshirilgan Sifat Nazorati (OTK) loglari
-    inspection_logs = BoxQualityInspectionLog.objects.filter(
-        box_id__in=set(all_pbox_ids) | today_box_ids,
-        created_at__range=(day_start, day_end)
+    active_screens = sorted(
+        set(tickets_by_screen.keys()) |
+        {sn for sn, pset in screen_assigned_pastals_map.items() if pset} |
+        set(patok_otk_summary.keys())
     )
-    logs_by_box = {}
-    for log in inspection_logs:
-        logs_by_box.setdefault(log.box_id, []).append(log)
-
-    active_screens = sorted(set(tickets_by_screen.keys()) | {sn for sn, pset in screen_assigned_pastals_map.items() if pset})
     screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
 
     patoks_data = []
@@ -861,6 +923,10 @@ def sewing_statistics_daily_view(request):
             pcode = (b.pastal_code or "").strip()
             if pcode:
                 sn_scanned_pastal_codes.add(pcode)
+        for b in patok_otk_summary.get(sn, {}).get('boxes', []):
+            pcode = (b.pastal_code or "").strip()
+            if pcode:
+                sn_scanned_pastal_codes.add(pcode)
 
         # Asosiy pastallarni filtrlash: agar butunlay yopilgan bo'lsa va bugun hech qanday harakat bo'lmagan bo'lsa, chiqarmaymiz
         filtered_assigned_codes = set()
@@ -870,7 +936,11 @@ def sewing_statistics_daily_view(request):
             closed_p_boxes = len([b for b in p_boxes if b.is_controlled])
             repair_qty = sum(b.controlled_repair_qty for b in p_boxes)
             is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes and repair_qty == 0)
-            has_activity_today = (pcode in sn_scanned_pastal_codes) or (today_dazmol_by_pastal.get(pcode, 0) > 0)
+            has_activity_today = (
+                (pcode in sn_scanned_pastal_codes) or
+                (today_dazmol_by_pastal.get(pcode, 0) > 0) or
+                any(b.id in logs_by_box for b in p_boxes)
+            )
             if not is_pastal_closed or has_activity_today or total_p_boxes == 0:
                 filtered_assigned_codes.add(pcode)
 
@@ -884,6 +954,9 @@ def sewing_statistics_daily_view(request):
         sn_norms = []
 
         all_sn_candidate_boxes = list(active_sewing_boxes)
+        for b in patok_otk_summary.get(sn, {}).get('boxes', []):
+            if b not in all_sn_candidate_boxes:
+                all_sn_candidate_boxes.append(b)
         for pcode in sn_primary_pastal_codes:
             for b in boxes_by_pastal.get(pcode, []):
                 if b not in all_sn_candidate_boxes:
@@ -952,33 +1025,24 @@ def sewing_statistics_daily_view(request):
                 operations_map[op_id]['tickets_count'] += 1
 
         # Kunlik OTK, Kutmoqda, Ta'mir hisoblash
-        sn_controlled_qty = 0
-        sn_first_sort_qty = 0
-        sn_second_sort_qty = 0
+        pos = patok_otk_summary.get(sn, {
+            'controlled_qty': 0,
+            'first_sort_qty': 0,
+            'second_sort_qty': 0,
+            'repair_qty': 0,
+            'defect_qty': 0,
+        })
+        sn_controlled_qty = pos['controlled_qty']
+        sn_first_sort_qty = pos['first_sort_qty']
+        sn_second_sort_qty = pos['second_sort_qty']
+        sn_repair_qty = pos['repair_qty']
+        sn_defect_qty = pos['defect_qty']
         sn_waiting_qty = 0
-        sn_repair_qty = 0
-        sn_defect_qty = 0
 
         for bid in sn_box_ids:
             box = today_boxes_dict.get(bid)
             if not box:
                 continue
-
-            b_logs = logs_by_box.get(bid, [])
-            if b_logs:
-                for l in b_logs:
-                    sn_first_sort_qty += l.first_sort_qty
-                    sn_second_sort_qty += l.second_sort_qty
-                    sn_controlled_qty += (l.first_sort_qty + l.second_sort_qty)
-                    sn_repair_qty += l.repair_qty
-                    sn_defect_qty += l.defect_qty
-            elif box.is_controlled and box.controlled_at and timezone.localdate(box.controlled_at) == selected_date:
-                sn_first_sort_qty += box.controlled_first_sort_qty
-                sn_second_sort_qty += box.controlled_second_sort_qty
-                sn_controlled_qty += (box.controlled_first_sort_qty + box.controlled_second_sort_qty)
-                sn_repair_qty += box.controlled_repair_qty
-                sn_defect_qty += box.controlled_defect_qty
-
             if not box.is_controlled and box.controlled_repair_qty == 0:
                 sn_waiting_qty += box.quantity
 
@@ -1109,9 +1173,15 @@ def sewing_statistics_daily_view(request):
             p_today_logs = [l for bid in [b.id for b in p_boxes] for l in logs_by_box.get(bid, [])]
             if p_today_logs:
                 p_today_first_sort = sum(l.first_sort_qty for l in p_today_logs)
-                p_today_second_sort = sum(l.second_sort_qty for l in p_today_logs)
+                p_today_second_sort = sum(
+                    l.second_sort_qty or (l.defect_qty if l.action_type == BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0)
+                    for l in p_today_logs
+                )
                 p_today_repair = sum(l.repair_qty for l in p_today_logs)
-                p_today_defect = sum(l.defect_qty for l in p_today_logs)
+                p_today_defect = sum(
+                    l.defect_qty if l.action_type != BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0
+                    for l in p_today_logs
+                )
                 p_today_controlled = p_today_first_sort + p_today_second_sort
             else:
                 today_controlled_boxes = [b for b in p_boxes if b.is_controlled and b.controlled_at and timezone.localdate(b.controlled_at) == selected_date]
@@ -1277,8 +1347,8 @@ def sewing_statistics_daily_view(request):
         # Foydalanuvchi talabi: Asosiy pastallar bo'yicha qilingan dazmollarning umumiy yig'indisi (qo'lda qo'shib o'tirmaslik uchun)
         primary_dazmol_total = sum(item['qty'] for item in pastal_dazmol_items)
 
-        # Patok faolligi: stikerlar bo'lsa yoki biriktirilgan asosiy pastali bo'lsa
-        is_active = (len(t_list) > 0) or (len(primary_pastals) > 0)
+        # Patok faolligi: stikerlar bo'lsa yoki biriktirilgan asosiy pastali bo'lsa yoki OTK harakati bo'lsa
+        is_active = (len(t_list) > 0) or (len(primary_pastals) > 0) or (sn_controlled_qty > 0 or sn_repair_qty > 0)
 
         total_daily_dazmol_qty += sn_dazmol_qty
         total_daily_controlled_qty += sn_controlled_qty

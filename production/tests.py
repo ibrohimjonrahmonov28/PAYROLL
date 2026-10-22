@@ -4079,6 +4079,48 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
         self.assertIn('50/P-101', html)
         self.assertIn('60/P-102', html)
 
+    def test_sewing_statistics_daily_view_pulls_otk_and_repair_for_prior_day_boxes(self):
+        from production.sewing_statistics_views import sewing_statistics_daily_view
+        from production.models import BoxQualityInspectionLog, Ticket
+        from datetime import timedelta
+
+        # Box 2 was sewn 2 days ago (scanned on screen 1)
+        prior_time = timezone.now() - timedelta(days=2)
+        Ticket.objects.create(
+            box=self.box2,
+            article_operation=self.aop_tikuv,
+            ticket_code='T-PRIOR-DAY',
+            quantity=50,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=prior_time
+        )
+
+        # OTK inspects Box 2 TODAY
+        BoxQualityInspectionLog.objects.create(
+            box=self.box2,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=50,
+            first_sort_qty=46,
+            second_sort_qty=1,
+            repair_qty=3,
+            defect_qty=0
+        )
+
+        today_str = timezone.localdate().isoformat()
+        req = self.rf.get(f'/sewing-statistics/daily/?date={today_str}')
+        req.user = self.superadmin
+
+        res = sewing_statistics_daily_view(req)
+        self.assertEqual(res.status_code, 200)
+
+        html = res.content.decode('utf-8')
+        # OTK numbers must show up in today's daily statistics!
+        self.assertIn('47', html)   # 46 first sort + 1 second sort = 47 controlled
+        self.assertIn('46 1-s', html)
+        self.assertIn('3 ta\'mir', html)
+
 
 class MetoHubAndWaybillLogisticsTest(TestCase):
     def setUp(self):
