@@ -4417,6 +4417,54 @@ class SewingStatisticsOtkViewTest(TestCase):
         self.assertEqual(res_not_found.status_code, 200)
         self.assertEqual(len(res_not_found.context['inspectors_list']), 0)
 
+    def test_daily_and_otk_statistics_perfect_synchronization(self):
+        """
+        Verify that sewing-statistics/daily/ and sewing-statistics/otk/ produce
+        100% identical totals for OTK, First Sort, Second Sort, and Repair quantities,
+        as requested by the user: OTK + Ta'mir = A'lo + 2-sort + Ta'mir across daily and otk.
+        """
+        self.client.force_login(self.superadmin)
+        res_daily = self.client.get('/sewing-statistics/daily/')
+        res_otk = self.client.get('/sewing-statistics/otk/')
+
+        self.assertEqual(res_daily.status_code, 200)
+        self.assertEqual(res_otk.status_code, 200)
+
+        daily_kpis = res_daily.context['kpis']
+        otk_kpis = res_otk.context['kpis']
+
+        # Total inspected volume matches 100%
+        self.assertEqual(daily_kpis['total_inspected_qty'], 90)
+        self.assertEqual(otk_kpis['total_inspected_qty'], 90)
+        self.assertEqual(daily_kpis['controlled_qty'], 90)
+
+        # Breakdowns match
+        self.assertEqual(daily_kpis['first_sort_qty'], otk_kpis['total_first_sort_qty'])
+        self.assertEqual(daily_kpis['second_sort_qty'], otk_kpis['total_second_sort_qty'])
+        self.assertEqual(daily_kpis['repair_qty'], otk_kpis['total_repair_qty'])
+        self.assertEqual(daily_kpis['first_sort_qty'], 83)
+        self.assertEqual(daily_kpis['second_sort_qty'], 2)
+        self.assertEqual(daily_kpis['repair_qty'], 5)
+
+        # Per-patok match for K1
+        k1_daily = next(p for p in res_daily.context['patoks_data'] if p['patok_code'] == 'K1')
+        k1_otk = next(p for p in res_otk.context['patoks_list'] if p['patok_code'] == 'K1')
+        self.assertEqual(k1_daily['daily_total_inspected_qty'], k1_otk['total_inspected'])
+        self.assertEqual(k1_daily['daily_total_inspected_qty'], 50)
+        self.assertEqual(k1_daily['daily_first_sort_qty'], 45)
+        self.assertEqual(k1_daily['daily_second_sort_qty'], 2)
+        self.assertEqual(k1_daily['daily_repair_qty'], 3)
+
+        # Per-patok match for U1
+        u1_daily = next(p for p in res_daily.context['patoks_data'] if p['patok_code'] == 'U1')
+        u1_otk = next(p for p in res_otk.context['patoks_list'] if p['patok_code'] == 'U1')
+        self.assertEqual(u1_daily['daily_total_inspected_qty'], u1_otk['total_inspected'])
+        self.assertEqual(u1_daily['daily_total_inspected_qty'], 40)
+        self.assertEqual(u1_daily['daily_first_sort_qty'], 38)
+        self.assertEqual(u1_daily['daily_second_sort_qty'], 0)
+        self.assertEqual(u1_daily['daily_repair_qty'], 2)
+
+
 
 
 

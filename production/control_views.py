@@ -654,6 +654,9 @@ def control_submit_inspection_api(request):
             operator_tag = f"\n[Nazoratchi: {active_operator.get('full_name')} ({active_operator.get('worker_id')})]"
             final_notes += operator_tag
 
+        if request.user and request.user.username:
+            final_notes += f"\n[Terminal: {request.user.username}]"
+
         box.controlled_by = inspector_user
         box.save(update_fields=['controlled_by'])
 
@@ -773,6 +776,9 @@ def control_submit_inspection_api(request):
         if active_operator:
             operator_tag = f"\n[Nazoratchi: {active_operator.get('full_name')} ({active_operator.get('worker_id')})]"
             notes_lines.append(operator_tag)
+
+        if request.user and request.user.username:
+            notes_lines.append(f"[Terminal: {request.user.username}]")
 
         final_notes = "\n".join(notes_lines)
 

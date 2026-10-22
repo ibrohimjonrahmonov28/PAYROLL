@@ -5,12 +5,14 @@ import httpx
 from decimal import Decimal
 from PIL import Image, ImageDraw, ImageFont
 
+import re
+from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 
 from production.models import Ticket, Box, BoxQualityInspectionLog, Article, DailyPatokProgress
-from production.services import get_patok_code, get_patok_name
+from production.services import get_patok_code, get_patok_name, parse_patok_number
 
 
 def _get_font(size: int = 14, bold: bool = False):
@@ -92,19 +94,46 @@ def get_branch_patoks_data(branch: str, target_date: datetime.date = None) -> di
         if t.box_id:
             box_ids_by_screen.setdefault(t.screen_number, set()).add(t.box_id)
 
-    # 3. OTK jurnallarini olish
-    all_box_ids = set()
-    for bids in box_ids_by_screen.values():
-        all_box_ids.update(bids)
-
-    logs_by_box = {}
-    if all_box_ids:
-        inspection_logs = BoxQualityInspectionLog.objects.filter(
-            box_id__in=all_box_ids,
+    # 3. OTK jurnallarini olish (butun kunlik inspection logs)
+    inspection_logs = list(
+        BoxQualityInspectionLog.objects.filter(
             created_at__range=(day_start, day_end)
-        )
-        for log in inspection_logs:
-            logs_by_box.setdefault(log.box_id, []).append(log)
+        ).select_related('box__order', 'box__article', 'box__cutting_batch_item__batch')
+    )
+    otk_box_ids = {l.box_id for l in inspection_logs if l.box_id}
+    otk_box_screens = {}
+    if otk_box_ids:
+        otk_ticket_screens = Ticket.objects.filter(
+            box_id__in=otk_box_ids,
+            screen_number__isnull=False
+        ).values('box_id', 'screen_number').annotate(c=Count('id')).order_by('box_id', '-c')
+        for row in otk_ticket_screens:
+            bid = row['box_id']
+            if bid not in otk_box_screens:
+                otk_box_screens[bid] = row['screen_number']
+
+    otk_by_screen = defaultdict(lambda: {'controlled_qty': 0, 'first_sort': 0, 'repair': 0, 'second': 0})
+    for l in inspection_logs:
+        b = l.box
+        b_sn = otk_box_screens.get(l.box_id) if l.box_id else None
+        if not b_sn and b and b.assigned_screen:
+            b_sn = b.assigned_screen
+        if not b_sn and b and b.cutting_batch_item and b.cutting_batch_item.batch and b.cutting_batch_item.batch.assigned_screen:
+            b_sn = b.cutting_batch_item.batch.assigned_screen
+        if not b_sn and l.inspector:
+            b_sn = parse_patok_number(l.inspector.username)
+        if not b_sn and l.notes and '[Terminal:' in l.notes:
+            m = re.search(r'\[Terminal:\s*([^\]]+)\]', l.notes)
+            if m:
+                b_sn = parse_patok_number(m.group(1))
+
+        if b_sn:
+            eff_2nd = l.second_sort_qty or (l.defect_qty if l.action_type == BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0)
+            total_l = l.inspected_qty or (l.first_sort_qty + eff_2nd + l.repair_qty)
+            otk_by_screen[b_sn]['controlled_qty'] += total_l
+            otk_by_screen[b_sn]['first_sort'] += l.first_sort_qty
+            otk_by_screen[b_sn]['repair'] += l.repair_qty
+            otk_by_screen[b_sn]['second'] += eff_2nd
 
     # 4. Har bir patok bo'yicha hisoblash
     patoks_list = []
@@ -116,7 +145,6 @@ def get_branch_patoks_data(branch: str, target_date: datetime.date = None) -> di
         p_code = get_patok_code(sn)
         p_name = get_patok_name(sn)
         t_list = tickets_by_screen.get(sn, [])
-        sn_box_ids = box_ids_by_screen.get(sn, set())
 
         # Kunlik norma
         art_ids = {t.article_operation.article_id for t in t_list if t.article_operation and t.article_operation.article_id}
@@ -137,11 +165,8 @@ def get_branch_patoks_data(branch: str, target_date: datetime.date = None) -> di
             if 'DAZMOL' in op_name or 'DAZMOL' in op_code:
                 dazmol_qty += t.quantity
 
-        # Kontroldan (OTK) o'tgan soni (1-sort)
-        controlled_qty = 0
-        for bid in sn_box_ids:
-            for l in logs_by_box.get(bid, []):
-                controlled_qty += (l.first_sort_qty or 0)
+        # Kontroldan (OTK) o'tgan soni (Jami tekshirildi: 1-sort + 2-sort + ta'mir)
+        controlled_qty = otk_by_screen[sn]['controlled_qty']
 
         # Foiz
         pct = round((dazmol_qty / patok_norm * 100), 1) if patok_norm > 0 else 0.0

@@ -790,11 +790,13 @@ def sewing_statistics_daily_view(request):
     logs_by_box = defaultdict(list)
     patok_otk_summary = defaultdict(lambda: {
         'controlled_qty': 0,
+        'total_inspected_qty': 0,
         'first_sort_qty': 0,
         'second_sort_qty': 0,
         'repair_qty': 0,
         'defect_qty': 0,
         'boxes': [],
+        'boxes_set': set(),
     })
 
     otk_pastal_codes = set()
@@ -813,6 +815,13 @@ def sewing_statistics_daily_view(request):
             b_sn = b.assigned_screen
         if not b_sn and b and b.cutting_batch_item and b.cutting_batch_item.batch and b.cutting_batch_item.batch.assigned_screen:
             b_sn = b.cutting_batch_item.batch.assigned_screen
+        if not b_sn and l.inspector:
+            b_sn = parse_patok_number(l.inspector.username)
+        if not b_sn and l.notes and '[Terminal:' in l.notes:
+            import re
+            m = re.search(r'\[Terminal:\s*([^\]]+)\]', l.notes)
+            if m:
+                b_sn = parse_patok_number(m.group(1))
 
         if b_sn:
             pos = patok_otk_summary[b_sn]
@@ -824,6 +833,9 @@ def sewing_statistics_daily_view(request):
             pos['controlled_qty'] += (l.first_sort_qty + eff_2nd)
             pos['repair_qty'] += l.repair_qty
             pos['defect_qty'] += eff_def
+            pos['total_inspected_qty'] += (l.inspected_qty or (l.first_sort_qty + eff_2nd + l.repair_qty))
+            if l.box_id:
+                pos['boxes_set'].add(l.box_id)
             if b and b not in pos['boxes']:
                 pos['boxes'].append(b)
 
@@ -1027,16 +1039,22 @@ def sewing_statistics_daily_view(request):
         # Kunlik OTK, Kutmoqda, Ta'mir hisoblash
         pos = patok_otk_summary.get(sn, {
             'controlled_qty': 0,
+            'total_inspected_qty': 0,
             'first_sort_qty': 0,
             'second_sort_qty': 0,
             'repair_qty': 0,
             'defect_qty': 0,
+            'boxes_set': set(),
         })
-        sn_controlled_qty = pos['controlled_qty']
         sn_first_sort_qty = pos['first_sort_qty']
         sn_second_sort_qty = pos['second_sort_qty']
         sn_repair_qty = pos['repair_qty']
         sn_defect_qty = pos['defect_qty']
+        # Jami OTK ko'rib chiqqan ishlar soni (1-sort + 2-sort + ta'mir):
+        # Foydalanuvchi talabi: /otk/ dagi A'lo + 2-sort + Ta'mir ga va planshetdagi hisobga 100% teng bo'ladi
+        sn_total_inspected = pos.get('total_inspected_qty', 0) or (sn_first_sort_qty + sn_second_sort_qty + sn_repair_qty)
+        sn_controlled_qty = sn_total_inspected
+        sn_boxes_count = len(pos.get('boxes_set', set()))
         sn_waiting_qty = 0
 
         for bid in sn_box_ids:
@@ -1049,7 +1067,7 @@ def sewing_statistics_daily_view(request):
         patok_scanned_sum = sum(t.quantity for t in t_list)
 
         # Normaga qarshi bajarilgan dona va foiz hisoblash
-        completed_for_norm = sn_dazmol_qty if sn_dazmol_qty > 0 else (sn_controlled_qty if sn_controlled_qty > 0 else int(patok_scanned_sum / max(1, len(operations_map))))
+        completed_for_norm = sn_dazmol_qty if sn_dazmol_qty > 0 else (sn_total_inspected if sn_total_inspected > 0 else int(patok_scanned_sum / max(1, len(operations_map))))
         if patok_daily_norm > 0:
             norm_percentage = round((Decimal(completed_for_norm) / Decimal(patok_daily_norm)) * Decimal('100.0'), 1)
         else:
@@ -1072,7 +1090,7 @@ def sewing_statistics_daily_view(request):
         sn_workers = screen_data.get('workers', [])
 
         # DailyPatokProgress ga saqlash / muhrlash (Bugun real-time, kecha va undan oldingi kunlar muzlatilgan snapshot)
-        if len(t_list) > 0:
+        if len(t_list) > 0 or sn_total_inspected > 0 or sn_dazmol_qty > 0 or len(primary_pastals) > 0:
             DailyPatokProgress.objects.update_or_create(
                 screen_number=sn,
                 date=selected_date,
@@ -1084,7 +1102,7 @@ def sewing_statistics_daily_view(request):
                     'dazmol_qty': sn_dazmol_qty,
                     'scanned_ops_qty': patok_scanned_sum,
                     'tickets_count': len(t_list),
-                    'controlled_qty': sn_controlled_qty,
+                    'controlled_qty': sn_total_inspected,
                     'waiting_qty': sn_waiting_qty,
                     'repair_qty': sn_repair_qty,
                     'is_completed': is_norm_completed,
@@ -1425,8 +1443,13 @@ def sewing_statistics_daily_view(request):
             'daily_dazmol_qty': sn_dazmol_qty,
             'dazmol_boxes_count': len(sn_dazmol_box_ids),
             'daily_dazmol_boxes_count': len(sn_dazmol_box_ids),
-            'controlled_qty': sn_controlled_qty,
-            'daily_controlled_qty': sn_controlled_qty,
+            'total_inspected_qty': sn_total_inspected,
+            'daily_total_inspected_qty': sn_total_inspected,
+            'boxes_count': sn_boxes_count,
+            'daily_boxes_count': sn_boxes_count,
+            'daily_controlled_boxes_count': sn_boxes_count,
+            'controlled_qty': sn_total_inspected,
+            'daily_controlled_qty': sn_total_inspected,
             'first_sort_qty': sn_first_sort_qty,
             'daily_first_sort_qty': sn_first_sort_qty,
             'second_sort_qty': sn_second_sort_qty,
@@ -1456,6 +1479,7 @@ def sewing_statistics_daily_view(request):
     avg_patok_kpi_overall = round((sum(p.get('patok_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     avg_patok_quvvati = round((sum(p.get('patok_quvvati', 0.0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     total_primary_dazmol_qty = sum(p.get('primary_dazmol_total', 0) for p in patoks_data)
+    total_daily_inspected_qty = total_daily_first_sort + total_daily_second_sort + total_daily_repair_qty
 
     context = {
         'selected_date': selected_date,
@@ -1481,7 +1505,8 @@ def sewing_statistics_daily_view(request):
             'avg_norm_pct': avg_norm_pct,
             'dazmol_qty': total_daily_dazmol_qty,
             'primary_dazmol_qty': total_primary_dazmol_qty,
-            'controlled_qty': total_daily_controlled_qty,
+            'total_inspected_qty': total_daily_inspected_qty,
+            'controlled_qty': total_daily_inspected_qty,
             'first_sort_qty': total_daily_first_sort,
             'second_sort_qty': total_daily_second_sort,
             'waiting_qty': total_daily_waiting_qty,
@@ -3049,7 +3074,8 @@ def sewing_statistics_otk_view(request):
     ).select_related(
         'inspector',
         'box__order__customer',
-        'box__article__model'
+        'box__article__model',
+        'box__cutting_batch_item__batch'
     ).order_by('-created_at')
 
     logs = list(logs_qs)
@@ -3080,6 +3106,15 @@ def sewing_statistics_otk_view(request):
         b_screen = box_screens_map.get(b.id) if b else None
         if not b_screen and b and b.assigned_screen:
             b_screen = b.assigned_screen
+        if not b_screen and b and b.cutting_batch_item and b.cutting_batch_item.batch and b.cutting_batch_item.batch.assigned_screen:
+            b_screen = b.cutting_batch_item.batch.assigned_screen
+        if not b_screen and l.inspector:
+            b_screen = parse_patok_number(l.inspector.username)
+        if not b_screen and l.notes and '[Terminal:' in l.notes:
+            import re
+            m = re.search(r'\[Terminal:\s*([^\]]+)\]', l.notes)
+            if m:
+                b_screen = parse_patok_number(m.group(1))
 
         p_code = get_patok_code(b_screen) if b_screen else "Noma'lum"
         p_name = get_patok_name(b_screen) if b_screen else "Noma'lum Patok"

@@ -145,20 +145,19 @@
             </span>
         </div>
 
-        <!-- KPI 7: Bugun OTK Qabul Qildi -->
+        <!-- KPI 7: Bugun OTK (Jami Ko'rilgan) -->
         <div
             class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/25 to-transparent">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK O'tgan</span>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK O'tgan (Jami)</span>
                 <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1.5">
-                <span class="text-2xl font-black text-emerald-400 digital-font">{{ kpis.controlled_qty }}</span>
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ kpis.total_inspected_qty|default:kpis.controlled_qty }}</span>
                 <span class="text-xs text-slate-500 font-semibold">dona</span>
             </div>
             <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block truncate">
-                {{ kpis.first_sort_qty }} 1-s {% if kpis.second_sort_qty > 0 %}• {{ kpis.second_sort_qty }} 2-s{% endif
-                %}
+                {{ kpis.first_sort_qty }} 1-s{% if kpis.second_sort_qty > 0 %} • {{ kpis.second_sort_qty }} 2-s{% endif %}{% if kpis.repair_qty > 0 %} • {{ kpis.repair_qty }} ta'mir{% endif %}
             </span>
         </div>
 
@@ -521,17 +520,25 @@
                             </div>
                         </td>
 
-                        <!-- 7. Bugun OTK O'tgan -->
+                        <!-- 7. Bugun OTK (Jami Tekshirildi) -->
                         <td class="py-3 px-3 text-center align-middle">
-                            {% if p.daily_controlled_qty > 0 %}
+                            {% if p.daily_total_inspected_qty > 0 or p.daily_controlled_qty > 0 %}
                             <div class="inline-flex flex-col items-center">
-                                <span class="font-black text-emerald-400 digital-font text-base">
-                                    {{ p.daily_controlled_qty }}
-                                </span>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="font-black text-emerald-400 digital-font text-base">
+                                        {{ p.daily_total_inspected_qty|default:p.daily_controlled_qty }}
+                                    </span>
+                                    {% if p.daily_boxes_count > 0 %}
+                                    <span class="text-[10px] text-slate-400 font-bold font-mono">({{ p.daily_boxes_count }}q)</span>
+                                    {% endif %}
+                                </div>
                                 <div class="flex items-center gap-1 text-[10px] font-mono mt-0.5">
                                     <span class="text-emerald-400 font-bold">{{ p.daily_first_sort_qty }} 1-s</span>
                                     {% if p.daily_second_sort_qty > 0 %}
-                                    <span class="text-rose-400 font-bold">• {{ p.daily_second_sort_qty }} 2-s</span>
+                                    <span class="text-amber-400 font-bold">• {{ p.daily_second_sort_qty }} 2-s</span>
+                                    {% endif %}
+                                    {% if p.daily_repair_qty > 0 %}
+                                    <span class="text-rose-400 font-bold">• {{ p.daily_repair_qty }} t</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -542,12 +549,18 @@
 
                         <!-- 8. Ta'mir / Brak -->
                         <td class="py-3 px-3 text-center align-middle">
-                            {% if p.daily_repair_qty > 0 or p.daily_defect_qty > 0 %}
+                            {% if p.daily_repair_qty > 0 or p.daily_defect_qty > 0 or p.daily_second_sort_qty > 0 %}
                             <div class="inline-flex flex-col items-center gap-0.5">
                                 {% if p.daily_repair_qty > 0 %}
                                 <span
                                     class="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
                                     ⚠️ {{ p.daily_repair_qty }} ta'mir
+                                </span>
+                                {% endif %}
+                                {% if p.daily_second_sort_qty > 0 %}
+                                <span
+                                    class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                    {{ p.daily_second_sort_qty }} 2-sort
                                 </span>
                                 {% endif %}
                                 {% if p.daily_defect_qty > 0 %}
@@ -697,12 +710,12 @@
                                     <div class="bg-slate-950 border border-emerald-900/40 rounded-xl p-3 shadow-inner">
                                         <span
                                             class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">8.
-                                            OTK O'tgan</span>
-                                        <span class="text-xl font-black text-emerald-400 digital-font block mt-1">{{
-                                            p.daily_controlled_qty }}</span>
+                                            OTK O'tgan (Jami)</span>
+                                        <span class="text-xl font-black text-emerald-400 digital-font block mt-1">{% if p.daily_total_inspected_qty > 0 %}{{ p.daily_total_inspected_qty }}{% else %}{{ p.daily_controlled_qty }}{% endif %} dona</span>
                                         <span class="text-[10px] text-emerald-400/80 font-mono mt-0.5 block truncate">{{
                                             p.daily_first_sort_qty }} 1-s{% if p.daily_second_sort_qty > 0 %} • {{
-                                            p.daily_second_sort_qty }} 2-s{% endif %}</span>
+                                            p.daily_second_sort_qty }} 2-s{% endif %}{% if p.daily_repair_qty > 0 %} • {{
+                                            p.daily_repair_qty }} ta'mir{% endif %}</span>
                                     </div>
                                     <!-- 9. Ta'mir & Brak -->
                                     <div
