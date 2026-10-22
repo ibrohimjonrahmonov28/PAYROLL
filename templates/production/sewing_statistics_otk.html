@@ -1,0 +1,765 @@
+{% extends 'base.html' %}
+
+{% block title %}OTK Sifat Nazorati Monitoringi — Terry Jar{% endblock %}
+
+{% block page_header %}
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
+    <div class="flex items-center gap-3">
+        <div
+            class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center text-xl shadow-lg flex-shrink-0 shadow-indigo-500/20">
+            <i class="fa-solid fa-clipboard-check"></i>
+        </div>
+        <div>
+            <div class="flex items-center gap-2">
+                <h2 class="text-lg font-black text-white leading-tight">
+                    {% if is_uychi_admin %}Uychi Filiali Sifat Nazorati (OTK){% else %}OTK Sifat Nazorati — Odamlar va Patoklar Monitoringi{% endif %}
+                </h2>
+                <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Audit & Reyting
+                </span>
+            </div>
+            <p class="text-xs text-slate-400">
+                Nazoratchilar unumdorligi, tekshirilgan ishlar, 1-sort, ta'mir, 2-sort va patoklar bo'yicha taqsimot
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation Fast Switcher -->
+    <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner flex-wrap">
+        <a href="{% url 'production:sewing_statistics_daily' %}"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-day text-emerald-400"></i>
+            <span>Kunlik Patoklar</span>
+        </a>
+        <a href="{% url 'production:sewing_statistics_orders' %}"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-cyan-400"></i>
+            <span>Zakazlar Bo'yicha</span>
+        </a>
+        <a href="{% url 'production:sewing_statistics_repairs' %}"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-wrench text-amber-400"></i>
+            <span>Ta'mir Monitoringi</span>
+        </a>
+        <span
+            class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md flex items-center gap-1.5">
+            <i class="fa-solid fa-clipboard-check"></i>
+            <span>OTK Nazoratchilari</span>
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="w-full px-2 lg:px-6 py-4 space-y-6">
+
+    <!-- TOP EXECUTIVE KPI CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <!-- KPI 1: Faol Nazoratchilar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nazoratchilar</span>
+                <i class="fa-solid fa-users text-indigo-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-indigo-300 digital-font">{{ kpis.active_inspectors }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">nafar</span>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-1 block">Bugun ishlagan</span>
+        </div>
+
+        <!-- KPI 2: Jami Tekshirildi -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Jami Tekshirildi</span>
+                <i class="fa-solid fa-boxes-stacked text-cyan-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-cyan-300 digital-font">{{ kpis.total_inspected_qty }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
+            </div>
+            <span class="text-[10px] text-cyan-400/80 font-mono font-bold mt-1 block">{{ kpis.total_boxes_count }} ta quti</span>
+        </div>
+
+        <!-- KPI 3: 1-Sort -->
+        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/25 to-transparent">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">1-Sort (A'lo)</span>
+                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black text-emerald-400 digital-font">{{ kpis.total_first_sort_qty }}</span>
+                <span class="text-xs text-slate-500 font-semibold">dona</span>
+                <span class="text-xs font-bold text-emerald-400 ml-auto font-mono">({{ kpis.first_sort_pct }}%)</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-mono mt-1 block">Qabul qilingan</span>
+        </div>
+
+        <!-- KPI 4: Ta'mir -->
+        <div class="bg-slate-900 border {% if kpis.total_repair_qty > 0 %}border-rose-900/50 bg-gradient-to-b from-rose-950/25 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.total_repair_qty > 0 %}text-rose-400{% else %}text-slate-400{% endif %}">Ta'mirga Ketdi</span>
+                <i class="fa-solid fa-screwdriver-wrench {% if kpis.total_repair_qty > 0 %}text-rose-400{% else %}text-slate-500{% endif %} text-xs"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black {% if kpis.total_repair_qty > 0 %}text-rose-400{% else %}text-slate-400{% endif %} digital-font">{{ kpis.total_repair_qty }}</span>
+                <span class="text-xs text-slate-500 font-semibold">dona</span>
+                <span class="text-xs font-bold {% if kpis.total_repair_qty > 0 %}text-rose-400{% else %}text-slate-500{% endif %} ml-auto font-mono">({{ kpis.repair_pct }}%)</span>
+            </div>
+            <span class="text-[10px] {% if kpis.total_repair_qty > 0 %}text-rose-400 font-bold{% else %}text-slate-500{% endif %} mt-1 block">Tuzatishdagi ishlar</span>
+        </div>
+
+        <!-- KPI 5: 2-Sort / Brak -->
+        <div class="bg-slate-900 border {% if kpis.total_second_sort_qty > 0 %}border-amber-900/50 bg-gradient-to-b from-amber-950/25 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider {% if kpis.total_second_sort_qty > 0 %}text-amber-400{% else %}text-slate-400{% endif %}">2-Sort (Nuqsonli)</span>
+                <i class="fa-solid fa-triangle-exclamation {% if kpis.total_second_sort_qty > 0 %}text-amber-400{% else %}text-slate-500{% endif %} text-xs"></i>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+                <span class="text-2xl font-black {% if kpis.total_second_sort_qty > 0 %}text-amber-400{% else %}text-slate-400{% endif %} digital-font">{{ kpis.total_second_sort_qty }}</span>
+                <span class="text-xs text-slate-500 font-semibold">dona</span>
+                <span class="text-xs font-bold {% if kpis.total_second_sort_qty > 0 %}text-amber-400{% else %}text-slate-500{% endif %} ml-auto font-mono">({{ kpis.second_sort_pct }}%)</span>
+            </div>
+            <span class="text-[10px] {% if kpis.total_second_sort_qty > 0 %}text-amber-400 font-bold{% else %}text-slate-500{% endif %} mt-1 block">Past nav / 2-sort</span>
+        </div>
+
+        <!-- KPI 6: Qamrab Olingan Patoklar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nazorat Patoklari</span>
+                <i class="fa-solid fa-desktop text-teal-400 text-xs"></i>
+            </div>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-teal-300 digital-font">{{ kpis.active_patoks }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">ta liniya</span>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-1 block">Ish tekshirilgan</span>
+        </div>
+    </div>
+
+    <!-- FILTER BAR, CONTROLS & DATE PICKER -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+        <form method="get" id="filter-form" class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <input type="hidden" name="tab" id="active-tab-input" value="{{ view_tab }}">
+
+            <!-- Left: Branch Switcher & Date Picker -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <!-- Branch Filter Tabs -->
+                {% if not is_uychi_admin %}
+                <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center gap-1 text-xs">
+                    <button type="submit" name="branch" value="ALL"
+                        class="px-3 py-1.5 rounded-lg font-bold transition {% if branch_filter == 'ALL' %}bg-indigo-600 text-white font-black shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                        Barchasi
+                    </button>
+                    <button type="submit" name="branch" value="HQ"
+                        class="px-3 py-1.5 rounded-lg font-bold transition {% if branch_filter == 'HQ' %}bg-indigo-600 text-white font-black shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                        Bosh bino (HQ)
+                    </button>
+                    <button type="submit" name="branch" value="UYCHI"
+                        class="px-3 py-1.5 rounded-lg font-bold transition {% if branch_filter == 'UYCHI' %}bg-indigo-600 text-white font-black shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+                        Uychi filiali
+                    </button>
+                </div>
+                {% else %}
+                <input type="hidden" name="branch" value="UYCHI">
+                <div class="px-3 py-1.5 rounded-xl bg-indigo-950/80 border border-indigo-700/50 text-indigo-300 font-black text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-building"></i>
+                    <span>Uychi Filiali</span>
+                </div>
+                {% endif %}
+
+                <!-- Date Picker Controls -->
+                <div class="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1 shadow-inner">
+                    <a href="?date={{ prev_date_str }}&branch={{ branch_filter }}&tab={{ view_tab }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                        class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs transition"
+                        title="Oldingi kun">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                    <input type="date" name="date" value="{{ selected_date_str }}" onchange="this.form.submit()"
+                        class="bg-transparent text-white font-mono font-bold text-xs px-2 py-1 focus:outline-none cursor-pointer">
+                    <a href="?date={{ next_date_str }}&branch={{ branch_filter }}&tab={{ view_tab }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                        class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs transition"
+                        title="Keyingi kun">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+
+                {% if is_today %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Bugun (Real-time)
+                </span>
+                {% else %}
+                <a href="?branch={{ branch_filter }}&tab={{ view_tab }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left text-[10px]"></i> Bugunga qaytish
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Right: Search Input -->
+            <div class="flex items-center gap-2">
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="text" name="q" value="{{ search_q }}" placeholder="Xodim yoki patok kodi..."
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                </div>
+                <button type="submit"
+                    class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
+                    <span>Qidirish</span>
+                </button>
+                {% if search_q %}
+                <a href="?date={{ selected_date_str }}&branch={{ branch_filter }}&tab={{ view_tab }}"
+                    class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition"
+                    title="Filtrni tozalash">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- VIEW TAB SWITCHER: ODAMLAR KESIMIDA vs PATOKLAR KESIMIDA -->
+        <div class="flex items-center justify-between border-t border-slate-800/80 pt-3 flex-wrap gap-2">
+            <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 inline-flex items-center gap-1">
+                <a href="?date={{ selected_date_str }}&branch={{ branch_filter }}&tab=inspectors{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-4 py-2 rounded-lg text-xs font-black transition flex items-center gap-2 {% if view_tab == 'inspectors' %}bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>Odamlar Kesimida (Nazoratchilar Reytingi)</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if view_tab == 'inspectors' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %} font-mono">
+                        {{ inspectors_list|length }}
+                    </span>
+                </a>
+                <a href="?date={{ selected_date_str }}&branch={{ branch_filter }}&tab=patoks{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-4 py-2 rounded-lg text-xs font-black transition flex items-center gap-2 {% if view_tab == 'patoks' %}bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i class="fa-solid fa-desktop"></i>
+                    <span>Patoklar Kesimida (Liniyalar Holati)</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if view_tab == 'patoks' %}bg-white/20 text-white{% else %}bg-slate-800 text-slate-400{% endif %} font-mono">
+                        {{ patoks_list|length }}
+                    </span>
+                </a>
+            </div>
+
+            <div class="text-xs text-slate-400 font-mono">
+                {% if view_tab == 'inspectors' %}
+                Faol Nazoratchilar: <strong class="text-white">{{ inspectors_list|length }}</strong> nafar
+                {% else %}
+                Faol Patoklar: <strong class="text-white">{{ patoks_list|length }}</strong> ta liniya
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: ODAMLAR KESIMIDA (NAZORATCHILAR REYTINGI JADVALI)         -->
+    <!-- ================================================================= -->
+    {% if view_tab == 'inspectors' %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-sm font-black">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-white uppercase tracking-wider">
+                        Sifat Nazoratchilari (OTK) Reytingi va Patoklar Taqsimoti
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Har bir xodimning ko'rgan ishlari soni, navlari va qaysi patoklarda bajargani</p>
+                </div>
+            </div>
+            <span class="text-xs text-slate-400 font-mono">
+                Jami ko'rilgan: <strong class="text-emerald-400">{{ kpis.total_inspected_qty }}</strong> dona
+            </span>
+        </div>
+
+        {% if inspectors_list %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 uppercase font-black tracking-wider border-b border-slate-800 text-[11px]">
+                        <th class="py-3.5 px-4 w-14 text-center">№</th>
+                        <th class="py-3.5 px-4 min-w-[200px]">Nazoratchi (F.I.SH)</th>
+                        <th class="py-3.5 px-3 text-center min-w-[130px]">Jami Tekshirgan</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">1-Sort (A'lo)</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">Ta'mir</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">2-Sort (Brak)</th>
+                        <th class="py-3.5 px-3 min-w-[260px]">Patoklar Bo'yicha Taqsimoti</th>
+                        <th class="py-3.5 px-4 text-center w-28">Batafsil</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80 bg-slate-900/60">
+                    {% for insp in inspectors_list %}
+                    <tr class="hover:bg-slate-800/40 transition group" id="row-insp-{{ insp.id }}">
+                        <!-- 1. Reyting raqami -->
+                        <td class="py-3.5 px-4 text-center align-middle">
+                            <span class="w-7 h-7 rounded-xl {% if forloop.counter == 1 %}bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20{% elif forloop.counter == 2 %}bg-slate-300 text-slate-950 font-black{% elif forloop.counter == 3 %}bg-amber-700 text-white font-black{% else %}bg-slate-950 text-slate-400 border border-slate-800 font-bold{% endif %} inline-flex items-center justify-center text-xs font-mono">
+                                {{ forloop.counter }}
+                            </span>
+                        </td>
+
+                        <!-- 2. Nazoratchi ismi & Filiali -->
+                        <td class="py-3.5 px-4 align-middle">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center text-xs font-black shadow-inner flex-shrink-0">
+                                    <i class="fa-solid fa-user-check"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <strong class="text-white text-sm font-black truncate block">
+                                            {{ insp.name }}
+                                        </strong>
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-black {% if insp.branch == 'UYCHI' %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% else %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% endif %}">
+                                            {{ insp.branch }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                                        {% if insp.uid %}
+                                        <span>UID: <strong class="text-slate-300">{{ insp.uid }}</strong></span>
+                                        <span class="text-slate-600">•</span>
+                                        {% endif %}
+                                        <span>{{ insp.patoks_count }} ta patokda ishlagan</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- 3. Jami Tekshirgan (Dona & Quti) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-cyan-300 digital-font">
+                                    {{ insp.total_inspected }}
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-mono">
+                                    {{ insp.boxes_count }} ta quti
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- 4. 1-Sort (Yashil) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-emerald-400 digital-font">
+                                    {{ insp.first_sort }}
+                                </span>
+                                <span class="text-[10px] text-emerald-400/80 font-mono font-bold">
+                                    {{ insp.first_sort_pct }}%
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- 5. Ta'mir (Qizil) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            {% if insp.repair > 0 %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-rose-400 digital-font">
+                                    {{ insp.repair }}
+                                </span>
+                                <span class="text-[10px] text-rose-400 font-mono font-bold">
+                                    {{ insp.repair_pct }}%
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 6. 2-Sort (Sariq) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            {% if insp.second_sort > 0 %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-amber-400 digital-font">
+                                    {{ insp.second_sort }}
+                                </span>
+                                <span class="text-[10px] text-amber-400 font-mono font-bold">
+                                    {{ insp.second_sort_pct }}%
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 7. Patoklar Bo'yicha Taqsimoti (Badges) -->
+                        <td class="py-3.5 px-3 align-middle">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                {% for p in insp.patoks %}
+                                <div class="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono flex items-center gap-1.5 shadow-sm hover:border-slate-700 transition"
+                                    title="{{ p.patok_name }}: Jami {{ p.total }} dona (1-sort: {{ p.first_sort }}, 2-sort: {{ p.second_sort }}, Ta'mir: {{ p.repair }})">
+                                    <span class="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-black text-[10px] border border-indigo-500/30">
+                                        {{ p.patok_code }}
+                                    </span>
+                                    <strong class="text-white font-bold">{{ p.total }}</strong>
+                                    <span class="text-[10px] text-slate-500">dona</span>
+                                    <div class="flex items-center gap-1 text-[9px] border-l border-slate-800 pl-1.5">
+                                        <span class="text-emerald-400 font-bold">{{ p.first_sort }}</span>
+                                        {% if p.repair > 0 %}
+                                        <span class="text-rose-400 font-bold">• {{ p.repair }}t</span>
+                                        {% endif %}
+                                        {% if p.second_sort > 0 %}
+                                        <span class="text-amber-400 font-bold">• {{ p.second_sort }}b</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <span class="text-slate-600 font-mono text-xs">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <!-- 8. Batafsil Tugmasi -->
+                        <td class="py-3.5 px-4 text-center align-middle">
+                            <button type="button" onclick="toggleOtkDrawer('drawer-insp-{{ insp.id }}', this)"
+                                class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-indigo-300 hover:text-white border border-indigo-800/60 font-black text-xs transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer mx-auto">
+                                <i class="fa-solid fa-list-check"></i>
+                                <span>Batafsil</span>
+                                <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- EXPANDABLE DRAWER: NAZORATCHINING OXIRGI TEKSHIRGAN QUTILARI -->
+                    <tr id="drawer-insp-{{ insp.id }}" class="hidden bg-slate-950/95 border-t border-b border-indigo-900/40">
+                        <td colspan="8" class="p-4 sm:p-5">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center text-xs font-black">
+                                            <i class="fa-solid fa-boxes-stacked"></i>
+                                        </span>
+                                        <h4 class="text-xs font-black text-white uppercase tracking-wider">
+                                            {{ insp.name }} — Tekshirgan Qutilari Jurnali (Oxirgi amallar)
+                                        </h4>
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 font-mono">
+                                        Jami: {{ insp.boxes_count }} ta quti
+                                    </span>
+                                </div>
+
+                                {% if insp.recent_logs %}
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse text-[11px]">
+                                        <thead>
+                                            <tr class="text-slate-500 uppercase font-black tracking-wider border-b border-slate-800/80 text-[10px]">
+                                                <th class="py-2 px-3">Vaqt</th>
+                                                <th class="py-2 px-3">Quti Kodi</th>
+                                                <th class="py-2 px-3">Zakaz & Model</th>
+                                                <th class="py-2 px-3 text-center">Patok</th>
+                                                <th class="py-2 px-3 text-center">Jami</th>
+                                                <th class="py-2 px-3 text-center">1-Sort</th>
+                                                <th class="py-2 px-3 text-center">Ta'mir</th>
+                                                <th class="py-2 px-3 text-center">2-Sort</th>
+                                                <th class="py-2 px-3 text-right">Amal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-800/60 font-mono">
+                                            {% for r in insp.recent_logs %}
+                                            <tr class="hover:bg-slate-800/30">
+                                                <td class="py-2 px-3 text-slate-400">{{ r.time }}</td>
+                                                <td class="py-2 px-3 font-bold text-white">{{ r.box_code }}</td>
+                                                <td class="py-2 px-3 text-slate-300 font-sans">
+                                                    {{ r.order_number }} • {{ r.model_name }}
+                                                </td>
+                                                <td class="py-2 px-3 text-center">
+                                                    <span class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 font-bold border border-indigo-800/60 text-[10px]">
+                                                        {{ r.patok_code }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2 px-3 text-center font-bold text-cyan-300">{{ r.inspected_qty }}</td>
+                                                <td class="py-2 px-3 text-center text-emerald-400 font-bold">{{ r.first_sort }}</td>
+                                                <td class="py-2 px-3 text-center {% if r.repair > 0 %}text-rose-400 font-bold{% else %}text-slate-600{% endif %}">{{ r.repair }}</td>
+                                                <td class="py-2 px-3 text-center {% if r.second_sort > 0 %}text-amber-400 font-bold{% else %}text-slate-600{% endif %}">{{ r.second_sort }}</td>
+                                                <td class="py-2 px-3 text-right">
+                                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-950 text-slate-400 border border-slate-800 font-sans">
+                                                        {{ r.action_type }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="text-center py-4 text-slate-500 font-mono text-xs">Jurnallar topilmadi</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-16 px-4">
+            <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto mb-3">
+                <i class="fa-solid fa-clipboard-question"></i>
+            </div>
+            <h4 class="text-base font-bold text-white">Sifat nazorati ma'lumotlari topilmadi</h4>
+            <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                Tanlangan sana ({{ selected_date_str }}) yoki filial bo'yicha sifat nazoratchilarining tekshiruvlari mavjud emas.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ================================================================= -->
+    <!-- TAB 2: PATOKLAR KESIMIDA (LINIYALAR HOLATI JADVALI)               -->
+    <!-- ================================================================= -->
+    {% if view_tab == 'patoks' %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center text-sm font-black">
+                    <i class="fa-solid fa-desktop"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-white uppercase tracking-wider">
+                        Patoklar (Liniyalar) Kesimida OTK Chiqishi va Nazoratchilar Taqsimoti
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Har bir patokdan chiqqan ishlar soni, navlari va qaysi OTKchilar tekshirgani</p>
+                </div>
+            </div>
+            <span class="text-xs text-slate-400 font-mono">
+                Jami patoklar: <strong class="text-teal-400">{{ patoks_list|length }}</strong> ta liniya
+            </span>
+        </div>
+
+        {% if patoks_list %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-slate-400 uppercase font-black tracking-wider border-b border-slate-800 text-[11px]">
+                        <th class="py-3.5 px-4 w-44">Patok</th>
+                        <th class="py-3.5 px-3 text-center min-w-[130px]">Jami Tekshirilgan</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">1-Sort (A'lo)</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">Ta'mir</th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]">2-Sort (Brak)</th>
+                        <th class="py-3.5 px-3 min-w-[280px]">Ushbu Patokni Tekshirgan OTKchilar</th>
+                        <th class="py-3.5 px-4 text-center w-28">Batafsil</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80 bg-slate-900/60">
+                    {% for p in patoks_list %}
+                    <tr class="hover:bg-slate-800/40 transition group" id="row-patok-{{ p.patok_code }}">
+                        <!-- 1. Patok kodi va nomi -->
+                        <td class="py-3.5 px-4 align-middle">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-xl {% if p.branch == 'UYCHI' %}bg-sky-500/20 text-sky-400 border border-sky-500/30{% else %}bg-purple-500/20 text-purple-400 border border-purple-500/30{% endif %} flex items-center justify-center font-black text-xs flex-shrink-0 shadow-inner">
+                                    {{ p.patok_code }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <strong class="text-white text-sm font-black truncate block">
+                                            {{ p.patok_name }}
+                                        </strong>
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-black {% if p.branch == 'UYCHI' %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% else %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% endif %}">
+                                            {{ p.branch }}
+                                        </span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 font-mono block mt-0.5">
+                                        {{ p.inspectors_count }} nafar OTKchi ishlagan
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- 2. Jami Tekshirilgan (Dona & Quti) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-cyan-300 digital-font">
+                                    {{ p.total_inspected }}
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-mono">
+                                    {{ p.boxes_count }} ta quti
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- 3. 1-Sort (Yashil) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-emerald-400 digital-font">
+                                    {{ p.first_sort }}
+                                </span>
+                                <span class="text-[10px] text-emerald-400/80 font-mono font-bold">
+                                    {{ p.first_sort_pct }}%
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- 4. Ta'mir (Qizil) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            {% if p.repair > 0 %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-rose-400 digital-font">
+                                    {{ p.repair }}
+                                </span>
+                                <span class="text-[10px] text-rose-400 font-mono font-bold">
+                                    {{ p.repair_pct }}%
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 5. 2-Sort (Sariq) -->
+                        <td class="py-3.5 px-3 text-center align-middle">
+                            {% if p.second_sort > 0 %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-base font-black text-amber-400 digital-font">
+                                    {{ p.second_sort }}
+                                </span>
+                                <span class="text-[10px] text-amber-400 font-mono font-bold">
+                                    {{ p.second_sort_pct }}%
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 6. Ushbu Patokni Tekshirgan OTKchilar (Badges) -->
+                        <td class="py-3.5 px-3 align-middle">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                {% for insp in p.inspectors %}
+                                <div class="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono flex items-center gap-1.5 shadow-sm hover:border-slate-700 transition"
+                                    title="{{ insp.name }} ({{ insp.branch }}): {{ insp.total }} dona ko'rgan (1-sort: {{ insp.first_sort }}, 2-sort: {{ insp.second_sort }}, Ta'mir: {{ insp.repair }})">
+                                    <i class="fa-solid fa-user-check text-indigo-400 text-[10px]"></i>
+                                    <span class="text-slate-200 font-bold font-sans">{{ insp.name }}</span>
+                                    <strong class="text-emerald-400 font-black">{{ insp.total }}</strong>
+                                    <span class="text-[10px] text-slate-500">dona</span>
+                                    <div class="flex items-center gap-1 text-[9px] border-l border-slate-800 pl-1.5">
+                                        <span class="text-emerald-400 font-bold">{{ insp.first_sort }}</span>
+                                        {% if insp.repair > 0 %}
+                                        <span class="text-rose-400 font-bold">• {{ insp.repair }}t</span>
+                                        {% endif %}
+                                        {% if insp.second_sort > 0 %}
+                                        <span class="text-amber-400 font-bold">• {{ insp.second_sort }}b</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <span class="text-slate-600 font-mono text-xs">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <!-- 7. Batafsil Tugmasi -->
+                        <td class="py-3.5 px-4 text-center align-middle">
+                            <button type="button" onclick="toggleOtkDrawer('drawer-patok-{{ p.patok_code }}', this)"
+                                class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-teal-300 hover:text-white border border-teal-800/60 font-black text-xs transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer mx-auto">
+                                <i class="fa-solid fa-list-check"></i>
+                                <span>Batafsil</span>
+                                <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"></i>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- EXPANDABLE DRAWER: PATOKNING OXIRGI TEKSHIRILGAN QUTILARI -->
+                    <tr id="drawer-patok-{{ p.patok_code }}" class="hidden bg-slate-950/95 border-t border-b border-teal-900/40">
+                        <td colspan="7" class="p-4 sm:p-5">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 flex items-center justify-center text-xs font-black">
+                                            <i class="fa-solid fa-desktop"></i>
+                                        </span>
+                                        <h4 class="text-xs font-black text-white uppercase tracking-wider">
+                                            {{ p.patok_name }} — Oxirgi Tekshiruv Amallari va Sifat Loglari
+                                        </h4>
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 font-mono">
+                                        Jami: {{ p.boxes_count }} ta quti
+                                    </span>
+                                </div>
+
+                                {% if p.recent_logs %}
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse text-[11px]">
+                                        <thead>
+                                            <tr class="text-slate-500 uppercase font-black tracking-wider border-b border-slate-800/80 text-[10px]">
+                                                <th class="py-2 px-3">Vaqt</th>
+                                                <th class="py-2 px-3">Nazoratchi</th>
+                                                <th class="py-2 px-3">Quti Kodi</th>
+                                                <th class="py-2 px-3">Zakaz & Model</th>
+                                                <th class="py-2 px-3 text-center">Jami</th>
+                                                <th class="py-2 px-3 text-center">1-Sort</th>
+                                                <th class="py-2 px-3 text-center">Ta'mir</th>
+                                                <th class="py-2 px-3 text-center">2-Sort</th>
+                                                <th class="py-2 px-3 text-right">Amal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-800/60 font-mono">
+                                            {% for r in p.recent_logs %}
+                                            <tr class="hover:bg-slate-800/30">
+                                                <td class="py-2 px-3 text-slate-400">{{ r.time }}</td>
+                                                <td class="py-2 px-3 font-bold text-white font-sans flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-user-check text-indigo-400 text-[10px]"></i>
+                                                    {{ r.inspector_name }}
+                                                </td>
+                                                <td class="py-2 px-3 font-bold text-white">{{ r.box_code }}</td>
+                                                <td class="py-2 px-3 text-slate-300 font-sans">
+                                                    {{ r.order_number }} • {{ r.model_name }}
+                                                </td>
+                                                <td class="py-2 px-3 text-center font-bold text-cyan-300">{{ r.inspected_qty }}</td>
+                                                <td class="py-2 px-3 text-center text-emerald-400 font-bold">{{ r.first_sort }}</td>
+                                                <td class="py-2 px-3 text-center {% if r.repair > 0 %}text-rose-400 font-bold{% else %}text-slate-600{% endif %}">{{ r.repair }}</td>
+                                                <td class="py-2 px-3 text-center {% if r.second_sort > 0 %}text-amber-400 font-bold{% else %}text-slate-600{% endif %}">{{ r.second_sort }}</td>
+                                                <td class="py-2 px-3 text-right">
+                                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-950 text-slate-400 border border-slate-800 font-sans">
+                                                        {{ r.action_type }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="text-center py-4 text-slate-500 font-mono text-xs">Jurnallar topilmadi</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-16 px-4">
+            <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto mb-3">
+                <i class="fa-solid fa-desktop"></i>
+            </div>
+            <h4 class="text-base font-bold text-white">Patoklar ma'lumotlari topilmadi</h4>
+            <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                Tanlangan sana ({{ selected_date_str }}) yoki filial bo'yicha sifat nazorati tekshiruvlari mavjud emas.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    function toggleOtkDrawer(drawerId, btn) {
+        const drawer = document.getElementById(drawerId);
+        if (!drawer) return;
+        const isHidden = drawer.classList.contains('hidden');
+        drawer.classList.toggle('hidden');
+        if (btn) {
+            const icon = btn.querySelector('.fa-chevron-down, .fa-chevron-up');
+            if (icon) {
+                if (isHidden) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                } else {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -72,6 +72,12 @@
                 <span>Ta'mir Monitoringi</span>
             </a>
 
+            <a href="{% url 'production:sewing_statistics_otk' %}"
+                class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.url_name in 'sewing_statistics_otk,sewing_statistics_inspectors' %}bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-black shadow-lg shadow-indigo-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-indigo-400 text-base"></i>
+                <span>OTK Sifat Nazorati</span>
+            </a>
+
             <a href="{% url 'production:master_statistics' %}"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-bold text-sm transition {% if request.resolver_match.url_name == 'master_statistics' %}bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-black shadow-lg shadow-sky-500/20{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 <i class="fa-solid fa-user-check w-5 text-center text-sky-400 text-base"></i>

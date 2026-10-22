@@ -3,7 +3,7 @@ from decimal import Decimal
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q, Prefetch, Sum
+from django.db.models import Q, Prefetch, Sum, Count
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.core.paginator import Paginator
@@ -2920,4 +2920,323 @@ def api_send_telegram_daily_report_view(request):
             'target_date': str(target_date),
             'result': res,
         })
+
+
+@manager_or_superadmin_required
+def sewing_statistics_otk_view(request):
+    """
+    OTK SIFAT NAZORATI: ODAMLAR VA PATOKLAR KESIMIDA KUNLIK MONITORING VA REYTING
+    - Nazoratchilar kesimida (kim qancha 1-sort, 2-sort, ta'mir ko'rdi, qaysi patoklarda ishladi)
+    - Patoklar kesimida (har bir patokdan qancha ish tekshirildi, kimlar tekshirdi)
+    - Filial filtri: Barchasi, Bosh bino (HQ), Uychi filiali
+    - Sana filtri: Bugun real-time, kecha va istalgan sana
+    """
+    from datetime import datetime, time, timedelta
+    from collections import defaultdict
+    from production.services import get_patok_code, get_patok_name
+
+    date_str = request.GET.get('date', '').strip()
+    selected_date = None
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = None
+    if not selected_date:
+        selected_date = timezone.localdate()
+
+    today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    is_today = (selected_date == today)
+
+    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
+    if is_today:
+        day_end = timezone.now()
+    else:
+        day_end = timezone.make_aware(datetime.combine(selected_date, time(23, 59, 59, 999999)), tz)
+
+    is_uychi_admin = (
+        request.user.is_authenticated and
+        getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN and
+        getattr(request.user, 'branch', None) == 'UYCHI'
+    )
+
+    branch_filter = request.GET.get('branch', '').strip().upper()
+    if is_uychi_admin:
+        branch_filter = 'UYCHI'
+    elif not branch_filter:
+        branch_filter = 'ALL'
+
+    view_tab = request.GET.get('tab', 'inspectors').strip().lower()
+    if view_tab not in ('inspectors', 'patoks'):
+        view_tab = 'inspectors'
+
+    search_q = request.GET.get('q', '').strip()
+
+    # Query all inspection logs for the selected date range
+    logs_qs = BoxQualityInspectionLog.objects.filter(
+        created_at__range=(day_start, day_end)
+    ).select_related(
+        'inspector',
+        'box__order__customer',
+        'box__article__model'
+    ).order_by('-created_at')
+
+    logs = list(logs_qs)
+
+    # Pre-fetch screen numbers for all boxes in 1 index-scan query
+    box_ids = {l.box_id for l in logs if l.box_id}
+    box_screens_map = {}
+    if box_ids:
+        ticket_screens = Ticket.objects.filter(
+            box_id__in=box_ids,
+            screen_number__isnull=False
+        ).values('box_id', 'screen_number').annotate(c=Count('id')).order_by('box_id', '-c')
+        for row in ticket_screens:
+            bid = row['box_id']
+            if bid not in box_screens_map:
+                box_screens_map[bid] = row['screen_number']
+
+    inspectors_map = {}
+    patoks_map = {}
+    all_unique_boxes = set()
+
+    for l in logs:
+        insp = l.inspector
+        if not insp:
+            continue
+
+        b = l.box
+        b_screen = box_screens_map.get(b.id) if b else None
+        if not b_screen and b and b.assigned_screen:
+            b_screen = b.assigned_screen
+
+        p_code = get_patok_code(b_screen) if b_screen else "Noma'lum"
+        p_name = get_patok_name(b_screen) if b_screen else "Noma'lum Patok"
+        p_branch = 'HQ' if (b_screen and b_screen <= 13) else ('UYCHI' if b_screen else (insp.branch or 'HQ'))
+
+        if branch_filter != 'ALL' and p_branch != branch_filter:
+            continue
+
+        insp_branch = insp.branch or 'HQ'
+        effective_second_sort = l.second_sort_qty or (l.defect_qty if l.action_type == BoxQualityInspectionLog.ActionType.REPAIR_RETURN else 0)
+
+        if b:
+            all_unique_boxes.add(b.id)
+
+        # 1. Update inspector
+        if insp.id not in inspectors_map:
+            inspectors_map[insp.id] = {
+                'id': insp.id,
+                'name': insp.get_full_name() or insp.username,
+                'username': insp.username,
+                'uid': insp.uid or '',
+                'branch': insp_branch,
+                'total_inspected': 0,
+                'first_sort': 0,
+                'second_sort': 0,
+                'repair': 0,
+                'boxes_set': set(),
+                'patoks': defaultdict(lambda: {'patok_code': '', 'patok_name': '', 'screen_number': None, 'total': 0, 'first_sort': 0, 'second_sort': 0, 'repair': 0, 'boxes_count': 0}),
+                'recent_logs': [],
+            }
+        im = inspectors_map[insp.id]
+        im['total_inspected'] += l.inspected_qty
+        im['first_sort'] += l.first_sort_qty
+        im['second_sort'] += effective_second_sort
+        im['repair'] += l.repair_qty
+        if b:
+            im['boxes_set'].add(b.id)
+
+        p_item = im['patoks'][p_code]
+        p_item['patok_code'] = p_code
+        p_item['patok_name'] = p_name
+        p_item['screen_number'] = b_screen
+        p_item['total'] += l.inspected_qty
+        p_item['first_sort'] += l.first_sort_qty
+        p_item['second_sort'] += effective_second_sort
+        p_item['repair'] += l.repair_qty
+        if b:
+            p_item['boxes_count'] += 1
+
+        if len(im['recent_logs']) < 15:
+            im['recent_logs'].append({
+                'id': l.id,
+                'time': timezone.localtime(l.created_at).strftime("%H:%M:%S"),
+                'box_code': b.box_code if b else "—",
+                'box_number': b.box_number if b else "—",
+                'order_number': b.order.order_number if b and b.order else "—",
+                'model_name': b.article.name if b and b.article else "—",
+                'patok_code': p_code,
+                'inspected_qty': l.inspected_qty,
+                'first_sort': l.first_sort_qty,
+                'second_sort': effective_second_sort,
+                'repair': l.repair_qty,
+                'action_type': l.get_action_type_display(),
+            })
+
+        # 2. Update patok
+        if p_code not in patoks_map:
+            patoks_map[p_code] = {
+                'patok_code': p_code,
+                'patok_name': p_name,
+                'screen_number': b_screen,
+                'branch': p_branch,
+                'total_inspected': 0,
+                'first_sort': 0,
+                'second_sort': 0,
+                'repair': 0,
+                'boxes_set': set(),
+                'inspectors': defaultdict(lambda: {'id': 0, 'name': '', 'uid': '', 'branch': '', 'total': 0, 'first_sort': 0, 'second_sort': 0, 'repair': 0, 'boxes_count': 0}),
+                'recent_logs': [],
+            }
+        pm = patoks_map[p_code]
+        pm['total_inspected'] += l.inspected_qty
+        pm['first_sort'] += l.first_sort_qty
+        pm['second_sort'] += effective_second_sort
+        pm['repair'] += l.repair_qty
+        if b:
+            pm['boxes_set'].add(b.id)
+
+        insp_item = pm['inspectors'][insp.id]
+        insp_item['id'] = insp.id
+        insp_item['name'] = insp.get_full_name() or insp.username
+        insp_item['uid'] = insp.uid or ''
+        insp_item['branch'] = insp_branch
+        insp_item['total'] += l.inspected_qty
+        insp_item['first_sort'] += l.first_sort_qty
+        insp_item['second_sort'] += effective_second_sort
+        insp_item['repair'] += l.repair_qty
+        if b:
+            insp_item['boxes_count'] += 1
+
+        if len(pm['recent_logs']) < 15:
+            pm['recent_logs'].append({
+                'id': l.id,
+                'time': timezone.localtime(l.created_at).strftime("%H:%M:%S"),
+                'inspector_name': insp.get_full_name() or insp.username,
+                'box_code': b.box_code if b else "—",
+                'box_number': b.box_number if b else "—",
+                'order_number': b.order.order_number if b and b.order else "—",
+                'model_name': b.article.name if b and b.article else "—",
+                'inspected_qty': l.inspected_qty,
+                'first_sort': l.first_sort_qty,
+                'second_sort': effective_second_sort,
+                'repair': l.repair_qty,
+                'action_type': l.get_action_type_display(),
+            })
+
+    # Format inspectors list
+    inspectors_list = []
+    for uid, im in inspectors_map.items():
+        if search_q:
+            sq = search_q.upper()
+            if sq not in im['name'].upper() and sq not in im['uid'] and sq not in im['username'].upper():
+                continue
+
+        tot = im['total_inspected']
+        fs = im['first_sort']
+        rep = im['repair']
+        ss = im['second_sort']
+
+        patok_items = sorted(im['patoks'].values(), key=lambda x: x['total'], reverse=True)
+
+        inspectors_list.append({
+            'id': im['id'],
+            'name': im['name'],
+            'username': im['username'],
+            'uid': im['uid'],
+            'branch': im['branch'],
+            'total_inspected': tot,
+            'boxes_count': len(im['boxes_set']),
+            'first_sort': fs,
+            'second_sort': ss,
+            'repair': rep,
+            'first_sort_pct': round((fs / tot * 100), 1) if tot > 0 else 0.0,
+            'repair_pct': round((rep / tot * 100), 1) if tot > 0 else 0.0,
+            'second_sort_pct': round((ss / tot * 100), 1) if tot > 0 else 0.0,
+            'patoks': patok_items,
+            'patoks_count': len(patok_items),
+            'recent_logs': im['recent_logs'],
+        })
+
+    inspectors_list.sort(key=lambda x: x['total_inspected'], reverse=True)
+
+    # Format patoks list
+    patoks_list = []
+    for pcode, pm in patoks_map.items():
+        if branch_filter != 'ALL' and pm['branch'] != branch_filter:
+            continue
+        if search_q:
+            sq = search_q.upper()
+            if sq not in pm['patok_code'].upper() and sq not in pm['patok_name'].upper():
+                continue
+
+        tot = pm['total_inspected']
+        fs = pm['first_sort']
+        rep = pm['repair']
+        ss = pm['second_sort']
+
+        insp_items = sorted(pm['inspectors'].values(), key=lambda x: x['total'], reverse=True)
+
+        patoks_list.append({
+            'patok_code': pm['patok_code'],
+            'patok_name': pm['patok_name'],
+            'screen_number': pm['screen_number'],
+            'branch': pm['branch'],
+            'total_inspected': tot,
+            'boxes_count': len(pm['boxes_set']),
+            'first_sort': fs,
+            'second_sort': ss,
+            'repair': rep,
+            'first_sort_pct': round((fs / tot * 100), 1) if tot > 0 else 0.0,
+            'repair_pct': round((rep / tot * 100), 1) if tot > 0 else 0.0,
+            'second_sort_pct': round((ss / tot * 100), 1) if tot > 0 else 0.0,
+            'inspectors': insp_items,
+            'inspectors_count': len(insp_items),
+            'recent_logs': pm['recent_logs'],
+        })
+
+    # Sort patoks: by screen_number (1..40) if available, or total inspected
+    patoks_list.sort(key=lambda x: (x['screen_number'] or 999, -x['total_inspected']))
+
+    # Grand Totals and KPIs
+    total_inspected_sum = sum(x['total_inspected'] for x in inspectors_list)
+    total_first_sort_sum = sum(x['first_sort'] for x in inspectors_list)
+    total_second_sort_sum = sum(x['second_sort'] for x in inspectors_list)
+    total_repair_sum = sum(x['repair'] for x in inspectors_list)
+
+    kpis = {
+        'total_inspected_qty': total_inspected_sum,
+        'total_first_sort_qty': total_first_sort_sum,
+        'total_second_sort_qty': total_second_sort_sum,
+        'total_repair_qty': total_repair_sum,
+        'total_boxes_count': len(all_unique_boxes),
+        'active_inspectors': len(inspectors_list),
+        'active_patoks': len(patoks_list),
+        'first_sort_pct': round((total_first_sort_sum / total_inspected_sum * 100), 1) if total_inspected_sum > 0 else 0.0,
+        'repair_pct': round((total_repair_sum / total_inspected_sum * 100), 1) if total_inspected_sum > 0 else 0.0,
+        'second_sort_pct': round((total_second_sort_sum / total_inspected_sum * 100), 1) if total_inspected_sum > 0 else 0.0,
+    }
+
+    prev_date = selected_date - timedelta(days=1)
+    next_date = selected_date + timedelta(days=1)
+
+    context = {
+        'selected_date': selected_date,
+        'selected_date_str': selected_date.isoformat(),
+        'prev_date_str': prev_date.isoformat(),
+        'next_date_str': next_date.isoformat(),
+        'is_today': is_today,
+        'is_uychi_admin': is_uychi_admin,
+        'branch_filter': branch_filter,
+        'view_tab': view_tab,
+        'search_q': search_q,
+        'inspectors_list': inspectors_list,
+        'patoks_list': patoks_list,
+        'kpis': kpis,
+    }
+
+    return render(request, 'production/sewing_statistics_otk.html', context)
+
 

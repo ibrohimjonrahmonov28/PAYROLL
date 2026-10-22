@@ -4195,6 +4195,188 @@ class MetoHubAndWaybillLogisticsTest(TestCase):
         self.assertEqual(self.batch1.assigned_screen, 14)
 
 
+class SewingStatisticsOtkViewTest(TestCase):
+    def setUp(self):
+        from accounts.models import User
+        from django.test import Client
+        from decimal import Decimal
+        from production.models import (
+            Customer, ProductModel, Article, Operation, ArticleOperation,
+            Order, OrderItem, OrderItemSize, CuttingBatch, CuttingBatchItem, Box, Ticket,
+            BoxQualityInspectionLog
+        )
+        self.client = Client()
+        self.superadmin = User.objects.create_superuser(
+            username='admin_otk_stats',
+            password='password123',
+            first_name='Super',
+            last_name='Admin'
+        )
+        self.uychi_admin = User.objects.create_user(
+            username='uychi_admin_otk',
+            password='password123',
+            first_name='Uychi',
+            last_name='Admin',
+            role=User.Role.BRANCH_ADMIN,
+            branch=User.Branch.UYCHI
+        )
+        self.inspector = User.objects.create_user(
+            username='shoira_otk',
+            password='password123',
+            first_name='Shoira',
+            last_name='Nazarova',
+            role=User.Role.CONTROL,
+            branch=User.Branch.HQ
+        )
+
+        self.customer = Customer.objects.create(name='OTK Test Client')
+        self.pmodel = ProductModel.objects.create(name='Model OTK', code='M-OTK-1')
+        self.article = Article.objects.create(name='Article OTK', code='A-OTK-1', model=self.pmodel)
+        self.op = Operation.objects.create(name='Tikuv', code='OP-OTK-T')
+        self.aop = ArticleOperation.objects.create(article=self.article, operation=self.op, sequence=1, price_per_unit=Decimal('100.00'), is_active=True)
+
+        self.order = Order.objects.create(order_number='ORD-OTK-01', customer=self.customer, status=Order.Status.IN_PROGRESS)
+        self.order_item = OrderItem.objects.create(order=self.order, article=self.article, quantity=200)
+        self.size = OrderItemSize.objects.create(order_item=self.order_item, size_name='M', planned_quantity=200)
+
+        # Batch 1 (Screen 1 => K1, HQ)
+        self.batch1 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=901,
+            pastal_code='P-901',
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        )
+        self.bitem1 = CuttingBatchItem.objects.create(batch=self.batch1, order_item_size=self.size, quantity=100, real_quantity=100)
+        self.box1 = Box.objects.create(
+            order=self.order, article=self.article, cutting_batch_item=self.bitem1,
+            box_number=1, quantity=50, pastal_number='P-901', assigned_screen=1
+        )
+        self.ticket1 = Ticket.objects.create(
+            box=self.box1, article_operation=self.aop, ticket_code='TC-001',
+            quantity=50, price_per_unit=Decimal('100.00'), total_amount=Decimal('5000.00'), screen_number=1
+        )
+
+        # Batch 2 (Screen 14 => U1, UYCHI)
+        self.batch2 = CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=902,
+            pastal_code='P-902',
+            assigned_screen=14,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
+        )
+        self.bitem2 = CuttingBatchItem.objects.create(batch=self.batch2, order_item_size=self.size, quantity=100, real_quantity=100)
+        self.box2 = Box.objects.create(
+            order=self.order, article=self.article, cutting_batch_item=self.bitem2,
+            box_number=2, quantity=40, pastal_number='P-902', assigned_screen=14
+        )
+        self.ticket2 = Ticket.objects.create(
+            box=self.box2, article_operation=self.aop, ticket_code='TC-002',
+            quantity=40, price_per_unit=Decimal('100.00'), total_amount=Decimal('4000.00'), screen_number=14
+        )
+
+        # Inspection Logs
+        self.log1 = BoxQualityInspectionLog.objects.create(
+            box=self.box1,
+            inspector=self.inspector,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=50,
+            first_sort_qty=45,
+            second_sort_qty=2,
+            repair_qty=3,
+            defect_qty=0,
+            notes='[Nazoratchi: Shoira Nazarova (UID: 777)]'
+        )
+        self.log2 = BoxQualityInspectionLog.objects.create(
+            box=self.box2,
+            inspector=self.inspector,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=40,
+            first_sort_qty=38,
+            second_sort_qty=0,
+            repair_qty=2,
+            defect_qty=0,
+            notes='[Nazoratchi: Shoira Nazarova (UID: 777)]'
+        )
+
+    def test_sewing_statistics_otk_view_authenticated_superadmin(self):
+        self.client.force_login(self.superadmin)
+        response = self.client.get('/sewing-statistics/otk/')
+        self.assertEqual(response.status_code, 200)
+
+        kpis = response.context['kpis']
+        self.assertEqual(kpis['total_inspected_qty'], 90)
+        self.assertEqual(kpis['total_first_sort_qty'], 83)
+        self.assertEqual(kpis['total_repair_qty'], 5)
+        self.assertEqual(kpis['total_second_sort_qty'], 2)
+        self.assertEqual(kpis['active_inspectors'], 1)
+
+        inspectors = response.context['inspectors_list']
+        self.assertEqual(len(inspectors), 1)
+        inspector_data = inspectors[0]
+        self.assertEqual(inspector_data['name'], 'Shoira Nazarova')
+        self.assertEqual(inspector_data['total_inspected'], 90)
+        self.assertEqual(inspector_data['first_sort'], 83)
+        self.assertEqual(inspector_data['repair'], 5)
+        self.assertEqual(inspector_data['second_sort'], 2)
+        self.assertEqual(len(inspector_data['patoks']), 2)
+
+    def test_sewing_statistics_otk_patoks_tab(self):
+        self.client.force_login(self.superadmin)
+        response = self.client.get('/sewing-statistics/otk/?tab=patoks')
+        self.assertEqual(response.status_code, 200)
+
+        patoks = response.context['patoks_list']
+        patok_codes = [p['patok_code'] for p in patoks]
+        self.assertIn('K1', patok_codes)
+        self.assertIn('U1', patok_codes)
+
+        k1_data = next(p for p in patoks if p['patok_code'] == 'K1')
+        self.assertEqual(k1_data['total_inspected'], 50)
+        self.assertEqual(k1_data['first_sort'], 45)
+        self.assertEqual(k1_data['repair'], 3)
+        self.assertEqual(k1_data['second_sort'], 2)
+
+        u1_data = next(p for p in patoks if p['patok_code'] == 'U1')
+        self.assertEqual(u1_data['total_inspected'], 40)
+        self.assertEqual(u1_data['first_sort'], 38)
+        self.assertEqual(u1_data['repair'], 2)
+
+    def test_sewing_statistics_otk_branch_filter(self):
+        self.client.force_login(self.superadmin)
+
+        # HQ only
+        res_hq = self.client.get('/sewing-statistics/otk/?branch=HQ')
+        self.assertEqual(res_hq.status_code, 200)
+        self.assertEqual(res_hq.context['kpis']['total_inspected_qty'], 50)
+
+        # UYCHI only
+        res_uychi = self.client.get('/sewing-statistics/otk/?branch=UYCHI')
+        self.assertEqual(res_uychi.status_code, 200)
+        self.assertEqual(res_uychi.context['kpis']['total_inspected_qty'], 40)
+
+    def test_sewing_statistics_otk_uychi_admin_restriction(self):
+        self.client.force_login(self.uychi_admin)
+        response = self.client.get('/sewing-statistics/otk/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['is_uychi_admin'])
+        # Restricted automatically to Uychi
+        self.assertEqual(response.context['kpis']['total_inspected_qty'], 40)
+        self.assertEqual(response.context['kpis']['total_first_sort_qty'], 38)
+        self.assertEqual(response.context['kpis']['total_repair_qty'], 2)
+
+    def test_sewing_statistics_otk_search_filter(self):
+        self.client.force_login(self.superadmin)
+        res_found = self.client.get('/sewing-statistics/otk/?q=Shoira')
+        self.assertEqual(res_found.status_code, 200)
+        self.assertEqual(len(res_found.context['inspectors_list']), 1)
+
+        res_not_found = self.client.get('/sewing-statistics/otk/?q=NomalumXodim')
+        self.assertEqual(res_not_found.status_code, 200)
+        self.assertEqual(len(res_not_found.context['inspectors_list']), 0)
+
+
+
 
 
 
