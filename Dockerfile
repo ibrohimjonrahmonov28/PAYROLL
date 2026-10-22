@@ -6,12 +6,14 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Tizim paketlari (PostgreSQL mijoz, OpenCV headless va yordamchi modullar uchun)
+# Tizim paketlari (PostgreSQL mijoz, OpenCV headless, Cyrillic shriftlar va yordamchi modullar uchun)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     libglib2.0-0 \
     libgomp1 \
     curl \
+    fonts-dejavu-core \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 # Python bog'liqliklarini o'rnatish

@@ -4495,6 +4495,42 @@ class SewingStatisticsOtkViewTest(TestCase):
         self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', res['Content-Type'])
         self.assertTrue(len(res.content) > 5000)
 
+    def test_cyrillic_font_and_report_image_generation(self):
+        from production.daily_image_reports import get_branch_daily_report_data, generate_branch_report_image, _get_font
+        from PIL import ImageFont
+        font = _get_font(16, bold=True)
+        # Shrift FreeType TrueType bo'lishi kerak, load_default emas
+        self.assertTrue(isinstance(font, ImageFont.FreeTypeFont))
+
+        now = timezone.localdate()
+        hq_data = get_branch_daily_report_data('HQ', now)
+        hq_buf = generate_branch_report_image(hq_data)
+        self.assertTrue(hq_buf.getvalue().startswith(b'\x89PNG\r\n\x1a\n'))
+        self.assertGreater(len(hq_buf.getvalue()), 25000)
+
+        uychi_data = get_branch_daily_report_data('UYCHI', now)
+        uychi_buf = generate_branch_report_image(uychi_data)
+        self.assertTrue(uychi_buf.getvalue().startswith(b'\x89PNG\r\n\x1a\n'))
+        self.assertGreater(len(uychi_buf.getvalue()), 25000)
+
+    def test_send_single_branch_report_handles_kicked_bot(self):
+        from unittest.mock import patch, MagicMock
+        from production.daily_image_reports import send_single_branch_report
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 403
+        mock_resp.json.return_value = {
+            'ok': False,
+            'error_code': 403,
+            'description': 'Forbidden: bot was kicked from the supergroup chat'
+        }
+
+        with patch('httpx.Client.post', return_value=mock_resp):
+            result = send_single_branch_report('HQ')
+            self.assertFalse(result['success'])
+            self.assertIn("botini tekshiring", result['message'])
+            self.assertIn("qayta qo'shing", result['message'])
+
 
 
 

@@ -22,10 +22,15 @@ def _get_font(size: int = 14, bold: bool = False):
     Kirillcha (Ў, Қ, Ғ, Ҳ) harflarini to'liq qo'llab-quvvatlaydigan shriftlar.
     """
     candidates = [
-        "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
-        "/System/Library/Fonts/Helvetica.ttc",
+        # Loyiha ichiga yuklangan mustaqil shriftlar (Har qanday server/Dockerda 100% kafolatlangan)
+        os.path.join(settings.BASE_DIR, 'production', 'fonts', 'Arial-Bold.ttf' if bold else 'Arial.ttf'),
+        os.path.join(settings.BASE_DIR, 'production', 'fonts', 'DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf'),
+        # Linux (Debian / Ubuntu / Docker)
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        # macOS tizim shriftlari
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
         "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
         "Arial.ttf"
     ]
@@ -482,12 +487,14 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
 
     filename = f"Hisobot_{b_code}_{target_date.strftime('%Y_%m_%d')}.png"
 
-    # Chat ID formatlash (-100... yoki -...)
-    chat_candidates = [target_chat_id]
-    if not target_chat_id.startswith("-100") and target_chat_id.startswith("-"):
-        chat_candidates.append(f"-100{target_chat_id[1:]}")
+    # Chat ID formatlash: Telegram superguruhlari doimo -100 bilan boshlanadi
+    chat_candidates = []
+    if target_chat_id.startswith("-") and not target_chat_id.startswith("-100"):
+        chat_candidates = [f"-100{target_chat_id[1:]}", target_chat_id]
     elif target_chat_id.startswith("-100"):
-        chat_candidates.append(f"-{target_chat_id[4:]}")
+        chat_candidates = [target_chat_id, f"-{target_chat_id[4:]}"]
+    else:
+        chat_candidates = [target_chat_id]
 
     api_url = f"https://api.telegram.org/bot{token}/sendPhoto"
     last_error = ""
@@ -515,11 +522,20 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
         except Exception as ex:
             last_error = str(ex)
 
+    if "kicked" in last_error.lower() or "not a member" in last_error.lower():
+        helpful_msg = (
+            f"Telegram xatoligi: {last_error}. "
+            f"Iltimos, Telegram guruh sozlamalarida @PAYROLL_MASTER_BOT botini tekshiring: "
+            f"agar bot guruhdan chiqarilgan bo'lsa, uni 'Removed users' ro'yxatidan chiqarib, guruhga qayta qo'shing va Admin huquqini bering!"
+        )
+    else:
+        helpful_msg = f"Telegramga yuborishda xatolik: {last_error}"
+
     return {
         'success': False,
         'branch': b_code,
         'chat_id': target_chat_id,
-        'message': f"Telegramga yuborishda xatolik: {last_error}"
+        'message': helpful_msg
     }
 
 
