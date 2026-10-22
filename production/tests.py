@@ -4469,10 +4469,28 @@ class SewingStatisticsOtkViewTest(TestCase):
         res_koson = self.client.get('/sewing-statistics/daily-report/?tab=koson')
         self.assertEqual(res_koson.status_code, 200)
         self.assertIn('koson_data', res_koson.context)
+        self.assertContains(res_koson, "Косонсой тумани")
 
         res_uychi = self.client.get('/sewing-statistics/daily-report/?tab=uychi')
         self.assertEqual(res_uychi.status_code, 200)
         self.assertIn('uychi_data', res_uychi.context)
+        self.assertContains(res_uychi, "Уйчи тумани")
+
+    def test_daily_report_image_preview_endpoint(self):
+        self.client.force_login(self.superadmin)
+        res = self.client.get('/sewing-statistics/daily-report/image-preview/?branch=HQ')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'image/png')
+        self.assertTrue(len(res.content) > 1000)
+
+    def test_daily_report_monthly_excel_export(self):
+        self.client.force_login(self.superadmin)
+        now = timezone.localdate()
+        res = self.client.get(f'/sewing-statistics/daily-report/export-monthly/?year={now.year}&month={now.month}')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', res['Content-Type'])
+        self.assertTrue(len(res.content) > 5000)
+
 
 
 
