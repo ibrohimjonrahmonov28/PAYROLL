@@ -210,11 +210,27 @@ DAILY_BONUS_AMOUNT = 0
 
 # Telegram Bot & Daily Excel Report Settings
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or os.getenv('BOT_TOKEN', '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg')
-TELEGRAM_REPORT_CHAT_ID = os.getenv('TELEGRAM_REPORT_CHAT_ID', '-1004374345556')
+# Agar BOT_TOKEN Passport bot (8679375634) bo'lib qolgan bo'lsa, hisobotlar uchun to'g'ri Payroll bot (8706205290) ishlatilsin
+if str(TELEGRAM_BOT_TOKEN).startswith('8679375634'):
+    TELEGRAM_BOT_TOKEN = '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg'
+
+def _clean_tg_chat_id(val: str, default: str) -> str:
+    s = str(val or default).strip().strip("'\"")
+    if not s:
+        s = default
+    if s.startswith("-100") or s.startswith("@"):
+        return s
+    if s.startswith("-"):
+        return f"-100{s[1:]}"
+    if s.isdigit():
+        return f"-100{s}"
+    return s
+
+TELEGRAM_REPORT_CHAT_ID = _clean_tg_chat_id(os.getenv('TELEGRAM_REPORT_CHAT_ID', '-1004374345556'), '-1004374345556')
 
 # 18:00 Filiallar Kunlik Rasm-Hisobot Guruhlari
-TELEGRAM_HQ_REPORT_CHAT_ID = os.getenv('TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756')
-TELEGRAM_UYCHI_REPORT_CHAT_ID = os.getenv('TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133')
+TELEGRAM_HQ_REPORT_CHAT_ID = _clean_tg_chat_id(os.getenv('TELEGRAM_HQ_REPORT_CHAT_ID', '-1004425170756'), '-1004425170756')
+TELEGRAM_UYCHI_REPORT_CHAT_ID = _clean_tg_chat_id(os.getenv('TELEGRAM_UYCHI_REPORT_CHAT_ID', '-1003903019133'), '-1003903019133')
 
 # Telegram Pastal & Sticker Quality Verification Bot
 TELEGRAM_PASSPORT_BOT_TOKEN = os.getenv('TELEGRAM_PASSPORT_BOT_TOKEN') or os.getenv('PASSPORT_BOT_TOKEN', '8679375634:AAHDanuFo-2_ua2hV7RHCI8SapkGiFIvRL8')

@@ -4529,7 +4529,7 @@ class SewingStatisticsOtkViewTest(TestCase):
             result = send_single_branch_report('HQ')
             self.assertFalse(result['success'])
             self.assertIn("botini tekshiring", result['message'])
-            self.assertIn("qayta qo'shing", result['message'])
+            self.assertIn("xabar/rasm yuborish ruxsati", result['message'])
 
 
 

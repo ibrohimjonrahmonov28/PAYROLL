@@ -487,54 +487,56 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
 
     filename = f"Hisobot_{b_code}_{target_date.strftime('%Y_%m_%d')}.png"
 
-    # Chat ID formatlash: Telegram superguruhlari doimo -100 bilan boshlanadi
-    chat_candidates = []
-    if target_chat_id.startswith("-") and not target_chat_id.startswith("-100"):
-        chat_candidates = [f"-100{target_chat_id[1:]}", target_chat_id]
-    elif target_chat_id.startswith("-100"):
-        chat_candidates = [target_chat_id, f"-{target_chat_id[4:]}"]
-    else:
-        chat_candidates = [target_chat_id]
+    # 1. Bot tokenini aniqlash: Har doim Payroll Master Bot (8706205290)
+    token = str(getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or '').strip().strip("'\"")
+    if not token or token.startswith('8679375634'):
+        token = '8706205290:AAGYsyaQHmx1n5EVo9I3T9Ecjz4Xyz_xEZg'
+
+    # 2. Superguruh chat ID sini normalizatsiya qilish (har doim -100 prefiks bilan)
+    cid = target_chat_id.strip().strip("'\"")
+    if not cid.startswith("@"):
+        if not cid.startswith("-100"):
+            if cid.startswith("-"):
+                cid = f"-100{cid[1:]}"
+            elif cid.isdigit():
+                cid = f"-100{cid}"
 
     api_url = f"https://api.telegram.org/bot{token}/sendPhoto"
-    last_error = ""
+    files = {'photo': (filename, img_buf.getvalue(), 'image/png')}
+    payload = {
+        'chat_id': cid,
+        'caption': caption,
+        'parse_mode': 'Markdown',
+    }
 
-    for cid in chat_candidates:
-        files = {'photo': (filename, img_buf.getvalue(), 'image/png')}
-        payload = {
-            'chat_id': cid,
-            'caption': caption,
-            'parse_mode': 'Markdown',
-        }
-        try:
-            with httpx.Client(timeout=45.0) as client:
-                res = client.post(api_url, data=payload, files=files)
-                res_data = res.json()
-                if res.status_code == 200 and res_data.get('ok'):
-                    return {
-                        'success': True,
-                        'branch': b_code,
-                        'chat_id': cid,
-                        'message': f"{branch_name} hisoboti Telegram guruhga ({cid}) muvaffaqiyatli yuborildi."
-                    }
-                else:
-                    last_error = res_data.get('description', f"HTTP {res.status_code}")
-        except Exception as ex:
-            last_error = str(ex)
+    try:
+        with httpx.Client(timeout=45.0) as client:
+            res = client.post(api_url, data=payload, files=files)
+            res_data = res.json()
+            if res.status_code == 200 and res_data.get('ok'):
+                return {
+                    'success': True,
+                    'branch': b_code,
+                    'chat_id': cid,
+                    'message': f"{branch_name} hisoboti Telegram guruhga ({cid}) muvaffaqiyatli yuborildi."
+                }
+            else:
+                last_error = res_data.get('description', f"HTTP {res.status_code}")
+    except Exception as ex:
+        last_error = str(ex)
 
-    if "kicked" in last_error.lower() or "not a member" in last_error.lower():
+    if "kicked" in last_error.lower() or "not a member" in last_error.lower() or "chat not found" in last_error.lower():
         helpful_msg = (
-            f"Telegram xatoligi: {last_error}. "
-            f"Iltimos, Telegram guruh sozlamalarida @PAYROLL_MASTER_BOT botini tekshiring: "
-            f"agar bot guruhdan chiqarilgan bo'lsa, uni 'Removed users' ro'yxatidan chiqarib, guruhga qayta qo'shing va Admin huquqini bering!"
+            f"Telegram xatoligi ({cid}): {last_error}. "
+            f"Iltimos, guruhda @PAYROLL_MASTER_BOT botini tekshiring: bot a'zolar ro'yxatida bo'lishi va unga xabar/rasm yuborish ruxsati berilgan bo'lishi kerak!"
         )
     else:
-        helpful_msg = f"Telegramga yuborishda xatolik: {last_error}"
+        helpful_msg = f"Telegramga yuborishda xatolik ({cid}): {last_error}"
 
     return {
         'success': False,
         'branch': b_code,
-        'chat_id': target_chat_id,
+        'chat_id': cid,
         'message': helpful_msg
     }
 
