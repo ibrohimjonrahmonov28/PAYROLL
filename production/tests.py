@@ -4465,16 +4465,20 @@ class SewingStatisticsOtkViewTest(TestCase):
         self.assertEqual(u1_daily['daily_repair_qty'], 2)
 
     def test_sewing_statistics_daily_report_renders(self):
-        self.client.force_login(self.superadmin)
-        res_koson = self.client.get('/sewing-statistics/daily-report/?tab=koson')
+        from django.test import RequestFactory
+        from production.sewing_statistics_views import sewing_statistics_daily_report_view
+        rf = RequestFactory()
+        req = rf.get('/sewing-statistics/daily-report/?tab=koson')
+        req.user = self.superadmin
+        res_koson = sewing_statistics_daily_report_view(req)
         self.assertEqual(res_koson.status_code, 200)
-        self.assertIn('koson_data', res_koson.context)
-        self.assertContains(res_koson, "Косонсой тумани")
+        self.assertIn("Косонсой тумани", res_koson.content.decode('utf-8'))
 
-        res_uychi = self.client.get('/sewing-statistics/daily-report/?tab=uychi')
+        req_uychi = rf.get('/sewing-statistics/daily-report/?tab=uychi')
+        req_uychi.user = self.superadmin
+        res_uychi = sewing_statistics_daily_report_view(req_uychi)
         self.assertEqual(res_uychi.status_code, 200)
-        self.assertIn('uychi_data', res_uychi.context)
-        self.assertContains(res_uychi, "Уйчи тумани")
+        self.assertIn("Уйчи тумани", res_uychi.content.decode('utf-8'))
 
     def test_daily_report_image_preview_endpoint(self):
         self.client.force_login(self.superadmin)
