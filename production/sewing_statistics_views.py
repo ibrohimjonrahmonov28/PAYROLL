@@ -14,9 +14,9 @@ from django.utils import timezone
 from accounts.models import User
 from production.models import (
     Order, OrderItem, Box, Ticket, ArticleOperation, BoxQualityInspectionLog,
-    DailyPatokProgress, CuttingBatch
+    DailyPatokProgress, CuttingBatch, Operation
 )
-from production.services import get_patok_name, get_patok_code, get_patok_login
+from production.services import get_patok_name, get_patok_code, get_patok_login, parse_patok_number
 from screens.views import get_screen_data
 
 
@@ -882,8 +882,35 @@ def sewing_statistics_daily_view(request):
         {sn for sn, pset in screen_assigned_pastals_map.items() if pset} |
         set(patok_otk_summary.keys())
     )
-    screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
+    # Screens moduli uchun oldindan yuklash (Preloading - 40 ta ekranni 1 tagacha so'rovga tushiradi)
+    all_today_scans = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED,
+        scanned_at__range=(day_start, day_end),
+        worker__isnull=False
+    ).values('worker_id', 'screen_number', 'scanned_at').order_by('scanned_at')
 
+    worker_latest_screen = {}
+    active_screens_scanned = set()
+    for scan in all_today_scans:
+        worker_latest_screen[scan['worker_id']] = scan['screen_number']
+        if scan['screen_number']:
+            active_screens_scanned.add(scan['screen_number'])
+
+    dazmol_op_ids_cached = list(
+        Operation.objects.filter(name__icontains='DAZMOL')
+        .exclude(name__icontains='TASMA')
+        .exclude(name__icontains="CHO'NTAK")
+        .exclude(name__icontains="CHONTAK")
+        .values_list('id', flat=True)
+    )
+
+    screens_preloaded = {
+        'worker_latest_screen': worker_latest_screen,
+        'dazmol_op_ids': dazmol_op_ids_cached,
+        'active_screens': active_screens_scanned,
+    }
+
+    screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
     patoks_data = []
 
     # KPI hisoblagichlari
@@ -1077,7 +1104,7 @@ def sewing_statistics_daily_view(request):
         norm_diff = completed_for_norm - patok_daily_norm
 
         # Screens moduli orqali hisoblangan aniqlik, davomat, foizlar, patok quvvati va tikuvchilar
-        screen_data = get_screen_data(sn, selected_date)
+        screen_data = get_screen_data(sn, selected_date, preloaded=screens_preloaded)
         sn_aniqlik = screen_data.get('aniqlik', 0)
         sn_davomat = screen_data.get('davomat', 0)
         sn_davomat_foiz = screen_data.get('foiz', 0.0)
