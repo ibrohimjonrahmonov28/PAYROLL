@@ -112,9 +112,9 @@
                 <thead>
                     <tr
                         class="bg-slate-950 text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-800">
-                        <th class="py-4 px-4">Zakaz Raqami</th>
                         <th class="py-4 px-4">Buyurtmachi</th>
-                        <th class="py-4 px-4">Modellar & Artikullar</th>
+                        <th class="py-4 px-4">Zakaz Raqami</th>
+                        <th class="py-4 px-4 min-w-[320px]">Modellar & Artikullar</th>
                         <th class="py-4 px-4 text-center">Razmerlar</th>
                         <th class="py-4 px-4 text-center">Reja Soni</th>
                         <th class="py-4 px-4 text-center">Kesilgan Soni</th>
@@ -128,42 +128,65 @@
                     {% for row in orders_data %}
                     <tr class="hover:bg-slate-800/40 transition cursor-pointer"
                         onclick="window.location='{% url 'manager_order_detail' row.order.id %}'">
-                        <td class="py-4 px-4">
+                        <!-- 1. Buyurtmachi (Avval keladi) -->
+                        <td class="py-3.5 px-4 font-semibold text-slate-300">
+                            {% if row.order.customer %}
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                    <i class="fa-solid fa-building-user"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="text-white font-bold block text-sm truncate max-w-[170px]" title="{{ row.order.customer.name }}">{{ row.order.customer.name }}</span>
+                                    {% if row.order.customer.code %}
+                                    <span class="text-[10px] text-cyan-400 font-mono block">{{ row.order.customer.code }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-white font-bold block text-sm">{{ row.order.client_name|default:"—" }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 2. Zakaz Raqami -->
+                        <td class="py-3.5 px-4">
                             <div class="flex items-center gap-2 text-base font-black text-cyan-400 hover:underline">
                                 <i class="fa-solid fa-folder-open text-cyan-500 text-sm"></i>
                                 <span>{{ row.order.order_number }}</span>
                             </div>
-                            <span class="text-[11px] text-slate-500 block font-normal mt-0.5">
+                            <span class="text-[11px] text-slate-500 block font-normal mt-0.5 font-mono">
                                 {{ row.order.created_at|date:"d.m.Y" }}
                             </span>
                         </td>
-                        <td class="py-4 px-4 font-semibold text-slate-300">
-                            {% if row.order.customer %}
-                            <span class="text-white font-bold block">{{ row.order.customer.name }}</span>
-                            {% if row.order.customer.code %}
-                            <span class="text-[10px] text-cyan-400 font-mono">{{ row.order.customer.code }}</span>
-                            {% endif %}
-                            {% else %}
-                            <span class="text-white font-bold">{{ row.order.client_name|default:"—" }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="space-y-1.5">
+
+                        <!-- 3. Modellar & Artikullar (Ixcham 2 ustunli grid) -->
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">
+                                    {{ row.order.items.all|length }} ta model
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 xl:grid-cols-2 gap-1.5 {% if row.order.items.all|length > 4 %}max-h-28 overflow-y-auto pr-1{% endif %}">
                                 {% for it in row.order.items.all %}
-                                <div class="flex items-center gap-2 flex-wrap">
+                                <div class="px-2 py-1 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center gap-1.5 hover:border-slate-700 transition">
                                     {% if it.article.image %}
                                     <img src="{{ it.article.image.url }}" alt="{{ it.article.name }}"
-                                        class="w-7 h-7 object-cover rounded border border-slate-700">
+                                        class="w-6 h-6 object-cover rounded border border-slate-700 flex-shrink-0">
                                     {% endif %}
-                                    {% if it.article.model %}
-                                    <span
-                                        class="bg-indigo-950 text-indigo-300 border border-indigo-800/80 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase">
-                                        {{ it.article.model.code }}
-                                    </span>
-                                    {% endif %}
-                                    <span class="text-xs text-white font-semibold">{{ it.article.name }} <span
-                                            class="text-cyan-400 font-mono text-[11px]">({{ it.article.code
-                                            }})</span></span>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1">
+                                            {% if it.article.model %}
+                                            <span class="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 font-bold px-1 rounded text-[9px] uppercase font-mono flex-shrink-0">
+                                                {{ it.article.model.code }}
+                                            </span>
+                                            {% endif %}
+                                            <span class="text-xs text-white font-semibold truncate block" title="{{ it.article.name }}">
+                                                {{ it.article.name }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] text-cyan-400 font-mono block">
+                                            {{ it.article.code }}
+                                        </span>
+                                    </div>
                                 </div>
                                 {% empty %}
                                 <span class="text-slate-500 text-xs">—</span>
