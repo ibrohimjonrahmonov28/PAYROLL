@@ -2214,19 +2214,7 @@ def superadmin_pricing(request):
             item.refresh_from_db()
             group.refresh_from_db()
 
-            all_group_items = [
-                {
-                    'id': it.id,
-                    'sequence': it.sequence,
-                    'price': float(it.price_per_unit),
-                    'price_formatted': f"{it.price_per_unit:,.0f}".replace(",", " "),
-                    'difficulty': it.difficulty_display,
-                    'is_active': it.is_active,
-                }
-                for it in group.items.all().order_by('sequence', 'id')
-            ]
-
-            msg = f"'{item.group.name}' guruhi -> '{item.operation.name}' yangilandi (narxi {item.price_per_unit:,.0f} UZS, tartibi #{item.sequence}) va qolgan operatsiyalar avtomatik surildi!"
+            msg = f"'{item.group.name}' guruhi -> '{item.operation.name}' yangilandi (narxi {item.price_per_unit:,.0f} UZS, tartibi #{item.sequence}) va barcha joyda yangilandi!"
             if is_ajax:
                 return JsonResponse({
                     'success': True,
@@ -2234,15 +2222,12 @@ def superadmin_pricing(request):
                     'item': {
                         'id': item.id,
                         'group_id': group.id,
-                        'group_name': group.name,
-                        'operation_name': item.operation.name,
                         'price': float(item.price_per_unit),
                         'price_formatted': f"{item.price_per_unit:,.0f}".replace(",", " "),
                         'sequence': item.sequence,
-                        'difficulty': item.difficulty_display,
+                        'difficulty': item.difficulty,
                         'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
-                    },
-                    'items': all_group_items
+                    }
                 })
             messages.success(request, msg)
             return redirect('superadmin_pricing')
@@ -2290,18 +2275,6 @@ def superadmin_pricing(request):
             item.refresh_from_db()
             group.refresh_from_db()
 
-            all_group_items = [
-                {
-                    'id': it.id,
-                    'sequence': it.sequence,
-                    'price': float(it.price_per_unit),
-                    'price_formatted': f"{it.price_per_unit:,.0f}".replace(",", " "),
-                    'difficulty': it.difficulty_display,
-                    'is_active': it.is_active,
-                }
-                for it in group.items.all().order_by('sequence', 'id')
-            ]
-
             if created:
                 msg = f"'{op.name}' operatsiyasi '{group.name}' guruhiga #{item.sequence} tartibda qo'shildi ({price:,.0f} UZS). Pastdagi operatsiyalar avtomatik surildi."
             else:
@@ -2320,11 +2293,10 @@ def superadmin_pricing(request):
                         'price': float(item.price_per_unit),
                         'price_formatted': f"{item.price_per_unit:,.0f}".replace(",", " "),
                         'sequence': item.sequence,
-                        'difficulty': item.difficulty_display,
+                        'difficulty': item.difficulty,
                         'group_items_count': group.items.count(),
                         'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
-                    },
-                    'items': all_group_items
+                    }
                 })
 
             if created:
@@ -2422,18 +2394,6 @@ def superadmin_pricing(request):
                         if not is_ajax:
                             messages.warning(request, f"Katalogdan o'chirishda xatolik yuz berdi: {e}")
 
-            all_group_items = [
-                {
-                    'id': it.id,
-                    'sequence': it.sequence,
-                    'price': float(it.price_per_unit),
-                    'price_formatted': f"{it.price_per_unit:,.0f}".replace(",", " "),
-                    'difficulty': it.difficulty_display,
-                    'is_active': it.is_active,
-                }
-                for it in group.items.all().order_by('sequence', 'id')
-            ]
-
             msg = f"'{op_name}' operatsiyasi '{group_name}' guruhidan olib tashlandi va qolgan operatsiyalar tartib raqamlari qayta tartiblandi."
             if is_ajax:
                 return JsonResponse({
@@ -2443,7 +2403,6 @@ def superadmin_pricing(request):
                     'group_id': group_id,
                     'group_items_count': group.items.count(),
                     'group_total': f"{group.total_unit_rate:,.0f}".replace(",", " "),
-                    'items': all_group_items,
                 })
             messages.success(request, msg)
             return redirect('superadmin_pricing')
@@ -2507,18 +2466,6 @@ def superadmin_pricing(request):
             art_op.save()
             messages.success(request, f"{art_op.article.code} -> '{art_op.operation.name}' yangilandi.")
             return redirect('superadmin_pricing')
-
-    # Har qanday guruhdagi tartib raqamlarda bo'shliq yoki dublikat bo'lsa, avtomatik to'g'rilash (Auto-heal)
-    all_groups_qs = OperationGroup.objects.prefetch_related('items').all()
-    for g in all_groups_qs:
-        g_items = list(g.items.all().order_by('sequence', 'id'))
-        needs_fix = False
-        for expected_seq, it in enumerate(g_items, start=1):
-            if it.sequence != expected_seq:
-                needs_fix = True
-                break
-        if needs_fix:
-            g.reorder_items()
 
     groups = OperationGroup.objects.prefetch_related('items__operation', 'articles').order_by('name')
     catalog_operations = Operation.objects.prefetch_related('group_items__group').order_by('order_number', 'code')

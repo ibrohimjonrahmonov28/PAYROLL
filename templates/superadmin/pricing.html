@@ -1535,55 +1535,7 @@
         }
     }
 
-    // Yordamchi: Guruh jadvalini qayta tartiblash va barcha qatorlarning yangi tartib raqamlarini DOM da yangilash
-    function syncAndReorderGroupTableDOM(groupId, updatedItems, highlightedItemId = null) {
-        if (!updatedItems || !updatedItems.length) return;
-        const tbody = document.getElementById(`group-tbody-${groupId}`);
-        if (!tbody) return;
-
-        // 1. Har bir qatorning tartib raqami va ma'lumotlarini yangilash
-        updatedItems.forEach(it => {
-            const seqEl = document.getElementById(`item-seq-${it.id}`);
-            if (seqEl) seqEl.textContent = it.sequence;
-
-            // Edit tugmasidagi 5-parametr (sequence) ni yangilaymiz
-            const row = document.getElementById(`group-item-row-${it.id}`);
-            if (row) {
-                row.setAttribute('data-sequence', it.sequence);
-                const editBtn = row.querySelector('button[onclick^="openEditItemModal"]');
-                if (editBtn) {
-                    const currentOnclick = editBtn.getAttribute('onclick') || '';
-                    const parts = currentOnclick.split(',');
-                    if (parts.length >= 7) {
-                        parts[4] = ` ${it.sequence}`;
-                        editBtn.setAttribute('onclick', parts.join(','));
-                    }
-                }
-            }
-        });
-
-        // 2. Qatorlarni sequence bo'yicha saralash va DOM da joyini to'g'rilash
-        const rows = Array.from(tbody.querySelectorAll('tr[id^="group-item-row-"]'));
-        rows.sort((a, b) => {
-            const seqA = parseInt(a.querySelector('td[id^="item-seq-"]')?.textContent || '9999', 10);
-            const seqB = parseInt(b.querySelector('td[id^="item-seq-"]')?.textContent || '9999', 10);
-            return seqA - seqB;
-        });
-        rows.forEach(r => tbody.appendChild(r));
-
-        // 3. Tahrirlangan yoki qo'shilgan qatorni vizual yaltiratish (highlight)
-        if (highlightedItemId) {
-            const targetRow = document.getElementById(`group-item-row-${highlightedItemId}`);
-            if (targetRow) {
-                targetRow.classList.add('ring-2', 'ring-emerald-500/80', 'bg-emerald-950/20');
-                setTimeout(() => {
-                    targetRow.classList.remove('ring-2', 'ring-emerald-500/80', 'bg-emerald-950/20');
-                }, 1800);
-            }
-        }
-    }
-
-    // 2. Guruh operatsiyasini tahrirlash (modal orqali)
+    // 2. Operatsiya narxi va tartibini saqlash
     async function handleEditItemSubmit(event) {
         event.preventDefault();
         const form = event.target;
@@ -1627,15 +1579,10 @@
                 if (diffEl) diffEl.textContent = data.item.difficulty;
                 if (groupTotal && data.item.group_total) groupTotal.textContent = `Jami: ${data.item.group_total} so'm`;
 
-                // Barcha qatorlarni yangi tartib bo'yicha surish va qayta joylash
-                if (data.items) {
-                    syncAndReorderGroupTableDOM(data.item.group_id, data.items, itemId);
-                } else {
-                    const row = document.getElementById(`group-item-row-${itemId}`);
-                    if (row) {
-                        row.classList.add('ring-2', 'ring-emerald-500/80');
-                        setTimeout(() => row.classList.remove('ring-2', 'ring-emerald-500/80'), 1500);
-                    }
+                const row = document.getElementById(`group-item-row-${itemId}`);
+                if (row) {
+                    row.classList.add('ring-2', 'ring-emerald-500/80');
+                    setTimeout(() => row.classList.remove('ring-2', 'ring-emerald-500/80'), 1500);
                 }
                 showPayrollToast(data.message, 'success');
             } else {
@@ -1686,18 +1633,16 @@
                 closeDeleteItemModal();
                 const row = document.getElementById(`group-item-row-${data.item_id}`);
                 if (row) {
-                    row.remove();
+                    row.style.transition = 'all 0.3s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'scale(0.95)';
+                    setTimeout(() => row.remove(), 300);
                 }
 
                 const groupCount = document.getElementById(`group-count-badge-${data.group_id}`);
                 const groupTotal = document.getElementById(`group-total-badge-${data.group_id}`);
                 if (groupCount) groupCount.textContent = `${data.group_items_count} ta operatsiya`;
                 if (groupTotal && data.group_total) groupTotal.textContent = `Jami: ${data.group_total} so'm`;
-
-                // Qolgan qatorlarni qayta raqamlash
-                if (data.items) {
-                    syncAndReorderGroupTableDOM(data.group_id, data.items);
-                }
 
                 showPayrollToast(data.message, 'info');
             } else {
@@ -1759,7 +1704,7 @@
                 if (tbody) {
                     const tr = document.createElement('tr');
                     tr.id = `group-item-row-${data.item.id}`;
-                    tr.className = 'hover:bg-slate-800/30 transition';
+                    tr.className = 'hover:bg-slate-800/30 transition ring-2 ring-emerald-500/80';
                     tr.innerHTML = `
                         <td class="py-2.5 px-3 text-center font-mono text-slate-500 text-sm font-bold" id="item-seq-${data.item.id}">${data.item.sequence}</td>
                         <td class="py-2.5 px-4 font-mono font-bold text-amber-400" id="item-code-${data.item.id}">${data.item.operation_code}</td>
@@ -1797,11 +1742,7 @@
                         </td>
                     `;
                     tbody.appendChild(tr);
-
-                    // Barcha qatorlarni tartiblash
-                    if (data.items) {
-                        syncAndReorderGroupTableDOM(groupId, data.items, data.item.id);
-                    }
+                    setTimeout(() => tr.classList.remove('ring-2', 'ring-emerald-500/80'), 1500);
                 }
 
                 toggleGroupDetails(groupId, true);
