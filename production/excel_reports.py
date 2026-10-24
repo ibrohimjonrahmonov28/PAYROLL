@@ -138,11 +138,6 @@ def _build_monthly_tabel_sheet(
         scanned_at__date__lte=target_date
     )
 
-    # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, biletlar narxlarini eng so'nggi ratsenkalar bilan yangilash
-    ao_ids = list(month_tickets_qs.values_list('article_operation_id', flat=True).distinct())
-    for ao in ArticleOperation.objects.filter(id__in=ao_ids):
-        ao.sync_price_to_tickets()
-
     # Biletlar bo'yicha xodimlar statistikasi (web bilan 100% bir xil)
     worker_ticket_stats = month_tickets_qs.values('worker_id').annotate(
         units=Sum('quantity'),
@@ -1350,25 +1345,6 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
         'box__order'
     ).order_by('scanned_at')
 
-    # 0. Ratsenka (operatsiya narxi) o'zgargan bo'lsa, ushbu oyda skanerlangan barcha biletlar
-    # narxlarini va jami summalarini eng so'nggi ratsenkalar bilan kafolatli qayta hisoblash:
-    ao_ids = list(month_tickets.values_list('article_operation_id', flat=True).distinct())
-    for ao in ArticleOperation.objects.filter(id__in=ao_ids):
-        ao.sync_price_to_tickets()
-
-    # Qayta yangilangan biletlarni yuklash
-    month_tickets = Ticket.objects.filter(
-        status=Ticket.Status.SCANNED,
-        scanned_at__year=target_date.year,
-        scanned_at__month=target_date.month,
-        scanned_at__date__lte=target_date
-    ).select_related(
-        'worker',
-        'article_operation__operation',
-        'article_operation__article__model',
-        'box__order'
-    ).order_by('scanned_at')
-
     # Barcha xodimlar
     active_worker_ids = set(month_tickets.values_list('worker_id', flat=True))
     workers = list(Worker.objects.filter(
@@ -1397,8 +1373,11 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     daily_bonus_amount = getattr(settings, 'DAILY_BONUS_AMOUNT', 0)
     worker_daily_bonuses = {}
     if daily_bonus_amount > 0:
+        tickets_by_worker = {}
+        for t in month_tickets:
+            tickets_by_worker.setdefault(t.worker_id, []).append(t)
         for w in workers:
-            w_tickets = [t for t in month_tickets if t.worker_id == w.id]
+            w_tickets = tickets_by_worker.get(w.id, [])
             t_by_date = {}
             for t in w_tickets:
                 if t.scanned_at:
@@ -1566,26 +1545,29 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
         )
 
         # Ushbu kun yakunida har bir xodimning balansini yangilab qo'yamiz (keyingi kunlar uchun):
+        cur_day_earned_by_worker = {}
+        for t in cur_day_tickets:
+            cur_day_earned_by_worker[t.worker_id] = cur_day_earned_by_worker.get(t.worker_id, Decimal('0.00')) + t.total_amount
+
         for w in workers:
-            w_tickets_today = [t for t in cur_day_tickets if t.worker_id == w.id]
-            today_earned = sum(t.total_amount for t in w_tickets_today)
+            today_earned = cur_day_earned_by_worker.get(w.id, Decimal('0.00'))
             today_paid = month_payouts_by_worker_date.get((w.id, cur_date), Decimal('0.00'))
             running_balances[w.id] += (today_earned - today_paid)
 
     # -------------------------------------------------------------
-    # OXIRGI VARAQ: BARCHA SKANERLANGAN STIKERLAR (OYLIK RO'YXAT)
+    # OXIRGI VARAQ: OYLIK STIKERLAR XULOSASI (MODELLAR VA OPERATSIYALAR KESIMIDA)
     # -------------------------------------------------------------
-    ws2 = wb.create_sheet(title="Barcha Stikerlar")
+    ws2 = wb.create_sheet(title="Stikerlar Xulosasi")
     ws2.views.sheetView[0].showGridLines = True
 
-    ws2.merge_cells('A1:L1')
+    ws2.merge_cells('A1:G1')
     c_title2 = ws2['A1']
-    c_title2.value = "TERRY JAR — OY BO'YICHA SKANERLANGAN BARCHA STIKERLAR RO'YXATI"
+    c_title2.value = "TERRY JAR — OY BO'YICHA MODELLAR VA OPERATSIYALAR XULOSASI"
     c_title2.font = font_title
     c_title2.alignment = align_left
     ws2.row_dimensions[1].height = 26
 
-    ws2.merge_cells('A2:L2')
+    ws2.merge_cells('A2:G2')
     c_sub2 = ws2['A2']
     c_sub2.value = f"Davr: {start_of_month.strftime('%d.%m.%Y')} — {target_date.strftime('%d.%m.%Y')} | Jami stikerlar: {month_tickets.count()} ta"
     c_sub2.font = font_subtitle
@@ -1593,9 +1575,8 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
     ws2.row_dimensions[2].height = 18
 
     headers2 = [
-        "№", "Stiker ID", "Skanerlangan Vaqt", "Xodim UID", "Xodim F.I.SH",
-        "Zakaz №", "Quti №", "Model", "Operatsiya",
-        "Soni (dona)", "Narxi (UZS)", "Jami Summa (UZS)"
+        "№", "Model Kodi", "Model / Artikul Nomi", "Operatsiya",
+        "Skanerlangan Biletlar Soni", "Jami Dona", "Jami Summa (UZS)"
     ]
 
     ws2.row_dimensions[4].height = 24
@@ -1606,99 +1587,91 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
         cell.alignment = align_center
         cell.border = thin_border
 
+    op_stats = list(month_tickets.values(
+        'article_operation__article__model__code',
+        'article_operation__article__model__name',
+        'article_operation__article__name',
+        'article_operation__operation__name',
+    ).annotate(
+        total_tickets=Count('id'),
+        total_qty=Sum('quantity'),
+        total_sum=Sum('total_amount'),
+    ).order_by('-total_sum'))
+
     row_idx2 = 5
     detail_counter = 1
+    total_detail_tickets = 0
     total_detail_units = 0
     total_detail_amount = Decimal('0.00')
 
-    for t in month_tickets:
-        scan_time_str = timezone.localtime(t.scanned_at).strftime("%d.%m.%Y %H:%M:%S") if t.scanned_at else "—"
-        worker_id = get_clean_worker_uid(t.worker) if t.worker else "—"
-        worker_name = t.worker.full_name if t.worker else "Noma'lum"
-
-        order_num = "—"
-        box_num = "—"
-        if t.box:
-            box_num = str(t.box.box_number)
-            if t.box.order:
-                order_num = t.box.order.order_number
-
-        model_name = "—"
-        op_name = "—"
-        if t.article_operation:
-            if t.article_operation.operation:
-                op_name = t.article_operation.operation.name
-            if t.article_operation.article:
-                if t.article_operation.article.model:
-                    model_name = t.article_operation.article.model.name
-                else:
-                    model_name = t.article_operation.article.name
-
-        qty = t.quantity or 0
-        price = t.price_per_unit or Decimal('0.00')
-        tot_amt = t.total_amount or Decimal('0.00')
+    for item in op_stats:
+        m_code = item['article_operation__article__model__code'] or "—"
+        m_name = item['article_operation__article__model__name'] or item['article_operation__article__name'] or "—"
+        op_name = item['article_operation__operation__name'] or "—"
+        c_tickets = item['total_tickets'] or 0
+        qty = item['total_qty'] or 0
+        tot_amt = item['total_sum'] or Decimal('0.00')
 
         c_fill2 = zebra_fill if detail_counter % 2 == 0 else white_fill
 
         ws2.cell(row=row_idx2, column=1, value=detail_counter).alignment = align_center
-        ws2.cell(row=row_idx2, column=2, value=t.id).alignment = align_center
-        ws2.cell(row=row_idx2, column=3, value=scan_time_str).alignment = align_center
-        ws2.cell(row=row_idx2, column=4, value=worker_id).alignment = align_center
-        ws2.cell(row=row_idx2, column=5, value=worker_name).alignment = align_left
-        ws2.cell(row=row_idx2, column=6, value=order_num).alignment = align_center
-        ws2.cell(row=row_idx2, column=7, value=box_num).alignment = align_center
-        ws2.cell(row=row_idx2, column=8, value=model_name).alignment = align_left
-        ws2.cell(row=row_idx2, column=9, value=op_name).alignment = align_left
+        ws2.cell(row=row_idx2, column=2, value=m_code).alignment = align_center
+        ws2.cell(row=row_idx2, column=3, value=m_name).alignment = align_left
+        ws2.cell(row=row_idx2, column=4, value=op_name).alignment = align_left
 
-        c_q = ws2.cell(row=row_idx2, column=10, value=qty)
+        c_cnt = ws2.cell(row=row_idx2, column=5, value=c_tickets)
+        c_cnt.alignment = align_right
+        c_cnt.number_format = '#,##0'
+
+        c_q = ws2.cell(row=row_idx2, column=6, value=qty)
         c_q.alignment = align_right
         c_q.number_format = '#,##0'
 
-        c_p = ws2.cell(row=row_idx2, column=11, value=float(price))
-        c_p.alignment = align_right
-        c_p.number_format = '#,##0'
-
-        c_t = ws2.cell(row=row_idx2, column=12, value=float(tot_amt))
+        c_t = ws2.cell(row=row_idx2, column=7, value=float(tot_amt))
         c_t.alignment = align_right
         c_t.number_format = '#,##0'
 
-        for col_idx in range(1, 13):
+        for col_idx in range(1, 8):
             c_node = ws2.cell(row=row_idx2, column=col_idx)
             c_node.border = thin_border
             if c_fill2.fill_type:
                 c_node.fill = c_fill2
             c_node.font = font_regular
 
+        total_detail_tickets += c_tickets
         total_detail_units += qty
         total_detail_amount += tot_amt
 
         row_idx2 += 1
         detail_counter += 1
 
-    # Sheet 2 Jami qatori
-    ws2.merge_cells(start_row=row_idx2, start_column=1, end_row=row_idx2, end_column=9)
+    # Jami qatori
+    ws2.merge_cells(start_row=row_idx2, start_column=1, end_row=row_idx2, end_column=4)
     c_tot_label2 = ws2.cell(row=row_idx2, column=1, value="JAMI / BARCHASI:")
     c_tot_label2.font = font_bold
     c_tot_label2.alignment = align_right
 
-    c_tot_q2 = ws2.cell(row=row_idx2, column=10, value=total_detail_units)
+    c_tot_cnt2 = ws2.cell(row=row_idx2, column=5, value=total_detail_tickets)
+    c_tot_cnt2.font = font_bold
+    c_tot_cnt2.alignment = align_right
+    c_tot_cnt2.number_format = '#,##0'
+
+    c_tot_q2 = ws2.cell(row=row_idx2, column=6, value=total_detail_units)
     c_tot_q2.font = font_bold
     c_tot_q2.alignment = align_right
     c_tot_q2.number_format = '#,##0'
 
-    ws2.cell(row=row_idx2, column=11, value="")
-
-    c_tot_amt2 = ws2.cell(row=row_idx2, column=12, value=float(total_detail_amount))
+    c_tot_amt2 = ws2.cell(row=row_idx2, column=7, value=float(total_detail_amount))
     c_tot_amt2.font = font_bold
     c_tot_amt2.alignment = align_right
     c_tot_amt2.number_format = '#,##0'
 
-    for col_idx in range(1, 13):
+    for col_idx in range(1, 8):
         c_node = ws2.cell(row=row_idx2, column=col_idx)
         c_node.fill = total_fill
         c_node.border = thick_bottom_border
 
-    col_widths2 = [6, 12, 20, 12, 26, 16, 10, 22, 24, 14, 16, 18]
+    col_widths2 = [6, 14, 28, 28, 18, 16, 20]
     for i, w_val in enumerate(col_widths2, start=1):
         ws2.column_dimensions[get_column_letter(i)].width = w_val
 
