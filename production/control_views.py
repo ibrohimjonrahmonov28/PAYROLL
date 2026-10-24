@@ -12,7 +12,7 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from accounts.models import User, Worker
 from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason, ControlSetting
-from production.terminal_views import extract_worker_code, fix_cyrillic_layout
+from production.terminal_views import extract_worker_code
 
 
 def _get_active_defect_reasons():
@@ -353,9 +353,6 @@ def control_box_lookup_api(request):
     raw_code = str(raw_code).strip()
     if not raw_code:
         return JsonResponse({'status': 'ERROR', 'message': "Iltimos, quti kodini kiriting yoki skaner qiling!"}, status=400)
-
-    # Kirillcha klaviatura tufayli buzuq kelgan kodlarni (masalan СЩТЕКЩДЖФ10-1) to'g'irlash
-    raw_code = fix_cyrillic_layout(raw_code).strip()
 
     # Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish, masalan CONTROL+A9+1 yoki A9+1)
     if '+' in raw_code:

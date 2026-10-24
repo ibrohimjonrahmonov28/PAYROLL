@@ -3828,11 +3828,11 @@ class MasterTabletWorkflowTest(TestCase):
         from production.terminal_views import extract_worker_code
         from production.passport_bot_service import verify_pastal_for_sewing
 
-        # 1. Kirill klaviaturasida urilgan beydjik (USER:554433 -> ГЫУКЖ554433)
-        self.assertEqual(extract_worker_code('ГЫУКЖ554433'), '554433')
-        self.assertEqual(extract_worker_code('ЦЩКЛУКЖЦ-001'), 'W-001')
+        # 1. Beydjik (USER:554433)
+        self.assertEqual(extract_worker_code('USER:554433'), '554433')
+        self.assertEqual(extract_worker_code('WORKER:W-001'), 'W-001')
 
-        # 2. Patok Kontrol: Kirill klaviaturasida operator identifikatsiyasi va quti lookup
+        # 2. Patok Kontrol: operator identifikatsiyasi va quti lookup
         ctrl_user = User.objects.create_user(
             username='ctrl_test_op', password='p', role=User.Role.CONTROL
         )
@@ -3840,7 +3840,7 @@ class MasterTabletWorkflowTest(TestCase):
 
         res_op = self.client.post(
             reverse('control:api_identify_operator'),
-            data=json.dumps({'code': f'ГЫУКЖ{ctrl_user.uid}'}),
+            data=json.dumps({'code': f'USER:{ctrl_user.uid}'}),
             content_type='application/json'
         )
         self.assertEqual(res_op.status_code, 200)
@@ -3897,12 +3897,12 @@ class MasterTabletWorkflowTest(TestCase):
         self.box1.refresh_from_db()
         self.assertEqual(self.box1.controlled_first_sort_qty, 48)
 
-        # 5. PassportBot: Kirill klaviaturasida PASTAL:<id> (ЗФЫЕФДЖ<id>) tekshiruvi
-        res_bot_warn = verify_pastal_for_sewing(f'ЗФЫЕФДЖ{self.batch1.id}')
-        self.assertIn("QAYTA TAQSIMLANGAN", res_bot_warn['message'])
+        # 5. PassportBot: Bekor bo'lgan quti va to'g'ri PASTAL:<id> tekshiruvi
+        res_bot_warn = verify_pastal_for_sewing(f'CONTROL:{self.box_cancelled.box_code}')
+        self.assertIn("taqsimlangan", res_bot_warn['message'].lower())
 
         self.box_cancelled.delete()
-        res_bot = verify_pastal_for_sewing(f'ЗФЫЕФДЖ{self.batch1.id}')
+        res_bot = verify_pastal_for_sewing(f'PASTAL:{self.batch1.id}')
         self.assertTrue(res_bot['success'])
         self.assertTrue(res_bot['can_release'])
 

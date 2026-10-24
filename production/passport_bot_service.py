@@ -184,8 +184,7 @@ def resolve_code_to_entity(raw_code: str):
     if not raw_code:
         return None, None, None, 'UNKNOWN', ''
 
-    from production.terminal_views import fix_cyrillic_layout
-    raw = fix_cyrillic_layout(str(raw_code).strip()).strip()
+    raw = str(raw_code).strip()
     if '+' in raw:
         raw = re.sub(r'^(PASTAL|BATCH|TICKET|TK|CONTROL|BOX|QUTI|PC|ORDER|ZAKAZ)\+', r'\1:', raw, flags=re.IGNORECASE)
         raw = raw.replace('+', '-')

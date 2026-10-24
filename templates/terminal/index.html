@@ -1008,27 +1008,13 @@
             );
         }
 
-        const CYRILLIC_TO_LATIN_MAP = {
-            'й': 'q', 'ц': 'w', 'у': 'e', 'к': 'r', 'е': 't', 'н': 'y', 'г': 'u', 'ш': 'i', 'щ': 'o', 'з': 'p',
-            'ф': 'a', 'ы': 's', 'в': 'd', 'а': 'f', 'п': 'g', 'р': 'h', 'о': 'j', 'л': 'k', 'д': 'l', 'ж': ';',
-            'я': 'z', 'ч': 'x', 'с': 'c', 'м': 'v', 'и': 'b', 'т': 'n', 'ь': 'm',
-            'Й': 'Q', 'Ц': 'W', 'У': 'E', 'К': 'R', 'Е': 'T', 'Н': 'Y', 'Г': 'U', 'Ш': 'I', 'Щ': 'O', 'З': 'P',
-            'Ф': 'A', 'Ы': 'S', 'В': 'D', 'А': 'F', 'П': 'G', 'Р': 'H', 'О': 'J', 'Л': 'K', 'Д': 'L', 'Ж': ':',
-            'Я': 'Z', 'Ч': 'X', 'С': 'C', 'М': 'V', 'И': 'B', 'Т': 'N', 'Ь': 'M', '№': '#'
-        };
-
         function fixCyrillicScannerText(str) {
-            if (!str) return '';
-            const converted = str.split('').map(ch => CYRILLIC_TO_LATIN_MAP[ch] || ch).join('');
-            if (/^(?:USER|WORKER|MASTER|TICKET|TK|BOX|CONTROL)[+:\s-]|^W[-+]\d+|^#[A-Z0-9]{8}$/i.test(converted.trim())) {
-                return converted;
-            }
-            return str;
+            return str || '';
         }
 
         function splitScanTokens(rawText) {
             if (!rawText) return [];
-            const chunks = rawText.split(/[\r\n]+/).map(s => fixCyrillicScannerText(s.trim())).filter(Boolean);
+            const chunks = rawText.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
             const tokens = [];
             for (let chunk of chunks) {
                 // Skaner birdaniga ikkita kodni yopishtirib yuborgan bo'lsa xavfsiz ajratish:
@@ -1178,7 +1164,7 @@
         // 4. SCAN PROCESSING DISPATCHER
         // -------------------------------------------------------------
         function processIncomingScan(rawText) {
-            let text = fixCyrillicScannerText(rawText.trim());
+            let text = (rawText || '').trim();
             if (!text) return;
 
             // Agar skaner klaviatura xatosi tufayli - o'rniga + yuborgan bo'lsa (masalan WX-RF)

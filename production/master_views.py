@@ -18,25 +18,14 @@ from production.models import CuttingBatch, Box, Ticket, Order, Article, Article
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 
 
-_CYRILLIC_TO_LATIN_MAP = str.maketrans(
-    "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮйцукенгшщзхъфывапролджэячсмитьбю",
-    "QWERTYUIOP[]ASDFGHJKL;'ZXCVBNM,.qwertyuiop[]asdfghjkl;'zxcvbnm,."
-)
-
-
 def _normalize_scanner_code(raw_code: str) -> str:
     """
     Zebra skaneridan kelgan matnni normallashtirish:
-    - Agar rus (kirill) klaviaturasida skanerlangan bo'lsa (masalan: ГЫУКЖ123456 -> USER:123456), lotinga o'girish
     - '+' belgilarini ':' yoki '-' ga to'g'irlash
     """
     text = (raw_code or '').strip()
     if not text:
         return ''
-    if re.search(r'[А-Яа-яЁё]', text):
-        text = text.translate(_CYRILLIC_TO_LATIN_MAP)
-        # Kirillda ':' ko'pincha '^' yoki ';' yoki 'Ж' bo'lib tushadi
-        text = re.sub(r'^(USER|WORKER|MASTER|PASTAL|BATCH|TICKET|CONTROL|BOX)[;^Жж+]', r'\1:', text, flags=re.IGNORECASE)
     if '+' in text:
         text = re.sub(r'^(USER|WORKER|MASTER|PASTAL|BATCH|TICKET|CONTROL|BOX)\+', r'\1:', text, flags=re.IGNORECASE)
         text = text.replace('+', '-')

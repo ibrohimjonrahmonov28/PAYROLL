@@ -14,18 +14,9 @@ from production.models import Ticket, Box, Order
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 
 
-RU_TO_EN_TRANS = str.maketrans(
-    "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ",
-    "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>"
-)
-
-
 def fix_cyrillic_layout(text: str) -> str:
-    """Agar foydalanuvchi yoki skaner lotin o'rniga kirill klaviaturasida kiritgan bo'lsa, lotinga o'giradi."""
-    if not text:
-        return text
-    
-    return text.translate(RU_TO_EN_TRANS)
+    """Skaner matnini asl holatida qoldirish (avto-o'girish xatoliklar bergani sababli bekor qilingan)."""
+    return text or ''
 
 
 def _get_request_param(request, *keys, default=''):
@@ -51,9 +42,6 @@ def _get_request_param(request, *keys, default=''):
 
 def extract_worker_code(text: str) -> str:
     text = (text or '').strip()
-    converted = fix_cyrillic_layout(text)
-    if re.match(r'^(?:USER|WORKER|MASTER)[+:\s]|^W[-+]\d+', converted, flags=re.IGNORECASE):
-        text = converted
     # Skaner klaviatura xatolarini to'g'rilash (masalan WX-RF skanerlarida + ni - ga o'girish)
     if '+' in text:
         text = re.sub(r'^(USER|WORKER|MASTER)\+', r'\1:', text, flags=re.IGNORECASE)
@@ -65,7 +53,7 @@ def extract_worker_code(text: str) -> str:
 
 
 def extract_box_code(text: str) -> str:
-    text = fix_cyrillic_layout((text or '').strip())
+    text = (text or '').strip()
     if '+' in text:
         text = re.sub(r'^(BOX|CONTROL|TICKET)\+', r'\1:', text, flags=re.IGNORECASE)
         text = text.replace('+', '-')
@@ -79,7 +67,7 @@ def extract_box_code(text: str) -> str:
 
 
 def extract_ticket_code(text: str) -> str:
-    text = fix_cyrillic_layout((text or '').strip())
+    text = (text or '').strip()
     if '+' in text:
         text = re.sub(r'^(TICKET|TK)\+', r'\1:', text, flags=re.IGNORECASE)
         text = text.replace('+', '-')
@@ -383,24 +371,7 @@ def find_ticket_fast(raw_code: str) -> int | None:
                     if ticket_id:
                         return ticket_id
 
-    # 7. Kirillcha klaviatura orqali kiritilgan bo'lsa avto-o'girish va qayta tekshirish
-    converted = fix_cyrillic_layout(raw_code)
-    if converted != raw_code:
-        conv_clean = extract_ticket_code(converted).strip()
-        conv_upper = conv_clean.upper()
-        ticket_id = Ticket.objects.filter(ticket_code=conv_clean).values_list('id', flat=True).first()
-        if not ticket_id and conv_upper != conv_clean:
-            ticket_id = Ticket.objects.filter(ticket_code=conv_upper).values_list('id', flat=True).first()
-        if ticket_id:
-            return ticket_id
-
-        conv_no_prefix = re.sub(r'^(?:#|ST-|TK-|st-|tk-)+', '', conv_clean).strip().upper()
-        if len(conv_no_prefix) == 8 and conv_no_prefix.isalnum():
-            ticket_id = Ticket.objects.filter(stiker_code=conv_no_prefix).values_list('id', flat=True).first()
-            if ticket_id:
-                return ticket_id
-
-    # 8. Aniq moslik qidiruvi (FAQAT iexact - HECH QACHON icontains EMAS!)
+    # 7. Aniq moslik qidiruvi (FAQAT iexact - HECH QACHON icontains EMAS!)
     fallback_id = Ticket.objects.filter(
         models.Q(ticket_code__iexact=clean_code) |
         models.Q(stiker_code__iexact=clean_code)
