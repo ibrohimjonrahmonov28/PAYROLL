@@ -88,21 +88,39 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         max_screen = min(40, max(34, max_active))
         screen_numbers = list(range(14, max_screen + 1))
 
-    # Shu kungi barcha skanerlangan biletlar
+    # Helper: Ticket qaysi patokka tegishli ekanini aniqlash (Pastal/Quti biriktirilgan patok ustuvor)
+    def get_ticket_patok(t):
+        if t.box and t.box.assigned_screen:
+            return t.box.assigned_screen
+        if t.box and t.box.cutting_batch_item and t.box.cutting_batch_item.batch and t.box.cutting_batch_item.batch.assigned_screen:
+            return t.box.cutting_batch_item.batch.assigned_screen
+        return t.screen_number
+
+    # Shu kungi barcha skanerlangan biletlar (shu filial patoklari yoki shu patoklarga biriktirilgan pastallar)
     all_tickets = list(Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         scanned_at__date=target_date,
-        screen_number__in=screen_numbers
+    ).filter(
+        Q(screen_number__in=screen_numbers) |
+        Q(box__cutting_batch_item__batch__assigned_screen__in=screen_numbers) |
+        Q(box__assigned_screen__in=screen_numbers)
     ).select_related(
         'article_operation__operation',
         'article_operation__article__operation_group',
         'article_operation__article__model',
-        'box__cutting_batch_item__batch__order_item__article__operation_group'
+        'box__cutting_batch_item__batch__order_item__article__operation_group',
+        'box__cutting_batch_item__batch'
     ))
 
+    # Dazmol biletlarini tegishli patoklar bo'yicha ajratish
+    dazmol_by_screen = {}
     tickets_by_screen = {}
     for t in all_tickets:
         tickets_by_screen.setdefault(t.screen_number, []).append(t)
+        if t.article_operation and t.article_operation.operation and is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code):
+            target_sn = get_ticket_patok(t)
+            if target_sn in screen_numbers:
+                dazmol_by_screen.setdefault(target_sn, []).append(t)
 
     # Patoklarga biriktirilgan (ACCEPTED) pastallar
     assigned_batches = list(CuttingBatch.objects.filter(
@@ -111,7 +129,7 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
     ).select_related(
         'order_item__article__operation_group',
         'order_item__article__model'
-    ))
+    ).order_by('accepted_at', 'id'))
     assigned_by_screen = {}
     for b in assigned_batches:
         assigned_by_screen.setdefault(b.assigned_screen, []).append(b)
@@ -127,6 +145,7 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         patok_title = f"{patok_num}-паток"
 
         sn_tickets = tickets_by_screen.get(sn, [])
+        sn_dazmol_tickets = dazmol_by_screen.get(sn, [])
         sn_assigned = assigned_by_screen.get(sn, [])
 
         # Ekran statistikasi (Davomat, Aniqlik, Quvvat)
@@ -134,16 +153,9 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         davomat = screen_data.get('davomat', 0)
         patok_quvvati = float(screen_data.get('patok_quvvati', 0.0))
 
-        # 1. Asosiy Dazmol biletlarini ajratish
-        dazmol_tickets = [
-            t for t in sn_tickets
-            if t.article_operation and t.article_operation.operation and
-            is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code)
-        ]
-
-        # 2. Narxlar shablonlari bo'yicha dazmollarni guruhlash
-        shablon_dazmol_map = {}  # {group_obj or name: count}
-        for t in dazmol_tickets:
+        # 1. Narxlar shablonlari bo'yicha dazmollarni guruhlash
+        shablon_dazmol_map = {}  # {group_key: {'group': group_obj, 'qty': 0}}
+        for t in sn_dazmol_tickets:
             ao = t.article_operation
             art = ao.article if ao else None
             group = art.operation_group if art else None
@@ -159,22 +171,15 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
             shablon_dazmol_map.setdefault(group_key, {'group': group_obj, 'qty': 0})
             shablon_dazmol_map[group_key]['qty'] += t.quantity
 
-        # 3. Agar dazmol bo'lmagan, lekin biriktirilgan pastal bo'lsa (0 dona bilan ko'rsatamiz)
-        for b in sn_assigned:
-            art = b.order_item.article if b.order_item else None
-            group = art.operation_group if art else None
-            group_key = group.name if group else (art.name if art else "Noma'lum")
-            if group_key not in shablon_dazmol_map:
-                shablon_dazmol_map[group_key] = {'group': group, 'qty': 0}
-
-        # 4. Mahsulotlar ro'yxatini shakllantirish
+        # 2. Mahsulotlar ro'yxatini shakllantirish (faqat haqiqiy dazmoldan o'tgan sonlar kesimida)
         products = []
         patok_dazmol_total = 0
         max_group_aniqlik = 0.0
 
-        if shablon_dazmol_map:
+        active_shablons = [item for item in shablon_dazmol_map.items() if item[1]['qty'] > 0]
+        if active_shablons:
             # Dazmol soni bo'yicha kamayish tartibida saralaymiz
-            sorted_groups = sorted(shablon_dazmol_map.items(), key=lambda x: x[1]['qty'], reverse=True)
+            sorted_groups = sorted(active_shablons, key=lambda x: x[1]['qty'], reverse=True)
             for g_key, g_info in sorted_groups:
                 g_qty = g_info['qty']
                 patok_dazmol_total += g_qty
@@ -196,16 +201,35 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
                     'aniqlik': aniqlik_display,
                 })
         else:
-            # Birorta ham pastal yoki dazmol bo'lmagan holat
-            g_aniqlik = float(screen_data.get('aniqlik', 0.0))
-            aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else (round(g_aniqlik, 1) if g_aniqlik > 0 else "—")
-            products.append({
-                'shablon_name': "—",
-                'dazmol_qty': 0,
-                'display_str': "0 / —",
-                'aniqlik': aniqlik_display,
-            })
-            max_group_aniqlik = g_aniqlik
+            # Dazmol bo'lmagan holat: agar patokka biriktirilgan asosiy pastal bo'lsa, uning shablonini 0 dona bilan ko'rsatamiz
+            # (faqat 1 ta eng oxirgi asosiy pastal olinadi)
+            primary_batch = sn_assigned[-1] if sn_assigned else None
+            if primary_batch and primary_batch.order_item and primary_batch.order_item.article:
+                art = primary_batch.order_item.article
+                group = art.operation_group
+                g_key = group.name if group else (art.name if art else "Noma'lum")
+                if group:
+                    g_aniqlik = get_operation_group_difficulty(group)
+                else:
+                    g_aniqlik = float(screen_data.get('aniqlik', 0.0))
+                aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else round(g_aniqlik, 1)
+                products.append({
+                    'shablon_name': g_key,
+                    'dazmol_qty': 0,
+                    'display_str': f"0 / {g_key}",
+                    'aniqlik': aniqlik_display,
+                })
+                max_group_aniqlik = g_aniqlik
+            else:
+                g_aniqlik = float(screen_data.get('aniqlik', 0.0))
+                aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else (round(g_aniqlik, 1) if g_aniqlik > 0 else "—")
+                products.append({
+                    'shablon_name': "—",
+                    'dazmol_qty': 0,
+                    'display_str': "0 / —",
+                    'aniqlik': aniqlik_display,
+                })
+                max_group_aniqlik = g_aniqlik
 
         total_dazmol_sum += patok_dazmol_total
         total_davomat_sum += davomat

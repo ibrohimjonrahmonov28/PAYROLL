@@ -4531,6 +4531,71 @@ class SewingStatisticsOtkViewTest(TestCase):
             self.assertIn("botini tekshiring", result['message'])
             self.assertIn("xabar/rasm yuborish ruxsati", result['message'])
 
+    def test_daily_report_shablon_breakdown_matches_total(self):
+        from production.daily_image_reports import get_branch_daily_report_data
+        from production.models import OperationGroup, OperationGroupItem, Operation, ArticleOperation, Article, Order, OrderItem, CuttingBatch, CuttingBatchItem, Box, Ticket
+
+        today = timezone.localdate()
+
+        # 1. Shablonlar
+        grp_futbolka = OperationGroup.objects.create(name="Futbolka Test Shablon")
+        grp_xalat = OperationGroup.objects.create(name="Xalat Test Shablon")
+
+        art_f = Article.objects.create(name="Futbolka Art", code="ART-TEST-F-1", operation_group=grp_futbolka)
+        art_x = Article.objects.create(name="Xalat Art", code="ART-TEST-X-1", operation_group=grp_xalat)
+
+        op_dazmol = Operation.objects.create(name="DAZMOL TAYYORLASH", code="DZ-TEST-1")
+        ao_f = ArticleOperation.objects.create(article=art_f, operation=op_dazmol, price_per_unit=500, difficulty=18.0)
+        ao_x = ArticleOperation.objects.create(article=art_x, operation=op_dazmol, price_per_unit=600, difficulty=22.0)
+
+        # 2. Pastallar (4-patok uchun 2 ta Futbolka, 1 ta Xalat)
+        ord_obj = Order.objects.create(order_number="ORD-TEST-DZ-99")
+        oi_f = OrderItem.objects.create(order=ord_obj, article=art_f, quantity=1000)
+        oi_x = OrderItem.objects.create(order=ord_obj, article=art_x, quantity=500)
+
+        ois_f = OrderItemSize.objects.create(order_item=oi_f, size_name="L")
+        ois_x = OrderItemSize.objects.create(order_item=oi_x, size_name="M")
+
+        batch_f1 = CuttingBatch.objects.create(pastal_code="10-F1", assigned_screen=4, dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED, order_item=oi_f)
+        batch_f2 = CuttingBatch.objects.create(pastal_code="10-F2", assigned_screen=4, dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED, order_item=oi_f)
+        batch_x = CuttingBatch.objects.create(pastal_code="10-X1", assigned_screen=4, dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED, order_item=oi_x)
+
+        # 3. Begona pastal (7-patokniki, lekin 4-patok terminalida skanerlangan)
+        batch_other = CuttingBatch.objects.create(pastal_code="10-OTHER", assigned_screen=7, dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED, order_item=oi_x)
+
+        # Qutilar
+        cbi_f1 = CuttingBatchItem.objects.create(batch=batch_f1, order_item_size=ois_f, quantity=300)
+        cbi_f2 = CuttingBatchItem.objects.create(batch=batch_f2, order_item_size=ois_f, quantity=200)
+        cbi_x = CuttingBatchItem.objects.create(batch=batch_x, order_item_size=ois_x, quantity=500)
+        cbi_other = CuttingBatchItem.objects.create(batch=batch_other, order_item_size=ois_x, quantity=150)
+
+        box_f1 = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_f1, box_number=1, quantity=300, assigned_screen=4)
+        box_f2 = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_f2, box_number=2, quantity=200, assigned_screen=4)
+        box_x = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_x, box_number=3, quantity=500, assigned_screen=4)
+        box_other = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_other, box_number=4, quantity=150, assigned_screen=7)
+
+        # Biletlar (Dazmol stikerlari)
+        Ticket.objects.create(box=box_f1, article_operation=ao_f, quantity=300, status=Ticket.Status.SCANNED, scanned_at=timezone.now(), screen_number=4)
+        Ticket.objects.create(box=box_f2, article_operation=ao_f, quantity=200, status=Ticket.Status.SCANNED, scanned_at=timezone.now(), screen_number=4)
+        Ticket.objects.create(box=box_x, article_operation=ao_x, quantity=500, status=Ticket.Status.SCANNED, scanned_at=timezone.now(), screen_number=4)
+        # Begona quti 4-terminalda urilgan bo'lsa ham:
+        Ticket.objects.create(box=box_other, article_operation=ao_x, quantity=150, status=Ticket.Status.SCANNED, scanned_at=timezone.now(), screen_number=4)
+
+        # Hisobotni chaqiramiz
+        data = get_branch_daily_report_data('HQ', today)
+        row_4 = next(r for r in data['rows'] if r['screen_number'] == 4)
+
+        # 4-patokda: 300 + 200 = 500 Futbolka, 500 Xalat bo'lishi kerak, jami = 1000! Begona 150 kirmaydi!
+        self.assertEqual(row_4['dazmol_total'], 1000)
+        self.assertEqual(len(row_4['products']), 2)
+        prod_map = {p['shablon_name']: p['dazmol_qty'] for p in row_4['products']}
+        self.assertEqual(prod_map['Futbolka Test Shablon'], 500)
+        self.assertEqual(prod_map['Xalat Test Shablon'], 500)
+
+        # Yig'indilar tengligi
+        self.assertEqual(sum(p['dazmol_qty'] for p in row_4['products']), row_4['dazmol_total'])
+
+
 
 
 

@@ -263,6 +263,12 @@
                                 {% empty %}
                                 <span class="text-slate-500 text-xs">0 / —</span>
                                 {% endfor %}
+                                {% if r.products|length > 1 and r.dazmol_total > 0 %}
+                                <div class="text-[11px] text-cyan-300 font-mono font-bold pt-1 border-t border-slate-800/80 flex items-center gap-1.5">
+                                    <span class="text-slate-400 font-sans font-normal">Жами:</span>
+                                    <span>{{ r.dazmol_total }} та</span>
+                                </div>
+                                {% endif %}
                             </div>
                         </td>
 
