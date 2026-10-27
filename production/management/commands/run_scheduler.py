@@ -16,7 +16,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.management.commands.close_daily_payroll import perform_daily_closing
-from production.telegram_reports import send_daily_excel_report
+from production.telegram_reports import send_month_to_date_telegram_report
 from production.daily_image_reports import send_daily_1800_reports
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 def execute_nightly_jobs(target_date: datetime.date) -> dict:
     """
     O'tgan kun uchun tungi operatsiyalarni ketma-ket bajarish:
-    1. Ish haqini yopish va balansga muhrlash
-    2. Excel hisobotini generatsiya qilib Telegram guruhga jo'natish
+    1. Ish haqini yopish va balansga muhrlash (perform_daily_closing)
+    2. Oylik hisobot (Excel) va to'liq ma'lumotlar bazasi zaxira nusxasini (.sql.gz) Telegramga yuborish
     """
     results = {}
 
@@ -43,12 +43,12 @@ def execute_nightly_jobs(target_date: datetime.date) -> dict:
         logger.error(f"Kunlik hisobni yopishda xatolik: {e}", exc_info=True)
         results['closing'] = {'success': False, 'error': str(e)}
 
-    # 2. Telegramga Excel hisobotini yuborish
+    # 2. Telegramga Oylik hisobot (Excel) va to'liq Baza Zaxira nusxasini (.sql.gz) yuborish
     try:
-        report_res = send_daily_excel_report(target_date=target_date)
+        report_res = send_month_to_date_telegram_report(target_date=target_date)
         results['report'] = report_res
     except Exception as e:
-        logger.error(f"Telegram hisobotini yuborishda xatolik: {e}", exc_info=True)
+        logger.error(f"Telegram oylik hisobot va baza zaxirasini yuborishda xatolik: {e}", exc_info=True)
         results['report'] = {'success': False, 'message': str(e)}
 
     return results
@@ -91,7 +91,7 @@ class Command(BaseCommand):
         # DOIMIY SCHEDULER REJIMI
         self.stdout.write(self.style.SUCCESS("⏰ TERRY JAR Avtomatik Scheduler ishga tushdi..."))
         self.stdout.write("📅 1. Har kuni 18:00 da (Toshkent vaqti): Filiallar kunlik rasm-hisobotlari")
-        self.stdout.write("📅 2. Har kuni 00:00 da (Toshkent vaqti): Kunlik ish haqi yopish va to'liq Excel hisoboti")
+        self.stdout.write("📅 2. Har kuni 00:00 da (Toshkent vaqti): Kunlik ish haqi yopish, to'liq oylik hisobot va baza zaxira nusxasi (Full DB Backup)")
 
         last_executed_date = None
         last_1800_executed_date = None
@@ -123,11 +123,11 @@ class Command(BaseCommand):
                         time.sleep(60)
                         continue
 
-                # 2. Har kuni tunda 00:00 dan 00:15 oralig'ida: Tungi ish haqi yopish va Excel hisobot
+                # 2. Har kuni tunda 00:00 dan 00:15 oralig'ida: Tungi ish haqi yopish, Oylik hisobot va DB Backup
                 if now.hour == 0 and now.minute <= 15 and last_executed_date != yesterday:
                     self.stdout.write(self.style.NOTICE(
-                        f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Tungi hisobot vaqti keldi! "
-                        f"Kechagi kun ({yesterday}) uchun hisobot yuborilmoqda..."
+                        f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Tungi hisobot va baza backup vaqti keldi! "
+                        f"Kechagi kun ({yesterday}) uchun oylik hisobot va DB backup yuborilmoqda..."
                     ))
 
                     res = execute_nightly_jobs(yesterday)
@@ -136,7 +136,7 @@ class Command(BaseCommand):
                     if report_status.get('success'):
                         last_executed_date = yesterday
                         self.stdout.write(self.style.SUCCESS(
-                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ✅ Tungi Excel hisoboti muvaffaqiyatli yuborildi: {report_status.get('message')}"
+                            f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ✅ Tungi oylik hisobot va baza backup muvaffaqiyatli yuborildi: {report_status.get('message')}"
                         ))
                     else:
                         self.stdout.write(self.style.WARNING(

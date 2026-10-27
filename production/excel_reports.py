@@ -200,7 +200,12 @@ def _build_monthly_tabel_sheet(
             if w_bonus_sum > 0:
                 worker_daily_bonuses[w_id] = w_bonus_sum
 
-    # 4. Barcha xodimlar: ushbu oyda bilet urgan, to'lov olgan yoki faol barcha xodimlar
+    # 4. Har bir xodimning ushbu oy davomida oxirgi ishlagan patogi (ekran raqami)
+    worker_latest_screen_map = {}
+    for row in month_tickets_qs.exclude(screen_number__isnull=True).values('worker_id', 'screen_number', 'scanned_at').order_by('scanned_at'):
+        worker_latest_screen_map[row['worker_id']] = row['screen_number']
+
+    # 5. Barcha xodimlar: ushbu oyda bilet urgan, to'lov olgan yoki faol barcha xodimlar
     relevant_worker_ids = set(worker_ticket_map.keys()) | set(month_payout_map.keys())
     workers = list(Worker.objects.filter(
         Q(id__in=relevant_worker_ids) | Q(is_active=True)
@@ -237,13 +242,13 @@ def _build_monthly_tabel_sheet(
     align_right = Alignment(horizontal='right', vertical='center')
 
     # Sarlavha
-    ws.merge_cells('A1:J1')
+    ws.merge_cells('A1:K1')
     ws['A1'] = "TERRY JAR — OYLIK ISH HAQI VA XODIMLAR TABELI"
     ws['A1'].font = font_title
     ws['A1'].alignment = align_left
     ws.row_dimensions[1].height = 26
 
-    ws.merge_cells('A2:J2')
+    ws.merge_cells('A2:K2')
     ws['A2'] = (
         f"Davr: {start_of_month.strftime('%d.%m.%Y')} dan {target_date.strftime('%d.%m.%Y')} gacha | "
         f"Shakllantirilgan vaqt: {timezone.localtime().strftime('%d.%m.%Y %H:%M')}"
@@ -256,6 +261,7 @@ def _build_monthly_tabel_sheet(
         ("№", 5, align_center),
         ("Xodim UID", 14, align_center),
         ("F.I.SH", 28, align_left),
+        ("Patok", 13, align_center),
         ("Ishlagan Kunlari", 16, align_center),
         ("Hisoblangan Ish Haqi (UZS)", 24, align_right),
         ("Bonus (UZS)", 18, align_right),
@@ -301,12 +307,22 @@ def _build_monthly_tabel_sheet(
         c_name.alignment = align_left
         c_name.font = font_bold
 
+        # Patok — xodimning oxirgi ishlagan patogi (masalan: K1-Patok, U20-Patok)
+        last_sn = worker_latest_screen_map.get(w.id)
+        if not last_sn and w.user and w.user.assigned_screen:
+            last_sn = w.user.assigned_screen
+        patok_display = get_patok_name(last_sn) if last_sn else "—"
+
+        c_patok = ws.cell(row=row_idx, column=4, value=patok_display)
+        c_patok.alignment = align_center
+        c_patok.font = font_bold if patok_display != "—" else font_regular
+
         # Ishlagan kunlari (shu oyda kamida 1 ta stiker qilgan kunlar soni)
-        c_days = ws.cell(row=row_idx, column=4, value=days_w)
+        c_days = ws.cell(row=row_idx, column=5, value=days_w)
         c_days.alignment = align_center
 
         # Hisoblangan Ish Haqi
-        c_g = ws.cell(row=row_idx, column=5, value=float(g))
+        c_g = ws.cell(row=row_idx, column=6, value=float(g))
         c_g.alignment = align_right
         c_g.number_format = '#,##0'
         if g > 0:
@@ -314,84 +330,88 @@ def _build_monthly_tabel_sheet(
             c_g.fill = green_fill
 
         # Bonus
-        c_bonus = ws.cell(row=row_idx, column=6, value=float(bonus))
+        c_bonus = ws.cell(row=row_idx, column=7, value=float(bonus))
         c_bonus.alignment = align_right
         c_bonus.number_format = '#,##0'
 
         # Berilgan Avans
-        c_adv = ws.cell(row=row_idx, column=7, value=float(adv))
+        c_adv = ws.cell(row=row_idx, column=8, value=float(adv))
         c_adv.alignment = align_right
         c_adv.number_format = '#,##0'
 
         # Magazin (UZS) - 0 kiritiladi, tahrirlanadigan sonli format
-        c_mag = ws.cell(row=row_idx, column=8, value=0)
+        c_mag = ws.cell(row=row_idx, column=9, value=0)
         c_mag.alignment = align_right
         c_mag.number_format = '#,##0'
 
         # To'langan Oylik
-        c_sal = ws.cell(row=row_idx, column=9, value=float(sal))
+        c_sal = ws.cell(row=row_idx, column=10, value=float(sal))
         c_sal.alignment = align_right
         c_sal.number_format = '#,##0'
 
-        # To'lanishi Kerak Qoldiq formulasi: =(E+F)-G-H-I
-        c_qoldiq = ws.cell(row=row_idx, column=10, value=f"=E{row_idx}+F{row_idx}-G{row_idx}-H{row_idx}-I{row_idx}")
+        # To'lanishi Kerak Qoldiq formulasi: =(F+G)-H-I-J
+        c_qoldiq = ws.cell(row=row_idx, column=11, value=f"=F{row_idx}+G{row_idx}-H{row_idx}-I{row_idx}-J{row_idx}")
         c_qoldiq.alignment = align_right
         c_qoldiq.font = font_bold
         c_qoldiq.number_format = '#,##0'
 
-        for col_idx in range(1, 11):
+        for col_idx in range(1, 12):
             c_node = ws.cell(row=row_idx, column=col_idx)
             c_node.border = thin_border
-            if col_idx != 5 or g == 0:
+            if col_idx != 6 or g == 0:
                 if c_fill.fill_type:
                     c_node.fill = c_fill
-            if col_idx not in (2, 3, 5, 10):
+            if col_idx not in (2, 3, 4, 6, 11):
                 c_node.font = font_regular
 
         row_idx += 1
         counter += 1
 
     # JAMI / BARCHASI qatori
-    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=4)
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=5)
     c_tot_lbl = ws.cell(row=row_idx, column=1, value="JAMI / BARCHASI:")
     c_tot_lbl.font = font_bold
     c_tot_lbl.alignment = align_right
 
-    c_tot_g = ws.cell(row=row_idx, column=5, value=f"=SUM(E5:E{row_idx-1})")
+    c_tot_g = ws.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
     c_tot_g.font = font_bold
     c_tot_g.alignment = align_right
     c_tot_g.number_format = '#,##0'
 
-    c_tot_bonus = ws.cell(row=row_idx, column=6, value=f"=SUM(F5:F{row_idx-1})")
+    c_tot_bonus = ws.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
     c_tot_bonus.font = font_bold
     c_tot_bonus.alignment = align_right
     c_tot_bonus.number_format = '#,##0'
 
-    c_tot_adv = ws.cell(row=row_idx, column=7, value=f"=SUM(G5:G{row_idx-1})")
+    c_tot_adv = ws.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
     c_tot_adv.font = font_bold
     c_tot_adv.alignment = align_right
     c_tot_adv.number_format = '#,##0'
 
-    c_tot_mag = ws.cell(row=row_idx, column=8, value=f"=SUM(H5:H{row_idx-1})")
+    c_tot_mag = ws.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
     c_tot_mag.font = font_bold
     c_tot_mag.alignment = align_right
     c_tot_mag.number_format = '#,##0'
 
-    c_tot_sal = ws.cell(row=row_idx, column=9, value=f"=SUM(I5:I{row_idx-1})")
+    c_tot_sal = ws.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
     c_tot_sal.font = font_bold
     c_tot_sal.alignment = align_right
     c_tot_sal.number_format = '#,##0'
 
-    c_tot_qoldiq = ws.cell(row=row_idx, column=10, value=f"=SUM(J5:J{row_idx-1})")
+    c_tot_qoldiq = ws.cell(row=row_idx, column=11, value=f"=SUM(K5:K{row_idx-1})")
     c_tot_qoldiq.font = font_bold
     c_tot_qoldiq.alignment = align_right
     c_tot_qoldiq.number_format = '#,##0'
 
     ws.row_dimensions[row_idx].height = 24
-    for col_idx in range(1, 11):
+    for col_idx in range(1, 12):
         c_node = ws.cell(row=row_idx, column=col_idx)
         c_node.fill = total_fill
         c_node.border = thick_bottom_border
+
+    # AutoFilter yoqish (Patok va boshqa ustunlar bo'yicha filter qilish uchun)
+    if row_idx > 5:
+        ws.auto_filter.ref = f"A{header_row}:K{row_idx-1}"
 
     return ws
 
