@@ -37,6 +37,7 @@
    "production/passport_bot_service.py"
   ],
   "django": [
+   ".claude/project-knowledge/build_graph.py",
    "accounts/admin.py",
    "accounts/apps.py",
    "accounts/freeze_services.py",
@@ -542,7 +543,8 @@
     "production.models"
    ],
    "lazy": [
-    "accounts.freeze_services"
+    "accounts.freeze_services",
+    "production.models"
    ]
   },
   "production.test_sewing_statistics_order_models": {

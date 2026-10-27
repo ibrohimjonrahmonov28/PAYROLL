@@ -279,7 +279,7 @@
   },
   "production.Operation": {
    "table": "production_operation",
-   "file": "production/models.py:216",
+   "file": "production/models.py:220",
    "fields": {
     "id": "BigAutoField",
     "code": "CharField[unique]",
@@ -292,7 +292,7 @@
   },
   "production.ProductModelOperation": {
    "table": "production_productmodeloperation",
-   "file": "production/models.py:263",
+   "file": "production/models.py:267",
    "fields": {
     "id": "BigAutoField",
     "price_per_unit": "DecimalField",
@@ -325,7 +325,7 @@
   },
   "production.OperationGroup": {
    "table": "production_operationgroup",
-   "file": "production/models.py:322",
+   "file": "production/models.py:326",
    "fields": {
     "id": "BigAutoField",
     "name": "CharField[unique]",
@@ -336,7 +336,7 @@
   },
   "production.OperationGroupItem": {
    "table": "production_operationgroupitem",
-   "file": "production/models.py:379",
+   "file": "production/models.py:383",
    "fields": {
     "id": "BigAutoField",
     "price_per_unit": "DecimalField",
@@ -369,7 +369,7 @@
   },
   "production.ArticleOperation": {
    "table": "production_articleoperation",
-   "file": "production/models.py:419",
+   "file": "production/models.py:423",
    "fields": {
     "id": "BigAutoField",
     "price_per_unit": "DecimalField",
@@ -402,7 +402,7 @@
   },
   "production.Order": {
    "table": "production_order",
-   "file": "production/models.py:483",
+   "file": "production/models.py:492",
    "fields": {
     "id": "BigAutoField",
     "order_number": "CharField[unique,idx]",
@@ -431,7 +431,7 @@
   },
   "production.OrderItem": {
    "table": "production_orderitem",
-   "file": "production/models.py:578",
+   "file": "production/models.py:587",
    "fields": {
     "id": "BigAutoField",
     "quantity": "PositiveIntegerField",
@@ -463,7 +463,7 @@
   },
   "production.OrderItemSize": {
    "table": "production_orderitemsize",
-   "file": "production/models.py:668",
+   "file": "production/models.py:677",
    "fields": {
     "id": "BigAutoField",
     "size_name": "CharField",
@@ -489,7 +489,7 @@
   },
   "production.Waybill": {
    "table": "production_waybill",
-   "file": "production/models.py:749",
+   "file": "production/models.py:758",
    "fields": {
     "id": "BigAutoField",
     "waybill_number": "CharField[unique,idx]",
@@ -532,7 +532,7 @@
   },
   "production.CuttingBatch": {
    "table": "production_cuttingbatch",
-   "file": "production/models.py:851",
+   "file": "production/models.py:860",
    "fields": {
     "id": "BigAutoField",
     "batch_number": "PositiveIntegerField",
@@ -593,7 +593,7 @@
   },
   "production.CuttingBatchItem": {
    "table": "production_cuttingbatchitem",
-   "file": "production/models.py:949",
+   "file": "production/models.py:958",
    "fields": {
     "id": "BigAutoField",
     "quantity": "PositiveIntegerField",
@@ -638,7 +638,7 @@
   },
   "production.Box": {
    "table": "production_box",
-   "file": "production/models.py:1094",
+   "file": "production/models.py:1103",
    "fields": {
     "id": "BigAutoField",
     "box_code": "CharField[unique,idx]",
@@ -699,7 +699,7 @@
   },
   "production.BoxQualityInspectionLog": {
    "table": "production_boxqualityinspectionlog",
-   "file": "production/models.py:1293",
+   "file": "production/models.py:1302",
    "fields": {
     "id": "BigAutoField",
     "action_type": "CharField[choices]",
@@ -730,7 +730,7 @@
   },
   "production.DefectReason": {
    "table": "production_defectreason",
-   "file": "production/models.py:1335",
+   "file": "production/models.py:1344",
    "fields": {
     "id": "BigAutoField",
     "code": "CharField[unique]",
@@ -755,7 +755,7 @@
   },
   "production.ControlSetting": {
    "table": "production_controlsetting",
-   "file": "production/models.py:1420",
+   "file": "production/models.py:1429",
    "fields": {
     "id": "BigAutoField",
     "require_all_operations_scanned": "BooleanField",
@@ -773,7 +773,7 @@
   },
   "production.Ticket": {
    "table": "production_ticket",
-   "file": "production/models.py:1455",
+   "file": "production/models.py:1464",
    "fields": {
     "id": "BigAutoField",
     "ticket_code": "CharField[unique,idx]",
@@ -830,7 +830,7 @@
   },
   "production.DailyModelProgress": {
    "table": "production_dailymodelprogress",
-   "file": "production/models.py:1639",
+   "file": "production/models.py:1648",
    "fields": {
     "id": "BigAutoField",
     "date": "DateField[idx]",
@@ -862,7 +862,7 @@
   },
   "production.DailyPatokProgress": {
    "table": "production_dailypatokprogress",
-   "file": "production/models.py:1692",
+   "file": "production/models.py:1701",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveIntegerField[idx]",
@@ -896,7 +896,7 @@
   },
   "production.CancelledBatchLog": {
    "table": "production_cancelledbatchlog",
-   "file": "production/models.py:1755",
+   "file": "production/models.py:1764",
    "fields": {
     "id": "BigAutoField",
     "batch_id": "PositiveIntegerField[idx]",

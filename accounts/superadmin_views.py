@@ -3442,7 +3442,8 @@ def superadmin_recalculate_unfrozen_tickets(request):
 
         messages.success(
             request,
-            f"✓ Muvaffaqiyatli! {total_updated} ta bilet operatsiyalarning yangi narxlariga to'liq qayta hisoblandi. "
+            f"✓ Muvaffaqiyatli! Barcha muzlatilmagan biletlar operatsiyalarning eng so'nggi narxlariga tekshirildi: "
+            f"{total_updated} ta biletning narxi yangilandi (qolganlari allaqachon to'g'ri narxda edi). "
             f"O'tgan oylardagi muzlatilgan stikerlar daxlsiz saqlandi."
         )
 

@@ -1,10 +1,39 @@
 {
  "_note": "sha256_16 = first 16 hex chars of sha256 of file content at generation time. symbols = top-level def/class name:line. Excludes migrations, backups, binaries, secrets.",
  "files": {
+  ".claude/project-knowledge/architecture.md": {
+   "module": "ops",
+   "lines": 46,
+   "sha256_16": "d813a44693946f0a"
+  },
+  ".claude/project-knowledge/build_graph.py": {
+   "module": "ops",
+   "lines": 431,
+   "sha256_16": "15ff571c03be15fa",
+   "symbols": [
+    "module_of:71",
+    "tracked_files:123",
+    "sha:128",
+    "dotted:132",
+    "analyze_py:140",
+    "walk:236",
+    "dump:397"
+   ]
+  },
+  ".claude/project-knowledge/overview.md": {
+   "module": "ops",
+   "lines": 35,
+   "sha256_16": "a7beb46ba649ef9c"
+  },
   "CHANGELOG.md": {
    "module": "ops",
    "lines": 294,
    "sha256_16": "9d998d6017a2d438"
+  },
+  "CLAUDE.md": {
+   "module": "ops",
+   "lines": 90,
+   "sha256_16": "e15ed84dedd60686"
   },
   "Dockerfile": {
    "module": "ops",
@@ -135,8 +164,8 @@
   },
   "accounts/superadmin_views.py": {
    "module": "accounts.superadmin",
-   "lines": 4307,
-   "sha256_16": "1ce86ad9780c81b1",
+   "lines": 4308,
+   "sha256_16": "b9a59b0f8c7610e4",
    "symbols": [
     "superadmin_required:28",
     "payroll_admin_required:43",
@@ -172,17 +201,17 @@
     "superadmin_month_freeze_toggle:3325",
     "superadmin_ticket_freeze_toggle:3380",
     "superadmin_recalculate_unfrozen_tickets:3427",
-    "superadmin_update_worker_branch:3459",
-    "superadmin_defect_reasons:3494",
-    "superadmin_toggle_require_all_operations_scanned:3548",
-    "superadmin_defect_reason_create:3580",
-    "superadmin_defect_reason_edit:3622",
-    "superadmin_defect_reason_toggle:3666",
-    "superadmin_defect_reason_delete:3691",
-    "superadmin_defect_reason_seed_defaults:3707",
-    "_build_orders_balance_data:3820",
-    "superadmin_orders_balance:4103",
-    "superadmin_orders_balance_export_excel:4141"
+    "superadmin_update_worker_branch:3460",
+    "superadmin_defect_reasons:3495",
+    "superadmin_toggle_require_all_operations_scanned:3549",
+    "superadmin_defect_reason_create:3581",
+    "superadmin_defect_reason_edit:3623",
+    "superadmin_defect_reason_toggle:3667",
+    "superadmin_defect_reason_delete:3692",
+    "superadmin_defect_reason_seed_defaults:3708",
+    "_build_orders_balance_data:3821",
+    "superadmin_orders_balance:4104",
+    "superadmin_orders_balance_export_excel:4142"
    ]
   },
   "accounts/tests.py": {
@@ -651,37 +680,37 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 1787,
-   "sha256_16": "76bd7f164bed06ae",
+   "lines": 1796,
+   "sha256_16": "c9ecf7d5458cb368",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
     "ProductModel:55",
     "Article:80",
-    "Operation:216",
-    "ProductModelOperation:263",
-    "OperationGroup:322",
-    "OperationGroupItem:379",
-    "ArticleOperation:419",
-    "Order:483",
-    "OrderItem:578",
-    "OrderItemSize:668",
-    "generate_unique_waybill_number:735",
-    "Waybill:749",
-    "CuttingBatch:851",
-    "CuttingBatchItem:949",
-    "index_to_letters:1017",
-    "letters_to_index:1027",
-    "generate_unique_box_code:1035",
-    "generate_unique_stiker_code:1085",
-    "Box:1094",
-    "BoxQualityInspectionLog:1293",
-    "DefectReason:1335",
-    "ControlSetting:1420",
-    "Ticket:1455",
-    "DailyModelProgress:1639",
-    "DailyPatokProgress:1692",
-    "CancelledBatchLog:1755"
+    "Operation:220",
+    "ProductModelOperation:267",
+    "OperationGroup:326",
+    "OperationGroupItem:383",
+    "ArticleOperation:423",
+    "Order:492",
+    "OrderItem:587",
+    "OrderItemSize:677",
+    "generate_unique_waybill_number:744",
+    "Waybill:758",
+    "CuttingBatch:860",
+    "CuttingBatchItem:958",
+    "index_to_letters:1026",
+    "letters_to_index:1036",
+    "generate_unique_box_code:1044",
+    "generate_unique_stiker_code:1094",
+    "Box:1103",
+    "BoxQualityInspectionLog:1302",
+    "DefectReason:1344",
+    "ControlSetting:1429",
+    "Ticket:1464",
+    "DailyModelProgress:1648",
+    "DailyPatokProgress:1701",
+    "CancelledBatchLog:1764"
    ]
   },
   "production/norma_services.py": {
@@ -887,8 +916,8 @@
   },
   "production/test_salary_freeze.py": {
    "module": "tests",
-   "lines": 192,
-   "sha256_16": "ef2f8abe105fae5f",
+   "lines": 267,
+   "sha256_16": "9c35967b3fe09dde",
    "symbols": [
     "SalaryFreezeAndPriceRecalculationTest:9"
    ]

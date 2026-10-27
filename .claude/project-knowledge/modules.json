@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4357,
+  "lines": 4358,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -101,7 +101,11 @@
  "ops": {
   "description": "Docker / nginx / restore and one-off scripts.",
   "files": [
+   ".claude/project-knowledge/architecture.md",
+   ".claude/project-knowledge/build_graph.py",
+   ".claude/project-knowledge/overview.md",
    "CHANGELOG.md",
+   "CLAUDE.md",
    "Dockerfile",
    "README.md",
    "SYSTEM_ARCHITECTURE_GUIDE.md",
@@ -113,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 1345,
+  "lines": 1947,
   "depends_on": [
    "accounts.core"
   ]
@@ -212,7 +216,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 1787,
+  "lines": 1796,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -451,7 +455,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 9672,
+  "lines": 9747,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

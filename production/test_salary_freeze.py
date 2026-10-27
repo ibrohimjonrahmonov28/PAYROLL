@@ -189,3 +189,78 @@ class SalaryFreezeAndPriceRecalculationTest(TestCase):
         self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1000.00"))
         self.assertEqual(self.ticket_unfrozen.total_amount, Decimal("100000.00"))
 
+    def test_resave_without_price_change_rewrites_no_tickets(self):
+        # Narx o'zgarmagan: operatsiyani saqlash biletlarni qayta yozmaydi, qiymatlar o'zgarmaydi
+        self.art_op.save()
+        self.assertEqual(self.art_op.sync_price_to_tickets(), 0)
+
+        self.ticket_unfrozen.refresh_from_db()
+        self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1000.00"))
+        self.assertEqual(self.ticket_unfrozen.total_amount, Decimal("100000.00"))
+
+    def test_sync_rewrites_only_mismatched_unfrozen_tickets(self):
+        self.ticket_frozen.is_frozen = True
+        self.ticket_frozen.save()
+        # Narxni save() xukisiz o'zgartiramiz, so'ng sinxronlashni qo'lda chaqiramiz
+        ArticleOperation.objects.filter(pk=self.art_op.pk).update(price_per_unit=Decimal("1200.00"))
+        self.art_op.refresh_from_db()
+
+        self.assertEqual(self.art_op.sync_price_to_tickets(), 1)  # faqat muzlatilmagan bilet
+        self.assertEqual(self.art_op.sync_price_to_tickets(), 0)  # ikkinchi marta yoziladigan narsa yo'q
+
+        self.ticket_frozen.refresh_from_db()
+        self.ticket_unfrozen.refresh_from_db()
+        self.assertEqual(self.ticket_frozen.price_per_unit, Decimal("1000.00"))
+        self.assertEqual(self.ticket_frozen.total_amount, Decimal("100000.00"))
+        self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1200.00"))
+        self.assertEqual(self.ticket_unfrozen.total_amount, Decimal("120000.00"))
+
+    def test_sync_fixes_wrong_total_even_when_price_matches(self):
+        Ticket.objects.filter(pk=self.ticket_unfrozen.pk).update(total_amount=Decimal("1.00"))
+
+        self.assertEqual(self.art_op.sync_price_to_tickets(), 1)
+
+        self.ticket_unfrozen.refresh_from_db()
+        self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1000.00"))
+        self.assertEqual(self.ticket_unfrozen.total_amount, Decimal("100000.00"))
+
+    def test_template_price_change_reaches_all_unfrozen_tickets_and_resync_is_noop(self):
+        from production.models import OperationGroup, OperationGroupItem
+
+        pending = Ticket.objects.create(
+            box=self.box,
+            article_operation=self.art_op,
+            quantity=50,
+            split_index=3,
+            total_splits=3,
+            price_per_unit=Decimal("1000.00"),
+            total_amount=Decimal("50000.00"),
+            status=Ticket.Status.PENDING,
+        )
+        codes_before = (pending.ticket_code, pending.stiker_code)
+
+        group = OperationGroup.objects.create(name="Narx Shabloni Test")
+        Article.objects.filter(pk=self.article.pk).update(operation_group=group)
+        # Shablon narxi 1500: OperationGroupItem.save() barcha bog'langan artikullarni sinxronlaydi
+        OperationGroupItem.objects.create(
+            group=group, operation=self.op, price_per_unit=Decimal("1500.00"), sequence=1
+        )
+
+        pending.refresh_from_db()
+        self.ticket_unfrozen.refresh_from_db()
+        self.assertEqual(pending.price_per_unit, Decimal("1500.00"))
+        self.assertEqual(pending.total_amount, Decimal("75000.00"))
+        self.assertEqual(self.ticket_unfrozen.price_per_unit, Decimal("1500.00"))
+        self.assertEqual(self.ticket_unfrozen.total_amount, Decimal("150000.00"))
+        # OLTIN QOIDA: stiker kodlari o'zgarmaydi
+        self.assertEqual((pending.ticket_code, pending.stiker_code), codes_before)
+
+        # Chop etishdagi kabi qayta sinxronlash: hech narsa o'zgarmaydi va qayta yozilmaydi
+        self.article.refresh_from_db()
+        self.article.sync_operations_from_group()
+        self.art_op.refresh_from_db()
+        self.assertEqual(self.art_op.sync_price_to_tickets(), 0)
+        pending.refresh_from_db()
+        self.assertEqual(pending.price_per_unit, Decimal("1500.00"))
+        self.assertEqual(pending.total_amount, Decimal("75000.00"))
+

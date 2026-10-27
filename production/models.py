@@ -142,7 +142,11 @@ class Article(models.Model):
                 ao.tickets.filter(status=Ticket.Status.PENDING).update(status=Ticket.Status.CANCELLED)
             else:
                 # Agar narx o'zgargan bo'lsa, mavjud PENDING biletlarning narxini yangilaymiz (KODLARI DAXLSIZ!)
-                ao.tickets.filter(status=Ticket.Status.PENDING).update(
+                # Narxi allaqachon to'g'ri biletlar qayta yozilmaydi (chop etishda har quti uchun chaqiriladi).
+                ao.tickets.filter(status=Ticket.Status.PENDING).exclude(
+                    price_per_unit=item.price_per_unit,
+                    total_amount=F('quantity') * item.price_per_unit
+                ).update(
                     price_per_unit=item.price_per_unit,
                     total_amount=F('quantity') * item.price_per_unit
                 )
@@ -462,9 +466,14 @@ class ArticleOperation(models.Model):
         biletlarning (joriy oy va hali yopilmagan o'tgan oydagi faol biletlar)
         dona narxi va umumiy summasini avtomatik yangilash.
         Muzlatilgan (is_frozen=True) biletlar daxlsiz qoladi.
+        Narxi va summasi allaqachon to'g'ri biletlar qayta yozilmaydi (yakuniy natija bir xil,
+        bazaga behuda yozish yo'q). Qaytaradi: haqiqatan yangilangan biletlar soni.
         """
         from django.db.models import F
-        return self.tickets.filter(is_frozen=False).update(
+        return self.tickets.filter(is_frozen=False).exclude(
+            price_per_unit=self.price_per_unit,
+            total_amount=F('quantity') * self.price_per_unit
+        ).update(
             price_per_unit=self.price_per_unit,
             total_amount=F('quantity') * self.price_per_unit
         )
