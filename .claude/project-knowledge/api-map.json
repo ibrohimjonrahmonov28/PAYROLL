@@ -1,0 +1,1606 @@
+{
+ "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
+ "route_count": 182,
+ "routes": [
+  {
+   "path": "/admin/",
+   "name": "admin:*",
+   "view": "django.contrib.admin (registrations in */admin.py)",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/bot/passport-webhook/",
+   "name": "root_passport_webhook",
+   "view": "production.passport_views.passport_telegram_webhook",
+   "urlconf": "config.urls",
+   "decorators": [
+    "csrf_exempt"
+   ]
+  },
+  {
+   "path": "/apk/",
+   "name": "root_download_apk",
+   "view": "production.control_views.control_download_apk_view",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/login/",
+   "name": "root_login",
+   "view": "accounts.views.login_view",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/logout/",
+   "name": "root_logout",
+   "view": "accounts.views.logout_view",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/",
+   "name": "production:dashboard",
+   "view": "production.views.dashboard_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/orders/",
+   "name": "production:order_list",
+   "view": "production.views.order_list_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/orders/<int:order_id>/",
+   "name": "production:order_detail",
+   "view": "production.views.order_detail_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/orders/<int:order_id>/print-all/",
+   "name": "production:order_print_all_stickers",
+   "view": "production.views.order_print_all_stickers_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/orders/<int:order_id>/pdf/",
+   "name": "production:order_download_all_stickers_pdf",
+   "view": "production.views.order_download_all_stickers_100x60_pdf",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/batches/<int:batch_id>/passport/",
+   "name": "production:pastal_passport",
+   "view": "production.views.pastal_passport_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/boxes/<int:box_id>/split/",
+   "name": "production:box_split_wizard",
+   "view": "production.views.box_split_wizard_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/boxes/<int:box_id>/print/",
+   "name": "production:box_print_stickers",
+   "view": "production.views.box_print_stickers_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/boxes/<int:box_id>/pdf/",
+   "name": "production:box_download_stickers_pdf",
+   "view": "production.views.box_download_stickers_100x60_pdf",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/articles/",
+   "name": "production:articles_catalog",
+   "view": "production.views.articles_catalog_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/statistics/",
+   "name": "production:statistics_pipeline",
+   "view": "production.views.box_pipeline_statistics_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required"
+   ]
+  },
+  {
+   "path": "/statistics/api/ticket/<str:code_or_id>/",
+   "name": "production:api_ticket_scan_detail",
+   "view": "production.views.api_ticket_scan_detail",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required"
+   ]
+  },
+  {
+   "path": "/terminal/",
+   "name": "production:terminal_home",
+   "view": "production.terminal_views.terminal_home_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/terminal/api/identify-worker/",
+   "name": "production:terminal_identify_worker",
+   "view": "production.terminal_views.terminal_identify_worker_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/terminal/api/scan-ticket/",
+   "name": "production:terminal_scan_ticket",
+   "view": "production.terminal_views.terminal_scan_ticket_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/terminal/api/remove-ticket/",
+   "name": "production:terminal_remove_ticket",
+   "view": "production.terminal_views.terminal_remove_ticket_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/terminal/api/finalize/",
+   "name": "production:terminal_finalize",
+   "view": "production.terminal_views.terminal_finalize_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/terminal/api/box-lookup/",
+   "name": "production:terminal_box_lookup",
+   "view": "production.terminal_views.terminal_box_lookup_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/terminal/api/worker-balance/",
+   "name": "production:terminal_worker_balance",
+   "view": "production.terminal_views.terminal_worker_balance_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/terminal/api/reset-session/",
+   "name": "production:terminal_reset_session",
+   "view": "production.terminal_views.terminal_reset_session_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/terminal/api/revoke-ticket/",
+   "name": "production:terminal_revoke_ticket",
+   "view": "production.terminal_views.terminal_revoke_ticket_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/terminal/api/ticket-info/",
+   "name": "production:terminal_ticket_info",
+   "view": "production.terminal_views.terminal_ticket_info_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/control/",
+   "name": "production:control_home",
+   "view": "production.control_views.control_home_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required",
+    "ensure_csrf_cookie"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/",
+   "name": "production:sewing_statistics_orders",
+   "view": "production.sewing_statistics_views.sewing_statistics_orders_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/daily/",
+   "name": "production:sewing_statistics_daily",
+   "view": "production.sewing_statistics_views.sewing_statistics_daily_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/daily-report/",
+   "name": "production:sewing_statistics_daily_report",
+   "view": "production.sewing_statistics_views.sewing_statistics_daily_report_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/daily-report/send-telegram/",
+   "name": "production:api_send_branch_daily_report",
+   "view": "production.sewing_statistics_views.api_send_branch_daily_report",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/daily-report/image-preview/",
+   "name": "production:sewing_statistics_daily_report_image_preview",
+   "view": "production.sewing_statistics_views.sewing_statistics_daily_report_image_preview",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/daily-report/export-monthly/",
+   "name": "production:export_monthly_daily_report_excel",
+   "view": "production.sewing_statistics_views.export_monthly_daily_report_excel",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/otk/",
+   "name": "production:sewing_statistics_otk",
+   "view": "production.sewing_statistics_views.sewing_statistics_otk_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/inspectors/",
+   "name": "production:sewing_statistics_inspectors",
+   "view": "production.sewing_statistics_views.sewing_statistics_otk_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/api/send-telegram-daily-report/",
+   "name": "production:api_send_telegram_daily_report",
+   "view": "production.sewing_statistics_views.api_send_telegram_daily_report_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/api/daily-operations/",
+   "name": "production:api_sewing_statistics_daily_operations",
+   "view": "production.sewing_statistics_views.api_sewing_statistics_daily_operations",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/close-all-unprinted/",
+   "name": "production:sewing_statistics_close_all_unprinted_boxes",
+   "view": "production.sewing_statistics_views.sewing_statistics_close_all_unprinted_boxes_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/repairs/",
+   "name": "production:sewing_statistics_repairs",
+   "view": "production.sewing_statistics_views.sewing_statistics_repairs_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/orders/<int:order_id>/",
+   "name": "production:sewing_statistics_order_models",
+   "view": "production.sewing_statistics_views.sewing_statistics_order_models_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/orders/<int:order_id>/close-unprinted/",
+   "name": "production:sewing_statistics_close_order_unprinted_boxes",
+   "view": "production.sewing_statistics_views.sewing_statistics_close_order_unprinted_boxes_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/orders/<int:order_id>/items/<int:order_item_id>/",
+   "name": "production:sewing_statistics_model_detail",
+   "view": "production.sewing_statistics_views.sewing_statistics_model_detail_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/sewing-statistics/api/size-boxes/",
+   "name": "production:api_sewing_statistics_size_boxes",
+   "view": "production.sewing_statistics_views.api_sewing_statistics_size_boxes",
+   "urlconf": "production.urls",
+   "decorators": [
+    "manager_or_superadmin_required"
+   ]
+  },
+  {
+   "path": "/passport-checker/",
+   "name": "production:passport_checker",
+   "view": "production.passport_views.passport_checker_web_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required"
+   ]
+  },
+  {
+   "path": "/passport-checker/api/",
+   "name": "production:passport_checker_api",
+   "view": "production.passport_views.passport_checker_api",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt"
+   ]
+  },
+  {
+   "path": "/passport-bot/webhook/",
+   "name": "production:passport_telegram_webhook",
+   "view": "production.passport_views.passport_telegram_webhook",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt"
+   ]
+  },
+  {
+   "path": "/master-tablet/",
+   "name": "production:master_tablet",
+   "view": "production.master_views.master_tablet_view",
+   "urlconf": "production.urls"
+  },
+  {
+   "path": "/master-tablet/api/identify/",
+   "name": "production:master_tablet_identify",
+   "view": "production.master_views.api_identify_master",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/patoks/",
+   "name": "production:master_tablet_patoks",
+   "view": "production.master_views.api_get_patoks_summary",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/patok/<int:screen_number>/",
+   "name": "production:master_tablet_patok_detail",
+   "view": "production.master_views.api_get_patok_detail",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/accept/",
+   "name": "production:master_tablet_accept",
+   "view": "production.master_views.api_accept_pastal",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/reject/",
+   "name": "production:master_tablet_reject",
+   "view": "production.master_views.api_reject_pastal",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/monthly-work/",
+   "name": "production:master_tablet_monthly_work",
+   "view": "production.master_views.api_get_master_monthly_work",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/pastal/<int:batch_id>/boxes/",
+   "name": "production:master_tablet_pastal_boxes",
+   "view": "production.master_views.api_get_pastal_boxes_detail",
+   "urlconf": "production.urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/lookup-pastal/",
+   "name": "production:master_tablet_lookup_pastal",
+   "view": "production.master_views.api_lookup_pastal_by_code",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/master-tablet/api/logout/",
+   "name": "production:master_tablet_logout",
+   "view": "production.master_views.api_logout_master",
+   "urlconf": "production.urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/master-statistics/",
+   "name": "production:master_statistics",
+   "view": "production.master_views.master_statistics_view",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required"
+   ]
+  },
+  {
+   "path": "/master-statistics/api/detail/<int:user_id>/",
+   "name": "production:api_master_statistics_detail",
+   "view": "production.master_views.api_master_statistics_detail",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required",
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/master-statistics/api/toggle-absent/",
+   "name": "production:api_master_statistics_toggle_absent",
+   "view": "production.master_views.api_toggle_master_absent_day",
+   "urlconf": "production.urls",
+   "decorators": [
+    "login_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/control/",
+   "name": "control:home",
+   "view": "production.control_views.control_home_view",
+   "urlconf": "production.control_urls",
+   "decorators": [
+    "login_required",
+    "ensure_csrf_cookie"
+   ]
+  },
+  {
+   "path": "/control/api/lookup/",
+   "name": "control:api_lookup",
+   "view": "production.control_views.control_box_lookup_api",
+   "urlconf": "production.control_urls",
+   "decorators": [
+    "require_http_methods"
+   ]
+  },
+  {
+   "path": "/control/api/submit/",
+   "name": "control:api_submit",
+   "view": "production.control_views.control_submit_inspection_api",
+   "urlconf": "production.control_urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_http_methods",
+    "transaction.atomic"
+   ]
+  },
+  {
+   "path": "/control/api/recent/",
+   "name": "control:api_recent",
+   "view": "production.control_views.control_recent_inspections_api",
+   "urlconf": "production.control_urls",
+   "decorators": [
+    "require_http_methods"
+   ]
+  },
+  {
+   "path": "/control/api/identify-operator/",
+   "name": "control:api_identify_operator",
+   "view": "production.control_views.control_identify_operator_api",
+   "urlconf": "production.control_urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_http_methods"
+   ]
+  },
+  {
+   "path": "/control/api/logout-operator/",
+   "name": "control:api_logout_operator",
+   "view": "production.control_views.control_logout_operator_api",
+   "urlconf": "production.control_urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_http_methods"
+   ]
+  },
+  {
+   "path": "/control/download-apk/",
+   "name": "control:download_apk",
+   "view": "production.control_views.control_download_apk_view",
+   "urlconf": "production.control_urls"
+  },
+  {
+   "path": "/production/control/",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/control/production/control/",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/production/master-tablet/",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/production/master-tablet/<path:extra>",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "config.urls"
+  },
+  {
+   "path": "/superadmin/",
+   "name": "superadmin_dashboard",
+   "view": "accounts.superadmin_views.superadmin_dashboard",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/users/",
+   "name": "superadmin_users",
+   "view": "accounts.superadmin_views.superadmin_users",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/users/<int:user_id>/badge/",
+   "name": "superadmin_user_badge",
+   "view": "accounts.superadmin_views.superadmin_user_badge",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/users/print-badges/",
+   "name": "superadmin_users_print_badges",
+   "view": "accounts.superadmin_views.superadmin_users_print_badges",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/users/download-badges-pdf/",
+   "name": "superadmin_users_download_badges_pdf",
+   "view": "accounts.superadmin_views.superadmin_users_download_badges_pdf",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/",
+   "name": "superadmin_payroll",
+   "view": "accounts.superadmin_views.superadmin_payroll",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/payout/",
+   "name": "superadmin_payout_create",
+   "view": "accounts.superadmin_views.superadmin_payout_create",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/export/",
+   "name": "superadmin_payroll_export",
+   "view": "accounts.superadmin_views.superadmin_payroll_export_csv",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/telegram-report/",
+   "name": "superadmin_send_telegram_report",
+   "view": "accounts.superadmin_views.superadmin_send_telegram_report",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/download-daily-excel/",
+   "name": "superadmin_download_daily_excel",
+   "view": "accounts.superadmin_views.superadmin_download_daily_excel",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/download-monthly-excel/",
+   "name": "superadmin_download_monthly_excel",
+   "view": "accounts.superadmin_views.superadmin_download_monthly_excel",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/close-day/",
+   "name": "superadmin_close_daily_now",
+   "view": "accounts.superadmin_views.superadmin_close_daily_now",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/worker/<int:worker_id>/daily/",
+   "name": "superadmin_worker_daily_breakdown",
+   "view": "accounts.superadmin_views.superadmin_worker_daily_breakdown",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/workers/<int:worker_id>/history/",
+   "name": "superadmin_worker_history",
+   "view": "accounts.superadmin_views.superadmin_worker_history",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/workers/<int:worker_id>/tickets-by-date/",
+   "name": "api_worker_tickets_by_date",
+   "view": "accounts.superadmin_views.api_worker_tickets_by_date",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/workers/update-branch/",
+   "name": "superadmin_update_worker_branch",
+   "view": "accounts.superadmin_views.superadmin_update_worker_branch",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/bulk-pay/",
+   "name": "superadmin_payroll_bulk_pay",
+   "view": "accounts.superadmin_views.superadmin_payroll_bulk_pay",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/start-freeze-timer/",
+   "name": "superadmin_start_month_freeze_timer",
+   "view": "accounts.superadmin_views.superadmin_start_month_freeze_timer",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/month-freeze-toggle/",
+   "name": "superadmin_month_freeze_toggle",
+   "view": "accounts.superadmin_views.superadmin_month_freeze_toggle",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/freeze-toggle/",
+   "name": "superadmin_ticket_freeze_toggle",
+   "view": "accounts.superadmin_views.superadmin_ticket_freeze_toggle",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "payroll_admin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/payroll/recalculate-unfrozen/",
+   "name": "superadmin_recalculate_unfrozen_tickets",
+   "view": "accounts.superadmin_views.superadmin_recalculate_unfrozen_tickets",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/pricing/",
+   "name": "superadmin_pricing",
+   "view": "accounts.superadmin_views.superadmin_pricing",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/",
+   "name": "superadmin_orders_list",
+   "view": "accounts.superadmin_views.superadmin_orders_list",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/",
+   "name": "superadmin_order_detail",
+   "view": "accounts.superadmin_views.superadmin_order_detail",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/edit/",
+   "name": "superadmin_order_edit",
+   "view": "accounts.superadmin_views.superadmin_order_edit",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/add-model/",
+   "name": "superadmin_order_add_model",
+   "view": "accounts.superadmin_views.superadmin_order_add_model",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/models/<int:item_id>/edit/",
+   "name": "superadmin_order_model_edit",
+   "view": "accounts.superadmin_views.superadmin_order_model_edit",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/models/<int:item_id>/delete/",
+   "name": "superadmin_order_model_delete",
+   "view": "accounts.superadmin_views.superadmin_order_model_delete",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/models/<int:item_id>/update-op/",
+   "name": "superadmin_order_model_update_operation",
+   "view": "accounts.superadmin_views.superadmin_order_model_update_operation",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/models/<int:item_id>/add-op/",
+   "name": "superadmin_order_model_add_operation",
+   "view": "accounts.superadmin_views.superadmin_order_model_add_operation",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/models/<int:item_id>/delete-op/<int:ao_id>/",
+   "name": "superadmin_order_model_delete_operation",
+   "view": "accounts.superadmin_views.superadmin_order_model_delete_operation",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders/<int:order_id>/delete/",
+   "name": "superadmin_order_delete",
+   "view": "accounts.superadmin_views.superadmin_order_delete",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/",
+   "name": "superadmin_defect_reasons",
+   "view": "accounts.superadmin_views.superadmin_defect_reasons",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/create/",
+   "name": "superadmin_defect_reason_create",
+   "view": "accounts.superadmin_views.superadmin_defect_reason_create",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/<int:reason_id>/edit/",
+   "name": "superadmin_defect_reason_edit",
+   "view": "accounts.superadmin_views.superadmin_defect_reason_edit",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/<int:reason_id>/toggle/",
+   "name": "superadmin_defect_reason_toggle",
+   "view": "accounts.superadmin_views.superadmin_defect_reason_toggle",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/<int:reason_id>/delete/",
+   "name": "superadmin_defect_reason_delete",
+   "view": "accounts.superadmin_views.superadmin_defect_reason_delete",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/seed-defaults/",
+   "name": "superadmin_defect_reason_seed_defaults",
+   "view": "accounts.superadmin_views.superadmin_defect_reason_seed_defaults",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/control/defect-reasons/toggle-require-scanned/",
+   "name": "superadmin_toggle_require_all_operations_scanned",
+   "view": "accounts.superadmin_views.superadmin_toggle_require_all_operations_scanned",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders-balance/",
+   "name": "superadmin_orders_balance",
+   "view": "accounts.superadmin_views.superadmin_orders_balance",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/superadmin/orders-balance/export-excel/",
+   "name": "superadmin_orders_balance_export_excel",
+   "view": "accounts.superadmin_views.superadmin_orders_balance_export_excel",
+   "urlconf": "accounts.superadmin_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/managers/",
+   "name": "manager_dashboard",
+   "view": "production.manager_views.manager_dashboard",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/managers/orders/new/",
+   "name": "manager_order_create",
+   "view": "production.manager_views.manager_order_create",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/managers/orders/<int:order_id>/",
+   "name": "manager_order_detail",
+   "view": "production.manager_views.manager_order_detail",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/managers/orders/<int:order_id>/status/",
+   "name": "manager_order_update_status",
+   "view": "production.manager_views.manager_order_update_status",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/managers/orders/<int:order_id>/delete/",
+   "name": "manager_order_delete",
+   "view": "production.manager_views.manager_order_delete",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/managers/orders/<int:order_id>/add-article/",
+   "name": "manager_order_add_article",
+   "view": "production.manager_views.manager_order_add_article",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/managers/orders/<int:order_id>/items/<int:item_id>/delete/",
+   "name": "manager_order_delete_item",
+   "view": "production.manager_views.manager_order_delete_item",
+   "urlconf": "production.manager_urls",
+   "decorators": [
+    "manager_required"
+   ]
+  },
+  {
+   "path": "/cutting/",
+   "name": "cutting_dashboard",
+   "view": "production.cutting_views.cutting_dashboard",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/orders/<int:order_id>/",
+   "name": "cutting_order_detail",
+   "view": "production.cutting_views.cutting_order_detail",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/orders/<int:order_id>/items/<int:order_item_id>/detail/",
+   "name": "cutting_item_detail",
+   "view": "production.cutting_views.cutting_item_detail_view",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/orders/<int:order_id>/items/<int:order_item_id>/add-batch/",
+   "name": "cutting_add_batch",
+   "view": "production.cutting_views.cutting_add_batch",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/orders/<int:order_id>/batches/<int:batch_id>/edit/",
+   "name": "cutting_edit_batch",
+   "view": "production.cutting_views.cutting_edit_batch",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/orders/<int:order_id>/batches/<int:batch_id>/delete/",
+   "name": "cutting_delete_batch",
+   "view": "production.cutting_views.cutting_delete_batch",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/api/check-pastal/",
+   "name": "api_cutting_check_pastal",
+   "view": "production.cutting_views.api_check_pastal_code",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/cutting/api/next-pastal/",
+   "name": "api_cutting_next_pastal",
+   "view": "production.cutting_views.api_get_next_pastal_code",
+   "urlconf": "production.cutting_urls",
+   "decorators": [
+    "cutter_required"
+   ]
+  },
+  {
+   "path": "/meto/",
+   "name": "meto_dashboard",
+   "view": "production.meto_views.meto_dashboard",
+   "urlconf": "production.meto_urls",
+   "decorators": [
+    "meto_required"
+   ]
+  },
+  {
+   "path": "/meto/orders/<int:order_id>/",
+   "name": "meto_order_detail",
+   "view": "production.meto_views.meto_order_detail",
+   "urlconf": "production.meto_urls",
+   "decorators": [
+    "meto_required"
+   ]
+  },
+  {
+   "path": "/meto/batches/<int:batch_id>/items/",
+   "name": "meto_batch_items",
+   "view": "production.meto_views.meto_batch_items_view",
+   "urlconf": "production.meto_urls",
+   "decorators": [
+    "meto_required"
+   ]
+  },
+  {
+   "path": "/meto/items/<int:item_id>/confirm/",
+   "name": "meto_confirm_item",
+   "view": "production.meto_views.meto_confirm_item",
+   "urlconf": "production.meto_urls",
+   "decorators": [
+    "meto_required"
+   ]
+  },
+  {
+   "path": "/meto/items/<int:item_id>/reset/",
+   "name": "meto_reset_item",
+   "view": "production.meto_views.meto_reset_item",
+   "urlconf": "production.meto_urls",
+   "decorators": [
+    "meto_required"
+   ]
+  },
+  {
+   "path": "/meto/batches/<int:batch_id>/generate-boxes/",
+   "name": "meto_generate_missing_boxes",
+   "view": "production.meto_views.meto_generate_missing_boxes",
+   "urlconf": "production.meto_urls",
+   "decorators": [
+    "meto_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/",
+   "name": "meto_hub_dashboard",
+   "view": "production.meto_hub_views.meto_hub_dashboard_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/cart/add/<int:batch_id>/",
+   "name": "meto_hub_cart_add",
+   "view": "production.meto_hub_views.meto_hub_cart_add_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/cart/remove/<int:batch_id>/",
+   "name": "meto_hub_cart_remove",
+   "view": "production.meto_hub_views.meto_hub_cart_remove_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/cart/clear/",
+   "name": "meto_hub_cart_clear",
+   "view": "production.meto_hub_views.meto_hub_cart_clear_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/dispatch/koson/<int:batch_id>/",
+   "name": "meto_hub_dispatch_koson",
+   "view": "production.meto_hub_views.meto_hub_dispatch_koson_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/waybill/create/",
+   "name": "meto_hub_waybill_create",
+   "view": "production.meto_hub_views.meto_hub_waybill_create_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/waybill/<int:waybill_id>/",
+   "name": "meto_hub_waybill_detail",
+   "view": "production.meto_hub_views.meto_hub_waybill_detail_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/waybill/<int:waybill_id>/print/",
+   "name": "meto_hub_waybill_print",
+   "view": "production.meto_hub_views.meto_hub_waybill_print_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/waybill/<int:waybill_id>/accept/",
+   "name": "meto_hub_waybill_accept",
+   "view": "production.meto_hub_views.meto_hub_waybill_accept_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/waybill/<int:waybill_id>/reject/",
+   "name": "meto_hub_waybill_reject",
+   "view": "production.meto_hub_views.meto_hub_waybill_reject_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/uychi/",
+   "name": "meto_hub_uychi",
+   "view": "production.meto_hub_views.meto_hub_uychi_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/meto-hub/uychi/dispatch/<int:batch_id>/",
+   "name": "meto_hub_dispatch_uychi",
+   "view": "production.meto_hub_views.meto_hub_dispatch_uychi_view",
+   "urlconf": "production.meto_hub_urls",
+   "decorators": [
+    "meto_hub_access_required"
+   ]
+  },
+  {
+   "path": "/stickers/",
+   "name": "sticker_dashboard",
+   "view": "production.sticker_views.sticker_dashboard",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/",
+   "name": "sticker_order_boxes",
+   "view": "production.sticker_views.sticker_order_boxes",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/batches/<int:batch_id>/boxes/",
+   "name": "sticker_batch_boxes",
+   "view": "production.sticker_views.sticker_batch_boxes_view",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/batches/<int:batch_id>/mark-printed/",
+   "name": "sticker_mark_batch_printed",
+   "view": "production.sticker_views.sticker_mark_batch_printed",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/unassigned-boxes/",
+   "name": "sticker_unassigned_boxes",
+   "view": "production.sticker_views.sticker_unassigned_boxes_view",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/regenerate-tickets/",
+   "name": "sticker_regenerate_tickets",
+   "view": "production.sticker_views.sticker_regenerate_tickets",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/copy-operations/",
+   "name": "sticker_copy_operations_and_generate",
+   "view": "production.sticker_views.sticker_copy_operations_and_generate",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/boxes/<int:box_id>/mark-printed/",
+   "name": "sticker_mark_box_printed",
+   "view": "production.sticker_views.sticker_mark_box_printed",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/stickers/orders/<int:order_id>/mark-all-printed/",
+   "name": "sticker_mark_all_printed",
+   "view": "production.sticker_views.sticker_mark_all_printed",
+   "urlconf": "production.sticker_urls",
+   "decorators": [
+    "sticker_required"
+   ]
+  },
+  {
+   "path": "/norma/",
+   "name": "norma_index",
+   "view": "production.norma_urls.<lambda>",
+   "urlconf": "production.norma_urls",
+   "unverified": "lambda view defined inline in urlconf"
+  },
+  {
+   "path": "/norma/dashboard/",
+   "name": "norma_dashboard",
+   "view": "production.norma_views.norma_dashboard",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/canvas/",
+   "name": "norma_canvas",
+   "view": "production.norma_views.norma_canvas_view",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/canvas/save/",
+   "name": "norma_canvas_save",
+   "view": "production.norma_views.norma_canvas_save",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/",
+   "name": "norma_models_list",
+   "view": "production.norma_views.norma_models_list",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/create/",
+   "name": "norma_model_create",
+   "view": "production.norma_views.norma_model_create",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/<int:model_id>/edit/",
+   "name": "norma_model_edit",
+   "view": "production.norma_views.norma_model_edit",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/<int:model_id>/assign-articles/",
+   "name": "norma_assign_articles",
+   "view": "production.norma_views.norma_assign_articles",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/<int:model_id>/operations/",
+   "name": "norma_model_operations",
+   "view": "production.norma_views.norma_model_operations",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/<int:model_id>/operations/add/",
+   "name": "norma_model_add_operation",
+   "view": "production.norma_views.norma_model_add_operation",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/<int:model_id>/operations/bulk-update/",
+   "name": "norma_model_update_operations",
+   "view": "production.norma_views.norma_model_update_operations",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/models/<int:model_id>/operations/<int:mo_id>/delete/",
+   "name": "norma_model_delete_operation",
+   "view": "production.norma_views.norma_model_delete_operation",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/operations/",
+   "name": "norma_operations_catalog",
+   "view": "production.norma_views.norma_operations_catalog",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/history/",
+   "name": "norma_history",
+   "view": "production.norma_views.norma_history",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/workers/",
+   "name": "norma_workers",
+   "view": "production.norma_views.norma_workers",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/norma/sync/",
+   "name": "norma_sync",
+   "view": "production.norma_views.norma_sync",
+   "urlconf": "production.norma_urls",
+   "decorators": [
+    "norma_access_required"
+   ]
+  },
+  {
+   "path": "/accounts/login/",
+   "name": "accounts:login",
+   "view": "accounts.views.login_view",
+   "urlconf": "accounts.urls"
+  },
+  {
+   "path": "/accounts/logout/",
+   "name": "accounts:logout",
+   "view": "accounts.views.logout_view",
+   "urlconf": "accounts.urls"
+  },
+  {
+   "path": "/accounts/workers/",
+   "name": "accounts:worker_list",
+   "view": "accounts.views.worker_list_view",
+   "urlconf": "accounts.urls"
+  },
+  {
+   "path": "/accounts/workers/print-badges/",
+   "name": "accounts:print_worker_badges",
+   "view": "accounts.views.worker_badges_print_view",
+   "urlconf": "accounts.urls"
+  },
+  {
+   "path": "/screens/",
+   "name": "screens:overview",
+   "view": "screens.views.all_screens_overview",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/",
+   "name": "screens:all_screens_overview",
+   "view": "screens.views.all_screens_overview",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/overview/",
+   "name": "screens:overview_alias",
+   "view": "screens.views.all_screens_overview",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/<int:screen_number>/",
+   "name": "screens:screen_view",
+   "view": "screens.views.screen_view",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/<str:screen_identifier>/",
+   "name": "screens:screen_view_code",
+   "view": "screens.views.screen_view",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/api/<int:screen_number>/",
+   "name": "screens:screen_api",
+   "view": "screens.views.screen_api_view",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/api/<str:screen_identifier>/",
+   "name": "screens:screen_api_code",
+   "view": "screens.views.screen_api_view",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/^media/(?P<path>.*)$",
+   "name": null,
+   "view": "django.views.static.serve",
+   "urlconf": "config.urls",
+   "regex_pattern": true
+  }
+ ],
+ "middleware_allowlist_prefixes": [
+  "/accounts/login/",
+  "/accounts/logout/",
+  "/admin/logout/",
+  "/apk",
+  "/boxes/",
+  "/control",
+  "/control/",
+  "/control/download-apk",
+  "/control/production/control/",
+  "/cutting",
+  "/cutting/",
+  "/login/",
+  "/logout/",
+  "/master-tablet",
+  "/master-tablet/",
+  "/media/",
+  "/orders",
+  "/orders/",
+  "/production/control",
+  "/production/control/",
+  "/production/master-tablet",
+  "/production/master-tablet/",
+  "/screens",
+  "/screens/",
+  "/sewing-statistics",
+  "/sewing-statistics/",
+  "/static/",
+  "/statistics",
+  "/statistics/",
+  "/superadmin/payroll",
+  "/superadmin/payroll/",
+  "/superadmin/users",
+  "/superadmin/users/",
+  "/superadmin/workers/",
+  "/terminal",
+  "/terminal/"
+ ],
+ "middleware_prefixes_without_route": []
+}

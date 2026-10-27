@@ -1,0 +1,1480 @@
+{
+ "_note": "Static analysis via ast/regex. 'lazy' = imported inside a function (often to avoid circular imports). Template refs are regex-extracted.",
+ "requirements_txt": [
+  "Django==5.1.15",
+  "gunicorn==26.2.0",
+  "psycopg2-binary==2.9.13",
+  "python-dotenv==1.2.3",
+  "pillow==12.3.0",
+  "qrcode==8.2",
+  "opencv-python-headless==5.0.0.93",
+  "numpy==2.5.3",
+  "asgiref==3.12.1",
+  "sqlparse==0.6.0",
+  "python-telegram-bot==22.8",
+  "httpx==0.28.1",
+  "httpcore==1.0.9",
+  "anyio==4.15.1",
+  "certifi==2026.7.22",
+  "idna==3.19",
+  "typing_extensions==4.16.0",
+  "h11==0.16.0",
+  "openpyxl>=3.1.2"
+ ],
+ "external_packages_used_by": {
+  "PIL": [
+   "accounts/superadmin_views.py",
+   "generate_stickers_100x60.py",
+   "production/daily_image_reports.py",
+   "production/sticker_generator.py",
+   "production/tests.py",
+   "scratch_badges_pdf.py"
+  ],
+  "asgiref": [
+   "production/management/commands/run_passport_bot.py"
+  ],
+  "cv2": [
+   "production/passport_bot_service.py"
+  ],
+  "django": [
+   "accounts/admin.py",
+   "accounts/apps.py",
+   "accounts/freeze_services.py",
+   "accounts/management/commands/close_daily_payroll.py",
+   "accounts/management/commands/create_ekran_users.py",
+   "accounts/management/commands/create_patok_users.py",
+   "accounts/management/commands/process_freeze_timers.py",
+   "accounts/management/commands/setup_branch_admin.py",
+   "accounts/middleware.py",
+   "accounts/models.py",
+   "accounts/superadmin_urls.py",
+   "accounts/superadmin_views.py",
+   "accounts/tests.py",
+   "accounts/urls.py",
+   "accounts/views.py",
+   "config/asgi.py",
+   "config/urls.py",
+   "config/wsgi.py",
+   "generate_stickers_100x60.py",
+   "manage.py",
+   "production/admin.py",
+   "production/apps.py",
+   "production/control_urls.py",
+   "production/control_views.py",
+   "production/cutting_urls.py",
+   "production/cutting_views.py",
+   "production/daily_image_reports.py",
+   "production/excel_reports.py",
+   "production/management/commands/cleanup_old_ticket_images.py",
+   "production/management/commands/close_unprinted_boxes.py",
+   "production/management/commands/restore_stickers_from_backup.py",
+   "production/management/commands/run_passport_bot.py",
+   "production/management/commands/run_scheduler.py",
+   "production/management/commands/seed_demo_data.py",
+   "production/management/commands/send_daily_patok_report.py",
+   "production/management/commands/send_daily_report.py",
+   "production/management/commands/send_db_backup.py",
+   "production/management/commands/sync_article_operations.py",
+   "production/manager_urls.py",
+   "production/manager_views.py",
+   "production/master_views.py",
+   "production/meto_hub_urls.py",
+   "production/meto_hub_views.py",
+   "production/meto_urls.py",
+   "production/meto_views.py",
+   "production/models.py",
+   "production/norma_services.py",
+   "production/norma_urls.py",
+   "production/norma_views.py",
+   "production/passport_bot_service.py",
+   "production/passport_views.py",
+   "production/services.py",
+   "production/sewing_statistics_views.py",
+   "production/sticker_urls.py",
+   "production/sticker_views.py",
+   "production/telegram_reports.py",
+   "production/terminal_views.py",
+   "production/test_master_statistics.py",
+   "production/test_norma_canvas.py",
+   "production/test_passport_bot.py",
+   "production/test_salary_freeze.py",
+   "production/test_sewing_statistics_order_models.py",
+   "production/test_telegram_reports.py",
+   "production/test_terminal.py",
+   "production/tests.py",
+   "production/urls.py",
+   "production/views.py",
+   "scratch_badges_pdf.py",
+   "screens/admin.py",
+   "screens/apps.py",
+   "screens/models.py",
+   "screens/tests.py",
+   "screens/urls.py",
+   "screens/views.py"
+  ],
+  "dotenv": [
+   "config/settings.py"
+  ],
+  "httpx": [
+   "production/daily_image_reports.py",
+   "production/passport_views.py",
+   "production/telegram_reports.py"
+  ],
+  "numpy": [
+   "production/passport_bot_service.py"
+  ],
+  "openpyxl": [
+   "accounts/superadmin_views.py",
+   "production/excel_reports.py",
+   "production/test_telegram_reports.py",
+   "production/tests.py"
+  ],
+  "qrcode": [
+   "accounts/models.py",
+   "production/models.py",
+   "production/sticker_generator.py",
+   "production/test_passport_bot.py"
+  ],
+  "telegram": [
+   "production/management/commands/run_passport_bot.py"
+  ]
+ },
+ "internal_imports": {
+  "accounts.admin": {
+   "imports": [
+    "accounts.models"
+   ]
+  },
+  "accounts.freeze_services": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ]
+  },
+  "accounts.management.commands.close_daily_payroll": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ]
+  },
+  "accounts.management.commands.create_ekran_users": {
+   "imports": [
+    "accounts.models"
+   ],
+   "lazy": [
+    "production.services"
+   ]
+  },
+  "accounts.management.commands.create_patok_users": {
+   "imports": [
+    "accounts.models"
+   ],
+   "lazy": [
+    "production.services"
+   ]
+  },
+  "accounts.management.commands.process_freeze_timers": {
+   "imports": [
+    "accounts.freeze_services"
+   ]
+  },
+  "accounts.management.commands.setup_branch_admin": {
+   "imports": [
+    "accounts.models"
+   ]
+  },
+  "accounts.middleware": {
+   "imports": [
+    "accounts.models"
+   ],
+   "lazy": [
+    "production.services"
+   ]
+  },
+  "accounts.models": {
+   "imports": [],
+   "lazy": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ]
+  },
+  "accounts.superadmin_urls": {
+   "imports": [
+    "accounts.superadmin_views"
+   ]
+  },
+  "accounts.superadmin_views": {
+   "imports": [
+    "accounts.models",
+    "production.excel_reports",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "accounts.freeze_services",
+    "accounts.management.commands.close_daily_payroll",
+    "accounts.models",
+    "production.excel_reports",
+    "production.telegram_reports"
+   ]
+  },
+  "accounts.tests": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ],
+   "lazy": [
+    "production.models",
+    "screens.views"
+   ]
+  },
+  "accounts.urls": {
+   "imports": [
+    "accounts.views"
+   ]
+  },
+  "accounts.views": {
+   "imports": [
+    "accounts.models"
+   ],
+   "lazy": [
+    "production.services"
+   ]
+  },
+  "config.urls": {
+   "imports": [
+    "accounts.views",
+    "production.control_views",
+    "production.passport_views"
+   ]
+  },
+  "generate_stickers_100x60": {
+   "imports": [
+    "accounts.models"
+   ],
+   "lazy": [
+    "accounts.models"
+   ]
+  },
+  "production.admin": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.control_urls": {
+   "imports": [
+    "production.control_views"
+   ]
+  },
+  "production.control_views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.terminal_views"
+   ]
+  },
+  "production.cutting_urls": {
+   "imports": [
+    "production.cutting_views"
+   ]
+  },
+  "production.cutting_views": {
+   "imports": [
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.daily_image_reports": {
+   "imports": [
+    "production.models",
+    "production.services",
+    "production.sewing_statistics_views",
+    "screens.views"
+   ]
+  },
+  "production.excel_reports": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "production.models"
+   ]
+  },
+  "production.management.commands.cleanup_old_ticket_images": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.management.commands.close_unprinted_boxes": {
+   "imports": [
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.management.commands.restore_stickers_from_backup": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.management.commands.run_passport_bot": {
+   "imports": [
+    "production.models",
+    "production.passport_bot_service",
+    "production.services"
+   ],
+   "lazy": [
+    "production.master_views",
+    "production.passport_bot_service"
+   ]
+  },
+  "production.management.commands.run_scheduler": {
+   "imports": [
+    "accounts.management.commands.close_daily_payroll",
+    "production.daily_image_reports",
+    "production.telegram_reports"
+   ]
+  },
+  "production.management.commands.seed_demo_data": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.management.commands.send_daily_patok_report": {
+   "imports": [
+    "production.daily_image_reports"
+   ]
+  },
+  "production.management.commands.send_daily_report": {
+   "imports": [
+    "production.excel_reports",
+    "production.telegram_reports"
+   ],
+   "lazy": [
+    "production.excel_reports",
+    "production.telegram_reports"
+   ]
+  },
+  "production.management.commands.send_db_backup": {
+   "imports": [
+    "production.telegram_reports"
+   ]
+  },
+  "production.management.commands.sync_article_operations": {
+   "imports": [
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.manager_urls": {
+   "imports": [
+    "production.manager_views"
+   ]
+  },
+  "production.manager_views": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.master_views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "production.passport_bot_service"
+   ]
+  },
+  "production.meto_hub_urls": {
+   "imports": [
+    "production.meto_hub_views"
+   ]
+  },
+  "production.meto_hub_views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.meto_urls": {
+   "imports": [
+    "production.meto_views"
+   ]
+  },
+  "production.meto_views": {
+   "imports": [
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.models": {
+   "imports": [
+    "accounts.models"
+   ],
+   "lazy": [
+    "production.services"
+   ]
+  },
+  "production.norma_services": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ]
+  },
+  "production.norma_urls": {
+   "imports": [
+    "production.norma_views"
+   ]
+  },
+  "production.norma_views": {
+   "imports": [
+    "production.models",
+    "production.norma_services"
+   ]
+  },
+  "production.passport_bot_service": {
+   "imports": [
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "production.models"
+   ]
+  },
+  "production.passport_views": {
+   "imports": [
+    "production.passport_bot_service"
+   ]
+  },
+  "production.services": {
+   "imports": [
+    "production.models"
+   ],
+   "lazy": [
+    "production.models"
+   ]
+  },
+  "production.sewing_statistics_views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services",
+    "screens.views"
+   ],
+   "lazy": [
+    "production.daily_image_reports",
+    "production.excel_reports",
+    "production.services"
+   ]
+  },
+  "production.sticker_urls": {
+   "imports": [
+    "production.sticker_views"
+   ]
+  },
+  "production.sticker_views": {
+   "imports": [
+    "production.models"
+   ],
+   "lazy": [
+    "production.models",
+    "production.services"
+   ]
+  },
+  "production.telegram_reports": {
+   "imports": [
+    "production.excel_reports",
+    "production.models"
+   ],
+   "lazy": [
+    "accounts.models",
+    "production.excel_reports",
+    "production.models"
+   ]
+  },
+  "production.terminal_views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "accounts.models"
+   ]
+  },
+  "production.test_master_statistics": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ]
+  },
+  "production.test_norma_canvas": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.test_passport_bot": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.passport_bot_service",
+    "production.services"
+   ],
+   "lazy": [
+    "accounts.models",
+    "production.cutting_views",
+    "production.management.commands.run_passport_bot",
+    "production.manager_views",
+    "production.meto_views",
+    "production.models",
+    "production.passport_bot_service"
+   ]
+  },
+  "production.test_salary_freeze": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ],
+   "lazy": [
+    "accounts.freeze_services"
+   ]
+  },
+  "production.test_sewing_statistics_order_models": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.test_telegram_reports": {
+   "imports": [
+    "accounts.models",
+    "production.excel_reports",
+    "production.models",
+    "production.telegram_reports"
+   ]
+  },
+  "production.test_terminal": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "screens.views"
+   ]
+  },
+  "production.tests": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "accounts.models",
+    "production.daily_image_reports",
+    "production.excel_reports",
+    "production.meto_hub_views",
+    "production.meto_views",
+    "production.models",
+    "production.norma_services",
+    "production.passport_bot_service",
+    "production.services",
+    "production.sewing_statistics_views",
+    "production.sticker_generator",
+    "production.terminal_views"
+   ]
+  },
+  "production.urls": {
+   "imports": [
+    "production.control_views",
+    "production.master_views",
+    "production.passport_views",
+    "production.sewing_statistics_views",
+    "production.terminal_views",
+    "production.views"
+   ]
+  },
+  "production.views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "production.sticker_generator",
+    "production.terminal_views"
+   ]
+  },
+  "scratch_badges_pdf": {
+   "imports": [
+    "accounts.models"
+   ]
+  },
+  "screens.tests": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "screens.views"
+   ]
+  },
+  "screens.urls": {
+   "imports": [
+    "screens.views"
+   ]
+  },
+  "screens.views": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.services"
+   ]
+  }
+ },
+ "python_to_templates": {
+  "accounts/superadmin_views.py": [
+   "superadmin/dashboard.html",
+   "superadmin/defect_reasons.html",
+   "superadmin/order_detail.html",
+   "superadmin/orders_balance.html",
+   "superadmin/orders_list.html",
+   "superadmin/payroll.html",
+   "superadmin/pricing.html",
+   "superadmin/user_badge_print.html",
+   "superadmin/users.html",
+   "superadmin/users_badges_batch_print.html",
+   "superadmin/worker_history.html"
+  ],
+  "accounts/tests.py": [
+   "superadmin/defect_reasons.html"
+  ],
+  "accounts/views.py": [
+   "accounts/login.html",
+   "accounts/worker_badges_print.html",
+   "accounts/worker_list.html"
+  ],
+  "production/control_views.py": [
+   "production/control_home.html"
+  ],
+  "production/cutting_views.py": [
+   "cutting/dashboard.html",
+   "cutting/order_detail.html",
+   "cutting/partials/item_detail.html"
+  ],
+  "production/manager_views.py": [
+   "managers/dashboard.html",
+   "managers/order_create.html",
+   "managers/order_detail.html"
+  ],
+  "production/master_views.py": [
+   "production/master_statistics.html",
+   "production/master_tablet.html"
+  ],
+  "production/meto_hub_views.py": [
+   "meto_hub/dashboard.html",
+   "meto_hub/uychi_dashboard.html",
+   "meto_hub/waybill_detail.html",
+   "meto_hub/waybill_print_a4.html"
+  ],
+  "production/meto_views.py": [
+   "meto/dashboard.html",
+   "meto/order_detail.html",
+   "meto/partials/batch_items.html"
+  ],
+  "production/norma_views.py": [
+   "norma/canvas.html",
+   "norma/dashboard.html",
+   "norma/history.html",
+   "norma/model_edit.html",
+   "norma/model_operations.html",
+   "norma/models_list.html",
+   "norma/operations_catalog.html",
+   "norma/workers.html"
+  ],
+  "production/passport_views.py": [
+   "production/passport_checker.html"
+  ],
+  "production/sewing_statistics_views.py": [
+   "production/partials/size_boxes_pipeline.html",
+   "production/sewing_statistics_daily.html",
+   "production/sewing_statistics_daily_report.html",
+   "production/sewing_statistics_model_detail.html",
+   "production/sewing_statistics_order_models.html",
+   "production/sewing_statistics_orders.html",
+   "production/sewing_statistics_otk.html",
+   "production/sewing_statistics_repairs.html"
+  ],
+  "production/sticker_views.py": [
+   "stickers/dashboard.html",
+   "stickers/order_boxes.html",
+   "stickers/partials/batch_boxes.html"
+  ],
+  "production/terminal_views.py": [
+   "terminal/index.html"
+  ],
+  "production/views.py": [
+   "production/articles_catalog.html",
+   "production/box_split_wizard.html",
+   "production/box_stickers_print.html",
+   "production/dashboard.html",
+   "production/order_detail.html",
+   "production/order_list.html",
+   "production/pastal_passport.html",
+   "production/statistics_pipeline.html"
+  ],
+  "screens/views.py": [
+   "screens/monitor.html",
+   "screens/overview.html"
+  ]
+ },
+ "template_refs": {
+  "templates/404.html": {
+   "extends": [
+    "base.html"
+   ]
+  },
+  "templates/500.html": {
+   "includes": [
+    "includes/theme_head.html"
+   ]
+  },
+  "templates/accounts/login.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ]
+  },
+  "templates/accounts/worker_badges_print.html": {
+   "url_names": [
+    "accounts:worker_list"
+   ]
+  },
+  "templates/accounts/worker_list.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "accounts:print_worker_badges"
+   ]
+  },
+  "templates/base.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "accounts:logout",
+    "cutting_dashboard",
+    "manager_dashboard",
+    "meto_dashboard",
+    "norma_canvas",
+    "production:master_statistics",
+    "production:master_tablet",
+    "production:order_list",
+    "production:sewing_statistics_daily",
+    "production:sewing_statistics_daily_report",
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_otk",
+    "production:sewing_statistics_repairs",
+    "production:statistics_pipeline",
+    "production:terminal_home",
+    "screens:overview",
+    "sticker_dashboard",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/cutting/base_cutting.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "cutting_dashboard",
+    "manager_dashboard",
+    "meto_dashboard",
+    "norma_canvas",
+    "root_logout",
+    "sticker_dashboard",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/cutting/dashboard.html": {
+   "extends": [
+    "cutting/base_cutting.html"
+   ],
+   "url_names": [
+    "cutting_dashboard",
+    "cutting_order_detail"
+   ]
+  },
+  "templates/cutting/order_detail.html": {
+   "extends": [
+    "cutting/base_cutting.html"
+   ],
+   "url_names": [
+    "api_cutting_check_pastal",
+    "api_cutting_next_pastal",
+    "cutting_dashboard",
+    "cutting_delete_batch",
+    "cutting_item_detail"
+   ]
+  },
+  "templates/includes/theme_head.html": {
+   "includes": [
+    "includes/theme_head.html"
+   ]
+  },
+  "templates/managers/base_manager.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "cutting_dashboard",
+    "manager_dashboard",
+    "manager_order_create",
+    "norma_canvas",
+    "production:sewing_statistics_orders",
+    "root_logout",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/managers/dashboard.html": {
+   "extends": [
+    "managers/base_manager.html"
+   ],
+   "url_names": [
+    "manager_dashboard",
+    "manager_order_create",
+    "manager_order_detail"
+   ]
+  },
+  "templates/managers/order_create.html": {
+   "extends": [
+    "managers/base_manager.html"
+   ],
+   "url_names": [
+    "manager_dashboard",
+    "manager_order_create"
+   ]
+  },
+  "templates/managers/order_detail.html": {
+   "extends": [
+    "managers/base_manager.html"
+   ],
+   "url_names": [
+    "manager_dashboard",
+    "manager_order_add_article",
+    "manager_order_delete",
+    "manager_order_delete_item",
+    "manager_order_update_status"
+   ]
+  },
+  "templates/meto/base_meto.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "cutting_dashboard",
+    "meto_dashboard",
+    "norma_canvas",
+    "root_logout",
+    "sticker_dashboard",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/meto/dashboard.html": {
+   "extends": [
+    "meto/base_meto.html"
+   ],
+   "url_names": [
+    "meto_dashboard",
+    "meto_order_detail"
+   ]
+  },
+  "templates/meto/order_detail.html": {
+   "extends": [
+    "meto/base_meto.html"
+   ],
+   "url_names": [
+    "meto_dashboard",
+    "meto_generate_missing_boxes",
+    "norma_canvas",
+    "production:pastal_passport"
+   ],
+   "fetch_paths": [
+    "/meto/batches/"
+   ]
+  },
+  "templates/meto/partials/batch_items.html": {
+   "url_names": [
+    "meto_confirm_item",
+    "meto_generate_missing_boxes",
+    "meto_reset_item"
+   ]
+  },
+  "templates/meto_hub/base_meto_hub.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "meto_dashboard",
+    "meto_hub_dashboard",
+    "meto_hub_uychi",
+    "root_logout"
+   ]
+  },
+  "templates/meto_hub/dashboard.html": {
+   "extends": [
+    "meto_hub/base_meto_hub.html"
+   ],
+   "url_names": [
+    "meto_hub_cart_add",
+    "meto_hub_cart_clear",
+    "meto_hub_cart_remove",
+    "meto_hub_waybill_create",
+    "meto_hub_waybill_detail",
+    "meto_hub_waybill_print",
+    "meto_order_detail",
+    "production:pastal_passport",
+    "sticker_order_boxes"
+   ]
+  },
+  "templates/meto_hub/uychi_dashboard.html": {
+   "extends": [
+    "meto_hub/base_meto_hub.html"
+   ],
+   "url_names": [
+    "meto_hub_dashboard",
+    "meto_hub_waybill_accept",
+    "meto_hub_waybill_detail",
+    "meto_hub_waybill_print"
+   ]
+  },
+  "templates/meto_hub/waybill_detail.html": {
+   "extends": [
+    "meto_hub/base_meto_hub.html"
+   ],
+   "url_names": [
+    "meto_hub_dashboard",
+    "meto_hub_waybill_accept",
+    "meto_hub_waybill_print",
+    "meto_hub_waybill_reject",
+    "production:pastal_passport"
+   ]
+  },
+  "templates/norma/base_norma.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "cutting_dashboard",
+    "meto_dashboard",
+    "norma_canvas",
+    "norma_sync",
+    "root_logout",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/norma/canvas.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ],
+   "url_names": [
+    "norma_canvas_save",
+    "superadmin_pricing"
+   ]
+  },
+  "templates/norma/dashboard.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ],
+   "url_names": [
+    "norma_model_edit",
+    "norma_models_list",
+    "norma_workers"
+   ]
+  },
+  "templates/norma/history.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ]
+  },
+  "templates/norma/model_edit.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ],
+   "url_names": [
+    "norma_model_operations",
+    "norma_models_list"
+   ]
+  },
+  "templates/norma/model_operations.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ],
+   "url_names": [
+    "norma_model_add_operation",
+    "norma_model_delete_operation",
+    "norma_model_update_operations",
+    "norma_models_list"
+   ]
+  },
+  "templates/norma/models_list.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ],
+   "url_names": [
+    "norma_assign_articles",
+    "norma_model_create",
+    "norma_model_edit",
+    "norma_model_operations"
+   ]
+  },
+  "templates/norma/operations_catalog.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ]
+  },
+  "templates/norma/workers.html": {
+   "extends": [
+    "norma/base_norma.html"
+   ]
+  },
+  "templates/production/articles_catalog.html": {
+   "extends": [
+    "base.html"
+   ]
+  },
+  "templates/production/box_split_wizard.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:order_detail"
+   ]
+  },
+  "templates/production/box_stickers_print.html": {
+   "url_names": [
+    "production:box_download_stickers_pdf",
+    "production:box_print_stickers",
+    "production:order_download_all_stickers_pdf",
+    "production:order_print_all_stickers"
+   ]
+  },
+  "templates/production/control_home.html": {
+   "includes": [
+    "includes/theme_head_legacy.html"
+   ],
+   "url_names": [
+    "control:api_identify_operator",
+    "control:api_logout_operator",
+    "control:api_lookup",
+    "control:api_recent",
+    "control:api_submit",
+    "root_logout"
+   ]
+  },
+  "templates/production/dashboard.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:order_detail",
+    "production:order_list",
+    "screens:overview"
+   ]
+  },
+  "templates/production/master_statistics.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:api_master_statistics_toggle_absent",
+    "production:master_tablet"
+   ]
+  },
+  "templates/production/master_tablet.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "fetch_paths": [
+    "/master-tablet/api/accept/",
+    "/master-tablet/api/identify/",
+    "/master-tablet/api/logout/",
+    "/master-tablet/api/lookup-pastal/",
+    "/master-tablet/api/monthly-work/?year=",
+    "/master-tablet/api/pastal/",
+    "/master-tablet/api/patok/",
+    "/master-tablet/api/patoks/?branch=",
+    "/master-tablet/api/reject/"
+   ]
+  },
+  "templates/production/order_detail.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:box_download_stickers_pdf",
+    "production:box_print_stickers",
+    "production:box_split_wizard",
+    "production:order_detail",
+    "production:order_download_all_stickers_pdf",
+    "production:order_list",
+    "production:order_print_all_stickers"
+   ]
+  },
+  "templates/production/order_list.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:order_detail",
+    "production:order_list"
+   ]
+  },
+  "templates/production/passport_checker.html": {
+   "extends": [
+    "base.html"
+   ]
+  },
+  "templates/production/sewing_statistics_daily.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:api_send_telegram_daily_report",
+    "production:sewing_statistics_daily_report",
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_otk",
+    "production:sewing_statistics_repairs"
+   ]
+  },
+  "templates/production/sewing_statistics_daily_report.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:api_send_branch_daily_report",
+    "production:export_monthly_daily_report_excel",
+    "production:sewing_statistics_daily_report_image_preview",
+    "production:sewing_statistics_orders"
+   ]
+  },
+  "templates/production/sewing_statistics_model_detail.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:api_sewing_statistics_size_boxes",
+    "production:sewing_statistics_order_models",
+    "production:sewing_statistics_repairs"
+   ]
+  },
+  "templates/production/sewing_statistics_order_models.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:sewing_statistics_close_order_unprinted_boxes",
+    "production:sewing_statistics_model_detail",
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_repairs"
+   ]
+  },
+  "templates/production/sewing_statistics_orders.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:sewing_statistics_close_all_unprinted_boxes",
+    "production:sewing_statistics_daily",
+    "production:sewing_statistics_order_models",
+    "production:sewing_statistics_otk",
+    "production:sewing_statistics_repairs"
+   ]
+  },
+  "templates/production/sewing_statistics_otk.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:sewing_statistics_daily",
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_repairs"
+   ]
+  },
+  "templates/production/sewing_statistics_repairs.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:sewing_statistics_daily",
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_otk"
+   ]
+  },
+  "templates/production/statistics_pipeline.html": {
+   "extends": [
+    "base.html"
+   ],
+   "url_names": [
+    "production:statistics_pipeline"
+   ]
+  },
+  "templates/screens/monitor.html": {
+   "includes": [
+    "includes/theme_head_legacy.html"
+   ],
+   "url_names": [
+    "root_logout"
+   ]
+  },
+  "templates/screens/overview.html": {
+   "includes": [
+    "includes/theme_head_legacy.html"
+   ],
+   "url_names": [
+    "production:terminal_home",
+    "screens:screen_view"
+   ]
+  },
+  "templates/stickers/base_stickers.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "cutting_dashboard",
+    "meto_dashboard",
+    "norma_canvas",
+    "root_logout",
+    "sticker_dashboard",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/stickers/dashboard.html": {
+   "extends": [
+    "stickers/base_stickers.html"
+   ],
+   "url_names": [
+    "production:order_print_all_stickers",
+    "sticker_order_boxes"
+   ]
+  },
+  "templates/stickers/order_boxes.html": {
+   "extends": [
+    "stickers/base_stickers.html"
+   ],
+   "url_names": [
+    "meto_generate_missing_boxes",
+    "production:order_print_all_stickers",
+    "production:pastal_passport",
+    "sticker_copy_operations_and_generate",
+    "sticker_dashboard",
+    "sticker_mark_all_printed",
+    "sticker_regenerate_tickets"
+   ],
+   "fetch_paths": [
+    "/stickers/orders/"
+   ]
+  },
+  "templates/stickers/partials/batch_boxes.html": {
+   "url_names": [
+    "production:box_print_stickers",
+    "production:order_print_all_stickers",
+    "production:pastal_passport",
+    "sticker_mark_batch_printed",
+    "sticker_mark_box_printed"
+   ]
+  },
+  "templates/superadmin/base_superadmin.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "accounts:logout",
+    "control:home",
+    "cutting_dashboard",
+    "manager_dashboard",
+    "meto_dashboard",
+    "norma_canvas",
+    "production:dashboard",
+    "production:master_statistics",
+    "production:master_tablet",
+    "production:sewing_statistics_daily",
+    "production:sewing_statistics_daily_report",
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_otk",
+    "production:statistics_pipeline",
+    "production:terminal_home",
+    "screens:overview",
+    "sticker_dashboard",
+    "superadmin_dashboard",
+    "superadmin_defect_reasons",
+    "superadmin_orders_balance",
+    "superadmin_orders_list",
+    "superadmin_payroll",
+    "superadmin_pricing",
+    "superadmin_users"
+   ]
+  },
+  "templates/superadmin/dashboard.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "screens:overview",
+    "superadmin_download_daily_excel",
+    "superadmin_orders_list",
+    "superadmin_payroll",
+    "superadmin_payroll_export",
+    "superadmin_send_telegram_report",
+    "superadmin_users"
+   ]
+  },
+  "templates/superadmin/defect_reasons.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "control:home",
+    "superadmin_defect_reason_create",
+    "superadmin_defect_reason_seed_defaults",
+    "superadmin_defect_reasons",
+    "superadmin_toggle_require_all_operations_scanned"
+   ],
+   "fetch_paths": [
+    "/superadmin/control/defect-reasons/"
+   ]
+  },
+  "templates/superadmin/order_detail.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "production:order_detail",
+    "superadmin_order_add_model",
+    "superadmin_order_delete",
+    "superadmin_order_edit",
+    "superadmin_order_model_delete",
+    "superadmin_order_model_delete_operation",
+    "superadmin_orders_list"
+   ]
+  },
+  "templates/superadmin/orders_balance.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "superadmin_order_detail",
+    "superadmin_orders_balance",
+    "superadmin_orders_balance_export_excel"
+   ]
+  },
+  "templates/superadmin/orders_list.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "superadmin_order_delete",
+    "superadmin_order_detail",
+    "superadmin_orders_list"
+   ]
+  },
+  "templates/superadmin/payroll.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "superadmin_close_daily_now",
+    "superadmin_download_daily_excel",
+    "superadmin_download_monthly_excel",
+    "superadmin_month_freeze_toggle",
+    "superadmin_payout_create",
+    "superadmin_payroll",
+    "superadmin_payroll_bulk_pay",
+    "superadmin_payroll_export",
+    "superadmin_pricing",
+    "superadmin_recalculate_unfrozen_tickets",
+    "superadmin_send_telegram_report",
+    "superadmin_start_month_freeze_timer",
+    "superadmin_update_worker_branch",
+    "superadmin_worker_history"
+   ],
+   "fetch_paths": [
+    "/superadmin/payroll/worker/",
+    "/superadmin/workers/"
+   ]
+  },
+  "templates/superadmin/pricing.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "superadmin_pricing"
+   ]
+  },
+  "templates/superadmin/user_badge_print.html": {
+   "url_names": [
+    "superadmin_users"
+   ]
+  },
+  "templates/superadmin/users.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "superadmin_user_badge",
+    "superadmin_users",
+    "superadmin_users_print_badges",
+    "superadmin_worker_history"
+   ]
+  },
+  "templates/superadmin/users_badges_batch_print.html": {
+   "url_names": [
+    "superadmin_users",
+    "superadmin_users_download_badges_pdf",
+    "superadmin_users_print_badges"
+   ]
+  },
+  "templates/superadmin/worker_history.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "api_worker_tickets_by_date",
+    "superadmin_payroll",
+    "superadmin_users",
+    "superadmin_worker_history"
+   ]
+  },
+  "templates/terminal/index.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "accounts:login",
+    "accounts:logout",
+    "production:master_tablet",
+    "production:order_list",
+    "production:terminal_box_lookup",
+    "production:terminal_finalize",
+    "production:terminal_identify_worker",
+    "production:terminal_remove_ticket",
+    "production:terminal_reset_session",
+    "production:terminal_revoke_ticket",
+    "production:terminal_scan_ticket",
+    "production:terminal_ticket_info",
+    "production:terminal_worker_balance"
+   ]
+  }
+ }
+}

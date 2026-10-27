@@ -1,0 +1,473 @@
+{
+ "accounts.commands": {
+  "description": "accounts management commands (daily payroll close, freeze timers, user seeding).",
+  "files": [
+   "accounts/management/__init__.py",
+   "accounts/management/commands/__init__.py",
+   "accounts/management/commands/close_daily_payroll.py",
+   "accounts/management/commands/create_ekran_users.py",
+   "accounts/management/commands/create_patok_users.py",
+   "accounts/management/commands/process_freeze_timers.py",
+   "accounts/management/commands/setup_branch_admin.py"
+  ],
+  "lines": 384,
+  "depends_on": [
+   "accounts.core",
+   "accounts.freeze",
+   "production.models",
+   "production.services"
+  ]
+ },
+ "accounts.core": {
+  "description": "Custom User (roles, branch, uid/QR), Worker, payouts, daily/monthly closing, master history; login/logout; role-based path restriction middleware.",
+  "files": [
+   "accounts/__init__.py",
+   "accounts/admin.py",
+   "accounts/apps.py",
+   "accounts/middleware.py",
+   "accounts/models.py",
+   "accounts/urls.py",
+   "accounts/views.py"
+  ],
+  "lines": 1010,
+  "depends_on": [
+   "production.models",
+   "production.services"
+  ]
+ },
+ "accounts.freeze": {
+  "description": "Salary freeze service: auto-freeze past months, 7-day freeze timers (MonthlyClosing / Ticket.is_frozen).",
+  "files": [
+   "accounts/freeze_services.py"
+  ],
+  "lines": 260,
+  "depends_on": [
+   "accounts.core",
+   "production.models"
+  ]
+ },
+ "accounts.superadmin": {
+  "description": "Superadmin portal (/superadmin/): users & badges, payroll, payouts, month freeze, pricing, orders CRUD, defect reasons, orders balance.",
+  "files": [
+   "accounts/superadmin_urls.py",
+   "accounts/superadmin_views.py"
+  ],
+  "lines": 4357,
+  "depends_on": [
+   "accounts.commands",
+   "accounts.core",
+   "accounts.freeze",
+   "production.models",
+   "production.reports",
+   "production.services"
+  ]
+ },
+ "android_control": {
+  "description": "Standalone Android (Java) kiosk app for control tablets; built separately (build_apk.sh). Not imported by Django.",
+  "files": [
+   "android_control/app/build.gradle",
+   "android_control/app/src/main/AndroidManifest.xml",
+   "android_control/app/src/main/java/uz/terryjar/control/BootReceiver.java",
+   "android_control/app/src/main/java/uz/terryjar/control/MainActivity.java",
+   "android_control/app/src/main/res/drawable/ic_launcher.xml",
+   "android_control/app/src/main/res/layout/activity_main.xml",
+   "android_control/app/src/main/res/layout/dialog_settings.xml",
+   "android_control/app/src/main/res/values/colors.xml",
+   "android_control/app/src/main/res/values/strings.xml",
+   "android_control/app/src/main/res/values/styles.xml",
+   "android_control/build.gradle",
+   "android_control/build_apk.sh",
+   "android_control/settings.gradle"
+  ],
+  "lines": 1112,
+  "depends_on": []
+ },
+ "config": {
+  "description": "Django project: settings (env-driven DB selection, Telegram IDs), root URLconf, WSGI/ASGI.",
+  "files": [
+   "config/__init__.py",
+   "config/asgi.py",
+   "config/settings.py",
+   "config/urls.py",
+   "config/wsgi.py"
+  ],
+  "lines": 349,
+  "depends_on": [
+   "accounts.core",
+   "production.control",
+   "production.passport"
+  ]
+ },
+ "ops": {
+  "description": "Docker / nginx / restore and one-off scripts.",
+  "files": [
+   "CHANGELOG.md",
+   "Dockerfile",
+   "README.md",
+   "SYSTEM_ARCHITECTURE_GUIDE.md",
+   "docker-compose.yml",
+   "generate_stickers_100x60.py",
+   "manage.py",
+   "nginx/default.conf",
+   "requirements.txt",
+   "restore_data.sh",
+   "scratch_badges_pdf.py"
+  ],
+  "lines": 1345,
+  "depends_on": [
+   "accounts.core"
+  ]
+ },
+ "production.commands": {
+  "description": "production management commands (scheduler daemon, passport bot, reports, backups, cleanup).",
+  "files": [
+   "production/management/commands/cleanup_old_ticket_images.py",
+   "production/management/commands/close_unprinted_boxes.py",
+   "production/management/commands/restore_stickers_from_backup.py",
+   "production/management/commands/run_passport_bot.py",
+   "production/management/commands/run_scheduler.py",
+   "production/management/commands/seed_demo_data.py",
+   "production/management/commands/send_daily_patok_report.py",
+   "production/management/commands/send_daily_report.py",
+   "production/management/commands/send_db_backup.py",
+   "production/management/commands/sync_article_operations.py"
+  ],
+  "lines": 1838,
+  "depends_on": [
+   "accounts.commands",
+   "accounts.core",
+   "production.master",
+   "production.models",
+   "production.passport",
+   "production.reports",
+   "production.services"
+  ]
+ },
+ "production.control": {
+  "description": "OTK quality control portal (/control/) and Android control APK download.",
+  "files": [
+   "production/control_urls.py",
+   "production/control_views.py"
+  ],
+  "lines": 926,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.terminal"
+  ]
+ },
+ "production.cutting": {
+  "description": "Cutting portal (/cutting/): cutting batches (pastals) and auto-box generation.",
+  "files": [
+   "production/cutting_urls.py",
+   "production/cutting_views.py"
+  ],
+  "lines": 724,
+  "depends_on": [
+   "production.models",
+   "production.services"
+  ]
+ },
+ "production.managers": {
+  "description": "Manager portal (/managers/): order creation and overview.",
+  "files": [
+   "production/manager_urls.py",
+   "production/manager_views.py"
+  ],
+  "lines": 585,
+  "depends_on": [
+   "production.models"
+  ]
+ },
+ "production.master": {
+  "description": "Master tablet (accept/reject pastals per patok) and master statistics.",
+  "files": [
+   "production/master_views.py"
+  ],
+  "lines": 1558,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.passport",
+   "production.services"
+  ]
+ },
+ "production.meto": {
+  "description": "Meto (numbering) portal (/meto/) and meto hub with waybills (/meto-hub/).",
+  "files": [
+   "production/meto_hub_urls.py",
+   "production/meto_hub_views.py",
+   "production/meto_urls.py",
+   "production/meto_views.py"
+  ],
+  "lines": 1053,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.services"
+  ]
+ },
+ "production.models": {
+  "description": "All production domain models (Customer → Order → OrderItem → Box → Ticket, cutting batches, waybills, OTK, progress).",
+  "files": [
+   "production/models.py"
+  ],
+  "lines": 1787,
+  "depends_on": [
+   "accounts.core",
+   "production.services"
+  ]
+ },
+ "production.norma": {
+  "description": "Norma (daily norm) portal (/norma/): models, operations catalog, canvas, worker norm breakdown.",
+  "files": [
+   "production/norma_services.py",
+   "production/norma_urls.py",
+   "production/norma_views.py"
+  ],
+  "lines": 1405,
+  "depends_on": [
+   "accounts.core",
+   "production.models"
+  ]
+ },
+ "production.orders": {
+  "description": "Main dashboard, orders, box split/print, sticker PDFs, articles catalog, pipeline statistics (/ , /orders/, /boxes/).",
+  "files": [
+   "production/urls.py",
+   "production/views.py"
+  ],
+  "lines": 1318,
+  "depends_on": [
+   "accounts.core",
+   "production.control",
+   "production.master",
+   "production.models",
+   "production.passport",
+   "production.services",
+   "production.sewing_statistics",
+   "production.stickers",
+   "production.terminal"
+  ]
+ },
+ "production.passport": {
+  "description": "Pastal passport checker (web + Telegram webhook) and the passport Telegram bot service.",
+  "files": [
+   "production/passport_bot_service.py",
+   "production/passport_views.py"
+  ],
+  "lines": 1549,
+  "depends_on": [
+   "production.models",
+   "production.services"
+  ]
+ },
+ "production.platform": {
+  "description": "AppConfig (template whitespace monkey-patch) and Django admin registrations.",
+  "files": [
+   "production/__init__.py",
+   "production/admin.py",
+   "production/apps.py"
+  ],
+  "lines": 185,
+  "depends_on": [
+   "production.models"
+  ]
+ },
+ "production.reports": {
+  "description": "Excel reports, Telegram daily Excel report, 18:00 branch image reports.",
+  "files": [
+   "production/daily_image_reports.py",
+   "production/excel_reports.py",
+   "production/telegram_reports.py"
+  ],
+  "lines": 3031,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.services",
+   "production.sewing_statistics",
+   "screens"
+  ]
+ },
+ "production.services": {
+  "description": "Core business logic: ticket allocation/generation, box creation, patok code helpers, OTK close, pastal code generation.",
+  "files": [
+   "production/services.py"
+  ],
+  "lines": 611,
+  "depends_on": [
+   "production.models"
+  ]
+ },
+ "production.sewing_statistics": {
+  "description": "Sewing pipeline statistics, daily report (image/Telegram/Excel), OTK and repairs views.",
+  "files": [
+   "production/sewing_statistics_views.py"
+  ],
+  "lines": 3531,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.reports",
+   "production.services",
+   "screens"
+  ]
+ },
+ "production.stickers": {
+  "description": "Sticker printing portal (/stickers/) and 100x60 sticker PDF generator.",
+  "files": [
+   "production/sticker_generator.py",
+   "production/sticker_urls.py",
+   "production/sticker_views.py"
+  ],
+  "lines": 763,
+  "depends_on": [
+   "production.models",
+   "production.services"
+  ]
+ },
+ "production.terminal": {
+  "description": "Master scanning terminal (/terminal/) — scanning tickets assigns them to workers (payroll source).",
+  "files": [
+   "production/terminal_views.py"
+  ],
+  "lines": 1031,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.services"
+  ]
+ },
+ "screens": {
+  "description": "Shop-floor TV monitors per patok (/screens/) with JSON polling API.",
+  "files": [
+   "screens/__init__.py",
+   "screens/admin.py",
+   "screens/apps.py",
+   "screens/models.py",
+   "screens/urls.py",
+   "screens/views.py"
+  ],
+  "lines": 692,
+  "depends_on": [
+   "accounts.core",
+   "production.models",
+   "production.services"
+  ]
+ },
+ "templates": {
+  "description": "Server-rendered Django templates, grouped by portal.",
+  "files": [
+   "templates/404.html",
+   "templates/500.html",
+   "templates/accounts/login.html",
+   "templates/accounts/worker_badges_print.html",
+   "templates/accounts/worker_list.html",
+   "templates/base.html",
+   "templates/cutting/base_cutting.html",
+   "templates/cutting/dashboard.html",
+   "templates/cutting/order_detail.html",
+   "templates/cutting/partials/item_detail.html",
+   "templates/includes/theme_head.html",
+   "templates/includes/theme_head_legacy.html",
+   "templates/includes/theme_toggle.html",
+   "templates/managers/base_manager.html",
+   "templates/managers/dashboard.html",
+   "templates/managers/order_create.html",
+   "templates/managers/order_detail.html",
+   "templates/meto/base_meto.html",
+   "templates/meto/dashboard.html",
+   "templates/meto/order_detail.html",
+   "templates/meto/partials/batch_items.html",
+   "templates/meto_hub/base_meto_hub.html",
+   "templates/meto_hub/dashboard.html",
+   "templates/meto_hub/uychi_dashboard.html",
+   "templates/meto_hub/waybill_detail.html",
+   "templates/meto_hub/waybill_print_a4.html",
+   "templates/norma/base_norma.html",
+   "templates/norma/canvas.html",
+   "templates/norma/dashboard.html",
+   "templates/norma/history.html",
+   "templates/norma/model_edit.html",
+   "templates/norma/model_operations.html",
+   "templates/norma/models_list.html",
+   "templates/norma/operations_catalog.html",
+   "templates/norma/workers.html",
+   "templates/production/articles_catalog.html",
+   "templates/production/box_split_wizard.html",
+   "templates/production/box_stickers_print.html",
+   "templates/production/control_home.html",
+   "templates/production/dashboard.html",
+   "templates/production/master_statistics.html",
+   "templates/production/master_tablet.html",
+   "templates/production/order_detail.html",
+   "templates/production/order_list.html",
+   "templates/production/partials/size_boxes_pipeline.html",
+   "templates/production/passport_checker.html",
+   "templates/production/pastal_passport.html",
+   "templates/production/sewing_statistics_daily.html",
+   "templates/production/sewing_statistics_daily_report.html",
+   "templates/production/sewing_statistics_model_detail.html",
+   "templates/production/sewing_statistics_order_models.html",
+   "templates/production/sewing_statistics_orders.html",
+   "templates/production/sewing_statistics_otk.html",
+   "templates/production/sewing_statistics_repairs.html",
+   "templates/production/statistics_pipeline.html",
+   "templates/screens/monitor.html",
+   "templates/screens/overview.html",
+   "templates/stickers/base_stickers.html",
+   "templates/stickers/dashboard.html",
+   "templates/stickers/order_boxes.html",
+   "templates/stickers/partials/batch_boxes.html",
+   "templates/superadmin/base_superadmin.html",
+   "templates/superadmin/dashboard.html",
+   "templates/superadmin/defect_reasons.html",
+   "templates/superadmin/order_detail.html",
+   "templates/superadmin/orders_balance.html",
+   "templates/superadmin/orders_list.html",
+   "templates/superadmin/payroll.html",
+   "templates/superadmin/pricing.html",
+   "templates/superadmin/user_badge_print.html",
+   "templates/superadmin/users.html",
+   "templates/superadmin/users_badges_batch_print.html",
+   "templates/superadmin/worker_history.html",
+   "templates/terminal/index.html"
+  ],
+  "lines": 41951,
+  "depends_on": []
+ },
+ "tests": {
+  "description": "Django TestCase suites.",
+  "files": [
+   "accounts/tests.py",
+   "production/test_master_statistics.py",
+   "production/test_norma_canvas.py",
+   "production/test_passport_bot.py",
+   "production/test_salary_freeze.py",
+   "production/test_sewing_statistics_order_models.py",
+   "production/test_telegram_reports.py",
+   "production/test_terminal.py",
+   "production/tests.py",
+   "screens/tests.py"
+  ],
+  "lines": 9672,
+  "depends_on": [
+   "accounts.core",
+   "accounts.freeze",
+   "production.commands",
+   "production.cutting",
+   "production.managers",
+   "production.meto",
+   "production.models",
+   "production.norma",
+   "production.passport",
+   "production.reports",
+   "production.services",
+   "production.sewing_statistics",
+   "production.stickers",
+   "production.terminal",
+   "screens"
+  ]
+ }
+}
