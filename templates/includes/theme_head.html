@@ -1,18 +1,196 @@
-<!-- Universal Theme & Font Manager: Times New Roman & Kun/Tun (Day/Night) Mode -->
+{% comment %}
+Universal Theme & Font Manager: Times New Roman + Kun/Tun (Day/Night) rejimi.
+
+Qanday ishlaydi:
+- Sahifalar "tun" (qorong'u) uslubda Tailwind klasslari bilan yozilgan. Quyidagi skript Tailwind
+  rang utilitalarini (text-, bg-, border-, divide-, from-/via-/to-, shadow-, placeholder-) CSS
+  o'zgaruvchilari orqali o'tkazadi. Har bir o'zgaruvchining zaxira qiymati Tailwind'ning asl
+  rangi, shuning uchun Tun rejimi avvalgidek ko'rinadi.
+- Kun rejimida (html.theme-light) o'zgaruvchilarga yorug' qiymatlar beriladi: qorong'u fonlar
+  oqaradi, ochiq rangli matnlar oq fonda o'qiladigan to'q tonga (WCAG AA, kamida 4.5:1) o'tadi.
+- Rangli (solid) fon ustidagi matn (bg-emerald-600, from-indigo-600 ...) asl ochiq rangida qoladi.
+- Shrift qoidasini o'tkazib yuborish: {% include 'includes/theme_head.html' with keep_font=True %}
+- /control/ (OTK), /screens/ va /screens/<1..40>/ bu faylni EMAS, includes/theme_head_legacy.html ni
+  ulaydi: foydalanuvchi talabi bo'yicha ular qat'iy eski holatda qoladi.
+{% endcomment %}
 <script>
     (function () {
-        const savedTheme = localStorage.getItem('payroll_theme') || 'dark';
-        if (savedTheme === 'light') {
-            document.documentElement.classList.add('theme-light');
-            document.documentElement.classList.remove('dark');
-        } else {
-            document.documentElement.classList.remove('theme-light');
-            document.documentElement.classList.add('dark');
+        var KEY = 'payroll_theme';
+
+        window.applyPayrollTheme = function (mode) {
+            var root = document.documentElement;
+            if (mode === 'light') {
+                root.classList.add('theme-light');
+                root.classList.remove('dark');
+            } else {
+                root.classList.remove('theme-light');
+                root.classList.add('dark');
+            }
+        };
+
+        var saved = 'dark';
+        try { saved = localStorage.getItem(KEY) || 'dark'; } catch (e) { }
+        window.applyPayrollTheme(saved);
+    })();
+</script>
+
+<script>
+    /* Kun/Tun rang tizimi: Tailwind palitrasi -> CSS o'zgaruvchilari + Kun rejimi qiymatlari */
+    (function () {
+        var SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+        var PALETTE = {
+            slate: 'f8fafc f1f5f9 e2e8f0 cbd5e1 94a3b8 64748b 475569 334155 1e293b 0f172a 020617',
+            gray: 'f9fafb f3f4f6 e5e7eb d1d5db 9ca3af 6b7280 4b5563 374151 1f2937 111827 030712',
+            zinc: 'fafafa f4f4f5 e4e4e7 d4d4d8 a1a1aa 71717a 52525b 3f3f46 27272a 18181b 09090b',
+            neutral: 'fafafa f5f5f5 e5e5e5 d4d4d4 a3a3a3 737373 525252 404040 262626 171717 0a0a0a',
+            stone: 'fafaf9 f5f5f4 e7e5e4 d6d3d1 a8a29e 78716c 57534e 44403c 292524 1c1917 0c0a09',
+            red: 'fef2f2 fee2e2 fecaca fca5a5 f87171 ef4444 dc2626 b91c1c 991b1b 7f1d1d 450a0a',
+            orange: 'fff7ed ffedd5 fed7aa fdba74 fb923c f97316 ea580c c2410c 9a3412 7c2d12 431407',
+            amber: 'fffbeb fef3c7 fde68a fcd34d fbbf24 f59e0b d97706 b45309 92400e 78350f 451a03',
+            yellow: 'fefce8 fef9c3 fef08a fde047 facc15 eab308 ca8a04 a16207 854d0e 713f12 422006',
+            lime: 'f7fee7 ecfccb d9f99d bef264 a3e635 84cc16 65a30d 4d7c0f 3f6212 365314 1a2e05',
+            green: 'f0fdf4 dcfce7 bbf7d0 86efac 4ade80 22c55e 16a34a 15803d 166534 14532d 052e16',
+            emerald: 'ecfdf5 d1fae5 a7f3d0 6ee7b7 34d399 10b981 059669 047857 065f46 064e3b 022c22',
+            teal: 'f0fdfa ccfbf1 99f6e4 5eead4 2dd4bf 14b8a6 0d9488 0f766e 115e59 134e4a 042f2e',
+            cyan: 'ecfeff cffafe a5f3fc 67e8f9 22d3ee 06b6d4 0891b2 0e7490 155e75 164e63 083344',
+            sky: 'f0f9ff e0f2fe bae6fd 7dd3fc 38bdf8 0ea5e9 0284c7 0369a1 075985 0c4a6e 082f49',
+            blue: 'eff6ff dbeafe bfdbfe 93c5fd 60a5fa 3b82f6 2563eb 1d4ed8 1e40af 1e3a8a 172554',
+            indigo: 'eef2ff e0e7ff c7d2fe a5b4fc 818cf8 6366f1 4f46e5 4338ca 3730a3 312e81 1e1b4b',
+            violet: 'f5f3ff ede9fe ddd6fe c4b5fd a78bfa 8b5cf6 7c3aed 6d28d9 5b21b6 4c1d95 2e1065',
+            purple: 'faf5ff f3e8ff e9d5ff d8b4fe c084fc a855f7 9333ea 7e22ce 6b21a8 581c87 3b0764',
+            fuchsia: 'fdf4ff fae8ff f5d0fe f0abfc e879f9 d946ef c026d3 a21caf 86198f 701a75 4a044e',
+            pink: 'fdf2f8 fce7f3 fbcfe8 f9a8d4 f472b6 ec4899 db2777 be185d 9d174d 831843 500724',
+            rose: 'fff1f2 ffe4e6 fecdd3 fda4af fb7185 f43f5e e11d48 be123c 9f1239 881337 4c0519'
+        };
+        var NEUTRALS = ['slate', 'gray', 'zinc', 'neutral', 'stone'];
+        var FAMILIES = Object.keys(PALETTE);
+        var ACCENTS = FAMILIES.filter(function (f) { return NEUTRALS.indexOf(f) < 0; });
+
+        function hex(fam, shade) { return PALETTE[fam].split(' ')[SHADES.indexOf(shade)]; }
+        function rgb(h) {
+            return parseInt(h.substr(0, 2), 16) + ' ' + parseInt(h.substr(2, 2), 16) + ' ' + parseInt(h.substr(4, 2), 16);
         }
+        function ref(kind, key, fallbackHex) {
+            return 'rgb(var(--' + kind + '-' + key + ', ' + rgb(fallbackHex) + ') / <alpha-value>)';
+        }
+
+        /* ---- 1. Tailwind konfiguratsiyasi: ranglar o'zgaruvchilar orqali (Tun rejimi = asl ranglar) ---- */
+        if (window.tailwind) {
+            var tx = { white: ref('tx', 'white', 'ffffff') };
+            var bg = { white: ref('bg', 'white', 'ffffff'), black: ref('bg', 'black', '000000') };
+            var bd = {};
+            FAMILIES.forEach(function (fam) {
+                tx[fam] = {}; bg[fam] = {}; bd[fam] = {};
+                SHADES.forEach(function (s) {
+                    var h = hex(fam, s);
+                    tx[fam][s] = ref('tx', fam + '-' + s, h);
+                    bg[fam][s] = ref('bg', fam + '-' + s, h);
+                    bd[fam][s] = ref('bd', fam + '-' + s, h);
+                });
+            });
+            var cfg = window.tailwind.config || {};
+            var theme = cfg.theme || {};
+            var ext = theme.extend || {};
+            ext.textColor = Object.assign({}, ext.textColor || {}, tx);
+            ext.placeholderColor = Object.assign({}, ext.placeholderColor || {}, tx);
+            ext.backgroundColor = Object.assign({}, ext.backgroundColor || {}, bg);
+            ext.gradientColorStops = Object.assign({}, ext.gradientColorStops || {}, bg);
+            ext.boxShadowColor = Object.assign({}, ext.boxShadowColor || {}, bg);
+            ext.borderColor = Object.assign({}, ext.borderColor || {}, bd); /* divide- ham shundan oladi */
+            theme.extend = ext;
+            cfg.theme = theme;
+            window.tailwind.config = cfg;
+        }
+
+        /* ---- 2. Kun rejimi qiymatlari ---- */
+        var lightTx = {}, darkTx = {}, lightOther = {};
+        function setTx(key, lightHex, darkHex) { lightTx['tx-' + key] = rgb(lightHex); darkTx['tx-' + key] = rgb(darkHex); }
+
+        setTx('white', '0f172a', 'ffffff');
+        NEUTRALS.forEach(function (fam) {
+            /* ochiq kulrang matn -> to'q kulrang (iyerarxiya saqlanadi) */
+            [[50, 900], [100, 900], [200, 800], [300, 800], [400, 600], [500, 600]].forEach(function (p) {
+                setTx(fam + '-' + p[0], hex(fam, p[1]), hex(fam, p[0]));
+            });
+            /* qorong'u fonlar -> yorug' fonlar */
+            [[950, 100], [900, null], [800, 100], [700, 200], [600, 300]].forEach(function (p) {
+                lightOther['bg-' + fam + '-' + p[0]] = rgb(p[1] ? hex(fam, p[1]) : 'ffffff');
+            });
+            [[950, 200], [900, 200], [800, 200], [700, 300], [600, 400]].forEach(function (p) {
+                lightOther['bd-' + fam + '-' + p[0]] = rgb(hex(fam, p[1]));
+            });
+        });
+        /* slate-500: oq va kulrang fonlarda >= 4.8:1 bo'ladigan oraliq ton */
+        lightTx['tx-slate-500'] = rgb('56657a');
+
+        /* Rangli matn uchun oq/och fonlarda >= 4.5:1 beradigan eng och ton (WCAG AA bo'yicha hisoblangan) */
+        var DEEP_TEXT = { blue: 700, indigo: 700, violet: 700, purple: 700 };
+        ACCENTS.forEach(function (fam) {
+            var target = hex(fam, DEEP_TEXT[fam] || 800);
+            [50, 100, 200, 300, 400, 500, 600].forEach(function (s) { setTx(fam + '-' + s, target, hex(fam, s)); });
+            lightOther['bg-' + fam + '-950'] = rgb(hex(fam, 100));
+            lightOther['bg-' + fam + '-900'] = rgb(hex(fam, 200));
+            [[950, 200], [900, 200], [800, 300], [700, 300]].forEach(function (p) {
+                lightOther['bd-' + fam + '-' + p[0]] = rgb(hex(fam, p[1]));
+            });
+        });
+        lightOther['bg-black'] = rgb('0f172a'); /* modal fonlari: qora o'rniga to'q ko'k-kulrang */
+
+        function decls(map) { return Object.keys(map).map(function (k) { return '--' + k + ':' + map[k]; }).join(';'); }
+        function scoped(selectors) { return selectors.map(function (s) { return 'html.theme-light ' + s; }).join(','); }
+
+        /* Kun rejimida yorug'ga aylanadigan fonlar: ichidagi matn yana to'q bo'lishi kerak */
+        var surfaces = ['bg-[#'];
+        NEUTRALS.forEach(function (fam) {
+            [6, 7, 8, 9].forEach(function (d) { surfaces.push('bg-' + fam + '-' + d, 'from-' + fam + '-' + d); });
+        });
+        ACCENTS.forEach(function (fam) { surfaces.push('bg-' + fam + '-9', 'from-' + fam + '-9'); });
+        var surfaceSel = [];
+        surfaces.forEach(function (p) { surfaceSel.push('[class^="' + p + '"]', '[class*=" ' + p + '"]'); });
+
+        /* Kun rejimida ham rangli qoladigan fonlar: ichidagi oq/och matn o'z rangida qoladi.
+           bg-black/.. (rasm ustidagi belgilar, modal fonlari) ham shu yerda: modal paneli o'zi yorug' sirt. */
+        var solidSel = ['.bg-black', '[class^="bg-black/"]', '[class*=" bg-black/"]'];
+        ACCENTS.concat(['brand']).forEach(function (fam) {
+            [400, 500, 600, 700, 800].forEach(function (s) {
+                var c = fam + '-' + s;
+                solidSel.push('.bg-' + c, '.from-' + c, '.hover\\:bg-' + c + ':hover');
+            });
+        });
+
+        var css = 'html.theme-light{' + decls(lightTx) + ';' + decls(lightOther) + '}'
+            + scoped(surfaceSel) + '{' + decls(lightTx) + '}'
+            + scoped(solidSel) + '{' + decls(darkTx) + '}';
+
+        /* Tailwind palitrasidan tashqari qo'lda yozilgan qorong'u ranglar (Norma canvas, Master planshet) */
+        var ARBITRARY_BG = [
+            ['#0c0f17', '241 245 249'], ['#080d1a', '241 245 249'],
+            ['#161b26', '255 255 255'], ['#1e2433', '255 255 255'], ['#16161c', '255 255 255'],
+            ['#131722', '255 255 255'], ['#5b1e5a', '250 232 255'], ['#193961', '219 234 254'],
+            ['#0d4a45', '204 251 241']
+        ];
+        ARBITRARY_BG.forEach(function (p) {
+            var cls = '.bg-\\[\\' + p[0] + '\\]';
+            /* hover: klassi bo'lsa, hover holatini o'sha klassga qoldiramiz */
+            css += 'html.theme-light ' + cls + ':not([class*="hover:bg-"]),html.theme-light ' + cls + '[class*="hover:bg-"]:not(:hover){background-color:rgb(' + p[1] + ')}';
+            [40, 80, 95].forEach(function (a) {
+                css += 'html.theme-light ' + cls + '\\/' + a + '{background-color:rgb(' + p[1] + ' / .' + a + ')}';
+            });
+        });
+        [['#2a2e39', '226 232 240'], ['#232936', '226 232 240'], ['#701a75', '240 171 252'],
+        ['#2a4365', '147 197 253'], ['#134e4a', '94 234 212']].forEach(function (p) {
+            css += 'html.theme-light .border-\\[\\' + p[0] + '\\]{border-color:rgb(' + p[1] + ')}';
+        });
+
+        var style = document.createElement('style');
+        style.id = 'payroll-theme-light';
+        style.textContent = css;
+        document.head.appendChild(style);
     })();
 </script>
 
 <style>
+    {% if not keep_font %}
     /* 1. UNIVERSAL FONT: Times New Roman on every element (strictly preserving FontAwesome icons) */
     html, body, input, button, select, textarea, optgroup, option,
     table, th, td, h1, h2, h3, h4, h5, h6, p, span, a, label, div, ul, ol, li {
@@ -26,113 +204,34 @@
     .digital-font, .font-mono {
         font-family: 'Times New Roman', Times, serif !important;
     }
+    {% endif %}
 
-    /* 2. LIGHT THEME (KUN REJIMI) STYLES */
-    html.theme-light, 
-    html.theme-light body {
-        background-color: #f8fafc !important; /* Slate-50 */
-        color: #0f172a !important;            /* Slate-900 */
-    }
-
-    /* Aside / Sidebar */
-    html.theme-light aside {
-        background-color: #ffffff !important;
-        border-color: #e2e8f0 !important;
+    /* 2. KUN REJIMI: sahifa foni (o'z CSS'idagi qorong'u body rangini ham yopadi) */
+    @media screen {
+        html.theme-light,
+        html.theme-light body {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
     }
 
-    /* Header / Navbars */
-    html.theme-light header,
-    html.theme-light nav.top-navbar {
-        background-color: #ffffff !important;
-        border-color: #e2e8f0 !important;
-    }
+    html.theme-light .hover\:bg-\[\#1f2637\]:hover { background-color: #f1f5f9 !important; }
 
-    /* Cards & Containers */
-    html.theme-light .bg-slate-900 {
-        background-color: #ffffff !important;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    }
-    html.theme-light .bg-slate-950 {
-        background-color: #f1f5f9 !important; /* Slate-100 */
-    }
-    html.theme-light .bg-slate-950\/50,
-    html.theme-light .bg-slate-950\/60,
-    html.theme-light .bg-slate-950\/80,
-    html.theme-light .bg-slate-900\/50,
-    html.theme-light .bg-slate-900\/60,
-    html.theme-light .bg-slate-900\/80 {
-        background-color: #f8fafc !important;
-    }
-    html.theme-light .bg-slate-800,
-    html.theme-light .bg-slate-800\/40,
-    html.theme-light .bg-slate-800\/50,
-    html.theme-light .bg-slate-800\/60,
-    html.theme-light .bg-slate-800\/70,
-    html.theme-light .bg-slate-800\/80 {
-        background-color: #e2e8f0 !important;
-    }
-
-    /* Text Colors */
-    html.theme-light .text-white {
-        color: #0f172a !important;
-    }
-    html.theme-light .text-slate-100,
-    html.theme-light .text-slate-200,
-    html.theme-light .text-slate-300 {
-        color: #1e293b !important;
-    }
-    html.theme-light .text-slate-400 {
-        color: #475569 !important;
-    }
-    html.theme-light .text-slate-500 {
-        color: #64748b !important;
-    }
-
-    /* Borders & Dividers */
-    html.theme-light .border-slate-800,
-    html.theme-light .border-slate-800\/60,
-    html.theme-light .border-slate-800\/80,
-    html.theme-light .border-slate-700,
-    html.theme-light .border-slate-700\/60 {
-        border-color: #e2e8f0 !important;
-    }
-    html.theme-light .divide-slate-800\/60 > * + *,
-    html.theme-light .divide-slate-800 > * + * {
-        border-color: #e2e8f0 !important;
-    }
-
-    /* Form Controls */
-    html.theme-light input:not([type="checkbox"]):not([type="radio"]),
-    html.theme-light select,
-    html.theme-light textarea {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border-color: #cbd5e1 !important;
-    }
-    html.theme-light input::placeholder,
-    html.theme-light textarea::placeholder {
-        color: #94a3b8 !important;
-    }
-
-    /* Tables */
-    html.theme-light table thead tr {
+    /* Norma canvas: nuqtali fon va port belgilari */
+    html.theme-light [style*="#0c0f17"] {
         background-color: #f1f5f9 !important;
-        color: #475569 !important;
-        border-bottom-color: #cbd5e1 !important;
+        background-image: radial-gradient(rgba(15, 23, 42, 0.14) 1.2px, transparent 1.2px) !important;
     }
-    html.theme-light table tbody tr:hover {
-        background-color: #f1f5f9 !important;
+    html.theme-light .port-plus {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #64748b;
     }
 
-    /* Modals */
-    html.theme-light .bg-black\/80,
-    html.theme-light .bg-black\/70 {
-        background-color: rgba(15, 23, 42, 0.6) !important;
-    }
-    html.theme-light [id*="modal"] > div {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border-color: #e2e8f0 !important;
+    /* Maxsus scrollbar'lar (planshet, statistika) */
+    html.theme-light::-webkit-scrollbar-track,
+    html.theme-light ::-webkit-scrollbar-track {
+        background: rgba(203, 213, 225, 0.6);
     }
 
     /* Floating Toast Notifications */
@@ -147,16 +246,9 @@
 
 <script>
     function togglePayrollTheme() {
-        const isLight = document.documentElement.classList.contains('theme-light');
-        if (isLight) {
-            document.documentElement.classList.remove('theme-light');
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('payroll_theme', 'dark');
-        } else {
-            document.documentElement.classList.add('theme-light');
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('payroll_theme', 'light');
-        }
+        var nextMode = document.documentElement.classList.contains('theme-light') ? 'dark' : 'light';
+        window.applyPayrollTheme(nextMode);
+        try { localStorage.setItem('payroll_theme', nextMode); } catch (e) { }
         updatePayrollThemeButtons();
     }
 
@@ -166,7 +258,7 @@
             const moonIcon = btn.querySelector('.theme-icon-moon');
             const sunIcon = btn.querySelector('.theme-icon-sun');
             const textEl = btn.querySelector('.theme-text');
-            
+
             if (isLight) {
                 if (moonIcon) moonIcon.classList.add('hidden');
                 if (sunIcon) sunIcon.classList.remove('hidden');
@@ -181,6 +273,14 @@
         });
     }
 
+    // Boshqa oynada rejim almashtirilsa, shu oyna ham darhol moslashadi
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'payroll_theme') {
+            window.applyPayrollTheme(e.newValue === 'light' ? 'light' : 'dark');
+            updatePayrollThemeButtons();
+        }
+    });
+
     // Floating Toast Notification Helper
     function showPayrollToast(message, type = 'success') {
         let container = document.getElementById('payroll-floating-toast-container');
@@ -193,8 +293,8 @@
 
         const toast = document.createElement('div');
         toast.className = `payroll-toast pointer-events-auto p-3.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-md border ${
-            type === 'error' 
-                ? 'bg-rose-950/95 text-rose-200 border-rose-700/80 shadow-rose-950/50' 
+            type === 'error'
+                ? 'bg-rose-950/95 text-rose-200 border-rose-700/80 shadow-rose-950/50'
                 : type === 'info'
                 ? 'bg-sky-950/95 text-sky-200 border-sky-700/80 shadow-sky-950/50'
                 : 'bg-emerald-950/95 text-emerald-200 border-emerald-700/80 shadow-emerald-950/50'

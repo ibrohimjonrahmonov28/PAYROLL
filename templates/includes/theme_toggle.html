@@ -1,8 +1,12 @@
-<!-- Kun / Tun (Day / Night) Mode Toggle Button -->
-<button type="button" onclick="togglePayrollTheme()"
-    class="theme-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white shadow-sm cursor-pointer select-none"
-    title="Kun / Tun rejimini almashtirish">
-    <i class="fa-solid fa-moon theme-icon-moon text-amber-400 text-xs"></i>
-    <i class="fa-solid fa-sun theme-icon-sun text-amber-500 text-xs hidden"></i>
-    <span class="theme-text text-xs font-semibold">Tun</span>
+{% comment %}
+Kun / Tun (Day / Night) rejimi tugmasi. mousedown fokusni olmaydi, ya'ni skaner maydonidan fokus ketmaydi.
+Ixcham variant (kichik sarlavhalar uchun): include 'includes/theme_toggle.html' with compact=True
+Tor ekranda yozuvni yashirish: include 'includes/theme_toggle.html' with label_class='hidden xl:inline'
+{% endcomment %}
+<button type="button" onclick="togglePayrollTheme()" onmousedown="event.preventDefault()"
+    class="theme-toggle-btn flex items-center gap-1.5 {% if compact %}px-2 py-0.5 rounded-full text-[10px]{% else %}px-3 py-1.5 rounded-xl text-xs{% endif %} font-bold transition border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white shadow-sm cursor-pointer select-none flex-shrink-0"
+    title="Kun / Tun rejimini almashtirish" aria-label="Kun / Tun rejimini almashtirish">
+    <i class="fa-solid fa-moon theme-icon-moon text-amber-400 {% if compact %}text-[10px]{% else %}text-xs{% endif %}"></i>
+    <i class="fa-solid fa-sun theme-icon-sun text-amber-500 {% if compact %}text-[10px]{% else %}text-xs{% endif %} hidden"></i>
+    <span class="theme-text {% if compact %}text-[10px]{% else %}text-xs{% endif %} font-semibold {{ label_class|default:'' }}">Tun</span>
 </button>

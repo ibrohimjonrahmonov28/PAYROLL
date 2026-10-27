@@ -89,6 +89,7 @@
                             {{ request.user.get_role_display }} ({{ request.user.get_branch_display }})
                         </div>
                     </div>
+                    {% include 'includes/theme_toggle.html' %}
                     <a href="{% url 'root_logout' %}"
                         class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 border border-slate-700/60 text-slate-400 text-xs font-bold transition flex items-center gap-1.5">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>

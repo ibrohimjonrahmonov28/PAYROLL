@@ -78,6 +78,7 @@
             animation: scan-glow 2.5s infinite ease-in-out;
         }
     </style>
+    {% include 'includes/theme_head.html' with keep_font=True %}
 </head>
 
 <body class="h-screen flex flex-col bg-[#080d1a] relative overflow-hidden">
@@ -176,6 +177,8 @@
 
                 <!-- 5-Minute Auto-Logout Timer & Exit Button -->
                 <div class="flex items-center gap-3">
+                    {% include 'includes/theme_toggle.html' %}
+
                     <div class="bg-slate-800/90 border border-slate-700/80 rounded-xl px-3 py-1.5 flex items-center gap-2">
                         <i class="fa-regular fa-clock text-amber-400 text-sm animate-pulse"></i>
                         <div class="text-right">
