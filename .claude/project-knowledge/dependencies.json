@@ -64,6 +64,7 @@
    "production/control_views.py",
    "production/cutting_urls.py",
    "production/cutting_views.py",
+   "production/daily_dazmol.py",
    "production/daily_image_reports.py",
    "production/excel_reports.py",
    "production/management/commands/cleanup_old_ticket_images.py",
@@ -95,6 +96,7 @@
    "production/sticker_views.py",
    "production/telegram_reports.py",
    "production/terminal_views.py",
+   "production/test_daily_dazmol.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
@@ -127,6 +129,7 @@
   "openpyxl": [
    "accounts/superadmin_views.py",
    "production/excel_reports.py",
+   "production/test_daily_dazmol.py",
    "production/test_telegram_reports.py",
    "production/tests.py"
   ],
@@ -286,11 +289,16 @@
     "production.services"
    ]
   },
+  "production.daily_dazmol": {
+   "imports": [
+    "production.models"
+   ]
+  },
   "production.daily_image_reports": {
    "imports": [
+    "production.daily_dazmol",
     "production.models",
     "production.services",
-    "production.sewing_statistics_views",
     "screens.views"
    ]
   },
@@ -464,6 +472,7 @@
   "production.sewing_statistics_views": {
    "imports": [
     "accounts.models",
+    "production.daily_dazmol",
     "production.models",
     "production.services",
     "screens.views"
@@ -507,6 +516,17 @@
    ],
    "lazy": [
     "accounts.models"
+   ]
+  },
+  "production.test_daily_dazmol": {
+   "imports": [
+    "accounts.models",
+    "production.daily_dazmol",
+    "production.daily_image_reports",
+    "production.models"
+   ],
+   "lazy": [
+    "production.excel_reports"
    ]
   },
   "production.test_master_statistics": {
@@ -1164,8 +1184,11 @@
    "url_names": [
     "production:api_send_branch_daily_report",
     "production:export_monthly_daily_report_excel",
+    "production:sewing_statistics_daily",
     "production:sewing_statistics_daily_report_image_preview",
-    "production:sewing_statistics_orders"
+    "production:sewing_statistics_orders",
+    "production:sewing_statistics_otk",
+    "production:sewing_statistics_repairs"
    ]
   },
   "templates/production/sewing_statistics_model_detail.html": {

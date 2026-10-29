@@ -23,7 +23,7 @@ Use `symbols` in `file-index.json` (`name:line`) to Read only the needed range o
 - `production.models`: models.py (all production models)
 - `production.services`: services.py (tickets, boxes, patok codes, OTK close, pastal codes)
 - Portals (`production.<x>`): orders (`views.py`), terminal, master, control, sewing_statistics, cutting, meto (+ meto_hub), stickers, managers, norma, passport
-- `production.reports`: excel_reports.py, telegram_reports.py, daily_image_reports.py
+- `production.reports`: excel_reports.py, telegram_reports.py, daily_image_reports.py, daily_dazmol.py (single source for asosiy / patok / egasiz daily dazmol)
 - `production.commands` / `accounts.commands`: management commands (scheduler daemon, bots, closings)
 - `screens`: TV monitors per patok
 - `android_control`: separate Java kiosk app (not part of Django)

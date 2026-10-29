@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 1947,
+  "lines": 1978,
   "depends_on": [
    "accounts.core"
   ]
@@ -204,7 +204,7 @@
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 1053,
+  "lines": 1057,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -281,16 +281,16 @@
  "production.reports": {
   "description": "Excel reports, Telegram daily Excel report, 18:00 branch image reports.",
   "files": [
+   "production/daily_dazmol.py",
    "production/daily_image_reports.py",
    "production/excel_reports.py",
    "production/telegram_reports.py"
   ],
-  "lines": 3031,
+  "lines": 3215,
   "depends_on": [
    "accounts.core",
    "production.models",
    "production.services",
-   "production.sewing_statistics",
    "screens"
   ]
  },
@@ -309,7 +309,7 @@
   "files": [
    "production/sewing_statistics_views.py"
   ],
-  "lines": 3531,
+  "lines": 3510,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -438,13 +438,14 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 41951,
+  "lines": 42041,
   "depends_on": []
  },
  "tests": {
   "description": "Django TestCase suites.",
   "files": [
    "accounts/tests.py",
+   "production/test_daily_dazmol.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
@@ -455,7 +456,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 9747,
+  "lines": 10048,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

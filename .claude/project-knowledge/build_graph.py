@@ -108,6 +108,7 @@ def module_of(path: str) -> str:
             ("excel_reports", "production.reports"),
             ("telegram_reports", "production.reports"),
             ("daily_image_reports", "production.reports"),
+            ("daily_dazmol", "production.reports"),
             ("views.py", "production.orders"),
             ("urls.py", "production.orders"),
             ("apps.py", "production.platform"),
