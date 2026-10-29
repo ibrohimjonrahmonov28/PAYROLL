@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 29.10.2026, 13:53
+### 🔹 [Commit: `6ee41ed`] — 29.10.2026, 13:53
 * **Turi:** `feat(daily-report)` — Kunlik dazmol yagona manbadan: Kunlik Patoklar va Kunlik Hisobot (18:00) sahifalari doim teng, sahifalar qulayroq, Uychi U15–U27 patoklari
 * **Mavzu:** `/sewing-statistics/daily/` dagi har bir patokning asosiy dazmoli `/sewing-statistics/daily-report/` (va 18:00 rasm) dagi shu patok shablonlari yig'indisiga qat'iy teng. Asosiy dazmolga faqat patokka haqiqatan qabul qilingan pastallar kiradi; qabul qilinmagan pastallar dazmoli "egasiz" bo'lib, hech kimga yozilmaydi.
 * **O'zgartirilgan fayllar:**
@@ -52,7 +52,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web scheduler` (migratsiya yo'q)
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 6ee41ed
   ```
 
 ---
