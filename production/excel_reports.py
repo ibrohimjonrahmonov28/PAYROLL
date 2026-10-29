@@ -2000,7 +2000,9 @@ def generate_monthly_patok_production_excel(year: int, month: int) -> io.BytesIO
         c.border = cell_border
 
     u_row = 4
-    for sn in range(14, 35):  # U1..U21
+    # U1..U21 doim; undan keyingi patoklar (U27 gacha) shu oyda ma'lumoti bo'lsa qo'shiladi — JAMI qatori bilan mos
+    uychi_last_sn = max([34] + [sn for (sn, _d) in prog_map if 34 < sn <= 40])
+    for sn in range(14, uychi_last_sn + 1):
         p_num = sn - 13
         patok_label = f"{p_num}-паток"
         p_dazmols = []

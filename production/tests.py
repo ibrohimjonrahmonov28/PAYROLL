@@ -4040,8 +4040,8 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
             dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
         )
         self.bitem1 = CuttingBatchItem.objects.create(batch=self.batch1, order_item_size=self.size, quantity=100, real_quantity=100)
-        self.box1 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=1, quantity=50, pastal_number='P-101', assigned_screen=1)
-        self.box2 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=2, quantity=50, pastal_number='P-101', assigned_screen=1)
+        self.box1 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=1, quantity=50, pastal_number='P-101', assigned_screen=1, is_received_by_patok=True)
+        self.box2 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem1, box_number=2, quantity=50, pastal_number='P-101', assigned_screen=1, is_received_by_patok=True)
 
         # Batch 2 assigned to screen 1 (K1)
         self.batch2 = CuttingBatch.objects.create(
@@ -4052,7 +4052,7 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
             dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
         )
         self.bitem2 = CuttingBatchItem.objects.create(batch=self.batch2, order_item_size=self.size, quantity=100, real_quantity=100)
-        self.box3 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem2, box_number=3, quantity=60, pastal_number='P-102', assigned_screen=1)
+        self.box3 = Box.objects.create(order=self.order, article=self.article, cutting_batch_item=self.bitem2, box_number=3, quantity=60, pastal_number='P-102', assigned_screen=1, is_received_by_patok=True)
 
         now = timezone.now()
         # Scan tikuv and dazmol on box 1 (P-101): 50 pcs
@@ -4073,7 +4073,7 @@ class DailySewingStatisticsAsosiyDazmolTest(TestCase):
 
         html = res.content.decode('utf-8')
         self.assertIn('Asosiy Dazmol', html)
-        self.assertIn('Pastallar Dazmoli', html)
+        self.assertIn('Patok Dazmoli', html)
         # Sum of P-101 (50) and P-102 (60) is 110 dona
         self.assertIn('110', html)
         self.assertIn('50/P-101', html)
@@ -4235,6 +4235,31 @@ class MetoHubAndWaybillLogisticsTest(TestCase):
 
         self.batch1.refresh_from_db()
         self.assertEqual(self.batch1.assigned_screen, 14)
+
+    def test_uychi_warehouse_can_hand_out_to_all_uychi_patoks(self):
+        from production.meto_hub_views import meto_hub_uychi_view, meto_hub_dispatch_uychi_view
+
+        CuttingBatch.objects.filter(pk=self.batch1.pk).update(
+            assigned_branch='UYCHI', dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED)
+
+        # Ombor oynasida U15..U27 (28..40-ekran) ham tanlanadi
+        html = meto_hub_uychi_view(self._process_req(self.rf.get('/meto-hub/uychi/'))).content.decode('utf-8')
+        self.assertIn('name="screen_number" value="28"', html)
+        self.assertIn('name="screen_number" value="40"', html)
+        self.assertNotIn('name="screen_number" value="41"', html)
+
+        # 41-ekran yo'q — rad etiladi
+        meto_hub_dispatch_uychi_view(self._process_req(self.rf.post('/x/', {'screen_number': '41'})), self.batch1.id)
+        self.batch1.refresh_from_db()
+        self.assertIsNone(self.batch1.assigned_screen)
+
+        # U17 (30-ekran) ga topshirish
+        res = meto_hub_dispatch_uychi_view(self._process_req(self.rf.post('/x/', {'screen_number': '30'})), self.batch1.id)
+        self.assertEqual(res.status_code, 302)
+        self.batch1.refresh_from_db()
+        self.box1.refresh_from_db()
+        self.assertEqual(self.batch1.assigned_screen, 30)
+        self.assertEqual(self.box1.assigned_screen, 30)
 
 
 class SewingStatisticsOtkViewTest(TestCase):
@@ -4569,10 +4594,10 @@ class SewingStatisticsOtkViewTest(TestCase):
         cbi_x = CuttingBatchItem.objects.create(batch=batch_x, order_item_size=ois_x, quantity=500)
         cbi_other = CuttingBatchItem.objects.create(batch=batch_other, order_item_size=ois_x, quantity=150)
 
-        box_f1 = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_f1, box_number=1, quantity=300, assigned_screen=4)
-        box_f2 = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_f2, box_number=2, quantity=200, assigned_screen=4)
-        box_x = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_x, box_number=3, quantity=500, assigned_screen=4)
-        box_other = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_other, box_number=4, quantity=150, assigned_screen=7)
+        box_f1 = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_f1, box_number=1, quantity=300, assigned_screen=4, is_received_by_patok=True)
+        box_f2 = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_f2, box_number=2, quantity=200, assigned_screen=4, is_received_by_patok=True)
+        box_x = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_x, box_number=3, quantity=500, assigned_screen=4, is_received_by_patok=True)
+        box_other = Box.objects.create(order=ord_obj, cutting_batch_item=cbi_other, box_number=4, quantity=150, assigned_screen=7, is_received_by_patok=True)
 
         # Biletlar (Dazmol stikerlari)
         Ticket.objects.create(box=box_f1, article_operation=ao_f, quantity=300, status=Ticket.Status.SCANNED, scanned_at=timezone.now(), screen_number=4)

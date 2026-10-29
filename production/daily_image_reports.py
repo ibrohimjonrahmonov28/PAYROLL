@@ -8,11 +8,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 from django.conf import settings
 from django.utils import timezone
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, Max
 
 from production.models import Ticket, Box, CuttingBatch, Article, OperationGroup, OperationGroupItem, DailyPatokProgress
 from production.services import get_patok_code, get_patok_name
-from production.sewing_statistics_views import is_main_dazmol_operation
+from production.daily_dazmol import is_main_dazmol_operation, get_day_window, compute_daily_dazmol
 from screens.views import get_screen_data, calculate_screen_aniqlik
 
 
@@ -55,18 +55,27 @@ def get_operation_group_difficulty(group: OperationGroup) -> float:
     return round(val, 2)
 
 
-def get_branch_daily_report_data(branch: str, target_date: datetime.date = None) -> dict:
+def get_branch_daily_report_data(branch: str, target_date: datetime.date = None, dazmol=None) -> dict:
     """
     Kosonsoy yoki Uychi filiali bo'yicha kunlik 18:00 hisobot ma'lumotlarini to'playdi:
     5 ta ustun:
     1. Паток № (1-паток..13-паток yoki 1-паток..21-паток)
-    2. Маҳсулот & Дазмол (Дазмол soni / Narxlar shabloni nomi, masalan: 329 / DC BELBOG'LI XALAT)
+    2. Маҳсулот & Дазмол (Asosiy dazmol shablonlar bo'yicha, masalan: 329 / DC BELBOG'LI XALAT)
     3. Давомот (Real faol chevarlar soni)
     4. Операционка (Shablonning aniqlik yig'indisi)
     5. Паток қуввати (%)
+
+    Dazmol = asosiy dazmol (production/daily_dazmol.py): patokka qabul qilingan pastallar dazmoli (planshetda qabul
+    qilingan yoki Uychi omboridan U-patokka topshirilgan), qayerda dazmollangan bo'lsa ham. /sewing-statistics/daily/ dagi
+    "Asosiy dazmol" bilan bir xil manba.
+    dazmol: oldindan hisoblangan DailyDazmol (bir so'rovda ikki filial uchun qayta hisoblamaslik uchun).
     """
     if target_date is None:
         target_date = timezone.localdate()
+
+    day_start, day_end = get_day_window(target_date)
+    if dazmol is None:
+        dazmol = compute_daily_dazmol(day_start, day_end)
 
     is_hq = (str(branch).upper() in ['HQ', 'KOSON', 'KOSONSOY', 'BOSH'])
 
@@ -79,54 +88,30 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         branch_key = 'UYCHI'
         branch_title = "УЙЧИ ТУМАНИ"
         branch_name_short = "Уйчи"
-        # Uychida 14 dan boshlab bugun faol bo'lgan barcha patoklar (kamida 14..34 ya'ni 21 ta patok, to 40 gacha)
-        max_active = Ticket.objects.filter(
+        # Uychida U1..U21 (14..34) doim, undan keyingi patoklar shu kuni ishlagan bo'lsa (40 gacha) qo'shiladi
+        last_scanned_sn = Ticket.objects.filter(
             status=Ticket.Status.SCANNED,
-            scanned_at__date=target_date,
+            scanned_at__range=(day_start, day_end),
             screen_number__gte=14
-        ).values_list('screen_number', flat=True).order_by('-screen_number').first() or 34
-        max_screen = min(40, max(34, max_active))
+        ).aggregate(m=Max('screen_number'))['m'] or 0
+        last_owner_sn = max((sn for sn, qty in dazmol.asosiy_by_patok.items() if sn >= 14 and qty > 0), default=0)
+        max_screen = min(40, max(34, last_scanned_sn, last_owner_sn))
         screen_numbers = list(range(14, max_screen + 1))
 
-    # Helper: Ticket qaysi patokka tegishli ekanini aniqlash (Pastal/Quti biriktirilgan patok ustuvor)
-    def get_ticket_patok(t):
-        if t.box and t.box.assigned_screen:
-            return t.box.assigned_screen
-        if t.box and t.box.cutting_batch_item and t.box.cutting_batch_item.batch and t.box.cutting_batch_item.batch.assigned_screen:
-            return t.box.cutting_batch_item.batch.assigned_screen
-        return t.screen_number
-
-    # Shu kungi barcha skanerlangan biletlar (shu filial patoklari yoki shu patoklarga biriktirilgan pastallar)
-    all_tickets = list(Ticket.objects.filter(
+    # Shu kuni terminalida skaner bo'lgan patoklar (faollik uchun)
+    scanned_screens = set(Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__date=target_date,
-    ).filter(
-        Q(screen_number__in=screen_numbers) |
-        Q(box__cutting_batch_item__batch__assigned_screen__in=screen_numbers) |
-        Q(box__assigned_screen__in=screen_numbers)
-    ).select_related(
-        'article_operation__operation',
-        'article_operation__article__operation_group',
-        'article_operation__article__model',
-        'box__cutting_batch_item__batch__order_item__article__operation_group',
-        'box__cutting_batch_item__batch'
-    ))
+        scanned_at__range=(day_start, day_end),
+        screen_number__in=screen_numbers,
+    ).values_list('screen_number', flat=True).distinct())
 
-    # Dazmol biletlarini tegishli patoklar bo'yicha ajratish
-    dazmol_by_screen = {}
-    tickets_by_screen = {}
-    for t in all_tickets:
-        tickets_by_screen.setdefault(t.screen_number, []).append(t)
-        if t.article_operation and t.article_operation.operation and is_main_dazmol_operation(t.article_operation.operation.name, t.article_operation.operation.code):
-            target_sn = get_ticket_patok(t)
-            if target_sn in screen_numbers:
-                dazmol_by_screen.setdefault(target_sn, []).append(t)
-
-    # Patoklarga biriktirilgan (ACCEPTED) pastallar
+    # Patokka qabul qilingan pastallar (dazmol bo'lmagan kuni shablon nomini ko'rsatish uchun):
+    # planshet qabuli yoki Uychi omboridan topshirilgan (daily_dazmol.get_box_owner_screen bilan bir xil)
     assigned_batches = list(CuttingBatch.objects.filter(
+        Q(items__boxes__is_received_by_patok=True) | Q(assigned_branch='UYCHI'),
         assigned_screen__in=screen_numbers,
-        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
-    ).select_related(
+        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+    ).distinct().select_related(
         'order_item__article__operation_group',
         'order_item__article__model'
     ).order_by('accepted_at', 'id'))
@@ -144,8 +129,6 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         patok_num = sn if is_hq else (sn - 13)
         patok_title = f"{patok_num}-паток"
 
-        sn_tickets = tickets_by_screen.get(sn, [])
-        sn_dazmol_tickets = dazmol_by_screen.get(sn, [])
         sn_assigned = assigned_by_screen.get(sn, [])
 
         # Ekran statistikasi (Davomat, Aniqlik, Quvvat)
@@ -153,23 +136,11 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         davomat = screen_data.get('davomat', 0)
         patok_quvvati = float(screen_data.get('patok_quvvati', 0.0))
 
-        # 1. Narxlar shablonlari bo'yicha dazmollarni guruhlash
-        shablon_dazmol_map = {}  # {group_key: {'group': group_obj, 'qty': 0}}
-        for t in sn_dazmol_tickets:
-            ao = t.article_operation
-            art = ao.article if ao else None
-            group = art.operation_group if art else None
-
-            # Pastaldan tekshirish (fallback)
-            if not group and t.box and t.box.cutting_batch_item and t.box.cutting_batch_item.batch:
-                b_art = t.box.cutting_batch_item.batch.order_item.article if t.box.cutting_batch_item.batch.order_item else None
-                if b_art and b_art.operation_group:
-                    group = b_art.operation_group
-
-            group_key = group.name if group else (art.name if art else "Noma'lum")
-            group_obj = group
-            shablon_dazmol_map.setdefault(group_key, {'group': group_obj, 'qty': 0})
-            shablon_dazmol_map[group_key]['qty'] += t.quantity
+        # 1. Asosiy dazmol narxlar shablonlari bo'yicha (yagona manba: production/daily_dazmol.py)
+        shablon_dazmol_map = {
+            item['name']: {'group': item['group'], 'qty': item['qty']}
+            for item in dazmol.templates(sn)
+        }
 
         # 2. Mahsulotlar ro'yxatini shakllantirish (faqat haqiqiy dazmoldan o'tgan sonlar kesimida)
         products = []
@@ -235,12 +206,13 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None)
         total_davomat_sum += davomat
         dominant_aniqlik_sum += (max_group_aniqlik if max_group_aniqlik > 0 else float(screen_data.get('aniqlik', 0.0)))
 
-        is_active = (len(sn_tickets) > 0 or patok_dazmol_total > 0 or davomat > 0)
+        is_active = (sn in scanned_screens or patok_dazmol_total > 0 or davomat > 0)
         if is_active:
             quvvat_values.append(patok_quvvati)
 
         row_item = {
             'screen_number': sn,
+            'patok_code': get_patok_code(sn),
             'patok_num': patok_num,
             'patok_title': patok_title,
             'products': products,

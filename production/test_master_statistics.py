@@ -655,7 +655,8 @@ class MasterStatisticsComprehensiveTest(TestCase):
             pastal_number="A1",
             quantity=100,
             box_number=1,
-            assigned_screen=1
+            assigned_screen=1,
+            is_received_by_patok=True  # planshetda qabul qilingan
         )
 
         # 2. Qo'shimcha pastal: Batch 2 -> Screen 2 ga biriktirilgan, lekin Screen 1 chevarlari skanerlagan
@@ -672,7 +673,8 @@ class MasterStatisticsComprehensiveTest(TestCase):
             pastal_number="D3",
             quantity=50,
             box_number=2,
-            assigned_screen=2
+            assigned_screen=2,
+            is_received_by_patok=True  # planshetda qabul qilingan
         )
 
         # Dazmol operatsiyasi

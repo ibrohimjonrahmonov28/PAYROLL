@@ -17,6 +17,9 @@ from production.models import (
     DailyPatokProgress, CuttingBatch, Operation
 )
 from production.services import get_patok_name, get_patok_code, get_patok_login, parse_patok_number
+from production.daily_dazmol import (
+    is_main_dazmol_operation, get_day_window, compute_daily_dazmol, get_patok_accepted_pastals
+)
 from screens.views import get_screen_data
 
 
@@ -36,23 +39,6 @@ def manager_or_superadmin_required(view_func):
             return redirect('root_login')
         return view_func(request, *args, **kwargs)
     return wrapper
-
-
-def is_main_dazmol_operation(name, code=None):
-    """
-    Haqiqiy yakuniy kiyim dazmoli ekanini aniqlaydi:
-    - TASMA DAZMOL va CHO'NTAK DAZMOL kabi oraliq operatsiyalar bundan mustasno.
-    """
-    if not name and not code:
-        return False
-    name_u = (name or "").upper()
-    code_u = (code or "").upper()
-    has_dazmol = ('DAZMOL' in name_u) or ('DAZMOL' in code_u)
-    if not has_dazmol:
-        return False
-    # Oraliq dazmol amallari (tasma, cho'ntak) kiyimning yakuniy dazmoli emas
-    is_intermediate = any(excl in name_u or excl in code_u for excl in ('TASMA', "CHO'NTAK", "CHONTAK"))
-    return not is_intermediate
 
 
 def get_dazmol_operation_ids_for_article(article):
@@ -657,7 +643,7 @@ def sewing_statistics_daily_view(request):
         (Tikimga kirdi, dazmoldan o'tdi, kontrolda kutmoqda, 1-sort, 2-sort, ta'mir, brak, qayta tikish / mato ehtiyoji)
       * Bajarilgan operatsiyalar ro'yxati (ism-familiyasiz)
     """
-    from datetime import datetime, time
+    from datetime import datetime
     date_str = request.GET.get('date', '').strip()
     selected_date = None
     if date_str:
@@ -669,15 +655,11 @@ def sewing_statistics_daily_view(request):
         selected_date = timezone.localdate()
 
     today = timezone.localdate()
-    tz = timezone.get_current_timezone()
     is_today = (selected_date == today)
 
-    # Foydalanuvchi talabi: Bugun real-time, kecha va undan oldingi kunlar tungi 12:00 (23:59:59) dagi holat
-    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
-    if is_today:
-        day_end = timezone.now()  # Real-time
-    else:
-        day_end = timezone.make_aware(datetime.combine(selected_date, time(23, 59, 59, 999999)), tz)
+    # Foydalanuvchi talabi: Bugun real-time, kecha va undan oldingi kunlar tungi 12:00 (23:59:59) dagi holat.
+    # Oraliq /daily-report/ bilan bir xil funksiyadan olinadi.
+    day_start, day_end = get_day_window(selected_date)
 
     patok_filter = request.GET.get('patok', '').strip().upper()
     is_uychi_admin = (
@@ -716,28 +698,6 @@ def sewing_statistics_daily_view(request):
             'order__customer', 'article__model', 'cutting_batch_item__batch'
         )
     }
-
-    # 1. Patokka rasman biriktirilgan (ACCEPTED) partiyalar
-    assigned_batches_qs = CuttingBatch.objects.filter(
-        assigned_screen__isnull=False,
-        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED
-    ).select_related('order_item__order', 'order_item__article__model')
-
-    screen_assigned_pastals_map = {}
-    all_assigned_pastal_codes = set()
-    for batch in assigned_batches_qs:
-        pcode = (batch.pastal_code or f"K{batch.batch_number}").strip()
-        if pcode and batch.assigned_screen:
-            screen_assigned_pastals_map.setdefault(batch.assigned_screen, set()).add(pcode)
-            all_assigned_pastal_codes.add(pcode)
-
-    # Shuningdek, Box.assigned_screen bo'yicha biriktirilgan pastallar
-    for b_row in Box.objects.filter(assigned_screen__isnull=False).exclude(status=Box.Status.CANCELLED).values('assigned_screen', 'pastal_number', 'cutting_batch_item__batch__pastal_code'):
-        sn_b = b_row['assigned_screen']
-        pcode_b = (b_row['pastal_number'] or b_row['cutting_batch_item__batch__pastal_code'] or '').strip()
-        if pcode_b and sn_b:
-            screen_assigned_pastals_map.setdefault(sn_b, set()).add(pcode_b)
-            all_assigned_pastal_codes.add(pcode_b)
 
     # 2. Bugun butun fabrika bo'yicha har bir pastaldan qancha DAZMOL chiqqani (qayerdan chiqsa ham!)
     today_dazmol_by_pastal = {}
@@ -839,7 +799,17 @@ def sewing_statistics_daily_view(request):
             if b and b not in pos['boxes']:
                 pos['boxes'].append(b)
 
-    # 4. Bugungi, OTK o'tgan va biriktirilgan barcha tegishli pastallar qutilarini olish
+    # 4. Patok planshetida haqiqatan qabul qilingan (asosiy) pastallar. Faqat yuborilgan yoki Uychi omborida
+    # qabul qilingan pastallar asosiyga kirmaydi: shu patokda skanerlansa, qo'shimcha pastal bo'lib ko'rinadi.
+    screen_assigned_pastals_map = get_patok_accepted_pastals(activity_box_ids=today_box_ids | otk_box_ids)
+    all_assigned_pastal_codes = set()
+    for codes in screen_assigned_pastals_map.values():
+        all_assigned_pastal_codes |= codes
+
+    # Asosiy / patok / egasiz dazmol (/daily-report/ bilan yagona manba: production/daily_dazmol.py)
+    daily_dazmol = compute_daily_dazmol(day_start, day_end)
+
+    # 5. Bugungi, OTK o'tgan va biriktirilgan barcha tegishli pastallar qutilarini olish
     active_pastal_codes = {b.pastal_code.strip() for b in today_boxes_dict.values() if b.pastal_code and b.pastal_code.strip()}
     all_relevant_pastal_codes = set(active_pastal_codes) | set(all_assigned_pastal_codes) | otk_pastal_codes
 
@@ -880,7 +850,8 @@ def sewing_statistics_daily_view(request):
     active_screens = sorted(
         set(tickets_by_screen.keys()) |
         {sn for sn, pset in screen_assigned_pastals_map.items() if pset} |
-        set(patok_otk_summary.keys())
+        set(patok_otk_summary.keys()) |
+        {sn for sn, qty in daily_dazmol.asosiy_by_patok.items() if qty > 0}
     )
     # Screens moduli uchun oldindan yuklash (Preloading - 40 ta ekranni 1 tagacha so'rovga tushiradi)
     all_today_scans = Ticket.objects.filter(
@@ -910,7 +881,8 @@ def sewing_statistics_daily_view(request):
         'active_screens': active_screens_scanned,
     }
 
-    screens_to_process = list(range(1, 41)) if show_all_patoks else active_screens
+    # Bitta patok so'ralgan bo'lsa (masalan /daily-report/ dagi havola) u bugun ishlamagan bo'lsa ham ko'rsatiladi
+    screens_to_process = list(range(1, 41)) if (show_all_patoks or patok_filter) else active_screens
     patoks_data = []
 
     # KPI hisoblagichlari
@@ -932,10 +904,18 @@ def sewing_statistics_daily_view(request):
         p_code = get_patok_code(sn)
         p_name = get_patok_name(sn)
 
-        if patok_filter and (patok_filter != p_code and patok_filter not in p_name.upper()):
+        # Aniq moslik: K1 filtri K10..K13 ni ushlab qolmasin
+        if patok_filter and patok_filter not in (p_code, p_name.upper()):
             continue
 
         t_list = tickets_by_screen.get(sn, [])
+
+        # Asosiy dazmol: shu patok qabul qilgan pastallarning dazmoli (qayerda dazmollangan bo'lsa ham).
+        # /daily-report/ dagi shu patok shablonlari yig'indisiga har doim teng.
+        primary_dazmol_total = daily_dazmol.asosiy(sn)
+        dazmol_templates = [{'name': t['name'], 'qty': t['qty']} for t in daily_dazmol.templates(sn)]
+        pastal_dazmol_items = daily_dazmol.pastals(sn)
+        sn_egasiz_dazmol_qty = daily_dazmol.egasiz(sn)
 
         # Ushbu patokning bugungi qutilari
         sn_box_ids = {t.box_id for t in t_list}
@@ -1117,7 +1097,7 @@ def sewing_statistics_daily_view(request):
         sn_workers = screen_data.get('workers', [])
 
         # DailyPatokProgress ga saqlash / muhrlash (Bugun real-time, kecha va undan oldingi kunlar muzlatilgan snapshot)
-        if len(t_list) > 0 or sn_total_inspected > 0 or sn_dazmol_qty > 0 or len(sn_primary_pastal_codes) > 0:
+        if len(t_list) > 0 or sn_total_inspected > 0 or sn_dazmol_qty > 0 or len(sn_primary_pastal_codes) > 0 or primary_dazmol_total > 0:
             DailyPatokProgress.objects.update_or_create(
                 screen_number=sn,
                 date=selected_date,
@@ -1126,7 +1106,8 @@ def sewing_statistics_daily_view(request):
                     'daily_norm': patok_daily_norm,
                     'completed_units': completed_for_norm,
                     'completion_percentage': norm_percentage,
-                    'dazmol_qty': sn_dazmol_qty,
+                    # Oylik Excel'dagi dazmol = asosiy dazmol (/daily-report/ va 18:00 hisobot bilan bir xil)
+                    'dazmol_qty': primary_dazmol_total,
                     'scanned_ops_qty': patok_scanned_sum,
                     'tickets_count': len(t_list),
                     'controlled_qty': sn_total_inspected,
@@ -1371,29 +1352,11 @@ def sewing_statistics_daily_view(request):
         primary_pastals = [p for p in pastals_detail_list if p['is_primary']]
         extra_pastals = [p for p in pastals_detail_list if not p['is_primary']]
 
-        # Dual Dazmol nazorati:
-        # 1. Asosiy pastallar bo'yicha bugun butun fabrikada chiqqan dazmol (450/A1, 560/A2)
-        pastal_dazmol_items = [
-            {
-                'code': p['pastal_code'],
-                'qty': p['today_factory_dazmol_qty'],
-            }
-            for p in primary_pastals
-        ]
-        if not pastal_dazmol_items and extra_pastals:
-            pastal_dazmol_items = [
-                {
-                    'code': p['pastal_code'],
-                    'qty': p['today_factory_dazmol_qty'],
-                }
-                for p in extra_pastals if p['today_factory_dazmol_qty'] > 0
-            ]
-
-        # Foydalanuvchi talabi: Asosiy pastallar bo'yicha qilingan dazmollarning umumiy yig'indisi (qo'lda qo'shib o'tirmaslik uchun)
-        primary_dazmol_total = sum(item['qty'] for item in pastal_dazmol_items)
-
-        # Patok faolligi: stikerlar bo'lsa yoki biriktirilgan asosiy pastali bo'lsa yoki OTK harakati bo'lsa
-        is_active = (len(t_list) > 0) or (len(primary_pastals) > 0) or (sn_controlled_qty > 0 or sn_repair_qty > 0)
+        # Patok faolligi: stikerlar, asosiy pastal, asosiy dazmol yoki OTK harakati bo'lsa
+        is_active = (
+            (len(t_list) > 0) or (len(primary_pastals) > 0) or (primary_dazmol_total > 0)
+            or (sn_controlled_qty > 0 or sn_repair_qty > 0)
+        )
 
         total_daily_dazmol_qty += sn_dazmol_qty
         total_daily_controlled_qty += sn_controlled_qty
@@ -1464,6 +1427,8 @@ def sewing_statistics_daily_view(request):
             'workers': sn_workers,
             'workers_count': len(sn_workers),
             'pastal_dazmol_items': pastal_dazmol_items,
+            'dazmol_templates': dazmol_templates,
+            'egasiz_dazmol_qty': sn_egasiz_dazmol_qty,
             'primary_dazmol_total': primary_dazmol_total,
             'patok_dazmol_qty': sn_dazmol_qty,
             'dazmol_qty': sn_dazmol_qty,
@@ -1506,6 +1471,7 @@ def sewing_statistics_daily_view(request):
     avg_patok_kpi_overall = round((sum(p.get('patok_kpi', 0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     avg_patok_quvvati = round((sum(p.get('patok_quvvati', 0.0) for p in active_patok_items) / len(active_patok_items)), 1) if active_patok_items else 0.0
     total_primary_dazmol_qty = sum(p.get('primary_dazmol_total', 0) for p in patoks_data)
+    total_egasiz_dazmol_qty = sum(p.get('egasiz_dazmol_qty', 0) for p in patoks_data)
     total_daily_inspected_qty = total_daily_first_sort + total_daily_second_sort + total_daily_repair_qty
 
     context = {
@@ -1532,6 +1498,7 @@ def sewing_statistics_daily_view(request):
             'avg_norm_pct': avg_norm_pct,
             'dazmol_qty': total_daily_dazmol_qty,
             'primary_dazmol_qty': total_primary_dazmol_qty,
+            'egasiz_dazmol_qty': total_egasiz_dazmol_qty,
             'total_inspected_qty': total_daily_inspected_qty,
             'controlled_qty': total_daily_inspected_qty,
             'first_sort_qty': total_daily_first_sort,
@@ -3408,10 +3375,21 @@ def sewing_statistics_daily_report_view(request):
     next_date = selected_date + timedelta(days=1)
     is_today = (selected_date == timezone.localdate())
 
-    koson_data = get_branch_daily_report_data('HQ', selected_date)
-    uychi_data = get_branch_daily_report_data('UYCHI', selected_date)
+    # Dazmol bir marta hisoblanadi va ikkala filialga uzatiladi
+    day_start, day_end = get_day_window(selected_date)
+    daily_dazmol = compute_daily_dazmol(day_start, day_end)
+    koson_data = get_branch_daily_report_data('HQ', selected_date, dazmol=daily_dazmol)
+    uychi_data = get_branch_daily_report_data('UYCHI', selected_date, dazmol=daily_dazmol)
 
     current_data = koson_data if active_tab == 'koson' else uychi_data
+
+    # Fabrika: dazmol yig'indisi, quvvat — faol patoki bor filiallar o'rtachalarining o'rtachasi
+    branch_quvvats = [d['avg_quvvat'] for d in (koson_data, uychi_data) if d['active_patoks_count'] > 0]
+    factory = {
+        'total_dazmol': koson_data['total_dazmol'] + uychi_data['total_dazmol'],
+        'total_davomat': koson_data['total_davomat'] + uychi_data['total_davomat'],
+        'avg_quvvat': round(sum(branch_quvvats) / len(branch_quvvats), 1) if branch_quvvats else 0.0,
+    }
 
     context = {
         'selected_date': selected_date,
@@ -3423,6 +3401,7 @@ def sewing_statistics_daily_report_view(request):
         'koson_data': koson_data,
         'uychi_data': uychi_data,
         'current_data': current_data,
+        'factory': factory,
         'current_year': selected_date.year,
         'current_month': selected_date.month,
     }

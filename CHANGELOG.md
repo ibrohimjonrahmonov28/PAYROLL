@@ -29,6 +29,34 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 29.10.2026, 13:53
+* **Turi:** `feat(daily-report)` — Kunlik dazmol yagona manbadan: Kunlik Patoklar va Kunlik Hisobot (18:00) sahifalari doim teng, sahifalar qulayroq, Uychi U15–U27 patoklari
+* **Mavzu:** `/sewing-statistics/daily/` dagi har bir patokning asosiy dazmoli `/sewing-statistics/daily-report/` (va 18:00 rasm) dagi shu patok shablonlari yig'indisiga qat'iy teng. Asosiy dazmolga faqat patokka haqiqatan qabul qilingan pastallar kiradi; qabul qilinmagan pastallar dazmoli "egasiz" bo'lib, hech kimga yozilmaydi.
+* **O'zgartirilgan fayllar:**
+  - `production/daily_dazmol.py` (yangi)
+  - `production/sewing_statistics_views.py`
+  - `production/daily_image_reports.py`
+  - `production/excel_reports.py`
+  - `production/meto_hub_views.py`
+  - `templates/production/sewing_statistics_daily.html`
+  - `templates/production/sewing_statistics_daily_report.html`
+  - `templates/meto_hub/uychi_dashboard.html`
+  - `production/test_daily_dazmol.py` (yangi), `production/tests.py`, `production/test_master_statistics.py`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Yagona dazmol manbasi (`production/daily_dazmol.py`):** asosiy / patok / egasiz dazmol bir joyda hisoblanadi; ikkala sahifa, 18:00 rasm va `DailyPatokProgress` (oylik Excel) shu natijani oladi. 1-sahifadagi ikki marta sanash va `DailyPatokProgress.dazmol_qty` ning sahifadan sahifaga o'zgarishi tuzatildi.
+  2. **Qabul qoidasi:** Telegram bot yuborgan (`DISPATCHED`) pastal patok planshetida qabul qilinganda (`Box.is_received_by_patok`) yoki Uychi omboridan U-patokka topshirilganda shu patokniki bo'ladi. Faqat yuborilgan yoki hali omborda turgan pastal — egasiz.
+  3. **Kunlik Patoklar sahifasi:** "Asosiy Dazmol" ustunida jami, shablonlar (18:00 hisobotdagidek) va pastallar; "Patok Dazmoli" ustunida terminal bo'yicha son va "shundan egasiz"; KPI kartalarida asosiy / patok / egasiz; tanlangan sana hisobot sahifasiga o'tadi; `?patok=K1` aniq filtr (K10–K13 ni ushlamaydi), filtr chipi va tafsilot avtomatik ochiladi; Telegram oynasida ogohlantirish.
+  4. **Kunlik Hisobot (18:00) sahifasi:** patok raqamidan Kunlik Patoklar sahifasiga havola, "Фабрика жами", operatsiyalar soni shablon qatoriga tekislangan, "Жонли (ҳозиргача) / Кун якуни" yozuvi, Uychi tabida haqiqiy patoklar soni.
+  5. **Uychi U15–U27:** Uychi ombori endi U1–U27 ga topshira oladi (avval U1–U14); oylik Excel'ning Uychi varag'ida U21 dan keyingi ishlagan patoklarga ham qator qo'shiladi (ЖАМИ qatori bilan mos).
+  6. **Testlar:** 279 ta test; 7 ta xato bu o'zgarishdan oldin ham bor edi va unga aloqasiz. Yangi `production/test_daily_dazmol.py` ikki sahifa tengligini, qabul qoidasini (planshet API orqali) va oylik Excel qatorlarini tekshiradi.
+* **Serverda:** `git pull origin main && docker compose restart web scheduler` (migratsiya yo'q)
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `9593bf9`] — 09.10.2026, 14:50
 * **Turi:** `feat(statistics)` — Tikim Statistikasida Pastallar Bo'yicha 4-Bosqichli Quvur (Pipeline Balansi), Oraliq (Dazmoldan O'tgan, OTK Kutmoqda) va 100% Yakuniy Yopilish Muhrlanishi
 * **Mavzu:** Har bir patok tikayotgan pastallar bo'yicha to'liq 4-bosqichli hisob-kitob (1. Jami kirgan reja dona va quti, 2. Hali tikimda [dazmolgacha], 3. Dazmoldan o'tgan, 4. Oraliq: dazmoldan o'tgan va hali OTK ga kirmagan kutayotgan qutilar, 5. OTK o'tgan 1-sort, ta'mir va brak, hamda 20/20 quti o'tganda 100% yakuniy yopilish muhrlanishi)

@@ -11,6 +11,10 @@ from accounts.models import User
 from production.models import CuttingBatch, CuttingBatchItem, Box, Ticket, Waybill
 from production.services import get_patok_code, get_patok_name
 
+# Uychi patoklari: U1..U27 (ekran 14..40) — Telegram bot va master planshet bilan bir xil
+UYCHI_FIRST_SCREEN = 14
+UYCHI_LAST_SCREEN = 40
+
 
 def meto_hub_access_required(view_func):
     """
@@ -465,10 +469,10 @@ def meto_hub_uychi_view(request):
         status=Waybill.Status.RECEIVED
     ).order_by('-id')[:30]
 
-    # Uychi patoklari (U1 dan U14 gacha -> Screen 14 dan 27 gacha)
+    # Uychi patoklari (U1 dan U27 gacha -> Screen 14 dan 40 gacha)
     uychi_patoks = [
         {'number': sn, 'code': f'U{sn - 13}', 'name': f'U{sn - 13}-Patok'}
-        for sn in range(14, 28)
+        for sn in range(UYCHI_FIRST_SCREEN, UYCHI_LAST_SCREEN + 1)
     ]
 
     return render(request, 'meto_hub/uychi_dashboard.html', {
@@ -482,7 +486,7 @@ def meto_hub_uychi_view(request):
 @meto_hub_access_required
 def meto_hub_dispatch_uychi_view(request, batch_id: int):
     """
-    Uychi omboridagi pastalni Uychi patogiga (U1 - U14) berish:
+    Uychi omboridagi pastalni Uychi patogiga (U1 - U27) berish:
     Shu zahoti Uychi omboridan chiqib, tikuvga kiradi.
     """
     if request.method != 'POST':
@@ -493,10 +497,10 @@ def meto_hub_dispatch_uychi_view(request, batch_id: int):
 
     try:
         screen_num = int(screen_number_raw)
-        if not (14 <= screen_num <= 27):
+        if not (UYCHI_FIRST_SCREEN <= screen_num <= UYCHI_LAST_SCREEN):
             raise ValueError()
     except (TypeError, ValueError):
-        messages.error(request, "Uychi patogi U1 dan U14 gacha (ekran 14-27) bo'lishi kerak!")
+        messages.error(request, "Uychi patogi U1 dan U27 gacha (ekran 14-40) bo'lishi kerak!")
         return redirect('meto_hub_uychi')
 
     patok_code = get_patok_code(screen_num)

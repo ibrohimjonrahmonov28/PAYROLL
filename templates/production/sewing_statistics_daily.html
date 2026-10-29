@@ -25,40 +25,42 @@
                 kesimidagi ta'mir/mato balansi{% endif %}</p>
         </div>
     </div>
-
-    <!-- Navigation Fast Switcher -->
-    <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner flex-wrap">
-        <span
-            class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md flex items-center gap-1.5">
-            <i class="fa-solid fa-calendar-day"></i>
-            <span>Kunlik Patoklar</span>
-        </span>
-        <a href="{% url 'production:sewing_statistics_daily_report' %}"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-invoice text-cyan-400"></i>
-            <span>Kunlik Hisobot (18:00)</span>
-        </a>
-        <a href="{% url 'production:sewing_statistics_orders' %}"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-layer-group text-cyan-400"></i>
-            <span>Zakazlar Bo'yicha</span>
-        </a>
-        <a href="{% url 'production:sewing_statistics_repairs' %}"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-wrench text-amber-400"></i>
-            <span>Ta'mir Monitoringi</span>
-        </a>
-        <a href="{% url 'production:sewing_statistics_otk' %}"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-clipboard-check text-indigo-400"></i>
-            <span>OTK Nazoratchilari</span>
-        </a>
-    </div>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="w-full px-2 lg:px-6 py-4 space-y-6">
+
+    <!-- Navigation Fast Switcher (tanlangan sana boshqa sahifaga ham o'tadi) -->
+    <div class="overflow-x-auto -mx-2 px-2">
+        <div class="bg-slate-900 border border-slate-800 p-1 rounded-2xl inline-flex items-center gap-1 shadow-inner whitespace-nowrap">
+            <span
+                class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md flex items-center gap-1.5">
+                <i class="fa-solid fa-calendar-day"></i>
+                <span>Kunlik Patoklar</span>
+            </span>
+            <a href="{% url 'production:sewing_statistics_daily_report' %}?date={{ selected_date_str }}{% if is_uychi_admin %}&tab=uychi{% endif %}"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-invoice text-cyan-400"></i>
+                <span>Kunlik Hisobot (18:00)</span>
+            </a>
+            <a href="{% url 'production:sewing_statistics_orders' %}"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-layer-group text-cyan-400"></i>
+                <span>Zakazlar Bo'yicha</span>
+            </a>
+            <a href="{% url 'production:sewing_statistics_repairs' %}"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-wrench text-amber-400"></i>
+                <span>Ta'mir Monitoringi</span>
+            </a>
+            <a href="{% url 'production:sewing_statistics_otk' %}"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-clipboard-check text-indigo-400"></i>
+                <span>OTK Nazoratchilari</span>
+            </a>
+        </div>
+    </div>
 
     <!-- TOP EXECUTIVE KPI CARDS -->
     <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
@@ -86,19 +88,19 @@
             <span class="text-[10px] text-emerald-400/80 font-mono mt-1 block">Jami faol davomat</span>
         </div>
 
-        <!-- KPI 3: Patok KPI va O'rtacha KPI -->
+        <!-- KPI 3: Asosiy Dazmol (patokka qabul qilingan pastallar; 18:00 hisobot bilan bir xil) -->
         <div
-            class="bg-slate-900 border border-cyan-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-cyan-950/20 to-transparent">
+            class="bg-slate-900 border border-indigo-900/50 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/30 to-transparent"
+            title="Patokka qabul qilingan pastallarning bugungi yakuniy dazmoli (planshetda qabul qilingan yoki Uychi omboridan patokka topshirilgan; qaysi patokda dazmollangan bo'lsa ham). Kunlik Hisobot (18:00) sahifasidagi shablonlar yig'indisi bilan bir xil.">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Patok KPI</span>
-                <i class="fa-solid fa-chart-line text-cyan-400 text-xs"></i>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Asosiy Dazmol</span>
+                <i class="fa-solid fa-star text-indigo-400 text-xs"></i>
             </div>
-            <div class="mt-2 flex items-baseline gap-1">
-                <span class="text-2xl font-black text-cyan-300 digital-font">{{ kpis.avg_patok_kpi_overall }}%</span>
+            <div class="mt-2">
+                <span class="text-2xl font-black text-indigo-300 digital-font">{{ kpis.primary_dazmol_qty }}</span>
+                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-slate-400 font-mono mt-1 block">
-                O'rtacha KPI: <strong class="text-cyan-300">{{ kpis.avg_kpi_overall }}%</strong>
-            </span>
+            <span class="text-[10px] text-indigo-400/90 font-mono mt-1 block">Qabul qilingan pastallar</span>
         </div>
 
         <!-- KPI 4: O'rtacha Patok Quvvati -->
@@ -117,7 +119,7 @@
                     kpis.avg_patok_quvvati }}%</span>
             </div>
             <span class="text-[10px] text-slate-400 font-mono mt-1 block truncate">
-                O'rtacha quvvat (unumdorlik)
+                O'rtacha KPI: <strong class="text-cyan-300">{{ kpis.avg_kpi_overall }}%</strong>
             </span>
         </div>
 
@@ -134,19 +136,20 @@
             <span class="text-[10px] text-slate-500 mt-1 block">Patoklarda tikilayotgan</span>
         </div>
 
-        <!-- KPI 6: Kunlik Dazmol -->
+        <!-- KPI 6: Patok Dazmoli (terminallarda skanerlangan) va Egasiz -->
         <div
-            class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/25 to-transparent">
+            class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between"
+            title="Patok terminallarida bugun skanerlangan barcha yakuniy dazmol. Egasiz = hech bir patokka qabul qilinmagan pastallar dazmoli (hech kimga yozilmaydi).">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Kunlik Dazmol</span>
-                <i class="fa-solid fa-soap text-indigo-400 text-xs"></i>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300">Patok Dazmoli</span>
+                <i class="fa-solid fa-soap text-slate-400 text-xs"></i>
             </div>
             <div class="mt-2">
-                <span class="text-2xl font-black text-indigo-300 digital-font">{{ kpis.dazmol_qty }}</span>
+                <span class="text-2xl font-black text-white digital-font">{{ kpis.dazmol_qty }}</span>
                 <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
             </div>
-            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">
-                {% if kpis.primary_dazmol_qty > 0 %}Asosiy pastallar: {{ kpis.primary_dazmol_qty }} dona{% else %}Bugun dazmoldan chiqqan{% endif %}
+            <span class="text-[10px] font-mono font-bold mt-1 block truncate {% if kpis.egasiz_dazmol_qty > 0 %}text-amber-400{% else %}text-slate-500{% endif %}">
+                Egasiz: {{ kpis.egasiz_dazmol_qty }} dona
             </span>
         </div>
 
@@ -239,11 +242,21 @@
                 </a>
             </div>
 
-            <!-- Telegram Test / Send Button -->
+            {% if patok_filter %}
+            <a href="?date={{ selected_date_str }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if show_all_patoks %}&all=1{% endif %}"
+                class="px-2.5 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 text-xs font-black transition flex items-center gap-1.5"
+                title="Patok filtrini olib tashlash">
+                <i class="fa-solid fa-filter text-[10px]"></i>
+                <span>Patok: {{ patok_filter }}</span>
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+            {% endif %}
+
+            <!-- Telegram Send Button (tasdiqlash oynasi orqali) -->
             <button type="button" onclick="openSendTelegramReportModal()" id="btn-telegram-daily-report"
                 class="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-sky-500/20 cursor-pointer border border-sky-400/30">
                 <i class="fa-brands fa-telegram text-sm"></i>
-                <span class="hidden sm:inline">Telegramga Yuborish (Test)</span>
+                <span class="hidden sm:inline">Telegramga Yuborish</span>
             </button>
         </div>
 
@@ -294,8 +307,16 @@
                         <th class="py-3.5 px-3 min-w-[180px]">Tikayotgan Pastallar</th>
                         <th class="py-3.5 px-3 text-center min-w-[140px]">Davomat & Aniqlik</th>
                         <th class="py-3.5 px-3 text-center min-w-[150px]">Patok Quvvati</th>
-                        <th class="py-3.5 px-3 text-center min-w-[120px]">Asosiy Dazmol</th>
-                        <th class="py-3.5 px-3 text-center min-w-[140px]">Pastallar Dazmoli</th>
+                        <th class="py-3.5 px-3 text-center min-w-[170px]"
+                            title="Patokka qabul qilingan pastallarning bugungi dazmoli (planshetda qabul qilingan yoki Uychi omboridan patokka topshirilgan; qayerda dazmollangan bo'lsa ham). Kunlik Hisobot (18:00) dagi shablonlar yig'indisiga teng.">
+                            Asosiy Dazmol
+                            <span class="block text-[9px] font-semibold normal-case tracking-normal text-slate-500">shablon va pastal bo'yicha</span>
+                        </th>
+                        <th class="py-3.5 px-3 text-center min-w-[120px]"
+                            title="Shu patok terminalida bugun skanerlangan yakuniy dazmol (pastal kimniki bo'lishidan qat'i nazar).">
+                            Patok Dazmoli
+                            <span class="block text-[9px] font-semibold normal-case tracking-normal text-slate-500">shu terminalda</span>
+                        </th>
                         <th class="py-3.5 px-3 text-center">Bugun OTK</th>
                         <th class="py-3.5 px-3 text-center">Ta'mir / Brak</th>
                         <th class="py-3.5 px-4 text-center w-28">Batafsil</th>
@@ -482,47 +503,55 @@
                             {% endif %}
                         </td>
 
-                        <!-- 6. Asosiy Dazmol (Asosiy pastallar bo'yicha yig'indi) -->
+                        <!-- 6. Asosiy Dazmol: jami, shablonlar (18:00 hisobot bilan bir xil) va pastallar bo'yicha -->
                         <td class="py-3 px-3 text-center align-middle">
                             {% if p.primary_dazmol_total > 0 %}
-                            <div class="inline-flex flex-col items-center">
-                                <span class="text-base font-black text-indigo-300 digital-font">
-                                    {{ p.primary_dazmol_total }}
-                                </span>
-                                <span class="text-[10px] text-slate-500 font-semibold">dona</span>
+                            <div class="inline-flex flex-col items-center gap-1 min-w-[160px]">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-base font-black text-indigo-300 digital-font">{{ p.primary_dazmol_total }}</span>
+                                    <span class="text-[10px] text-slate-500 font-semibold">dona</span>
+                                </div>
+                                <div class="w-full space-y-0.5">
+                                    {% for t in p.dazmol_templates %}
+                                    <div class="flex items-center justify-between gap-2 text-[11px] leading-tight">
+                                        <span class="text-slate-300 truncate max-w-[130px]" title="Narxlar shabloni: {{ t.name }}">{{ t.name }}</span>
+                                        <span class="font-mono font-black text-indigo-300">{{ t.qty }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if p.pastal_dazmol_items %}
+                                <div class="flex items-center justify-center gap-1 flex-wrap pt-1 border-t border-slate-800/80 w-full">
+                                    {% for item in p.pastal_dazmol_items %}
+                                    <span
+                                        class="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black bg-indigo-950/90 text-indigo-300 border border-indigo-700/60 shadow-sm"
+                                        title="Pastal {{ item.code }}: bugun {{ item.qty }} dona dazmoldan o'tdi (qaysi patokda dazmollangan bo'lsa ham)">{{ item.qty }}/{{ item.code }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
                             {% else %}
                             <span class="text-slate-600 font-mono text-xs">0</span>
                             {% endif %}
                         </td>
 
-                        <!-- 7. Pastallar Dazmoli (Taqsimot va Patok Dazmoli) -->
+                        <!-- 7. Patok Dazmoli: shu terminalda skanerlangan dazmol va undan egasizi -->
                         <td class="py-3 px-3 text-center align-middle">
-                            <div class="inline-flex flex-col items-center gap-1.5 min-w-[130px]">
-                                <!-- 1. Asosiy pastallar dazmoli (butun fabrika bo'yicha) -->
-                                {% if p.pastal_dazmol_items %}
-                                <div class="flex items-center justify-center gap-1 flex-wrap">
-                                    {% for item in p.pastal_dazmol_items %}
-                                    <span
-                                        class="px-2 py-0.5 rounded-md text-[11px] font-mono font-black {% if item.qty > 0 %}bg-indigo-950/90 text-indigo-300 border border-indigo-700/60 shadow-sm{% else %}bg-slate-900 text-slate-500 border border-slate-800{% endif %}"
-                                        title="Pastal {{ item.code }}: Bugun butun fabrika bo'yicha {{ item.qty }} dona dazmoldan o'tdi">
-                                        {{ item.qty }}/{{ item.code }}
-                                    </span>
-                                    {% endfor %}
+                            {% if p.patok_dazmol_qty > 0 %}
+                            <div class="inline-flex flex-col items-center gap-0.5">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-base font-black text-white digital-font">{{ p.patok_dazmol_qty }}</span>
+                                    <span class="text-[10px] text-slate-500 font-semibold">dona</span>
                                 </div>
-                                {% else %}
-                                <span class="text-slate-600 font-mono text-[11px]">—</span>
+                                {% if p.egasiz_dazmol_qty > 0 %}
+                                <span class="px-1.5 py-0.5 rounded-md text-[10px] font-black whitespace-nowrap bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                                    title="Hech bir patokka qabul qilinmagan pastallar dazmoli. Hech kimga yozilmaydi va 18:00 hisobotga kirmaydi.">
+                                    shundan egasiz: {{ p.egasiz_dazmol_qty }}
+                                </span>
                                 {% endif %}
-
-                                <!-- 2. Ushbu patok dazmolchisining ishlari soni -->
-                                <div class="pt-1 border-t border-slate-800/80 w-full text-center">
-                                    <span class="text-[10px] text-slate-400 font-mono block">
-                                        Patok dazmoli: <strong
-                                            class="{% if p.patok_dazmol_qty > 0 %}text-emerald-400{% else %}text-slate-500{% endif %} font-black">{{
-                                            p.patok_dazmol_qty }}</strong> dona
-                                    </span>
-                                </div>
                             </div>
+                            {% else %}
+                            <span class="text-slate-600 font-mono text-xs">0</span>
+                            {% endif %}
                         </td>
 
                         <!-- 7. Bugun OTK (Jami Tekshirildi) -->
@@ -708,8 +737,8 @@
                                         <span
                                             class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">7.
                                             Asosiy Dazmol</span>
-                                        <span class="text-xl font-black text-indigo-300 digital-font block mt-1">{% if p.primary_dazmol_total > 0 %}{{ p.primary_dazmol_total }}{% else %}{{ p.daily_dazmol_qty }}{% endif %} dona</span>
-                                        <span class="text-[10px] text-indigo-400/80 font-mono mt-0.5 block">Patok: {{ p.daily_dazmol_qty }} dona</span>
+                                        <span class="text-xl font-black text-indigo-300 digital-font block mt-1">{{ p.primary_dazmol_total }} dona</span>
+                                        <span class="text-[10px] text-indigo-400/80 font-mono mt-0.5 block truncate">Patok dazmoli: {{ p.patok_dazmol_qty }}{% if p.egasiz_dazmol_qty > 0 %} • egasiz {{ p.egasiz_dazmol_qty }}{% endif %}</span>
                                     </div>
                                     <!-- 8. OTK O'tgan -->
                                     <div class="bg-slate-950 border border-emerald-900/40 rounded-xl p-3 shadow-inner">
@@ -1455,6 +1484,7 @@
                     <div>
                         <h3 class="text-base font-black text-white">Kunlik Hisobotni Telegramga Yuborish</h3>
                         <p class="text-xs text-slate-400">Tanlangan sana bo'yicha rasm-hisobot Telegramga yuboriladi</p>
+                        <p class="text-[11px] font-bold text-amber-400 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Diqqat: test emas — hisobot filiallarning haqiqiy Telegram guruhlariga yuboriladi.</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeSendTelegramReportModal()"
@@ -1568,6 +1598,13 @@
             }
         }
     }
+
+    {% if patok_filter and patoks_data|length == 1 %}
+    // Bitta patok ochilganda (masalan Kunlik Hisobotdagi havola) uning tafsiloti darhol ko'rinsin
+    document.addEventListener('DOMContentLoaded', function () {
+        togglePatokDrawer('drawer-{{ patoks_data.0.patok_code }}');
+    });
+    {% endif %}
 
     function switchPastalTab(patokCode, pastalCode) {
         const drawer = document.getElementById(`drawer-${patokCode}`);
