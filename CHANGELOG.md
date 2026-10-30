@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 18:06
+### 🔹 [Commit: `45979c4`] — 30.10.2026, 18:06
 * **Turi:** `feat(statistics)` — Tikim statistikasi bosh sahifasida "Fabrika bo'yicha jami" — zakaz sahifasidagi 8 bosqichli quvur (sana bo'yicha)
 * **Mavzu:** `/sewing-statistics/` yuqorisidagi eski 6 ta karta o'rniga zakaz va model sahifalaridagi kabi 8 bosqich: Reja, Kesilgan (+ Qutilarda), Tikim kutmoqda, Hozir patokda, Dazmol, OTK kutmoqda (tayyor/chala), Ta'mirda, 1/2-sort — "oldingi + shu kunda" sana tanlash bilan.
 * **O'zgartirilgan fayllar:**
@@ -49,7 +49,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web scheduler` (migratsiya yo'q)
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 45979c4
   ```
 
 ---
