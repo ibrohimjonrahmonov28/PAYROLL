@@ -2204,6 +2204,7 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'cut_today': 0,
         'cut_total': 0,
         'cut': 0,
+        'meto': 0,
         'boxed': 0,
         'boxes_count': len(boxes),
         'waiting_sewing_qty': pastals_info['waiting_sewing_qty'],
@@ -2269,6 +2270,11 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             s_cut_prior = sum(b.quantity for b in size_boxes if b.created_at and b.created_at < day_start)
             s_cut_today = sum(b.quantity for b in size_boxes if b.created_at and day_start <= b.created_at <= day_end)
         s_cut_total = s_cut_prior + s_cut_today
+        # Meto aniq soni (metochi tasdiqlamagan bandda kesim soni olinadi); qutilardagi son = zakazning real soni
+        s_meto_total = (
+            sum(ci.real_quantity if ci.real_quantity is not None else ci.quantity for ci in cutting_items)
+            if cutting_items else s_cut_total
+        )
 
         # 2. Tikim delta
         s_sewing_prior = 0
@@ -2323,7 +2329,9 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'cut_today': s_cut_today,
             'cut_total': s_cut_total,
             'cut_pct': round((s_cut_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
+            'meto_qty': s_meto_total,
             'total_boxed_qty': total_boxed_qty,
+            'boxed_diff': total_boxed_qty - s_cut_total,
             'boxes_count': len(size_boxes),
             'waiting_sewing_qty': s_waiting_sewing_qty,
             'waiting_sewing_boxes': s_waiting_sewing_boxes,
@@ -2376,6 +2384,7 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['cut_today'] += s_cut_today
         model_totals['cut_total'] += s_cut_total
         model_totals['cut'] += s_cut_total
+        model_totals['meto'] += s_meto_total
         model_totals['boxed'] += total_boxed_qty
 
         model_totals['sewing_prior'] += s_sewing_prior
@@ -2424,6 +2433,7 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
     # To'liq model balansi
     model_balance = calculate_pipeline_balance(boxes, model_totals['planned'], model_totals['cut_total'], dazmol_ao_ids, pastals_info=pastals_info)
     model_totals['cut_pct'] = round((model_totals['cut_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
+    model_totals['boxed_diff'] = model_totals['boxed'] - model_totals['cut_total']
     model_totals['sewing_pct'] = round((model_totals['sewing_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
     model_totals['dazmol_pct'] = round((model_totals['dazmol_total'] / model_totals['planned'] * 100), 1) if model_totals['planned'] > 0 else 0.0
 

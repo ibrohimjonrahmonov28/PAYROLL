@@ -172,7 +172,7 @@
                 <span class="text-[9px] text-amber-400/80 block font-mono font-bold">({{ model_totals.boxes_count }} quti)</span>
             </div>
 
-            <!-- 2. Kesilgan -->
+            <!-- 2. Kesilgan va Qutilarda (zakazning real soni) -->
             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
                 <div class="flex items-center justify-between">
                     <span class="text-[9px] uppercase font-bold text-slate-400">2. Kesilgan</span>
@@ -187,6 +187,14 @@
                         <span class="{% if model_totals.cut_today > 0 %}text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20{% else %}text-slate-500{% endif %}">
                             {% if model_totals.cut_today > 0 %}+{{ model_totals.cut_today }}{% else %}0{% endif %}
                         </span>
+                    </div>
+                    <div class="mt-1.5 pt-1.5 border-t border-slate-800 text-[10px] font-mono flex items-center justify-center gap-1"
+                        title="Qutilarda — metodan keyin qutilarga bo'lingan va OTK sanagan haqiqiy son (zakazning real soni). Kesimchi: {{ model_totals.cut_total }} | Meto aniq soni: {{ model_totals.meto }} | Qutilarda: {{ model_totals.boxed }}">
+                        <span class="text-slate-400">Qutilarda:</span>
+                        <strong class="text-cyan-300">{{ model_totals.boxed }}</strong>
+                        {% if model_totals.boxed_diff %}
+                        <span class="px-1 rounded font-bold {% if model_totals.boxed_diff > 0 %}bg-amber-500/15 text-amber-300{% else %}bg-rose-500/15 text-rose-300{% endif %}">{% if model_totals.boxed_diff > 0 %}+{% endif %}{{ model_totals.boxed_diff }}</span>
+                        {% endif %}
                     </div>
                 </div>
                 <span class="text-[9px] text-slate-500 block font-mono">oldingi + kunlik</span>
@@ -240,7 +248,9 @@
             </div>
 
             <!-- 5. Dazmoldan O'tgan -->
-            <div class="bg-slate-950 p-3 rounded-xl border border-indigo-900/40 text-center bg-gradient-to-b from-indigo-950/20 to-transparent flex flex-col justify-between">
+            <div class="bg-slate-950 p-3 rounded-xl border border-indigo-900/40 text-center bg-gradient-to-b from-indigo-950/20 to-transparent flex flex-col justify-between"
+                title="Dazmoldan o'tgan qutilarning real soni (OTK sanog'idan keyingi quti soni) bo'yicha. Shuning uchun kesimdan ko'p bo'lishi mumkin — «Qutilarda» bilan solishtiring.">
+
                 <div class="flex items-center justify-between">
                     <span class="text-[9px] uppercase font-bold text-indigo-400">5. Dazmol</span>
                     <span class="text-[9px] font-mono text-indigo-400/80 font-bold">{{ model_totals.dazmol_pct }}%</span>
@@ -363,13 +373,16 @@
 
                 <!-- Middle: 6 Metrics Columns -->
                 <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5 flex-1">
-                    <!-- 1. Reja & Kesim -->
-                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                    <!-- 1. Reja & Kesim & Qutida (real soni) -->
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-center"
+                        title="Reja: {{ s.planned_qty }} | Kesimchi: {{ s.cut_total }} | Meto aniq soni: {{ s.meto_qty }} | Qutilarda (real): {{ s.total_boxed_qty }}">
                         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Reja /
-                            Kesim</span>
+                            Kesim / Qutida</span>
                         <span class="text-xs font-black text-amber-400 digital-font mt-0.5 block">
                             {{ s.planned_qty }} <small class="text-slate-500">/</small> <span
-                                class="text-emerald-400">{{ s.cut_total }}</span>
+                                class="text-emerald-400">{{ s.cut_total }}</span> <small class="text-slate-500">/</small> <span
+                                class="text-cyan-300">{{ s.total_boxed_qty }}</span>{% if s.boxed_diff %} <small
+                                class="{% if s.boxed_diff > 0 %}text-amber-300{% else %}text-rose-300{% endif %}">({% if s.boxed_diff > 0 %}+{% endif %}{{ s.boxed_diff }})</small>{% endif %}
                         </span>
                         <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-center gap-1"
                             title="Kesim: {{ s.cut_prior }} (oldingi) + {{ s.cut_today }} (tanlangan kunda)">
@@ -421,7 +434,9 @@
                     </div>
 
                     <!-- 4. Dazmoldan O'tgan -->
-                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-indigo-900/30 text-center">
+                    <div class="bg-slate-950/80 p-2.5 rounded-xl border border-indigo-900/30 text-center"
+                        title="Dazmoldan o'tgan qutilarning real soni bo'yicha (OTK sanog'idan keyingi quti soni) — «Qutida» bilan solishtiring.">
+
                         <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Dazmol</span>
                         <span class="text-xs font-black text-indigo-300 digital-font mt-0.5 block">
                             {{ s.dazmol_total }} <small class="text-slate-400">dona</small>

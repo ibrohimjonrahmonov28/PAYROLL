@@ -29,6 +29,40 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 15:45
+* **Turi:** `feat(statistics)` — Model sahifasida "Kesilgan" yonida qutilardagi real son (zakazning real soni)
+* **Mavzu:** `/sewing-statistics/orders/<id>/items/<id>/` sahifasida kesimchi kiritgan son bilan birga metodan keyin qutilarga bo'lingan va OTK sanagan haqiqiy son (barcha qutilar yig'indisi) va farqi ko'rsatiladi.
+* **O'zgartirilgan fayllar:**
+  - `production/sewing_statistics_views.py`
+  - `templates/production/sewing_statistics_model_detail.html`
+  - `production/tests.py`
+  - `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **"2. Kesilgan" kartasi:** kesimchi soni ostida "Qutilarda: <son> (+/-farq)"; izohda kesimchi, meto aniq soni va qutilardagi son.
+  2. **Razmerlar:** "Reja / Kesim / Qutida" (masalan 300 / 315 / 341 (+26)).
+  3. **Dazmol izohi:** dazmol qutining real soni bo'yicha sanalgani uchun kesimdan ko'p bo'lishi mumkin — "Qutilarda" bilan solishtiriladi. Sabab (TFHZ508, zakaz 2309): OTK 32 ta qutini stikerdagidan ko'p sanagan (masalan 52 → 55), tizim quti sonini OTK soniga almashtiradi, stikerlar eski sonda qoladi (+216 dona).
+  4. **Testlar:** 280 ta test; 7 ta xato bu o'zgarishdan oldin ham bor edi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q)
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
+### 🔹 [Commit: `39af740`] — 30.10.2026, 15:45
+* **Turi:** `fix(telegram)` — 18:00 filial hisobotlari to'g'ri Telegram guruhlarga
+* **Mavzu:** Serverdagi `.env` da guruh ID'si bo'lmasa `docker-compose.yml` eski guruhlarni berardi: Koson `-2111243086` (bot chiqarilgan, "bot was kicked from the supergroup chat"), Uychi `-2697507612` ("chat not found"). Endi standart qiymatlar Koson_daily `-1004425170756` va Uychi_daily `-1003903019133` (ikkalasida @PAYROLL_MASTER_BOT admin).
+* **O'zgartirilgan fayllar:**
+  - `docker-compose.yml` (`web` va `scheduler`)
+* **Serverda:** `git pull origin main && docker compose up -d web scheduler` (`restart` emas — muhit o'zgaruvchilari faqat `up -d` da yangilanadi)
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout 39af740
+  ```
+
+---
+
 ### 🔹 [Commit: `6ee41ed`] — 29.10.2026, 13:53
 * **Turi:** `feat(daily-report)` — Kunlik dazmol yagona manbadan: Kunlik Patoklar va Kunlik Hisobot (18:00) sahifalari doim teng, sahifalar qulayroq, Uychi U15–U27 patoklari
 * **Mavzu:** `/sewing-statistics/daily/` dagi har bir patokning asosiy dazmoli `/sewing-statistics/daily-report/` (va 18:00 rasm) dagi shu patok shablonlari yig'indisiga qat'iy teng. Asosiy dazmolga faqat patokka haqiqatan qabul qilingan pastallar kiradi; qabul qilinmagan pastallar dazmoli "egasiz" bo'lib, hech kimga yozilmaydi.

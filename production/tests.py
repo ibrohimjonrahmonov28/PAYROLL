@@ -2428,6 +2428,24 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertEqual(size_l_data['first_sort_qty'], 38)
         self.assertEqual(size_l_data['second_sort_qty'], 2)
 
+    def test_sewing_statistics_model_detail_shows_boxed_real_qty_next_to_cut(self):
+        """Kesimchi 60 dona kiritgan, OTK bitta qutini 33 dona deb sanagan -> qutilarda 63 (+3)."""
+        batch = CuttingBatch.objects.create(order_item=self.item, batch_number=901, pastal_code='BX-901')
+        CuttingBatchItem.objects.create(batch=batch, order_item_size=self.size_m, quantity=60, real_quantity=60)
+        Box.objects.filter(pk=self.box2.pk).update(quantity=33)
+
+        self.client.login(username="superadmin_stat", password="password123")
+        url = reverse('production:sewing_statistics_model_detail', kwargs={'order_id': self.order.id, 'order_item_id': self.item.id})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        size_m = next(s for s in res.context['sizes_breakdown'] if s['size_name'] == 'M')
+        self.assertEqual((size_m['cut_total'], size_m['meto_qty'], size_m['total_boxed_qty'], size_m['boxed_diff']), (60, 60, 63, 3))
+        totals = res.context['model_totals']
+        self.assertEqual((totals['cut_total'], totals['boxed'], totals['boxed_diff']), (100, 103, 3))
+        self.assertContains(res, 'Qutilarda:')
+        self.assertContains(res, 'Kesim / Qutida')
+
     def test_sewing_statistics_model_detail_date_progression(self):
         from datetime import timedelta
         self.client.login(username="superadmin_stat", password="password123")
