@@ -267,6 +267,9 @@
                     </div>
                 </div>
                 <span class="text-[9px] text-indigo-400 block font-mono font-bold">({{ model_totals.dazmol_boxes }} quti)</span>
+                {% if model_totals.dazmol_unscanned_boxes %}
+                <span class="text-[9px] text-amber-300 font-bold block mt-0.5" title="Dazmoldan o'tgan hisoblangan, lekin dazmol stikeri urilmagan yoki qutida umuman yo'q (OTK ko'rgan yoki barcha boshqa stikerlari urilgan) — dazmolchiga haq yozilmagan">⚠ {{ model_totals.dazmol_unscanned_boxes }} quti ({{ model_totals.dazmol_unscanned_qty }} dona) dazmol stikeri urilmagan/yo'q</span>
+                {% endif %}
             </div>
 
             <!-- 6. OTK Kutmoqda (Jami va mas'uliyat bo'yicha ajratilgan) -->

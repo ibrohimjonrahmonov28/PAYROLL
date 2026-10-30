@@ -8,7 +8,7 @@ Tenglik production/test_pipeline_summary.py da tekshiriladi.
 """
 from collections import defaultdict
 
-from django.db.models import Count, Min, Q
+from django.db.models import Count, Max, Min, Q
 
 from production.models import Box, BoxQualityInspectionLog, Ticket
 
@@ -19,6 +19,7 @@ ORDER_SUM_KEYS = (
     'sewing_prior', 'sewing_today', 'sewing_total', 'entered_sewing', 'entered_sewing_boxes',
     'in_sewing_pre_dazmol', 'in_sewing_pre_dazmol_boxes', 'real_wip_sewing', 'real_wip_sewing_boxes',
     'dazmol_prior', 'dazmol_today', 'dazmol_total', 'dazmol', 'dazmol_boxes',
+    'dazmol_unscanned_boxes', 'dazmol_unscanned_qty',
     'unreached_control', 'unreached_control_boxes', 'waiting_control', 'waiting_control_boxes',
     'waiting_control_ready', 'waiting_control_ready_boxes', 'waiting_control_missing_ops',
     'waiting_control_missing_ops_boxes', 'unprinted_boxes_count', 'in_repair', 'in_repair_boxes',
@@ -47,6 +48,7 @@ def _box_rows(order_ids, dazmol_ao_ids):
             # evaluate_box_progress: faqat faol operatsiyalar biletlari
             total_active=Count('tickets', filter=Q(tickets__status__in=LIVE_TICKET_STATUSES) & active_op, distinct=True),
             scanned_active=Count('tickets', filter=scanned & active_op, distinct=True),
+            max_active_scan=Max('tickets__scanned_at', filter=scanned & active_op),
             dazmol_active_scanned=Count(
                 'tickets', distinct=True,
                 filter=scanned & Q(tickets__article_operation_id__in=dz_ids, tickets__article_operation__is_active=True),
@@ -71,7 +73,8 @@ def _add_balance(t, rows, repair_cycles):
         has_entered = scanned > 0
         in_repair = (r['controlled_repair_qty'] or 0) > 0
         finished_all = total > 0 and scanned == total
-        terminal = r['dazmol_active_scanned'] > 0 or finished_all
+        # OTK ko'rgan quti dazmoldan o'tgan (evaluate_box_progress bilan bir xil)
+        terminal = r['dazmol_active_scanned'] > 0 or finished_all or bool(r['controlled_at'])
         waiting = terminal and not r['is_controlled'] and not in_repair
 
         if has_entered:
@@ -106,16 +109,26 @@ def _add_balance(t, rows, repair_cycles):
 
 
 def _add_daily(t, rows, day_start, day_end):
-    """Oldingi + shu kunda: tikim (birinchi skan), dazmol (birinchi dazmol skani), OTK (controlled_at)."""
+    """
+    Oldingi + shu kunda: tikim (birinchi skan), dazmol (birinchi dazmol skani, bo'lmasa OTK ko'rgan vaqt — box_dazmol_time),
+    OTK (controlled_at; ta'mirdagi qutining saralangan qismi ham).
+    """
     for r in rows:
         q = r['quantity']
-        for key, ts in (('sewing', r['min_scan']), ('dazmol', r['min_dazmol'])):
+        # box_dazmol_time: dazmol skani; bo'lmasa barcha faol stikerlari urilgan vaqt yoki OTK ko'rgan vaqt (erta)
+        finished_all = r['total_active'] > 0 and r['scanned_active'] == r['total_active']
+        fallback = [ts for ts in ((r['max_active_scan'] if finished_all else None), r['controlled_at']) if ts]
+        dazmol_ts = r['min_dazmol'] or (min(fallback) if fallback else None)
+        for key, ts in (('sewing', r['min_scan']), ('dazmol', dazmol_ts)):
             if ts:
                 if ts < day_start:
                     t[f'{key}_prior'] += q
                 elif ts <= day_end:
                     t[f'{key}_today'] += q
-        if r['is_controlled'] and r['controlled_at']:
+        if not r['min_dazmol'] and dazmol_ts and dazmol_ts <= day_end:
+            t['dazmol_unscanned_boxes'] += 1
+            t['dazmol_unscanned_qty'] += q
+        if r['controlled_at']:
             part = 'prior' if r['controlled_at'] < day_start else ('today' if r['controlled_at'] <= day_end else None)
             if part:
                 t[f'first_sort_{part}'] += r['controlled_first_sort_qty'] or 0

@@ -106,9 +106,16 @@
                     {% if b.has_passed_dazmol %}
                     <span
                         class="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold inline-flex items-center gap-1.5"
-                        title="Dazmol operatsiyasi skanerlangan">
+                        title="{% if b.dazmol_unscanned %}OTK ko'rgan yoki barcha stikerlari urilgan — dazmoldan o'tgan hisoblanadi{% else %}Dazmol operatsiyasi skanerlangan{% endif %}">
                         <i class="fa-solid fa-soap text-[10px]"></i> Dazmoldan O'tgan
                     </span>
+                    {% if b.dazmol_unscanned %}
+                    <span
+                        class="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/40 text-[10px] font-bold"
+                        title="Dazmol stikeri urilmagan yoki qutida umuman yo'q — dazmolchiga haq yozilmagan">
+                        Dazmol stikeri urilmagan/yo'q
+                    </span>
+                    {% endif %}
                     {% else %}
                     <span
                         class="px-2 py-0.5 rounded-lg bg-slate-950 text-slate-500 border border-slate-800 text-[10px] font-medium"

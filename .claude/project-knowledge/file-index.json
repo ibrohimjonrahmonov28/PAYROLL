@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 374,
-   "sha256_16": "a29c56b38def832c"
+   "lines": 416,
+   "sha256_16": "3ba2b047ab6a19f7"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 94,
-   "sha256_16": "bb1e8c24ec611887"
+   "sha256_16": "b959907748476c03"
   },
   "Dockerfile": {
    "module": "ops",
@@ -813,46 +813,47 @@
   },
   "production/sewing_pipeline_summary.py": {
    "module": "production.sewing_statistics",
-   "lines": 222,
-   "sha256_16": "50ef00f14511a8fe",
+   "lines": 235,
+   "sha256_16": "69f327fef9fdcab0",
    "symbols": [
-    "_box_rows:33",
-    "_pastal_key:58",
-    "_add_balance:66",
-    "_add_daily:108",
-    "_finalize:125",
-    "add_rates:139",
-    "summarize_orders_pipeline:150",
-    "sum_factory_totals:214"
+    "_box_rows:34",
+    "_pastal_key:60",
+    "_add_balance:68",
+    "_add_daily:111",
+    "_finalize:138",
+    "add_rates:152",
+    "summarize_orders_pipeline:163",
+    "sum_factory_totals:227"
    ]
   },
   "production/sewing_statistics_views.py": {
    "module": "production.sewing_statistics",
-   "lines": 3479,
-   "sha256_16": "2c223f5c7acab025",
+   "lines": 3542,
+   "sha256_16": "e1bb83c5b95f1a76",
    "symbols": [
     "manager_or_superadmin_required:26",
     "get_dazmol_operation_ids_for_article:44",
     "evaluate_box_progress:66",
-    "get_model_pastals_analysis:179",
-    "calculate_pipeline_balance:270",
-    "get_patoks_scrap_and_warning_report:440",
-    "natural_size_sort_key:616",
-    "sewing_statistics_daily_view:630",
-    "api_sewing_statistics_daily_operations:1492",
-    "sewing_statistics_orders_view:1569",
-    "sewing_statistics_order_models_view:1747",
-    "sewing_statistics_model_detail_view:2078",
-    "api_sewing_statistics_size_boxes:2430",
-    "sewing_statistics_repairs_view:2697",
-    "sewing_statistics_close_order_unprinted_boxes_view:2860",
-    "sewing_statistics_close_all_unprinted_boxes_view:2898",
-    "api_send_telegram_daily_report_view:2930",
-    "sewing_statistics_otk_view:2984",
-    "sewing_statistics_daily_report_view:3314",
-    "api_send_branch_daily_report:3382",
-    "sewing_statistics_daily_report_image_preview:3421",
-    "export_monthly_daily_report_excel:3454"
+    "box_dazmol_time:183",
+    "get_model_pastals_analysis:214",
+    "calculate_pipeline_balance:305",
+    "get_patoks_scrap_and_warning_report:475",
+    "natural_size_sort_key:651",
+    "sewing_statistics_daily_view:665",
+    "api_sewing_statistics_daily_operations:1527",
+    "sewing_statistics_orders_view:1604",
+    "sewing_statistics_order_models_view:1782",
+    "sewing_statistics_model_detail_view:2125",
+    "api_sewing_statistics_size_boxes:2489",
+    "sewing_statistics_repairs_view:2760",
+    "sewing_statistics_close_order_unprinted_boxes_view:2923",
+    "sewing_statistics_close_all_unprinted_boxes_view:2961",
+    "api_send_telegram_daily_report_view:2993",
+    "sewing_statistics_otk_view:3047",
+    "sewing_statistics_daily_report_view:3377",
+    "api_send_branch_daily_report:3445",
+    "sewing_statistics_daily_report_image_preview:3484",
+    "export_monthly_daily_report_excel:3517"
    ]
   },
   "production/sticker_generator.py": {
@@ -956,10 +957,11 @@
   },
   "production/test_pipeline_summary.py": {
    "module": "tests",
-   "lines": 150,
-   "sha256_16": "9890c0210db4237b",
+   "lines": 207,
+   "sha256_16": "919b9c6679308d0a",
    "symbols": [
-    "FactoryPipelineSummaryTest:18"
+    "FactoryPipelineSummaryTest:18",
+    "PipelineIdentityTest:152"
    ]
   },
   "production/test_salary_freeze.py": {
@@ -1341,8 +1343,8 @@
   },
   "templates/production/partials/size_boxes_pipeline.html": {
    "module": "templates",
-   "lines": 431,
-   "sha256_16": "5c267c9250ba98dd"
+   "lines": 438,
+   "sha256_16": "9499e3e194810b8f"
   },
   "templates/production/passport_checker.html": {
    "module": "templates",
@@ -1366,18 +1368,18 @@
   },
   "templates/production/sewing_statistics_model_detail.html": {
    "module": "templates",
-   "lines": 785,
-   "sha256_16": "455332992ba6139d"
+   "lines": 788,
+   "sha256_16": "17dee61ec9f705ec"
   },
   "templates/production/sewing_statistics_order_models.html": {
    "module": "templates",
-   "lines": 698,
-   "sha256_16": "a69858d6a997eb77"
+   "lines": 701,
+   "sha256_16": "9d61793a8a4ba9f5"
   },
   "templates/production/sewing_statistics_orders.html": {
    "module": "templates",
-   "lines": 549,
-   "sha256_16": "1aaf8b13e664785b"
+   "lines": 552,
+   "sha256_16": "5eaf0ed0e0cd4c71"
   },
   "templates/production/sewing_statistics_otk.html": {
    "module": "templates",

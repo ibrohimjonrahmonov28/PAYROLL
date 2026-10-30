@@ -29,6 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 20:44
+* **Turi:** `fix(statistics)` — Dazmol = OTK kutmoqda + Ta'mir + 1-sort + 2-sort tengligi (model, zakaz va fabrika sahifalarida)
+* **Mavzu:** TFHZ604 (zakaz 2309) da Dazmol 6 179, qolganlari yig'indisi 5 737 edi (farq 442). Sabablar: ta'mirdagi qutilarning saralangan qismi hech qayerda sanalmasdi; OTK ko'rgan, lekin dazmol stikeri urilmagan qutilar Dazmolga kirmasdi; DAZMOL operatsiyasi stikerlar chop etilgandan keyin qo'shilgan qutilarda dazmol bileti umuman yo'q edi.
+* **O'zgartirilgan fayllar:**
+  - `production/sewing_statistics_views.py` (`box_dazmol_time`, `evaluate_box_progress`, model/zakaz sahifalari, qutilar oynasi)
+  - `production/sewing_pipeline_summary.py` (fabrika jami — xuddi shu qoida)
+  - `templates/production/sewing_statistics_model_detail.html`, `sewing_statistics_order_models.html`, `sewing_statistics_orders.html`, `partials/size_boxes_pipeline.html`
+  - `production/test_pipeline_summary.py`, `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **1/2-sort:** OTK ko'rgan har bir qutining saralangan qismi sanaladi (ta'mirdagi qutiniki ham); "Ta'mir" da faqat ta'mirdagi dona.
+  2. **Dazmol:** quti dazmoldan o'tgan — DAZMOL bileti urilgan, yoki barcha faol stikerlari urilgan, yoki OTK ko'rgan bo'lsa. Oxirgi ikkisi "⚠ N quti dazmol stikeri urilmagan/yo'q" deb ko'rsatiladi (dazmolchiga haq yozilmagan).
+  3. **Natija:** TFHZ604: 6 358 = 471 + 71 + 5 710 + 106. Real bazada 27 zakazdan 26 tasida tenglik to'liq; 0309 da #19 quti brakni 2-sortdan alohida yozgan (5 dona) — ma'lumotni tuzatish kerak. Fabrika bo'yicha 211 quti (8 003 dona) dazmol bileti urilmagan/yo'q.
+  4. **Testlar:** 287 ta test; 7 ta xato bu o'zgarishdan oldin ham bor edi. Yangi test uchala sahifada tenglikni tekshiradi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q)
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `45979c4`] — 30.10.2026, 18:06
 * **Turi:** `feat(statistics)` — Tikim statistikasi bosh sahifasida "Fabrika bo'yicha jami" — zakaz sahifasidagi 8 bosqichli quvur (sana bo'yicha)
 * **Mavzu:** `/sewing-statistics/` yuqorisidagi eski 6 ta karta o'rniga zakaz va model sahifalaridagi kabi 8 bosqich: Reja, Kesilgan (+ Qutilarda), Tikim kutmoqda, Hozir patokda, Dazmol, OTK kutmoqda (tayyor/chala), Ta'mirda, 1/2-sort — "oldingi + shu kunda" sana tanlash bilan.

@@ -147,3 +147,60 @@ class FactoryPipelineSummaryTest(TestCase):
         self.assertEqual((f['first_sort_total'], f['second_sort_total'], f['control_variance']), (21, 3, 2))
         self.assertContains(res, "Fabrika bo'yicha jami")
         self.assertContains(res, f"/sewing-statistics/orders/{self.order_a.id}/?date=")
+
+
+class PipelineIdentityTest(TestCase):
+    """Dazmol = OTK kutmoqda + Ta'mir + 1-sort + 2-sort — model, zakaz va fabrika sahifalarida (egasi talabi)."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='ident_admin', password='x', role=User.Role.SUPER_ADMIN)
+        self.client.force_login(self.admin)
+        worker = Worker.objects.create(worker_id='W-IDENT', first_name='Ident', last_name='Ishchi')
+        now = timezone.now()
+        art = Article.objects.create(code='IDENT-Z', name='Xalat Z')
+        sew = ArticleOperation.objects.create(article=art, operation=Operation.objects.create(code='Z-SEW', name='TIKISH'),
+                                              price_per_unit=Decimal('100'), sequence=1)
+        dz = ArticleOperation.objects.create(article=art, operation=Operation.objects.create(code='Z-DZ', name='DAZMOL'),
+                                             price_per_unit=Decimal('50'), sequence=9)
+        self.order = Order.objects.create(order_number='IDENT-1', article=art, total_quantity=200, status=Order.Status.IN_PROGRESS)
+        self.item = OrderItem.objects.create(order=self.order, article=art, quantity=200)
+        size = OrderItemSize.objects.create(order_item=self.item, size_name='M', planned_quantity=200)
+        batch = CuttingBatch.objects.create(order_item=self.item, batch_number=1, pastal_code='Z-1')
+        ci = CuttingBatchItem.objects.create(batch=batch, order_item_size=size, quantity=87, real_quantity=87)
+
+        def box(n, qty, tickets, **otk):
+            b = Box.objects.create(order=self.order, article=art, cutting_batch_item=ci, box_number=n, quantity=qty, razmer='M')
+            for ao, st in tickets:
+                Ticket.objects.create(box=b, article_operation=ao, quantity=qty, status=st,
+                                      worker=worker if st == 'SCANNED' else None, scanned_at=now if st == 'SCANNED' else None)
+            if otk:
+                Box.objects.filter(pk=b.pk).update(controlled_at=now, **otk)
+
+        box(1, 30, [(sew, 'SCANNED'), (dz, 'SCANNED')],                     # qisman saralangan, ta'mirda
+            controlled_first_sort_qty=25, controlled_second_sort_qty=1, controlled_repair_qty=4)
+        box(2, 20, [(sew, 'SCANNED'), (dz, 'PENDING')],                     # dazmol stikeri urilmagan, OTK yopgan
+            is_controlled=True, controlled_first_sort_qty=20)
+        box(3, 15, [(sew, 'SCANNED')])                                       # DAZMOL bileti yo'q, hammasi urilgan
+        box(4, 10, [(sew, 'SCANNED'), (dz, 'SCANNED')])                     # OTK kutmoqda (tayyor)
+        box(5, 12, [(sew, 'SCANNED'), (dz, 'PENDING')])                     # hali tikuvda (tenglikka kirmaydi)
+
+    def _check(self, t):
+        self.assertEqual(t['dazmol_total'], 75)
+        self.assertEqual((t['waiting_control'], t['in_repair'], t['first_sort_total'], t['second_sort_total']), (25, 4, 45, 1))
+        self.assertEqual(t['dazmol_total'],
+                         t['waiting_control'] + t['in_repair'] + t['first_sort_total'] + t['second_sort_total'])
+        self.assertEqual((t['dazmol_unscanned_boxes'], t['dazmol_unscanned_qty']), (2, 35))
+
+    def test_model_page(self):
+        url = reverse('production:sewing_statistics_model_detail', kwargs={'order_id': self.order.id, 'order_item_id': self.item.id})
+        res = self.client.get(url)
+        self._check(res.context['model_totals'])
+        self.assertContains(res, "dazmol stikeri urilmagan/yo'q")
+
+    def test_order_page(self):
+        res = self.client.get(reverse('production:sewing_statistics_order_models', kwargs={'order_id': self.order.id}))
+        self._check(res.context['order_totals'])
+
+    def test_factory_total(self):
+        res = self.client.get(reverse('production:sewing_statistics_orders'))
+        self._check(res.context['factory_totals'])

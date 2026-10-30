@@ -106,7 +106,10 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
     is_re_repair = (repair_cycles >= 2)
 
     has_finished_all_ops = (total_tickets > 0 and scanned_count == total_tickets)
-    has_passed_terminal = (has_passed_dazmol or has_finished_all_ops)
+    # OTK ko'rgan quti dazmoldan o'tgan hisoblanadi (OTK ga faqat dazmoldan o'tgan mahsulot keladi), dazmol stikeri
+    # urilmagan bo'lsa ham — bu holat dazmol_unscanned bilan alohida ko'rsatiladi (dazmolchiga haq yozilmagan)
+    is_inspected = bool(box.controlled_at)
+    has_passed_terminal = (has_passed_dazmol or has_finished_all_ops or is_inspected)
 
     # Foydalanuvchi qoidasi: Dazmoldan (yoki oxirgi operatsiyadan) o'tgan, lekin hali OTK yopmagan va ta'mirda bo'lmagan
     # barcha qutilar OTK stoli oldida kutmoqda hisoblanadi (Dazmoldan o'tgan = OTK Kutmoqda + 1-sort + 2-sort + Ta'mir)
@@ -161,6 +164,7 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
         'progress_pct': progress_pct,
         'has_entered_sewing': has_entered_sewing,
         'has_passed_dazmol': has_passed_terminal,
+        'dazmol_unscanned': (is_inspected or has_finished_all_ops) and not has_passed_dazmol,
         'is_in_sewing_pre_dazmol': is_in_sewing_pre_dazmol,
         'is_in_repair': is_in_repair,
         'repair_cycles': repair_cycles,
@@ -174,6 +178,37 @@ def evaluate_box_progress(box, dazmol_ao_ids=None):
         'last_scanned': last_scanned,
         'next_pending': next_pending,
     }
+
+
+def box_dazmol_time(box, dazmol_ao_ids):
+    """
+    Qutining dazmoldan o'tgan vaqti (evaluate_box_progress dagi "dazmoldan o'tgan" bilan bir xil):
+    1) birinchi yakuniy dazmol skani;
+    2) skan bo'lmasa — barcha faol stikerlari urilgan bo'lsa, oxirgi skan vaqti (DAZMOL bileti umuman yo'q quti:
+       operatsiya stikerlar chop etilgandan keyin qo'shilgan);
+    3) yoki OTK ko'rgan vaqt (OTK ga faqat dazmoldan o'tgan mahsulot keladi) — 2 va 3 dan erta bo'lgani.
+    Ikkinchi qiymat — dazmol stikeri urilmagan/yo'qmi. Shunda: Dazmol = OTK kutmoqda + Ta'mir + 1-sort + 2-sort.
+    """
+    scans = [
+        t.scanned_at for t in box.tickets.all()
+        if t.article_operation_id in dazmol_ao_ids and t.status == Ticket.Status.SCANNED and t.scanned_at
+    ]
+    if scans:
+        return min(scans), False
+    candidates = []
+    active = [
+        t for t in box.tickets.all()
+        if t.status != Ticket.Status.CANCELLED and (not t.article_operation or t.article_operation.is_active)
+    ]
+    if active and all(t.status == Ticket.Status.SCANNED for t in active):
+        finished_at = [t.scanned_at for t in active if t.scanned_at]
+        if finished_at:
+            candidates.append(max(finished_at))
+    if box.controlled_at:
+        candidates.append(box.controlled_at)
+    if candidates:
+        return min(candidates), True
+    return None, False
 
 
 def get_model_pastals_analysis(boxes):
@@ -1832,6 +1867,8 @@ def sewing_statistics_order_models_view(request, order_id: int):
         'dazmol_total': 0,
         'dazmol': 0,
         'dazmol_boxes': 0,
+        'dazmol_unscanned_boxes': 0,
+        'dazmol_unscanned_qty': 0,
         'dazmol_pct': 0.0,
         'unreached_control': 0,
         'unreached_control_boxes': 0,
@@ -1897,17 +1934,22 @@ def sewing_statistics_order_models_view(request, order_id: int):
                     m_sewing_today += b.quantity
         m_sewing_total = m_sewing_prior + m_sewing_today
 
-        # 3. Dazmol delta
+        # 3. Dazmol delta (OTK ko'rgan quti ham dazmoldan o'tgan; dazmol stikeri urilmagani alohida sanaladi)
         m_dazmol_prior = 0
         m_dazmol_today = 0
+        m_dazmol_unscanned_boxes = 0
+        m_dazmol_unscanned_qty = 0
         for b in art_boxes:
-            dz_tickets = [t for t in b.tickets.all() if t.article_operation_id in dazmol_ao_ids and t.status == Ticket.Status.SCANNED and t.scanned_at]
-            if dz_tickets:
-                min_dz = min(t.scanned_at for t in dz_tickets)
-                if min_dz < day_start:
-                    m_dazmol_prior += b.quantity
-                elif day_start <= min_dz <= day_end:
-                    m_dazmol_today += b.quantity
+            dz_time, dz_unscanned = box_dazmol_time(b, dazmol_ao_ids)
+            if not dz_time or dz_time > day_end:
+                continue
+            if dz_time < day_start:
+                m_dazmol_prior += b.quantity
+            else:
+                m_dazmol_today += b.quantity
+            if dz_unscanned:
+                m_dazmol_unscanned_boxes += 1
+                m_dazmol_unscanned_qty += b.quantity
         m_dazmol_total = m_dazmol_prior + m_dazmol_today
 
         # 4. OTK delta
@@ -1916,7 +1958,8 @@ def sewing_statistics_order_models_view(request, order_id: int):
         m_second_sort_prior = 0
         m_second_sort_today = 0
         for b in art_boxes:
-            if b.is_controlled and b.controlled_at:
+            # OTK ko'rgan har bir quti: yopilgan yoki ta'mirda bo'lsa ham, saralangan qismi 1/2-sort
+            if b.controlled_at:
                 if b.controlled_at < day_start:
                     m_first_sort_prior += (b.controlled_first_sort_qty or 0)
                     m_second_sort_prior += (b.controlled_second_sort_qty or 0)
@@ -1968,6 +2011,8 @@ def sewing_statistics_order_models_view(request, order_id: int):
             'dazmol_today': m_dazmol_today,
             'dazmol_total': m_dazmol_total,
             'dazmol_boxes': model_balance['dazmol_boxes'],
+            'dazmol_unscanned_boxes': m_dazmol_unscanned_boxes,
+            'dazmol_unscanned_qty': m_dazmol_unscanned_qty,
             'dazmol_pct': round((m_dazmol_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'unreached_control_qty': model_balance['unreached_control_qty'],
             'unreached_control_boxes': model_balance['unreached_control_boxes'],
@@ -2019,6 +2064,8 @@ def sewing_statistics_order_models_view(request, order_id: int):
         order_totals['dazmol_total'] += m_dazmol_total
         order_totals['dazmol'] += m_dazmol_total
         order_totals['dazmol_boxes'] += model_balance['dazmol_boxes']
+        order_totals['dazmol_unscanned_boxes'] += m_dazmol_unscanned_boxes
+        order_totals['dazmol_unscanned_qty'] += m_dazmol_unscanned_qty
 
         order_totals['unreached_control'] += model_balance['unreached_control_qty']
         order_totals['unreached_control_boxes'] += model_balance['unreached_control_boxes']
@@ -2184,6 +2231,8 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         'dazmol_total': 0,
         'dazmol': 0,
         'dazmol_boxes': 0,
+        'dazmol_unscanned_boxes': 0,
+        'dazmol_unscanned_qty': 0,
         'unreached_control': 0,
         'unreached_control_boxes': 0,
         'waiting_control': 0,
@@ -2248,17 +2297,22 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
                     s_sewing_today += b.quantity
         s_sewing_total = s_sewing_prior + s_sewing_today
 
-        # 3. Dazmol delta
+        # 3. Dazmol delta (OTK ko'rgan quti ham dazmoldan o'tgan; dazmol stikeri urilmagani alohida sanaladi)
         s_dazmol_prior = 0
         s_dazmol_today = 0
+        s_dazmol_unscanned_boxes = 0
+        s_dazmol_unscanned_qty = 0
         for b in size_boxes:
-            dz_tickets = [t for t in b.tickets.all() if t.article_operation_id in dazmol_ao_ids and t.status == Ticket.Status.SCANNED and t.scanned_at]
-            if dz_tickets:
-                min_dz = min(t.scanned_at for t in dz_tickets)
-                if min_dz < day_start:
-                    s_dazmol_prior += b.quantity
-                elif day_start <= min_dz <= day_end:
-                    s_dazmol_today += b.quantity
+            dz_time, dz_unscanned = box_dazmol_time(b, dazmol_ao_ids)
+            if not dz_time or dz_time > day_end:
+                continue
+            if dz_time < day_start:
+                s_dazmol_prior += b.quantity
+            else:
+                s_dazmol_today += b.quantity
+            if dz_unscanned:
+                s_dazmol_unscanned_boxes += 1
+                s_dazmol_unscanned_qty += b.quantity
         s_dazmol_total = s_dazmol_prior + s_dazmol_today
 
         # 4. OTK delta
@@ -2267,7 +2321,8 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         s_second_sort_prior = 0
         s_second_sort_today = 0
         for b in size_boxes:
-            if b.is_controlled and b.controlled_at:
+            # OTK ko'rgan har bir quti: yopilgan yoki ta'mirda bo'lsa ham, saralangan qismi 1/2-sort
+            if b.controlled_at:
                 if b.controlled_at < day_start:
                     s_first_sort_prior += (b.controlled_first_sort_qty or 0)
                     s_second_sort_prior += (b.controlled_second_sort_qty or 0)
@@ -2309,6 +2364,8 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
             'dazmol_today': s_dazmol_today,
             'dazmol_total': s_dazmol_total,
             'dazmol_boxes': size_balance['dazmol_boxes'],
+            'dazmol_unscanned_boxes': s_dazmol_unscanned_boxes,
+            'dazmol_unscanned_qty': s_dazmol_unscanned_qty,
             'dazmol_pct': round((s_dazmol_total / planned_qty * 100), 1) if planned_qty > 0 else 0.0,
             'unreached_control_qty': size_balance['unreached_control_qty'],
             'unreached_control_boxes': size_balance['unreached_control_boxes'],
@@ -2361,6 +2418,8 @@ def sewing_statistics_model_detail_view(request, order_id: int, order_item_id: i
         model_totals['dazmol_total'] += s_dazmol_total
         model_totals['dazmol'] += s_dazmol_total
         model_totals['dazmol_boxes'] += size_balance['dazmol_boxes']
+        model_totals['dazmol_unscanned_boxes'] += s_dazmol_unscanned_boxes
+        model_totals['dazmol_unscanned_qty'] += s_dazmol_unscanned_qty
 
         model_totals['unreached_control'] += size_balance['unreached_control_qty']
         model_totals['unreached_control_boxes'] += size_balance['unreached_control_boxes']
@@ -2551,10 +2610,12 @@ def api_sewing_statistics_size_boxes(request):
                 summary['re_repair_boxes'] += 1
                 summary['re_repair_units'] += b.controlled_repair_qty or b.quantity
 
-        if b.is_controlled:
-            summary['controlled_boxes'] += 1
+        if b.controlled_at:
+            # OTK ko'rgan quti: ta'mirda bo'lsa ham saralangan qismi 1/2-sort
             summary['first_sort_units'] += b.controlled_first_sort_qty
             summary['second_sort_units'] += b.controlled_second_sort_qty
+        if b.is_controlled:
+            summary['controlled_boxes'] += 1
             summary['repair_units'] += b.controlled_repair_qty
             summary['control_variance'] += b_eval['control_variance']
 
@@ -2628,6 +2689,7 @@ def api_sewing_statistics_size_boxes(request):
             'scanned_count': b_eval['scanned_count'],
             'progress_pct': b_eval['progress_pct'],
             'has_passed_dazmol': has_dazmol,
+            'dazmol_unscanned': b_eval['dazmol_unscanned'],
             'is_in_sewing_pre_dazmol': b_eval['is_in_sewing_pre_dazmol'],
             'unreached_control': unreached_ctrl,
             'is_waiting_control': is_waiting_ctrl,
@@ -2667,6 +2729,7 @@ def api_sewing_statistics_size_boxes(request):
                     'progress_pct': bx['progress_pct'],
                     'has_entered_sewing': bx['has_entered_sewing'],
                     'has_passed_dazmol': bx['has_passed_dazmol'],
+                    'dazmol_unscanned': bx['dazmol_unscanned'],
                     'unreached_control': bx['unreached_control'],
                     'is_waiting_control': bx['is_waiting_control'],
                     'is_in_repair': bx['is_in_repair'],
