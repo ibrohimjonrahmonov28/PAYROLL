@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 16:08
+### 🔹 [Commit: `d128fa5`] — 30.10.2026, 16:08
 * **Turi:** `fix(control)` — OTK planshet oynasi: −1 tugmasi "Tasdiqlash" ostida qolmaydi; ta'mir sariq, 2-sort qizil
 * **Mavzu:** `/control/` (egasining aniq so'rovi bilan, sahifaning qolgan eski dizayni o'zgarmagan). Yotiq planshetda (1024×600) quti sonining −1 tugmasi "Tasdiqlash va qabul qilish" tugmasi ostida qolardi; ta'mir va 2-sort ranglari teskari edi.
 * **O'zgartirilgan fayllar:**
@@ -42,7 +42,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web`; planshetlarda sahifani bir marta yangilash.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout d128fa5
   ```
 
 ---
