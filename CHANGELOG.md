@@ -29,6 +29,24 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 16:08
+* **Turi:** `fix(control)` — OTK planshet oynasi: −1 tugmasi "Tasdiqlash" ostida qolmaydi; ta'mir sariq, 2-sort qizil
+* **Mavzu:** `/control/` (egasining aniq so'rovi bilan, sahifaning qolgan eski dizayni o'zgarmagan). Yotiq planshetda (1024×600) quti sonining −1 tugmasi "Tasdiqlash va qabul qilish" tugmasi ostida qolardi; ta'mir va 2-sort ranglari teskari edi.
+* **O'zgartirilgan fayllar:**
+  - `templates/production/control_home.html`
+  - `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Real son bloki chapga:** +1 / son / −1 ustuni rasm yonida (`lg:items-start`), "Tasdiqlash" tugmasi ustida bosiladi (`relative z-10`).
+  2. **Ranglar:** ta'mir — sariq, 2-sort — qizil: sarlavha hisoblagichlari, 2-qadam bloklari, 2-sort va ta'mir tanlash oynalari, ro'yxatlar, natija va smena yakuni oynalari, ta'mirdan qaytish banneridagi 2-sort. O'chirish tugmalari va ogohlantirishlar qizil qoladi.
+  3. **Testlar:** 280 ta test; 7 ta xato bu o'zgarishdan oldin ham bor edi.
+* **Serverda:** `git pull origin main && docker compose restart web`; planshetlarda sahifani bir marta yangilash.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `28a768e`] — 30.10.2026, 15:45
 * **Turi:** `feat(statistics)` — Model sahifasida "Kesilgan" yonida qutilardagi real son (zakazning real soni)
 * **Mavzu:** `/sewing-statistics/orders/<id>/items/<id>/` sahifasida kesimchi kiritgan son bilan birga metodan keyin qutilarga bo'lingan va OTK sanagan haqiqiy son (barcha qutilar yig'indisi) va farqi ko'rsatiladi.
