@@ -2285,7 +2285,7 @@ class SewingStatisticsFeatureTest(TestCase):
         )
         # Operations: Op1 (Tikuv), Op2 (Dazmol)
         self.op1 = Operation.objects.create(name="Bichim Tikish", code="OP_TIK_01")
-        self.op2 = Operation.objects.create(name="DAZMOL QILISH", code="OP_DAZMOL_01")
+        self.op2 = Operation.objects.create(name="DAZMOL", code="OP_DAZMOL_01")   # yakuniy dazmol faqat aynan "DAZMOL"
         self.ao1 = ArticleOperation.objects.create(article=self.article, operation=self.op1, sequence=1, price_per_unit=500)
         self.ao2 = ArticleOperation.objects.create(article=self.article, operation=self.op2, sequence=2, price_per_unit=300)
 
@@ -2522,7 +2522,7 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertContains(res_html, "STAT-BX-02")
         self.assertContains(res_html, "Malika Tikuvchi")
         self.assertContains(res_html, "Bichim Tikish")
-        self.assertContains(res_html, "DAZMOL QILISH")
+        self.assertContains(res_html, "DAZMOL")
         self.assertContains(res_html, "OTK Kutmoqda") # box 2 has this badge
 
         # 2. JSON format for Size M
@@ -2604,7 +2604,7 @@ class SewingStatisticsFeatureTest(TestCase):
         self.assertTrue(len(k1['operations']) >= 2)
         op_names = [o['operation_name'] for o in k1['operations']]
         self.assertIn('Bichim Tikish', op_names)
-        self.assertIn('DAZMOL QILISH', op_names)
+        self.assertIn('DAZMOL', op_names)
 
         # Kunlik norma va bajarilish ko'rsatkichlari tekshiruvi
         self.assertGreater(k1['daily_norm'], 0)
@@ -3516,15 +3516,19 @@ class IntermediateIroningExclusionTest(TestCase):
     def test_is_main_dazmol_operation_logic(self):
         from production.sewing_statistics_views import is_main_dazmol_operation
 
-        # Yakuniy dazmol
+        # Yakuniy dazmol — faqat aynan "DAZMOL" operatsiyasi (egasi qoidasi, 2026-10-30)
         self.assertTrue(is_main_dazmol_operation("DAZMOL", "DAZMOL"))
         self.assertTrue(is_main_dazmol_operation("Dazmol", "OP-DAZ"))
-        self.assertTrue(is_main_dazmol_operation("YAKUNIY DAZMOL", "DAZMOL-01"))
+        self.assertTrue(is_main_dazmol_operation(" dazmol ", None))
+        self.assertTrue(is_main_dazmol_operation("", "DAZMOL"))          # nom bo'lmasa kod
 
-        # Oraliq dazmollar (mustasno)
+        # Boshqa har qanday "... DAZMOL" — oraliq amal, tayyor ish emas
+        self.assertFalse(is_main_dazmol_operation("YAKUNIY DAZMOL", "DAZMOL-01"))
+        self.assertFalse(is_main_dazmol_operation("PLANKA DAZMOL", "OP-PL"))
         self.assertFalse(is_main_dazmol_operation("TASMA DAZMOL", "TASMA DAZMOL"))
         self.assertFalse(is_main_dazmol_operation("CHO'NTAK DAZMOL", "CHO'NTAK DAZMOL"))
         self.assertFalse(is_main_dazmol_operation("CHONTAK DAZMOL", "CHONTAK DAZMOL"))
+        self.assertFalse(is_main_dazmol_operation("DAZMOL QILISH", "DAZMOL"))
 
         # Dazmol bo'lmagan amallar
         self.assertFalse(is_main_dazmol_operation("OLDI AVERLO", "AVERLO-01"))
@@ -4587,7 +4591,7 @@ class SewingStatisticsOtkViewTest(TestCase):
         art_f = Article.objects.create(name="Futbolka Art", code="ART-TEST-F-1", operation_group=grp_futbolka)
         art_x = Article.objects.create(name="Xalat Art", code="ART-TEST-X-1", operation_group=grp_xalat)
 
-        op_dazmol = Operation.objects.create(name="DAZMOL TAYYORLASH", code="DZ-TEST-1")
+        op_dazmol = Operation.objects.create(name="DAZMOL", code="DZ-TEST-1")
         ao_f = ArticleOperation.objects.create(article=art_f, operation=op_dazmol, price_per_unit=500, difficulty=18.0)
         ao_x = ArticleOperation.objects.create(article=art_x, operation=op_dazmol, price_per_unit=600, difficulty=22.0)
 

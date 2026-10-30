@@ -32,21 +32,30 @@ NOT_OWNED_BATCH_STATUSES = (
 )
 
 
+MAIN_DAZMOL_NAME = 'DAZMOL'
+
+
+def _normalize_op_text(value):
+    return ' '.join((value or '').split()).upper()
+
+
 def is_main_dazmol_operation(name, code=None):
     """
-    Haqiqiy yakuniy kiyim dazmoli ekanini aniqlaydi:
-    - TASMA DAZMOL va CHO'NTAK DAZMOL kabi oraliq operatsiyalar bundan mustasno.
+    Yakuniy kiyim dazmoli — faqat aynan "DAZMOL" nomli operatsiya (egasi qoidasi, 2026-10-30). U modelning oxirgi
+    operatsiyasi; PLANKA / TASMA / CHO'NTAK va boshqa "... DAZMOL" oraliq amallar tayyor ish emas va sanalmaydi.
+    Nom bo'lmagan holda kod tekshiriladi.
     """
-    if not name and not code:
-        return False
-    name_u = (name or "").upper()
-    code_u = (code or "").upper()
-    has_dazmol = ('DAZMOL' in name_u) or ('DAZMOL' in code_u)
-    if not has_dazmol:
-        return False
-    # Oraliq dazmol amallari (tasma, cho'ntak) kiyimning yakuniy dazmoli emas
-    is_intermediate = any(excl in name_u or excl in code_u for excl in ('TASMA', "CHO'NTAK", "CHONTAK"))
-    return not is_intermediate
+    normalized_name = _normalize_op_text(name)
+    if normalized_name:
+        return normalized_name == MAIN_DAZMOL_NAME
+    return _normalize_op_text(code) == MAIN_DAZMOL_NAME
+
+
+def main_dazmol_operation_ids():
+    """Katalogdagi yakuniy dazmol operatsiyalari ID lari (is_main_dazmol_operation bo'yicha) — SQL filtrlar uchun."""
+    from production.models import Operation
+    candidates = Operation.objects.filter(Q(name__icontains=MAIN_DAZMOL_NAME) | Q(code__icontains=MAIN_DAZMOL_NAME))
+    return [op.id for op in candidates.only('id', 'name', 'code') if is_main_dazmol_operation(op.name, op.code)]
 
 
 def get_day_window(target_date, now=None):

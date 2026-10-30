@@ -234,6 +234,22 @@ class DailyDazmolRulesTest(TestCase):
         self.assertNotIn('P-K', accepted.get(2, set()))
         self.assertNotIn('P-W', set().union(*accepted.values()))
 
+    def test_only_exact_dazmol_counts_planka_is_not_finished_work(self):
+        """PLANKA DAZMOL — oraliq amal: asosiy ham, patok dazmoli ham emas; model sahifasida ham yakuniy dazmol emas."""
+        from production.sewing_statistics_views import get_dazmol_operation_ids_for_article
+        op_planka = Operation.objects.create(code='OP-PL', name='PLANKA DAZMOL')
+        planka_f = ArticleOperation.objects.create(article=self.art_f, operation=op_planka, price_per_unit=Decimal('20'), sequence=4)
+        boxes = self._pastal('P-PL', self.item_f, self.size_f, screen=1, status='ACCEPTED', received=True, qtys=[10, 10], branch='HQ')
+        now = timezone.now()
+        self._scan(boxes[0], planka_f, 1, now)      # faqat planka — hali tayyor emas
+        self._scan(boxes[1], planka_f, 1, now)      # planka + yakuniy dazmol — bir marta sanaladi
+        self._scan(boxes[1], self.dz_f, 1, now)
+
+        dz = compute_daily_dazmol(*get_day_window(timezone.localdate()))
+        self.assertEqual(dz.asosiy(1), 130 + 10)
+        self.assertEqual(dz.patok_dazmol(1), 30 + 10)
+        self.assertEqual(get_dazmol_operation_ids_for_article(self.art_f), {self.dz_f.id})
+
     def test_day_window_keeps_yesterday_separate(self):
         yesterday = timezone.localdate() - timedelta(days=1)
         self.assertEqual(compute_daily_dazmol(*get_day_window(yesterday)).asosiy_by_patok, {1: 20})

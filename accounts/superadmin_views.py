@@ -3830,19 +3830,8 @@ def _build_orders_balance_data(orders_qs):
     order_ids = list(orders_qs.values_list('id', flat=True))
 
     # 1. Dazmol operatsiyalari ID lari
-    dazmol_op_ids = list(
-        Operation.objects.filter(name__icontains='DAZMOL')
-        .exclude(
-            Q(name__icontains='TASMA') |
-            Q(name__icontains="CHO'NTAK") |
-            Q(name__icontains='CHONTAK') |
-            Q(name__icontains='CHOK') |
-            Q(name__icontains='YOQA') |
-            Q(name__icontains='MANJET') |
-            Q(name__icontains='PLANKA')
-        )
-        .values_list('id', flat=True)
-    )
+    from production.daily_dazmol import main_dazmol_operation_ids
+    dazmol_op_ids = main_dazmol_operation_ids()   # faqat yakuniy "DAZMOL"
 
     # 2. Kesilgan son (CuttingBatchItem bo'yicha: Meto tasdiqlagan real_quantity yoki kesim quantity)
     cut_batch_map = {}

@@ -16,6 +16,7 @@ from django.db.models.functions import TruncDate
 from accounts.models import User, Worker, MasterPatokHistory, MasterAbsentDay
 from production.models import CuttingBatch, Box, Ticket, Order, Article, ArticleOperation
 from production.services import get_patok_code, get_patok_name, parse_patok_number
+from production.daily_dazmol import is_main_dazmol_operation
 
 
 def _normalize_scanner_code(raw_code: str) -> str:
@@ -829,9 +830,8 @@ def api_get_pastal_boxes_detail(request, batch_id):
                 'scanned_at': scanned_at_str,
             })
 
-            op_upper = op_name.upper()
             if t.status == Ticket.Status.SCANNED:
-                if 'DAZMOL' in op_upper and 'TASMA' not in op_upper and "CHO'NTAK" not in op_upper:
+                if is_main_dazmol_operation(op_name):
                     has_dazmol = True
             else:
                 if op_name and op_name not in pending_ops:

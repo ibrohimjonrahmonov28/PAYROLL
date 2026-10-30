@@ -18,7 +18,7 @@ from production.models import (
 )
 from production.services import get_patok_name, get_patok_code, get_patok_login, parse_patok_number
 from production.daily_dazmol import (
-    is_main_dazmol_operation, get_day_window, compute_daily_dazmol, get_patok_accepted_pastals
+    is_main_dazmol_operation, main_dazmol_operation_ids, get_day_window, compute_daily_dazmol, get_patok_accepted_pastals
 )
 from screens.views import get_screen_data
 
@@ -701,19 +701,11 @@ def sewing_statistics_daily_view(request):
 
     # 2. Bugun butun fabrika bo'yicha har bir pastaldan qancha DAZMOL chiqqani (qayerdan chiqsa ham!)
     today_dazmol_by_pastal = {}
+    main_dazmol_op_ids = main_dazmol_operation_ids()   # faqat yakuniy "DAZMOL" (daily_dazmol.is_main_dazmol_operation)
     today_dazmol_tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__range=(day_start, day_end)
-    ).filter(
-        Q(article_operation__operation__name__icontains='DAZMOL') |
-        Q(article_operation__operation__code__icontains='DAZMOL')
-    ).exclude(
-        Q(article_operation__operation__name__icontains='TASMA') |
-        Q(article_operation__operation__code__icontains='TASMA') |
-        Q(article_operation__operation__name__icontains="CHO'NTAK") |
-        Q(article_operation__operation__code__icontains="CHO'NTAK") |
-        Q(article_operation__operation__name__icontains='CHONTAK') |
-        Q(article_operation__operation__code__icontains='CHONTAK')
+        scanned_at__range=(day_start, day_end),
+        article_operation__operation_id__in=main_dazmol_op_ids,
     ).values('box__pastal_number', 'box__cutting_batch_item__batch__pastal_code').annotate(s=Sum('quantity'))
 
     for row in today_dazmol_tickets:
@@ -833,17 +825,8 @@ def sewing_statistics_daily_view(request):
     dazmol_box_ids_set = set(
         Ticket.objects.filter(
             box_id__in=all_pbox_ids,
-            status=Ticket.Status.SCANNED
-        ).filter(
-            Q(article_operation__operation__name__icontains='DAZMOL') |
-            Q(article_operation__operation__code__icontains='DAZMOL')
-        ).exclude(
-            Q(article_operation__operation__name__icontains='TASMA') |
-            Q(article_operation__operation__code__icontains='TASMA') |
-            Q(article_operation__operation__name__icontains="CHO'NTAK") |
-            Q(article_operation__operation__code__icontains="CHO'NTAK") |
-            Q(article_operation__operation__name__icontains='CHONTAK') |
-            Q(article_operation__operation__code__icontains='CHONTAK')
+            status=Ticket.Status.SCANNED,
+            article_operation__operation_id__in=main_dazmol_op_ids,
         ).values_list('box_id', flat=True).distinct()
     )
 
@@ -867,13 +850,7 @@ def sewing_statistics_daily_view(request):
         if scan['screen_number']:
             active_screens_scanned.add(scan['screen_number'])
 
-    dazmol_op_ids_cached = list(
-        Operation.objects.filter(name__icontains='DAZMOL')
-        .exclude(name__icontains='TASMA')
-        .exclude(name__icontains="CHO'NTAK")
-        .exclude(name__icontains="CHONTAK")
-        .values_list('id', flat=True)
-    )
+    dazmol_op_ids_cached = main_dazmol_op_ids
 
     screens_preloaded = {
         'worker_latest_screen': worker_latest_screen,

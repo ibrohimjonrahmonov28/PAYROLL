@@ -678,7 +678,7 @@ class MasterStatisticsComprehensiveTest(TestCase):
         )
 
         # Dazmol operatsiyasi
-        dazmol_op = Operation.objects.create(code="DAZMOL-TEST", name="DAZMOL VA BUKLASH")
+        dazmol_op = Operation.objects.create(code="DAZMOL-TEST", name="DAZMOL")
         art_dazmol = ArticleOperation.objects.create(
             article=self.article,
             operation=dazmol_op,
