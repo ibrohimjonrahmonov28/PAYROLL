@@ -99,6 +99,7 @@ def module_of(path: str) -> str:
             ("master_", "production.master"),
             ("control_", "production.control"),
             ("sewing_statistics", "production.sewing_statistics"),
+            ("sewing_pipeline", "production.sewing_statistics"),
             ("cutting_", "production.cutting"),
             ("meto", "production.meto"),
             ("sticker", "production.stickers"),

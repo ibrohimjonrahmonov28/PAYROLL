@@ -29,6 +29,48 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 18:06
+* **Turi:** `feat(statistics)` — Tikim statistikasi bosh sahifasida "Fabrika bo'yicha jami" — zakaz sahifasidagi 8 bosqichli quvur (sana bo'yicha)
+* **Mavzu:** `/sewing-statistics/` yuqorisidagi eski 6 ta karta o'rniga zakaz va model sahifalaridagi kabi 8 bosqich: Reja, Kesilgan (+ Qutilarda), Tikim kutmoqda, Hozir patokda, Dazmol, OTK kutmoqda (tayyor/chala), Ta'mirda, 1/2-sort — "oldingi + shu kunda" sana tanlash bilan.
+* **O'zgartirilgan fayllar:**
+  - `production/sewing_pipeline_summary.py` (yangi)
+  - `production/sewing_statistics_views.py`
+  - `templates/production/sewing_statistics_orders.html`
+  - `templates/production/sewing_statistics_order_models.html`
+  - `production/test_pipeline_summary.py` (yangi)
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Tezkor hisob:** qutilar bo'yicha belgilar bitta guruhlangan SQL so'rovda (biletlar Python obyektiga aylantirilmaydi) — real bazada sahifa 15 s → 2 s.
+  2. **Aniqlik:** natija zakaz sahifasidagi `order_totals` bilan aynan bir xil (real bazadagi 27 zakaz, 2 sana — farq 0; test bilan himoyalangan). Jadval qatorlari ham shu hisobdan.
+  3. **Sana:** oldingi/keyingi kun/bugun; sana filtr tablari, qidiruv, sahifalash va zakazga o'tish havolalarida saqlanadi.
+  4. **Qutilarda:** zakaz sahifasidagi "Kesilgan" kartasiga ham qo'shildi (uchala darajada bir xil).
+  5. Zakazlar sahifasi navigatsiyasidan "OTK Nazoratchilari" havolasi olib tashlangan (muharrirda qilingan o'zgarish).
+  6. **Testlar:** 284 ta test; 7 ta xato bu o'zgarishdan oldin ham bor edi.
+* **Serverda:** `git pull origin main && docker compose restart web scheduler` (migratsiya yo'q)
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
+### 🔹 [Commit: `104bf1f`] — 30.10.2026, 18:06
+* **Turi:** `fix(dazmol)` — Tayyor dazmol faqat aynan "DAZMOL" operatsiyasi
+* **Mavzu:** Egasi qoidasi: dazmol operatsiyasi modelning oxirgisi; PLANKA / TASMA / CHO'NTAK va boshqa "... DAZMOL" oraliq amallar tayyor ish emas — asosiy dazmolda ham, patok dazmolida ham sanalmaydi.
+* **O'zgartirilgan fayllar:**
+  - `production/daily_dazmol.py`, `production/sewing_statistics_views.py`, `production/master_views.py`, `screens/views.py`, `accounts/superadmin_views.py`
+  - `production/test_daily_dazmol.py`, `production/tests.py`, `production/test_master_statistics.py`, `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Yagona qoida:** `is_main_dazmol_operation` (aniq "DAZMOL") va `main_dazmol_operation_ids()`; avval 7 joyda alohida takrorlangan qoida endi bitta: kunlik sahifa, 18:00 hisobot, zakaz/model statistikasi, TV ekranlar dazmol soni (dizayn o'zgarmagan), master planshet, superadmin.
+  2. **Real bazadagi ta'sir:** PLANKA DAZMOL (TERJAR118 ПОЛО) dazmolni oshirib, qutilarni ikki marta sanardi: 29.10 asosiy 20 084 → 18 629; K2 1 400 → 600; zakaz 118 dazmol 4 722 → 2 033.
+  3. **Eslatma:** o'tgan kunlarning `DailyPatokProgress` (oylik Excel) qiymatlari o'sha kun sahifasi qayta ochilganda yangilanadi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout 104bf1f
+  ```
+
+---
+
 ### 🔹 [Commit: `d128fa5`] — 30.10.2026, 16:08
 * **Turi:** `fix(control)` — OTK planshet oynasi: −1 tugmasi "Tasdiqlash" ostida qolmaydi; ta'mir sariq, 2-sort qizil
 * **Mavzu:** `/control/` (egasining aniq so'rovi bilan, sahifaning qolgan eski dizayni o'zgarmagan). Yotiq planshetda (1024×600) quti sonining −1 tugmasi "Tasdiqlash va qabul qilish" tugmasi ostida qolardi; ta'mir va 2-sort ranglari teskari edi.

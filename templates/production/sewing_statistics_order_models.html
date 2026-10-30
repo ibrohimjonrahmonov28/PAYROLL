@@ -181,7 +181,14 @@
                     </span>
                 </div>
             </div>
-            <span class="text-[9px] text-slate-500 block font-mono">oldingi + kunlik</span>
+            <div class="mt-1 pt-1 border-t border-slate-800 text-[10px] font-mono flex items-center gap-1"
+                title="Qutilarda — metodan keyin qutilarga bo'lingan va OTK sanagan haqiqiy son (zakazning real soni). Kesimchi: {{ order_totals.cut_total }} | Qutilarda: {{ order_totals.boxed }}">
+                <span class="text-slate-400">Qutilarda:</span>
+                <strong class="text-cyan-300">{{ order_totals.boxed }}</strong>
+                {% if order_totals.boxed_diff %}
+                <span class="px-1 rounded font-bold {% if order_totals.boxed_diff > 0 %}bg-amber-500/15 text-amber-300{% else %}bg-rose-500/15 text-rose-300{% endif %}">{% if order_totals.boxed_diff > 0 %}+{% endif %}{{ order_totals.boxed_diff }}</span>
+                {% endif %}
+            </div>
         </div>
 
         <!-- 3. Tikim Kutmoqda (Pastallar) -->

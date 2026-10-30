@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4358,
+  "lines": 4347,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 1978,
+  "lines": 2033,
   "depends_on": [
    "accounts.core"
   ]
@@ -193,6 +193,7 @@
    "accounts.core",
    "production.models",
    "production.passport",
+   "production.reports",
    "production.services"
   ]
  },
@@ -286,7 +287,7 @@
    "production/excel_reports.py",
    "production/telegram_reports.py"
   ],
-  "lines": 3215,
+  "lines": 3224,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -307,9 +308,10 @@
  "production.sewing_statistics": {
   "description": "Sewing pipeline statistics, daily report (image/Telegram/Excel), OTK and repairs views.",
   "files": [
+   "production/sewing_pipeline_summary.py",
    "production/sewing_statistics_views.py"
   ],
-  "lines": 3510,
+  "lines": 3701,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -353,10 +355,11 @@
    "screens/urls.py",
    "screens/views.py"
   ],
-  "lines": 692,
+  "lines": 681,
   "depends_on": [
    "accounts.core",
    "production.models",
+   "production.reports",
    "production.services"
   ]
  },
@@ -438,7 +441,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 42041,
+  "lines": 42205,
   "depends_on": []
  },
  "tests": {
@@ -449,6 +452,7 @@
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
+   "production/test_pipeline_summary.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_telegram_reports.py",
@@ -456,7 +460,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 10048,
+  "lines": 10236,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

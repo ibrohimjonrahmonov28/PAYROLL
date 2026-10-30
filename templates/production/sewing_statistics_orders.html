@@ -37,11 +37,6 @@
             </span>
             {% endif %}
         </a>
-        <a href="{% url 'production:sewing_statistics_otk' %}"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-clipboard-check text-indigo-400"></i>
-            <span>OTK Nazoratchilari</span>
-        </a>
     </div>
 </div>
 {% endblock %}
@@ -102,95 +97,241 @@
     </div>
     {% endif %}
 
-    <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <!-- KPI 1 -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jami Zakazlar</span>
-            <div class="mt-2">
-                <span class="text-2xl font-black text-white digital-font">{{ overall_kpis.total_orders }}</span>
-                <span class="text-xs text-slate-500 font-semibold ml-1">ta</span>
+    <!-- FABRIKA BO'YICHA JAMI: zakaz sahifasidagi 8 bosqichli quvur — filtrdagi barcha zakazlar yig'indisi
+         (hisob: production/sewing_pipeline_summary.py, zakaz sahifasidagi order_totals bilan bir xil) -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-3 sm:p-4 shadow-xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center shadow-lg flex-shrink-0">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-white uppercase tracking-wider">Fabrika bo'yicha jami</h3>
+                    <p class="text-[11px] text-slate-400">
+                        {% if status_filter == 'IN_PROGRESS' %}Jarayondagi{% elif status_filter == 'COMPLETED' %}Tugatilgan{% else %}Barcha{% endif %}
+                        {{ factory_totals.orders_count }} ta zakaz{% if search_q %} • qidiruv: «{{ search_q }}»{% endif %}
+                    </p>
+                </div>
             </div>
-            <span class="text-[10px] text-slate-500 mt-1 block">Filtrdagi buyurtmalar</span>
+
+            <!-- Sana tanlash (zakaz va model sahifalari bilan bir xil) -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <a href="?date={{ prev_date_str }}&status={{ status_filter }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}"
+                    class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
+                    title="Oldingi kun ({{ prev_date_str }})">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                    <span class="hidden sm:inline">Oldingi kun</span>
+                </a>
+                <form method="GET" class="flex items-center gap-1.5">
+                    <input type="hidden" name="status" value="{{ status_filter }}">
+                    {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+                    <input type="date" name="date" value="{{ selected_date_str }}" onchange="this.form.submit()"
+                        class="bg-slate-950 border border-emerald-500/40 rounded-xl px-2.5 py-1.5 text-xs font-black text-white focus:outline-none focus:border-emerald-400 cursor-pointer shadow-inner">
+                    {% if not is_today %}
+                    <a href="?date={{ today_str }}&status={{ status_filter }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}"
+                        class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1 shadow-md"
+                        title="Bugungi kunga qaytish">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span>Bugun</span>
+                    </a>
+                    {% endif %}
+                </form>
+                <a href="?date={{ next_date_str }}&status={{ status_filter }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}"
+                    class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
+                    title="Keyingi kun ({{ next_date_str }})">
+                    <span class="hidden sm:inline">Keyingi kun</span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </a>
+            </div>
         </div>
 
-        <!-- KPI 2 -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Jami Reja</span>
-            <div class="mt-2">
-                <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_planned }}</span>
-                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
-            </div>
-            <span class="text-[10px] text-amber-400/80 font-mono font-bold mt-1 block">({{ overall_kpis.total_boxes }}
-                ta quti)</span>
-        </div>
-
-        <!-- KPI 3: Tikimga Kirgan -->
-        <div
-            class="bg-slate-900 border border-cyan-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-cyan-950/20 to-transparent">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Tikimga Kirgan</span>
-                <i class="fa-solid fa-shirt text-cyan-400 text-xs"></i>
-            </div>
-            <div class="mt-2">
-                <span class="text-2xl font-black text-cyan-300 digital-font">{{ overall_kpis.total_entered_sewing
-                    }}</span>
-                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
-            </div>
-            <span class="text-[10px] text-cyan-400 font-mono font-bold mt-1 block">{{
-                overall_kpis.total_entered_sewing_boxes }} ta qutida stiker urilgan</span>
-        </div>
-
-        <!-- KPI 4: Dazmoldan O'tgan -->
-        <div
-            class="bg-slate-900 border border-indigo-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-indigo-950/20 to-transparent">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Dazmoldan O'tgan</span>
-                <i class="fa-solid fa-soap text-indigo-400 text-xs"></i>
-            </div>
-            <div class="mt-2">
-                <span class="text-2xl font-black text-indigo-300 digital-font">{{ overall_kpis.total_dazmol }}</span>
-                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
-            </div>
-            <span class="text-[10px] text-indigo-400 font-mono font-bold mt-1 block">{{ overall_kpis.total_dazmol_boxes
-                }} ta quti yakunlangan</span>
-        </div>
-
-        <!-- KPI 5: Kontrolda Kutmoqda -->
-        <div
-            class="bg-slate-900 border border-amber-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-amber-950/20 to-transparent">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Kontrolda Kutmoqda</span>
-                <i class="fa-solid fa-clock text-amber-400 text-xs"></i>
-            </div>
-            <div class="mt-2">
-                <span class="text-2xl font-black text-amber-400 digital-font">{{ overall_kpis.total_waiting_control
-                    }}</span>
-                <span class="text-xs text-slate-500 font-semibold ml-1">dona</span>
-            </div>
-            <span class="text-[10px] text-amber-400 font-mono font-bold mt-1 block">{{
-                overall_kpis.total_waiting_control_boxes }} ta quti (OTK kutilmoqda)</span>
-        </div>
-
-        <!-- KPI 6: 1-Sort / 2-Sort -->
-        <div
-            class="bg-slate-900 border border-emerald-900/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-gradient-to-b from-emerald-950/20 to-transparent">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">OTK Qabul Qildi</span>
-                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
-            </div>
-            <div class="mt-2 flex items-baseline gap-2">
-                <span class="text-2xl font-black text-emerald-400 digital-font">{{ overall_kpis.total_first_sort
-                    }}</span>
-                <span class="text-[10px] text-emerald-500 font-bold uppercase">1-sort</span>
-                {% if overall_kpis.total_second_sort > 0 %}
-                <span class="text-xs text-rose-400 font-mono font-bold">({{ overall_kpis.total_second_sort }}
-                    2-sort)</span>
+        <!-- Sana va hisob formulasi -->
+        <div class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-calendar-day text-emerald-400"></i>
+                <span class="text-slate-400">Sana hisoboti:</span>
+                <span class="font-bold text-white font-mono bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700">{{ selected_date_display }}</span>
+                {% if is_today %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Bugun</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">Tarixiy kun</span>
                 {% endif %}
             </div>
-            <span class="text-[10px] text-emerald-400 font-mono font-bold mt-1 block">{{
-                overall_kpis.total_controlled_boxes }} ta quti tekshirilgan</span>
+            <div class="text-[11px] font-mono flex items-center gap-1.5 text-slate-400">
+                <span class="text-slate-500 font-bold uppercase text-[9px]">Hisob formulasi:</span>
+                <span class="text-slate-300">Oldingi</span>
+                <span class="text-slate-500 font-bold">+</span>
+                <span class="text-emerald-400 font-bold">Shu kunda</span>
+                <span class="text-slate-500 font-bold">=</span>
+                <span class="text-white font-bold">Jami</span>
+            </div>
         </div>
+
+    <!-- Production & Control Pipeline Balance Cards (8 Ustun) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+        <!-- 1. Jami Reja -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg flex flex-col justify-between">
+            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">1. Jami Reja</span>
+            <span class="text-lg font-black text-amber-400 digital-font mt-1 block">{{ factory_totals.planned }} <small
+                    class="text-[9px] text-slate-500">dona</small></span>
+            <span class="text-[9px] text-amber-400/80 font-mono font-bold block">({{ factory_totals.boxes_count }} quti)</span>
+        </div>
+
+        <!-- 2. Kesilgan -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">2. Kesilgan</span>
+                <span class="text-[9px] font-mono text-emerald-400/80 font-bold">{{ factory_totals.cut_pct }}%</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-emerald-400 digital-font block">{{ factory_totals.cut_total }}</span>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="Oldingi kunlar: {{ factory_totals.cut_prior }} | Tanlangan kunda: +{{ factory_totals.cut_today }}">
+                    <span class="text-slate-400">{{ factory_totals.cut_prior }}</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if factory_totals.cut_today > 0 %}text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20{% else %}text-slate-500{% endif %}">
+                        {% if factory_totals.cut_today > 0 %}+{{ factory_totals.cut_today }}{% else %}0{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-1 pt-1 border-t border-slate-800 text-[10px] font-mono flex items-center gap-1"
+                title="Qutilarda — metodan keyin qutilarga bo'lingan va OTK sanagan haqiqiy son (zakazlarning real soni). Kesimchi: {{ factory_totals.cut_total }} | Qutilarda: {{ factory_totals.boxed }}">
+                <span class="text-slate-400">Qutilarda:</span>
+                <strong class="text-cyan-300">{{ factory_totals.boxed }}</strong>
+                {% if factory_totals.boxed_diff %}
+                <span class="px-1 rounded font-bold {% if factory_totals.boxed_diff > 0 %}bg-amber-500/15 text-amber-300{% else %}bg-rose-500/15 text-rose-300{% endif %}">{% if factory_totals.boxed_diff > 0 %}+{% endif %}{{ factory_totals.boxed_diff }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 3. Tikim Kutmoqda (Pastallar) -->
+        <div class="bg-slate-900 border {% if factory_totals.waiting_sewing_qty > 0 %}border-amber-500/50 bg-gradient-to-b from-amber-950/25 to-transparent ring-1 ring-amber-500/20{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between"
+            title="Birorta ham stikeri urilmagan qutilar (zakazlar ichida pastallar ro'yxati bor)">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider {% if factory_totals.waiting_sewing_qty > 0 %}text-amber-400 group-hover:text-amber-300{% else %}text-slate-400{% endif %}">
+                    3. Tikim Kutmoqda
+                </span>
+                <span class="text-[8px] font-mono font-bold {% if factory_totals.waiting_sewing_qty > 0 %}bg-amber-500/20 text-amber-300 border border-amber-500/30 group-hover:bg-amber-500/30{% else %}bg-slate-800 text-slate-500 border border-slate-700{% endif %} px-1 py-0.5 rounded flex items-center gap-1">
+                    Pastallar
+                </span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black {% if factory_totals.waiting_sewing_qty > 0 %}text-amber-300 group-hover:text-amber-200{% else %}text-slate-500{% endif %} digital-font block">
+                    {{ factory_totals.waiting_sewing_qty }}
+                </span>
+                <span class="text-[10px] font-mono leading-none mt-1 text-slate-300 block">
+                    {% if factory_totals.waiting_pastals_count > 0 %}
+                    <span class="text-amber-300 font-bold">{{ factory_totals.waiting_pastals_count }} ta pastal</span>
+                    {% else %}
+                    <span class="text-emerald-400 font-bold">100% kirgan</span>
+                    {% endif %}
+                </span>
+            </div>
+            <span class="text-[9px] {% if factory_totals.waiting_sewing_qty > 0 %}text-amber-400/90 group-hover:text-amber-300{% else %}text-slate-500{% endif %} block font-mono font-bold">
+                ({{ factory_totals.waiting_sewing_boxes }} quti kutmoqda)
+            </span>
+        </div>
+
+        <!-- 4. Hozir Patokda / Tikuvda (Real WIP) -->
+        <div class="bg-slate-900 border border-sky-500/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-sky-950/30 to-transparent flex flex-col justify-between ring-1 ring-sky-500/20">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-sky-400">4. Hozir Patokda</span>
+                <span class="text-[8px] font-mono font-bold text-sky-300 bg-sky-500/20 px-1 py-0.5 rounded border border-sky-500/30">WIP</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-sky-300 digital-font block">{{ factory_totals.real_wip_sewing }}</span>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="Dazmolgacha tikuvda: {{ factory_totals.in_sewing_pre_dazmol }} | Ta'mirdagi ishlar: +{{ factory_totals.in_repair }}">
+                    <span class="text-sky-300 font-bold">{{ factory_totals.in_sewing_pre_dazmol }} tikuv</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if factory_totals.in_repair > 0 %}text-amber-400 font-bold{% else %}text-slate-500{% endif %}">{{ factory_totals.in_repair }} ta'mir</span>
+                </div>
+            </div>
+            <span class="text-[9px] text-sky-400/90 block font-mono font-bold">({{ factory_totals.real_wip_sewing_boxes }} quti jarayonda)</span>
+        </div>
+
+        <!-- 5. Dazmoldan O'tgan -->
+        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-indigo-950/20 to-transparent flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-400">5. Dazmol</span>
+                <span class="text-[9px] font-mono text-indigo-400/80 font-bold">{{ factory_totals.dazmol_pct }}%</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-indigo-300 digital-font block">{{ factory_totals.dazmol_total }}</span>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="Oldingi kunlar: {{ factory_totals.dazmol_prior }} | Tanlangan kunda: +{{ factory_totals.dazmol_today }}">
+                    <span class="text-slate-400">{{ factory_totals.dazmol_prior }}</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if factory_totals.dazmol_today > 0 %}text-indigo-400 font-bold bg-indigo-500/10 px-1 py-0.5 rounded border border-indigo-500/20{% else %}text-slate-500{% endif %}">
+                        {% if factory_totals.dazmol_today > 0 %}+{{ factory_totals.dazmol_today }}{% else %}0{% endif %}
+                    </span>
+                </div>
+            </div>
+            <span class="text-[9px] text-indigo-400 block font-mono font-bold">({{ factory_totals.dazmol_boxes }} quti)</span>
+        </div>
+
+        <!-- 6. OTK Kutmoqda -->
+        <div class="bg-slate-900 border {% if factory_totals.waiting_control > 0 %}border-amber-500/40 bg-gradient-to-b from-amber-950/25 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400">6. OTK Kutmoqda</span>
+                <span class="text-[8px] font-mono text-slate-400">Jami</span>
+            </div>
+            <div class="my-1">
+                <span class="text-lg font-black text-amber-300 digital-font block">{{ factory_totals.waiting_control }}</span>
+                <div class="text-[9px] font-mono leading-none mt-1 flex items-center justify-start gap-1"
+                    title="OTK tekshirishiga 100% tayyor: {{ factory_totals.waiting_control_ready }} dona | Stikeri chala (tikuvchi urmagan): {{ factory_totals.waiting_control_missing_ops }} dona">
+                    <span class="text-emerald-400 font-bold" title="OTKchi zudlik bilan tekshirishi shart">{{ factory_totals.waiting_control_ready }} tayyor</span>
+                    <span class="text-slate-600 font-bold">/</span>
+                    <span class="{% if factory_totals.waiting_control_missing_ops > 0 %}text-rose-400 font-bold{% else %}text-slate-500{% endif %}" title="Tikuvchi / Master stikerni urmagan">{{ factory_totals.waiting_control_missing_ops }} chala</span>
+                </div>
+            </div>
+            <span class="text-[9px] text-amber-400 block font-mono font-bold">({{ factory_totals.waiting_control_boxes }} quti)</span>
+        </div>
+
+        <!-- 7. Hozir Ta'mirda -->
+        <div class="bg-slate-900 border {% if factory_totals.in_repair > 0 %}border-rose-500/40 bg-gradient-to-b from-rose-950/20 to-transparent{% else %}border-slate-800{% endif %} rounded-2xl p-3 shadow-lg flex flex-col justify-between">
+            <span class="text-[9px] font-bold uppercase tracking-wider {% if factory_totals.in_repair > 0 %}text-rose-400{% else %}text-slate-400{% endif %} block">7. Ta'mirda</span>
+            <span class="text-lg font-black {% if factory_totals.in_repair > 0 %}text-rose-300{% else %}text-slate-500{% endif %} digital-font mt-1 block">
+                {{ factory_totals.in_repair }} <small class="text-[9px] text-slate-500">dona</small>
+            </span>
+            <span class="text-[9px] {% if factory_totals.re_repair_boxes > 0 %}text-rose-400 font-bold{% else %}text-slate-400{% endif %} font-mono block">
+                {{ factory_totals.in_repair_boxes }} quti {% if factory_totals.re_repair_boxes > 0 %}({{ factory_totals.re_repair_boxes }} qayta){% endif %}
+            </span>
+        </div>
+
+        <!-- 8. Yopilgan (1-Sort / 2-Sort) & Farq -->
+        <div class="bg-slate-900 border border-emerald-900/40 rounded-2xl p-3 shadow-lg bg-gradient-to-b from-emerald-950/20 to-transparent flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">8. 1 / 2 Sort</span>
+                <span class="text-[9px] font-mono text-emerald-400/80 font-bold">({{ factory_totals.controlled_boxes_count }} quti)</span>
+            </div>
+            <div class="my-1">
+                <div class="flex items-baseline justify-start gap-1">
+                    <span class="text-lg font-black text-emerald-400 digital-font">{{ factory_totals.first_sort_total }}</span>
+                    {% if factory_totals.second_sort_total > 0 %}
+                    <span class="text-xs text-rose-400 font-mono font-bold">/ {{ factory_totals.second_sort_total }}</span>
+                    {% endif %}
+                </div>
+                <div class="text-[10px] font-mono leading-none mt-1 text-slate-300 flex items-center justify-start gap-1"
+                    title="OTK 1-sort: {{ factory_totals.first_sort_prior }} (oldingi) + {{ factory_totals.first_sort_today }} (tanlangan kunda)">
+                    <span class="text-slate-400">{{ factory_totals.first_sort_prior }}</span>
+                    <span class="text-slate-500 font-bold">+</span>
+                    <span class="{% if factory_totals.first_sort_today > 0 %}text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20{% else %}text-slate-500{% endif %}">
+                        {% if factory_totals.first_sort_today > 0 %}+{{ factory_totals.first_sort_today }}{% else %}0{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="text-[9px] font-mono flex items-center justify-between mt-0.5">
+                <span class="text-slate-500">oldingi + kunlik</span>
+                {% if factory_totals.control_variance != 0 %}
+                <span class="{% if factory_totals.control_variance > 0 %}text-cyan-400{% else %}text-rose-400{% endif %} font-bold"
+                    title="Nazorat qabul qilgan farq">
+                    {% if factory_totals.control_variance > 0 %}+{{ factory_totals.control_variance }}{% else %}{{ factory_totals.control_variance }}{% endif %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
     </div>
 
     <!-- Filters, Status Tabs & Search Bar -->
@@ -199,15 +340,15 @@
         <!-- Status Tabs -->
         <div
             class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start md:self-auto w-full md:w-auto">
-            <a href="?status=IN_PROGRESS{% if search_q %}&q={{ search_q }}{% endif %}"
+            <a href="?status=IN_PROGRESS&date={{ selected_date_str }}{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'IN_PROGRESS' %}bg-cyan-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                 <i class="fa-solid fa-spinner"></i> Jarayonda
             </a>
-            <a href="?status=COMPLETED{% if search_q %}&q={{ search_q }}{% endif %}"
+            <a href="?status=COMPLETED&date={{ selected_date_str }}{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'COMPLETED' %}bg-emerald-600 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                 <i class="fa-solid fa-circle-check"></i> Tugatilgan
             </a>
-            <a href="?status=ALL{% if search_q %}&q={{ search_q }}{% endif %}"
+            <a href="?status=ALL&date={{ selected_date_str }}{% if search_q %}&q={{ search_q }}{% endif %}"
                 class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {% if status_filter == 'ALL' %}bg-slate-800 text-white shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                 <i class="fa-solid fa-list"></i> Barchasi
             </a>
@@ -216,13 +357,14 @@
         <!-- Search Form -->
         <form method="GET" class="relative w-full md:w-96">
             <input type="hidden" name="status" value="{{ status_filter }}">
+            <input type="hidden" name="date" value="{{ selected_date_str }}">
             <i
                 class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
             <input type="text" name="q" value="{{ search_q }}"
                 placeholder="Zakaz raqami, mijoz yoki artikul qidirish..."
                 class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner transition">
             {% if search_q %}
-            <a href="?status={{ status_filter }}"
+            <a href="?status={{ status_filter }}&date={{ selected_date_str }}"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-1"
                 title="Tozalash">
                 <i class="fa-solid fa-xmark"></i>
@@ -261,7 +403,7 @@
                         <!-- Zakaz va Mijoz -->
                         <td class="py-3 px-4">
                             <div class="flex items-center gap-2">
-                                <a href="{% url 'production:sewing_statistics_order_models' item.order.id %}"
+                                <a href="{% url 'production:sewing_statistics_order_models' item.order.id %}?date={{ selected_date_str }}"
                                     class="font-mono font-black text-cyan-400 hover:text-cyan-300 text-sm hover:underline">
                                     {{ item.order.order_number }}
                                 </a>
@@ -360,7 +502,7 @@
 
                         <!-- Harakat -->
                         <td class="py-3 px-4 text-center">
-                            <a href="{% url 'production:sewing_statistics_order_models' item.order.id %}"
+                            <a href="{% url 'production:sewing_statistics_order_models' item.order.id %}?date={{ selected_date_str }}"
                                 class="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 shadow-md">
                                 <span>Modellar</span>
                                 <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -387,13 +529,13 @@
             </div>
             <div class="flex items-center gap-1">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&date={{ selected_date_str }}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition font-bold">
                     « Oldingi
                 </a>
                 {% endif %}
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}{% if search_q %}&q={{ search_q }}{% endif %}"
+                <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&date={{ selected_date_str }}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition font-bold">
                     Keyingi »
                 </a>

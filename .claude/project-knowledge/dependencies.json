@@ -91,6 +91,7 @@
    "production/passport_bot_service.py",
    "production/passport_views.py",
    "production/services.py",
+   "production/sewing_pipeline_summary.py",
    "production/sewing_statistics_views.py",
    "production/sticker_urls.py",
    "production/sticker_views.py",
@@ -100,6 +101,7 @@
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
+   "production/test_pipeline_summary.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_telegram_reports.py",
@@ -219,6 +221,7 @@
     "accounts.freeze_services",
     "accounts.management.commands.close_daily_payroll",
     "accounts.models",
+    "production.daily_dazmol",
     "production.excel_reports",
     "production.telegram_reports"
    ]
@@ -291,6 +294,9 @@
   },
   "production.daily_dazmol": {
    "imports": [
+    "production.models"
+   ],
+   "lazy": [
     "production.models"
    ]
   },
@@ -392,6 +398,7 @@
   "production.master_views": {
    "imports": [
     "accounts.models",
+    "production.daily_dazmol",
     "production.models",
     "production.services"
    ],
@@ -469,6 +476,11 @@
     "production.models"
    ]
   },
+  "production.sewing_pipeline_summary": {
+   "imports": [
+    "production.models"
+   ]
+  },
   "production.sewing_statistics_views": {
    "imports": [
     "accounts.models",
@@ -480,7 +492,8 @@
    "lazy": [
     "production.daily_image_reports",
     "production.excel_reports",
-    "production.services"
+    "production.services",
+    "production.sewing_pipeline_summary"
    ]
   },
   "production.sticker_urls": {
@@ -526,7 +539,8 @@
     "production.models"
    ],
    "lazy": [
-    "production.excel_reports"
+    "production.excel_reports",
+    "production.sewing_statistics_views"
    ]
   },
   "production.test_master_statistics": {
@@ -555,6 +569,17 @@
     "production.meto_views",
     "production.models",
     "production.passport_bot_service"
+   ]
+  },
+  "production.test_pipeline_summary": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.sewing_pipeline_summary"
+   ],
+   "lazy": [
+    "production.sewing_pipeline_summary",
+    "production.sewing_statistics_views"
    ]
   },
   "production.test_salary_freeze": {
@@ -649,6 +674,7 @@
   "screens.views": {
    "imports": [
     "accounts.models",
+    "production.daily_dazmol",
     "production.models",
     "production.services"
    ]
@@ -1220,7 +1246,6 @@
     "production:sewing_statistics_close_all_unprinted_boxes",
     "production:sewing_statistics_daily",
     "production:sewing_statistics_order_models",
-    "production:sewing_statistics_otk",
     "production:sewing_statistics_repairs"
    ]
   },

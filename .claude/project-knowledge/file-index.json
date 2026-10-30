@@ -8,16 +8,16 @@
   },
   ".claude/project-knowledge/build_graph.py": {
    "module": "ops",
-   "lines": 432,
-   "sha256_16": "b76af051c780203a",
+   "lines": 433,
+   "sha256_16": "70d476fca063d28e",
    "symbols": [
     "module_of:71",
-    "tracked_files:124",
-    "sha:129",
-    "dotted:133",
-    "analyze_py:141",
-    "walk:237",
-    "dump:398"
+    "tracked_files:125",
+    "sha:130",
+    "dotted:134",
+    "analyze_py:142",
+    "walk:238",
+    "dump:399"
    ]
   },
   ".claude/project-knowledge/overview.md": {
@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 322,
-   "sha256_16": "f713935a8b8ce093"
+   "lines": 374,
+   "sha256_16": "a29c56b38def832c"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 92,
-   "sha256_16": "87b5c72660fb64ee"
+   "lines": 94,
+   "sha256_16": "bb1e8c24ec611887"
   },
   "Dockerfile": {
    "module": "ops",
@@ -164,8 +164,8 @@
   },
   "accounts/superadmin_views.py": {
    "module": "accounts.superadmin",
-   "lines": 4308,
-   "sha256_16": "b9a59b0f8c7610e4",
+   "lines": 4297,
+   "sha256_16": "d3fefc8885aaf1bf",
    "symbols": [
     "superadmin_required:28",
     "payroll_admin_required:43",
@@ -210,8 +210,8 @@
     "superadmin_defect_reason_delete:3692",
     "superadmin_defect_reason_seed_defaults:3708",
     "_build_orders_balance_data:3821",
-    "superadmin_orders_balance:4104",
-    "superadmin_orders_balance_export_excel:4142"
+    "superadmin_orders_balance:4093",
+    "superadmin_orders_balance_export_excel:4131"
    ]
   },
   "accounts/tests.py": {
@@ -347,7 +347,7 @@
   "docker-compose.yml": {
    "module": "ops",
    "lines": 173,
-   "sha256_16": "540b9aed86dbfda8"
+   "sha256_16": "c0f33ca285e804a3"
   },
   "generate_stickers_100x60.py": {
    "module": "ops",
@@ -461,17 +461,19 @@
   },
   "production/daily_dazmol.py": {
    "module": "production.reports",
-   "lines": 210,
-   "sha256_16": "03f6fd4d6e7d1bc8",
+   "lines": 219,
+   "sha256_16": "4f746bc56cddc360",
    "symbols": [
-    "is_main_dazmol_operation:35",
-    "get_day_window:52",
-    "get_box_owner_screen:64",
-    "owned_box_q:81",
-    "get_ticket_template:90",
-    "DailyDazmol:106",
-    "compute_daily_dazmol:131",
-    "get_patok_accepted_pastals:180"
+    "_normalize_op_text:38",
+    "is_main_dazmol_operation:42",
+    "main_dazmol_operation_ids:54",
+    "get_day_window:61",
+    "get_box_owner_screen:73",
+    "owned_box_q:90",
+    "get_ticket_template:99",
+    "DailyDazmol:115",
+    "compute_daily_dazmol:140",
+    "get_patok_accepted_pastals:189"
    ]
   },
   "production/daily_image_reports.py": {
@@ -625,22 +627,22 @@
   "production/master_views.py": {
    "module": "production.master",
    "lines": 1558,
-   "sha256_16": "19e41405d79efbc7",
+   "sha256_16": "c22b0f1a920901db",
    "symbols": [
-    "_normalize_scanner_code:21",
-    "_get_batch_boxes_q:35",
-    "_get_batch_active_boxes:52",
-    "_get_active_master:61",
-    "master_tablet_view:83",
-    "api_identify_master:123",
-    "api_logout_master:201",
-    "api_get_patoks_summary:210",
-    "_compute_batch_box_and_ticket_stats:281",
-    "api_get_patok_detail:322",
-    "api_accept_pastal:446",
-    "api_reject_pastal:522",
-    "api_get_master_monthly_work:611",
-    "api_get_pastal_boxes_detail:731",
+    "_normalize_scanner_code:22",
+    "_get_batch_boxes_q:36",
+    "_get_batch_active_boxes:53",
+    "_get_active_master:62",
+    "master_tablet_view:84",
+    "api_identify_master:124",
+    "api_logout_master:202",
+    "api_get_patoks_summary:211",
+    "_compute_batch_box_and_ticket_stats:282",
+    "api_get_patok_detail:323",
+    "api_accept_pastal:447",
+    "api_reject_pastal:523",
+    "api_get_master_monthly_work:612",
+    "api_get_pastal_boxes_detail:732",
     "api_lookup_pastal_by_code:943",
     "_get_master_statistics_data:1002",
     "master_statistics_view:1259",
@@ -809,10 +811,25 @@
     "generate_next_pastal_code:571"
    ]
   },
+  "production/sewing_pipeline_summary.py": {
+   "module": "production.sewing_statistics",
+   "lines": 222,
+   "sha256_16": "50ef00f14511a8fe",
+   "symbols": [
+    "_box_rows:33",
+    "_pastal_key:58",
+    "_add_balance:66",
+    "_add_daily:108",
+    "_finalize:125",
+    "add_rates:139",
+    "summarize_orders_pipeline:150",
+    "sum_factory_totals:214"
+   ]
+  },
   "production/sewing_statistics_views.py": {
    "module": "production.sewing_statistics",
-   "lines": 3510,
-   "sha256_16": "7b08157ab367e05f",
+   "lines": 3479,
+   "sha256_16": "2c223f5c7acab025",
    "symbols": [
     "manager_or_superadmin_required:26",
     "get_dazmol_operation_ids_for_article:44",
@@ -822,20 +839,20 @@
     "get_patoks_scrap_and_warning_report:440",
     "natural_size_sort_key:616",
     "sewing_statistics_daily_view:630",
-    "api_sewing_statistics_daily_operations:1515",
-    "sewing_statistics_orders_view:1592",
-    "sewing_statistics_order_models_view:1789",
-    "sewing_statistics_model_detail_view:2119",
-    "api_sewing_statistics_size_boxes:2461",
-    "sewing_statistics_repairs_view:2728",
-    "sewing_statistics_close_order_unprinted_boxes_view:2891",
-    "sewing_statistics_close_all_unprinted_boxes_view:2929",
-    "api_send_telegram_daily_report_view:2961",
-    "sewing_statistics_otk_view:3015",
-    "sewing_statistics_daily_report_view:3345",
-    "api_send_branch_daily_report:3413",
-    "sewing_statistics_daily_report_image_preview:3452",
-    "export_monthly_daily_report_excel:3485"
+    "api_sewing_statistics_daily_operations:1492",
+    "sewing_statistics_orders_view:1569",
+    "sewing_statistics_order_models_view:1747",
+    "sewing_statistics_model_detail_view:2078",
+    "api_sewing_statistics_size_boxes:2430",
+    "sewing_statistics_repairs_view:2697",
+    "sewing_statistics_close_order_unprinted_boxes_view:2860",
+    "sewing_statistics_close_all_unprinted_boxes_view:2898",
+    "api_send_telegram_daily_report_view:2930",
+    "sewing_statistics_otk_view:2984",
+    "sewing_statistics_daily_report_view:3314",
+    "api_send_branch_daily_report:3382",
+    "sewing_statistics_daily_report_image_preview:3421",
+    "export_monthly_daily_report_excel:3454"
    ]
   },
   "production/sticker_generator.py": {
@@ -906,17 +923,17 @@
   },
   "production/test_daily_dazmol.py": {
    "module": "tests",
-   "lines": 274,
-   "sha256_16": "5621b27765c6997b",
+   "lines": 290,
+   "sha256_16": "01cf3fde7fb36f6d",
    "symbols": [
     "DailyDazmolRulesTest:19",
-    "MonthlyExcelUychiRowsTest:252"
+    "MonthlyExcelUychiRowsTest:268"
    ]
   },
   "production/test_master_statistics.py": {
    "module": "tests",
    "lines": 789,
-   "sha256_16": "5e94d3fd7bf8db0c",
+   "sha256_16": "d773a1520d2227fc",
    "symbols": [
     "MasterStatisticsComprehensiveTest:14"
    ]
@@ -935,6 +952,14 @@
    "sha256_16": "2455c4d5146cac94",
    "symbols": [
     "PassportVerificationTestCase:38"
+   ]
+  },
+  "production/test_pipeline_summary.py": {
+   "module": "tests",
+   "lines": 150,
+   "sha256_16": "9890c0210db4237b",
+   "symbols": [
+    "FactoryPipelineSummaryTest:18"
    ]
   },
   "production/test_salary_freeze.py": {
@@ -971,8 +996,8 @@
   },
   "production/tests.py": {
    "module": "tests",
-   "lines": 4632,
-   "sha256_16": "ddc06b909f4d9677",
+   "lines": 4654,
+   "sha256_16": "eec07ecbbf4f116e",
    "symbols": [
     "AllocationAlgorithmTest:13",
     "BoxTicketGenerationTest:41",
@@ -988,17 +1013,17 @@
     "DailyExcelReportAndPricingSyncTest:1659",
     "ControlQualityInspectionWorkflowTest:1834",
     "SewingStatisticsFeatureTest:2261",
-    "PricingMatrixAutoSyncStickerTests:2957",
-    "CloseUnprintedBoxesTests:3122",
-    "RestoreStickersFromBackupTests:3194",
-    "SewingStatisticsPastalPipelineTests:3262",
-    "TelegramDailyReportApiTest:3415",
-    "IntermediateIroningExclusionTest:3497",
-    "MasterTabletWorkflowTest:3517",
-    "MetoBatchSplitAndCancelledBoxesTest:3910",
-    "DailySewingStatisticsAsosiyDazmolTest:4006",
-    "MetoHubAndWaybillLogisticsTest:4125",
-    "SewingStatisticsOtkViewTest:4265"
+    "PricingMatrixAutoSyncStickerTests:2975",
+    "CloseUnprintedBoxesTests:3140",
+    "RestoreStickersFromBackupTests:3212",
+    "SewingStatisticsPastalPipelineTests:3280",
+    "TelegramDailyReportApiTest:3433",
+    "IntermediateIroningExclusionTest:3515",
+    "MasterTabletWorkflowTest:3539",
+    "MetoBatchSplitAndCancelledBoxesTest:3932",
+    "DailySewingStatisticsAsosiyDazmolTest:4028",
+    "MetoHubAndWaybillLogisticsTest:4147",
+    "SewingStatisticsOtkViewTest:4287"
    ]
   },
   "production/urls.py": {
@@ -1082,16 +1107,16 @@
   },
   "screens/views.py": {
    "module": "screens",
-   "lines": 661,
-   "sha256_16": "23e4c03b0eacf70a",
+   "lines": 650,
+   "sha256_16": "bf04572897a913bb",
    "symbols": [
-    "calculate_quvvat_color_info:17",
-    "calculate_screen_aniqlik:49",
-    "get_screen_data:144",
-    "parse_date_param:529",
-    "screen_view:541",
-    "screen_api_view:564",
-    "all_screens_overview:586"
+    "calculate_quvvat_color_info:18",
+    "calculate_screen_aniqlik:50",
+    "get_screen_data:145",
+    "parse_date_param:524",
+    "screen_view:536",
+    "screen_api_view:559",
+    "all_screens_overview:581"
    ]
   },
   "templates/404.html": {
@@ -1287,7 +1312,7 @@
   "templates/production/control_home.html": {
    "module": "templates",
    "lines": 2910,
-   "sha256_16": "ea1939341a97c635"
+   "sha256_16": "e002b689403151a8"
   },
   "templates/production/dashboard.html": {
    "module": "templates",
@@ -1341,18 +1366,18 @@
   },
   "templates/production/sewing_statistics_model_detail.html": {
    "module": "templates",
-   "lines": 770,
-   "sha256_16": "257951e599da03f2"
+   "lines": 785,
+   "sha256_16": "455332992ba6139d"
   },
   "templates/production/sewing_statistics_order_models.html": {
    "module": "templates",
-   "lines": 691,
-   "sha256_16": "64602b02d0cb482b"
+   "lines": 698,
+   "sha256_16": "a69858d6a997eb77"
   },
   "templates/production/sewing_statistics_orders.html": {
    "module": "templates",
-   "lines": 407,
-   "sha256_16": "5001060ec47e4db0"
+   "lines": 549,
+   "sha256_16": "1aaf8b13e664785b"
   },
   "templates/production/sewing_statistics_otk.html": {
    "module": "templates",

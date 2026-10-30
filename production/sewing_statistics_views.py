@@ -1569,32 +1569,36 @@ def api_sewing_statistics_daily_operations(request):
 def sewing_statistics_orders_view(request):
     """
     1-BOSQICH: Zakazlar Ro'yxati (Tikim Jarayoni Statistikasi Bosh Sahifasi)
+    - Yuqorida "Fabrika bo'yicha jami": zakaz sahifasidagi 8 bosqichli quvur (oldingi + shu kunda) — filtrdagi
+      barcha zakazlar yig'indisi. Hisob production/sewing_pipeline_summary.py da (biletlarni yuklamasdan).
     - Har bir zakaz bo'yicha umumiy reja, tikimga kirgan dona, dazmol, kontrolda kutayotgan, 1-sort, 2-sort
     """
+    from datetime import time
+    from production.sewing_pipeline_summary import summarize_orders_pipeline, sum_factory_totals
+
     status_filter = request.GET.get('status', 'IN_PROGRESS').strip()
     search_q = request.GET.get('q', '').strip()
+
+    # Sana filtri (zakaz va model sahifalaridagi kabi: oldingi + shu kunda = jami)
+    date_str = request.GET.get('date', '').strip()
+    selected_date = None
+    if date_str:
+        for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d-%m-%Y', '%Y/%m/%d', '%d/%m/%Y'):
+            try:
+                selected_date = datetime.strptime(date_str, fmt).date()
+                break
+            except ValueError:
+                pass
+    if not selected_date:
+        selected_date = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
+    day_end = timezone.make_aware(datetime.combine(selected_date, time.max), tz)
 
     orders_qs = Order.objects.select_related('customer').prefetch_related(
         'items__article__model',
         'items__article__article_operations__operation',
-        'items__sizes',
-        Prefetch(
-            'boxes',
-            queryset=Box.objects.exclude(status=Box.Status.CANCELLED).select_related(
-                'article'
-            ).prefetch_related(
-                Prefetch(
-                    'tickets',
-                    queryset=Ticket.objects.exclude(status=Ticket.Status.CANCELLED).select_related(
-                        'article_operation__operation'
-                    )
-                ),
-                Prefetch(
-                    'quality_inspection_logs',
-                    queryset=BoxQualityInspectionLog.objects.order_by('created_at')
-                )
-            )
-        )
+        'items__sizes__cutting_items__batch',
     ).order_by('-created_at')
 
     if status_filter == 'IN_PROGRESS':
@@ -1637,63 +1641,28 @@ def sewing_statistics_orders_view(request):
         'has_brak_warning': False,
     }
 
-    for ord_obj in orders_qs:
-        total_planned = sum(item.total_planned_quantity for item in ord_obj.items.all()) or ord_obj.total_quantity or 0
-        boxes = list(ord_obj.boxes.all())
-        total_boxed = sum(b.quantity for b in boxes)
+    orders = list(orders_qs)
+    totals_by_order = summarize_orders_pipeline(orders, day_start, day_end, get_dazmol_operation_ids_for_article)
 
-        # Har bir artikul uchun dazmol operatsiyalari keshini tayyorlash
-        article_dazmol_map = {}
-        for it in ord_obj.items.all():
-            article_dazmol_map[it.article_id] = get_dazmol_operation_ids_for_article(it.article)
-
-        entered_sewing_qty = 0
-        entered_sewing_boxes = 0
-        dazmol_qty = 0
-        dazmol_boxes = 0
-        unreached_control_qty = 0
-        unreached_control_boxes = 0
-        waiting_control_qty = 0
-        waiting_control_boxes = 0
-        in_repair_qty = 0
-        in_repair_boxes = 0
-        first_sort_qty = 0
-        second_sort_qty = 0
-        controlled_boxes = 0
-        unprinted_boxes_count = 0
-
-        for b in boxes:
-            if not b.is_printed and not b.is_controlled:
-                unprinted_boxes_count += 1
-                overall_kpis['total_unprinted_boxes'] += 1
-
-            dazmol_ids = article_dazmol_map.get(b.article_id, set())
-            b_eval = evaluate_box_progress(b, dazmol_ids)
-
-            if b_eval['has_entered_sewing']:
-                entered_sewing_qty += b.quantity
-                entered_sewing_boxes += 1
-
-            if b_eval['has_passed_dazmol']:
-                dazmol_qty += b.quantity
-                dazmol_boxes += 1
-
-            if b_eval['unreached_control']:
-                unreached_control_qty += b.quantity
-                unreached_control_boxes += 1
-
-            if b_eval['is_waiting_control']:
-                waiting_control_qty += b.quantity
-                waiting_control_boxes += 1
-
-            if b_eval['is_in_repair']:
-                in_repair_boxes += 1
-                in_repair_qty += b.controlled_repair_qty or b.quantity
-
-            if b.is_controlled:
-                controlled_boxes += 1
-                first_sort_qty += b.controlled_first_sort_qty
-                second_sort_qty += b.controlled_second_sort_qty
+    for ord_obj in orders:
+        t = totals_by_order[ord_obj.id]
+        total_planned = t['planned'] or ord_obj.total_quantity or 0
+        total_boxed = t['boxed']
+        entered_sewing_qty = t['sewing_total']
+        entered_sewing_boxes = t['entered_sewing_boxes']
+        dazmol_qty = t['dazmol_total']
+        dazmol_boxes = t['dazmol_boxes']
+        unreached_control_qty = t['unreached_control']
+        unreached_control_boxes = t['unreached_control_boxes']
+        waiting_control_qty = t['waiting_control']
+        waiting_control_boxes = t['waiting_control_boxes']
+        in_repair_qty = t['in_repair']
+        in_repair_boxes = t['in_repair_boxes']
+        first_sort_qty = t['first_sort_total']
+        second_sort_qty = t['second_sort_total']
+        controlled_boxes = t['controlled_boxes_count']
+        unprinted_boxes_count = t['unprinted_boxes_count']
+        overall_kpis['total_unprinted_boxes'] += unprinted_boxes_count
 
         entered_pct = round((entered_sewing_qty / total_planned * 100), 1) if total_planned > 0 else 0.0
         dazmol_pct = round((dazmol_qty / total_planned * 100), 1) if total_planned > 0 else 0.0
@@ -1707,10 +1676,10 @@ def sewing_statistics_orders_view(request):
 
         orders_list.append({
             'order': ord_obj,
-            'models_count': ord_obj.items.count(),
+            'models_count': len(ord_obj.items.all()),
             'total_planned': total_planned,
             'total_boxed': total_boxed,
-            'boxes_count': len(boxes),
+            'boxes_count': t['boxes_count'],
             'entered_sewing_qty': entered_sewing_qty,
             'entered_sewing_boxes': entered_sewing_boxes,
             'entered_pct': entered_pct,
@@ -1734,7 +1703,7 @@ def sewing_statistics_orders_view(request):
         overall_kpis['total_orders'] += 1
         overall_kpis['total_planned'] += total_planned
         overall_kpis['total_boxed'] += total_boxed
-        overall_kpis['total_boxes'] += len(boxes)
+        overall_kpis['total_boxes'] += t['boxes_count']
         overall_kpis['total_entered_sewing'] += entered_sewing_qty
         overall_kpis['total_entered_sewing_boxes'] += entered_sewing_boxes
         overall_kpis['total_dazmol'] += dazmol_qty
@@ -1749,6 +1718,10 @@ def sewing_statistics_orders_view(request):
         overall_kpis['total_second_sort'] += second_sort_qty
         overall_kpis['total_controlled_boxes'] += controlled_boxes
 
+    # Fabrika bo'yicha jami: filtrdagi barcha zakazlarning 8 bosqichli quvuri (zakaz sahifasi bilan bir xil hisob)
+    factory_totals = sum_factory_totals(totals_by_order[o.id] for o in orders)
+    factory_totals['orders_count'] = len(orders)
+
     paginator = Paginator(orders_list, 15)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -1759,6 +1732,14 @@ def sewing_statistics_orders_view(request):
         'status_filter': status_filter,
         'search_q': search_q,
         'overall_kpis': overall_kpis,
+        'factory_totals': factory_totals,
+        'selected_date': selected_date,
+        'selected_date_str': selected_date.strftime('%Y-%m-%d'),
+        'selected_date_display': selected_date.strftime('%d.%m.%Y'),
+        'prev_date_str': (selected_date - timedelta(days=1)).strftime('%Y-%m-%d'),
+        'next_date_str': (selected_date + timedelta(days=1)).strftime('%Y-%m-%d'),
+        'today_str': timezone.localdate().strftime('%Y-%m-%d'),
+        'is_today': selected_date == timezone.localdate(),
     })
 
 
@@ -2068,6 +2049,7 @@ def sewing_statistics_order_models_view(request, order_id: int):
     # Foizlar va ogohlantirishlar
     order_totals['cut_pct'] = round((order_totals['cut_total'] / order_totals['planned'] * 100), 1) if order_totals['planned'] > 0 else 0.0
     order_totals['dazmol_pct'] = round((order_totals['dazmol_total'] / order_totals['planned'] * 100), 1) if order_totals['planned'] > 0 else 0.0
+    order_totals['boxed_diff'] = order_totals['boxed'] - order_totals['cut_total']
 
     total_closed_qty = order_totals['first_sort_total'] + order_totals['second_sort_total']
     if total_closed_qty > 0:
