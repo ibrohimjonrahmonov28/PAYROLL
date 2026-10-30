@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 20:44
+### 🔹 [Commit: `1d81ca0`] — 30.10.2026, 20:44
 * **Turi:** `fix(statistics)` — Dazmol = OTK kutmoqda + Ta'mir + 1-sort + 2-sort tengligi (model, zakaz va fabrika sahifalarida)
 * **Mavzu:** TFHZ604 (zakaz 2309) da Dazmol 6 179, qolganlari yig'indisi 5 737 edi (farq 442). Sabablar: ta'mirdagi qutilarning saralangan qismi hech qayerda sanalmasdi; OTK ko'rgan, lekin dazmol stikeri urilmagan qutilar Dazmolga kirmasdi; DAZMOL operatsiyasi stikerlar chop etilgandan keyin qo'shilgan qutilarda dazmol bileti umuman yo'q edi.
 * **O'zgartirilgan fayllar:**
@@ -45,7 +45,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q)
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 1d81ca0
   ```
 
 ---
