@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 30.10.2026, 15:45
+### 🔹 [Commit: `28a768e`] — 30.10.2026, 15:45
 * **Turi:** `feat(statistics)` — Model sahifasida "Kesilgan" yonida qutilardagi real son (zakazning real soni)
 * **Mavzu:** `/sewing-statistics/orders/<id>/items/<id>/` sahifasida kesimchi kiritgan son bilan birga metodan keyin qutilarga bo'lingan va OTK sanagan haqiqiy son (barcha qutilar yig'indisi) va farqi ko'rsatiladi.
 * **O'zgartirilgan fayllar:**
@@ -45,7 +45,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q)
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 28a768e
   ```
 
 ---
