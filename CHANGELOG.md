@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 02.11.2026, 16:30
+### 🔹 [Commit: `cef25c3`] — 02.11.2026, 16:30
 * **Turi:** `fix(control)` — Ta'mirdan qaytgan qutini ba'zi planshetlarda qabul qilib bo'lmasdi
 * **Mavzu:** `/control/` (egasining so'rovi bilan). 30.10 dagi o'zgarishda +1 / son / −1 ustuniga `relative z-10` berilgan edi. Ta'mirdan qaytgan qutida banner, "Ta'mirda bo'lgan: N dona" qatori va uzunroq tugma yozuvi sahifani balandlashtiradi: ustun pastga cho'zilib "Tasdiqlash va Ta'mirni Tekshirish" tugmasini yopardi va uning bo'sh joyi har bir bosishni ushlab qolardi. Ekrani pastroq yoki zoomi kattaroq planshetlarda tugma umuman bosilmasdi; yangi qutida ustun qisqaroq bo'lgani uchun muammo yo'q edi.
 * **O'zgartirilgan fayllar:**
@@ -43,7 +43,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web`; planshetlarda sahifani bir marta yangilash.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout cef25c3
   ```
 
 ---
