@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 02.11.2026, 13:20
+### 🔹 [Commit: `994f51c`] — 02.11.2026, 13:20
 * **Turi:** `feat(daily-report)` — 18:00 hisobot yangi shakli: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз
 * **Mavzu:** `/sewing-statistics/daily-report/` sahifasi va Telegramga ketadigan 18:00 rasm 7 ustunli bo'ldi; "Паток қуввати" o'rniga normaga nisbatan foiz.
 * **O'zgartirilgan fayllar:**
@@ -46,7 +46,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web scheduler` (migratsiya yo'q)
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 994f51c
   ```
 
 ---
