@@ -436,12 +436,14 @@
                         </div>
                     </div>
 
-                    <!-- CHAPROQDA (rasm yonida): UCHBURCHAK (+1), QUTIDAGI SON, UCHBURCHAK (-1) — -1 tugmasi pastdagi Tasdiqlash ustiga tushmasin -->
-                    <div class="lg:col-span-7 flex flex-col items-center lg:items-start justify-center gap-1.5 sm:gap-2 relative z-10">
+                    <!-- CHAPROQDA (rasm yonida): UCHBURCHAK (+1), QUTIDAGI SON, UCHBURCHAK (-1) — -1 tugmasi pastdagi Tasdiqlash ustiga tushmasin.
+                         Ustunning bo'sh joyi bosishni ushlamaydi (pointer-events-none): ta'mirdan qaytgan qutida ustun pastga cho'zilib,
+                         z-10 bilan "Tasdiqlash" tugmasini to'sib qo'yardi. Faqat +1 / son / -1 bosiladi (pointer-events-auto). -->
+                    <div class="lg:col-span-7 flex flex-col items-center lg:items-start justify-center gap-1.5 sm:gap-2 relative z-10 pointer-events-none">
 
                         <!-- UCHBURCHAK TUGMA: + 1 (TEPAGA QARAGAN) -->
                         <button type="button" onclick="adjustBoxQty(+1)"
-                            class="touch-btn group flex flex-col items-center justify-center w-48 sm:w-56 py-1.5 sm:py-2 px-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition shadow-lg"
+                            class="pointer-events-auto touch-btn group flex flex-col items-center justify-center w-48 sm:w-56 py-1.5 sm:py-2 px-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition shadow-lg"
                             title="Sonni 1 taga oshirish">
                             <!-- Tepaga qaragan uchburchak SVG -->
                             <svg class="w-12 sm:w-14 h-5 sm:h-6 text-emerald-400 fill-emerald-500/20 stroke-emerald-400 stroke-2 group-hover:fill-emerald-500/40 transition"
@@ -456,7 +458,7 @@
 
                         <!-- O'RTA BLOK: Qutidagi son / Ta'mirdan qaytayotgan son -->
                         <div id="box-qty-container"
-                            class="bg-slate-950 border-2 border-indigo-500/70 rounded-2xl py-2 px-6 sm:px-8 text-center shadow-xl w-48 sm:w-56">
+                            class="pointer-events-auto bg-slate-950 border-2 border-indigo-500/70 rounded-2xl py-2 px-6 sm:px-8 text-center shadow-xl w-48 sm:w-56">
                             <span id="lbl-box-qty-title"
                                 class="text-[11px] sm:text-xs font-black uppercase text-indigo-400 tracking-widest block">
                                 Qutidagi son
@@ -474,7 +476,7 @@
 
                         <!-- UCHBURCHAK TUGMA: - 1 (PASTGA QARAGAN) -->
                         <button type="button" onclick="adjustBoxQty(-1)"
-                            class="touch-btn group flex flex-col items-center justify-center w-48 sm:w-56 py-1.5 sm:py-2 px-4 rounded-2xl bg-slate-950 border-2 border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10 active:scale-95 transition shadow-lg"
+                            class="pointer-events-auto touch-btn group flex flex-col items-center justify-center w-48 sm:w-56 py-1.5 sm:py-2 px-4 rounded-2xl bg-slate-950 border-2 border-rose-500/40 hover:border-rose-400 hover:bg-rose-500/10 active:scale-95 transition shadow-lg"
                             title="Sonni 1 taga kamaytirish">
                             <span class="text-xl sm:text-2xl font-black text-rose-400 font-mono mb-0.5 tracking-wider">
                                 - 1

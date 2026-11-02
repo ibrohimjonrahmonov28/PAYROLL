@@ -29,6 +29,25 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 02.11.2026, 16:30
+* **Turi:** `fix(control)` — Ta'mirdan qaytgan qutini ba'zi planshetlarda qabul qilib bo'lmasdi
+* **Mavzu:** `/control/` (egasining so'rovi bilan). 30.10 dagi o'zgarishda +1 / son / −1 ustuniga `relative z-10` berilgan edi. Ta'mirdan qaytgan qutida banner, "Ta'mirda bo'lgan: N dona" qatori va uzunroq tugma yozuvi sahifani balandlashtiradi: ustun pastga cho'zilib "Tasdiqlash va Ta'mirni Tekshirish" tugmasini yopardi va uning bo'sh joyi har bir bosishni ushlab qolardi. Ekrani pastroq yoki zoomi kattaroq planshetlarda tugma umuman bosilmasdi; yangi qutida ustun qisqaroq bo'lgani uchun muammo yo'q edi.
+* **O'zgartirilgan fayllar:**
+  - `templates/production/control_home.html`
+  - `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Tuzatish:** ustunning bo'sh joyi bosishni ushlamaydi (`pointer-events-none`), faqat +1, son maydoni va −1 bosiladi (`pointer-events-auto`). Joylashuv va ranglar o'zgarmadi.
+  2. **Tekshiruv:** Chrome'da 1024 / 1280 kenglik, 600 / 700 / 800 balandlik, 85% / 100% zoomda: ta'mir rejimidagi "Tasdiqlash" 0% dan 100% gacha bosiladigan bo'ldi (1024 kenglik va 100% zoomda 78–82%: chetini −1 tugmasi yopadi), 2-qadamdagi "Yakunlash" hamma holatda 100%.
+  3. **Testlar:** `ControlQualityInspectionWorkflowTest` (7 ta) va `/control/` ochiladigan `ScreenAccountAuthAndAccessRestrictionTest` o'tdi.
+  4. **Ma'lum cheklov:** eng past ekranlarda (taxminan 600 px) ta'mir rejimida −1 tugmasi ekran pastidan chiqib ketadi (oldin ham shunday edi); sonni maydonga yozib kiritish mumkin.
+* **Serverda:** `git pull origin main && docker compose restart web`; planshetlarda sahifani bir marta yangilash.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `994f51c`] — 02.11.2026, 13:20
 * **Turi:** `feat(daily-report)` — 18:00 hisobot yangi shakli: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз
 * **Mavzu:** `/sewing-statistics/daily-report/` sahifasi va Telegramga ketadigan 18:00 rasm 7 ustunli bo'ldi; "Паток қуввати" o'rniga normaga nisbatan foiz.
