@@ -12,7 +12,7 @@ from django.db.models import Sum, Q, Count, Max
 
 from production.models import Ticket, Box, CuttingBatch, Article, OperationGroup, OperationGroupItem, DailyPatokProgress
 from production.services import get_patok_code, get_patok_name
-from production.daily_dazmol import is_main_dazmol_operation, get_day_window, compute_daily_dazmol
+from production.daily_dazmol import is_main_dazmol_operation, get_day_window, compute_daily_dazmol, get_article_norm
 from screens.views import get_screen_data, calculate_screen_aniqlik
 
 
@@ -53,6 +53,36 @@ def get_operation_group_difficulty(group: OperationGroup) -> float:
     items = group.items.filter(is_active=True)
     val = sum(float(it.difficulty or 1.0) for it in items)
     return round(val, 2)
+
+
+def _report_line(name, group, norm, qty, fallback_aniqlik, aniqlik_cache):
+    """18:00 hisobot qatori: shablon, norma, ish soni va operatsion (shablon operatsiyalari aniqligi yig'indisi)."""
+    if group:
+        if group.id not in aniqlik_cache:
+            aniqlik_cache[group.id] = float(get_operation_group_difficulty(group))
+        g = aniqlik_cache[group.id]
+    else:
+        g = float(fallback_aniqlik)
+    return {
+        'shablon_name': name,
+        'norm': norm,
+        'dazmol_qty': qty,
+        'display_str': f"{qty} / {name}",
+        'aniqlik': int(g) if g.is_integer() else round(g, 1),
+        'aniqlik_value': g,
+    }
+
+
+def patok_foiz(products):
+    """
+    Patok foizi: ish soni yig'indisi / normalarning o'rtacha arifmetigi * 100 (egasi formulasi).
+    Masalan Futbolka 100 (norma 800) + Tunika 900 (norma 1000): 1000 / ((800 + 1000) / 2) = 111.1%.
+    """
+    norms = [p['norm'] for p in products if p.get('norm')]
+    if not norms:
+        return 0.0
+    total = sum(p['dazmol_qty'] for p in products)
+    return round(total / (sum(norms) / len(norms)) * 100, 1)
 
 
 def get_branch_daily_report_data(branch: str, target_date: datetime.date = None, dazmol=None) -> dict:
@@ -123,7 +153,9 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
     total_dazmol_sum = 0
     total_davomat_sum = 0
     quvvat_values = []
+    foiz_values = []
     dominant_aniqlik_sum = 0
+    aniqlik_cache = {}
 
     for sn in screen_numbers:
         patok_num = sn if is_hq else (sn - 13)
@@ -136,71 +168,31 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         davomat = screen_data.get('davomat', 0)
         patok_quvvati = float(screen_data.get('patok_quvvati', 0.0))
 
-        # 1. Asosiy dazmol narxlar shablonlari bo'yicha (yagona manba: production/daily_dazmol.py)
-        shablon_dazmol_map = {
-            item['name']: {'group': item['group'], 'qty': item['qty']}
-            for item in dazmol.templates(sn)
-        }
-
-        # 2. Mahsulotlar ro'yxatini shakllantirish (faqat haqiqiy dazmoldan o'tgan sonlar kesimida)
-        products = []
-        patok_dazmol_total = 0
-        max_group_aniqlik = 0.0
-
-        active_shablons = [item for item in shablon_dazmol_map.items() if item[1]['qty'] > 0]
-        if active_shablons:
-            # Dazmol soni bo'yicha kamayish tartibida saralaymiz
-            sorted_groups = sorted(active_shablons, key=lambda x: x[1]['qty'], reverse=True)
-            for g_key, g_info in sorted_groups:
-                g_qty = g_info['qty']
-                patok_dazmol_total += g_qty
-                g_obj = g_info['group']
-
-                if g_obj:
-                    g_aniqlik = get_operation_group_difficulty(g_obj)
-                else:
-                    g_aniqlik = float(screen_data.get('aniqlik', 0.0))
-
-                aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else round(g_aniqlik, 1)
-                if g_aniqlik > max_group_aniqlik:
-                    max_group_aniqlik = g_aniqlik
-
-                products.append({
-                    'shablon_name': g_key,
-                    'dazmol_qty': g_qty,
-                    'display_str': f"{g_qty} / {g_key}",
-                    'aniqlik': aniqlik_display,
-                })
-        else:
-            # Dazmol bo'lmagan holat: agar patokka biriktirilgan asosiy pastal bo'lsa, uning shablonini 0 dona bilan ko'rsatamiz
-            # (faqat 1 ta eng oxirgi asosiy pastal olinadi)
+        # 1. Asosiy dazmol narxlar shablonlari va normalari bo'yicha (yagona manba: production/daily_dazmol.py).
+        #    Bir shablonda ikki xil norma bo'lsa alohida qator. Dona yig'indisi = /daily/ dagi asosiy dazmol.
+        fallback_aniqlik = float(screen_data.get('aniqlik', 0.0))
+        products = [
+            _report_line(ln['name'], ln['group'], ln['norm'], ln['qty'], fallback_aniqlik, aniqlik_cache)
+            for ln in dazmol.template_lines(sn) if ln['qty'] > 0
+        ]
+        if not products:
+            # Dazmol bo'lmagan kun: patokka biriktirilgan oxirgi asosiy pastal shabloni 0 dona bilan
             primary_batch = sn_assigned[-1] if sn_assigned else None
             if primary_batch and primary_batch.order_item and primary_batch.order_item.article:
                 art = primary_batch.order_item.article
                 group = art.operation_group
-                g_key = group.name if group else (art.name if art else "Noma'lum")
-                if group:
-                    g_aniqlik = get_operation_group_difficulty(group)
-                else:
-                    g_aniqlik = float(screen_data.get('aniqlik', 0.0))
-                aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else round(g_aniqlik, 1)
-                products.append({
-                    'shablon_name': g_key,
-                    'dazmol_qty': 0,
-                    'display_str': f"0 / {g_key}",
-                    'aniqlik': aniqlik_display,
-                })
-                max_group_aniqlik = g_aniqlik
+                name = group.name if group else (art.name or "Noma'lum")
+                products.append(_report_line(name, group, get_article_norm(art), 0, fallback_aniqlik, aniqlik_cache))
             else:
-                g_aniqlik = float(screen_data.get('aniqlik', 0.0))
-                aniqlik_display = int(g_aniqlik) if g_aniqlik.is_integer() else (round(g_aniqlik, 1) if g_aniqlik > 0 else "—")
+                g = fallback_aniqlik
                 products.append({
-                    'shablon_name': "—",
-                    'dazmol_qty': 0,
-                    'display_str': "0 / —",
-                    'aniqlik': aniqlik_display,
+                    'shablon_name': "—", 'norm': 0, 'dazmol_qty': 0, 'display_str': "0 / —",
+                    'aniqlik': int(g) if g.is_integer() else (round(g, 1) if g > 0 else "—"),
+                    'aniqlik_value': g,
                 })
-                max_group_aniqlik = g_aniqlik
+        patok_dazmol_total = sum(p['dazmol_qty'] for p in products)
+        max_group_aniqlik = max((p['aniqlik_value'] for p in products), default=0.0)
+        foiz = patok_foiz(products)
 
         total_dazmol_sum += patok_dazmol_total
         total_davomat_sum += davomat
@@ -209,6 +201,7 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         is_active = (sn in scanned_screens or patok_dazmol_total > 0 or davomat > 0)
         if is_active:
             quvvat_values.append(patok_quvvati)
+            foiz_values.append(foiz)
 
         row_item = {
             'screen_number': sn,
@@ -219,6 +212,7 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
             'dazmol_total': patok_dazmol_total,
             'davomat': davomat,
             'patok_quvvati': patok_quvvati,
+            'foiz': foiz,
             'is_active': is_active,
         }
         rows.append(row_item)
@@ -239,6 +233,7 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
 
     # Jami hisob-kitoblar
     avg_quvvat = round(sum(quvvat_values) / len(quvvat_values), 1) if quvvat_values else 0.0
+    avg_foiz = round(sum(foiz_values) / len(foiz_values), 1) if foiz_values else 0.0   # faol patoklar o'rtachasi
     davomat_foiz = round((total_davomat_sum / dominant_aniqlik_sum * 100), 1) if dominant_aniqlik_sum > 0 else 0.0
 
     return {
@@ -250,6 +245,7 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         'total_dazmol': total_dazmol_sum,
         'total_davomat': total_davomat_sum,
         'avg_quvvat': avg_quvvat,
+        'avg_foiz': avg_foiz,
         'davomat_foiz': davomat_foiz,
         'active_patoks_count': len(quvvat_values),
         'total_patoks_count': len(rows),
@@ -272,7 +268,7 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     rows = report_data['rows']
     total_dazmol = report_data['total_dazmol']
     total_davomat = report_data['total_davomat']
-    avg_quvvat = report_data['avg_quvvat']
+    avg_foiz = report_data.get('avg_foiz', 0.0)
     davomat_foiz = report_data['davomat_foiz']
 
     # Ranglar sxemasi (Excel uslubidagi ochiq, tiniq dizayn)
@@ -296,140 +292,108 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     font_total = _get_font(16, bold=True)
     font_sub_pct = _get_font(13, bold=True)
 
-    # Jadval o'lchamlari va ustun kengliklari
+    # Jadval o'lchamlari va ustun kengliklari (7 ustun: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз)
     width = 1260
     margin_x = 30
     margin_top = 30
     margin_bottom = 30
 
-    col_w_patok = 130
-    col_w_product = 570
-    col_w_davomat = 130
-    col_w_op = 170
-    col_w_quvvat = 200
+    columns = [
+        ('patok', "Паток", 110),
+        ('name', "Иш номи", 380),
+        ('norm', "Норма", 120),
+        ('qty', "Иш сони", 130),
+        ('davomat', "Давомат", 120),
+        ('op', "Операцион", 150),
+        ('foiz', "Фоиз", 190),
+    ]
+    edges = [margin_x]
+    for _key, _title, col_w in columns:
+        edges.append(edges[-1] + col_w)
+    col_x = {key: (edges[i], edges[i + 1]) for i, (key, _t, _w) in enumerate(columns)}
+    x_left, x_right = edges[0], edges[-1]
+    inner_edges = edges[1:-1]
 
-    table_width = col_w_patok + col_w_product + col_w_davomat + col_w_op + col_w_quvvat
-    start_x = margin_x
+    def center(key):
+        a_x, b_x = col_x[key]
+        return (a_x + b_x) // 2
 
-    # Har bir qator balandligini hisoblash (dinamik)
+    # Har bir qator balandligi (shablon qatorlari soniga qarab)
     base_line_h = 24
-    row_heights = []
-    for r in rows:
-        p_count = max(1, len(r['products']))
-        h = max(40, 12 + (p_count * base_line_h))
-        row_heights.append(h)
+    row_heights = [max(40, 12 + max(1, len(r['products'])) * base_line_h) for r in rows]
 
     header_box_h = 80
     th_height = 46
     total_row_h = 56
-    table_content_h = sum(row_heights)
-
-    total_height = margin_top + header_box_h + th_height + table_content_h + total_row_h + margin_bottom + 10
+    total_height = margin_top + header_box_h + th_height + sum(row_heights) + total_row_h + margin_bottom + 10
 
     img = Image.new('RGB', (width, total_height), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # 1. SARLAVHA (Header Text)
-    title_text = branch_title
+    # 1. SARLAVHA
     sub_text = f"Сана: {target_date.strftime('%d.%m.%Y')}   |   Соат: 18:00 ҳолатига"
-
-    draw.text((width // 2, margin_top + 16), title_text, fill=text_color, font=font_main_title, anchor="mm")
+    draw.text((width // 2, margin_top + 16), branch_title, fill=text_color, font=font_main_title, anchor="mm")
     draw.text((width // 2, margin_top + 50), sub_text, fill=text_muted, font=font_sub_title, anchor="mm")
 
-    # 2. JADVAL SARLAVHASI (Table TH)
+    # 2. JADVAL SARLAVHASI
     table_y = margin_top + header_box_h
-    x0 = start_x
-    x1 = x0 + col_w_patok
-    x2 = x1 + col_w_product
-    x3 = x2 + col_w_davomat
-    x4 = x3 + col_w_op
-    x5 = x4 + col_w_quvvat
-
-    # TH Foni
-    draw.rectangle([(x0, table_y), (x5, table_y + th_height)], fill=header_bg, outline=border_dark, width=2)
-
-    # TH Ajratuvchi chiziqlar
-    for x in [x1, x2, x3, x4]:
+    draw.rectangle([(x_left, table_y), (x_right, table_y + th_height)], fill=header_bg, outline=border_dark, width=2)
+    for x in inner_edges:
         draw.line([(x, table_y), (x, table_y + th_height)], fill=border_dark, width=1)
+    for key, title, _w in columns:
+        if key == 'name':
+            draw.text((col_x[key][0] + 16, table_y + th_height // 2), title, fill=header_text_color, font=font_th, anchor="lm")
+        else:
+            draw.text((center(key), table_y + th_height // 2), title, fill=header_text_color, font=font_th, anchor="mm")
 
-    # TH Matnlari
-    draw.text((x0 + col_w_patok // 2, table_y + th_height // 2), "Паток №", fill=header_text_color, font=font_th, anchor="mm")
-    draw.text((x1 + 16, table_y + th_height // 2), "Маҳсулот & Дазмол (Дазмол / Нархлар шаблони)", fill=header_text_color, font=font_th, anchor="lm")
-    draw.text((x2 + col_w_davomat // 2, table_y + th_height // 2), "Давомот", fill=header_text_color, font=font_th, anchor="mm")
-    draw.text((x3 + col_w_op // 2, table_y + th_height // 2), "Операционка", fill=header_text_color, font=font_th, anchor="mm")
-    draw.text((x4 + col_w_quvvat // 2, table_y + th_height // 2), "Паток қуввати", fill=header_text_color, font=font_th, anchor="mm")
-
-    # 3. JADVAL QATORLARI (Data Rows)
+    # 3. QATORLAR
     curr_y = table_y + th_height
     for idx, (r, row_h) in enumerate(zip(rows, row_heights)):
         row_bg = row_alt_bg if (idx % 2 == 1) else (255, 255, 255)
-        draw.rectangle([(x0, curr_y), (x5, curr_y + row_h)], fill=row_bg, outline=grid_color, width=1)
-
-        # Tashqi chegaralarni qoraroq chizamiz
-        draw.line([(x0, curr_y), (x0, curr_y + row_h)], fill=border_dark, width=2)
-        draw.line([(x5, curr_y), (x5, curr_y + row_h)], fill=border_dark, width=2)
-
-        # Ichki vertikal chiziqlar
-        for x in [x1, x2, x3, x4]:
+        draw.rectangle([(x_left, curr_y), (x_right, curr_y + row_h)], fill=row_bg, outline=grid_color, width=1)
+        draw.line([(x_left, curr_y), (x_left, curr_y + row_h)], fill=border_dark, width=2)
+        draw.line([(x_right, curr_y), (x_right, curr_y + row_h)], fill=border_dark, width=2)
+        for x in inner_edges:
             draw.line([(x, curr_y), (x, curr_y + row_h)], fill=grid_color, width=1)
+        mid_y = curr_y + row_h // 2
 
-        # 1-ustun: Patok nomi (O'rtada)
-        draw.text((x0 + col_w_patok // 2, curr_y + row_h // 2), r['patok_title'], fill=text_color, font=font_cell_bold, anchor="mm")
+        draw.text((center('patok'), mid_y), r['patok_title'], fill=text_color, font=font_cell_bold, anchor="mm")
 
-        # 2-ustun va 4-ustun: Mahsulotlar va Operatsionka
+        # Shablon qatorlari: Иш номи, Норма, Иш сони, Операцион bir chiziqda
         prods = r['products']
-        p_count = len(prods)
-        start_prod_y = curr_y + (row_h - (p_count * base_line_h)) // 2 + (base_line_h // 2)
-
+        first_line_y = curr_y + (row_h - (len(prods) * base_line_h)) // 2 + (base_line_h // 2)
         for p_idx, p in enumerate(prods):
-            line_y = start_prod_y + (p_idx * base_line_h)
+            line_y = first_line_y + p_idx * base_line_h
+            draw.text((col_x['name'][0] + 16, line_y), str(p['shablon_name']), fill=text_color, font=font_cell, anchor="lm")
+            norm_str = f"{p['norm']:,}".replace(",", " ") if p.get('norm') else "—"
+            draw.text((center('norm'), line_y), norm_str, fill=text_color, font=font_cell, anchor="mm")
+            qty_str = f"{p['dazmol_qty']:,}".replace(",", " ")
+            draw.text((center('qty'), line_y), qty_str, fill=text_color, font=font_cell_bold, anchor="mm")
+            draw.text((center('op'), line_y), str(p['aniqlik']), fill=text_color, font=font_cell_bold, anchor="mm")
 
-            # Mahsulot nomi va dazmol soni (Chapga qarab)
-            prod_text = p['display_str']
-            # Dazmol qismini ajratib ko'rsatamiz
-            draw.text((x1 + 16, line_y), prod_text, fill=text_color, font=font_cell, anchor="lm")
-
-            # Operatsionka (O'rtada)
-            op_str = str(p['aniqlik'])
-            draw.text((x3 + col_w_op // 2, line_y), op_str, fill=text_color, font=font_cell_bold, anchor="mm")
-
-        # 3-ustun: Davomot (O'rtada)
         davomat_str = str(r['davomat']) if r['davomat'] > 0 else "—"
-        draw.text((x2 + col_w_davomat // 2, curr_y + row_h // 2), davomat_str, fill=text_color, font=font_cell_bold, anchor="mm")
+        draw.text((center('davomat'), mid_y), davomat_str, fill=text_color, font=font_cell_bold, anchor="mm")
 
-        # 5-ustun: Patok quvvati (O'rtada)
-        quvvat_val = r['patok_quvvati']
-        if r['is_active'] and quvvat_val > 0:
-            quvvat_str = f"{quvvat_val:.1f}%"
-            draw.text((x4 + col_w_quvvat // 2, curr_y + row_h // 2), quvvat_str, fill=text_green, font=font_cell_bold, anchor="mm")
+        if r['is_active'] and r.get('foiz', 0) > 0:
+            draw.text((center('foiz'), mid_y), f"{r['foiz']:.1f}%", fill=text_green, font=font_cell_bold, anchor="mm")
         else:
-            draw.text((x4 + col_w_quvvat // 2, curr_y + row_h // 2), "—", fill=text_muted, font=font_cell, anchor="mm")
+            draw.text((center('foiz'), mid_y), "—", fill=text_muted, font=font_cell, anchor="mm")
 
         curr_y += row_h
 
-    # 4. YIG'INDI (ЖАМИ) QATORI
-    draw.rectangle([(x0, curr_y), (x5, curr_y + total_row_h)], fill=total_bg, outline=border_dark, width=2)
-    for x in [x1, x2, x3, x4]:
+    # 4. ЖАМИ QATORI
+    draw.rectangle([(x_left, curr_y), (x_right, curr_y + total_row_h)], fill=total_bg, outline=border_dark, width=2)
+    for x in inner_edges:
         draw.line([(x, curr_y), (x, curr_y + total_row_h)], fill=border_dark, width=1)
-
-    # ЖАМИ
-    draw.text((x0 + col_w_patok // 2, curr_y + total_row_h // 2), "ЖАМИ", fill=border_dark, font=font_total, anchor="mm")
-
-    # Jami Dazmol
-    tot_dazmol_str = f"{total_dazmol:,} дона".replace(",", " ")
-    draw.text((x1 + 16, curr_y + total_row_h // 2), tot_dazmol_str, fill=border_dark, font=font_total, anchor="lm")
-
-    # Jami Davomat va pastida Davomat %
-    draw.text((x2 + col_w_davomat // 2, curr_y + (total_row_h // 2) - 8), str(total_davomat), fill=border_dark, font=font_total, anchor="mm")
+    mid_y = curr_y + total_row_h // 2
+    draw.text((center('patok'), mid_y), "ЖАМИ", fill=border_dark, font=font_total, anchor="mm")
+    draw.text((center('qty'), mid_y), f"{total_dazmol:,}".replace(",", " "), fill=border_dark, font=font_total, anchor="mm")
+    draw.text((center('davomat'), mid_y - 8), str(total_davomat), fill=border_dark, font=font_total, anchor="mm")
     if davomat_foiz > 0:
-        draw.text((x2 + col_w_davomat // 2, curr_y + (total_row_h // 2) + 12), f"({davomat_foiz:.0f}%)", fill=text_muted, font=font_sub_pct, anchor="mm")
-
-    # Operatsionka jami: bo'sh yoki chiziqcha ("—")
-    draw.text((x3 + col_w_op // 2, curr_y + total_row_h // 2), "—", fill=text_muted, font=font_total, anchor="mm")
-
-    # O'rtacha patok quvvati
-    avg_quvvat_str = f"{avg_quvvat:.1f}%"
-    draw.text((x4 + col_w_quvvat // 2, curr_y + total_row_h // 2), avg_quvvat_str, fill=border_dark, font=font_total, anchor="mm")
+        draw.text((center('davomat'), mid_y + 12), f"({davomat_foiz:.0f}%)", fill=text_muted, font=font_sub_pct, anchor="mm")
+    for key in ('name', 'norm', 'op'):
+        draw.text((center(key), mid_y), "—", fill=text_muted, font=font_total, anchor="mm")
+    draw.text((center('foiz'), mid_y), f"{avg_foiz:.1f}%", fill=border_dark, font=font_total, anchor="mm")
 
     buf = io.BytesIO()
     img.save(buf, format='PNG', quality=95)
@@ -468,7 +432,7 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
 
     tot_dazmol = f"{report_data['total_dazmol']:,}".replace(",", " ")
     tot_davomat = report_data['total_davomat']
-    avg_quvvat = report_data['avg_quvvat']
+    avg_foiz = report_data['avg_foiz']
     davomat_foiz = report_data['davomat_foiz']
 
     caption = (
@@ -477,7 +441,7 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
         f"📅 *Сана:* {target_date.strftime('%d.%m.%Y')} (18:00 ҳолатига)\n\n"
         f"👕 *Дазмолдан ўтган:* *{tot_dazmol} дона*\n"
         f"👥 *Жами давомот:* *{tot_davomat} нафар* ({davomat_foiz:.0f}% таъминланганлик)\n"
-        f"⚡ *Ўртача паток қуввати:* *{avg_quvvat}%*\n\n"
+        f"📈 *Ўртача фоиз (иш сони / норма):* *{avg_foiz}%*\n\n"
         f"📌 _Барча патоклар ва маҳсулотлар бўйича батафсил маълумот юқоридаги расмда кўрсатилган._"
     )
 

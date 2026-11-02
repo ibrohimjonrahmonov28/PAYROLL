@@ -181,6 +181,8 @@ class DailyDazmolRulesTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.context['factory']['total_dazmol'], 200)
         self.assertContains(res, '&patok=K1"')
+        for column in ('Иш номи', 'Норма', 'Иш сони', 'Операцион', 'Фоиз'):
+            self.assertContains(res, column)
         res = self.client.get(reverse('production:sewing_statistics_daily_report') + '?tab=uychi')
         self.assertContains(res, '&patok=U1"')
 
@@ -249,6 +251,35 @@ class DailyDazmolRulesTest(TestCase):
         self.assertEqual(dz.asosiy(1), 130 + 10)
         self.assertEqual(dz.patok_dazmol(1), 30 + 10)
         self.assertEqual(get_dazmol_operation_ids_for_article(self.art_f), {self.dz_f.id})
+
+    def test_report_lines_have_norms_and_owner_foiz_formula(self):
+        """Egasi misoli: Futbolka 100 (norma 800) + Tunika 900 (norma 1000) -> 1000 / ((800 + 1000) / 2) = 111.1%."""
+        Article.objects.filter(pk=self.art_f.pk).update(daily_norm=800)          # Tunika: standart 1000
+        t_boxes = self._pastal('P-T9', self.item_t, self.size_t, screen=1, status='ACCEPTED', received=True, qtys=[870], branch='HQ')
+        self._scan(t_boxes[0], self.dz_t, 1, timezone.now())
+
+        row = self._report_rows()[1]
+        self.assertEqual([(p['shablon_name'], p['norm'], p['dazmol_qty']) for p in row['products']],
+                         [('TUNIKA', 1000, 900), ('FUTBOLKA KATTA', 800, 100)])
+        self.assertEqual(row['foiz'], 111.1)
+
+    def test_same_template_with_two_norms_gets_two_lines_and_image_renders(self):
+        from production.daily_image_reports import generate_branch_report_image
+        art_f2 = Article.objects.create(code='ART-F2', name='Futbolka 2')
+        Article.objects.filter(pk=art_f2.pk).update(operation_group=self.group_f, daily_norm=1500)
+        art_f2.refresh_from_db()
+        dz_f2 = ArticleOperation.objects.create(article=art_f2, operation=self.dz_f.operation, price_per_unit=Decimal('100'), sequence=9)
+        item_f2 = OrderItem.objects.create(order=self.order, article=art_f2, quantity=100)
+        size_f2 = OrderItemSize.objects.create(order_item=item_f2, size_name='M', planned_quantity=100)
+        boxes = self._pastal('P-F2', item_f2, size_f2, screen=1, status='ACCEPTED', received=True, qtys=[50], branch='HQ')
+        self._scan(boxes[0], dz_f2, 1, timezone.now())
+
+        data = get_branch_daily_report_data('HQ', timezone.localdate())
+        row = next(r for r in data['rows'] if r['screen_number'] == 1)
+        futbolka = [(p['norm'], p['dazmol_qty']) for p in row['products'] if p['shablon_name'] == 'FUTBOLKA KATTA']
+        self.assertEqual(futbolka, [(1000, 100), (1500, 50)])
+        self.assertEqual(sum(p['dazmol_qty'] for p in row['products']), row['dazmol_total'])
+        self.assertTrue(generate_branch_report_image(data).getvalue().startswith(b'\x89PNG'))
 
     def test_day_window_keeps_yesterday_separate(self):
         yesterday = timezone.localdate() - timedelta(days=1)

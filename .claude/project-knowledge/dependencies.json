@@ -539,6 +539,7 @@
     "production.models"
    ],
    "lazy": [
+    "production.daily_image_reports",
     "production.excel_reports",
     "production.sewing_statistics_views"
    ]

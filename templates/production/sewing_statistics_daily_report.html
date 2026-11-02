@@ -128,14 +128,14 @@
         </div>
 
             <div class="px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs flex items-center gap-2"
-                title="Фабрика: иккала филиал асосий дазмоли йиғиндиси; қувват — филиаллар ўртачасининг ўртачаси">
+                title="Фабрика: иккала филиал асосий дазмоли йиғиндиси; фоиз — филиаллар ўртачасининг ўртачаси">
                 <i class="fa-solid fa-industry text-emerald-400"></i>
                 <span class="text-slate-400 font-bold">Фабрика жами:</span>
                 <strong class="text-white font-mono">{{ factory.total_dazmol }} дона</strong>
                 <span class="text-slate-600">•</span>
                 <span class="text-slate-400">{{ factory.total_davomat }} нафар</span>
                 <span class="text-slate-600">•</span>
-                <strong class="text-emerald-400 font-mono">{{ factory.avg_quvvat }}%</strong>
+                <strong class="text-emerald-400 font-mono">{{ factory.avg_foiz }}%</strong>
             </div>
         </div>
 
@@ -217,18 +217,18 @@
             </div>
         </div>
 
-        <!-- 3. O'rtacha Patok Quvvati -->
+        <!-- 3. O'rtacha foiz (ish soni / normalarning o'rtachasi) -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Ўртача паток қуввати
+                <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Ўртача фоиз
             </span>
             <div class="flex items-baseline gap-2 mt-2">
                 <span class="text-3xl font-black text-emerald-400 font-mono">
-                    {{ current_data.avg_quvvat|default:"0.0" }}%
+                    {{ current_data.avg_foiz|default:"0.0" }}%
                 </span>
             </div>
             <div class="mt-2 text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
-                Барча фаол патоклар бўйича ўртача меъёр
+                Иш сони / ўртача норма • фаол патоклар ўртачаси
             </div>
         </div>
 
@@ -249,7 +249,7 @@
         </div>
     </div>
 
-    <!-- 5-COLUMN MAIN REPORT TABLE -->
+    <!-- 7 USTUNLI JADVAL: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
@@ -266,9 +266,9 @@
             </span>
             <p class="w-full text-[11px] text-slate-500">
                 <i class="fa-solid fa-circle-info text-cyan-400 mr-1"></i>
-                Дазмол — патокка қабул қилинган пасталлар дазмоли (планшетда қабул қилинган ёки Уйчи омборидан патокка топширилган), нархлар шаблони бўйича.
-                Ҳар бир патокнинг жами «Kunlik Patoklar» саҳифасидаги «Asosiy Dazmol» билан бир хил.
-                Паток рақамини босиб, ўша паток тафсилотини очинг.
+                Иш сони — патокка қабул қилинган пасталлар дазмоли, нархлар шаблони бўйича; жами «Kunlik Patoklar» саҳифасидаги «Asosiy Dazmol» билан бир хил.
+                Норма — шаблон моделининг кунлик нормаси. Фоиз = иш сонлари йиғиндиси / нормаларнинг ўртача арифметиги,
+                масалан (100 + 900) / ((800 + 1000) / 2) = 111%. Паток рақамини босиб, ўша паток тафсилотини очинг.
             </p>
         </div>
 
@@ -276,17 +276,20 @@
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950 font-bold">
-                        <th class="py-3 px-4 w-28 text-center">Паток №</th>
-                        <th class="py-3 px-4">Маҳсулот & Дазмол (Дазмол / Нархлар шаблони)</th>
-                        <th class="py-3 px-4 w-28 text-center">Давомот</th>
-                        <th class="py-3 px-4 w-32 text-center">Операционка</th>
-                        <th class="py-3 px-4 w-36 text-center">Паток қуввати</th>
+                        <th class="py-3 px-4 w-28 text-center">Паток</th>
+                        <th class="py-3 px-4">Иш номи</th>
+                        <th class="py-3 px-4 w-24 text-center">Норма</th>
+                        <th class="py-3 px-4 w-24 text-center">Иш сони</th>
+                        <th class="py-3 px-4 w-24 text-center">Давомат</th>
+                        <th class="py-3 px-4 w-28 text-center">Операцион</th>
+                        <th class="py-3 px-4 w-28 text-center">Фоиз</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60 font-mono">
                     {% for r in current_data.rows %}
+                    {% with multi=r.products|length %}
                     <tr class="hover:bg-slate-800/40 transition {% if not r.is_active %}opacity-50{% endif %}">
-                        <!-- 1. Patok nomi (Kunlik Patoklar sahifasidagi shu patokka havola) -->
+                        <!-- 1. Patok (Kunlik Patoklar sahifasidagi shu patokka havola) -->
                         <td class="py-3.5 px-4 text-center font-bold text-white text-sm">
                             <a href="{% url 'production:sewing_statistics_daily' %}?date={{ selected_date_str }}&patok={{ r.patok_code }}"
                                 class="inline-flex flex-col items-center hover:text-cyan-300 transition"
@@ -296,89 +299,87 @@
                             </a>
                         </td>
 
-                        <!-- 2. Mahsulot va Dazmol (bir nechta bo'lishi mumkin); qatorlar 4-ustun bilan bir balandlikda -->
+                        <!-- 2. Ish nomi (narxlar shabloni) -->
                         <td class="py-3.5 px-4 font-sans">
                             <div class="space-y-1">
                                 {% for p in r.products %}
-                                <div class="flex items-center gap-2 text-xs h-5">
-                                    <span class="font-mono font-black {% if p.dazmol_qty > 0 %}text-cyan-400{% else %}text-slate-500{% endif %} min-w-[48px] text-right">
-                                        {{ p.dazmol_qty }} та
-                                    </span>
-                                    <span class="text-slate-600">/</span>
-                                    <span class="font-semibold text-slate-200 truncate" title="{{ p.shablon_name }}">
-                                        {{ p.shablon_name }}
-                                    </span>
-                                </div>
-                                {% empty %}
-                                <span class="text-slate-500 text-xs">0 / —</span>
+                                <div class="h-5 flex items-center"><span class="font-semibold text-slate-200 truncate" title="{{ p.shablon_name }}">{{ p.shablon_name }}</span></div>
                                 {% endfor %}
-                                {% if r.products|length > 1 and r.dazmol_total > 0 %}
-                                <div class="text-[11px] text-cyan-300 font-mono font-bold pt-1 border-t border-slate-800/80 flex items-center gap-1.5">
-                                    <span class="text-slate-400 font-sans font-normal">Жами:</span>
-                                    <span>{{ r.dazmol_total }} та</span>
-                                </div>
-                                {% endif %}
+                                {% if multi > 1 %}<div class="h-5 mt-1 pt-1 border-t border-slate-800/80 flex items-center text-[11px] text-slate-400">Жами:</div>{% endif %}
                             </div>
                         </td>
 
-                        <!-- 3. Davomot -->
+                        <!-- 3. Norma (shablon modelining kunlik normasi) -->
+                        <td class="py-3.5 px-4 text-center text-slate-300">
+                            <div class="space-y-1">
+                                {% for p in r.products %}
+                                <div class="h-5 flex items-center justify-center">{% if p.norm %}{{ p.norm }}{% else %}<span class="text-slate-600">—</span>{% endif %}</div>
+                                {% endfor %}
+                                {% if multi > 1 %}<div class="h-5 mt-1 pt-1 border-t border-transparent invisible" aria-hidden="true">0</div>{% endif %}
+                            </div>
+                        </td>
+
+                        <!-- 4. Ish soni (shablon bo'yicha asosiy dazmol) -->
+                        <td class="py-3.5 px-4 text-center font-black">
+                            <div class="space-y-1">
+                                {% for p in r.products %}
+                                <div class="h-5 flex items-center justify-center {% if p.dazmol_qty > 0 %}text-cyan-400{% else %}text-slate-500{% endif %}">{{ p.dazmol_qty }}</div>
+                                {% endfor %}
+                                {% if multi > 1 %}<div class="h-5 mt-1 pt-1 border-t border-slate-800/80 flex items-center justify-center text-cyan-300">{{ r.dazmol_total }}</div>{% endif %}
+                            </div>
+                        </td>
+
+                        <!-- 5. Davomat -->
                         <td class="py-3.5 px-4 text-center font-bold text-sm text-slate-200">
                             {% if r.davomat > 0 %}{{ r.davomat }}{% else %}<span class="text-slate-600">—</span>{% endif %}
                         </td>
 
-                        <!-- 4. Operatsionka (Aniqlik) -->
-                        <td class="py-3.5 px-4 text-center font-bold text-xs text-amber-300">
+                        <!-- 6. Operatsion (shablon operatsiyalari aniqligi yig'indisi) -->
+                        <td class="py-3.5 px-4 text-center font-bold text-amber-300">
                             <div class="space-y-1">
                                 {% for p in r.products %}
                                 <div class="h-5 flex items-center justify-center">{{ p.aniqlik }}</div>
-                                {% empty %}
-                                <span class="text-slate-600">—</span>
                                 {% endfor %}
-                                {% if r.products|length > 1 and r.dazmol_total > 0 %}
-                                <!-- 2-ustundagi "Жами" qatoriga teng bo'sh joy: qatorlar bir chiziqda tursin -->
-                                <div class="text-[11px] pt-1 border-t border-transparent invisible" aria-hidden="true">0</div>
-                                {% endif %}
+                                {% if multi > 1 %}<div class="h-5 mt-1 pt-1 border-t border-transparent invisible" aria-hidden="true">0</div>{% endif %}
                             </div>
                         </td>
 
-                        <!-- 5. Patok quvvati -->
-                        <td class="py-3.5 px-4 text-center font-bold text-sm">
-                            {% if r.is_active and r.patok_quvvati > 0 %}
-                            <span class="text-emerald-400">{{ r.patok_quvvati|floatformat:1 }}%</span>
+                        <!-- 7. Foiz: ish soni yig'indisi / normalarning o'rtacha arifmetigi -->
+                        <td class="py-3.5 px-4 text-center font-bold text-sm"
+                            title="{{ r.dazmol_total }} / normalarning o'rtachasi">
+                            {% if r.is_active and r.foiz > 0 %}
+                            <span class="{% if r.foiz >= 100 %}text-emerald-400{% else %}text-amber-300{% endif %}">{{ r.foiz|floatformat:1 }}%</span>
                             {% else %}
                             <span class="text-slate-600">—</span>
                             {% endif %}
                         </td>
                     </tr>
+                    {% endwith %}
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="py-12 text-center text-slate-500">
+                        <td colspan="7" class="py-12 text-center text-slate-500">
                             Ushbu sana bo'yicha patoklar ma'lumotlari topilmadi.
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
 
-                <!-- JAMI FOOTER ROW -->
+                <!-- JAMI QATORI -->
                 <tfoot>
                     <tr class="bg-cyan-950/40 border-t-2 border-cyan-500/50 font-mono font-black text-sm">
-                        <td class="py-4 px-4 text-center text-white font-sans uppercase tracking-wider">
-                            ЖАМИ
-                        </td>
-                        <td class="py-4 px-4 text-cyan-300 text-base font-sans">
-                            {{ current_data.total_dazmol|default:0 }} дона
-                        </td>
+                        <td class="py-4 px-4 text-center text-white font-sans uppercase tracking-wider">ЖАМИ</td>
+                        <td class="py-4 px-4 text-slate-500">—</td>
+                        <td class="py-4 px-4 text-center text-slate-500">—</td>
+                        <td class="py-4 px-4 text-center text-cyan-300 text-base">{{ current_data.total_dazmol|default:0 }}</td>
                         <td class="py-4 px-4 text-center text-white text-base">
                             <div>{{ current_data.total_davomat|default:0 }}</div>
                             {% if current_data.davomat_foiz > 0 %}
                             <div class="text-[11px] text-slate-400 font-normal">({{ current_data.davomat_foiz|floatformat:0 }}%)</div>
                             {% endif %}
                         </td>
-                        <td class="py-4 px-4 text-center text-slate-500">
-                            —
-                        </td>
-                        <td class="py-4 px-4 text-center text-emerald-400 text-base">
-                            {{ current_data.avg_quvvat|default:"0.0" }}%
+                        <td class="py-4 px-4 text-center text-slate-500">—</td>
+                        <td class="py-4 px-4 text-center text-emerald-400 text-base" title="Faol patoklar foizining o'rtachasi">
+                            {{ current_data.avg_foiz|default:"0.0" }}%
                         </td>
                     </tr>
                 </tfoot>

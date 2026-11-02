@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 416,
-   "sha256_16": "3ba2b047ab6a19f7"
+   "lines": 437,
+   "sha256_16": "5db92817869ee182"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 94,
-   "sha256_16": "b959907748476c03"
+   "sha256_16": "83d7173315c8295f"
   },
   "Dockerfile": {
    "module": "ops",
@@ -461,8 +461,8 @@
   },
   "production/daily_dazmol.py": {
    "module": "production.reports",
-   "lines": 219,
-   "sha256_16": "4f746bc56cddc360",
+   "lines": 256,
+   "sha256_16": "ae244d737a32a462",
    "symbols": [
     "_normalize_op_text:38",
     "is_main_dazmol_operation:42",
@@ -470,23 +470,27 @@
     "get_day_window:61",
     "get_box_owner_screen:73",
     "owned_box_q:90",
-    "get_ticket_template:99",
-    "DailyDazmol:115",
-    "compute_daily_dazmol:140",
-    "get_patok_accepted_pastals:189"
+    "get_article_norm:102",
+    "_ticket_template_info:110",
+    "get_ticket_template:127",
+    "DailyDazmol:134",
+    "compute_daily_dazmol:172",
+    "get_patok_accepted_pastals:226"
    ]
   },
   "production/daily_image_reports.py": {
    "module": "production.reports",
-   "lines": 557,
-   "sha256_16": "e27c23f8d3c8450c",
+   "lines": 521,
+   "sha256_16": "5d681d3e37c4a47b",
    "symbols": [
     "_get_font:19",
     "get_operation_group_difficulty:49",
-    "get_branch_daily_report_data:58",
-    "generate_branch_report_image:259",
-    "send_single_branch_report:440",
-    "send_daily_1800_reports:540"
+    "_report_line:58",
+    "patok_foiz:76",
+    "get_branch_daily_report_data:88",
+    "generate_branch_report_image:255",
+    "send_single_branch_report:404",
+    "send_daily_1800_reports:504"
    ]
   },
   "production/excel_reports.py": {
@@ -828,8 +832,8 @@
   },
   "production/sewing_statistics_views.py": {
    "module": "production.sewing_statistics",
-   "lines": 3542,
-   "sha256_16": "e1bb83c5b95f1a76",
+   "lines": 3544,
+   "sha256_16": "c64e2c8c98df0c59",
    "symbols": [
     "manager_or_superadmin_required:26",
     "get_dazmol_operation_ids_for_article:44",
@@ -851,9 +855,9 @@
     "api_send_telegram_daily_report_view:2993",
     "sewing_statistics_otk_view:3047",
     "sewing_statistics_daily_report_view:3377",
-    "api_send_branch_daily_report:3445",
-    "sewing_statistics_daily_report_image_preview:3484",
-    "export_monthly_daily_report_excel:3517"
+    "api_send_branch_daily_report:3447",
+    "sewing_statistics_daily_report_image_preview:3486",
+    "export_monthly_daily_report_excel:3519"
    ]
   },
   "production/sticker_generator.py": {
@@ -924,11 +928,11 @@
   },
   "production/test_daily_dazmol.py": {
    "module": "tests",
-   "lines": 290,
-   "sha256_16": "01cf3fde7fb36f6d",
+   "lines": 321,
+   "sha256_16": "902106274e8882a1",
    "symbols": [
     "DailyDazmolRulesTest:19",
-    "MonthlyExcelUychiRowsTest:268"
+    "MonthlyExcelUychiRowsTest:299"
    ]
   },
   "production/test_master_statistics.py": {
@@ -1363,8 +1367,8 @@
   },
   "templates/production/sewing_statistics_daily_report.html": {
    "module": "templates",
-   "lines": 489,
-   "sha256_16": "a941dfb416357186"
+   "lines": 490,
+   "sha256_16": "9ce5bbd4df13adac"
   },
   "templates/production/sewing_statistics_model_detail.html": {
    "module": "templates",

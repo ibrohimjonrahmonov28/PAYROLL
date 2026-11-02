@@ -96,18 +96,37 @@ def owned_box_q():
     )
 
 
-def get_ticket_template(ticket):
-    """Biletning narxlar shabloni: (nomi, OperationGroup yoki None). Shablon bo'lmasa artikul nomi."""
+DEFAULT_DAILY_NORM = 1200
+
+
+def get_article_norm(article):
+    """Artikulning kunlik normasi (dona): artikul -> model -> 1200 (kunlik sahifadagi qoida bilan bir xil)."""
+    if not article:
+        return DEFAULT_DAILY_NORM
+    model_norm = article.model.daily_norm if article.model_id and article.model else 0
+    return article.daily_norm or model_norm or DEFAULT_DAILY_NORM
+
+
+def _ticket_template_info(ticket):
+    """(shablon nomi, OperationGroup yoki None, shablonni belgilagan artikul)."""
     ao = ticket.article_operation
     article = ao.article if ao else None
     group = article.operation_group if article else None
+    source_article = article
     if not group:
         box = ticket.box
         batch = box.cutting_batch_item.batch if box and box.cutting_batch_item_id else None
         batch_article = batch.order_item.article if batch and batch.order_item_id else None
         if batch_article and batch_article.operation_group:
             group = batch_article.operation_group
+            source_article = batch_article
     name = group.name if group else (article.name if article else "Noma'lum")
+    return name, group, source_article
+
+
+def get_ticket_template(ticket):
+    """Biletning narxlar shabloni: (nomi, OperationGroup yoki None). Shablon bo'lmasa artikul nomi."""
+    name, group, _ = _ticket_template_info(ticket)
     return name, group
 
 
@@ -118,6 +137,7 @@ class DailyDazmol:
     pastals_by_patok: dict = field(default_factory=dict)         # {sn: {pastal_code: dona}}
     patok_dazmol_by_screen: dict = field(default_factory=dict)   # {sn: dona} terminal bo'yicha
     egasiz_by_screen: dict = field(default_factory=dict)         # {sn: dona} egasiz, dazmollangan terminal bo'yicha
+    template_norms_by_patok: dict = field(default_factory=dict)  # {sn: {nomi: {norma: dona}}}
 
     def asosiy(self, sn):
         return self.asosiy_by_patok.get(sn, 0)
@@ -126,6 +146,18 @@ class DailyDazmol:
         """Shablonlar dona soni kamayish tartibida: [{'name', 'group', 'qty'}]."""
         items = self.templates_by_patok.get(sn, {}).values()
         return sorted(items, key=lambda x: (-x['qty'], x['name']))
+
+    def template_lines(self, sn):
+        """
+        18:00 hisobot qatorlari: shablon x norma (bir shablonda ikki xil norma bo'lsa alohida qator),
+        shablonlar templates() tartibida: [{'name', 'group', 'norm', 'qty'}]. Dona yig'indisi = asosiy(sn).
+        """
+        norms = self.template_norms_by_patok.get(sn, {})
+        lines = []
+        for tpl in self.templates(sn):
+            for norm, qty in sorted(norms.get(tpl['name'], {}).items(), key=lambda x: (-x[1], x[0])):
+                lines.append({'name': tpl['name'], 'group': tpl['group'], 'norm': norm, 'qty': qty})
+        return lines
 
     def pastals(self, sn):
         return [{'code': code, 'qty': qty} for code, qty in sorted(self.pastals_by_patok.get(sn, {}).items())]
@@ -148,7 +180,9 @@ def compute_daily_dazmol(start, end):
     ).select_related(
         'article_operation__operation',
         'article_operation__article__operation_group',
+        'article_operation__article__model',
         'box__cutting_batch_item__batch__order_item__article__operation_group',
+        'box__cutting_batch_item__batch__order_item__article__model',
     )
 
     asosiy = defaultdict(int)
@@ -156,6 +190,7 @@ def compute_daily_dazmol(start, end):
     pastals = defaultdict(lambda: defaultdict(int))
     patok = defaultdict(int)
     egasiz = defaultdict(int)
+    template_norms = defaultdict(dict)
 
     for t in tickets:
         op = t.article_operation.operation if t.article_operation_id else None
@@ -172,9 +207,10 @@ def compute_daily_dazmol(start, end):
             continue
 
         asosiy[owner] += qty
-        name, group = get_ticket_template(t)
+        name, group, template_article = _ticket_template_info(t)
         entry = templates[owner].setdefault(name, {'name': name, 'group': group, 'qty': 0})
         entry['qty'] += qty
+        template_norms[owner].setdefault(name, defaultdict(int))[get_article_norm(template_article)] += qty
         pastals[owner][(t.box.pastal_code or '').strip() or "—"] += qty
 
     return DailyDazmol(
@@ -183,6 +219,7 @@ def compute_daily_dazmol(start, end):
         pastals_by_patok={sn: dict(v) for sn, v in pastals.items()},
         patok_dazmol_by_screen=dict(patok),
         egasiz_by_screen=dict(egasiz),
+        template_norms_by_patok={sn: {name: dict(v) for name, v in by_name.items()} for sn, by_name in template_norms.items()},
     )
 
 

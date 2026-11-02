@@ -29,6 +29,28 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 02.11.2026, 13:20
+* **Turi:** `feat(daily-report)` — 18:00 hisobot yangi shakli: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз
+* **Mavzu:** `/sewing-statistics/daily-report/` sahifasi va Telegramga ketadigan 18:00 rasm 7 ustunli bo'ldi; "Паток қуввати" o'rniga normaga nisbatan foiz.
+* **O'zgartirilgan fayllar:**
+  - `production/daily_dazmol.py` (`template_lines`, `get_article_norm`)
+  - `production/daily_image_reports.py` (qatorlar, `patok_foiz`, rasm, Telegram izohi)
+  - `production/sewing_statistics_views.py`, `templates/production/sewing_statistics_daily_report.html`
+  - `production/test_daily_dazmol.py`, `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Norma:** shablonda ishlangan modelning kunlik normasi (artikul → model → 1200); bir shablonda ikki xil norma bo'lsa alohida qator. Ish sonlari yig'indisi Kunlik Patoklar sahifasidagi asosiy dazmolga teng qoladi.
+  2. **Foiz:** ish sonlari yig'indisi / normalarning o'rtacha arifmetigi — masalan (100 + 900) / ((800 + 1000) / 2) = 111%. Filial foizi — faol patoklar o'rtachasi, fabrika — ikki filial o'rtachasining o'rtachasi.
+  3. **Rasm va izoh:** 7 ustunli jadval; izohda "Ўртача фоиз".
+  4. **Testlar:** 289 ta test; 7 ta xato bu o'zgarishdan oldin ham bor edi. Egasi misoli (111.1%), ikki normali shablon va rasm chizilishi tekshiriladi.
+  5. **Hali o'zgarmagan:** oylik Excel va `DailyPatokProgress.patok_kpi` eski "quvvat" ni saqlaydi.
+* **Serverda:** `git pull origin main && docker compose restart web scheduler` (migratsiya yo'q)
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `1d81ca0`] — 30.10.2026, 20:44
 * **Turi:** `fix(statistics)` — Dazmol = OTK kutmoqda + Ta'mir + 1-sort + 2-sort tengligi (model, zakaz va fabrika sahifalarida)
 * **Mavzu:** TFHZ604 (zakaz 2309) da Dazmol 6 179, qolganlari yig'indisi 5 737 edi (farq 442). Sabablar: ta'mirdagi qutilarning saralangan qismi hech qayerda sanalmasdi; OTK ko'rgan, lekin dazmol stikeri urilmagan qutilar Dazmolga kirmasdi; DAZMOL operatsiyasi stikerlar chop etilgandan keyin qo'shilgan qutilarda dazmol bileti umuman yo'q edi.
