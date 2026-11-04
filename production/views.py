@@ -729,6 +729,15 @@ def box_pipeline_statistics_view(request):
     razmer = request.GET.get('razmer', '').strip()
     unscanned_param = request.GET.get('unscanned_only')
 
+    # Pastal bo'yicha qidirish: pastal haqida to'liq ma'lumot (production/pastal_info.py)
+    pastal_info_query = request.GET.get('pastal_info', '').strip()
+    pastal_info_cards = []
+    pastal_info_suggestions = []
+    if pastal_info_query:
+        from .pastal_info import find_pastal_batches, build_pastal_info
+        found_batches, pastal_info_suggestions = find_pastal_batches(pastal_info_query)
+        pastal_info_cards = [build_pastal_info(b) for b in found_batches]
+
     # Umuman skan qilinmagan qutilar filtri FAQAT foydalanuvchi o'zi belgilaganda ishlaydi.
     # Boshqa payt aralashib ketmasligi uchun avtomatik yoqilmaydi.
     if status_filter == 'UNSCANNED':
@@ -817,6 +826,9 @@ def box_pipeline_statistics_view(request):
         if pastal_clean.isdigit():
             pastal_filter_q |= Q(cutting_batch_item__batch__batch_number=int(pastal_clean))
         boxes_qs = boxes_qs.filter(pastal_filter_q).distinct()
+    elif pastal_info_cards:
+        # Pastal bo'yicha qidirilganda pastda aynan shu pastal(lar)ning qutilari ko'rinadi
+        boxes_qs = boxes_qs.filter(cutting_batch_item__batch_id__in=[c['batch_id'] for c in pastal_info_cards])
 
     # 3. Razmer (O'lcham) bo'yicha filtr
     if razmer:
@@ -1053,6 +1065,10 @@ def box_pipeline_statistics_view(request):
         'completed_boxes_count': completed_boxes_count,
         'highlighted_ticket_id': highlighted_ticket_id,
         'highlighted_box_id': highlighted_box_id,
+        'pastal_info_query': pastal_info_query,
+        'pastal_info_cards': pastal_info_cards,
+        'pastal_info_suggestions': pastal_info_suggestions,
+        'all_pastals': sorted_all_pastals,
     }
     return render(request, 'production/statistics_pipeline.html', context)
 

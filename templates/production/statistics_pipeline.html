@@ -77,9 +77,78 @@
         </div>
     </div>
 
+    <!-- PASTAL BO'YICHA QIDIRISH: pastal haqida to'liq ma'lumot (production/pastal_info.py) -->
+    <div class="bg-slate-900 border border-indigo-500/30 rounded-3xl p-5 shadow-xl space-y-4">
+        <form method="GET" action="{% url 'production:statistics_pipeline' %}" class="flex flex-col md:flex-row md:items-center gap-3">
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-black text-white">Pastal bo'yicha qidirish</h2>
+                    <p class="text-[11px] text-slate-400">Pastal kodi, pasport QR yoki quti kodi — pastal haqida to'liq ma'lumot</p>
+                </div>
+            </div>
+            <div class="relative flex-1">
+                <input type="text" name="pastal_info" value="{{ pastal_info_query }}" list="pastal-info-codes" autocomplete="off"
+                    placeholder="Masalan: 10-773"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-10 pr-3 py-2.5 text-sm text-white placeholder-slate-500 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-xs text-slate-500"></i>
+                <datalist id="pastal-info-codes">
+                    {% for p in all_pastals %}<option value="{{ p }}">{% endfor %}
+                </datalist>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button type="submit"
+                    class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-2xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i> Qidirish
+                </button>
+                {% if pastal_info_query %}
+                <a href="{% url 'production:statistics_pipeline' %}"
+                    class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl transition" title="Tozalash">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        {% if pastal_info_query %}
+            {% if pastal_info_cards %}
+                {% if pastal_info_cards|length > 1 %}
+                <div class="px-3.5 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    «{{ pastal_info_query }}» kodi bilan {{ pastal_info_cards|length }} ta pastal bor (masalan, bitta to'plamning ikki modeli bir xil kod bilan kesilgan). Har biri alohida ko'rsatilgan.
+                </div>
+                {% endif %}
+                {% for info in pastal_info_cards %}
+                    {% include 'production/partials/pastal_info_card.html' %}
+                {% endfor %}
+                <p class="text-[11px] text-slate-500"><i class="fa-solid fa-arrow-down mr-1"></i> Pastda — shu pastalning qutilari va operatsiyalari.</p>
+            {% elif pastal_info_suggestions %}
+                <div class="space-y-2">
+                    <p class="text-xs text-slate-300">«{{ pastal_info_query }}» aniq topilmadi. Shulardan birini tanlang:</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for b in pastal_info_suggestions %}
+                        <a href="?pastal_info=PASTAL:{{ b.id }}"
+                            class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs text-slate-200 transition">
+                            <b class="font-mono text-indigo-300">{{ b.pastal_code|default:b.batch_number }}</b>
+                            <span class="text-slate-400">— {{ b.order_item.article.code }}, zakaz {{ b.order_item.order.order_number }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="px-3.5 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-200">
+                    <i class="fa-solid fa-circle-xmark mr-1"></i> «{{ pastal_info_query }}» bo'yicha pastal topilmadi.
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
     <!-- SEARCH & FILTER TOOLBAR -->
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
         <form id="statistics-filter-form" method="GET" action="{% url 'production:statistics_pipeline' %}" class="space-y-4">
+            {% if pastal_info_query %}<input type="hidden" name="pastal_info" value="{{ pastal_info_query }}">{% endif %}
             <!-- Row 1: Search, Article Select, Pastal Select, Razmer Select, Actions -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                 <!-- Search input (3 cols on lg, 6 on md) -->

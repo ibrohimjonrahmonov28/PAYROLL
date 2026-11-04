@@ -29,6 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 12:49
+* **Turi:** `feat(statistics)` — Qutilar statistikasida pastal bo'yicha qidirish va pastal haqida to'liq ma'lumot
+* **Mavzu:** `/statistics/` (Qutilar Statistikasi) sahifasida "Pastal bo'yicha qidirish" bloki: pastal kodi, pasport QR yoki quti kodi kiritilsa, pastal kartochkasi chiqadi va pastdagi qutilar ro'yxati shu pastalga filtrlanadi.
+* **O'zgartirilgan fayllar:**
+  - `production/pastal_info.py` (yangi): `find_pastal_batches`, `build_pastal_info` — faqat o'qiydi
+  - `production/views.py` (`box_pipeline_statistics_view`: `?pastal_info=`), `templates/production/statistics_pipeline.html`
+  - `templates/production/partials/pastal_info_card.html` (yangi)
+  - `production/test_pastal_info.py` (yangi), `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Kartochka:** model, zakaz va mijoz, kesim raqami, yaratilgan vaqti, bichuvchi va kirituvchi, narxlar shabloni, hozirgi holati; kesilgan / metodan keyin / qutilarda, tikuv %, dazmol, 1-sort, 2-sort, ta'mirda.
+  2. **Bo'limlar:** kesim va razmerlar (meto soni, metochi, qutilar, chop etish, mato, vazn); patok (bot jo'natishi, planshetda qabul, qaytarish, Uychi yuk xati); tikuv va dazmol (skanlar, tikuvchilar, ish haqi, qaysi patoklarda); OTK (qutilar, sortlar, ta'mir, tekshiruvlar); pastal tarixi — kesimdan yopilishgacha vaqt bilan.
+  3. **Qidiruv:** aniq kod — shu kodli barcha pastallar (bir xil kodli ikki model alohida); pasport QR va quti kodi — o'sha pastal; aks holda o'xshash pastallar taklif qilinadi.
+  4. **Testlar:** 3 ta yangi (kartochka raqamlari va tarix tartibi, qidiruv turlari, sahifa va qutilar filtri); tegishli 37 ta test o'tdi. Real baza nusxasida 10-773, 10-626, 10-522 tekshirildi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `19b600f`] — 04.11.2026, 12:23
 * **Turi:** `feat(brand)` — Terry Jar Textile logotipi vektorda va butun loyiha uchun brauzer tabi belgisi
 * **Mavzu:** Chrome tabida odatiy globus belgisi turardi (favicon umuman yo'q edi). Egasi bergan logotip rasmi (PNG) vektorga (SVG) aylantirildi va barcha sahifalar uchun tab belgisi qilindi.

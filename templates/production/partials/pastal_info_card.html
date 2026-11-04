@@ -1,0 +1,242 @@
+{% comment %}
+Pastal haqida to'liq ma'lumot kartochkasi (Qutilar statistikasi → "Pastal bo'yicha qidirish").
+Kontekst: info — production/pastal_info.py::build_pastal_info natijasi.
+{% endcomment %}
+<div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+
+    <!-- Sarlavha: pastal, holat, model va zakaz -->
+    <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+        <div class="flex items-start gap-3 min-w-0">
+            {% if info.article.image_url %}
+            <img src="{{ info.article.image_url }}" alt="" onerror="this.remove()"
+                class="w-14 h-14 rounded-xl object-cover border border-slate-800 flex-shrink-0 overflow-hidden">
+            {% else %}
+            <div class="w-14 h-14 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-layer-group text-xl"></i>
+            </div>
+            {% endif %}
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-lg font-black text-white">Pastal <span class="font-mono text-indigo-300">{{ info.pastal_code }}</span></h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black border
+                        {% if info.state_tone == 'emerald' %}bg-emerald-500/15 text-emerald-300 border-emerald-500/40
+                        {% elif info.state_tone == 'cyan' %}bg-cyan-500/15 text-cyan-300 border-cyan-500/40
+                        {% elif info.state_tone == 'blue' %}bg-blue-500/15 text-blue-300 border-blue-500/40
+                        {% elif info.state_tone == 'indigo' %}bg-indigo-500/15 text-indigo-300 border-indigo-500/40
+                        {% elif info.state_tone == 'amber' %}bg-amber-500/15 text-amber-300 border-amber-500/40
+                        {% else %}bg-slate-800 text-slate-300 border-slate-700{% endif %}">
+                        {{ info.state_label }}
+                    </span>
+                </div>
+                <p class="text-xs text-slate-300 mt-0.5">
+                    <span class="font-bold text-white">{{ info.article.code }}</span>{% if info.article.name %} — {{ info.article.name }}{% endif %}
+                    <span class="text-slate-600">•</span> Zakaz <span class="font-bold text-white">{{ info.order.number }}</span>{% if info.order.customer %} ({{ info.order.customer }}){% endif %}
+                    <span class="text-slate-600">•</span> Kesim #{{ info.batch_number }}
+                </p>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                    <i class="fa-regular fa-calendar text-slate-500"></i>
+                    Yaratilgan: <span class="font-bold text-slate-200">{{ info.created_at|date:"d.m.Y H:i" }}</span>
+                    {% if info.cutter_name %}<span class="text-slate-600">•</span> Bichuvchi: <span class="text-slate-200">{{ info.cutter_name }}</span>{% endif %}
+                    {% if info.created_by %}<span class="text-slate-600">•</span> Kiritgan: <span class="text-slate-200">{{ info.created_by }}</span>{% endif %}
+                    {% if info.article.template_name %}<span class="text-slate-600">•</span> Narxlar shabloni: <span class="text-slate-200">{{ info.article.template_name }}</span>{% endif %}
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'production:pastal_passport' info.batch_id %}" target="_blank"
+            class="flex-shrink-0 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition inline-flex items-center gap-2">
+            <i class="fa-solid fa-file-lines text-indigo-300"></i> Pastal pasporti
+        </a>
+    </div>
+
+    <!-- Asosiy raqamlar -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Kesilgan</span>
+            <span class="text-lg font-black text-white digital-font">{{ info.totals.cut }}</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Metodan keyin</span>
+            <span class="text-lg font-black text-white digital-font">{{ info.totals.meto }}</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Qutilarda</span>
+            <span class="text-lg font-black text-white digital-font">{{ info.totals.boxed }}</span>
+            <span class="text-[10px] text-slate-500">{{ info.totals.boxes }} quti{% if info.totals.cancelled_boxes %}, {{ info.totals.cancelled_boxes }} bekor{% endif %}</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-blue-400 uppercase font-black tracking-wider block">Tikuv</span>
+            <span class="text-lg font-black text-blue-300 digital-font">{{ info.sewing.progress_pct }}%</span>
+            <span class="text-[10px] text-slate-500">{{ info.sewing.tickets_scanned }}/{{ info.sewing.tickets_total }} stiker</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-indigo-400 uppercase font-black tracking-wider block">Dazmol</span>
+            <span class="text-lg font-black text-indigo-300 digital-font">{{ info.dazmol.qty }}</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block">1-sort</span>
+            <span class="text-lg font-black text-emerald-300 digital-font">{{ info.otk.first_sort }}</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-rose-400 uppercase font-black tracking-wider block">2-sort</span>
+            <span class="text-lg font-black text-rose-300 digital-font">{{ info.otk.second_sort }}</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-[10px] text-amber-400 uppercase font-black tracking-wider block">Ta'mirda</span>
+            <span class="text-lg font-black text-amber-300 digital-font">{{ info.otk.repair_now }}</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+        <!-- Kesim va razmerlar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-scissors text-amber-400"></i> Kesim va razmerlar
+            </h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="text-[10px] uppercase text-slate-500 border-b border-slate-800">
+                        <tr>
+                            <th class="py-1.5 text-left">Razmer</th>
+                            <th class="py-1.5 text-right">Kesim</th>
+                            <th class="py-1.5 text-right">Meto</th>
+                            <th class="py-1.5 text-right">Qutilar</th>
+                            <th class="py-1.5 text-left pl-3">Holati</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60">
+                        {% for s in info.sizes %}
+                        <tr>
+                            <td class="py-1.5 font-bold text-white">{{ s.name }}</td>
+                            <td class="py-1.5 text-right font-mono text-slate-200">{{ s.cut_qty }}</td>
+                            <td class="py-1.5 text-right font-mono {% if s.meto_qty is None %}text-slate-500{% else %}text-slate-200{% endif %}">{% if s.meto_qty is None %}—{% else %}{{ s.meto_qty }}{% endif %}</td>
+                            <td class="py-1.5 text-right font-mono text-slate-200">{{ s.boxes_qty }} <span class="text-slate-500">({{ s.boxes_count }})</span></td>
+                            <td class="py-1.5 pl-3 text-slate-400">
+                                {{ s.status_display }}
+                                {% if s.meto_completed_at %}<span class="block text-[10px] text-slate-500">{{ s.meto_worker }} {{ s.meto_completed_at|date:"d.m.Y H:i" }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="py-2 text-slate-500 italic">Razmerlar kiritilmagan.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-[11px] text-slate-400 grid grid-cols-2 gap-x-3 gap-y-0.5 pt-1 border-t border-slate-800">
+                <span>Stiker chop etilgan: <b class="text-slate-200">{{ info.totals.printed_boxes }}/{{ info.totals.boxes }} quti</b></span>
+                <span>Birinchi chop: <b class="text-slate-200">{{ info.totals.first_printed_at|date:"d.m.Y H:i"|default:"—" }}</b></span>
+                {% if info.fabric_batch_code or info.partiya_number %}<span>Mato / partiya: <b class="text-slate-200">{{ info.fabric_batch_code|default:info.partiya_number }}</b></span>{% endif %}
+                {% if info.fabric_weight_kg %}<span>Mato og'irligi: <b class="text-slate-200">{{ info.fabric_weight_kg }} kg</b></span>{% endif %}
+                <span>Haqiqiy vazn (bot): <b class="text-slate-200">{% if info.actual_weight_kg %}{{ info.actual_weight_kg }} kg{% else %}—{% endif %}</b></span>
+            </div>
+            {% if info.notes %}<p class="text-[11px] text-slate-400 italic">Izoh: {{ info.notes }}</p>{% endif %}
+        </div>
+
+        <!-- Patokka jo'natish va qabul -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-cyan-400"></i> Patok
+            </h4>
+            <div class="text-xs space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-slate-400">Holati</span>
+                    <span class="font-bold {% if info.dispatch.status == 'ACCEPTED' %}text-emerald-300{% elif info.dispatch.status == 'DISPATCHED' %}text-amber-300{% else %}text-slate-300{% endif %}">{{ info.dispatch.status_display }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-slate-400">Patok</span>
+                    <span class="font-black text-white">{{ info.dispatch.patok_code|default:"—" }}{% if info.dispatch.branch_display %} <span class="font-normal text-slate-400">({{ info.dispatch.branch_display }})</span>{% endif %}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-slate-400">Jo'natgan (bot)</span>
+                    <span class="text-slate-200 text-right">{% if info.dispatch.dispatched_at %}{{ info.dispatch.dispatched_by|default:"—" }} · {{ info.dispatch.dispatched_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-slate-400">Qabul qilgan (planshet)</span>
+                    <span class="text-slate-200 text-right">{% if info.dispatch.accepted_at %}{{ info.dispatch.accepted_by|default:"—" }} · {{ info.dispatch.accepted_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-slate-400">Patok qabul qilgan qutilar</span>
+                    <span class="text-slate-200">{{ info.dispatch.received_boxes }}/{{ info.totals.boxes }}</span>
+                </div>
+                {% if info.dispatch.rejected_at %}
+                <div class="mt-1 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-200 text-[11px]">
+                    Master qaytargan: {{ info.dispatch.rejected_at|date:"d.m.Y H:i" }}{% if info.dispatch.rejection_reason %} — {{ info.dispatch.rejection_reason }}{% endif %}
+                </div>
+                {% endif %}
+                {% if info.waybill %}
+                <div class="mt-1 p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-300">
+                    <b class="text-white">Yuk xati {{ info.waybill.number }}</b> · {{ info.waybill.route }} · {{ info.waybill.status_display }}
+                    {% if info.waybill.received_at %}<span class="block text-slate-400">Qabul: {{ info.waybill.received_by|default:"—" }} · {{ info.waybill.received_at|date:"d.m.Y H:i" }}</span>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tikuv va dazmol -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-shirt text-blue-400"></i> Tikuv va dazmol
+            </h4>
+            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                <div class="h-full bg-blue-500" style="width: {{ info.sewing.progress_pct }}%"></div>
+            </div>
+            <div class="text-[11px] text-slate-400 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                <span>Urilgan stiker: <b class="text-slate-200">{{ info.sewing.tickets_scanned }}/{{ info.sewing.tickets_total }}</b></span>
+                <span>Tikuvchilar: <b class="text-slate-200">{{ info.sewing.workers }}</b></span>
+                <span>Birinchi skan: <b class="text-slate-200">{{ info.sewing.first_scan|date:"d.m.Y H:i"|default:"—" }}</b></span>
+                <span>Oxirgi skan: <b class="text-slate-200">{{ info.sewing.last_scan|date:"d.m.Y H:i"|default:"—" }}</b></span>
+                <span>Ish haqi (urilgan): <b class="text-slate-200">{{ info.sewing.earned_display }} UZS</b></span>
+                <span>Dazmol: <b class="text-indigo-300">{{ info.dazmol.qty }} dona</b>{% if info.dazmol.first_at %} <span class="text-slate-500">({{ info.dazmol.first_at|date:"d.m H:i" }} – {{ info.dazmol.last_at|date:"d.m H:i" }})</span>{% endif %}</span>
+            </div>
+            {% if info.sewing.by_patok %}
+            <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800">
+                <span class="text-[10px] text-slate-500 uppercase font-bold self-center">Skan qilingan patoklar:</span>
+                {% for p in info.sewing.by_patok %}
+                <span class="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-200"><b>{{ p.code }}</b> {{ p.pct }}% <span class="text-slate-500">({{ p.tickets }})</span></span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if info.dazmol.by_patok %}
+            <div class="flex flex-wrap gap-1.5">
+                <span class="text-[10px] text-slate-500 uppercase font-bold self-center">Dazmol patoklari:</span>
+                {% for p in info.dazmol.by_patok %}
+                <span class="px-2 py-0.5 rounded-md bg-indigo-950/60 border border-indigo-800/60 text-[11px] font-mono text-indigo-200"><b>{{ p.code }}</b> {{ p.qty }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- OTK -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-check text-emerald-400"></i> OTK sifat nazorati
+            </h4>
+            <div class="text-[11px] text-slate-400 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                <span>Ko'rilgan qutilar: <b class="text-slate-200">{{ info.otk.controlled_boxes }}/{{ info.totals.boxes }}</b></span>
+                <span>Yopilgan qutilar: <b class="text-emerald-300">{{ info.otk.closed_boxes }}</b></span>
+                <span>1-sort: <b class="text-emerald-300">{{ info.otk.first_sort }}</b></span>
+                <span>2-sort: <b class="text-rose-300">{{ info.otk.second_sort }}</b></span>
+                <span>Ta'mirda: <b class="text-amber-300">{{ info.otk.repair_now }}</b>{% if info.otk.repair_boxes %} <span class="text-slate-500">({{ info.otk.repair_boxes }} quti)</span>{% endif %}</span>
+                {% if info.otk.defect %}<span>Brak: <b class="text-rose-300">{{ info.otk.defect }}</b></span>{% endif %}
+                <span>Tekshiruvlar: <b class="text-slate-200">{{ info.otk.inspections }}</b> <span class="text-slate-500">({{ info.otk.inspectors }} nazoratchi)</span></span>
+                <span>Birinchi / oxirgi: <b class="text-slate-200">{{ info.otk.first_at|date:"d.m H:i"|default:"—" }} / {{ info.otk.last_at|date:"d.m H:i"|default:"—" }}</b></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voqealar tarixi -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+        <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-timeline text-violet-400"></i> Pastal tarixi
+        </h4>
+        <ol class="space-y-1.5">
+            {% for e in info.timeline %}
+            <li class="flex items-start gap-3 text-xs">
+                <span class="font-mono text-[11px] text-slate-400 w-32 flex-shrink-0">{{ e.at|date:"d.m.Y H:i" }}</span>
+                <span class="w-2 h-2 rounded-full bg-violet-400 mt-1.5 flex-shrink-0"></span>
+                <span class="text-slate-200"><b class="text-white">{{ e.title }}</b>{% if e.detail %} <span class="text-slate-400">— {{ e.detail }}</span>{% endif %}</span>
+            </li>
+            {% endfor %}
+        </ol>
+    </div>
+</div>

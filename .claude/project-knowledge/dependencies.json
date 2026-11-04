@@ -90,6 +90,7 @@
    "production/norma_views.py",
    "production/passport_bot_service.py",
    "production/passport_views.py",
+   "production/pastal_info.py",
    "production/services.py",
    "production/sewing_pipeline_summary.py",
    "production/sewing_statistics_views.py",
@@ -101,6 +102,7 @@
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
+   "production/test_pastal_info.py",
    "production/test_pipeline_summary.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
@@ -468,6 +470,16 @@
     "production.passport_bot_service"
    ]
   },
+  "production.pastal_info": {
+   "imports": [
+    "production.daily_dazmol",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "production.passport_bot_service"
+   ]
+  },
   "production.services": {
    "imports": [
     "production.models"
@@ -572,6 +584,14 @@
     "production.passport_bot_service"
    ]
   },
+  "production.test_pastal_info": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.pastal_info",
+    "production.services"
+   ]
+  },
   "production.test_pipeline_summary": {
    "imports": [
     "accounts.models",
@@ -651,6 +671,7 @@
     "production.services"
    ],
    "lazy": [
+    "production.pastal_info",
     "production.sticker_generator",
     "production.terminal_views"
    ]
@@ -1188,6 +1209,11 @@
     "production:order_list"
    ]
   },
+  "templates/production/partials/pastal_info_card.html": {
+   "url_names": [
+    "production:pastal_passport"
+   ]
+  },
   "templates/production/passport_checker.html": {
    "extends": [
     "base.html"
@@ -1274,6 +1300,9 @@
   "templates/production/statistics_pipeline.html": {
    "extends": [
     "base.html"
+   ],
+   "includes": [
+    "production/partials/pastal_info_card.html"
    ],
    "url_names": [
     "production:statistics_pipeline"

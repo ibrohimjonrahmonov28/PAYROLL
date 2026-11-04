@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2179,
+  "lines": 2200,
   "depends_on": [
    "accounts.core"
   ]
@@ -242,13 +242,14 @@
    "production/urls.py",
    "production/views.py"
   ],
-  "lines": 1318,
+  "lines": 1334,
   "depends_on": [
    "accounts.core",
    "production.control",
    "production.master",
    "production.models",
    "production.passport",
+   "production.platform",
    "production.services",
    "production.sewing_statistics",
    "production.stickers",
@@ -273,13 +274,17 @@
    "production/__init__.py",
    "production/admin.py",
    "production/apps.py",
+   "production/pastal_info.py",
    "production/static/brand/favicon.ico",
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 257,
+  "lines": 549,
   "depends_on": [
-   "production.models"
+   "production.models",
+   "production.passport",
+   "production.reports",
+   "production.services"
   ]
  },
  "production.reports": {
@@ -413,6 +418,7 @@
    "templates/production/master_tablet.html",
    "templates/production/order_detail.html",
    "templates/production/order_list.html",
+   "templates/production/partials/pastal_info_card.html",
    "templates/production/partials/size_boxes_pipeline.html",
    "templates/production/passport_checker.html",
    "templates/production/pastal_passport.html",
@@ -444,7 +450,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 42309,
+  "lines": 42621,
   "depends_on": []
  },
  "tests": {
@@ -455,6 +461,7 @@
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
+   "production/test_pastal_info.py",
    "production/test_pipeline_summary.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
@@ -463,7 +470,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 10470,
+  "lines": 10613,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",
@@ -474,6 +481,7 @@
    "production.models",
    "production.norma",
    "production.passport",
+   "production.platform",
    "production.reports",
    "production.services",
    "production.sewing_statistics",

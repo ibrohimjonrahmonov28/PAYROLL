@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 519,
-   "sha256_16": "e099a9dbec4adf71"
+   "lines": 540,
+   "sha256_16": "f59911b2f8cf33a6"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 95,
-   "sha256_16": "f8c41e06e1dc5afe"
+   "sha256_16": "62385e3c39f37b6a"
   },
   "Dockerfile": {
    "module": "ops",
@@ -804,6 +804,17 @@
     "passport_checker_api:136"
    ]
   },
+  "production/pastal_info.py": {
+   "module": "production.platform",
+   "lines": 292,
+   "sha256_16": "155c5976a7011453",
+   "symbols": [
+    "_user_name:27",
+    "find_pastal_batches:33",
+    "_pastal_state:62",
+    "build_pastal_info:81"
+   ]
+  },
   "production/services.py": {
    "module": "production.services",
    "lines": 611,
@@ -983,6 +994,14 @@
     "PassportVerificationTestCase:38"
    ]
   },
+  "production/test_pastal_info.py": {
+   "module": "tests",
+   "lines": 143,
+   "sha256_16": "0653712463c813de",
+   "symbols": [
+    "PastalInfoTest:20"
+   ]
+  },
   "production/test_pipeline_summary.py": {
    "module": "tests",
    "lines": 207,
@@ -1063,8 +1082,8 @@
   },
   "production/views.py": {
    "module": "production.orders",
-   "lines": 1237,
-   "sha256_16": "739e267d16a6d1f3",
+   "lines": 1253,
+   "sha256_16": "f23ada483c33f5e8",
    "symbols": [
     "dashboard_view:15",
     "order_list_view:67",
@@ -1076,8 +1095,8 @@
     "order_download_all_stickers_100x60_pdf:556",
     "articles_catalog_view:640",
     "box_pipeline_statistics_view:719",
-    "api_ticket_scan_detail:1061",
-    "pastal_passport_view:1124"
+    "api_ticket_scan_detail:1077",
+    "pastal_passport_view:1140"
    ]
   },
   "requirements.txt": {
@@ -1369,6 +1388,11 @@
    "lines": 247,
    "sha256_16": "942de07894b3f878"
   },
+  "templates/production/partials/pastal_info_card.html": {
+   "module": "templates",
+   "lines": 243,
+   "sha256_16": "17ec70eadc913b78"
+  },
   "templates/production/partials/size_boxes_pipeline.html": {
    "module": "templates",
    "lines": 438,
@@ -1421,8 +1445,8 @@
   },
   "templates/production/statistics_pipeline.html": {
    "module": "templates",
-   "lines": 721,
-   "sha256_16": "c50d44d927fcdd44"
+   "lines": 790,
+   "sha256_16": "50f8ab42e1b5910d"
   },
   "templates/screens/monitor.html": {
    "module": "templates",
