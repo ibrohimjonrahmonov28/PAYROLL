@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 12:23
+### 🔹 [Commit: `19b600f`] — 04.11.2026, 12:23
 * **Turi:** `feat(brand)` — Terry Jar Textile logotipi vektorda va butun loyiha uchun brauzer tabi belgisi
 * **Mavzu:** Chrome tabida odatiy globus belgisi turardi (favicon umuman yo'q edi). Egasi bergan logotip rasmi (PNG) vektorga (SVG) aylantirildi va barcha sahifalar uchun tab belgisi qilindi.
 * **O'zgartirilgan fayllar:**
@@ -45,7 +45,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (`collectstatic` web ishga tushganda yig'adi). Brauzer eski belgini keshda saqlashi mumkin — tabni yopib ochish yoki Ctrl+Shift+R.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 19b600f
   ```
 
 ---
