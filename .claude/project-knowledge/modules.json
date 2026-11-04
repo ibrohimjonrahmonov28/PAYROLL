@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1010,
+  "lines": 1011,
   "depends_on": [
    "production.models",
    "production.services"
@@ -91,7 +91,7 @@
    "config/urls.py",
    "config/wsgi.py"
   ],
-  "lines": 349,
+  "lines": 353,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2137,
+  "lines": 2179,
   "depends_on": [
    "accounts.core"
   ]
@@ -272,9 +272,12 @@
   "files": [
    "production/__init__.py",
    "production/admin.py",
-   "production/apps.py"
+   "production/apps.py",
+   "production/static/brand/favicon.ico",
+   "production/static/brand/terryjar-icon.svg",
+   "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 185,
+  "lines": 257,
   "depends_on": [
    "production.models"
   ]
@@ -441,7 +444,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 42224,
+  "lines": 42309,
   "depends_on": []
  },
  "tests": {
@@ -460,7 +463,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 10401,
+  "lines": 10470,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

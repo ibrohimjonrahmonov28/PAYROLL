@@ -29,6 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 12:23
+* **Turi:** `feat(brand)` — Terry Jar Textile logotipi vektorda va butun loyiha uchun brauzer tabi belgisi
+* **Mavzu:** Chrome tabida odatiy globus belgisi turardi (favicon umuman yo'q edi). Egasi bergan logotip rasmi (PNG) vektorga (SVG) aylantirildi va barcha sahifalar uchun tab belgisi qilindi.
+* **O'zgartirilgan fayllar:**
+  - `production/static/brand/` (yangi): `terryjar-logo.svg` (to'liq logotip — paxta shoxi, TERRY JAR TEXTILE, TERRY TOWELS), `terryjar-icon.svg` (tab belgisi: oq yumaloq kvadrat ustida paxta shoxi), `favicon.ico` (16/32/48), `apple-touch-icon.png` (180)
+  - `templates/includes/theme_head.html` (`<link rel="icon">` va `apple-touch-icon`)
+  - `config/urls.py` (`/favicon.ico` → `/static/brand/favicon.ico`), `accounts/middleware.py` (`/favicon.ico` barcha rollar uchun)
+  - `accounts/tests.py` (`BrandFaviconTest`), `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Vektor:** OpenCV konturlari bilan 4x kattalashtirilgan silliq niqobdan chizildi; paxta shoxi chetlari silliqlandi, yozuvlarning serif burchaklari o'tkir qoldi; "TERRY TOWELS" ingichka chiziqlari uchun alohida bo'sag'a. Rangi `#040361`.
+  2. **Tab belgisi:** 16 px da yozuv o'qilmaydi — faqat paxta shoxi, chiziqlari biroz qalinlashtirilgan; yorug' va qorong'i Chrome tablarida tekshirildi.
+  3. **Butun loyiha:** `theme_head` ulangan sahifalar belgini havola orqali, qolganlari (muzlatilgan `/control/`, `/screens/`, bosma sahifalar) brauzerning `/favicon.ico` so'rovi orqali oladi — ularning shablonlariga tegilmadi.
+  4. **Testlar:** 3 ta yangi test (fayllar, havolalar, `/favicon.ico` mehmon va MASTER/CONTROL/SCREEN uchun); tekshirilgan 20 ta test o'tdi.
+* **Serverda:** `git pull origin main && docker compose restart web` (`collectstatic` web ishga tushganda yig'adi). Brauzer eski belgini keshda saqlashi mumkin — tabni yopib ochish yoki Ctrl+Shift+R.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `e6d9c55`] — 04.11.2026, 11:47
 * **Turi:** `fix(pricing)` — Yangi shablonda operatsiyalar belgilangan tartibda raqamlanadi
 * **Mavzu:** Narxlar matritsasi → "Yangi shablon yaratish" oynasi. Stikerlar shablondagi tartib bo'yicha chop etiladi, lekin shablon yaratilganda "Tartib №" katalogdagi qator raqami (1…157) bo'lib qolardi va belgi qo'yilganda o'zgarmasdi. Natijada shablon (stikerlar ham) katalog — asosan alifbo tartibida saqlanardi: masalan "Mayka detskiy Kluch" da DAZMOL 11 tadan 4-o'rinda. Real bazada 4+ operatsiyali 42 shablondan 19 tasi shunday; 26.10 dan beri yaratilganlarning deyarli hammasi.

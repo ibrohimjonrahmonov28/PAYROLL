@@ -23,8 +23,12 @@ from production.control_views import control_download_apk_view
 from production.passport_views import passport_telegram_webhook
 
 from django.views.generic import RedirectView
+from django.templatetags.static import static as static_url
 
 urlpatterns = [
+    # Brauzer tabi belgisi (Terry Jar Textile logotipi): <link rel="icon"> yo'q sahifalar (muzlatilgan /control/,
+    # /screens/, bosma sahifalar) ham brauzerning /favicon.ico so'rovi orqali oladi
+    path('favicon.ico', RedirectView.as_view(url=static_url('brand/favicon.ico'), permanent=False), name='root_favicon'),
     path('admin/', admin.site.urls),
     path('bot/passport-webhook/', passport_telegram_webhook, name='root_passport_webhook'),
     path('apk/', control_download_apk_view, name='root_download_apk'),

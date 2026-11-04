@@ -696,6 +696,7 @@
    "superadmin/worker_history.html"
   ],
   "accounts/tests.py": [
+   "includes/theme_head.html",
    "superadmin/defect_reasons.html"
   ],
   "accounts/views.py": [

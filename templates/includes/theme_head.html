@@ -13,6 +13,11 @@ Qanday ishlaydi:
 - /control/ (OTK), /screens/ va /screens/<1..40>/ bu faylni EMAS, includes/theme_head_legacy.html ni
   ulaydi: foydalanuvchi talabi bo'yicha ular qat'iy eski holatda qoladi.
 {% endcomment %}
+{% load static %}
+{# Brauzer tabi belgisi: Terry Jar Textile logotipi (vektor). Bu faylni ulamagan sahifalar /favicon.ico orqali oladi. #}
+<link rel="icon" href="{% static 'brand/favicon.ico' %}" sizes="32x32">
+<link rel="icon" href="{% static 'brand/terryjar-icon.svg' %}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{% static 'brand/apple-touch-icon.png' %}">
 <script>
     (function () {
         var KEY = 'payroll_theme';

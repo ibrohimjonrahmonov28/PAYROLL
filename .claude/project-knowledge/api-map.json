@@ -1,7 +1,13 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 182,
+ "route_count": 183,
  "routes": [
+  {
+   "path": "/favicon.ico",
+   "name": "root_favicon",
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "config.urls"
+  },
   {
    "path": "/admin/",
    "name": "admin:*",

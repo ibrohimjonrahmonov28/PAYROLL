@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 478,
-   "sha256_16": "0a4fe097832bdfe9"
+   "lines": 519,
+   "sha256_16": "e099a9dbec4adf71"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 94,
-   "sha256_16": "bb25df5a4541e11d"
+   "lines": 95,
+   "sha256_16": "f8c41e06e1dc5afe"
   },
   "Dockerfile": {
    "module": "ops",
@@ -136,8 +136,8 @@
   },
   "accounts/middleware.py": {
    "module": "accounts.core",
-   "lines": 278,
-   "sha256_16": "d96bb5e6fab65215",
+   "lines": 279,
+   "sha256_16": "33ac19a7ae9394d6",
    "symbols": [
     "MasterTerminalAccessRestrictionMiddleware:6"
    ]
@@ -216,8 +216,8 @@
   },
   "accounts/tests.py": {
    "module": "tests",
-   "lines": 2412,
-   "sha256_16": "4ec88fdb30b7f102",
+   "lines": 2481,
+   "sha256_16": "d9ce9af79c19e74f",
    "symbols": [
     "SuperAdminPanelTest:13",
     "WorkerPerformanceHistoryAndBonusTest:802",
@@ -232,7 +232,9 @@
     "PlanRoleAccessTest:1926",
     "BranchAdminUserManagementTests:1971",
     "SuperAdminOrdersBalanceTests:2153",
-    "BranchAdminUychiAccessTests:2323"
+    "BranchAdminUychiAccessTests:2323",
+    "PricingTemplateCreateClickOrderTest:2395",
+    "BrandFaviconTest:2433"
    ]
   },
   "accounts/urls.py": {
@@ -336,8 +338,8 @@
   },
   "config/urls.py": {
    "module": "config",
-   "lines": 53,
-   "sha256_16": "1ff4b58ed30d792f"
+   "lines": 57,
+   "sha256_16": "3b01e75d70310e22"
   },
   "config/wsgi.py": {
    "module": "config",
@@ -867,6 +869,21 @@
     "export_monthly_daily_report_excel:3519"
    ]
   },
+  "production/static/brand/favicon.ico": {
+   "module": "production.platform",
+   "lines": 68,
+   "sha256_16": "d7a0debed184f985"
+  },
+  "production/static/brand/terryjar-icon.svg": {
+   "module": "production.platform",
+   "lines": 2,
+   "sha256_16": "8c04e0a082c439c5"
+  },
+  "production/static/brand/terryjar-logo.svg": {
+   "module": "production.platform",
+   "lines": 2,
+   "sha256_16": "c41ed1464c14f6b4"
+  },
   "production/sticker_generator.py": {
    "module": "production.stickers",
    "lines": 293,
@@ -1184,8 +1201,8 @@
   },
   "templates/includes/theme_head.html": {
    "module": "templates",
-   "lines": 327,
-   "sha256_16": "62e0aef0f38435d3"
+   "lines": 332,
+   "sha256_16": "b788cbada84b33db"
   },
   "templates/includes/theme_head_legacy.html": {
    "module": "templates",
@@ -1474,8 +1491,8 @@
   },
   "templates/superadmin/pricing.html": {
    "module": "templates",
-   "lines": 1832,
-   "sha256_16": "590f843943dd965a"
+   "lines": 1912,
+   "sha256_16": "d0107fce67f445c0"
   },
   "templates/superadmin/user_badge_print.html": {
    "module": "templates",

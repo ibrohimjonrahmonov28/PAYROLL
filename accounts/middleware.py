@@ -16,7 +16,8 @@ class MasterTerminalAccessRestrictionMiddleware:
 
     def __call__(self, request):
         path = request.path_info
-        if path.startswith('/apk') or path.startswith('/control/download-apk'):
+        # /favicon.ico — barcha rollar uchun brauzer tabi belgisi
+        if path.startswith('/apk') or path.startswith('/control/download-apk') or path == '/favicon.ico':
             return self.get_response(request)
 
         if request.user.is_authenticated and not request.user.is_superuser:

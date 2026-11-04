@@ -2430,6 +2430,37 @@ class PricingTemplateCreateClickOrderTest(TestCase):
         self.assertEqual(saved, [(1, 'YON CHOK'), (2, 'CHISTKA'), (3, 'DAZMOL')])
 
 
+class BrandFaviconTest(TestCase):
+    """
+    Brauzer tabi belgisi (Terry Jar Textile logotipi): fayllar static'da, theme_head ularni ulaydi, /favicon.ico esa
+    barcha rollar (cheklangan MASTER / CONTROL / SCREEN ham) uchun shu belgiga yo'naltiradi — theme_head'siz sahifalar
+    (muzlatilgan /control/, /screens/, bosma sahifalar) ham belgini shu yo'l bilan oladi.
+    """
+    FAVICON_URL = '/static/brand/favicon.ico'
+
+    def test_brand_static_files_exist(self):
+        from django.contrib.staticfiles import finders
+        for name in ('brand/favicon.ico', 'brand/terryjar-icon.svg', 'brand/terryjar-logo.svg', 'brand/apple-touch-icon.png'):
+            self.assertIsNotNone(finders.find(name), name)
+
+    def test_theme_head_links_brand_icons(self):
+        from django.template.loader import render_to_string
+        html = render_to_string('includes/theme_head.html')
+        self.assertIn('href="/static/brand/terryjar-icon.svg" type="image/svg+xml"', html)
+        self.assertIn('href="/static/brand/favicon.ico"', html)
+        self.assertIn('rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png"', html)
+
+    def test_favicon_redirect_for_anonymous_and_restricted_roles(self):
+        res = self.client.get('/favicon.ico')
+        self.assertRedirects(res, self.FAVICON_URL, fetch_redirect_response=False)
+        for role in (User.Role.MASTER, User.Role.CONTROL, User.Role.SCREEN):
+            user = User.objects.create_user(username=f"fav_{role.lower()}", password="testpass123", role=role)
+            self.client.force_login(user)
+            res = self.client.get('/favicon.ico')
+            self.assertRedirects(res, self.FAVICON_URL, fetch_redirect_response=False, msg_prefix=role)
+            self.client.logout()
+
+
 
 
 
