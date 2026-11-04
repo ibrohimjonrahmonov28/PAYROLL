@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 10:57
+### 🔹 [Commit: `7857970`] — 04.11.2026, 10:57
 * **Turi:** `fix(passport-bot)` — Vazn butun son bilan saqlanadi, qabul qilinmagan pastal boshqa patokka o'tkaziladi, bir xil kodli pastallardan tanlanadi
 * **Mavzu:** Telegramdagi pastal pasporti va patokka biriktirish boti (`run_passport_bot`). Real bazada topilgan uchta xato tuzatildi.
 * **O'zgartirilgan fayllar:**
@@ -45,7 +45,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web passport_bot`. Yangilanishdan oldingi tasdiqlash tugmalari "eskirgan" deydi — pastalni qaytadan skanerlash kerak.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 7857970
   ```
 
 ---
