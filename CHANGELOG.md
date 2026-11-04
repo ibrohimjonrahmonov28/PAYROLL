@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 12:49
+### 🔹 [Commit: `6d055a0`] — 04.11.2026, 12:49
 * **Turi:** `feat(statistics)` — Qutilar statistikasida pastal bo'yicha qidirish va pastal haqida to'liq ma'lumot
 * **Mavzu:** `/statistics/` (Qutilar Statistikasi) sahifasida "Pastal bo'yicha qidirish" bloki: pastal kodi, pasport QR yoki quti kodi kiritilsa, pastal kartochkasi chiqadi va pastdagi qutilar ro'yxati shu pastalga filtrlanadi.
 * **O'zgartirilgan fayllar:**
@@ -45,7 +45,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q).
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 6d055a0
   ```
 
 ---
