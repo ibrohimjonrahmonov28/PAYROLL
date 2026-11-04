@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 11:47
+### 🔹 [Commit: `e6d9c55`] — 04.11.2026, 11:47
 * **Turi:** `fix(pricing)` — Yangi shablonda operatsiyalar belgilangan tartibda raqamlanadi
 * **Mavzu:** Narxlar matritsasi → "Yangi shablon yaratish" oynasi. Stikerlar shablondagi tartib bo'yicha chop etiladi, lekin shablon yaratilganda "Tartib №" katalogdagi qator raqami (1…157) bo'lib qolardi va belgi qo'yilganda o'zgarmasdi. Natijada shablon (stikerlar ham) katalog — asosan alifbo tartibida saqlanardi: masalan "Mayka detskiy Kluch" da DAZMOL 11 tadan 4-o'rinda. Real bazada 4+ operatsiyali 42 shablondan 19 tasi shunday; 26.10 dan beri yaratilganlarning deyarli hammasi.
 * **O'zgartirilgan fayllar:**
@@ -44,7 +44,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q).
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout e6d9c55
   ```
 
 ---
