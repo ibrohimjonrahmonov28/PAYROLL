@@ -85,6 +85,43 @@ def patok_foiz(products):
     return round(total / (sum(norms) / len(norms)) * 100, 1)
 
 
+def get_assigned_batches_by_screen(screen_numbers) -> dict:
+    """
+    {patok: [pastal, ...]} — patokka qabul qilingan pastallar (accepted_at bo'yicha): planshet qabuli yoki Uychi omboridan
+    topshirilgan (daily_dazmol.get_box_owner_screen bilan bir xil). Dazmol bo'lmagan kuni norma ko'rsatish uchun.
+    """
+    assigned_batches = CuttingBatch.objects.filter(
+        Q(items__boxes__is_received_by_patok=True) | Q(assigned_branch='UYCHI'),
+        assigned_screen__in=list(screen_numbers),
+        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+    ).distinct().select_related(
+        'order_item__article__operation_group',
+        'order_item__article__model'
+    ).order_by('accepted_at', 'id')
+    assigned_by_screen = {}
+    for b in assigned_batches:
+        assigned_by_screen.setdefault(b.assigned_screen, []).append(b)
+    return assigned_by_screen
+
+
+def patok_report_lines(dazmol, sn, sn_assigned) -> list:
+    """
+    18:00 hisobot qatorlari (TV ekranlar ham shuni ishlatadi, foizlar bir xil bo'lishi uchun): asosiy dazmolning
+    shablon x norma qatorlari [{'name', 'group', 'norm', 'qty'}]. Dazmol bo'lmagan kuni patokka qabul qilingan oxirgi
+    pastal modeli 0 dona bilan; u ham bo'lmasa — bo'sh ro'yxat.
+    """
+    lines = [ln for ln in dazmol.template_lines(sn) if ln['qty'] > 0]
+    if lines:
+        return lines
+    primary_batch = sn_assigned[-1] if sn_assigned else None
+    if primary_batch and primary_batch.order_item and primary_batch.order_item.article:
+        art = primary_batch.order_item.article
+        group = art.operation_group
+        name = group.name if group else (art.name or "Noma'lum")
+        return [{'name': name, 'group': group, 'norm': get_article_norm(art), 'qty': 0}]
+    return []
+
+
 def get_branch_daily_report_data(branch: str, target_date: datetime.date = None, dazmol=None) -> dict:
     """
     Kosonsoy yoki Uychi filiali bo'yicha kunlik 18:00 hisobot ma'lumotlarini to'playdi:
@@ -135,19 +172,8 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         screen_number__in=screen_numbers,
     ).values_list('screen_number', flat=True).distinct())
 
-    # Patokka qabul qilingan pastallar (dazmol bo'lmagan kuni shablon nomini ko'rsatish uchun):
-    # planshet qabuli yoki Uychi omboridan topshirilgan (daily_dazmol.get_box_owner_screen bilan bir xil)
-    assigned_batches = list(CuttingBatch.objects.filter(
-        Q(items__boxes__is_received_by_patok=True) | Q(assigned_branch='UYCHI'),
-        assigned_screen__in=screen_numbers,
-        dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
-    ).distinct().select_related(
-        'order_item__article__operation_group',
-        'order_item__article__model'
-    ).order_by('accepted_at', 'id'))
-    assigned_by_screen = {}
-    for b in assigned_batches:
-        assigned_by_screen.setdefault(b.assigned_screen, []).append(b)
+    # Patokka qabul qilingan pastallar (dazmol bo'lmagan kuni shablon nomini ko'rsatish uchun)
+    assigned_by_screen = get_assigned_batches_by_screen(screen_numbers)
 
     rows = []
     total_dazmol_sum = 0
@@ -173,23 +199,15 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         fallback_aniqlik = float(screen_data.get('aniqlik', 0.0))
         products = [
             _report_line(ln['name'], ln['group'], ln['norm'], ln['qty'], fallback_aniqlik, aniqlik_cache)
-            for ln in dazmol.template_lines(sn) if ln['qty'] > 0
+            for ln in patok_report_lines(dazmol, sn, sn_assigned)
         ]
         if not products:
-            # Dazmol bo'lmagan kun: patokka biriktirilgan oxirgi asosiy pastal shabloni 0 dona bilan
-            primary_batch = sn_assigned[-1] if sn_assigned else None
-            if primary_batch and primary_batch.order_item and primary_batch.order_item.article:
-                art = primary_batch.order_item.article
-                group = art.operation_group
-                name = group.name if group else (art.name or "Noma'lum")
-                products.append(_report_line(name, group, get_article_norm(art), 0, fallback_aniqlik, aniqlik_cache))
-            else:
-                g = fallback_aniqlik
-                products.append({
-                    'shablon_name': "—", 'norm': 0, 'dazmol_qty': 0, 'display_str': "0 / —",
-                    'aniqlik': int(g) if g.is_integer() else (round(g, 1) if g > 0 else "—"),
-                    'aniqlik_value': g,
-                })
+            g = fallback_aniqlik
+            products.append({
+                'shablon_name': "—", 'norm': 0, 'dazmol_qty': 0, 'display_str': "0 / —",
+                'aniqlik': int(g) if g.is_integer() else (round(g, 1) if g > 0 else "—"),
+                'aniqlik_value': g,
+            })
         patok_dazmol_total = sum(p['dazmol_qty'] for p in products)
         max_group_aniqlik = max((p['aniqlik_value'] for p in products), default=0.0)
         foiz = patok_foiz(products)

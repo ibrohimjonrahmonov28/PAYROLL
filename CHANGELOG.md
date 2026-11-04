@@ -29,6 +29,28 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 22:25
+* **Turi:** `feat(screens)` — TV ekranlarda "Patok quvvati" o'rniga Patok normasi, Asosiy dazmol va Patok foizi (18:00 hisobot bilan bir xil)
+* **Mavzu:** Barcha 40 ta `/screens/<n>/` TV ekrani (egasining aniq so'rovi bilan; sahifaning qolgan eski dizayni o'zgarmagan). Ekrandagi foiz istalgan patok uchun 18:00 hisobotdagi "Фоиз" bilan bir xil bo'lishi kerak.
+* **O'zgartirilgan fayllar:**
+  - `screens/views.py` (`get_screen_patok_metrics`: kunlik hisob barcha ekranlar uchun bir marta, 30 soniya kesh)
+  - `templates/screens/monitor.html` (sarlavha va 30 soniyalik JS yangilanishi)
+  - `production/daily_image_reports.py` (`get_assigned_batches_by_screen`, `patok_report_lines` — hisobot qatorlari alohida funksiyaga ajratildi, hisobot natijasi o'zgarmagan)
+  - `screens/tests.py`, `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Patok normasi:** 18:00 hisobot qatorlari normalarining o'rta arifmetigi (asosiy dazmoli chiqqan shablon x norma; dazmol bo'lmasa — patok qabul qilgan oxirgi pastal modeli). Masalan futbolka 1000 va tunika 1500 — 1250.
+  2. **Asosiy dazmol:** 18:00 hisobot qoidasi (patok qabul qilgan pastallar dazmoli, qayerda dazmollangan bo'lsa ham).
+  3. **Patok foizi:** asosiy dazmol / patok normasi — hisobotning o'z `patok_foiz` funksiyasi bilan, shuning uchun istalgan patokda bir xil.
+  4. **Tekshiruv:** real baza nusxasida 02.11 va 04.11, ikkala filialning 34 ta patokida ekran va hisobot o'rtasida farq 0. Test K1–K13 ning har biri uchun ekran = hisobotni tekshiradi; tegishli 40 ta testdan faqat avvaldan mavjud Telegram yozuvi testi xato (o'zgarishdan oldin ham).
+  5. **Hali o'zgarmagan:** `/screens/` umumiy sahifasida "Patok quvvati" qolgan.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q). TV ekranlar sahifani 30 soniyada o'zi yangilaydi; sarlavha yangilanishi uchun bir marta qayta yuklash (F5) kerak.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `6d055a0`] — 04.11.2026, 12:49
 * **Turi:** `feat(statistics)` — Qutilar statistikasida pastal bo'yicha qidirish va pastal haqida to'liq ma'lumot
 * **Mavzu:** `/statistics/` (Qutilar Statistikasi) sahifasida "Pastal bo'yicha qidirish" bloki: pastal kodi, pasport QR yoki quti kodi kiritilsa, pastal kartochkasi chiqadi va pastdagi qutilar ro'yxati shu pastalga filtrlanadi.

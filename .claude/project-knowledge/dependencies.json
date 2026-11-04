@@ -686,6 +686,10 @@
     "accounts.models",
     "production.models",
     "screens.views"
+   ],
+   "lazy": [
+    "production.daily_image_reports",
+    "screens.views"
    ]
   },
   "screens.urls": {
@@ -699,6 +703,9 @@
     "production.daily_dazmol",
     "production.models",
     "production.services"
+   ],
+   "lazy": [
+    "production.daily_image_reports"
    ]
   }
  },

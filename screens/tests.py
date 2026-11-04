@@ -1,9 +1,13 @@
 from decimal import Decimal
 from datetime import datetime, time
+from django.core.cache import cache
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from production.models import Operation, Article, ArticleOperation, Order, OrderItem, Box, Ticket
+from production.models import (
+    Operation, OperationGroup, Article, ArticleOperation, Order, OrderItem, OrderItemSize, Box, Ticket,
+    CuttingBatch, CuttingBatchItem,
+)
 from accounts.models import Worker, User
 from screens.views import get_screen_data
 
@@ -158,13 +162,102 @@ class ScreenMonitorDazmolAndLayoutTest(TestCase):
         self.assertNotIn("Bugun Tikilgan", html)
         self.assertIn("Model Bo'yicha Norma", html)
         self.assertIn("Umumiy Norma Foizi", html)
-        self.assertIn("PATOK QUVVATI", html)
+        # Egasi talabi 2026-11-04: Patok quvvati o'rniga patok normasi, asosiy dazmol va patok foizi
+        self.assertNotIn("PATOK QUVVATI", html)
+        self.assertIn("PATOK NORMASI", html)
+        self.assertIn("ASOSIY DAZMOL", html)
+        self.assertIn("PATOK FOIZI", html)
 
         # View screen 14 -> must show U1-PATOK
         res14 = self.client.get(reverse('screens:screen_view', args=[14]))
         self.assertEqual(res14.status_code, 200)
         html14 = res14.content.decode('utf-8')
         self.assertIn("U1-PATOK", html14)
+
+
+class ScreenPatokNormDazmolTest(TestCase):
+    """
+    TV ekran sarlavhasi (egasi talabi 2026-11-04): patok normasi, asosiy dazmol va patok foizi istalgan patok uchun
+    18:00 hisobot bilan bir xil — ekran hisobotning o'z funksiyalarini ishlatadi.
+    """
+    def setUp(self):
+        cache.clear()
+        worker = Worker.objects.create(worker_id="W-101", first_name="Dilnoza", last_name="Karimova")
+        sew = Operation.objects.create(name="YON CHOK", code="YON CHOK")
+        dz = Operation.objects.create(name="DAZMOL", code="DAZMOL")
+        futbolka = Article.objects.create(
+            code="ART-FUT", name="Futbolka", daily_norm=1000, operation_group=OperationGroup.objects.create(name="Futbolka shabloni")
+        )
+        tunika = Article.objects.create(
+            code="ART-TUN", name="Tunika", daily_norm=1500, operation_group=OperationGroup.objects.create(name="Tunika shabloni")
+        )
+        begona = Article.objects.create(code="ART-BEG", name="Begona", daily_norm=700)
+        aos = {}
+        for art in (futbolka, tunika, begona):
+            aos[(art.code, 'sew')] = ArticleOperation.objects.create(article=art, operation=sew, price_per_unit=Decimal('100'), sequence=1)
+            aos[(art.code, 'dz')] = ArticleOperation.objects.create(article=art, operation=dz, price_per_unit=Decimal('50'), sequence=2)
+        order = Order.objects.create(order_number="ORD-NORM", article=futbolka, total_quantity=160)
+
+        def box(n, article, owner, item=None):
+            return Box.objects.create(order=order, box_number=n, quantity=40, article=article, cutting_batch_item=item,
+                                      assigned_screen=owner, is_received_by_patok=True)
+
+        b_fut, b_tun, b_beg = box(1, futbolka, 3), box(2, tunika, 3), box(3, begona, 7)
+
+        # K9: qabul qilingan, lekin bugun dazmoli yo'q pastal (hisobot shu modelning normasini 0 dona bilan ko'rsatadi)
+        tunika_item = OrderItem.objects.create(order=order, article=tunika, quantity=40)
+        batch = CuttingBatch.objects.create(
+            order_item=tunika_item, batch_number=1, assigned_screen=9,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED, accepted_at=timezone.now(),
+        )
+        size = OrderItemSize.objects.create(order_item=tunika_item, size_name="M", planned_quantity=40)
+        box(4, tunika, 9, item=CuttingBatchItem.objects.create(batch=batch, order_item_size=size, quantity=40))
+
+        now = timezone.now()
+
+        def scan(b, code, kind, terminal):
+            Ticket.objects.create(box=b, article_operation=aos[(code, kind)], quantity=40, price_per_unit=Decimal('100'),
+                                  status=Ticket.Status.SCANNED, worker=worker, screen_number=terminal, scanned_at=now)
+
+        scan(b_fut, 'ART-FUT', 'sew', 3)
+        scan(b_tun, 'ART-TUN', 'sew', 3)   # tikilyapti, lekin dazmoli yo'q — 18:00 hisobot kabi normaga kirmaydi
+        scan(b_beg, 'ART-BEG', 'sew', 3)   # K3 terminalida, lekin K7 qabul qilgan pastal
+        scan(b_fut, 'ART-FUT', 'dz', 5)    # K3 pastali K5 da dazmollangan — K3 ning asosiy dazmoli
+
+    def test_screen_matches_1800_report_for_every_patok(self):
+        from production.daily_image_reports import get_branch_daily_report_data
+        from screens.views import get_screen_patok_metrics
+
+        today = timezone.localdate()
+        report = {r['screen_number']: r for r in get_branch_daily_report_data('HQ', today)['rows']}
+        for sn in range(1, 14):
+            m = get_screen_patok_metrics(sn, today)
+            row = report[sn]
+            norms = [p['norm'] for p in row['products'] if p['norm']]
+            self.assertEqual(m['patok_foiz'], row['foiz'], f"K{sn}")
+            self.assertEqual(m['asosiy_dazmol'], row['dazmol_total'], f"K{sn}")
+            self.assertEqual(m['patok_norm'], round(sum(norms) / len(norms)) if norms else 0, f"K{sn}")
+
+        def tup(sn):
+            m = get_screen_patok_metrics(sn, today)
+            return m['patok_norm'], m['asosiy_dazmol'], m['patok_foiz']
+
+        self.assertEqual(tup(3), (1000, 40, 4.0))   # 40 / 1000
+        self.assertEqual(tup(9), (1500, 0, 0.0))    # dazmol yo'q: qabul qilingan pastal normasi, foiz 0
+        self.assertEqual(tup(7), (0, 0, 0.0))       # na dazmol, na qabul qilingan pastal
+
+    def test_monitor_page_and_api_show_norm_dazmol_foiz(self):
+        res = self.client.get(reverse('screens:screen_view', args=[3]))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual((res.context['patok_norm'], res.context['asosiy_dazmol'], res.context['patok_foiz']), (1000, 40, 4.0))
+        html = res.content.decode('utf-8')
+        self.assertIn("PATOK NORMASI", html)
+        self.assertIn("ASOSIY DAZMOL", html)
+        self.assertIn("PATOK FOIZI", html)
+        self.assertNotIn("PATOK QUVVATI", html)
+
+        api = self.client.get(reverse('screens:screen_api', args=[3])).json()
+        self.assertEqual((api['patok_norm'], api['asosiy_dazmol'], api['patok_foiz']), (1000, 40, 4.0))
 
 
 class ScreenAccountAuthAndAccessRestrictionTest(TestCase):

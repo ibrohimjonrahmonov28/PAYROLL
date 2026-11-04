@@ -7,7 +7,7 @@ from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, 
 from django.db.models.functions import Coalesce
 from production.models import Ticket, OrderItem, Operation, OperationGroupItem, ArticleOperation, Article
 from production.services import get_patok_code, get_patok_name, parse_patok_number
-from production.daily_dazmol import main_dazmol_operation_ids
+from production.daily_dazmol import compute_daily_dazmol, get_day_window, main_dazmol_operation_ids
 from accounts.models import Worker, User
 from django.core.cache import cache
 
@@ -521,6 +521,45 @@ def get_screen_data(screen_number: int, target_date=None, preloaded=None):
     }
 
 
+def get_screen_patok_metrics(screen_number: int, target_date):
+    """
+    TV ekran sarlavhasi (Patok quvvati o'rniga, egasi talabi 2026-11-04): patok normasi, asosiy dazmol va patok foizi —
+    istalgan patok uchun 18:00 hisobot bilan bir xil. Hisobotning o'z funksiyalari ishlatiladi
+    (daily_image_reports.patok_report_lines va patok_foiz):
+    - Patok normasi: hisobot qatorlari (asosiy dazmolning shablon x norma qatorlari, dazmol bo'lmasa patok qabul qilgan
+      oxirgi pastal modeli) normalarining o'rta arifmetigi — foizning maxraji;
+    - Asosiy dazmol: 18:00 hisobot qoidasi (daily_dazmol.compute_daily_dazmol);
+    - Patok foizi: asosiy dazmol / patok normasi * 100 (hisobotdagi "Фоиз").
+    Kunlik hisob barcha 40 ekran uchun bir marta qilinib 30 soniya keshlanadi.
+    """
+    from production.daily_image_reports import get_assigned_batches_by_screen, patok_foiz, patok_report_lines
+
+    cache_key = f"screens_patok_metrics_{target_date.isoformat()}"
+    day = cache.get(cache_key)
+    if day is None:
+        start, end = get_day_window(target_date)
+        dazmol = compute_daily_dazmol(start, end)
+        screens = range(1, MAX_SCREENS + 1)
+        assigned = get_assigned_batches_by_screen(screens)
+        day = {
+            sn: [{'name': ln['name'], 'norm': ln['norm'], 'qty': ln['qty']}
+                 for ln in patok_report_lines(dazmol, sn, assigned.get(sn, []))]
+            for sn in screens
+        }
+        cache.set(cache_key, day, timeout=30)
+
+    lines = day.get(screen_number, [])
+    norms = [ln['norm'] for ln in lines if ln['norm']]
+    foiz = patok_foiz([{'norm': ln['norm'], 'dazmol_qty': ln['qty']} for ln in lines])
+    return {
+        'patok_norm': round(sum(norms) / len(norms)) if norms else 0,
+        'patok_norm_lines': lines,
+        'asosiy_dazmol': sum(ln['qty'] for ln in lines),
+        'patok_foiz': foiz,
+        'patok_foiz_color_class': calculate_quvvat_color_info(foiz)['color_class'],
+    }
+
+
 def parse_date_param(val):
     if not val:
         return None
@@ -553,6 +592,7 @@ def screen_view(request, screen_number=None, screen_identifier=None):
     effective_date = target_date or timezone.localdate()
     data['target_date_iso'] = effective_date.strftime('%Y-%m-%d')
     data['is_custom_date'] = bool(target_date and target_date != timezone.localdate())
+    data.update(get_screen_patok_metrics(sn, effective_date))
     return render(request, 'screens/monitor.html', data)
 
 
@@ -574,6 +614,7 @@ def screen_api_view(request, screen_number=None, screen_identifier=None):
     data = get_screen_data(sn, target_date=target_date)
     data['target_date_iso'] = effective_date.strftime('%Y-%m-%d')
     data['is_custom_date'] = bool(target_date and target_date != timezone.localdate())
+    data.update(get_screen_patok_metrics(sn, effective_date))
     cache.set(cache_key, data, timeout=10)
     return JsonResponse(data)
 

@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 540,
-   "sha256_16": "f59911b2f8cf33a6"
+   "lines": 561,
+   "sha256_16": "008fd7b1474bdbd8"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 95,
-   "sha256_16": "62385e3c39f37b6a"
+   "sha256_16": "71a5087c3620dd19"
   },
   "Dockerfile": {
    "module": "ops",
@@ -482,17 +482,19 @@
   },
   "production/daily_image_reports.py": {
    "module": "production.reports",
-   "lines": 521,
-   "sha256_16": "5d681d3e37c4a47b",
+   "lines": 539,
+   "sha256_16": "5c4e9a359cfc3fb8",
    "symbols": [
     "_get_font:19",
     "get_operation_group_difficulty:49",
     "_report_line:58",
     "patok_foiz:76",
-    "get_branch_daily_report_data:88",
-    "generate_branch_report_image:255",
-    "send_single_branch_report:404",
-    "send_daily_1800_reports:504"
+    "get_assigned_batches_by_screen:88",
+    "patok_report_lines:107",
+    "get_branch_daily_report_data:125",
+    "generate_branch_report_image:273",
+    "send_single_branch_report:422",
+    "send_daily_1800_reports:522"
    ]
   },
   "production/excel_reports.py": {
@@ -1142,11 +1144,12 @@
   },
   "screens/tests.py": {
    "module": "tests",
-   "lines": 251,
-   "sha256_16": "1d3a8faf052e37af",
+   "lines": 344,
+   "sha256_16": "8290e8683d391d29",
    "symbols": [
-    "ScreenMonitorDazmolAndLayoutTest:11",
-    "ScreenAccountAuthAndAccessRestrictionTest:170"
+    "ScreenMonitorDazmolAndLayoutTest:15",
+    "ScreenPatokNormDazmolTest:178",
+    "ScreenAccountAuthAndAccessRestrictionTest:263"
    ]
   },
   "screens/urls.py": {
@@ -1156,16 +1159,17 @@
   },
   "screens/views.py": {
    "module": "screens",
-   "lines": 650,
-   "sha256_16": "bf04572897a913bb",
+   "lines": 691,
+   "sha256_16": "e5b566390b837f1f",
    "symbols": [
     "calculate_quvvat_color_info:18",
     "calculate_screen_aniqlik:50",
     "get_screen_data:145",
-    "parse_date_param:524",
-    "screen_view:536",
-    "screen_api_view:559",
-    "all_screens_overview:581"
+    "get_screen_patok_metrics:524",
+    "parse_date_param:563",
+    "screen_view:575",
+    "screen_api_view:599",
+    "all_screens_overview:622"
    ]
   },
   "templates/404.html": {
@@ -1450,8 +1454,8 @@
   },
   "templates/screens/monitor.html": {
    "module": "templates",
-   "lines": 598,
-   "sha256_16": "fd68fb01bf336cfa"
+   "lines": 612,
+   "sha256_16": "9a37b0801ce9828a"
   },
   "templates/screens/overview.html": {
    "module": "templates",

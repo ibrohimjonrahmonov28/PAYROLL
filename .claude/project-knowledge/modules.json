@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2200,
+  "lines": 2221,
   "depends_on": [
    "accounts.core"
   ]
@@ -295,7 +295,7 @@
    "production/excel_reports.py",
    "production/telegram_reports.py"
   ],
-  "lines": 3225,
+  "lines": 3243,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -363,7 +363,7 @@
    "screens/urls.py",
    "screens/views.py"
   ],
-  "lines": 681,
+  "lines": 722,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -450,7 +450,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 42621,
+  "lines": 42635,
   "depends_on": []
  },
  "tests": {
@@ -470,7 +470,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 10613,
+  "lines": 10706,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

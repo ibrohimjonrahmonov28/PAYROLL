@@ -112,7 +112,8 @@
                     00:00:00</div>
             </div>
 
-            <!-- Summary Stats Card: OPERATSION, DAVOMAD, PATOK QUVVATI -->
+            <!-- Summary Stats Card: OPERATSION, DAVOMAD, PATOK NORMASI, ASOSIY DAZMOL, PATOK FOIZI
+                 (egasi talabi 2026-11-04: Patok quvvati o'rniga; hisob screens/views.py::get_screen_patok_metrics) -->
             <div
                 class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-slate-800 px-4 md:px-5 py-1.5 rounded-xl shrink-0">
                 <div class="text-center px-0.5">
@@ -126,9 +127,19 @@
                 </div>
                 <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOK QUVVATI</span>
-                    <span id="stat-patok-quvvati"
-                        class="text-xl md:text-2xl lg:text-3xl font-black digital-font {{ quvvat_color_class|default:'text-rose-400 glow-rose' }}">{{ patok_quvvati }}%</span>
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOK NORMASI</span>
+                    <span id="stat-patok-norm" class="text-xl md:text-2xl lg:text-3xl font-black text-white digital-font">{% if patok_norm %}{{ patok_norm }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">ASOSIY DAZMOL</span>
+                    <span id="stat-asosiy-dazmol" class="text-xl md:text-2xl lg:text-3xl font-black text-indigo-300 digital-font">{{ asosiy_dazmol }}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOK FOIZI</span>
+                    <span id="stat-patok-foiz"
+                        class="text-xl md:text-2xl lg:text-3xl font-black digital-font {{ patok_foiz_color_class|default:'text-rose-400 glow-rose' }}">{% if patok_norm %}{{ patok_foiz }}%{% else %}—{% endif %}</span>
                 </div>
             </div>
         </div>
@@ -307,16 +318,19 @@
                 const statAvgKpi = document.getElementById('stat-avg-kpi');
                 if (statAvgKpi && data.avg_screen_kpi !== undefined) statAvgKpi.innerText = `${data.avg_screen_kpi}%`;
 
-                const statPatokQuvvati = document.getElementById('stat-patok-quvvati') || document.getElementById('stat-patok-kpi');
-                if (statPatokQuvvati) {
-                    const quvvat = (data.patok_quvvati !== undefined) ? data.patok_quvvati : (data.patok_kpi || 0);
-                    statPatokQuvvati.innerText = `${quvvat}%`;
-                    const colorCls = data.quvvat_color_class || (
-                        quvvat < 60 ? 'text-rose-400 glow-rose' :
-                        quvvat < 85 ? 'text-amber-400 glow-amber' :
-                        quvvat < 100 ? 'text-emerald-400 glow-emerald' : 'text-cyan-300 glow-cyan'
-                    );
-                    statPatokQuvvati.className = `text-xl md:text-2xl lg:text-3xl font-black digital-font ${colorCls}`;
+                // Patok normasi, asosiy dazmol (18:00 hisobot qoidasi) va patok foizi = asosiy dazmol / patok normasi
+                const statPatokNorm = document.getElementById('stat-patok-norm');
+                if (statPatokNorm && data.patok_norm !== undefined) {
+                    statPatokNorm.innerText = data.patok_norm ? data.patok_norm : '—';
+                }
+                const statAsosiyDazmol = document.getElementById('stat-asosiy-dazmol');
+                if (statAsosiyDazmol && data.asosiy_dazmol !== undefined) {
+                    statAsosiyDazmol.innerText = data.asosiy_dazmol;
+                }
+                const statPatokFoiz = document.getElementById('stat-patok-foiz');
+                if (statPatokFoiz && data.patok_foiz !== undefined) {
+                    statPatokFoiz.innerText = data.patok_norm ? `${data.patok_foiz}%` : '—';
+                    statPatokFoiz.className = `text-xl md:text-2xl lg:text-3xl font-black digital-font ${data.patok_foiz_color_class || 'text-rose-400 glow-rose'}`;
                 }
 
                 // Render Table Rows
