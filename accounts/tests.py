@@ -2392,6 +2392,44 @@ class BranchAdminUychiAccessTests(TestCase):
         self.assertRedirects(res, '/screens/overview/', fetch_redirect_response=False)
 
 
+class PricingTemplateCreateClickOrderTest(TestCase):
+    """
+    Yangi shablon yaratish oynasi: operatsiyalar belgilangan (bosilgan) tartibda raqamlanadi (JS), server esa
+    katalog ro'yxati tartibida kelgan belgilarni "Tartib №" bo'yicha saqlaydi. Avval raqam katalogdagi qator raqami
+    bo'lib qolardi va shablon (stikerlar ham) katalog — alifbo tartibida chiqardi.
+    """
+    def setUp(self):
+        self.client = Client()
+        User.objects.create_superuser(username="tpl_admin", password="testpass123", role=User.Role.SUPER_ADMIN)
+        self.client.login(username="tpl_admin", password="testpass123")
+        self.ops = {name: Operation.objects.create(name=name, code=name) for name in ('CHISTKA', 'DAZMOL', 'YON CHOK')}
+
+    def test_create_modal_has_no_catalog_numbers(self):
+        res = self.client.get(reverse('superadmin_pricing'))
+        self.assertEqual(res.status_code, 200)
+        for op in self.ops.values():
+            self.assertContains(res, f'name="sequence_{op.id}" value="" placeholder="—"')
+        self.assertContains(res, 'id="create-selection-preview"')
+
+    def test_create_group_saves_click_order_not_catalog_order(self):
+        from production.models import OperationGroup
+        ops = self.ops
+        res = self.client.post(reverse('superadmin_pricing'), {
+            'action': 'create_group',
+            'name': 'Bosish tartibi shabloni',
+            # Brauzer belgilarni katalog ro'yxati tartibida yuboradi
+            'selected_operations': [ops['CHISTKA'].id, ops['DAZMOL'].id, ops['YON CHOK'].id],
+            # JS bosilgan tartibda raqamlagan: YON CHOK, CHISTKA, DAZMOL
+            f'sequence_{ops["YON CHOK"].id}': '1',
+            f'sequence_{ops["CHISTKA"].id}': '2',
+            f'sequence_{ops["DAZMOL"].id}': '3',
+        })
+        self.assertEqual(res.status_code, 302)
+        group = OperationGroup.objects.get(name='Bosish tartibi shabloni')
+        saved = [(it.sequence, it.operation.name) for it in group.items.select_related('operation').order_by('sequence')]
+        self.assertEqual(saved, [(1, 'YON CHOK'), (2, 'CHISTKA'), (3, 'DAZMOL')])
+
+
 
 
 

@@ -29,6 +29,26 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 11:47
+* **Turi:** `fix(pricing)` — Yangi shablonda operatsiyalar belgilangan tartibda raqamlanadi
+* **Mavzu:** Narxlar matritsasi → "Yangi shablon yaratish" oynasi. Stikerlar shablondagi tartib bo'yicha chop etiladi, lekin shablon yaratilganda "Tartib №" katalogdagi qator raqami (1…157) bo'lib qolardi va belgi qo'yilganda o'zgarmasdi. Natijada shablon (stikerlar ham) katalog — asosan alifbo tartibida saqlanardi: masalan "Mayka detskiy Kluch" da DAZMOL 11 tadan 4-o'rinda. Real bazada 4+ operatsiyali 42 shablondan 19 tasi shunday; 26.10 dan beri yaratilganlarning deyarli hammasi.
+* **O'zgartirilgan fayllar:**
+  - `templates/superadmin/pricing.html` (yaratish oynasi JS: `createSelectionOrder`, `renumberCreateSelection`, `onCreateSeqEdited`, `renderCreateSelectionPreview`)
+  - `accounts/tests.py` (`PricingTemplateCreateClickOrderTest`)
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Bosilgan tartib:** belgi qo'yilgan operatsiya navbatdagi raqamni oladi (1, 2, 3 …); belgi olinsa qolganlari bo'sh joysiz qayta raqamlanadi; tanlanmagan qatorlarda raqam bo'sh.
+  2. **Qo'lda o'zgartirish:** "Tartib №" ga raqam yozilsa operatsiya o'sha o'ringa o'tadi (belgilanmagan bo'lsa belgilanadi), qolganlari suriladi.
+  3. **Ko'rinish:** oyna tepasida "Tanlangan tartib: 1. … → 2. …" qatori. Oynada tezkor qo'shilgan yangi operatsiya navbatdagi raqamni oladi (avval oxiriga tushardi). "Barchasi" tanlanganlar tartibini saqlab qolganlarini ro'yxat tartibida qo'shadi.
+  4. **Server o'zgarmagan:** u allaqachon "Tartib №" bo'yicha saqlaydi. Mavjud shablonlar tartibi o'zgarmagan ("DC SHORTIK PIJAMA" dagi takroriy №7 ham — egasining so'rovi bilan tegilmadi).
+  5. **Testlar:** headless Chrome'da bosish, belgi olish, qo'lda raqam yozish, "Barchasi"/"Tozalash" va serverga yuboriladigan raqamlar tekshirildi; shablon testlari (33 ta, 2 tasi yangi) o'tdi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `7857970`] — 04.11.2026, 10:57
 * **Turi:** `fix(passport-bot)` — Vazn butun son bilan saqlanadi, qabul qilinmagan pastal boshqa patokka o'tkaziladi, bir xil kodli pastallardan tanlanadi
 * **Mavzu:** Telegramdagi pastal pasporti va patokka biriktirish boti (`run_passport_bot`). Real bazada topilgan uchta xato tuzatildi.

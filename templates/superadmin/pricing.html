@@ -268,8 +268,8 @@
                     <i class="fa-solid fa-layer-group text-amber-500"></i> Yangi Operatsiyalar Guruhi (Shablon) Yaratish
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">
-                    Guruh nomini yozing, quyidan kerakli operatsiyalarni checkbox bilan tanlang, tartib va narxlarini
-                    belgilang.
+                    Guruh nomini yozing, quyidan kerakli operatsiyalarni bajarilish tartibida belgilang — "Tartib №"
+                    o'zi qo'yiladi (kerak bo'lsa raqamni o'zgartiring), narxlarini kiriting.
                 </p>
             </div>
             <button onclick="closeCreateGroupModal()" class="text-slate-400 hover:text-white p-1">
@@ -322,6 +322,11 @@
                             Tozalash
                         </button>
                     </div>
+                </div>
+
+                <!-- Tanlangan operatsiyalar tartibi: shablon va stikerlar shu tartibda bo'ladi -->
+                <div id="create-selection-preview"
+                    class="hidden bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] leading-relaxed max-h-20 overflow-y-auto">
                 </div>
 
                 <!-- Inline Quick New Operation Form inside Create Group Modal -->
@@ -417,7 +422,8 @@
                                     onchange="onOpCheckChanged({{ op.id }})">
                             </td>
                             <td class="py-2.5 px-3 text-center">
-                                <input type="number" name="sequence_{{ op.id }}" value="{{ forloop.counter }}" min="1"
+                                <input type="number" name="sequence_{{ op.id }}" value="" placeholder="—" min="1"
+                                    onchange="onCreateSeqEdited({{ op.id }}, this)"
                                     class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center text-white font-mono focus:outline-none focus:border-amber-500">
                             </td>
                             <td class="py-2.5 px-3">
@@ -1141,9 +1147,17 @@
         document.getElementById('create-catalog-op-modal').classList.add('hidden');
     }
 
+    // Yangi shablon: operatsiyalar belgilangan (bosilgan) tartibda raqamlanadi. Avval "Tartib №" katalogdagi
+    // qator raqami bo'lib qolardi va shablon (stikerlar ham) katalog — alifbo tartibida saqlanardi.
+    let createSelectionOrder = [];
+
     function openCreateGroupModal() {
         document.getElementById('create-group-modal').classList.remove('hidden');
-        updateCreateSelectedCount();
+        // Brauzer belgilarni tiklagan bo'lsa (orqaga qaytish), ularni ro'yxat tartibida qo'shamiz
+        document.querySelectorAll('.create-op-chk:checked').forEach(chk => {
+            if (!createSelectionOrder.includes(chk.value)) createSelectionOrder.push(chk.value);
+        });
+        renumberCreateSelection();
     }
 
     function closeCreateGroupModal() {
@@ -1267,18 +1281,16 @@
         // Check if row already exists
         const existingChk = document.getElementById(`chk-op-${opId}`);
         if (existingChk) {
+            const wasChecked = existingChk.checked;
             existingChk.checked = true;
             const priceInp = document.querySelector(`input[name="price_${opId}"]`);
             if (priceInp && opPrice) priceInp.value = opPrice;
-            onOpCheckChanged(opId);
+            if (!wasChecked) onOpCheckChanged(opId);   // allaqachon tanlangan bo'lsa o'rni o'zgarmaydi
             const tr = existingChk.closest('tr');
             tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
             tr.classList.add('bg-emerald-950/60');
             return;
         }
-
-        const currentRowsCount = tbody.querySelectorAll('.create-op-row').length;
-        const nextSeq = currentRowsCount + 1;
 
         const tr = document.createElement('tr');
         tr.className = 'create-op-row bg-emerald-950/40 border-l-4 border-emerald-500 hover:bg-slate-800/40 transition';
@@ -1290,7 +1302,8 @@
                     onchange="onOpCheckChanged(${opId})">
             </td>
             <td class="py-2.5 px-3 text-center">
-                <input type="number" name="sequence_${opId}" value="${nextSeq}" min="1"
+                <input type="number" name="sequence_${opId}" value="" placeholder="—" min="1"
+                    onchange="onCreateSeqEdited(${opId}, this)"
                     class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center text-white font-mono focus:outline-none focus:border-amber-500">
             </td>
             <td class="py-2.5 px-3">
@@ -1319,7 +1332,7 @@
         `;
         tbody.insertBefore(tr, tbody.firstChild);
         tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        updateCreateSelectedCount();
+        onOpCheckChanged(opId);   // yangi operatsiya navbatdagi tartib raqamini oladi (avval oxiriga tushardi)
     }
 
     function openEditItemModal(id, groupName, opName, price, seq, diff, groupId) {
@@ -1401,7 +1414,71 @@
     }
 
     function onOpCheckChanged(opId) {
+        const id = String(opId);
+        const chk = document.getElementById(`chk-op-${id}`);
+        createSelectionOrder = createSelectionOrder.filter(x => x !== id);
+        if (chk && chk.checked) createSelectionOrder.push(id);
+        renumberCreateSelection();
+    }
+
+    // Belgilangan qatorlar 1, 2, 3 ... (bosilgan tartibda), belgilanmaganlarda raqam bo'sh
+    function renumberCreateSelection() {
+        createSelectionOrder = createSelectionOrder.filter(id => document.getElementById(`chk-op-${id}`)?.checked);
+        const positions = {};
+        createSelectionOrder.forEach((id, idx) => { positions[id] = idx + 1; });
+        document.querySelectorAll('.create-op-chk').forEach(chk => {
+            const seqInp = document.querySelector(`input[name="sequence_${chk.value}"]`);
+            if (seqInp) seqInp.value = positions[chk.value] ? String(positions[chk.value]) : '';
+        });
         updateCreateSelectedCount();
+        renderCreateSelectionPreview();
+    }
+
+    // "Tartib №" ga raqam yozilsa: operatsiya o'sha o'ringa o'tadi (belgilanmagan bo'lsa belgilanadi), qolganlari suriladi
+    function onCreateSeqEdited(opId, inputEl) {
+        const id = String(opId);
+        const chk = document.getElementById(`chk-op-${id}`);
+        if (!chk) return;
+        const wanted = parseInt(inputEl.value, 10);
+        if (wanted >= 1) {
+            chk.checked = true;
+            createSelectionOrder = createSelectionOrder.filter(x => x !== id);
+            const pos = Math.min(wanted, createSelectionOrder.length + 1) - 1;
+            createSelectionOrder.splice(pos, 0, id);
+        }
+        renumberCreateSelection();
+    }
+
+    function renderCreateSelectionPreview() {
+        const box = document.getElementById('create-selection-preview');
+        if (!box) return;
+        box.textContent = '';
+        if (!createSelectionOrder.length) {
+            box.classList.add('hidden');
+            return;
+        }
+        const title = document.createElement('span');
+        title.className = 'text-slate-400 font-bold mr-1';
+        title.textContent = 'Tanlangan tartib:';
+        box.appendChild(title);
+        createSelectionOrder.forEach((id, idx) => {
+            if (idx > 0) {
+                const arrow = document.createElement('span');
+                arrow.className = 'text-slate-600 mx-1';
+                arrow.textContent = '→';
+                box.appendChild(arrow);
+            }
+            const item = document.createElement('span');
+            item.className = 'whitespace-nowrap text-slate-200';
+            const num = document.createElement('b');
+            num.className = 'text-amber-400';
+            num.textContent = `${idx + 1}. `;
+            item.appendChild(num);
+            const row = document.getElementById(`chk-op-${id}`)?.closest('tr');
+            item.appendChild(document.createTextNode(row?.querySelector('.op-name-text')?.innerText || ''));
+            box.appendChild(item);
+        });
+        box.classList.remove('hidden');
     }
 
     function updateCreateSelectedCount() {
@@ -1415,8 +1492,11 @@
     function toggleAllCreateOps(checked) {
         document.querySelectorAll('.create-op-chk').forEach(chk => {
             chk.checked = checked;
+            // "Barchasi": oldin tanlanganlar o'z tartibida qoladi, qolganlari ro'yxat tartibida qo'shiladi
+            if (checked && !createSelectionOrder.includes(chk.value)) createSelectionOrder.push(chk.value);
         });
-        updateCreateSelectedCount();
+        if (!checked) createSelectionOrder = [];
+        renumberCreateSelection();
     }
 
     function filterCreateOps(query) {
