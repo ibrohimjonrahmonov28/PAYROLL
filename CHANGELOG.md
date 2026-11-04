@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 22:25
+### 🔹 [Commit: `9c8ee44`] — 04.11.2026, 22:25
 * **Turi:** `feat(screens)` — TV ekranlarda "Patok quvvati" o'rniga Patok normasi, Asosiy dazmol va Patok foizi (18:00 hisobot bilan bir xil)
 * **Mavzu:** Barcha 40 ta `/screens/<n>/` TV ekrani (egasining aniq so'rovi bilan; sahifaning qolgan eski dizayni o'zgarmagan). Ekrandagi foiz istalgan patok uchun 18:00 hisobotdagi "Фоиз" bilan bir xil bo'lishi kerak.
 * **O'zgartirilgan fayllar:**
@@ -46,7 +46,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q). TV ekranlar sahifani 30 soniyada o'zi yangilaydi; sarlavha yangilanishi uchun bir marta qayta yuklash (F5) kerak.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 9c8ee44
   ```
 
 ---
