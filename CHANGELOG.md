@@ -29,6 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 04.11.2026, 10:57
+* **Turi:** `fix(passport-bot)` — Vazn butun son bilan saqlanadi, qabul qilinmagan pastal boshqa patokka o'tkaziladi, bir xil kodli pastallardan tanlanadi
+* **Mavzu:** Telegramdagi pastal pasporti va patokka biriktirish boti (`run_passport_bot`). Real bazada topilgan uchta xato tuzatildi.
+* **O'zgartirilgan fayllar:**
+  - `production/management/commands/run_passport_bot.py` (`parse_weight_text`, `batch_dispatch_state`, `dispatch_batch_async`, tanlash ro'yxati, `dp_pat` / `dp_cfm` / `dp_pick`)
+  - `production/passport_bot_service.py` (`find_pastal_candidates`, `_cutting_batch_candidates_qs`)
+  - `production/test_passport_bot.py`, `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Vazn:** vazn so'ralganda har qanday son vazn hisoblanadi (52, 48.5, 48,5, 52 kg). Avval butun son pastal kodi deb tushunilib, vazn saqlanmasdan boshqa pastal ochilardi: real bazada 1–200 sonlardan 199 tasi biror pastalga mos kelardi, kiritilgan 596 vazndan faqat 18 tasi butun son. 0.1 – 20 000 kg dan tashqari son qayta so'raladi.
+  2. **Qabul qilinmagan pastalni boshqa patokka o'tkazish:** `14cf5ee` qarori (master qabul qilguncha qayta yo'naltirish mumkin) endi patok tanlash bosqichida ham ishlaydi, u yerda eski taqiq qolib ketgan edi. Tasdiqlashda "K3-Patokda kutilmoqda → K5-Patokka ko'chiriladi", natijada "K3-Patokdan ko'chirildi".
+  3. **Eski tasdiqlash tugmasi:** tugmada pastal holati bor (`batch_dispatch_state`, masalan `D3`); holat o'zgargan bo'lsa pastal jo'natilmaydi. Yangilanishdan oldingi tugmalar "eskirgan" deydi. Jo'natish pastal qatorini qulflab bajariladi.
+  4. **Bir xil kodli pastallar:** qo'lda yozilgan kod bir nechta pastalga mos kelsa (85 ta takroriy kod, ko'pi pijama ustki va shorti kabi ikki model), bot ro'yxat chiqaradi, jo'natilmagani birinchi. Pasport QR va quti kodi bilan ishlash o'zgarmagan.
+  5. **Testlar:** `production.test_passport_bot` — 30 ta (3 ta yangi) o'tdi. `MasterTabletWorkflowTest` dagi kirillcha beydj testi bu o'zgarishdan oldin ham xato edi.
+* **Serverda:** `git pull origin main && docker compose restart web passport_bot`. Yangilanishdan oldingi tasdiqlash tugmalari "eskirgan" deydi — pastalni qaytadan skanerlash kerak.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `cef25c3`] — 02.11.2026, 16:30
 * **Turi:** `fix(control)` — Ta'mirdan qaytgan qutini ba'zi planshetlarda qabul qilib bo'lmasdi
 * **Mavzu:** `/control/` (egasining so'rovi bilan). 30.10 dagi o'zgarishda +1 / son / −1 ustuniga `relative z-10` berilgan edi. Ta'mirdan qaytgan qutida banner, "Ta'mirda bo'lgan: N dona" qatori va uzunroq tugma yozuvi sahifani balandlashtiradi: ustun pastga cho'zilib "Tasdiqlash va Ta'mirni Tekshirish" tugmasini yopardi va uning bo'sh joyi har bir bosishni ushlab qolardi. Ekrani pastroq yoki zoomi kattaroq planshetlarda tugma umuman bosilmasdi; yangi qutida ustun qisqaroq bo'lgani uchun muammo yo'q edi.

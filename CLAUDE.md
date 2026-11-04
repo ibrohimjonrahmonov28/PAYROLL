@@ -53,7 +53,7 @@ The local `.env` sets `DB_NAME`, so plain `runserver`/`test` will try Postgres u
 
 ### Management commands worth knowing
 - `run_scheduler` — long-running daemon (the `scheduler` container). At 18:00 sends branch daily image reports (`production/daily_image_reports.py`); at 00:00 closes the previous day's payroll (`close_daily_payroll`) and sends the Excel report to Telegram (`production/telegram_reports.py`). `--now` / `--date YYYY-MM-DD` run immediately.
-- `run_passport_bot` — Telegram bot (the `passport_bot` container) for pastal/sticker verification (`production/passport_bot_service.py`).
+- `run_passport_bot` — Telegram bot (the `passport_bot` container) for pastal/sticker verification (`production/passport_bot_service.py`) and dispatch to patoks (kg → branch → patok → confirm → `DISPATCHED`). Until the master accepts, a DISPATCHED pastal may be re-sent to another patok (decision of `14cf5ee`); the confirm button carries the pastal's state (`batch_dispatch_state`, e.g. `D3`) and `dispatch_batch_async` refuses it if the state changed, so stale buttons never re-route silently. While the bot asks for kg, any number is a weight (`parse_weight_text`); a typed code that matches several pastals (e.g. pyjama top and shorts cut under one code) gets a choice list (`find_pastal_candidates`) instead of a silent pick.
 - `close_daily_payroll`, `process_freeze_timers`, `send_daily_report`, `send_daily_patok_report`, `send_db_backup`, `sync_article_operations`, `close_unprinted_boxes`, `create_patok_users`, `create_ekran_users`, `setup_branch_admin`, `seed_demo_data`.
 
 ## Architecture

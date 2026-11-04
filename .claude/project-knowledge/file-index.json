@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 437,
-   "sha256_16": "5db92817869ee182"
+   "lines": 478,
+   "sha256_16": "0a4fe097832bdfe9"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 94,
-   "sha256_16": "83d7173315c8295f"
+   "sha256_16": "bb25df5a4541e11d"
   },
   "Dockerfile": {
    "module": "ops",
@@ -533,30 +533,35 @@
   },
   "production/management/commands/run_passport_bot.py": {
    "module": "production.commands",
-   "lines": 856,
-   "sha256_16": "b39f4aba6c05420e",
+   "lines": 994,
+   "sha256_16": "c9c0ea50056eff58",
    "symbols": [
-    "save_batch_weight_async:50",
-    "get_batch_info_async:67",
-    "is_batch_code_exists_async:93",
-    "dispatch_batch_async:101",
-    "build_pastal_card_text:141",
-    "build_pastal_action_keyboard:179",
-    "build_branch_keyboard:205",
-    "build_patoks_keyboard:220",
-    "_esc_md:253",
-    "_safe_reply_text:260",
-    "_safe_edit_text:268",
-    "start_handler:276",
-    "help_handler:296",
-    "resolve_batch_from_details_async:313",
-    "_handle_verification_result:340",
-    "text_handler:402",
-    "photo_handler:461",
-    "document_handler:488",
-    "callback_handler:513",
-    "error_handler:799",
-    "Command:811"
+    "parse_weight_text:56",
+    "batch_dispatch_state:74",
+    "save_batch_weight_async:84",
+    "get_batch_info_async:101",
+    "is_batch_code_exists_async:127",
+    "dispatch_batch_async:135",
+    "build_pastal_card_text:197",
+    "build_pastal_action_keyboard:235",
+    "build_branch_keyboard:261",
+    "build_patoks_keyboard:276",
+    "_candidate_status_label:309",
+    "build_candidates_text:322",
+    "build_candidates_keyboard:338",
+    "_esc_md:351",
+    "_safe_reply_text:358",
+    "_safe_edit_text:366",
+    "start_handler:374",
+    "help_handler:394",
+    "resolve_batch_from_details_async:411",
+    "_handle_verification_result:438",
+    "text_handler:503",
+    "photo_handler:562",
+    "document_handler:589",
+    "callback_handler:614",
+    "error_handler:937",
+    "Command:949"
    ]
   },
   "production/management/commands/run_scheduler.py": {
@@ -775,14 +780,16 @@
   },
   "production/passport_bot_service.py": {
    "module": "production.passport",
-   "lines": 1402,
-   "sha256_16": "50a903dbdb8dccf1",
+   "lines": 1440,
+   "sha256_16": "2f9a932baad785d5",
    "symbols": [
     "decode_qr_from_image_bytes:34",
     "resolve_code_to_entity:102",
     "_find_best_cutting_batch:110",
-    "resolve_code_to_entity:170",
-    "verify_pastal_for_sewing:343"
+    "_cutting_batch_candidates_qs:124",
+    "find_pastal_candidates:176",
+    "resolve_code_to_entity:208",
+    "verify_pastal_for_sewing:381"
    ]
   },
   "production/passport_views.py": {
@@ -953,8 +960,8 @@
   },
   "production/test_passport_bot.py": {
    "module": "tests",
-   "lines": 609,
-   "sha256_16": "2455c4d5146cac94",
+   "lines": 686,
+   "sha256_16": "bba244ba2afbec60",
    "symbols": [
     "PassportVerificationTestCase:38"
    ]
@@ -1317,8 +1324,8 @@
   },
   "templates/production/control_home.html": {
    "module": "templates",
-   "lines": 2910,
-   "sha256_16": "e002b689403151a8"
+   "lines": 2912,
+   "sha256_16": "98277179ee432946"
   },
   "templates/production/dashboard.html": {
    "module": "templates",

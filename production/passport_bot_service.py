@@ -117,6 +117,12 @@ def _find_best_cutting_batch(identifier: str):
        - dispatch_status = ACCEPTED (qabul qilingan)
     2. Yangi yaratilganlar birinchi (created_at DESC, id DESC)
     """
+    qs = _cutting_batch_candidates_qs(identifier)
+    return qs.first() if qs is not None else None
+
+
+def _cutting_batch_candidates_qs(identifier: str):
+    """_find_best_cutting_batch qidiruvi: mos keladigan barcha pastallar o'sha ustuvorlik tartibida (yoki None)."""
     clean_id = str(identifier or '').strip()
     if not clean_id:
         return None
@@ -164,7 +170,39 @@ def _find_best_cutting_batch(identifier: str):
         output_field=IntegerField()
     )
 
-    return qs.annotate(disp_prio=priority_order).order_by('disp_prio', '-created_at', '-id').first()
+    return qs.annotate(disp_prio=priority_order).order_by('disp_prio', '-created_at', '-id')
+
+
+def find_pastal_candidates(raw_code: str, limit: int = 8) -> list:
+    """
+    Qo'lda yozilgan pastal kodi bir nechta pastalga mos kelsa (masalan, pijamaning ustki va shorti bir xil
+    "10-626" kodi bilan alohida kesilgan), ularni ustuvorlik tartibida qaytaradi: bot jimgina bittasini
+    tanlamasdan foydalanuvchiga tanlatadi. Pasport QR (PASTAL:id), quti, stiker va zakaz kodlari aniq — [].
+    """
+    raw = str(raw_code or '').strip()
+    if not raw:
+        return []
+    _batch, _box, _ticket, res_type, clean_code = resolve_code_to_entity(raw)
+    if res_type != 'PASTAL_CODE':
+        return []
+    qs = _cutting_batch_candidates_qs(clean_code)
+    if qs is None:
+        return []
+    candidates = []
+    for b in qs[:limit]:
+        article = b.order_item.article if b.order_item_id else None
+        order = b.order_item.order if b.order_item_id else None
+        candidates.append({
+            'batch_id': b.id,
+            'batch_number': b.batch_number,
+            'pastal_code': b.pastal_code or str(b.batch_number),
+            'article_code': article.code if article else '',
+            'article_name': article.name if article else '',
+            'order_number': order.order_number if order else '—',
+            'dispatch_status': b.dispatch_status,
+            'assigned_screen': b.assigned_screen,
+        })
+    return candidates
 
 
 def resolve_code_to_entity(raw_code: str):

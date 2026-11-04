@@ -601,6 +601,83 @@ class PassportVerificationTestCase(TestCase):
         self.assertEqual(res['status_code'], 'APPROVED')
         self.assertIn("PATOKKA BERISH MUMKIN", res['message'])
 
+    def test_parse_weight_text_whole_numbers_are_weight(self):
+        """
+        Vazn so'ralganda butun son ham vazn: avval "52" pastal kodi deb tushunilib, vazn saqlanmasdan boshqa pastal
+        ochilardi (real bazada 1..200 sonlardan 199 tasi biror pastalga mos kelardi).
+        """
+        from production.management.commands.run_passport_bot import parse_weight_text
+
+        self.assertEqual(parse_weight_text("52"), Decimal('52.00'))
+        self.assertEqual(parse_weight_text(str(self.batch.batch_number)), Decimal('1.00'))
+        self.assertEqual(parse_weight_text("48,5"), Decimal('48.50'))
+        self.assertEqual(parse_weight_text("48.5"), Decimal('48.50'))
+        self.assertEqual(parse_weight_text(" 52 kg "), Decimal('52.00'))
+        self.assertEqual(parse_weight_text("116кг"), Decimal('116.00'))
+        self.assertEqual(parse_weight_text("0"), 'OUT_OF_RANGE')
+        self.assertEqual(parse_weight_text("25000"), 'OUT_OF_RANGE')
+        for not_weight in ("10-773", "PASTAL:12", "#489DA37F", "", "kg"):
+            self.assertIsNone(parse_weight_text(not_weight), not_weight)
+
+    async def test_dispatched_pastal_can_be_rerouted_but_stale_confirm_is_blocked(self):
+        """
+        Master qabul qilguncha pastalni boshqa patokka o'tkazish mumkin (14cf5ee qarori), lekin chatda qolib ketgan
+        eski tasdiqlash tugmasi (tugma chiqqandan keyin pastal holati o'zgargan) uni jimgina ko'chirmaydi.
+        """
+        from production.management.commands.run_passport_bot import dispatch_batch_async, batch_dispatch_state
+
+        self.assertEqual(batch_dispatch_state(CuttingBatch.DispatchStatus.WAITING, None), 'W0')
+        self.assertEqual(batch_dispatch_state(CuttingBatch.DispatchStatus.DISPATCHED, 3), 'D3')
+
+        # 1. Jo'natilmagan pastal K1 ga
+        res1 = await dispatch_batch_async(self.batch.id, 'HQ', 1, 'Tester', expected_state='W0')
+        self.assertFalse(res1['error'])
+        self.assertIsNone(res1['previous_patok_code'])
+
+        # 2. K1 da kutilmoqda -> K2 ga ko'chirish (yangi tasdiqlash ekrani: D1)
+        res2 = await dispatch_batch_async(self.batch.id, 'HQ', 2, 'Tester', expected_state='D1')
+        self.assertFalse(res2['error'])
+        self.assertEqual(res2['previous_patok_code'], 'K1')
+        self.assertEqual(res2['patok_code'], 'K2')
+
+        # 3. Eski tugma: K5 tasdiqlash ekrani pastal hali jo'natilmagan paytda (W0) chiqqan edi, endi pastal K2 da
+        res3 = await dispatch_batch_async(self.batch.id, 'HQ', 5, 'Tester', expected_state='W0')
+        self.assertTrue(res3['error'])
+        self.assertIn("holati o'zgargan", res3['message'])
+        self.assertIn("K2-Patokka", res3['message'])
+        await self.batch.arefresh_from_db()
+        self.assertEqual(self.batch.assigned_screen, 2)
+        box_screens = {s async for s in Box.objects.filter(cutting_batch_item__batch=self.batch).values_list('assigned_screen', flat=True)}
+        self.assertEqual(box_screens, {2})
+
+    def test_shared_pastal_code_offers_choice(self):
+        """
+        Bir xil kodli pastallar (pijamaning ustki va shorti alohida kesilgan): qo'lda yozilgan kodda bot jimgina
+        bittasini tanlamaydi, ro'yxat chiqaradi (jo'natilmagani birinchi). Pasport QR va quti kodi aniq — ro'yxatsiz.
+        """
+        from production.passport_bot_service import find_pastal_candidates
+        from production.management.commands.run_passport_bot import build_candidates_keyboard
+
+        shorts = Article.objects.create(code="ART-102", name="Shorti")
+        shorts_item = OrderItem.objects.create(order=self.order, article=shorts, quantity=100)
+        self.batch.pastal_code = "10-626"
+        self.batch.dispatch_status = CuttingBatch.DispatchStatus.ACCEPTED
+        self.batch.assigned_screen = 3
+        self.batch.save()
+        shorts_batch = CuttingBatch.objects.create(order_item=shorts_item, batch_number=2, pastal_code="10-626")
+
+        candidates = find_pastal_candidates("10-626")
+        self.assertEqual([c['batch_id'] for c in candidates], [shorts_batch.id, self.batch.id])
+        self.assertEqual(candidates[0]['article_code'], "ART-102")
+
+        kb = build_candidates_keyboard(candidates)
+        picks = [btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data.startswith('dp_pick:')]
+        self.assertEqual(picks, [f"dp_pick:{shorts_batch.id}", f"dp_pick:{self.batch.id}"])
+        self.assertIn("K3 qabul qilgan", kb.inline_keyboard[1][0].text)
+
+        self.assertEqual(find_pastal_candidates(f"PASTAL:{self.batch.id}"), [])
+        self.assertEqual(find_pastal_candidates(self.boxes_m[0].box_code), [])
+
 
 
 
