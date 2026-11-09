@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 09.11.2026, 11:07
+### 🔹 [Commit: `0016a0b`] — 09.11.2026, 11:07
 * **Turi:** `feat(gifts)` — Patok taqdirlashlari: superadmin kiritadi, TV'da `/gifts/<patok>/` sahifasida ko'rinadi
 * **Mavzu:** Egasining so'rovi: har bir patok uchun oy bo'yicha taqdirlash (ism-familiya, xodim rasmi, sovg'a rasmi, nominatsiya nomi va sababi). TV ekrandagi sovg'a belgisi shu patokning taqdirlash sahifasini ochadi.
 * **O'zgartirilgan fayllar:**
@@ -49,7 +49,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (0036 migratsiyasi o'zi ishlaydi). TV ekranlarda sovg'a belgisi chiqishi uchun bir marta qayta yuklash (F5) kerak.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 0016a0b
   ```
 
 ---
