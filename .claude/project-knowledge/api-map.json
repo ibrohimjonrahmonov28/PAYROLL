@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 183,
+ "route_count": 186,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1563,6 +1563,33 @@
    "urlconf": "screens.urls"
   },
   {
+   "path": "/gifts/boshqaruv/",
+   "name": "gifts:manage",
+   "view": "production.gift_views.gifts_manage_view",
+   "urlconf": "production.gift_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
+  },
+  {
+   "path": "/gifts/api/<str:patok>/version/",
+   "name": "gifts:version",
+   "view": "production.gift_views.gifts_version_api",
+   "urlconf": "production.gift_urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
+   "path": "/gifts/<str:patok>/",
+   "name": "gifts:tv",
+   "view": "production.gift_views.gifts_tv_view",
+   "urlconf": "production.gift_urls",
+   "decorators": [
+    "require_GET"
+   ]
+  },
+  {
    "path": "/^media/(?P<path>.*)$",
    "name": null,
    "view": "django.views.static.serve",
@@ -1582,6 +1609,7 @@
   "/control/production/control/",
   "/cutting",
   "/cutting/",
+  "/gifts/",
   "/login/",
   "/logout/",
   "/master-tablet",

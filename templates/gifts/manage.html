@@ -1,0 +1,150 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}Patok Taqdirlashlari — SUPER ADMIN{% endblock %}
+
+{% block superadmin_header %}
+<div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+        <i class="fa-solid fa-gift"></i>
+    </div>
+    <div>
+        <h2 class="text-lg font-black text-white">Patok Taqdirlashlari</h2>
+        <p class="hidden md:block text-xs text-slate-400">Har bir patok uchun oy bo'yicha. TV'da eng oxirgi oy ochiladi, bir nechtasi har 15 soniyada almashadi.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+    <!-- Oy va patok tanlash -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <a href="?patok={{ patok_code|lower }}&month={{ prev_month }}"
+                    class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition" title="Oldingi oy">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+                <div class="px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-lg font-black text-amber-400 whitespace-nowrap">
+                    {{ month_label }}
+                </div>
+                <a href="?patok={{ patok_code|lower }}&month={{ next_month }}"
+                    class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition" title="Keyingi oy">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+            <a href="{{ tv_url }}" target="_blank"
+                class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-bold text-slate-200 transition inline-flex items-center gap-2">
+                <i class="fa-solid fa-tv text-amber-400"></i> {{ patok_code }} — TV'da ko'rish
+            </a>
+        </div>
+
+        <div class="space-y-2">
+            <span class="text-[11px] uppercase font-black tracking-wider text-slate-500">Kosonsoy</span>
+            <div class="flex flex-wrap gap-1.5">
+                {% for p in hq_patoks %}
+                <a href="?patok={{ p.code|lower }}&month={{ month_param }}"
+                    class="relative px-3 py-1.5 rounded-lg text-xs font-black font-mono border transition {% if p.sn == sn %}bg-amber-500 text-slate-950 border-amber-500{% else %}bg-slate-950 text-slate-300 border-slate-800 hover:border-amber-500/60{% endif %}">
+                    {{ p.code }}
+                    {% if p.count %}<span class="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] flex items-center justify-center">{{ p.count }}</span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+            <span class="text-[11px] uppercase font-black tracking-wider text-slate-500 block pt-1">Uychi</span>
+            <div class="flex flex-wrap gap-1.5">
+                {% for p in uychi_patoks %}
+                <a href="?patok={{ p.code|lower }}&month={{ month_param }}"
+                    class="relative px-3 py-1.5 rounded-lg text-xs font-black font-mono border transition {% if p.sn == sn %}bg-amber-500 text-slate-950 border-amber-500{% else %}bg-slate-950 text-slate-300 border-slate-800 hover:border-amber-500/60{% endif %}">
+                    {{ p.code }}
+                    {% if p.count %}<span class="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] flex items-center justify-center">{{ p.count }}</span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Kiritilgan taqdirlashlar -->
+        <div class="lg:col-span-7 space-y-3">
+            <h3 class="text-sm font-black text-white uppercase tracking-wider">
+                {{ patok_code }}-patok — {{ month_label }}: {{ awards|length }} ta taqdirlash
+            </h3>
+            {% for a in awards %}
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div class="flex items-start gap-4">
+                    <div class="w-20 aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
+                        {% if a.photo %}<img src="{{ a.photo.url }}" alt="" class="w-full h-full object-cover">{% else %}<i class="fa-solid fa-user text-3xl text-slate-700"></i>{% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-black uppercase tracking-wider text-amber-400">{{ a.nomination }}</p>
+                        <p class="text-lg font-black text-white">{{ a.full_name }}</p>
+                        {% if a.worker %}<p class="text-[11px] text-slate-500 font-mono">Ro'yxatdan: {{ a.worker.worker_id }}</p>{% endif %}
+                        {% if a.reason %}<p class="text-sm text-slate-300 mt-1">{{ a.reason|linebreaksbr }}</p>{% endif %}
+                    </div>
+                    <div class="w-20 aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
+                        {% if a.gift_photo %}<img src="{{ a.gift_photo.url }}" alt="" class="w-full h-full object-cover">{% else %}<i class="fa-solid fa-gift text-3xl text-amber-500/40"></i>{% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <details class="flex-1">
+                        <summary class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">
+                            <i class="fa-solid fa-pen"></i> Tahrirlash
+                        </summary>
+                        <div class="mt-3">
+                            {% include 'gifts/partials/award_form.html' with award=a %}
+                        </div>
+                    </details>
+                    <form method="POST" action="{% url 'gifts:manage' %}" onsubmit="return confirm('Ushbu taqdirlash o\'chirilsinmi?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="award_id" value="{{ a.id }}">
+                        <input type="hidden" name="patok" value="{{ patok_code|lower }}">
+                        <input type="hidden" name="month" value="{{ month_param }}">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white border border-rose-500/30 text-rose-400 text-xs font-bold transition">
+                            <i class="fa-solid fa-trash-can"></i> O'chirish
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="bg-slate-900 border border-dashed border-slate-700 rounded-2xl p-8 text-center text-slate-400">
+                <i class="fa-solid fa-gift text-4xl text-slate-700 mb-2 block"></i>
+                {{ patok_code }}-patok uchun {{ month_label }} da hali taqdirlash yo'q. O'ngdagi formadan qo'shing.
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Yangi taqdirlash -->
+        <div class="lg:col-span-5">
+            <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 space-y-3 lg:sticky lg:top-4">
+                <h3 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-amber-400"></i> Yangi taqdirlash — {{ patok_code }}, {{ month_label }}
+                </h3>
+                {% include 'gifts/partials/award_form.html' with award=None %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<datalist id="nomination-suggestions">
+    {% for s in nomination_suggestions %}<option value="{{ s }}">{% endfor %}
+</datalist>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function fillAwardName(select, inputId) {
+        const option = select.options[select.selectedIndex];
+        const name = option ? option.dataset.name : '';
+        if (name) document.getElementById(inputId).value = name;
+    }
+
+    function previewAwardImage(input, imgId) {
+        const file = input.files && input.files[0];
+        const img = document.getElementById(imgId);
+        if (!file || !img) return;
+        img.src = URL.createObjectURL(file);
+        img.classList.remove('hidden');
+    }
+</script>
+{% endblock %}

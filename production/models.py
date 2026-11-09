@@ -1793,3 +1793,44 @@ class CancelledBatchLog(models.Model):
     def __str__(self):
         return f"Bekor qilingan Pastal #{self.batch_id} (Pastal: {self.pastal_code or '—'}, Zakaz: {self.order_number})"
 
+
+class PatokAward(models.Model):
+    """
+    Patok taqdirlashi (TV: /gifts/<patok>/, kiritish: /gifts/boshqaruv/ — faqat superadmin).
+    Oy bo'yicha saqlanadi; TV shu patokda taqdirlash kiritilgan eng oxirgi oyni ko'rsatadi, bir nechtasi navbat bilan.
+    """
+    screen_number = models.PositiveSmallIntegerField(db_index=True, verbose_name="Patok (1-40)")
+    month = models.DateField(db_index=True, verbose_name="Oy (oyning 1-kuni)")
+    worker = models.ForeignKey(
+        Worker,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='patok_awards',
+        verbose_name="Tikuvchi (ro'yxatdan tanlangan bo'lsa)"
+    )
+    full_name = models.CharField(max_length=150, verbose_name="Ism-familiya")
+    photo = models.ImageField(upload_to='awards/%Y/%m/', null=True, blank=True, verbose_name="Xodim rasmi")
+    gift_photo = models.ImageField(upload_to='awards/%Y/%m/', null=True, blank=True, verbose_name="Sovg'a rasmi")
+    nomination = models.CharField(max_length=200, verbose_name="Nominatsiya nomi")
+    reason = models.TextField(blank=True, verbose_name="Nominatsiya sababi")
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_patok_awards',
+        verbose_name="Kiritgan"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Patok taqdirlashi"
+        verbose_name_plural = "Patok taqdirlashlari"
+        ordering = ['screen_number', '-month', 'id']
+        indexes = [models.Index(fields=['screen_number', 'month'])]
+
+    def __str__(self):
+        return f"{self.full_name} — {self.nomination} ({self.month:%m.%Y}, patok {self.screen_number})"
+

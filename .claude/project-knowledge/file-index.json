@@ -8,32 +8,32 @@
   },
   ".claude/project-knowledge/build_graph.py": {
    "module": "ops",
-   "lines": 433,
-   "sha256_16": "70d476fca063d28e",
+   "lines": 435,
+   "sha256_16": "dbeaab8e90b85e67",
    "symbols": [
-    "module_of:71",
-    "tracked_files:125",
-    "sha:130",
-    "dotted:134",
-    "analyze_py:142",
-    "walk:238",
-    "dump:399"
+    "module_of:72",
+    "tracked_files:127",
+    "sha:132",
+    "dotted:136",
+    "analyze_py:144",
+    "walk:240",
+    "dump:401"
    ]
   },
   ".claude/project-knowledge/overview.md": {
    "module": "ops",
    "lines": 35,
-   "sha256_16": "222ccea01f992e5c"
+   "sha256_16": "17bef88251b43194"
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 561,
-   "sha256_16": "008fd7b1474bdbd8"
+   "lines": 608,
+   "sha256_16": "87ccc6fad3faa8d5"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 95,
-   "sha256_16": "71a5087c3620dd19"
+   "lines": 102,
+   "sha256_16": "7348a4d62683f550"
   },
   "Dockerfile": {
    "module": "ops",
@@ -136,8 +136,8 @@
   },
   "accounts/middleware.py": {
    "module": "accounts.core",
-   "lines": 279,
-   "sha256_16": "33ac19a7ae9394d6",
+   "lines": 287,
+   "sha256_16": "7e7fdffa1898d966",
    "symbols": [
     "MasterTerminalAccessRestrictionMiddleware:6"
    ]
@@ -338,8 +338,8 @@
   },
   "config/urls.py": {
    "module": "config",
-   "lines": 57,
-   "sha256_16": "3b01e75d70310e22"
+   "lines": 58,
+   "sha256_16": "2a55d0fdfb064c90"
   },
   "config/wsgi.py": {
    "module": "config",
@@ -509,6 +509,30 @@
     "_build_day_sheet:1054",
     "generate_month_to_date_excel_report:1335",
     "generate_monthly_patok_production_excel:1705"
+   ]
+  },
+  "production/gift_urls.py": {
+   "module": "production.gifts",
+   "lines": 12,
+   "sha256_16": "67b3ad82e3bf795b"
+  },
+  "production/gift_views.py": {
+   "module": "production.gifts",
+   "lines": 292,
+   "sha256_16": "f8301101466633da",
+   "symbols": [
+    "_resolve_screen:45",
+    "_parse_month:52",
+    "_shift_month:63",
+    "_month_label:68",
+    "_month_window:72",
+    "_prepare_award_image:79",
+    "_awards_version:100",
+    "worker_candidates:106",
+    "gifts_tv_view:172",
+    "gifts_version_api:203",
+    "_save_award_from_post:207",
+    "gifts_manage_view:238"
    ]
   },
   "production/management/commands/cleanup_old_ticket_images.py": {
@@ -710,8 +734,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 1796,
-   "sha256_16": "c9ecf7d5458cb368",
+   "lines": 1837,
+   "sha256_16": "4411a163cda054aa",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -740,7 +764,8 @@
     "Ticket:1464",
     "DailyModelProgress:1648",
     "DailyPatokProgress:1701",
-    "CancelledBatchLog:1764"
+    "CancelledBatchLog:1764",
+    "PatokAward:1797"
    ]
   },
   "production/norma_services.py": {
@@ -972,6 +997,15 @@
     "MonthlyExcelUychiRowsTest:299"
    ]
   },
+  "production/test_gifts.py": {
+   "module": "tests",
+   "lines": 165,
+   "sha256_16": "a3e328a0c63cd3fc",
+   "symbols": [
+    "image_upload:25",
+    "PatokAwardTest:33"
+   ]
+  },
   "production/test_master_statistics.py": {
    "module": "tests",
    "lines": 789,
@@ -1159,17 +1193,18 @@
   },
   "screens/views.py": {
    "module": "screens",
-   "lines": 691,
-   "sha256_16": "e5b566390b837f1f",
+   "lines": 707,
+   "sha256_16": "14b21e805cc9ac9c",
    "symbols": [
-    "calculate_quvvat_color_info:18",
-    "calculate_screen_aniqlik:50",
-    "get_screen_data:145",
-    "get_screen_patok_metrics:524",
-    "parse_date_param:563",
-    "screen_view:575",
-    "screen_api_view:599",
-    "all_screens_overview:622"
+    "calculate_quvvat_color_info:19",
+    "calculate_screen_aniqlik:51",
+    "get_screen_data:146",
+    "get_screen_patok_metrics:525",
+    "get_screen_gift_badge:564",
+    "parse_date_param:578",
+    "screen_view:590",
+    "screen_api_view:615",
+    "all_screens_overview:638"
    ]
   },
   "templates/404.html": {
@@ -1221,6 +1256,21 @@
    "module": "templates",
    "lines": 196,
    "sha256_16": "d325a3cae01e2b85"
+  },
+  "templates/gifts/manage.html": {
+   "module": "templates",
+   "lines": 151,
+   "sha256_16": "e7deb09492727e8f"
+  },
+  "templates/gifts/partials/award_form.html": {
+   "module": "templates",
+   "lines": 85,
+   "sha256_16": "410f9bdc87c166cd"
+  },
+  "templates/gifts/tv.html": {
+   "module": "templates",
+   "lines": 198,
+   "sha256_16": "95459b5fd63af28a"
   },
   "templates/includes/theme_head.html": {
    "module": "templates",
@@ -1454,8 +1504,8 @@
   },
   "templates/screens/monitor.html": {
    "module": "templates",
-   "lines": 612,
-   "sha256_16": "9a37b0801ce9828a"
+   "lines": 624,
+   "sha256_16": "0f4f672aa465ece4"
   },
   "templates/screens/overview.html": {
    "module": "templates",
@@ -1484,8 +1534,8 @@
   },
   "templates/superadmin/base_superadmin.html": {
    "module": "templates",
-   "lines": 362,
-   "sha256_16": "84e3bdca0d87d0b8"
+   "lines": 368,
+   "sha256_16": "4860169229ae5bab"
   },
   "templates/superadmin/dashboard.html": {
    "module": "templates",

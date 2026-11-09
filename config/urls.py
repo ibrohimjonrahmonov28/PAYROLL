@@ -49,6 +49,7 @@ urlpatterns = [
     path('norma/', include('production.norma_urls')),
     path('accounts/', include('accounts.urls')),
     path('screens/', include('screens.urls')),
+    path('gifts/', include('production.gift_urls')),
 ]
 
 if settings.DEBUG:

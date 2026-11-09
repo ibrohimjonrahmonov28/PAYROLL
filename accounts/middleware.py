@@ -145,6 +145,13 @@ class MasterTerminalAccessRestrictionMiddleware:
                     f'/screens/api/{p_code}',
                     f'/screens/api/{p_code.upper()}/',
                     f'/screens/api/{p_code.upper()}',
+                    # Patok taqdirlashlari: faqat o'z patokining sahifasi (TV ekrandagi sovg'a belgisi)
+                    f'/gifts/{screen_num}/',
+                    f'/gifts/{p_code}/',
+                    f'/gifts/{p_code.upper()}/',
+                    f'/gifts/api/{screen_num}/version/',
+                    f'/gifts/api/{p_code}/version/',
+                    f'/gifts/api/{p_code.upper()}/version/',
                 )
                 allowed_prefixes = (
                     '/login/',
@@ -186,6 +193,7 @@ class MasterTerminalAccessRestrictionMiddleware:
                     '/sewing-statistics',
                     '/screens/',
                     '/screens',
+                    '/gifts/',
                     '/terminal/',
                     '/terminal',
                     '/master-tablet/',

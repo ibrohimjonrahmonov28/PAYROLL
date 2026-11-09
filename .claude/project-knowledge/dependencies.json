@@ -26,7 +26,9 @@
    "accounts/superadmin_views.py",
    "generate_stickers_100x60.py",
    "production/daily_image_reports.py",
+   "production/gift_views.py",
    "production/sticker_generator.py",
+   "production/test_gifts.py",
    "production/tests.py",
    "scratch_badges_pdf.py"
   ],
@@ -67,6 +69,8 @@
    "production/daily_dazmol.py",
    "production/daily_image_reports.py",
    "production/excel_reports.py",
+   "production/gift_urls.py",
+   "production/gift_views.py",
    "production/management/commands/cleanup_old_ticket_images.py",
    "production/management/commands/close_unprinted_boxes.py",
    "production/management/commands/restore_stickers_from_backup.py",
@@ -99,6 +103,7 @@
    "production/telegram_reports.py",
    "production/terminal_views.py",
    "production/test_daily_dazmol.py",
+   "production/test_gifts.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
@@ -318,6 +323,19 @@
    ],
    "lazy": [
     "production.models"
+   ]
+  },
+  "production.gift_urls": {
+   "imports": [
+    "production.gift_views"
+   ]
+  },
+  "production.gift_views": {
+   "imports": [
+    "accounts.models",
+    "accounts.superadmin_views",
+    "production.models",
+    "production.services"
    ]
   },
   "production.management.commands.cleanup_old_ticket_images": {
@@ -556,6 +574,13 @@
     "production.sewing_statistics_views"
    ]
   },
+  "production.test_gifts": {
+   "imports": [
+    "accounts.models",
+    "production.gift_views",
+    "production.models"
+   ]
+  },
   "production.test_master_statistics": {
    "imports": [
     "accounts.models",
@@ -705,7 +730,8 @@
     "production.services"
    ],
    "lazy": [
-    "production.daily_image_reports"
+    "production.daily_image_reports",
+    "production.models"
    ]
   }
  },
@@ -739,6 +765,10 @@
    "cutting/dashboard.html",
    "cutting/order_detail.html",
    "cutting/partials/item_detail.html"
+  ],
+  "production/gift_views.py": [
+   "gifts/manage.html",
+   "gifts/tv.html"
   ],
   "production/manager_views.py": [
    "managers/dashboard.html",
@@ -896,6 +926,23 @@
     "cutting_dashboard",
     "cutting_delete_batch",
     "cutting_item_detail"
+   ]
+  },
+  "templates/gifts/manage.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "includes": [
+    "gifts/partials/award_form.html",
+    "gifts/partials/award_form.html"
+   ],
+   "url_names": [
+    "gifts:manage"
+   ]
+  },
+  "templates/gifts/partials/award_form.html": {
+   "url_names": [
+    "gifts:manage"
    ]
   },
   "templates/includes/theme_head.html": {
@@ -1390,6 +1437,7 @@
     "accounts:logout",
     "control:home",
     "cutting_dashboard",
+    "gifts:manage",
     "manager_dashboard",
     "meto_dashboard",
     "norma_canvas",

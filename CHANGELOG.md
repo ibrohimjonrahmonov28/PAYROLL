@@ -29,6 +29,31 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 09.11.2026, 11:07
+* **Turi:** `feat(gifts)` — Patok taqdirlashlari: superadmin kiritadi, TV'da `/gifts/<patok>/` sahifasida ko'rinadi
+* **Mavzu:** Egasining so'rovi: har bir patok uchun oy bo'yicha taqdirlash (ism-familiya, xodim rasmi, sovg'a rasmi, nominatsiya nomi va sababi). TV ekrandagi sovg'a belgisi shu patokning taqdirlash sahifasini ochadi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` (`PatokAward`), `production/migrations/0036_patok_award.py`
+  - `production/gift_views.py`, `production/gift_urls.py` (yangi), `config/urls.py` (`/gifts/`)
+  - `templates/gifts/tv.html`, `templates/gifts/manage.html`, `templates/gifts/partials/award_form.html` (yangi)
+  - `templates/superadmin/base_superadmin.html` (menyuda "Taqdirlash")
+  - `screens/views.py` (`get_screen_gift_badge`), `templates/screens/monitor.html` (sovg'a tugmasi — egasining aniq so'rovi bilan; ekranning qolgan eski dizayni o'zgarmagan)
+  - `accounts/middleware.py` (ekran akkaunti faqat o'z patokining taqdirlash sahifasini ochadi; filial admini — `/gifts/`)
+  - `production/test_gifts.py`, `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Kiritish (`/gifts/boshqaruv/`, faqat superadmin):** patok va oy tanlanadi. Ism ro'yxatdan tanlanadi (shu oyda shu patokda ishlagan xodimlar, o'rtacha kunlik norma foizi bo'yicha saralangan) yoki qo'lda yoziladi. Majburiy: ism va nominatsiya; rasmlar va sabab ixtiyoriy. Tahrirlash va o'chirish bor.
+  2. **Rasmlar:** telefon rasmining burilishi to'g'rilanadi va TV uchun 1600 px JPEG ga kichraytiriladi; taqdirlash o'chirilsa rasm fayllari ham o'chadi.
+  3. **TV sahifasi (`/gifts/k1/` … `/gifts/u27/`):** `/screens/` kabi loginsiz ochiladi. Taqdirlash kiritilgan oxirgi oy ochiladi, ◀ ▶ bilan boshqa oylarga o'tiladi. Bir nechta taqdirlash har 15 soniyada almashadi; yangisi kiritilsa sahifa 1 daqiqa ichida o'zi yangilanadi; "Ekranga qaytish" tugmasi bor. 720p, 768p, 1080p TV va telefon kengligida tekshirildi.
+  4. **TV ekrandagi belgi:** har bir `/screens/<n>/` sarlavhasida sovg'a tugmasi va oxirgi oydagi taqdirlashlar soni.
+  5. **Kirish huquqi:** `ekrank1` faqat `/gifts/k1/` ni ochadi, boshqa patok sahifasiga o'ta olmaydi.
+* **Serverda:** `git pull origin main && docker compose restart web` (0036 migratsiyasi o'zi ishlaydi). TV ekranlarda sovg'a belgisi chiqishi uchun bir marta qayta yuklash (F5) kerak.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `9c8ee44`] — 04.11.2026, 22:25
 * **Turi:** `feat(screens)` — TV ekranlarda "Patok quvvati" o'rniga Patok normasi, Asosiy dazmol va Patok foizi (18:00 hisobot bilan bir xil)
 * **Mavzu:** Barcha 40 ta `/screens/<n>/` TV ekrani (egasining aniq so'rovi bilan; sahifaning qolgan eski dizayni o'zgarmagan). Ekrandagi foiz istalgan patok uchun 18:00 hisobotdagi "Фоиз" bilan bir xil bo'lishi kerak.

@@ -6,8 +6,8 @@
    "latest": "0020_alter_user_role_masterabsentday"
   },
   "production": {
-   "count": 35,
-   "latest": "0035_waybill_cuttingbatch_waybill"
+   "count": 36,
+   "latest": "0036_patok_award"
   },
   "screens": {
    "count": 0,
@@ -916,6 +916,38 @@
      "to": "accounts.User",
      "on_delete": "SET_NULL",
      "related_name": "cancelled_batches"
+    }
+   ]
+  },
+  "production.PatokAward": {
+   "table": "production_patokaward",
+   "file": "production/models.py:1797",
+   "fields": {
+    "id": "BigAutoField",
+    "screen_number": "PositiveSmallIntegerField[idx]",
+    "month": "DateField[idx]",
+    "full_name": "CharField",
+    "photo": "ImageField",
+    "gift_photo": "ImageField",
+    "nomination": "CharField",
+    "reason": "TextField",
+    "created_at": "DateTimeField",
+    "updated_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "worker",
+     "type": "ForeignKey",
+     "to": "accounts.Worker",
+     "on_delete": "SET_NULL",
+     "related_name": "patok_awards"
+    },
+    {
+     "field": "created_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "created_patok_awards"
     }
    ]
   }

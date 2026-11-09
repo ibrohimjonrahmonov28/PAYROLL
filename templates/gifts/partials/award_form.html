@@ -1,0 +1,84 @@
+{% comment %}
+Taqdirlash formasi (gifts/manage.html): award bo'lsa tahrirlash, bo'lmasa yangi. Sahifadagi noyob prefiks award.id dan (yangi forma uchun 'new').
+Ism ro'yxatdan tanlansa nomi o'zi yoziladi, xohlasa qo'lda o'zgartiriladi.
+{% endcomment %}
+{% with fid=award.id|default:'new' %}
+<form method="POST" action="{% url 'gifts:manage' %}" enctype="multipart/form-data" class="space-y-3">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{% if award %}update{% else %}create{% endif %}">
+    {% if award %}<input type="hidden" name="award_id" value="{{ award.id }}">{% endif %}
+    <input type="hidden" name="patok" value="{{ patok_code|lower }}">
+    <input type="hidden" name="month" value="{{ month_param }}">
+
+    <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+            Ro'yxatdan tanlash <span class="normal-case font-semibold text-slate-500">(shu oyda {{ patok_code }} da ishlaganlar)</span>
+        </label>
+        <select name="worker_id" onchange="fillAwardName(this, 'award-{{ fid }}-name')"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            <option value="">— qo'lda yozaman —</option>
+            {% if award and award.worker %}
+            <option value="{{ award.worker_id }}" data-name="{{ award.worker.full_name }}" selected>{{ award.worker.full_name }} (biriktirilgan)</option>
+            {% endif %}
+            {% for c in candidates %}
+            {% if not award or c.id != award.worker_id %}
+            <option value="{{ c.id }}" data-name="{{ c.full_name }}">{{ c.full_name }} — {{ c.avg_pct }}% · {{ c.days }} kun · {{ c.earned_display }} so'm</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ism-familiya <span class="text-rose-400">*</span></label>
+        <input type="text" id="award-{{ fid }}-name" name="full_name" required maxlength="150" value="{{ award.full_name|default:'' }}"
+            placeholder="Masalan: Munojot Ikromova"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-bold focus:outline-none focus:border-amber-500">
+    </div>
+
+    <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nominatsiya nomi <span class="text-rose-400">*</span></label>
+        <input type="text" name="nomination" required maxlength="200" list="nomination-suggestions" value="{{ award.nomination|default:'' }}"
+            placeholder="Masalan: Oyning eng yaxshi tikuvchisi"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+    </div>
+
+    <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nominatsiya sababi</label>
+        <textarea name="reason" rows="3" placeholder="Masalan: Oktyabrda normani 125% bajardi va brak chiqarmadi"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">{{ award.reason|default:'' }}</textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Xodim rasmi</label>
+            <img id="award-{{ fid }}-photo-preview" src="{% if award.photo %}{{ award.photo.url }}{% endif %}" alt=""
+                class="{% if not award.photo %}hidden {% endif %}w-full aspect-[3/4] object-cover rounded-xl border border-slate-800 mb-2">
+            <input type="file" name="photo" accept="image/*" onchange="previewAwardImage(this, 'award-{{ fid }}-photo-preview')"
+                class="w-full text-xs text-slate-400 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200 file:font-bold">
+            {% if award.photo %}
+            <label class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                <input type="checkbox" name="remove_photo" value="1"> Rasmni olib tashlash
+            </label>
+            {% endif %}
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sovg'a rasmi</label>
+            <img id="award-{{ fid }}-gift-preview" src="{% if award.gift_photo %}{{ award.gift_photo.url }}{% endif %}" alt=""
+                class="{% if not award.gift_photo %}hidden {% endif %}w-full aspect-square object-cover rounded-xl border border-slate-800 mb-2">
+            <input type="file" name="gift_photo" accept="image/*" onchange="previewAwardImage(this, 'award-{{ fid }}-gift-preview')"
+                class="w-full text-xs text-slate-400 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200 file:font-bold">
+            {% if award.gift_photo %}
+            <label class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                <input type="checkbox" name="remove_gift_photo" value="1"> Rasmni olib tashlash
+            </label>
+            {% endif %}
+        </div>
+    </div>
+
+    <button type="submit"
+        class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-floppy-disk"></i>
+        <span>{% if award %}O'zgarishlarni saqlash{% else %}Taqdirlashni saqlash{% endif %}</span>
+    </button>
+</form>
+{% endwith %}

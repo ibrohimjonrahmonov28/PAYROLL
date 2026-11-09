@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1011,
+  "lines": 1019,
   "depends_on": [
    "production.models",
    "production.services"
@@ -91,7 +91,7 @@
    "config/urls.py",
    "config/wsgi.py"
   ],
-  "lines": 353,
+  "lines": 354,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2221,
+  "lines": 2277,
   "depends_on": [
    "accounts.core"
   ]
@@ -172,6 +172,20 @@
    "production.services"
   ]
  },
+ "production.gifts": {
+  "description": "Patok awards (/gifts/): superadmin entry page and the public per-patok TV page opened from the monitor's gift button.",
+  "files": [
+   "production/gift_urls.py",
+   "production/gift_views.py"
+  ],
+  "lines": 304,
+  "depends_on": [
+   "accounts.core",
+   "accounts.superadmin",
+   "production.models",
+   "production.services"
+  ]
+ },
  "production.managers": {
   "description": "Manager portal (/managers/): order creation and overview.",
   "files": [
@@ -217,7 +231,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 1796,
+  "lines": 1837,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -363,7 +377,7 @@
    "screens/urls.py",
    "screens/views.py"
   ],
-  "lines": 722,
+  "lines": 738,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -384,6 +398,9 @@
    "templates/cutting/dashboard.html",
    "templates/cutting/order_detail.html",
    "templates/cutting/partials/item_detail.html",
+   "templates/gifts/manage.html",
+   "templates/gifts/partials/award_form.html",
+   "templates/gifts/tv.html",
    "templates/includes/theme_head.html",
    "templates/includes/theme_head_legacy.html",
    "templates/includes/theme_toggle.html",
@@ -450,7 +467,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 42635,
+  "lines": 43087,
   "depends_on": []
  },
  "tests": {
@@ -458,6 +475,7 @@
   "files": [
    "accounts/tests.py",
    "production/test_daily_dazmol.py",
+   "production/test_gifts.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
@@ -470,12 +488,13 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 10706,
+  "lines": 10871,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",
    "production.commands",
    "production.cutting",
+   "production.gifts",
    "production.managers",
    "production.meto",
    "production.models",

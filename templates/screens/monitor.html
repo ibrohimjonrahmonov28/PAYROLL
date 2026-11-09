@@ -146,6 +146,18 @@
 
         <!-- Right: Actions -->
         <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
+            {% if gift_url %}
+            <!-- Taqdirlash (egasi talabi 2026-11-09): shu patokning taqdirlash sahifasi /gifts/<patok>/ -->
+            <a href="{{ gift_url }}" id="btn-gifts"
+                class="relative bg-slate-800 hover:bg-slate-700 text-amber-400 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70 shadow-sm"
+                title="Patok taqdirlashlari">
+                <i class="fa-solid fa-gift text-base"></i>
+                {% if gift_count %}
+                <span class="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-amber-500 text-slate-950 text-[11px] font-black flex items-center justify-center shadow">{{ gift_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+
             <!-- Auto-scroll indicator & toggle for TV -->
             <button id="btn-toggle-scroll" onclick="toggleAutoScroll()"
                 class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70"

@@ -232,6 +232,12 @@
                 <span>Narxlar Matritsasi</span>
             </a>
 
+            <a href="{% url 'gifts:manage' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if request.resolver_match.namespace == 'gifts' %}bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-md{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                <i class="fa-solid fa-gift w-5 text-center"></i>
+                <span>Taqdirlash</span>
+            </a>
+
             <div class="pt-4 border-t border-slate-800 my-3">
                 <span class="text-[11px] uppercase font-black text-slate-500 tracking-wider px-3">Asosiy Tizim</span>
             </div>

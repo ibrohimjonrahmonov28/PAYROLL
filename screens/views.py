@@ -2,6 +2,7 @@ from datetime import date, datetime, time
 import calendar
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
+from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Sum, Count, Max, F, FloatField, ExpressionWrapper, Value, Q
 from django.db.models.functions import Coalesce
@@ -560,6 +561,20 @@ def get_screen_patok_metrics(screen_number: int, target_date):
     }
 
 
+def get_screen_gift_badge(screen_number: int):
+    """
+    TV ekrandagi sovg'a belgisi (egasi talabi 2026-11-09): shu patok taqdirlash sahifasiga havola va taqdirlash
+    kiritilgan eng oxirgi oydagi taqdirlashlar soni (TV sahifasi ham shu oyni ochadi).
+    """
+    from production.models import PatokAward
+    last_month = PatokAward.objects.filter(screen_number=screen_number).aggregate(m=Max('month'))['m']
+    count = PatokAward.objects.filter(screen_number=screen_number, month=last_month).count() if last_month else 0
+    return {
+        'gift_url': reverse('gifts:tv', args=[get_patok_code(screen_number).lower()]),
+        'gift_count': count,
+    }
+
+
 def parse_date_param(val):
     if not val:
         return None
@@ -593,6 +608,7 @@ def screen_view(request, screen_number=None, screen_identifier=None):
     data['target_date_iso'] = effective_date.strftime('%Y-%m-%d')
     data['is_custom_date'] = bool(target_date and target_date != timezone.localdate())
     data.update(get_screen_patok_metrics(sn, effective_date))
+    data.update(get_screen_gift_badge(sn))
     return render(request, 'screens/monitor.html', data)
 
 
