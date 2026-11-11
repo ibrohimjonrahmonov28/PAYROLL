@@ -51,15 +51,31 @@
             </div>
         </section>
 
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-            <span class="block text-xs font-bold text-slate-400 uppercase mb-2">Razmerlar bo'yicha soni *</span>
-            <div class="flex flex-wrap items-end gap-2">
-                {% for i, size, qty in size_rows %}
-                <label class="w-24"><span class="block text-xs font-bold text-slate-300 text-center">{{ size }}</span>
-                    <input name="size-{{ i }}" value="{{ qty }}" inputmode="numeric" placeholder="0"
-                        class="size-input w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-bold"></label>
-                {% endfor %}
-                <div class="px-4 py-2 rounded-xl bg-slate-800 text-white font-black">Jami: <span id="size-total">0</span></div>
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div>
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Razmerlar * <span class="normal-case font-normal">(vergul bilan, shu artikul uchun)</span></span>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    {% for label, preset in size_presets %}
+                    <button type="button" onclick="setSizes('{{ preset }}')"
+                        class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">{{ label }}</button>
+                    {% endfor %}
+                </div>
+                <input type="text" id="size-labels" name="size_labels" value="{{ values.size_labels }}" required maxlength="300"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:outline-none focus:border-emerald-500">
+                <span class="block text-[11px] text-slate-500 mt-1">Tugmani bosing yoki o'zingiz yozing, masalan: 92, 98, 104, 110</span>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-2">Razmerlar bo'yicha soni *</span>
+                <div class="flex flex-wrap items-end gap-2">
+                    <div id="size-inputs" class="contents">
+                        {% for i, size, qty in size_rows %}
+                        <label class="w-24"><span class="block text-xs font-bold text-slate-300 text-center">{{ size }}</span>
+                            <input name="size-{{ i }}" value="{{ qty }}" data-size="{{ size }}" inputmode="numeric" placeholder="0"
+                                class="size-input w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-bold"></label>
+                        {% endfor %}
+                    </div>
+                    <div class="px-4 py-2 rounded-xl bg-slate-800 text-white font-black">Jami: <span id="size-total">0</span></div>
+                </div>
             </div>
         </section>
 
@@ -112,6 +128,45 @@
         });
     }
 
+    function parseSizes(text) {
+        const sizes = [];
+        String(text || '').split(',').forEach(part => {
+            const size = part.trim();
+            if (size && !sizes.includes(size)) sizes.push(size);
+        });
+        return sizes;
+    }
+
+    // Razmerlar o'zgarsa son kataklari qayta chiziladi; bor razmerning yozilgan soni saqlanadi (tartib serverdagidek)
+    function renderSizeInputs() {
+        const box = document.getElementById('size-inputs');
+        const old = {};
+        box.querySelectorAll('.size-input').forEach(input => old[input.dataset.size] = input.value);
+        box.innerHTML = '';
+        parseSizes(document.getElementById('size-labels').value).forEach((size, i) => {
+            const label = document.createElement('label');
+            label.className = 'w-24';
+            const title = document.createElement('span');
+            title.className = 'block text-xs font-bold text-slate-300 text-center';
+            title.textContent = size;
+            const input = document.createElement('input');
+            input.name = `size-${i}`;
+            input.value = old[size] || '';
+            input.dataset.size = size;
+            input.inputMode = 'numeric';
+            input.placeholder = '0';
+            input.className = 'size-input w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-bold';
+            label.append(title, input);
+            box.append(label);
+        });
+        recalc();
+    }
+
+    function setSizes(value) {
+        document.getElementById('size-labels').value = value;
+        renderSizeInputs();
+    }
+
     function addFabricRow() {
         const key = 'n' + Date.now() + '_' + (++fabricCounter);
         const html = document.getElementById('fabric-template').innerHTML.replaceAll('__IDX__', key);
@@ -125,6 +180,7 @@
     }
 
     document.addEventListener('input', recalc);
+    document.getElementById('size-labels').addEventListener('input', renderSizeInputs);
     if (!document.querySelector('#fabric-rows .fabric-row')) addFabricRow();
     recalc();
 </script>

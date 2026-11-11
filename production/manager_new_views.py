@@ -4,6 +4,7 @@ Managerlar NEW (/managers-new/, egasi talabi 2026-11-11): menejer zakaz list va 
   zakazni boshqa menejerga o'tkazadi, arxivlaydi.
 - Har artikul yangi yaratiladi: Article.code = "<menejer yozgan kod> · <zakaz raqami>" (kod butun tizimda takrorlanmas,
   eski artikullar menejerga ko'rsatilmaydi).
+- Razmerlar har artikulda alohida (OrderItem.size_labels): bir zakazda kattalar va bolalar artikuli bo'lishi mumkin.
 - Kroy boshlangach (Kroyda, Tikuvda, Tugadi, Arxiv) tahrirni faqat superadmin qiladi; o'zgarishlar OrderChangeLog'da.
 - Test davrida bu zakazlar (Order.is_new_flow) eski sahifalarda ko'rinmaydi. Sklad va kroy keyingi bosqichlarda.
 """
@@ -196,13 +197,11 @@ def order_form(request, order_id=None):
         'client_name': order.client_name if order else '',
         'order_date': order.order_date.isoformat() if order and order.order_date else datetime.date.today().isoformat(),
         'export_dates': order.export_dates if order else '',
-        'size_labels': order.size_labels if order else SIZE_PRESETS[0][1],
     }
     if request.method == 'POST':
         values = {key: (request.POST.get(key) or '').strip() for key in values}
         errors = []
         number = values['order_number']
-        sizes = _parse_sizes(values['size_labels'])
         order_date = _parse_date(values['order_date'], "Buyurtma sanasi", errors, required=True)
         if not number:
             errors.append("Zakaz raqamini yozing")
@@ -210,14 +209,7 @@ def order_form(request, order_id=None):
             errors.append(f"«{number}» raqamli zakaz tizimda allaqachon bor")
         if not values['client_name']:
             errors.append("Mijozni yozing")
-        if not sizes:
-            errors.append("Kamida bitta razmer kiriting")
         if order:
-            used = OrderItemSize.objects.filter(order_item__order=order).exclude(size_name__in=sizes).filter(
-                Q(planned_quantity__gt=0) | Q(cutting_items__isnull=False))
-            removed = sorted(set(used.values_list('size_name', flat=True)))
-            if removed:
-                errors.append(f"{', '.join(removed)} razmerida son bor — avval artikullarda 0 qiling")
             long_codes = [i.article_code for i in order.items.all() if len(_full_article_code(i.article_code, number)) > 50]
             if long_codes:
                 errors.append("Zakaz raqami juda uzun: artikul kodi bilan 50 belgidan oshadi")
@@ -234,10 +226,8 @@ def order_form(request, order_id=None):
                 order.client_name = values['client_name']
                 order.order_date = order_date
                 order.export_dates = values['export_dates']
-                order.size_labels = ', '.join(sizes)
                 order.save()
                 if not created:
-                    OrderItemSize.objects.filter(order_item__order=order).exclude(size_name__in=sizes).delete()
                     if old_number != number:
                         for item in order.items.select_related('article'):
                             item.article.code = _full_article_code(item.article_code, number)
@@ -249,14 +239,12 @@ def order_form(request, order_id=None):
     return render(request, 'managers_new/order_form.html', {
         'order': order,
         'values': values,
-        'size_presets': SIZE_PRESETS,
     })
 
 
 @manager_new_required
 def order_detail(request, order_id):
     order = _get_order(request, order_id)
-    sizes = order.size_list
     rows = []
     by_model = OrderedDict()
     totals = {'qty': 0, 'prosjyot': 0, 'finished_kg': Decimal('0'), 'raw_kg': Decimal('0')}
@@ -265,7 +253,7 @@ def order_detail(request, order_id):
         fabrics = list(item.fabrics.all())
         finished = sum((f.finished_kg for f in fabrics), Decimal('0'))
         raw = sum((f.raw_kg for f in fabrics), Decimal('0'))
-        rows.append({'item': item, 'sizes': [size_map.get(s, 0) for s in sizes], 'fabrics': fabrics,
+        rows.append({'item': item, 'sizes': [(s, size_map.get(s, 0)) for s in item.size_list], 'fabrics': fabrics,
                      'finished_kg': finished, 'raw_kg': raw})
         name = item.article.name
         by_model[name] = by_model.get(name, 0) + item.quantity
@@ -278,7 +266,6 @@ def order_detail(request, order_id):
     status_choices = [(k, v) for k, v in STATUS_LABELS.items() if is_super or k != Order.Status.ARCHIVED]
     return render(request, 'managers_new/order_detail.html', {
         'order': order,
-        'sizes': sizes,
         'rows': rows,
         'by_model': by_model,
         'totals': totals,
@@ -387,19 +374,23 @@ def article_form(request, order_id, item_id=None):
         messages.error(request, "Kroy boshlangan zakazni faqat superadmin o'zgartira oladi.")
         return redirect('managers_new:order_detail', order_id=order.id)
 
-    sizes = order.size_list
     size_map = {s.size_name: s.planned_quantity for s in item.sizes.all()} if item else {}
+    last_item = order.items.exclude(size_labels='').order_by('-id').first()
     values = {
         'article_code': item.article_code if item else '',
         'model_name': item.article.name if item else '',
         'ship_date': item.ship_date.isoformat() if item and item.ship_date else '',
         'prosjyot': str(item.prosjyot or '') if item else '',
+        # yangi artikulga shu zakazning oxirgi artikuli razmerlari taklif qilinadi (o'zgartirsa bo'ladi)
+        'size_labels': item.size_labels if item else (last_item.size_labels if last_item else SIZE_PRESETS[0][1]),
     }
+    sizes = _parse_sizes(values['size_labels'])
     size_values = [str(size_map.get(s, '')) for s in sizes]
     fabric_rows = _fabric_rows_from_item(item) if item else []
 
     if request.method == 'POST':
         values = {key: (request.POST.get(key) or '').strip() for key in values}
+        sizes = _parse_sizes(values['size_labels'])
         size_values = [(request.POST.get(f'size-{i}') or '').strip() for i in range(len(sizes))]
         fabric_rows = _fabric_rows_from_post(request)
         existing_fabrics = {str(f.id): f for f in item.fabrics.all()} if item else {}
@@ -421,9 +412,18 @@ def article_form(request, order_id, item_id=None):
         if not values['model_name']:
             errors.append("Model nomini yozing")
         ship_date = _parse_date(values['ship_date'], "Jo'natish sanasi", errors, required=True)
+        if not sizes:
+            errors.append("Kamida bitta razmer kiriting")
+        elif len(', '.join(sizes)) > 300 or any(len(s) > 50 for s in sizes):
+            errors.append("Razmerlar juda uzun")
+        elif item:
+            cut = item.sizes.exclude(size_name__in=sizes).filter(cutting_items__isnull=False)
+            removed = sorted(set(cut.values_list('size_name', flat=True)))
+            if removed:
+                errors.append(f"{', '.join(removed)} razmeri kesilgan — uni olib tashlab bo'lmaydi")
         quantities = [_parse_int(v, f"{s} soni", errors) or 0 for s, v in zip(sizes, size_values)]
         total = sum(quantities)
-        if not total:
+        if sizes and not total:
             errors.append("Kamida bitta razmerga son yozing")
         prosjyot = _parse_int(values['prosjyot'], "Просчет", errors)
         if prosjyot is None:
@@ -493,6 +493,7 @@ def article_form(request, order_id, item_id=None):
                 item.quantity = total
                 item.prosjyot = prosjyot
                 item.ship_date = ship_date
+                item.size_labels = ', '.join(sizes)
                 if 'print' in images:
                     _replace_image(item.print_image, images['print'], 'print')
                 elif request.POST.get('remove_print') == '1' and item.print_image:
@@ -532,6 +533,7 @@ def article_form(request, order_id, item_id=None):
         'item': item,
         'values': values,
         'size_rows': list(zip(range(len(sizes)), sizes, size_values)),
+        'size_presets': SIZE_PRESETS,
         'fabric_rows': fabric_rows,
     })
 

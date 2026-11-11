@@ -32,18 +32,7 @@
             </label>
         </div>
 
-        <div>
-            <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Razmerlar * <span class="normal-case font-normal">(vergul bilan)</span></span>
-            <div class="flex flex-wrap gap-2 mb-2">
-                {% for label, sizes in size_presets %}
-                <button type="button" onclick="document.getElementById('size-labels').value = '{{ sizes }}'"
-                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">{{ label }}</button>
-                {% endfor %}
-            </div>
-            <input type="text" id="size-labels" name="size_labels" value="{{ values.size_labels }}" required
-                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:outline-none focus:border-emerald-500">
-            <span class="block text-[11px] text-slate-500 mt-1">Tugmani bosing yoki o'zingiz yozing, masalan: 92, 98, 104, 110</span>
-        </div>
+        <p class="text-[11px] text-slate-500">Razmerlar har artikulda alohida kiritiladi.</p>
 
         <div class="flex items-center gap-3 pt-2">
             <button class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">

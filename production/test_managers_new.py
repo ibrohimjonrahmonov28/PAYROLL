@@ -37,17 +37,17 @@ class ManagersNewTest(TestCase):
         self.manager2 = User.objects.create_user(username='manager2', password='x', role=User.Role.MANAGER)
         self.client.force_login(self.manager)
 
-    def create_order(self, number='DM-46', sizes='S (46), M (48), L (50)'):
+    def create_order(self, number='DM-46'):
         self.client.post(reverse('managers_new:order_create'), {
             'order_number': number, 'client_name': 'ДМ', 'order_date': '2026-11-07',
-            'export_dates': '15.01.2027 / 19.02.2027', 'size_labels': sizes,
+            'export_dates': '15.01.2027 / 19.02.2027',
         }, follow=True)   # follow: "saqlandi" xabari shu yerda ko'rsatilib tugaydi
         return Order.objects.get(order_number=number)
 
     def article_data(self, code='TJ-MS-SS27-01', **extra):
         data = {
             'article_code': code, 'model_name': 'Шорты мужские', 'ship_date': '2027-02-19', 'prosjyot': '480',
-            'size-0': '84', 'size-1': '168', 'size-2': '168',
+            'size_labels': 'S (46), M (48), L (50)', 'size-0': '84', 'size-1': '168', 'size-2': '168',
             'fabric_row': ['n1', 'n2'],
             'fabric-n1-name': '2 ип', 'fabric-n1-color': 'Бежевый 15-1308', 'fabric-n1-composition': '80% хлопок',
             'fabric-n1-width_cm': '185', 'fabric-n1-density_gsm': '220', 'fabric-n1-kg_per_piece': '0,255',
@@ -65,7 +65,7 @@ class ManagersNewTest(TestCase):
     def test_manager_creates_order_with_article_sizes_and_fabrics(self):
         order = self.create_order()
         self.assertTrue(order.is_new_flow)
-        self.assertEqual((order.manager, order.status, order.size_list), (self.manager, Order.Status.DRAFT, ['S (46)', 'M (48)', 'L (50)']))
+        self.assertEqual((order.manager, order.status), (self.manager, Order.Status.DRAFT))
 
         res = self.add_article(order)
         self.assertEqual(res.status_code, 302)
@@ -73,6 +73,7 @@ class ManagersNewTest(TestCase):
         self.assertEqual(item.article.code, 'TJ-MS-SS27-01 · DM-46')   # har zakazda yangi artikul, kod takrorlanmas
         self.assertEqual((item.article_code, item.quantity, item.prosjyot), ('TJ-MS-SS27-01', 420, 480))
         self.assertEqual({s.size_name: s.planned_quantity for s in item.sizes.all()}, {'S (46)': 84, 'M (48)': 168, 'L (50)': 168})
+        self.assertEqual(item.size_list, ['S (46)', 'M (48)', 'L (50)'])
         self.assertTrue(item.article.image.name.split('/')[-1].startswith('model_'))
 
         main, rib = item.fabrics.order_by('id')
@@ -95,6 +96,7 @@ class ManagersNewTest(TestCase):
         self.add_article(order, article_code='TJ-02', prosjyot='100')  # Просчет zakaz sonidan kam
         self.add_article(order, article_code='TJ-03', model_image='')  # model rasmi majburiy
         self.add_article(order, article_code='TJ-04', fabric_row=[])   # mato qismi majburiy
+        self.add_article(order, article_code='TJ-05', size_labels='')  # razmer majburiy
         self.assertEqual(order.items.count(), 1)
 
     def test_manager_sees_only_own_orders(self):
@@ -137,18 +139,37 @@ class ManagersNewTest(TestCase):
         self.assertEqual(order.manager, self.manager2)
         self.assertTrue(order.change_logs.filter(message__startswith='Menejer:').exists())
 
-    def test_order_number_change_updates_article_codes_and_size_guard(self):
+    def test_order_number_change_updates_article_codes(self):
         order = self.create_order()
         self.add_article(order)
-        base = {'client_name': 'ДМ', 'order_date': '2026-11-07', 'export_dates': ''}
         self.client.post(reverse('managers_new:order_edit', args=[order.id]),
-                         dict(base, order_number='DM-47', size_labels='S (46), M (48), L (50)'))
+                         {'client_name': 'ДМ', 'order_date': '2026-11-07', 'export_dates': '', 'order_number': 'DM-47'})
         self.assertTrue(Article.objects.filter(code='TJ-MS-SS27-01 · DM-47').exists())
 
-        self.client.post(reverse('managers_new:order_edit', args=[order.id]),
-                         dict(base, order_number='DM-47', size_labels='S (46), M (48)'))   # L da son bor
-        order.refresh_from_db()
-        self.assertEqual(order.size_list, ['S (46)', 'M (48)', 'L (50)'])
+    def test_articles_have_own_sizes(self):
+        order = self.create_order()
+        self.add_article(order)
+        self.add_article(order, article_code='TJ-KIDS-01', prosjyot='', size_labels='110, 116',
+                         **{'size-0': '50', 'size-1': '60', 'size-2': ''})
+        kids = order.items.get(article_code='TJ-KIDS-01')
+        self.assertEqual((kids.size_list, kids.quantity), (['110', '116'], 110))
+        self.assertEqual({s.size_name: s.planned_quantity for s in kids.sizes.all()}, {'110': 50, '116': 60})
+
+        # tahrirda razmer olib tashlansa, uning qatori ham o'chadi
+        self.client.post(reverse('managers_new:article_edit', args=[order.id, kids.id]),
+                         self.article_data(code='TJ-KIDS-01', prosjyot='', size_labels='116, 122',
+                                           **{'size-0': '60', 'size-1': '40', 'size-2': ''}))
+        kids.refresh_from_db()
+        self.assertEqual((kids.size_list, kids.quantity), (['116', '122'], 100))
+        self.assertEqual(set(kids.sizes.values_list('size_name', flat=True)), {'116', '122'})
+
+        page = self.client.get(reverse('managers_new:order_detail', args=[order.id]))
+        self.assertContains(page, '>122<')
+        res = self.client.get(reverse('managers_new:export_order_list', args=[order.id]))
+        ws = openpyxl.load_workbook(io.BytesIO(res.content)).active
+        kids_row = next(r for r in range(4, ws.max_row + 1) if ws.cell(r, 2).value == 'TJ-KIDS-01')
+        self.assertEqual([ws.cell(kids_row, c).value for c in (6, 7, 8)], ['116', '122', 'Всего'])
+        self.assertEqual(ws.cell(kids_row + 1, 8).value, 100)
 
     def test_new_flow_orders_hidden_from_old_pages_and_manager_restricted(self):
         Order.objects.create(order_number='OLD-1', client_name='X5')

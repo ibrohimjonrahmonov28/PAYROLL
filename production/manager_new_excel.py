@@ -96,7 +96,6 @@ def _totals(ws, row, items, finished, raw, label_col, value_col):
 
 def build_order_list_xlsx(order):
     items = _items(order)
-    sizes = order.size_list
     wb = Workbook()
     ws = wb.active
     ws.title = _sheet_title(order)
@@ -105,11 +104,14 @@ def build_order_list_xlsx(order):
                  ("Таблицу подготовил:", _manager_name(order))])
 
     first_size_col = 6
-    total_col = first_size_col + len(sizes)
+    last_col = 11
     finished_total = raw_total = Decimal('0')
     row = 4
     for number, item in enumerate(items, start=1):
         fabrics = list(item.fabrics.all())
+        sizes = item.size_list   # har artikul o'z razmerlari bilan
+        total_col = first_size_col + len(sizes)
+        last_col = max(last_col, total_col)
         qty_by_size = {s.size_name: s.planned_quantity for s in item.sizes.all()}
         block_rows = max(7, 4 + len(fabrics))
         ws.merge_cells(start_row=row, start_column=1, end_row=row + block_rows - 1, end_column=1)
@@ -149,7 +151,7 @@ def build_order_list_xlsx(order):
 
     _totals(ws, row, items, finished_total, raw_total, label_col=3, value_col=5)
     widths = {1: 6, 2: 22, 3: 26, 4: 18, 5: 26}
-    for col in range(1, max(total_col, 11) + 1):
+    for col in range(1, last_col + 1):
         ws.column_dimensions[get_column_letter(col)].width = widths.get(col, 14)
     buffer = io.BytesIO()
     wb.save(buffer)

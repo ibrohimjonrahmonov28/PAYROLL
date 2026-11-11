@@ -29,6 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 13:29
+* **Turi:** `feat(managers-new)` — Razmerlar zakazda emas, har artikulda alohida
+* **Mavzu:** `/managers-new/` (egasining so'rovi bilan): yangi zakaz ochishda razmer so'ralmaydi, chunki bir zakazdagi artikullarning razmerlari har xil bo'lishi mumkin (masalan kattalar va bolalar).
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` (`OrderItem.size_labels`), `production/migrations/0038_orderitem_size_labels.py` (mavjud zakazlarning razmerlari artikullarga ko'chiriladi)
+  - `production/manager_new_views.py`, `production/manager_new_excel.py`
+  - `templates/managers_new/order_form.html`, `article_form.html`, `order_detail.html`
+  - `production/test_managers_new.py`, `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Zakaz:** razmer maydoni olib tashlandi.
+  2. **Artikul:** razmerlar shu yerda — tugma (kattalar 46–56, bolalar 110–146) yoki qo'lda; razmer o'zgarsa son kataklari darhol qayta chiziladi, yozilgan sonlar saqlanadi. Yangi artikulga shu zakazning oxirgi artikuli razmerlari taklif qilinadi.
+  3. **Zakaz kartasi va "Zakaz list" Excel:** har artikul o'z razmerlari bilan.
+  4. **Himoya:** kesilgan razmerni artikuldan olib tashlab bo'lmaydi.
+* **Serverda:** `git pull origin main && docker compose restart web` (0038 migratsiyasi o'zi ishlaydi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `6a2c5f0`] — 11.11.2026, 12:41
 * **Turi:** `feat(managers-new)` — "Managerlar NEW" test bo'limi: menejer zakaz list va mato zakazini kiritadi
 * **Mavzu:** Egasining so'rovi: zakaz kiritishni to'liq tizimga o'tkazish (1-bosqich — faqat menejer). Eski `/managers/` va hozirgi tartib o'zgarmagan; yangi bo'lim to'liq ishlagach unga o'tiladi, eskisi yashiriladi. Sklad (TMO) va kroy keyingi bosqichlarda.

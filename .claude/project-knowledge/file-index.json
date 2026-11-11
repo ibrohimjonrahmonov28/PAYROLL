@@ -23,17 +23,17 @@
   ".claude/project-knowledge/overview.md": {
    "module": "ops",
    "lines": 35,
-   "sha256_16": "38cd560c1aeed0c8"
+   "sha256_16": "5c348fa5b3dd15ac"
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 667,
-   "sha256_16": "c86e97f81bbad3ff"
+   "lines": 688,
+   "sha256_16": "fd109c5f843cadef"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 111,
-   "sha256_16": "8d612e3bc2c901dc"
+   "lines": 112,
+   "sha256_16": "2974763d5ace082b"
   },
   "Dockerfile": {
    "module": "ops",
@@ -643,8 +643,8 @@
   },
   "production/manager_new_excel.py": {
    "module": "production.managers",
-   "lines": 219,
-   "sha256_16": "fcce077ada288db8",
+   "lines": 221,
+   "sha256_16": "c2d081b8f268c550",
    "symbols": [
     "_items:24",
     "_manager_name:28",
@@ -654,7 +654,7 @@
     "_header:75",
     "_totals:84",
     "build_order_list_xlsx:97",
-    "build_fabric_order_xlsx:165"
+    "build_fabric_order_xlsx:167"
    ]
   },
   "production/manager_new_urls.py": {
@@ -664,37 +664,37 @@
   },
   "production/manager_new_views.py": {
    "module": "production.managers",
-   "lines": 581,
-   "sha256_16": "8a55cbdeb5f2d06b",
+   "lines": 583,
+   "sha256_16": "e5594c3634de065b",
    "symbols": [
-    "manager_new_required:48",
-    "_get_order:60",
-    "_can_edit:68",
-    "_log:72",
-    "_parse_sizes:76",
-    "_parse_int:85",
-    "_parse_decimal:97",
-    "_parse_date:114",
-    "_replace_image:127",
-    "_delete_item_files:134",
-    "_full_article_code:140",
-    "_has_production:144",
-    "_recount_total:151",
-    "order_list:157",
-    "order_form:188",
-    "order_detail:257",
-    "order_status:295",
-    "order_reassign:317",
-    "order_delete:333",
-    "_fabric_rows_from_post:351",
-    "_plain:362",
-    "_fabric_rows_from_item:371",
-    "article_form:383",
-    "article_delete:540",
-    "_xlsx_response:561",
-    "_safe_name:567",
-    "export_order_list:572",
-    "export_fabric_order:578"
+    "manager_new_required:49",
+    "_get_order:61",
+    "_can_edit:69",
+    "_log:73",
+    "_parse_sizes:77",
+    "_parse_int:86",
+    "_parse_decimal:98",
+    "_parse_date:115",
+    "_replace_image:128",
+    "_delete_item_files:135",
+    "_full_article_code:141",
+    "_has_production:145",
+    "_recount_total:152",
+    "order_list:158",
+    "order_form:189",
+    "order_detail:246",
+    "order_status:282",
+    "order_reassign:304",
+    "order_delete:320",
+    "_fabric_rows_from_post:338",
+    "_plain:349",
+    "_fabric_rows_from_item:358",
+    "article_form:370",
+    "article_delete:542",
+    "_xlsx_response:563",
+    "_safe_name:569",
+    "export_order_list:574",
+    "export_fabric_order:580"
    ]
   },
   "production/manager_urls.py": {
@@ -790,8 +790,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 1932,
-   "sha256_16": "33b625836b9f4791",
+   "lines": 1939,
+   "sha256_16": "80e6e56d1f36faa0",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -803,27 +803,27 @@
     "OperationGroupItem:383",
     "ArticleOperation:423",
     "Order:492",
-    "OrderItem:609",
-    "OrderItemSize:705",
-    "OrderItemFabric:772",
-    "OrderChangeLog:808",
-    "generate_unique_waybill_number:824",
-    "Waybill:838",
-    "CuttingBatch:940",
-    "CuttingBatchItem:1038",
-    "index_to_letters:1106",
-    "letters_to_index:1116",
-    "generate_unique_box_code:1124",
-    "generate_unique_stiker_code:1174",
-    "Box:1183",
-    "BoxQualityInspectionLog:1382",
-    "DefectReason:1424",
-    "ControlSetting:1509",
-    "Ticket:1544",
-    "DailyModelProgress:1728",
-    "DailyPatokProgress:1781",
-    "CancelledBatchLog:1844",
-    "PatokAward:1877"
+    "OrderItem:610",
+    "OrderItemSize:712",
+    "OrderItemFabric:779",
+    "OrderChangeLog:815",
+    "generate_unique_waybill_number:831",
+    "Waybill:845",
+    "CuttingBatch:947",
+    "CuttingBatchItem:1045",
+    "index_to_letters:1113",
+    "letters_to_index:1123",
+    "generate_unique_box_code:1131",
+    "generate_unique_stiker_code:1181",
+    "Box:1190",
+    "BoxQualityInspectionLog:1389",
+    "DefectReason:1431",
+    "ControlSetting:1516",
+    "Ticket:1551",
+    "DailyModelProgress:1735",
+    "DailyPatokProgress:1788",
+    "CancelledBatchLog:1851",
+    "PatokAward:1884"
    ]
   },
   "production/norma_services.py": {
@@ -1066,8 +1066,8 @@
   },
   "production/test_managers_new.py": {
    "module": "tests",
-   "lines": 186,
-   "sha256_16": "5ba54aab58044701",
+   "lines": 207,
+   "sha256_16": "3d848f0898473fb8",
    "symbols": [
     "image_upload:21",
     "ManagersNewTest:28"
@@ -1376,8 +1376,8 @@
   },
   "templates/managers_new/article_form.html": {
    "module": "templates",
-   "lines": 132,
-   "sha256_16": "f9b1b40ccc6a2b92"
+   "lines": 188,
+   "sha256_16": "560daedb14b85b9c"
   },
   "templates/managers_new/base.html": {
    "module": "templates",
@@ -1386,13 +1386,13 @@
   },
   "templates/managers_new/order_detail.html": {
    "module": "templates",
-   "lines": 217,
-   "sha256_16": "f985f34ad40c8007"
+   "lines": 216,
+   "sha256_16": "0b1c1051f08a7862"
   },
   "templates/managers_new/order_form.html": {
    "module": "templates",
-   "lines": 58,
-   "sha256_16": "095a43517c464c3a"
+   "lines": 47,
+   "sha256_16": "15ed04b251b05eb4"
   },
   "templates/managers_new/order_list.html": {
    "module": "templates",

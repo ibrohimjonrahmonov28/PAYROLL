@@ -18,7 +18,6 @@
                 {% if order.export_dates %}· Eksport: <b class="text-white">{{ order.export_dates }}</b>{% endif %}
                 · Menejer: <b class="text-white">{{ order.manager.get_full_name|default:order.manager.username|default:"—" }}</b>
             </p>
-            <p class="text-xs text-slate-400">Razmerlar: {{ order.size_labels }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
             {% if can_edit %}
@@ -119,11 +118,11 @@
         <div class="overflow-x-auto">
             <table class="text-sm border border-slate-800">
                 <tr class="bg-slate-800/60 text-slate-300">
-                    {% for s in sizes %}<th class="px-3 py-1.5 border border-slate-800 font-bold">{{ s }}</th>{% endfor %}
+                    {% for s, q in r.sizes %}<th class="px-3 py-1.5 border border-slate-800 font-bold">{{ s }}</th>{% endfor %}
                     <th class="px-3 py-1.5 border border-slate-800 font-black text-white">Jami</th>
                 </tr>
                 <tr class="text-center">
-                    {% for q in r.sizes %}<td class="px-3 py-1.5 border border-slate-800 text-white">{{ q }}</td>{% endfor %}
+                    {% for s, q in r.sizes %}<td class="px-3 py-1.5 border border-slate-800 text-white">{{ q }}</td>{% endfor %}
                     <td class="px-3 py-1.5 border border-slate-800 font-black text-white">{{ r.item.quantity }}</td>
                 </tr>
             </table>

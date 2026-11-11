@@ -529,6 +529,7 @@ class Order(models.Model):
     )
     order_date = models.DateField(null=True, blank=True, verbose_name="Buyurtma sanasi")
     export_dates = models.CharField(max_length=200, blank=True, verbose_name="Eksport sanalari")
+    # Eski maydon: 2026-11-11 dan razmerlar har artikulda alohida (OrderItem.size_labels), bu yerga yozilmaydi
     size_labels = models.CharField(max_length=300, blank=True, verbose_name="Razmerlar (vergul bilan)")
 
     class Meta:
@@ -618,11 +619,17 @@ class OrderItem(models.Model):
     prosjyot = models.PositiveIntegerField(null=True, blank=True, verbose_name="Просчет (dona)")
     ship_date = models.DateField(null=True, blank=True, verbose_name="Jo'natish sanasi")
     print_image = models.ImageField(upload_to='orders/prints/%Y/%m/', null=True, blank=True, verbose_name="Pechat rasmi")
+    # Razmerlar artikulda (har artikulda har xil bo'lishi mumkin, egasi talabi 2026-11-11), tartibi shu yerda saqlanadi
+    size_labels = models.CharField(max_length=300, blank=True, verbose_name="Razmerlar (vergul bilan)")
 
     class Meta:
         verbose_name = "Zakaz Modeli"
         verbose_name_plural = "Zakaz Modellari"
         unique_together = ('order', 'article')
+
+    @property
+    def size_list(self):
+        return [s.strip() for s in self.size_labels.split(',') if s.strip()]
 
     def save(self, *args, **kwargs):
         if not self.norm and self.article and getattr(self.article, 'daily_norm', None):
