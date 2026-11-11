@@ -86,6 +86,21 @@ class PatokAwardTest(TestCase):
         self.post_award(photo=SimpleUploadedFile('rasm.png', b'rasm emas', content_type='image/png'))
         self.assertFalse(PatokAward.objects.exists())
 
+    def test_deleted_photo_name_is_never_reused(self):
+        # 11.11 dagi xato: test rasmi o'chirilgach uning nomi (photo.jpg) keyingi xodimga berildi, nginx /media/ ni
+        # 7 kun keshlagani uchun TV va brauzer yangi xodim o'rnida eski test rasmini ko'rsatib qoldi
+        self.client.force_login(self.admin)
+        self.post_award(full_name='Test rasm', photo=image_upload('men.png', (400, 500)))
+        test_award = PatokAward.objects.get()
+        old_name = test_award.photo.name
+        self.client.post(reverse('gifts:manage'), {'action': 'delete', 'award_id': test_award.id, 'patok': 'k1', 'month': '2026-11'})
+
+        self.post_award(full_name='Azamova Nodira', photo=image_upload('xodim.png', (400, 500)))
+        award = PatokAward.objects.get()
+        self.assertNotEqual(award.photo.name, old_name)
+        res = self.client.get(reverse('gifts:tv', args=['k1']))
+        self.assertContains(res, f'src="{award.photo.url}?v={int(award.updated_at.timestamp())}"')
+
     def test_manage_page_is_superadmin_only(self):
         self.client.force_login(self.manager)
         self.assertEqual(self.client.get(reverse('gifts:manage')).status_code, 302)

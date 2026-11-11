@@ -9,6 +9,7 @@ Patok taqdirlashlari (egasi talabi 2026-11-09):
 """
 import datetime
 import io
+import uuid
 from collections import defaultdict
 
 from django.contrib import messages
@@ -228,7 +229,9 @@ def _save_award_from_post(request, award):
         if field in prepared:
             if current:
                 current.delete(save=False)
-            getattr(award, field).save(f"{field}.jpg", prepared[field], save=False)
+            # Har safar yangi nom: nginx /media/ ni 7 kun keshlaydi, o'chirilgan rasm nomi (photo.jpg) qayta
+            # ishlatilsa TV va brauzer yangi xodimga eski rasmni ko'rsatib qolardi
+            getattr(award, field).save(f"{field}_{uuid.uuid4().hex[:12]}.jpg", prepared[field], save=False)
         elif request.POST.get(f'remove_{field}') == '1' and current:
             current.delete(save=False)
     award.save()

@@ -1834,3 +1834,18 @@ class PatokAward(models.Model):
     def __str__(self):
         return f"{self.full_name} — {self.nomination} ({self.month:%m.%Y}, patok {self.screen_number})"
 
+    def _image_src(self, image):
+        """Rasm URL'i + o'zgarish vaqti: nginx /media/ ni 7 kun keshlaydi, rasm almashsa brauzer yangisini olsin."""
+        if not image:
+            return ''
+        stamp = int(self.updated_at.timestamp()) if self.updated_at else 0
+        return f"{image.url}?v={stamp}"
+
+    @property
+    def photo_src(self):
+        return self._image_src(self.photo)
+
+    @property
+    def gift_photo_src(self):
+        return self._image_src(self.gift_photo)
+

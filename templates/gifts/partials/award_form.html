@@ -51,7 +51,7 @@ Ism ro'yxatdan tanlansa nomi o'zi yoziladi, xohlasa qo'lda o'zgartiriladi.
     <div class="grid grid-cols-2 gap-3">
         <div>
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Xodim rasmi</label>
-            <img id="award-{{ fid }}-photo-preview" src="{% if award.photo %}{{ award.photo.url }}{% endif %}" alt=""
+            <img id="award-{{ fid }}-photo-preview" src="{% if award.photo %}{{ award.photo_src }}{% endif %}" alt=""
                 class="{% if not award.photo %}hidden {% endif %}w-full aspect-[3/4] object-cover rounded-xl border border-slate-800 mb-2">
             <input type="file" name="photo" accept="image/*" onchange="previewAwardImage(this, 'award-{{ fid }}-photo-preview')"
                 class="w-full text-xs text-slate-400 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200 file:font-bold">
@@ -63,7 +63,7 @@ Ism ro'yxatdan tanlansa nomi o'zi yoziladi, xohlasa qo'lda o'zgartiriladi.
         </div>
         <div>
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sovg'a rasmi</label>
-            <img id="award-{{ fid }}-gift-preview" src="{% if award.gift_photo %}{{ award.gift_photo.url }}{% endif %}" alt=""
+            <img id="award-{{ fid }}-gift-preview" src="{% if award.gift_photo %}{{ award.gift_photo_src }}{% endif %}" alt=""
                 class="{% if not award.gift_photo %}hidden {% endif %}w-full aspect-square object-cover rounded-xl border border-slate-800 mb-2">
             <input type="file" name="gift_photo" accept="image/*" onchange="previewAwardImage(this, 'award-{{ fid }}-gift-preview')"
                 class="w-full text-xs text-slate-400 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200 file:font-bold">

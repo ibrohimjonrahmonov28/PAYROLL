@@ -73,7 +73,7 @@
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                 <div class="flex items-start gap-4">
                     <div class="w-20 aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
-                        {% if a.photo %}<img src="{{ a.photo.url }}" alt="" class="w-full h-full object-cover">{% else %}<i class="fa-solid fa-user text-3xl text-slate-700"></i>{% endif %}
+                        {% if a.photo %}<img src="{{ a.photo_src }}" alt="" class="w-full h-full object-cover">{% else %}<i class="fa-solid fa-user text-3xl text-slate-700"></i>{% endif %}
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-xs font-black uppercase tracking-wider text-amber-400">{{ a.nomination }}</p>
@@ -82,7 +82,7 @@
                         {% if a.reason %}<p class="text-sm text-slate-300 mt-1">{{ a.reason|linebreaksbr }}</p>{% endif %}
                     </div>
                     <div class="w-20 aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
-                        {% if a.gift_photo %}<img src="{{ a.gift_photo.url }}" alt="" class="w-full h-full object-cover">{% else %}<i class="fa-solid fa-gift text-3xl text-amber-500/40"></i>{% endif %}
+                        {% if a.gift_photo %}<img src="{{ a.gift_photo_src }}" alt="" class="w-full h-full object-cover">{% else %}<i class="fa-solid fa-gift text-3xl text-amber-500/40"></i>{% endif %}
                     </div>
                 </div>
                 <div class="flex items-center gap-2">

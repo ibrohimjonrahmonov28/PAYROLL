@@ -103,7 +103,7 @@
             <div class="col-span-12 md:col-span-4 flex justify-center">
                 <div class="photo-frame w-full max-w-[460px] aspect-[3/4] rounded-[2rem] overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center">
                     {% if a.photo %}
-                    <img src="{{ a.photo.url }}" alt="{{ a.full_name }}" class="w-full h-full object-cover">
+                    <img src="{{ a.photo_src }}" alt="{{ a.full_name }}" class="w-full h-full object-cover">
                     {% else %}
                     <i class="fa-solid fa-user text-[9rem] text-slate-700"></i>
                     {% endif %}
@@ -127,7 +127,7 @@
             <div class="col-span-12 md:col-span-3 flex flex-col items-center gap-4">
                 <div class="photo-frame w-full max-w-[340px] aspect-square rounded-[2rem] overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center">
                     {% if a.gift_photo %}
-                    <img src="{{ a.gift_photo.url }}" alt="Sovg'a" class="w-full h-full object-cover">
+                    <img src="{{ a.gift_photo_src }}" alt="Sovg'a" class="w-full h-full object-cover">
                     {% else %}
                     <i class="fa-solid fa-gift text-[8rem] text-amber-500/40"></i>
                     {% endif %}

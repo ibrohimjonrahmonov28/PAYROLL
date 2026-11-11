@@ -29,6 +29,26 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 09:39
+* **Turi:** `fix(gifts)` — O'chirilgan test rasmi boshqa xodim o'rnida qayta paydo bo'lardi
+* **Mavzu:** `/gifts/` (egasi xabar qildi). Rasm o'chirilganda uning fayl nomi (`awards/2026/11/photo.jpg`) bo'shab qolardi va keyingi yuklangan rasmga (K1, Azamova Nodira, 11.11 09:13) o'sha nom berilardi. nginx `/media/` ni brauzerda 7 kun keshlagani uchun TV va brauzer shu manzilda eski test rasmini ko'rsatardi.
+* **O'zgartirilgan fayllar:**
+  - `production/gift_views.py` (har bir yuklangan rasmga yangi noyob nom: `photo_<uuid>.jpg`)
+  - `production/models.py` (`PatokAward.photo_src` / `gift_photo_src`: URL + `?v=<o'zgarish vaqti>`; migratsiya yo'q)
+  - `templates/gifts/tv.html`, `templates/gifts/manage.html`, `templates/gifts/partials/award_form.html`
+  - `production/test_gifts.py`, `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Nom qayta ishlatilmaydi:** har bir yangi rasm noyob nom bilan saqlanadi. O'chirilgan rasm nomi boshqa xodimga berilmaydi.
+  2. **Kesh:** rasm manziliga o'zgarish vaqti qo'shiladi. Mavjud Azamova Nodira rasmi ham yangi manzil bilan ochiladi, TV va brauzer keshdagi eski test rasmini emas, haqiqiy rasmni oladi.
+  3. **Test:** test rasmini o'chirib, keyin yangi xodimga rasm yuklash holati qo'shildi. Eski kodda bu test yiqiladi (`photo.jpg == photo.jpg`), tuzatilgan kodda o'tadi.
+* **Serverda:** `git pull origin main && docker compose restart web`. Ochiq turgan taqdirlash sahifasini TV'da bir marta yangilash (F5) yoki ekrandan sovg'a belgisini qayta bosish kerak.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `d7d5287`] — 11.11.2026, 08:34
 * **Turi:** `feat(gifts)` — TV taqdirlash sahifasida taqdirlashlar har 5 soniyada almashadi (avval 15)
 * **Mavzu:** `/gifts/<patok>/` (egasining so'rovi bilan).
