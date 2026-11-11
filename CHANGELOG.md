@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 16:34
+### 🔹 [Commit: `2c48f36`] — 11.11.2026, 16:34
 * **Turi:** `fix(freeze)` — Oyni muzlatish endi saytni to'xtatmaydi (5000 tadan bo'lib, fonda) va "Oyliklar" sahifasi tez ochiladi (sahifalash, qidiruv)
 * **Mavzu:** 11.11.2026 da "Oyliklar" sahifasidagi "Muzlatish" tugmasi oktyabrning ~208 ming stikerini bitta katta yozuv bilan sayt so'rovi ichida muzlatdi; stikerlar jadvalida 21 ta indeks, server 4 GB — so'rov uzoq davom etib, butun sayt (terminal ham) 504 Gateway Time-out bo'lib qoldi. Muzlatishning o'zi (to'langan oyni narx o'zgarishidan himoya qilish) o'zgarmadi, faqat bajarilishi.
 * **O'zgartirilgan fayllar:**
@@ -49,7 +49,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web scheduler` (scheduler ham qayta ishga tushishi shart; migratsiya yo'q).
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 2c48f36
   ```
 
 ---
