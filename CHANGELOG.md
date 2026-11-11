@@ -29,6 +29,20 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 08:34
+* **Turi:** `feat(gifts)` — TV taqdirlash sahifasida taqdirlashlar har 5 soniyada almashadi (avval 15)
+* **Mavzu:** `/gifts/<patok>/` (egasining so'rovi bilan).
+* **O'zgartirilgan fayllar:**
+  - `production/gift_views.py` (`SLIDE_SECONDS = 5`), `templates/gifts/manage.html` (izoh matni)
+  - `production/test_gifts.py`, `CLAUDE.md`
+* **Serverda:** `git pull origin main && docker compose restart web`; ochiq turgan TV sahifasi yangi kiritilgan taqdirlashda yoki F5 bilan yangilanadi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `0016a0b`] — 09.11.2026, 11:07
 * **Turi:** `feat(gifts)` — Patok taqdirlashlari: superadmin kiritadi, TV'da `/gifts/<patok>/` sahifasida ko'rinadi
 * **Mavzu:** Egasining so'rovi: har bir patok uchun oy bo'yicha taqdirlash (ism-familiya, xodim rasmi, sovg'a rasmi, nominatsiya nomi va sababi). TV ekrandagi sovg'a belgisi shu patokning taqdirlash sahifasini ochadi.

@@ -129,7 +129,7 @@ class PatokAwardTest(TestCase):
         self.assertEqual(res.context['month_label'], "Noyabr 2026")
         self.assertEqual([a.full_name for a in res.context['awards']], ["Munojot Ikromova", "Dilnoza Karimova"])
         self.assertEqual((res.context['prev_month'], res.context['next_month']), ('2026-10', ''))
-        self.assertContains(res, "Har 15 soniyada almashadi")
+        self.assertContains(res, "Har 5 soniyada almashadi")
         self.assertContains(res, 'href="/screens/1/"')
 
         res = self.client.get(reverse('gifts:tv', args=['K1']), {'month': '2026-10'})

@@ -82,7 +82,7 @@ Lines are identified by an integer `screen_number` 1–40, but displayed with co
 
 **Patok awards (owner's request 2026-11-09):** `PatokAward` stores the patok (`screen_number`), the month (`month` = the 1st of the month) and the name. It optionally links a `worker`, and also holds the nomination, the reason and worker/gift photos; uploads are re-saved as JPEG of at most 1600 px. Only the superadmin enters awards, at `/gifts/boshqaruv/` (sidebar "Taqdirlash"). The name is typed or picked from the workers who scanned at that patok that month, sorted by average daily norm % (`gift_views.worker_candidates`, same norm rule as the TV monitor). `/gifts/<patok>/` (e.g. `/gifts/k1/`) is a public kiosk page like `/screens/`:
 - it opens the latest month that has awards; ◀ ▶ step through months with awards;
-- several awards rotate every 15 s;
+- several awards rotate every 5 s (`gift_views.SLIDE_SECONDS`, owner's change 2026-11-11, was 15 s);
 - it reloads itself when `/gifts/api/<patok>/version/` changes.
 
 A SCREEN user may open only its own patok's pages (exact paths in the role middleware); BRANCH_ADMIN has the `/gifts/` prefix. Tests: `production/test_gifts.py`.

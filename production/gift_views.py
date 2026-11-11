@@ -3,7 +3,7 @@ Patok taqdirlashlari (egasi talabi 2026-11-09):
 - /gifts/boshqaruv/            — faqat superadmin kiritadi: patok, oy, ism-familiya (ro'yxatdan tanlab yoki qo'lda),
                                   xodim rasmi, sovg'a rasmi, nominatsiya nomi va sababi;
 - /gifts/<patok>/              — TV sahifasi (k1, K1, 1, u3 ...). Shu patokda taqdirlash kiritilgan eng oxirgi oy
-                                  ochiladi, bir nechta bo'lsa har 15 soniyada almashadi, ◀ ▶ bilan boshqa oylar.
+                                  ochiladi, bir nechta bo'lsa har 5 soniyada almashadi, ◀ ▶ bilan boshqa oylar.
                                   TV ekrandagi (/screens/<n>/) sovg'a belgisi shu yerga olib keladi;
 - /gifts/api/<patok>/version/  — TV sahifasi yangi kiritilgan taqdirlashni o'zi ko'rsatishi uchun.
 """
@@ -28,7 +28,7 @@ from production.models import Article, OrderItem, PatokAward, Ticket
 from production.services import get_patok_code, get_patok_name, parse_patok_number
 
 MAX_SCREENS = 40
-SLIDE_SECONDS = 15
+SLIDE_SECONDS = 5   # egasi talabi 2026-11-11 (avval 15 edi)
 IMAGE_MAX_SIDE = 1600
 MONTH_NAMES_UZ = (
     'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
