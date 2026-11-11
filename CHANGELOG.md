@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 09:39
+### 🔹 [Commit: `432d839`] — 11.11.2026, 09:39
 * **Turi:** `fix(gifts)` — O'chirilgan test rasmi boshqa xodim o'rnida qayta paydo bo'lardi
 * **Mavzu:** `/gifts/` (egasi xabar qildi). Rasm o'chirilganda uning fayl nomi (`awards/2026/11/photo.jpg`) bo'shab qolardi va keyingi yuklangan rasmga (K1, Azamova Nodira, 11.11 09:13) o'sha nom berilardi. nginx `/media/` ni brauzerda 7 kun keshlagani uchun TV va brauzer shu manzilda eski test rasmini ko'rsatardi.
 * **O'zgartirilgan fayllar:**
@@ -44,7 +44,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web`. Ochiq turgan taqdirlash sahifasini TV'da bir marta yangilash (F5) yoki ekrandan sovg'a belgisini qayta bosish kerak.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 432d839
   ```
 
 ---
