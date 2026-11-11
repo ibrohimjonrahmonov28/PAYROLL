@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 12:41
+### 🔹 [Commit: `6a2c5f0`] — 11.11.2026, 12:41
 * **Turi:** `feat(managers-new)` — "Managerlar NEW" test bo'limi: menejer zakaz list va mato zakazini kiritadi
 * **Mavzu:** Egasining so'rovi: zakaz kiritishni to'liq tizimga o'tkazish (1-bosqich — faqat menejer). Eski `/managers/` va hozirgi tartib o'zgarmagan; yangi bo'lim to'liq ishlagach unga o'tiladi, eskisi yashiriladi. Sklad (TMO) va kroy keyingi bosqichlarda.
 * **O'zgartirilgan fayllar:**
@@ -49,7 +49,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (0037 migratsiyasi o'zi ishlaydi). Menejer foydalanuvchisini superadmin "Foydalanuvchilar" bo'limida "Menejer" roli bilan ochadi.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 6a2c5f0
   ```
 
 ---
