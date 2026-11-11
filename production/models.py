@@ -617,7 +617,7 @@ class OrderItem(models.Model):
     # Managerlar NEW: menejer yozgan artikul kodi (Article.code = "<kod> · <zakaz raqami>"), Просчет va sanalar
     article_code = models.CharField(max_length=50, blank=True, verbose_name="Artikul kodi (menejer)")
     prosjyot = models.PositiveIntegerField(null=True, blank=True, verbose_name="Просчет (dona)")
-    ship_date = models.DateField(null=True, blank=True, verbose_name="Jo'natish sanasi")
+    ship_date = models.DateField(null=True, blank=True, verbose_name="Jo'natish sanasi")   # 2026-11-11 dan so'ralmaydi (egasi qarori)
     print_image = models.ImageField(upload_to='orders/prints/%Y/%m/', null=True, blank=True, verbose_name="Pechat rasmi")
     # Razmerlar artikulda (har artikulda har xil bo'lishi mumkin, egasi talabi 2026-11-11), tartibi shu yerda saqlanadi
     size_labels = models.CharField(max_length=300, blank=True, verbose_name="Razmerlar (vergul bilan)")

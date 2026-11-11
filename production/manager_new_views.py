@@ -379,7 +379,6 @@ def article_form(request, order_id, item_id=None):
     values = {
         'article_code': item.article_code if item else '',
         'model_name': item.article.name if item else '',
-        'ship_date': item.ship_date.isoformat() if item and item.ship_date else '',
         'prosjyot': str(item.prosjyot or '') if item else '',
         # yangi artikulga shu zakazning oxirgi artikuli razmerlari taklif qilinadi (o'zgartirsa bo'ladi)
         'size_labels': item.size_labels if item else (last_item.size_labels if last_item else SIZE_PRESETS[0][1]),
@@ -411,7 +410,6 @@ def article_form(request, order_id, item_id=None):
             errors.append(f"«{code}» artikuli tizimda allaqachon bor")
         if not values['model_name']:
             errors.append("Model nomini yozing")
-        ship_date = _parse_date(values['ship_date'], "Jo'natish sanasi", errors, required=True)
         if not sizes:
             errors.append("Kamida bitta razmer kiriting")
         elif len(', '.join(sizes)) > 300 or any(len(s) > 50 for s in sizes):
@@ -492,7 +490,6 @@ def article_form(request, order_id, item_id=None):
                 item.article_code = code
                 item.quantity = total
                 item.prosjyot = prosjyot
-                item.ship_date = ship_date
                 item.size_labels = ', '.join(sizes)
                 if 'print' in images:
                     _replace_image(item.print_image, images['print'], 'print')

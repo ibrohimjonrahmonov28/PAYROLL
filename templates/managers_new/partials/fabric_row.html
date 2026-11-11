@@ -1,51 +1,57 @@
-{% comment %}Bitta mato qismi (managers_new/article_form.html). idx — qator kaliti: mavjud mato id si yoki JS bergan yangi kalit.{% endcomment %}
-{% with fid=idx %}
-<div class="fabric-row bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+{% comment %}
+Bitta mato qismi (managers_new/article_form.html). idx — qator kaliti: mavjud mato id si yoki JS bergan yangi kalit.
+Keng ekranda (>= 1536 px) jadval qatori: ustun sarlavhalari article_form.html da bir marta (.fabric-grid), kichikroq ekranda yorliqli karta.
+{% endcomment %}
+{% with fid=idx lbl="2xl:hidden block text-[11px] font-bold text-slate-400 uppercase mb-0.5" inp="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500" %}
+<div class="fabric-row fabric-grid grid grid-cols-2 md:grid-cols-6 gap-2 items-end rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm
+            2xl:rounded-none 2xl:border-0 2xl:border-t 2xl:bg-transparent 2xl:even:bg-slate-950/60 2xl:px-2 2xl:py-1.5">
     <input type="hidden" name="fabric_row" value="{{ fid }}">
     <input type="hidden" name="fabric-{{ fid }}-id" value="{{ row.id|default:'' }}">
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-2 text-sm">
-        <label class="col-span-2"><span class="block text-[11px] font-bold text-slate-400 uppercase">Mato nomi *</span>
-            <input name="fabric-{{ fid }}-name" value="{{ row.name|default:'' }}" required maxlength="120" placeholder="Masalan: Супрем"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-bold"></label>
-        <label class="col-span-2"><span class="block text-[11px] font-bold text-slate-400 uppercase">Rang (nomi va Pantone)</span>
-            <input name="fabric-{{ fid }}-color" value="{{ row.color|default:'' }}" maxlength="120" placeholder="Masalan: Белый 11-0601"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label class="col-span-2"><span class="block text-[11px] font-bold text-slate-400 uppercase">Tarkibi</span>
-            <input name="fabric-{{ fid }}-composition" value="{{ row.composition|default:'' }}" maxlength="150" placeholder="Masalan: 100% хлопок"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">Eni, sm</span>
-            <input name="fabric-{{ fid }}-width_cm" value="{{ row.width_cm|default:'' }}" inputmode="numeric" placeholder="185"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">Gr/m2</span>
-            <input name="fabric-{{ fid }}-density_gsm" value="{{ row.density_gsm|default:'' }}" inputmode="numeric" placeholder="165"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">1 dona uchun kg *</span>
-            <input name="fabric-{{ fid }}-kg_per_piece" value="{{ row.kg_per_piece|default:'' }}" required inputmode="decimal" placeholder="0,255"
-                class="kg-input w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">Prosjyot % *</span>
-            <input name="fabric-{{ fid }}-prosjyot_percent" value="{{ row.prosjyot_percent|default:'' }}" required inputmode="decimal" placeholder="87,65"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">Xom mato %</span>
-            <input name="fabric-{{ fid }}-raw_percent" value="{{ row.raw_percent|default:'10' }}" inputmode="decimal"
-                class="raw-input w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">Fabrika rang kodi</span>
-            <input name="fabric-{{ fid }}-factory_color_code" value="{{ row.factory_color_code|default:'' }}" maxlength="60"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label><span class="block text-[11px] font-bold text-slate-400 uppercase">Eksport sanasi</span>
-            <input type="date" name="fabric-{{ fid }}-export_date" value="{{ row.export_date|default:'' }}"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"></label>
-        <label class="col-span-2 md:col-span-3"><span class="block text-[11px] font-bold text-slate-400 uppercase">Laboratoriya rang kartasi</span>
-            <span class="flex items-center gap-2">
-                <img id="lab-{{ fid }}" src="{{ row.lab_card_url|default:'' }}" alt="" class="{% if not row.lab_card_url %}hidden {% endif %}w-12 h-12 object-cover rounded-lg border border-slate-700">
-                <input type="file" name="fabric-{{ fid }}-lab_card" accept="image/*" onchange="previewImage(this, 'lab-{{ fid }}')"
-                    class="text-xs text-slate-400 file:mr-2 file:px-2.5 file:py-1 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200">
-            </span></label>
-    </div>
-    <div class="flex items-center justify-between">
-        <span class="kg-result text-sm font-bold text-emerald-300"></span>
-        <button type="button" onclick="removeFabricRow(this)" class="px-3 py-1 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-500/10">
-            <i class="fa-solid fa-xmark mr-1"></i> Matoni olib tashlash
+
+    <div class="col-span-2 md:col-span-6 2xl:col-span-1 flex items-center justify-between">
+        <span class="fabric-no w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs font-black flex items-center justify-center">1</span>
+        <button type="button" onclick="removeFabricRow(this)" class="2xl:hidden px-2.5 py-1 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-500/10">
+            <i class="fa-solid fa-trash-can mr-1"></i> Olib tashlash
         </button>
     </div>
+
+    <label class="col-span-2 2xl:col-span-1"><span class="{{ lbl }}">Mato nomi *</span>
+        <input name="fabric-{{ fid }}-name" value="{{ row.name|default:'' }}" required maxlength="120" placeholder="Супрем" class="{{ inp }} font-bold"></label>
+    <label class="col-span-2 2xl:col-span-1"><span class="{{ lbl }}">Rang (nomi va Pantone)</span>
+        <input name="fabric-{{ fid }}-color" value="{{ row.color|default:'' }}" maxlength="120" placeholder="Белый 11-0601" class="{{ inp }}"></label>
+    <label class="col-span-2 2xl:col-span-1"><span class="{{ lbl }}">Tarkibi</span>
+        <input name="fabric-{{ fid }}-composition" value="{{ row.composition|default:'' }}" maxlength="150" placeholder="100% хлопок" class="{{ inp }}"></label>
+    <label><span class="{{ lbl }}">Eni, sm</span>
+        <input name="fabric-{{ fid }}-width_cm" value="{{ row.width_cm|default:'' }}" inputmode="numeric" placeholder="185" class="{{ inp }} text-center"></label>
+    <label><span class="{{ lbl }}">Gr/m2</span>
+        <input name="fabric-{{ fid }}-density_gsm" value="{{ row.density_gsm|default:'' }}" inputmode="numeric" placeholder="165" class="{{ inp }} text-center"></label>
+    <label><span class="{{ lbl }}">1 dona kg *</span>
+        <input name="fabric-{{ fid }}-kg_per_piece" value="{{ row.kg_per_piece|default:'' }}" required inputmode="decimal" placeholder="0,255" class="kg-input {{ inp }} text-center"></label>
+    <label><span class="{{ lbl }}">Prosjyot % *</span>
+        <input name="fabric-{{ fid }}-prosjyot_percent" value="{{ row.prosjyot_percent|default:'' }}" required inputmode="decimal" placeholder="87,65" class="{{ inp }} text-center"></label>
+    <label><span class="{{ lbl }}">Xom %</span>
+        <input name="fabric-{{ fid }}-raw_percent" value="{{ row.raw_percent|default:'10' }}" inputmode="decimal" class="raw-input {{ inp }} text-center"></label>
+    <label><span class="{{ lbl }}">Fabrika rang kodi</span>
+        <input name="fabric-{{ fid }}-factory_color_code" value="{{ row.factory_color_code|default:'' }}" maxlength="60" class="{{ inp }}"></label>
+    <label class="col-span-2 2xl:col-span-1"><span class="{{ lbl }}">Eksport sanasi</span>
+        <input type="date" name="fabric-{{ fid }}-export_date" value="{{ row.export_date|default:'' }}" class="{{ inp }}"></label>
+
+    <div class="col-span-2 2xl:col-span-1"><span class="{{ lbl }}">Lab. rang kartasi</span>
+        <div class="flex items-center gap-2">
+            <img id="lab-{{ fid }}" src="{{ row.lab_card_url|default:'' }}" alt="" class="{% if not row.lab_card_url %}hidden {% endif %}w-8 h-8 object-cover rounded-md border border-slate-700">
+            <label class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 whitespace-nowrap">
+                <i class="fa-solid fa-image"></i> Rasm
+                <input type="file" name="fabric-{{ fid }}-lab_card" accept="image/*" class="hidden" onchange="previewImage(this, 'lab-{{ fid }}')">
+            </label>
+        </div>
+    </div>
+
+    <div class="2xl:text-right"><span class="{{ lbl }}">Tayyor kg</span><span class="kg-finished block py-1.5 font-black text-emerald-300">—</span></div>
+    <div class="2xl:text-right"><span class="{{ lbl }}">Xom kg</span><span class="kg-raw block py-1.5 font-black text-sky-300">—</span></div>
+
+    <button type="button" onclick="removeFabricRow(this)" title="Matoni olib tashlash"
+        class="hidden 2xl:flex w-8 h-8 rounded-lg text-rose-400 hover:bg-rose-500/15 items-center justify-center">
+        <i class="fa-solid fa-trash-can"></i>
+    </button>
 </div>
 {% endwith %}

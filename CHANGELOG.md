@@ -29,6 +29,26 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 13:53
+* **Turi:** `feat(managers-new)` — Kompyuter ekraniga to'liq moslash, artikulda jo'natish sanasi yo'q, "Yangi zakaz" faqat ro'yxatda
+* **Mavzu:** `/managers-new/` (egasining so'rovi bilan, menejerlar kompyuterda ishlaydi).
+* **O'zgartirilgan fayllar:**
+  - `templates/managers_new/base.html`, `order_form.html`, `article_form.html`, `order_detail.html`, `partials/fabric_row.html`
+  - `production/manager_new_views.py`, `production/manager_new_excel.py`, `production/models.py` (izoh)
+  - `production/test_managers_new.py`, `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Butun ekran:** sahifalar ekran kengligida; zakaz formasi bitta qatorda (4 ustun); artikul formasida chapda asosiy ma'lumot va razmerlar, o'ngda rasmlar; mato qismining asosiy maydonlari keng ekranda bitta qatorda.
+  2. **Jo'natish sanasi:** artikul formasidan, zakaz kartasidan va Excel'lardan ("Дата отгрузки", "Инспекция датаси" ustuni) olib tashlandi; ma'lumot bazasidagi eski maydon tegilmadi (migratsiya yo'q).
+  3. **"Yangi zakaz" tugmasi:** yuqori menyudan olib tashlandi — faqat zakazlar ro'yxatida turadi, zakaz ichida ko'rinmaydi.
+  4. **Mato qismlari:** keng ekranda (1536 px dan) Excel kabi jadval — sarlavha bir marta, har mato bitta raqamlangan qator, tayyor/xom kg ustunlari va pastda "Jami"; kichikroq ekranda raqamli tartibli kartalar. Laboratoriya kartasi uchun ixcham "Rasm" tugmasi.
+* **Serverda:** `git pull origin main && docker compose restart web`.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `b7d7809`] — 11.11.2026, 13:29
 * **Turi:** `feat(managers-new)` — Razmerlar zakazda emas, har artikulda alohida
 * **Mavzu:** `/managers-new/` (egasining so'rovi bilan): yangi zakaz ochishda razmer so'ralmaydi, chunki bir zakazdagi artikullarning razmerlari har xil bo'lishi mumkin (masalan kattalar va bolalar).

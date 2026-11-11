@@ -3,12 +3,12 @@
 {% block title %}{% if order %}{{ order.order_number }} — tahrirlash{% else %}Yangi zakaz{% endif %}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-4">
+<div class="space-y-4">
     <h1 class="text-2xl font-black text-white">{% if order %}«{{ order.order_number }}» zakazini tahrirlash{% else %}Yangi zakaz{% endif %}</h1>
 
     <form method="POST" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
         {% csrf_token %}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <label class="block">
                 <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Zakaz raqami *</span>
                 <input type="text" name="order_number" value="{{ values.order_number }}" required maxlength="50" placeholder="Masalan: DM-46"

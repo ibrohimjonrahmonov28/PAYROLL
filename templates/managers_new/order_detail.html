@@ -95,8 +95,7 @@
                 <p class="text-xl font-black text-white">{{ r.item.article_code }}</p>
                 <p class="text-slate-300">{{ r.item.article.name }}</p>
                 <p class="text-sm text-slate-400 mt-1">
-                    Jo'natish: <b class="text-white">{{ r.item.ship_date|date:"d.m.Y" }}</b>
-                    · Zakaz: <b class="text-white">{{ r.item.quantity }}</b> dona
+                    Zakaz: <b class="text-white">{{ r.item.quantity }}</b> dona
                     · Просчет: <b class="text-white">{{ r.item.prosjyot|default:r.item.quantity }}</b> dona
                 </p>
             </div>

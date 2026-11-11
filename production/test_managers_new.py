@@ -46,7 +46,7 @@ class ManagersNewTest(TestCase):
 
     def article_data(self, code='TJ-MS-SS27-01', **extra):
         data = {
-            'article_code': code, 'model_name': 'Шорты мужские', 'ship_date': '2027-02-19', 'prosjyot': '480',
+            'article_code': code, 'model_name': 'Шорты мужские', 'prosjyot': '480',   # jo'natish sanasi so'ralmaydi
             'size_labels': 'S (46), M (48), L (50)', 'size-0': '84', 'size-1': '168', 'size-2': '168',
             'fabric_row': ['n1', 'n2'],
             'fabric-n1-name': '2 ип', 'fabric-n1-color': 'Бежевый 15-1308', 'fabric-n1-composition': '80% хлопок',
@@ -88,6 +88,11 @@ class ManagersNewTest(TestCase):
         page = self.client.get(reverse('managers_new:order_detail', args=[order.id]))
         self.assertContains(page, 'TJ-MS-SS27-01')
         self.assertContains(page, '122.4')
+        # "Yangi zakaz" tugmasi faqat zakazlar ro'yxatida, zakaz ichida yo'q
+        create_url = reverse('managers_new:order_create')
+        self.assertNotContains(page, f'href="{create_url}"')
+        self.assertNotContains(self.client.get(reverse('managers_new:article_create', args=[order.id])), f'href="{create_url}"')
+        self.assertContains(self.client.get(reverse('managers_new:order_list')), f'href="{create_url}"')
 
     def test_article_validation(self):
         order = self.create_order()
@@ -190,8 +195,10 @@ class ManagersNewTest(TestCase):
         ws = openpyxl.load_workbook(io.BytesIO(res.content)).active
         self.assertEqual(ws['C2'].value, 'DM-46')
         self.assertEqual((ws['B5'].value, ws['H5'].value, ws['L5'].value, ws['O5'].value), ('TJ-MS-SS27-01', '2 ип', 122.4, 420))
-        self.assertAlmostEqual(ws['R5'].value, 0.8765)
-        self.assertEqual(ws['R5'].number_format, '0.00%')
+        self.assertEqual((ws['P4'].value, ws['P5'].value), ("Просчет", 480))   # artikul sanasi ustuni yo'q
+        self.assertAlmostEqual(ws['Q5'].value, 0.8765)
+        self.assertEqual(ws['Q5'].number_format, '0.00%')
+        self.assertNotIn("Инспекция датаси", [c.value for c in ws[4]])
 
         res = self.client.get(reverse('managers_new:export_order_list', args=[order.id]))
         ws = openpyxl.load_workbook(io.BytesIO(res.content)).active

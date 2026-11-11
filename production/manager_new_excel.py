@@ -132,8 +132,6 @@ def build_order_list_xlsx(order):
         _cell(ws, row + 1, total_col, item.quantity, bold=True, fmt='#,##0')
         _cell(ws, row + 2, 5, "Просчет", bold=True)
         _cell(ws, row + 2, first_size_col, item.prosjyot or item.quantity, fmt='#,##0')
-        _cell(ws, row + 2, first_size_col + 1, "Дата отгрузки:", bold=True)
-        _cell(ws, row + 2, first_size_col + 2, item.ship_date, fmt='DD.MM.YYYY')
 
         for col, title in enumerate(("Детали", "Цвет", "Плотность гр/м2", "Состав", "Эн", "Вес изделия кг", "Общий кг"),
                                     start=5):
@@ -160,8 +158,8 @@ def build_order_list_xlsx(order):
 
 FABRIC_HEADERS = ("№", "Артикул", "Модел номи", "Фото", "Лаб. карта", "Клиент ранг коди", "Фабрика ранг коди",
                   "Мато номи", "Таркиб", "Эн", "Гр/м2", "Мато кг тайёр", "Мато кг хом", "Битта иш учун кг",
-                  "Иш сони", "Инспекция датаси", "Просчет", "Просчет %", "Экспорт санаси")
-ARTICLE_COLS = (1, 2, 3, 4, 15, 16, 17)   # artikul darajasidagi ustunlar mato qatorlari bo'ylab birlashtiriladi
+                  "Иш сони", "Просчет", "Просчет %", "Экспорт санаси")   # artikul sanasi yo'q (egasi qarori 2026-11-11)
+ARTICLE_COLS = (1, 2, 3, 4, 15, 16)   # artikul darajasidagi ustunlar mato qatorlari bo'ylab birlashtiriladi
 
 
 def build_fabric_order_xlsx(order):
@@ -186,10 +184,10 @@ def build_fabric_order_xlsx(order):
                 values = {
                     6: fabric.color, 7: fabric.factory_color_code, 8: fabric.name, 9: fabric.composition,
                     10: fabric.width_cm, 11: fabric.density_gsm, 12: float(fabric.finished_kg), 13: float(fabric.raw_kg),
-                    14: float(fabric.kg_per_piece), 18: float(fabric.prosjyot_percent / 100), 19: fabric.export_date,
+                    14: float(fabric.kg_per_piece), 17: float(fabric.prosjyot_percent / 100), 18: fabric.export_date,
                 }
-                formats = {12: '#,##0.0', 13: '#,##0.0', 14: '0.000', 18: '0.00%', 19: 'DD.MM.YYYY'}
-                for col in range(5, 20):
+                formats = {12: '#,##0.0', 13: '#,##0.0', 14: '0.000', 17: '0.00%', 18: 'DD.MM.YYYY'}
+                for col in range(5, len(FABRIC_HEADERS) + 1):
                     if col in ARTICLE_COLS:
                         continue
                     _cell(ws, row, col, values.get(col), fmt=formats.get(col))
@@ -200,12 +198,11 @@ def build_fabric_order_xlsx(order):
             row += 1
         last = row - 1
         article_values = {1: number, 2: item.article_code, 3: item.article.name, 4: None, 15: item.quantity,
-                          16: item.ship_date, 17: item.prosjyot or item.quantity}
+                          16: item.prosjyot or item.quantity}
         for col in ARTICLE_COLS:
             if last > first:
                 ws.merge_cells(start_row=first, start_column=col, end_row=last, end_column=col)
-            _cell(ws, first, col, article_values[col], bold=col in (1, 2),
-                  fmt='DD.MM.YYYY' if col == 16 else '#,##0' if col in (15, 17) else None)
+            _cell(ws, first, col, article_values[col], bold=col in (1, 2), fmt='#,##0' if col in (15, 16) else None)
         if _add_image(ws, item.article.image, f"D{first}", size=100):
             rows_span = last - first + 1
             for r in range(first, last + 1):
