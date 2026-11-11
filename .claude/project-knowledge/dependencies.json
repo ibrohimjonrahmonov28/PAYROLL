@@ -113,6 +113,7 @@
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
    "production/test_pastal_info.py",
+   "production/test_payroll_page.py",
    "production/test_pipeline_summary.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
@@ -374,6 +375,7 @@
   },
   "production.management.commands.run_scheduler": {
    "imports": [
+    "accounts.freeze_services",
     "accounts.management.commands.close_daily_payroll",
     "production.daily_image_reports",
     "production.telegram_reports"
@@ -643,6 +645,12 @@
     "production.services"
    ]
   },
+  "production.test_payroll_page": {
+   "imports": [
+    "accounts.models",
+    "production.models"
+   ]
+  },
   "production.test_pipeline_summary": {
    "imports": [
     "accounts.models",
@@ -660,7 +668,10 @@
     "production.models"
    ],
    "lazy": [
+    "accounts",
     "accounts.freeze_services",
+    "accounts.models",
+    "production.management.commands.run_scheduler",
     "production.models"
    ]
   },
@@ -1046,7 +1057,6 @@
     "includes/theme_toggle.html"
    ],
    "url_names": [
-    "managers_new:order_create",
     "managers_new:order_list",
     "root_logout",
     "superadmin_dashboard"

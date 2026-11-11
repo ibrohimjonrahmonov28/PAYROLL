@@ -31,4 +31,4 @@ Use `symbols` in `file-index.json` (`name:line`) to Read only the needed range o
 ## Regenerating
 `USE_SQLITE=1 .venv/bin/python .claude/project-knowledge/build_graph.py` rewrites all `*.json` (descriptions live in the script's `MODULES` dict). It is read-only for the app. Run it after changing URLs, models, imports or adding/removing files. `overview.md` / `architecture.md` are hand-maintained.
 
-JSON last regenerated: 2026-11-11, on top of commit `257c185` (Managerlar NEW: sizes per article).
+JSON last regenerated: 2026-11-11, on top of commit `7bb7877` (batched month freeze, paginated payroll page).

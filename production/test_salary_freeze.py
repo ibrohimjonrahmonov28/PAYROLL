@@ -264,3 +264,65 @@ class SalaryFreezeAndPriceRecalculationTest(TestCase):
         self.assertEqual(pending.price_per_unit, Decimal("1500.00"))
         self.assertEqual(pending.total_amount, Decimal("75000.00"))
 
+
+
+class BatchedMonthFreezeTest(TestCase):
+    """
+    2026-11-11: oyni bitta UPDATE bilan sayt so'rovi ichida muzlatish butun saytni 504 qildi.
+    Endi muzlatish 5000 tadan bo'lib, tugmadan fonda (testlarda darhol) va soatlik scheduler'da bajariladi.
+    """
+
+    def setUp(self):
+        import datetime
+        self.dt = datetime.datetime
+        self.superadmin = User.objects.create_superuser(username="admin_batch_freeze", password="x", role=User.Role.SUPER_ADMIN)
+        self.client.force_login(self.superadmin)
+        worker = Worker.objects.create(worker_id="W-BF-01", first_name="Malika", last_name="Batch")
+        article = Article.objects.create(code="ART-BF-1", name="Batch")
+        art_op = ArticleOperation.objects.create(article=article, operation=Operation.objects.create(code="OP-BF", name="Tikish"),
+                                                 price_per_unit=Decimal("100"), sequence=1)
+        box = Box.objects.create(order=Order.objects.create(order_number="ORD-BF", article=article, total_quantity=100),
+                                 article=article, box_number=1, quantity=100)
+        self.tz = timezone.get_current_timezone()
+
+        def ticket(*local):   # Toshkent vaqtida skanerlangan
+            return Ticket.objects.create(box=box, article_operation=art_op, quantity=1, price_per_unit=Decimal("100"),
+                                         total_amount=Decimal("100"), status=Ticket.Status.SCANNED, worker=worker,
+                                         scanned_at=timezone.make_aware(self.dt(*local), self.tz))
+        self.october = [ticket(2026, 10, 1, 0, 5), ticket(2026, 10, 15, 12, 0), ticket(2026, 10, 31, 23, 30)]
+        self.october += [ticket(2026, 10, 20, 9, i) for i in range(4)]
+        self.september_end = ticket(2026, 9, 30, 23, 50)
+        self.november_start = ticket(2026, 11, 1, 0, 10)
+
+    def frozen_ids(self):
+        return set(Ticket.objects.filter(is_frozen=True).values_list('id', flat=True))
+
+    def test_freeze_month_in_small_batches_respects_month_bounds(self):
+        from unittest.mock import patch
+        from accounts import freeze_services
+        with patch.object(freeze_services, 'BATCH_SIZE', 3):
+            self.assertEqual(freeze_services.freeze_month_tickets(2026, 10), 7)
+        self.assertEqual(self.frozen_ids(), {t.id for t in self.october})   # 30-sentabr 23:50 va 1-noyabr 00:10 tegilmadi
+        with patch.object(freeze_services, 'BATCH_SIZE', 2):
+            self.assertEqual(freeze_services.unfreeze_month_tickets(2026, 10), 7)
+        self.assertEqual(self.frozen_ids(), set())
+
+    def test_month_freeze_button_sets_status_and_freezes(self):
+        from accounts.models import MonthlyClosing
+        self.client.post(reverse('superadmin_month_freeze_toggle'), {'year': 2026, 'month': 10, 'action': 'freeze'})
+        self.assertEqual(MonthlyClosing.objects.get(year=2026, month=10).status, MonthlyClosing.Status.FROZEN)
+        self.assertEqual(self.frozen_ids(), {t.id for t in self.october})
+
+        self.client.post(reverse('superadmin_month_freeze_toggle'), {'year': 2026, 'month': 10, 'action': 'unfreeze'})
+        self.assertEqual(MonthlyClosing.objects.get(year=2026, month=10).status, MonthlyClosing.Status.OPEN)
+        self.assertEqual(self.frozen_ids(), set())
+
+    def test_payroll_page_no_longer_freezes_and_scheduler_does(self):
+        from unittest.mock import patch
+        from production.management.commands.run_scheduler import run_freeze_check
+        now = timezone.make_aware(self.dt(2026, 11, 11, 15, 0), self.tz)
+        with patch('django.utils.timezone.now', return_value=now):
+            self.client.get(reverse('superadmin_payroll'))
+            self.assertEqual(self.frozen_ids(), set())   # sahifa ochilganda muzlatish yo'q
+            self.assertTrue(run_freeze_check()['success'])
+        self.assertEqual(self.frozen_ids(), {t.id for t in self.october} | {self.september_end.id})

@@ -40,7 +40,7 @@
   "files": [
    "accounts/freeze_services.py"
   ],
-  "lines": 260,
+  "lines": 314,
   "depends_on": [
    "accounts.core",
    "production.models"
@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4348,
+  "lines": 4381,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -91,7 +91,7 @@
    "config/urls.py",
    "config/wsgi.py"
   ],
-  "lines": 354,
+  "lines": 357,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2367,
+  "lines": 2427,
   "depends_on": [
    "accounts.core"
   ]
@@ -136,10 +136,11 @@
    "production/management/commands/send_db_backup.py",
    "production/management/commands/sync_article_operations.py"
   ],
-  "lines": 1976,
+  "lines": 1998,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
+   "accounts.freeze",
    "production.master",
    "production.models",
    "production.passport",
@@ -195,7 +196,7 @@
    "production/manager_urls.py",
    "production/manager_views.py"
   ],
-  "lines": 1410,
+  "lines": 1404,
   "depends_on": [
    "accounts.core",
    "production.gifts",
@@ -479,7 +480,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 43768,
+  "lines": 43840,
   "depends_on": []
  },
  "tests": {
@@ -493,6 +494,7 @@
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
    "production/test_pastal_info.py",
+   "production/test_payroll_page.py",
    "production/test_pipeline_summary.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
@@ -501,7 +503,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 11097,
+  "lines": 11224,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

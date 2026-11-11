@@ -15,11 +15,25 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from accounts.freeze_services import check_and_apply_freeze_timers
 from accounts.management.commands.close_daily_payroll import perform_daily_closing
 from production.telegram_reports import send_month_to_date_telegram_report
 from production.daily_image_reports import send_daily_1800_reports
 
 logger = logging.getLogger(__name__)
+
+
+def run_freeze_check() -> dict:
+    """
+    O'tgan oylarni muzlatish va 7 kunlik taymerlar (avval oylik sahifasi har ochilganda ishlardi va 2026-11-11 da
+    butun saytni 504 qilgan). Endi shu yerda har soatda, 5000 tadan bo'lib bajariladi; ish yo'q bo'lsa tez o'tadi.
+    """
+    try:
+        months, tickets = check_and_apply_freeze_timers()
+        return {'success': True, 'months': months, 'tickets': tickets}
+    except Exception as e:
+        logger.error(f"Muzlatish tekshiruvida xatolik: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
 
 
 def execute_nightly_jobs(target_date: datetime.date) -> dict:
@@ -92,15 +106,23 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("⏰ TERRY JAR Avtomatik Scheduler ishga tushdi..."))
         self.stdout.write("📅 1. Har kuni 18:00 da (Toshkent vaqti): Filiallar kunlik rasm-hisobotlari")
         self.stdout.write("📅 2. Har kuni 00:00 da (Toshkent vaqti): Kunlik ish haqi yopish, to'liq oylik hisobot va baza zaxira nusxasi (Full DB Backup)")
+        self.stdout.write("📅 3. Har soatda: o'tgan oylarni muzlatish va 7 kunlik taymerlar (5000 tadan bo'lib)")
 
         last_executed_date = None
         last_1800_executed_date = None
+        last_freeze_check = None
 
         while True:
             try:
                 now = timezone.localtime()
                 today = now.date()
                 yesterday = today - datetime.timedelta(days=1)
+
+                # 3. Har soatda (scheduler ishga tushganda ham darhol): muzlatish tekshiruvi
+                if last_freeze_check != (today, now.hour):
+                    last_freeze_check = (today, now.hour)
+                    res_freeze = run_freeze_check()
+                    self.stdout.write(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] 🔒 Muzlatish tekshiruvi: {res_freeze}")
 
                 # 1. Har kuni 18:00 da (18:00 dan 18:15 oralig'ida): Filiallar Kunlik Rasm-Hisobotlari
                 if now.hour == 18 and now.minute <= 15 and last_1800_executed_date != today:

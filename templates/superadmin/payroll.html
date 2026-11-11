@@ -389,15 +389,35 @@
                     {{ selected_month_name }} {{ selected_year }} — Xodimlar Oylik Ish Haqi Tabeli
                 </h3>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="relative w-72">
-                    <input type="text" id="payroll-live-search" oninput="liveFilterPayroll(this.value)"
-                        placeholder="Xodim qidirish (ID, UID, Ism)..."
-                        class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Qidiruv serverda: barcha sahifalar bo'yicha, ID yoki ism-familiya (bir nechta so'z ham bo'ladi) -->
+                <form method="GET" action="{% url 'superadmin_payroll' %}" class="relative w-80">
+                    <input type="hidden" name="year" value="{{ selected_year }}">
+                    <input type="hidden" name="month" value="{{ selected_month }}">
+                    <input type="hidden" name="branch" value="{{ selected_branch }}">
+                    {% if show_all %}<input type="hidden" name="all" value="1">{% endif %}
+                    <input type="text" name="q" value="{{ search_q }}" id="payroll-live-search"
+                        placeholder="ID yoki ism-familiya bo'yicha qidirish..."
+                        class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium">
                     <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-xs text-slate-500"></i>
-                </div>
-                <span class="text-xs text-slate-400 font-medium" id="payroll-count-badge">Jami: {{ payroll_data|length
-                    }} nafar xodim</span>
+                    {% if search_q %}
+                    <a href="?year={{ selected_year }}&month={{ selected_month }}&branch={{ selected_branch }}{% if show_all %}&all=1{% endif %}"
+                        class="absolute right-2.5 top-1.5 text-xs text-slate-500 hover:text-rose-400" title="Qidiruvni tozalash">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                    {% endif %}
+                </form>
+                <span class="text-xs text-slate-400 font-medium" id="payroll-count-badge">
+                    {% if search_q %}Topildi: {{ visible_count }} ta{% else %}Jami: {{ visible_count }} nafar xodim{% endif %}{% if page_obj.paginator.num_pages > 1 %} · {{ page_obj.start_index }}–{{ page_obj.end_index }} ko'rsatilmoqda{% endif %}
+                </span>
+                {% if not search_q %}
+                {% if hidden_empty_count %}
+                <a href="?{{ toggle_all_query }}" class="text-xs font-bold text-amber-400 hover:text-amber-300"
+                    title="Bu oyda ishi, to'lovi va balansi bo'lmagan xodimlar">+ {{ hidden_empty_count }} ta bo'sh xodimni ko'rsatish</a>
+                {% elif show_all %}
+                <a href="?{{ toggle_all_query }}" class="text-xs font-bold text-slate-400 hover:text-white">Bo'sh xodimlarni yashirish</a>
+                {% endif %}
+                {% endif %}
             </div>
         </div>
 
@@ -427,6 +447,7 @@
                     </tr>
                 </thead>
                 <tbody id="payroll-tbody" class="divide-y divide-slate-800 text-slate-200">
+                    {% spaceless %}{# qatorlar orasidagi bo'sh joylarsiz: sahifa ~2 barobar yengil #}
                     {% for row in payroll_data %}
                     <tr class="hover:bg-slate-800/40 transition payroll-worker-row"
                         data-search="{{ row.worker.worker_id }} {{ row.worker.user.uid|default:'' }} {{ row.worker.full_name }} {{ row.worker.phone_number|default:'' }} {{ row.worker.get_branch_display }}">
@@ -439,7 +460,7 @@
                                 endif %}>
                         </td>
                         <td class="py-3 px-3 text-center text-slate-500 text-xs font-mono">
-                            {{ forloop.counter }}
+                            {{ forloop.counter|add:row_offset }}
                         </td>
                         <td class="py-3 px-4">
                             <div class="flex items-center gap-1.5">
@@ -567,10 +588,11 @@
                     <tr>
                         <td colspan="13" class="py-12 text-center text-slate-500">
                             <i class="fa-solid fa-users text-4xl mb-2 block text-slate-700"></i>
-                            Tizimda tikuvchilar mavjud emas.
+                            {% if search_q %}«{{ search_q }}» bo'yicha xodim topilmadi.{% else %}Bu davrda ko'rsatiladigan xodim yo'q.{% endif %}
                         </td>
                     </tr>
                     {% endfor %}
+                    {% endspaceless %}
                     <tr id="payroll-search-empty" class="hidden">
                         <td colspan="13" class="py-12 text-center text-slate-500">
                             <i class="fa-solid fa-magnifying-glass text-3xl mb-2 block text-slate-700"></i>
@@ -580,6 +602,36 @@
                 </tbody>
             </table>
         </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <!-- Sahifalar (100 tadan); jami summalar yuqoridagi kartochkalarda barcha xodimlar bo'yicha -->
+        <div class="p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <span class="text-slate-400">{{ page_obj.number }}-sahifa / {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex flex-wrap items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?{{ page_query_prefix }}page={{ page_obj.previous_page_number }}"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> Oldingi
+                </a>
+                {% endif %}
+                {% for n in page_numbers %}
+                {% if n == page_ellipsis %}
+                <span class="px-2 text-slate-500">…</span>
+                {% elif n == page_obj.number %}
+                <span class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black">{{ n }}</span>
+                {% else %}
+                <a href="?{{ page_query_prefix }}page={{ n }}" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">{{ n }}</a>
+                {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <a href="?{{ page_query_prefix }}page={{ page_obj.next_page_number }}"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
+                    Keyingi <i class="fa-solid fa-chevron-right ml-1"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- RECENT PAYOUTS JOURNAL FOR SELECTED MONTH -->
@@ -994,33 +1046,6 @@
             totalSpan.innerText = Math.round(totalSum).toLocaleString('uz-UZ').replace(/,/g, ' ') + ' UZS';
         } else {
             bar.classList.add('hidden');
-        }
-    }
-
-    function liveFilterPayroll(query) {
-        const filter = query.toLowerCase().trim();
-        const rows = document.querySelectorAll('.payroll-worker-row');
-        let visibleCount = 0;
-        rows.forEach(r => {
-            const data = (r.getAttribute('data-search') || '').toLowerCase();
-            if (!filter || data.includes(filter)) {
-                r.style.display = '';
-                visibleCount++;
-            } else {
-                r.style.display = 'none';
-            }
-        });
-        const badge = document.getElementById('payroll-count-badge');
-        if (badge) {
-            badge.innerText = filter ? `Topildi: ${visibleCount} ta` : `Jami: ${rows.length} nafar xodim`;
-        }
-        const empty = document.getElementById('payroll-search-empty');
-        if (empty) {
-            if (visibleCount === 0 && rows.length > 0) {
-                empty.classList.remove('hidden');
-            } else {
-                empty.classList.add('hidden');
-            }
         }
     }
 

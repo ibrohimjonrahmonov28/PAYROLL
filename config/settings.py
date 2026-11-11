@@ -149,6 +149,9 @@ else:
         }
     }
 
+# Oyni muzlatish tugmasi stikerlarni fonda (alohida oqimda) muzlatadi; testlarda (USE_SQLITE=1) darhol, shu oqimda
+FREEZE_IN_BACKGROUND = os.getenv('USE_SQLITE') != '1'
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

@@ -1176,6 +1176,7 @@ MONTHS_LIST = [
     (5, 'May'), (6, 'Iyun'), (7, 'Iyul'), (8, 'Avgust'),
     (9, 'Sentyabr'), (10, 'Oktyabr'), (11, 'Noyabr'), (12, 'Dekabr')
 ]
+PAYROLL_PAGE_SIZE = 100   # oylik tabelida bir sahifadagi xodimlar soni
 
 
 @payroll_admin_required
@@ -1190,10 +1191,9 @@ def superadmin_payroll(request):
     except (ValueError, TypeError):
         selected_month = today.month
 
-    # O'tgan oylarni to'liq muzlatish, joriy oyni ochish va 7 kunlik taymerlarni tekshirish
-    from accounts.freeze_services import auto_freeze_past_months, check_and_apply_freeze_timers, get_monthly_closing_status
-    auto_freeze_past_months()
-    check_and_apply_freeze_timers()
+    # O'tgan oylarni muzlatish va 7 kunlik taymerlar endi sahifa ochilganda emas, scheduler'da har soatda bo'lib-bo'lib
+    # bajariladi (2026-11-11: sahifa ichidagi katta muzlatish butun saytni 504 qilgan)
+    from accounts.freeze_services import get_monthly_closing_status
     closing_info = get_monthly_closing_status(selected_year, selected_month)
     is_current_month = (selected_year == today.year and selected_month == today.month)
 
@@ -1219,13 +1219,15 @@ def superadmin_payroll(request):
             selected_branch = 'ALL'
 
     if search_q:
-        workers = workers.filter(
-            Q(worker_id__icontains=search_q) |
-            Q(first_name__icontains=search_q) |
-            Q(last_name__icontains=search_q) |
-            Q(user__uid__icontains=search_q) |
-            Q(phone_number__icontains=search_q)
-        )
+        # Har bir so'z ID, ism, familiya, UID yoki telefondan biriga mos kelishi kerak: "Malika Karimova", "Karimova Mal"
+        for word in search_q.split():
+            workers = workers.filter(
+                Q(worker_id__icontains=word) |
+                Q(first_name__icontains=word) |
+                Q(last_name__icontains=word) |
+                Q(user__uid__icontains=word) |
+                Q(phone_number__icontains=word)
+            )
 
     worker_ids = list(workers.values_list('id', flat=True))
 
@@ -1349,8 +1351,40 @@ def superadmin_payroll(request):
 
     selected_month_name = dict(MONTHS_LIST).get(selected_month, '')
 
+    # Sahifa yengil bo'lsin (2026-11-11: 998 xodim bitta sahifada 7,4 MB edi): bu oy ishi, to'lovi va umumiy balansi
+    # bo'lmagan xodimlar standart holatda yashiriladi (qidiruvda va "Hammasini ko'rsatish"da chiqadi), 100 tadan sahifa
+    show_all = request.GET.get('all') == '1'
+    if search_q or show_all:
+        visible_rows = payroll_data
+    else:
+        visible_rows = [
+            row for row in payroll_data
+            if row['month_units'] or row['month_gross'] or row['advances'] or row['salaries_paid']
+            or row['bonuses_paid'] or row['lifetime_balance']
+        ]
+    page_obj = Paginator(visible_rows, PAYROLL_PAGE_SIZE).get_page(request.GET.get('page'))
+    page_numbers = list(page_obj.paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1))
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    page_query = params.urlencode()
+    if show_all:
+        params.pop('all', None)
+    else:
+        params['all'] = '1'
+    toggle_all_query = params.urlencode()
+
     return render(request, 'superadmin/payroll.html', {
-        'payroll_data': payroll_data,
+        'payroll_data': page_obj.object_list,
+        'page_obj': page_obj,
+        'page_numbers': page_numbers,
+        'page_ellipsis': Paginator.ELLIPSIS,
+        'page_query_prefix': f"{page_query}&" if page_query else '',
+        'toggle_all_query': toggle_all_query,
+        'show_all': show_all,
+        'visible_count': len(visible_rows),
+        'hidden_empty_count': len(payroll_data) - len(visible_rows),
+        'row_offset': page_obj.start_index() - 1 if visible_rows else 0,
         'selected_year': selected_year,
         'selected_month': selected_month,
         'selected_month_name': selected_month_name,
@@ -3345,34 +3379,33 @@ def superadmin_month_freeze_toggle(request):
         return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 
     from accounts.models import MonthlyClosing
+    from accounts.freeze_services import freeze_month_tickets, month_bounds, run_in_background, unfreeze_month_tickets
     closing, _ = MonthlyClosing.objects.get_or_create(year=year, month=month)
 
+    # Holat darhol o'zgaradi, stikerlar esa fonda 5000 tadan muzlatiladi / ochiladi — sayt to'xtamaydi
+    # (2026-11-11: oktyabrni so'rov ichida bir yo'la muzlatish butun saytni 504 qilgan)
     now = timezone.now()
+    month_start, month_end = month_bounds(year, month)
+    month_tickets = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED, scanned_at__gte=month_start, scanned_at__lt=month_end
+    )
     if action == 'freeze':
-        tickets_qs = Ticket.objects.filter(
-            status=Ticket.Status.SCANNED,
-            scanned_at__year=year,
-            scanned_at__month=month,
-            is_frozen=False
-        )
-        cnt = tickets_qs.update(is_frozen=True, frozen_at=now)
+        cnt = month_tickets.filter(is_frozen=False).count()
         closing.status = MonthlyClosing.Status.FROZEN
         closing.frozen_at = now
         closing.save()
-        messages.success(request, f"🔒 {year}-yil {month:02d}-oy to'liq muzlatildi! ({cnt} ta stiker qulflondi).")
+        run_in_background(freeze_month_tickets, year, month, now)
+        messages.success(request, f"🔒 {year}-yil {month:02d}-oy muzlatildi: {cnt} ta stiker fonda qulflanmoqda "
+                                  f"(bir necha daqiqa, sayt ishlashda davom etadi).")
     else:
-        tickets_qs = Ticket.objects.filter(
-            status=Ticket.Status.SCANNED,
-            scanned_at__year=year,
-            scanned_at__month=month,
-            is_frozen=True
-        )
-        cnt = tickets_qs.update(is_frozen=False, frozen_at=None)
+        cnt = month_tickets.filter(is_frozen=True).count()
         closing.status = MonthlyClosing.Status.OPEN
         closing.freeze_deadline = None
         closing.frozen_at = None
         closing.save()
-        messages.warning(request, f"🔓 {year}-yil {month:02d}-oy muzdan chiqarildi! ({cnt} ta stiker qayta faollashdi).")
+        run_in_background(unfreeze_month_tickets, year, month)
+        messages.warning(request, f"🔓 {year}-yil {month:02d}-oy muzdan chiqarildi: {cnt} ta stiker fonda ochilmoqda "
+                                  f"(bir necha daqiqa, sayt ishlashda davom etadi).")
 
     return redirect(f"{reverse('superadmin_payroll')}?year={year}&month={month}")
 

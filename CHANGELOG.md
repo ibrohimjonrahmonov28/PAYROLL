@@ -29,6 +29,31 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 16:34
+* **Turi:** `fix(freeze)` — Oyni muzlatish endi saytni to'xtatmaydi (5000 tadan bo'lib, fonda) va "Oyliklar" sahifasi tez ochiladi (sahifalash, qidiruv)
+* **Mavzu:** 11.11.2026 da "Oyliklar" sahifasidagi "Muzlatish" tugmasi oktyabrning ~208 ming stikerini bitta katta yozuv bilan sayt so'rovi ichida muzlatdi; stikerlar jadvalida 21 ta indeks, server 4 GB — so'rov uzoq davom etib, butun sayt (terminal ham) 504 Gateway Time-out bo'lib qoldi. Muzlatishning o'zi (to'langan oyni narx o'zgarishidan himoya qilish) o'zgarmadi, faqat bajarilishi.
+* **O'zgartirilgan fayllar:**
+  - `accounts/freeze_services.py` (`update_in_batches` — 5000 tadan; `month_bounds` — oy sana oralig'i bilan indeksli qidiruv; `freeze_month_tickets`, `unfreeze_month_tickets`, `run_in_background`)
+  - `accounts/superadmin_views.py` (oy muzlatish tugmasi holatni darhol o'zgartiradi, stikerlarni fonda muzlatadi/ochadi; "Oyliklar" sahifasi ochilganda muzlatish endi ishga tushmaydi)
+  - `production/management/commands/run_scheduler.py` (har soatda muzlatish tekshiruvi: o'tgan oylar va 7 kunlik taymerlar)
+  - `config/settings.py` (`FREEZE_IN_BACKGROUND`; testlarda darhol bajariladi)
+  - `templates/superadmin/payroll.html` (qidiruv maydoni, sahifalar, bo'sh xodimlarni ko'rsatish tugmasi, qatorlarda ortiqcha bo'sh joysiz)
+  - `production/test_salary_freeze.py` (3 ta yangi test), `production/test_payroll_page.py` (yangi), `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Bo'lib-bo'lib:** har bo'lak 5000 ta stikerni qisqa yozuv bilan muzlatadi — jadval soniyalar emas, daqiqalab band bo'lmaydi. Lokal nusxada oktyabr (208 565 ta) 42 bo'lakda 37 soniyada muzladi, eng uzun bo'lak 2,8 soniya.
+  2. **Tugma fonda:** "Muzlatish"/"Muzdan chiqarish" darhol javob qaytaradi, stikerlar bir necha daqiqada fonda qulflanadi; sayt ishlashda davom etadi.
+  3. **Sahifa ochilganda muzlatish yo'q:** avval "Oyliklar" sahifasi har ochilganda butun jadval bo'yicha muzlatish ishlardi (1-sanada butun o'tgan oyni sahifa ichida muzlatardi). Endi bu har soatda scheduler'da bajariladi; uzilib qolgan muzlatishni ham shu tekshiruv tugatadi.
+  4. **Tezroq qidiruv:** oy "yil/oy" bo'yicha emas, sana oralig'i bilan (indeks) qidiriladi.
+  5. **"Oyliklar" sahifasi yengil:** avval 998 xodimning hammasi bitta sahifada edi (7,4 MB). Endi 100 tadan sahifalar; bu oy ishi, to'lovi va balansi yo'q xodimlar standart holatda yashirin ("+ N ta bo'sh xodimni ko'rsatish"); qatorlardagi ortiqcha bo'sh joylar olib tashlandi. Lokal nusxada: 7,4 MB → 859 KB, 1,8–2,2 s → 0,5 s. Yuqoridagi jami summalar avvalgidek barcha xodimlar bo'yicha.
+  6. **Qidiruv:** ID yoki ism-familiya bo'yicha, barcha sahifalar bo'yicha (serverda); bir nechta so'z bo'lsa ham topadi ("Malika Karimova", "karimova mal"). Qidiruvda bo'sh xodimlar ham chiqadi.
+* **Serverda:** `git pull origin main && docker compose restart web scheduler` (scheduler ham qayta ishga tushishi shart; migratsiya yo'q).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `3a5001e`] — 11.11.2026, 13:53
 * **Turi:** `feat(managers-new)` — Kompyuter ekraniga to'liq moslash, artikulda jo'natish sanasi yo'q, "Yangi zakaz" faqat ro'yxatda
 * **Mavzu:** `/managers-new/` (egasining so'rovi bilan, menejerlar kompyuterda ishlaydi).

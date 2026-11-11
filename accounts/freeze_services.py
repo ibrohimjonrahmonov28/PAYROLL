@@ -1,10 +1,78 @@
 import datetime
+import logging
+import threading
 from decimal import Decimal
+from django.conf import settings
 from django.utils import timezone
-from django.db import transaction
+from django.db import connection
 from django.db.models import Sum, Q
 from accounts.models import MonthlyClosing, WorkerPayout
 from production.models import Ticket
+
+logger = logging.getLogger(__name__)
+
+# 2026-11-11: oktyabrning 208 ming stikerini bitta UPDATE bilan sayt so'rovi ichida muzlatish butun saytni 504 qildi.
+# Endi muzlatish 5000 tadan bo'lib (har bo'lak qisqa yozuv) va tugmadan bosilganda fonda bajariladi.
+BATCH_SIZE = 5000
+
+
+def month_bounds(year: int, month: int):
+    """Oy boshi va keyingi oy boshi (Toshkent vaqti): scanned_at indeksi bilan tez qidirish uchun."""
+    tz = timezone.get_current_timezone()
+    start = timezone.make_aware(datetime.datetime(year, month, 1), tz)
+    end = timezone.make_aware(datetime.datetime(year + month // 12, month % 12 + 1, 1), tz)
+    return start, end
+
+
+def update_in_batches(queryset, **values):
+    """
+    Biletlarni BATCH_SIZE tadan yangilaydi: har bo'lak alohida qisqa yozuv, jadval daqiqalab band bo'lmaydi.
+    queryset yangilanayotgan maydon bo'yicha filtrlangan bo'lishi shart (masalan is_frozen=False), aks holda tugamaydi.
+    """
+    total = 0
+    while True:
+        ids = list(queryset.order_by().values_list('id', flat=True)[:BATCH_SIZE])
+        if not ids:
+            return total
+        updated = queryset.filter(id__in=ids).update(**values)
+        if not updated:
+            return total
+        total += updated
+
+
+def run_in_background(func, *args, **kwargs):
+    """Og'ir ishni sayt so'rovidan tashqarida (alohida oqimda) bajaradi; testlarda (FREEZE_IN_BACKGROUND=False) darhol."""
+    if not getattr(settings, 'FREEZE_IN_BACKGROUND', True):
+        return func(*args, **kwargs)
+
+    def runner():
+        try:
+            func(*args, **kwargs)
+        except Exception:
+            logger.exception("Fondagi muzlatish ishida xatolik")
+        finally:
+            connection.close()
+
+    threading.Thread(target=runner, daemon=True).start()
+    return None
+
+
+def freeze_month_tickets(year: int, month: int, now=None):
+    """Oyning barcha skanerlangan, hali muzlamagan stikerlarini bo'lib-bo'lib muzlatadi."""
+    start, end = month_bounds(year, month)
+    tickets_qs = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED, is_frozen=False, scanned_at__gte=start, scanned_at__lt=end
+    )
+    return update_in_batches(tickets_qs, is_frozen=True, frozen_at=now or timezone.now())
+
+
+def unfreeze_month_tickets(year: int, month: int):
+    """Oyning muzlagan stikerlarini bo'lib-bo'lib muzdan chiqaradi."""
+    start, end = month_bounds(year, month)
+    tickets_qs = Ticket.objects.filter(
+        status=Ticket.Status.SCANNED, is_frozen=True, scanned_at__gte=start, scanned_at__lt=end
+    )
+    return update_in_batches(tickets_qs, is_frozen=False, frozen_at=None)
 
 
 def auto_freeze_past_months(now=None):
@@ -31,31 +99,25 @@ def auto_freeze_past_months(now=None):
     )
 
     # 1. Joriy oydan oldingi barcha oylardagi skanerlangan ochiq biletlarni muzlatish
-    # (faqat admin qasddan ochib qo'ymagan oylarni muzlatamiz)
+    # (faqat admin qasddan ochib qo'ymagan oylarni muzlatamiz). Sana oralig'i bilan (indeks) va bo'lib-bo'lib.
+    current_month_start, _ = month_bounds(current_year, current_month)
     past_tickets = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        is_frozen=False
-    ).filter(
-        Q(scanned_at__year__lt=current_year) |
-        Q(scanned_at__year=current_year, scanned_at__month__lt=current_month)
+        is_frozen=False,
+        scanned_at__lt=current_month_start
     )
-    if manually_opened_past_months:
-        for (y, m) in manually_opened_past_months:
-            past_tickets = past_tickets.exclude(scanned_at__year=y, scanned_at__month=m)
+    for (y, m) in manually_opened_past_months:
+        opened_start, opened_end = month_bounds(y, m)
+        past_tickets = past_tickets.exclude(scanned_at__gte=opened_start, scanned_at__lt=opened_end)
 
-    frozen_tickets_cnt = past_tickets.update(
-        is_frozen=True,
-        frozen_at=now
-    )
+    frozen_tickets_cnt = update_in_batches(past_tickets, is_frozen=True, frozen_at=now)
 
     # 2. Joriy oydan oldingi barcha oylarning MonthlyClosing holatini FROZEN ga o'tkazish
     # (faqat admin ochib qo'ymagan bo'lsa)
     past_months = Ticket.objects.filter(
-        status=Ticket.Status.SCANNED
-    ).filter(
-        Q(scanned_at__year__lt=current_year) |
-        Q(scanned_at__year=current_year, scanned_at__month__lt=current_month)
-    ).values('scanned_at__year', 'scanned_at__month').distinct()
+        status=Ticket.Status.SCANNED,
+        scanned_at__lt=current_month_start
+    ).values('scanned_at__year', 'scanned_at__month').order_by().distinct()
 
     past_closings_updated = 0
     for item in past_months:
@@ -75,10 +137,10 @@ def auto_freeze_past_months(now=None):
     accidentally_frozen_current = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
         is_frozen=True,
-        scanned_at__year=current_year,
-        scanned_at__month=current_month
+        scanned_at__gte=current_month_start
     )
-    unfrozen_current_cnt = accidentally_frozen_current.update(
+    unfrozen_current_cnt = update_in_batches(
+        accidentally_frozen_current,
         is_frozen=False,
         frozen_at=None,
         frozen_payout=None
@@ -126,22 +188,13 @@ def check_and_apply_freeze_timers():
             closing.save()
             continue
 
-        with transaction.atomic():
-            tickets_qs = Ticket.objects.filter(
-                status=Ticket.Status.SCANNED,
-                scanned_at__year=closing.year,
-                scanned_at__month=closing.month,
-                is_frozen=False
-            )
-            cnt = tickets_qs.update(
-                is_frozen=True,
-                frozen_at=now
-            )
-            closing.status = MonthlyClosing.Status.FROZEN
-            closing.frozen_at = now
-            closing.save()
-            frozen_count += 1
-            total_tickets_frozen += cnt
+        # Bo'lib-bo'lib muzlatiladi (bitta katta tranzaksiya jadvalni band qilmasin); uzilib qolsa keyingi tekshiruv davom ettiradi
+        cnt = freeze_month_tickets(closing.year, closing.month, now=now)
+        closing.status = MonthlyClosing.Status.FROZEN
+        closing.frozen_at = now
+        closing.save()
+        frozen_count += 1
+        total_tickets_frozen += cnt
 
     return frozen_count, total_tickets_frozen
 
@@ -169,10 +222,11 @@ def start_monthly_freeze_timer(year: int, month: int, user=None):
         return closing, False
 
     # Ushbu oy uchun umumiy statistikani jamlash
+    month_start, month_end = month_bounds(year, month)
     tickets_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED,
-        scanned_at__year=year,
-        scanned_at__month=month
+        scanned_at__gte=month_start,
+        scanned_at__lt=month_end
     )
     total_units = tickets_qs.aggregate(s=Sum('quantity'))['s'] or 0
     total_gross = tickets_qs.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
