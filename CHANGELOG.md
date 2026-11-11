@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 13:53
+### 🔹 [Commit: `3a5001e`] — 11.11.2026, 13:53
 * **Turi:** `feat(managers-new)` — Kompyuter ekraniga to'liq moslash, artikulda jo'natish sanasi yo'q, "Yangi zakaz" faqat ro'yxatda
 * **Mavzu:** `/managers-new/` (egasining so'rovi bilan, menejerlar kompyuterda ishlaydi).
 * **O'zgartirilgan fayllar:**
@@ -44,7 +44,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web`.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 3a5001e
   ```
 
 ---
