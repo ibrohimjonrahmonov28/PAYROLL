@@ -1,0 +1,72 @@
+{% extends 'managers_new/base.html' %}
+
+{% block title %}Zakazlar{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-2xl font-black text-white">Zakazlar</h1>
+        <a href="{% url 'managers_new:order_create' %}"
+            class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm">
+            <i class="fa-solid fa-plus mr-1"></i> Yangi zakaz
+        </a>
+    </div>
+
+    <form method="GET" class="flex flex-wrap items-center gap-2">
+        <input type="text" name="q" value="{{ search }}" placeholder="Zakaz, mijoz yoki artikul..."
+            class="w-64 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500">
+        <select name="status" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+            <option value="">Barcha (arxivsiz)</option>
+            {% for key, label in status_labels.items %}
+            <option value="{{ key }}" {% if status == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        {% if managers %}
+        <select name="manager" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+            <option value="">Barcha menejerlar</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if manager_filter == m.id|stringformat:'s' %}selected{% endif %}>{{ m.get_full_name|default:m.username }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-white">
+            <i class="fa-solid fa-magnifying-glass mr-1"></i> Qidirish
+        </button>
+    </form>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-800/60 text-slate-300 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-left">Zakaz</th>
+                    <th class="px-4 py-3 text-left">Mijoz</th>
+                    <th class="px-4 py-3 text-left">Buyurtma sanasi</th>
+                    <th class="px-4 py-3 text-right">Artikullar</th>
+                    <th class="px-4 py-3 text-right">Jami dona</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    {% if request.user.is_superadmin %}<th class="px-4 py-3 text-left">Menejer</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+                {% for o in orders %}
+                <tr class="hover:bg-slate-800/40 cursor-pointer" onclick="location.href='{% url 'managers_new:order_detail' o.id %}'">
+                    <td class="px-4 py-3 font-black text-white">{{ o.order_number }}</td>
+                    <td class="px-4 py-3 text-slate-300">{{ o.client_name }}</td>
+                    <td class="px-4 py-3 text-slate-300">{{ o.order_date|date:"d.m.Y" }}</td>
+                    <td class="px-4 py-3 text-right text-slate-300">{{ o.items_count }}</td>
+                    <td class="px-4 py-3 text-right font-bold text-white">{{ o.total_quantity }}</td>
+                    <td class="px-4 py-3">{% include 'managers_new/partials/status_badge.html' with status=o.status %}</td>
+                    {% if request.user.is_superadmin %}<td class="px-4 py-3 text-slate-300">{{ o.manager.get_full_name|default:o.manager.username|default:"—" }}</td>{% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+                        Hali zakaz yo'q. <a href="{% url 'managers_new:order_create' %}" class="text-emerald-400 font-bold">Yangi zakaz oching</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

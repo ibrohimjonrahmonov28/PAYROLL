@@ -42,6 +42,7 @@ urlpatterns = [
     path('production/master-tablet/<path:extra>', RedirectView.as_view(url='/master-tablet/%(extra)s', permanent=False)),
     path('superadmin/', include('accounts.superadmin_urls')),
     path('managers/', include('production.manager_urls')),
+    path('managers-new/', include('production.manager_new_urls')),
     path('cutting/', include('production.cutting_urls')),
     path('meto/', include('production.meto_urls')),
     path('meto-hub/', include('production.meto_hub_urls')),
@@ -54,4 +55,3 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

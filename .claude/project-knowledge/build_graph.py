@@ -54,7 +54,7 @@ MODULES = {
     "production.cutting": "Cutting portal (/cutting/): cutting batches (pastals) and auto-box generation.",
     "production.meto": "Meto (numbering) portal (/meto/) and meto hub with waybills (/meto-hub/).",
     "production.stickers": "Sticker printing portal (/stickers/) and 100x60 sticker PDF generator.",
-    "production.managers": "Manager portal (/managers/): order creation and overview.",
+    "production.managers": "Manager portals: old /managers/ (order creation and overview) and Managerlar NEW /managers-new/ (order list + fabric order entry, Excel export; MANAGER role limited to it).",
     "production.norma": "Norma (daily norm) portal (/norma/): models, operations catalog, canvas, worker norm breakdown.",
     "production.passport": "Pastal passport checker (web + Telegram webhook) and the passport Telegram bot service.",
     "production.gifts": "Patok awards (/gifts/): superadmin entry page and the public per-patok TV page opened from the monitor's gift button.",

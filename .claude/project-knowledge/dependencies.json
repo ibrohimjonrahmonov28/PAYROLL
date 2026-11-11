@@ -27,8 +27,10 @@
    "generate_stickers_100x60.py",
    "production/daily_image_reports.py",
    "production/gift_views.py",
+   "production/manager_new_excel.py",
    "production/sticker_generator.py",
    "production/test_gifts.py",
+   "production/test_managers_new.py",
    "production/tests.py",
    "scratch_badges_pdf.py"
   ],
@@ -81,6 +83,8 @@
    "production/management/commands/send_daily_report.py",
    "production/management/commands/send_db_backup.py",
    "production/management/commands/sync_article_operations.py",
+   "production/manager_new_urls.py",
+   "production/manager_new_views.py",
    "production/manager_urls.py",
    "production/manager_views.py",
    "production/master_views.py",
@@ -104,6 +108,7 @@
    "production/terminal_views.py",
    "production/test_daily_dazmol.py",
    "production/test_gifts.py",
+   "production/test_managers_new.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
@@ -138,7 +143,9 @@
   "openpyxl": [
    "accounts/superadmin_views.py",
    "production/excel_reports.py",
+   "production/manager_new_excel.py",
    "production/test_daily_dazmol.py",
+   "production/test_managers_new.py",
    "production/test_telegram_reports.py",
    "production/tests.py"
   ],
@@ -405,6 +412,19 @@
     "production.services"
    ]
   },
+  "production.manager_new_urls": {
+   "imports": [
+    "production"
+   ]
+  },
+  "production.manager_new_views": {
+   "imports": [
+    "accounts.models",
+    "production.gift_views",
+    "production.manager_new_excel",
+    "production.models"
+   ]
+  },
   "production.manager_urls": {
    "imports": [
     "production.manager_views"
@@ -578,6 +598,12 @@
    "imports": [
     "accounts.models",
     "production.gift_views",
+    "production.models"
+   ]
+  },
+  "production.test_managers_new": {
+   "imports": [
+    "accounts.models",
     "production.models"
    ]
   },
@@ -769,6 +795,12 @@
   "production/gift_views.py": [
    "gifts/manage.html",
    "gifts/tv.html"
+  ],
+  "production/manager_new_views.py": [
+   "managers_new/article_form.html",
+   "managers_new/order_detail.html",
+   "managers_new/order_form.html",
+   "managers_new/order_list.html"
   ],
   "production/manager_views.py": [
    "managers/dashboard.html",
@@ -994,6 +1026,70 @@
     "manager_order_delete",
     "manager_order_delete_item",
     "manager_order_update_status"
+   ]
+  },
+  "templates/managers_new/article_form.html": {
+   "extends": [
+    "managers_new/base.html"
+   ],
+   "includes": [
+    "managers_new/partials/fabric_row.html",
+    "managers_new/partials/fabric_row.html"
+   ],
+   "url_names": [
+    "managers_new:order_detail"
+   ]
+  },
+  "templates/managers_new/base.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "managers_new:order_create",
+    "managers_new:order_list",
+    "root_logout",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/managers_new/order_detail.html": {
+   "extends": [
+    "managers_new/base.html"
+   ],
+   "includes": [
+    "managers_new/partials/status_badge.html"
+   ],
+   "url_names": [
+    "managers_new:article_create",
+    "managers_new:article_delete",
+    "managers_new:article_edit",
+    "managers_new:export_fabric_order",
+    "managers_new:export_order_list",
+    "managers_new:order_delete",
+    "managers_new:order_edit",
+    "managers_new:order_reassign",
+    "managers_new:order_status"
+   ]
+  },
+  "templates/managers_new/order_form.html": {
+   "extends": [
+    "managers_new/base.html"
+   ],
+   "url_names": [
+    "managers_new:order_detail",
+    "managers_new:order_list"
+   ]
+  },
+  "templates/managers_new/order_list.html": {
+   "extends": [
+    "managers_new/base.html"
+   ],
+   "includes": [
+    "managers_new/partials/status_badge.html"
+   ],
+   "url_names": [
+    "managers_new:order_create",
+    "managers_new:order_detail"
    ]
   },
   "templates/meto/base_meto.html": {
@@ -1439,6 +1535,7 @@
     "cutting_dashboard",
     "gifts:manage",
     "manager_dashboard",
+    "managers_new:order_list",
     "meto_dashboard",
     "norma_canvas",
     "production:dashboard",

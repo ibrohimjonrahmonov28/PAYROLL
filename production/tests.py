@@ -626,7 +626,8 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.op = Operation.objects.create(code="OP-SEW", name="Tikish")
 
     def test_manager_order_create_with_sizes(self):
-        self.client.login(username="manager_user", password="password123")
+        # Eski /managers/ bo'limi endi superadmin uchun (menejer faqat Managerlar NEW ni ko'radi, 2026-11-11)
+        self.client.login(username="superadmin_test", password="password123")
         url = reverse('manager_order_create')
         data = {
             'order_number': 'ORD-MGR-101',
@@ -666,7 +667,8 @@ class ManagerAndCuttingWorkflowTest(TestCase):
         self.assertContains(res_detail, "Polo futbolka")
 
     def test_manager_order_status_lifecycle_and_filtering(self):
-        self.client.login(username="manager_user", password="password123")
+        # Eski /managers/ bo'limi endi superadmin uchun (menejer faqat Managerlar NEW ni ko'radi, 2026-11-11)
+        self.client.login(username="superadmin_test", password="password123")
 
         # 1. Create order with DRAFT status
         url_create = reverse('manager_order_create')
@@ -2354,10 +2356,10 @@ class SewingStatisticsFeatureTest(TestCase):
         res_cutter = self.client.get(reverse('production:sewing_statistics_orders'))
         self.assertEqual(res_cutter.status_code, 302)
 
-        # Manager allowed
+        # Menejer endi faqat "Managerlar NEW" bo'limini ko'radi (egasi qarori 2026-11-11)
         self.client.login(username="manager_stat", password="password123")
         res_mgr = self.client.get(reverse('production:sewing_statistics_orders'))
-        self.assertEqual(res_mgr.status_code, 200)
+        self.assertRedirects(res_mgr, reverse('managers_new:order_list'), fetch_redirect_response=False)
 
         # Superadmin allowed
         self.client.login(username="superadmin_stat", password="password123")
@@ -3461,7 +3463,9 @@ class TelegramDailyReportApiTest(TestCase):
         from unittest.mock import patch
         from django.urls import reverse
 
-        self.client.login(username='manager_report_test', password='testpassword123')
+        # Menejer endi faqat "Managerlar NEW" bo'limini ko'radi (2026-11-11), hisobotni superadmin yuboradi
+        User.objects.create_superuser(username='superadmin_report_test', password='testpassword123', role='SUPER_ADMIN')
+        self.client.login(username='superadmin_report_test', password='testpassword123')
         url = reverse('production:api_send_telegram_daily_report')
 
         with patch('production.daily_image_reports.send_single_branch_report') as mock_send_single, \

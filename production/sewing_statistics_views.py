@@ -1630,7 +1630,7 @@ def sewing_statistics_orders_view(request):
     day_start = timezone.make_aware(datetime.combine(selected_date, time.min), tz)
     day_end = timezone.make_aware(datetime.combine(selected_date, time.max), tz)
 
-    orders_qs = Order.objects.select_related('customer').prefetch_related(
+    orders_qs = Order.objects.filter(is_new_flow=False).select_related('customer').prefetch_related(   # Managerlar NEW test davrida ko'rinmaydi
         'items__article__model',
         'items__article__article_operations__operation',
         'items__sizes__cutting_items__batch',

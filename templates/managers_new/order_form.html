@@ -1,0 +1,57 @@
+{% extends 'managers_new/base.html' %}
+
+{% block title %}{% if order %}{{ order.order_number }} — tahrirlash{% else %}Yangi zakaz{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-4">
+    <h1 class="text-2xl font-black text-white">{% if order %}«{{ order.order_number }}» zakazini tahrirlash{% else %}Yangi zakaz{% endif %}</h1>
+
+    <form method="POST" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="block">
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Zakaz raqami *</span>
+                <input type="text" name="order_number" value="{{ values.order_number }}" required maxlength="50" placeholder="Masalan: DM-46"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold focus:outline-none focus:border-emerald-500">
+                <span class="block text-[11px] text-slate-500 mt-1">Lotin harflari va raqam bilan yozing — keyin stiker QR kodiga tushadi.</span>
+            </label>
+            <label class="block">
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Mijoz *</span>
+                <input type="text" name="client_name" value="{{ values.client_name }}" required maxlength="200" placeholder="Masalan: ДМ"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500">
+            </label>
+            <label class="block">
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Buyurtma sanasi *</span>
+                <input type="date" name="order_date" value="{{ values.order_date }}" required
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500">
+            </label>
+            <label class="block">
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Eksport sanalari</span>
+                <input type="text" name="export_dates" value="{{ values.export_dates }}" maxlength="200" placeholder="Masalan: 15.01.2027 / 19.02.2027"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500">
+            </label>
+        </div>
+
+        <div>
+            <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Razmerlar * <span class="normal-case font-normal">(vergul bilan)</span></span>
+            <div class="flex flex-wrap gap-2 mb-2">
+                {% for label, sizes in size_presets %}
+                <button type="button" onclick="document.getElementById('size-labels').value = '{{ sizes }}'"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">{{ label }}</button>
+                {% endfor %}
+            </div>
+            <input type="text" id="size-labels" name="size_labels" value="{{ values.size_labels }}" required
+                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:outline-none focus:border-emerald-500">
+            <span class="block text-[11px] text-slate-500 mt-1">Tugmani bosing yoki o'zingiz yozing, masalan: 92, 98, 104, 110</span>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+            <button class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash
+            </button>
+            <a href="{% if order %}{% url 'managers_new:order_detail' order.id %}{% else %}{% url 'managers_new:order_list' %}{% endif %}"
+                class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">Bekor qilish</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

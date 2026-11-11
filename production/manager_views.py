@@ -31,7 +31,7 @@ def manager_dashboard(request):
     search_q = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '').strip()
 
-    orders_base = Order.objects.all()
+    orders_base = Order.objects.filter(is_new_flow=False)   # Managerlar NEW zakazlari o'z bo'limida
 
     # Hisoblagichlar (Status counts)
     status_counts = {

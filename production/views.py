@@ -50,7 +50,7 @@ def dashboard_view(request):
     ).order_by('-scanned_at')[:8]
 
     # Buyurtmalar
-    orders = Order.objects.all().order_by('-created_at')[:5]
+    orders = Order.objects.filter(is_new_flow=False).order_by('-created_at')[:5]   # Managerlar NEW zakazlari test davrida ko'rinmaydi
 
     return render(request, 'production/dashboard.html', {
         'total_wages_today': total_wages_today,
@@ -132,7 +132,7 @@ def order_list_view(request):
             return redirect('production:order_detail', order_id=order.id)
 
     search_q = request.GET.get('q', '').strip()
-    orders = Order.objects.annotate(
+    orders = Order.objects.filter(is_new_flow=False).annotate(   # Managerlar NEW zakazlari test davrida ko'rinmaydi
         annotated_completed_tickets=Count('boxes__tickets', filter=Q(boxes__tickets__status=Ticket.Status.SCANNED), distinct=True),
         annotated_total_tickets=Count('boxes__tickets', distinct=True),
         annotated_total_boxes_qty=Sum('boxes__quantity', distinct=True)

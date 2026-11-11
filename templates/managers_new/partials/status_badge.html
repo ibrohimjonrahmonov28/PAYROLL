@@ -1,0 +1,8 @@
+{% if status == 'DRAFT' %}<span class="px-2.5 py-1 rounded-lg bg-slate-700 text-slate-200 text-xs font-bold">Qoralama</span>
+{% elif status == 'CONFIRMED' %}<span class="px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold">Tasdiqlandi</span>
+{% elif status == 'IN_CUTTING' %}<span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-bold">Kroyda</span>
+{% elif status == 'IN_SEWING' %}<span class="px-2.5 py-1 rounded-lg bg-violet-500/20 text-violet-300 text-xs font-bold">Tikuvda</span>
+{% elif status == 'COMPLETED' %}<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">Tugadi</span>
+{% elif status == 'CANCELLED' %}<span class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 text-xs font-bold">Bekor qilindi</span>
+{% elif status == 'ARCHIVED' %}<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 text-xs font-bold">Arxiv</span>
+{% else %}<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold">{{ status }}</span>{% endif %}

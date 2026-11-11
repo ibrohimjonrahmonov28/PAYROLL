@@ -496,6 +496,10 @@ class Order(models.Model):
         COMPLETED = 'COMPLETED', 'Tugatildi'
         ARCHIVED = 'ARCHIVED', 'Arxivlandi'
         CANCELLED = 'CANCELLED', 'Bekor qilindi'
+        # Managerlar NEW zakazlari uchun (egasi talabi 2026-11-11)
+        CONFIRMED = 'CONFIRMED', 'Tasdiqlandi'
+        IN_CUTTING = 'IN_CUTTING', 'Kroyda'
+        IN_SEWING = 'IN_SEWING', 'Tikuvda'
 
     order_number = models.CharField(max_length=50, unique=True, db_index=True, verbose_name="Buyurtma raqami")
     customer = models.ForeignKey(
@@ -513,10 +517,28 @@ class Order(models.Model):
     deadline = models.DateField(null=True, blank=True, verbose_name="Muddat")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Managerlar NEW (/managers-new/): test davrida bu zakazlar eski sahifalarda ko'rinmaydi
+    is_new_flow = models.BooleanField(default=False, db_index=True, verbose_name="Managerlar NEW zakazi")
+    manager = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_orders',
+        verbose_name="Menejer"
+    )
+    order_date = models.DateField(null=True, blank=True, verbose_name="Buyurtma sanasi")
+    export_dates = models.CharField(max_length=200, blank=True, verbose_name="Eksport sanalari")
+    size_labels = models.CharField(max_length=300, blank=True, verbose_name="Razmerlar (vergul bilan)")
+
     class Meta:
         verbose_name = "Buyurtma"
         verbose_name_plural = "Buyurtmalar"
         ordering = ['-created_at']
+
+    @property
+    def size_list(self):
+        return [s.strip() for s in self.size_labels.split(',') if s.strip()]
 
     def save(self, *args, **kwargs):
         if self.customer and not self.client_name:
@@ -590,6 +612,12 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(verbose_name="Soni (dona)")
     norm = models.PositiveIntegerField(default=1000, verbose_name="Model normasi (ball)")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Managerlar NEW: menejer yozgan artikul kodi (Article.code = "<kod> · <zakaz raqami>"), Просчет va sanalar
+    article_code = models.CharField(max_length=50, blank=True, verbose_name="Artikul kodi (menejer)")
+    prosjyot = models.PositiveIntegerField(null=True, blank=True, verbose_name="Просчет (dona)")
+    ship_date = models.DateField(null=True, blank=True, verbose_name="Jo'natish sanasi")
+    print_image = models.ImageField(upload_to='orders/prints/%Y/%m/', null=True, blank=True, verbose_name="Pechat rasmi")
 
     class Meta:
         verbose_name = "Zakaz Modeli"
@@ -739,6 +767,58 @@ class OrderItemSize(models.Model):
 
     def __str__(self):
         return f"{self.order_item.article.code} [{self.size_name}]: {self.planned_quantity} ta (Kesildi: {self.total_cut_quantity})"
+
+
+class OrderItemFabric(models.Model):
+    """
+    Managerlar NEW: artikulning mato qismi (mato zakazi qatori). Rang har bir mato qismida alohida.
+    Tayyor mato kg = 1 dona uchun kg × Просчет; xom mato kg = tayyor + xom %.
+    """
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='fabrics', verbose_name="Zakaz modeli")
+    name = models.CharField(max_length=120, verbose_name="Mato nomi")
+    composition = models.CharField(max_length=150, blank=True, verbose_name="Tarkibi")
+    width_cm = models.PositiveIntegerField(null=True, blank=True, verbose_name="Eni (sm)")
+    density_gsm = models.PositiveIntegerField(null=True, blank=True, verbose_name="Gr/m2")
+    color = models.CharField(max_length=120, blank=True, verbose_name="Rang (nomi va Pantone)")
+    factory_color_code = models.CharField(max_length=60, blank=True, verbose_name="Fabrika rang kodi")
+    kg_per_piece = models.DecimalField(max_digits=8, decimal_places=4, verbose_name="1 dona uchun kg")
+    prosjyot_percent = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Prosjyot %")
+    raw_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('10'), verbose_name="Xom mato %")
+    export_date = models.DateField(null=True, blank=True, verbose_name="Eksport sanasi")
+    lab_card_image = models.ImageField(upload_to='orders/lab_cards/%Y/%m/', null=True, blank=True, verbose_name="Laboratoriya rang kartasi")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Mato qismi"
+        verbose_name_plural = "Mato qismlari"
+        ordering = ['id']
+
+    @property
+    def finished_kg(self):
+        return (self.kg_per_piece or Decimal('0')) * (self.order_item.prosjyot or 0)
+
+    @property
+    def raw_kg(self):
+        return self.finished_kg * (1 + (self.raw_percent or Decimal('0')) / 100)
+
+    def __str__(self):
+        return f"{self.order_item.article.code}: {self.name} ({self.color})"
+
+
+class OrderChangeLog(models.Model):
+    """Managerlar NEW: zakazdagi o'zgarishlar tarixi (kim, qachon, nima)."""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='change_logs', verbose_name="Zakaz")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Kim")
+    message = models.CharField(max_length=300, verbose_name="O'zgarish")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Zakaz o'zgarishi"
+        verbose_name_plural = "Zakaz o'zgarishlari"
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f"{self.order.order_number}: {self.message}"
 
 
 def generate_unique_waybill_number():

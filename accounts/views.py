@@ -18,7 +18,7 @@ def login_view(request):
         if getattr(request.user, 'role', None) == User.Role.MASTER:
             return redirect('production:terminal_home')
         if getattr(request.user, 'role', None) == User.Role.MANAGER:
-            return redirect('manager_dashboard')
+            return redirect('managers_new:order_list')
         if getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN:
             return redirect('superadmin_payroll')
         if getattr(request.user, 'role', None) == User.Role.PLAN:
@@ -99,11 +99,14 @@ def login_view(request):
                         return redirect(next_url)
                     return redirect('cutting_dashboard')
                 
+                if user.role == User.Role.MANAGER:
+                    if next_url and next_url.startswith('/managers-new/'):
+                        return redirect(next_url)
+                    return redirect('managers_new:order_list')
+
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)
-                
-                if user.role == User.Role.MANAGER:
-                    return redirect('manager_dashboard')
+
                 if user.role == User.Role.METO:
                     return redirect('meto_dashboard')
                 if user.role == User.Role.STICKER:

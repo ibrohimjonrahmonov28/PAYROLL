@@ -29,6 +29,31 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 12:41
+* **Turi:** `feat(managers-new)` — "Managerlar NEW" test bo'limi: menejer zakaz list va mato zakazini kiritadi
+* **Mavzu:** Egasining so'rovi: zakaz kiritishni to'liq tizimga o'tkazish (1-bosqich — faqat menejer). Eski `/managers/` va hozirgi tartib o'zgarmagan; yangi bo'lim to'liq ishlagach unga o'tiladi, eskisi yashiriladi. Sklad (TMO) va kroy keyingi bosqichlarda.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py`, `production/migrations/0037_managers_new.py` (zakazga menejer, sanalar, razmerlar, `is_new_flow`; artikulga Просчет, jo'natish sanasi, pechat rasmi; yangi `OrderItemFabric`, `OrderChangeLog`; yangi statuslar)
+  - `production/manager_new_views.py`, `production/manager_new_urls.py`, `production/manager_new_excel.py` (yangi), `config/urls.py` (`/managers-new/`)
+  - `templates/managers_new/*` (yangi), `templates/superadmin/base_superadmin.html` (menyuda "Managerlar NEW"), `templates/superadmin/users.html` (rol ro'yxatida "Menejer"; filial admini menejer ocha olmaydi)
+  - `accounts/middleware.py`, `accounts/views.py` (menejer faqat yangi bo'limni ko'radi va kirganda o'sha yerga tushadi)
+  - Eski ro'yxatlar yangi zakazlarni ko'rsatmaydi: `production/views.py`, `production/manager_views.py`, `production/norma_views.py`, `production/sewing_statistics_views.py`, `accounts/superadmin_views.py`
+  - `production/test_managers_new.py` (yangi), `production/tests.py` (menejer endi eski sahifalarga kirmaydi — 3 ta test shunga moslandi), `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Zakaz:** raqam (qo'lda), mijoz, buyurtma sanasi, eksport sanalari, razmer to'plami (kattalar 46–56, bolalar 110–146 yoki qo'lda).
+  2. **Artikul:** har zakazda yangi yaratiladi (zakaz ichida kod takrorlanmaydi), model rasmi majburiy, pechat ixtiyoriy — tanlangan zahoti ko'rinadi; jo'natish sanasi, har razmer soni, Просчет (zakaz + namuna uchun qo'shimcha).
+  3. **Mato qismlari:** har detal o'z rangi bilan; tayyor kg = 1 dona kg × Просчет, xom kg = tayyor + xom % (standart 10), prosjyot %, eksport sanasi, laboratoriya rang kartasi rasmi.
+  4. **Statuslar:** Qoralama → Tasdiqlandi → Kroyda → Tikuvda → Tugadi / Bekor; arxiv faqat superadmin. Kroy boshlangach tahrirni faqat superadmin qiladi, har o'zgarish tarixda yoziladi. Superadmin zakazni boshqa menejerga o'tkazadi.
+  5. **Excel:** "Zakaz list" va "Mato zakazi" — namunadagi shaklda (qadoqlash va shtrix-kodsiz). Namunadagi ДМ 46 raqamlari bilan tekshirildi (293,76 kg, 247,2 kg ...).
+  6. **Himoya:** kesilgan yoki qutisi bor artikul/zakaz o'chirilmaydi (stikerlar o'chib ketmasin).
+* **Serverda:** `git pull origin main && docker compose restart web` (0037 migratsiyasi o'zi ishlaydi). Menejer foydalanuvchisini superadmin "Foydalanuvchilar" bo'limida "Menejer" roli bilan ochadi.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `432d839`] — 11.11.2026, 09:39
 * **Turi:** `fix(gifts)` — O'chirilgan test rasmi boshqa xodim o'rnida qayta paydo bo'lardi
 * **Mavzu:** `/gifts/` (egasi xabar qildi). Rasm o'chirilganda uning fayl nomi (`awards/2026/11/photo.jpg`) bo'shab qolardi va keyingi yuklangan rasmga (K1, Azamova Nodira, 11.11 09:13) o'sha nom berilardi. nginx `/media/` ni brauzerda 7 kun keshlagani uchun TV va brauzer shu manzilda eski test rasmini ko'rsatardi.

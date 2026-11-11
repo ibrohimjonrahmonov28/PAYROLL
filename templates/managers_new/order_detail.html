@@ -1,0 +1,216 @@
+{% extends 'managers_new/base.html' %}
+
+{% block title %}{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+    <!-- Zakaz sarlavhasi -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-start justify-between gap-4">
+        <div class="space-y-1.5">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-black text-white">{{ order.order_number }}</h1>
+                {% include 'managers_new/partials/status_badge.html' with status=order.status %}
+            </div>
+            <p class="text-sm text-slate-300">
+                Mijoz: <b class="text-white">{{ order.client_name }}</b>
+                · Buyurtma sanasi: <b class="text-white">{{ order.order_date|date:"d.m.Y" }}</b>
+                {% if order.export_dates %}· Eksport: <b class="text-white">{{ order.export_dates }}</b>{% endif %}
+                · Menejer: <b class="text-white">{{ order.manager.get_full_name|default:order.manager.username|default:"—" }}</b>
+            </p>
+            <p class="text-xs text-slate-400">Razmerlar: {{ order.size_labels }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% if can_edit %}
+            <a href="{% url 'managers_new:order_edit' order.id %}" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-white">
+                <i class="fa-solid fa-pen mr-1"></i> Tahrirlash
+            </a>
+            {% endif %}
+            <a href="{% url 'managers_new:export_order_list' order.id %}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm font-bold text-white">
+                <i class="fa-solid fa-file-excel mr-1"></i> Zakaz list
+            </a>
+            <a href="{% url 'managers_new:export_fabric_order' order.id %}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm font-bold text-white">
+                <i class="fa-solid fa-file-excel mr-1"></i> Mato zakazi
+            </a>
+        </div>
+    </div>
+
+    <!-- Status, menejer, o'chirish -->
+    <div class="flex flex-wrap items-center gap-3">
+        <form method="POST" action="{% url 'managers_new:order_status' order.id %}" class="flex items-center gap-2">
+            {% csrf_token %}
+            <select name="status" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                {% for key, label in status_choices %}
+                <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-sm font-bold text-white">Statusni qo'yish</button>
+        </form>
+        {% if managers %}
+        <form method="POST" action="{% url 'managers_new:order_reassign' order.id %}" class="flex items-center gap-2">
+            {% csrf_token %}
+            <select name="manager_id" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                {% for m in managers %}
+                <option value="{{ m.id }}" {% if order.manager_id == m.id %}selected{% endif %}>{{ m.get_full_name|default:m.username }}</option>
+                {% endfor %}
+            </select>
+            <button class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-sm font-bold text-white">Menejerga o'tkazish</button>
+        </form>
+        {% endif %}
+        {% if order.status == 'DRAFT' %}
+        <form method="POST" action="{% url 'managers_new:order_delete' order.id %}" onsubmit="return confirm('Zakaz butunlay o\'chirilsinmi?');">
+            {% csrf_token %}
+            <button class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-600 hover:text-white border border-rose-500/40 text-sm font-bold text-rose-400">
+                <i class="fa-solid fa-trash-can mr-1"></i> Zakazni o'chirish
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    {% if not can_edit %}
+    <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm text-amber-300">
+        Zakaz kroyga o'tgan — uni endi faqat superadmin o'zgartira oladi.
+    </div>
+    {% endif %}
+
+    <!-- Artikullar -->
+    <div class="flex items-center justify-between">
+        <h2 class="text-lg font-black text-white">Artikullar ({{ rows|length }})</h2>
+        {% if can_edit %}
+        <a href="{% url 'managers_new:article_create' order.id %}" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black">
+            <i class="fa-solid fa-plus mr-1"></i> Artikul qo'shish
+        </a>
+        {% endif %}
+    </div>
+
+    {% for r in rows %}
+    <div id="item-{{ r.item.id }}" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-start gap-4">
+            {% if r.item.article.image %}
+            <img src="{{ r.item.article.image.url }}" alt="" class="w-28 h-28 object-cover rounded-xl border border-slate-700">
+            {% endif %}
+            {% if r.item.print_image %}
+            <img src="{{ r.item.print_image.url }}" alt="" title="Pechat" class="w-28 h-28 object-contain bg-white rounded-xl border border-slate-700">
+            {% endif %}
+            <div class="flex-1 min-w-[220px]">
+                <p class="text-xs text-slate-400">{{ forloop.counter }}-artikul</p>
+                <p class="text-xl font-black text-white">{{ r.item.article_code }}</p>
+                <p class="text-slate-300">{{ r.item.article.name }}</p>
+                <p class="text-sm text-slate-400 mt-1">
+                    Jo'natish: <b class="text-white">{{ r.item.ship_date|date:"d.m.Y" }}</b>
+                    · Zakaz: <b class="text-white">{{ r.item.quantity }}</b> dona
+                    · Просчет: <b class="text-white">{{ r.item.prosjyot|default:r.item.quantity }}</b> dona
+                </p>
+            </div>
+            {% if can_edit %}
+            <div class="flex items-center gap-2">
+                <a href="{% url 'managers_new:article_edit' order.id r.item.id %}" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">
+                    <i class="fa-solid fa-pen mr-1"></i> Tahrirlash
+                </a>
+                <form method="POST" action="{% url 'managers_new:article_delete' order.id r.item.id %}" onsubmit="return confirm('Artikul o\'chirilsinmi?');">
+                    {% csrf_token %}
+                    <button class="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 hover:text-white border border-rose-500/40 text-xs font-bold text-rose-400">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="text-sm border border-slate-800">
+                <tr class="bg-slate-800/60 text-slate-300">
+                    {% for s in sizes %}<th class="px-3 py-1.5 border border-slate-800 font-bold">{{ s }}</th>{% endfor %}
+                    <th class="px-3 py-1.5 border border-slate-800 font-black text-white">Jami</th>
+                </tr>
+                <tr class="text-center">
+                    {% for q in r.sizes %}<td class="px-3 py-1.5 border border-slate-800 text-white">{{ q }}</td>{% endfor %}
+                    <td class="px-3 py-1.5 border border-slate-800 font-black text-white">{{ r.item.quantity }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border border-slate-800">
+                <thead class="bg-slate-800/60 text-slate-300 text-xs">
+                    <tr>
+                        <th class="px-2 py-1.5 text-left">Mato</th>
+                        <th class="px-2 py-1.5 text-left">Rang</th>
+                        <th class="px-2 py-1.5 text-left">Tarkibi</th>
+                        <th class="px-2 py-1.5 text-right">Eni</th>
+                        <th class="px-2 py-1.5 text-right">Gr/m2</th>
+                        <th class="px-2 py-1.5 text-right">1 dona kg</th>
+                        <th class="px-2 py-1.5 text-right">Prosjyot %</th>
+                        <th class="px-2 py-1.5 text-right">Tayyor kg</th>
+                        <th class="px-2 py-1.5 text-right">Xom %</th>
+                        <th class="px-2 py-1.5 text-right">Xom kg</th>
+                        <th class="px-2 py-1.5 text-left">Fabrika rang kodi</th>
+                        <th class="px-2 py-1.5 text-left">Eksport</th>
+                        <th class="px-2 py-1.5 text-left">Lab. karta</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for f in r.fabrics %}
+                    <tr>
+                        <td class="px-2 py-1.5 font-bold text-white">{{ f.name }}</td>
+                        <td class="px-2 py-1.5 text-slate-300">{{ f.color }}</td>
+                        <td class="px-2 py-1.5 text-slate-300">{{ f.composition }}</td>
+                        <td class="px-2 py-1.5 text-right text-slate-300">{{ f.width_cm|default:"" }}</td>
+                        <td class="px-2 py-1.5 text-right text-slate-300">{{ f.density_gsm|default:"" }}</td>
+                        <td class="px-2 py-1.5 text-right text-slate-300">{{ f.kg_per_piece|floatformat:3 }}</td>
+                        <td class="px-2 py-1.5 text-right text-slate-300">{{ f.prosjyot_percent|floatformat:2 }}</td>
+                        <td class="px-2 py-1.5 text-right font-bold text-white">{{ f.finished_kg|floatformat:1 }}</td>
+                        <td class="px-2 py-1.5 text-right text-slate-300">{{ f.raw_percent|floatformat:0 }}</td>
+                        <td class="px-2 py-1.5 text-right font-bold text-white">{{ f.raw_kg|floatformat:1 }}</td>
+                        <td class="px-2 py-1.5 text-slate-300">{{ f.factory_color_code }}</td>
+                        <td class="px-2 py-1.5 text-slate-300">{{ f.export_date|date:"d.m.Y" }}</td>
+                        <td class="px-2 py-1.5">{% if f.lab_card_image %}<a href="{{ f.lab_card_image.url }}" target="_blank"><img src="{{ f.lab_card_image.url }}" alt="" class="w-10 h-10 object-cover rounded"></a>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="bg-slate-800/30">
+                        <td colspan="7" class="px-2 py-1.5 text-right text-slate-400">Jami:</td>
+                        <td class="px-2 py-1.5 text-right font-black text-white">{{ r.finished_kg|floatformat:1 }}</td>
+                        <td></td>
+                        <td class="px-2 py-1.5 text-right font-black text-white">{{ r.raw_kg|floatformat:1 }}</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-slate-900 border border-dashed border-slate-700 rounded-2xl p-8 text-center text-slate-400">
+        Hali artikul yo'q.
+        {% if can_edit %}<a href="{% url 'managers_new:article_create' order.id %}" class="text-emerald-400 font-bold">Birinchi artikulni qo'shing</a>.{% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Jami -->
+    {% if rows %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+        <div><p class="text-slate-400">Jami dona</p><p class="text-2xl font-black text-white">{{ totals.qty }}</p></div>
+        <div>
+            <p class="text-slate-400">Model bo'yicha</p>
+            {% for name, qty in by_model.items %}<p class="text-white">{{ name }}: <b>{{ qty }}</b></p>{% endfor %}
+        </div>
+        <div><p class="text-slate-400">Просчет jami</p><p class="text-2xl font-black text-white">{{ totals.prosjyot }}</p></div>
+        <div><p class="text-slate-400">Tayyor mato</p><p class="text-2xl font-black text-white">{{ totals.finished_kg|floatformat:1 }} kg</p></div>
+        <div><p class="text-slate-400">Xom mato</p><p class="text-2xl font-black text-white">{{ totals.raw_kg|floatformat:1 }} kg</p></div>
+    </div>
+    {% endif %}
+
+    <!-- O'zgarishlar tarixi -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <h2 class="text-sm font-black text-white uppercase mb-2">O'zgarishlar tarixi</h2>
+        <ul class="space-y-1 text-sm">
+            {% for log in logs %}
+            <li class="text-slate-300">
+                <span class="text-slate-500 font-mono">{{ log.created_at|date:"d.m.Y H:i" }}</span>
+                — <b class="text-white">{{ log.user.get_full_name|default:log.user.username|default:"—" }}</b>: {{ log.message }}
+            </li>
+            {% empty %}
+            <li class="text-slate-500">Hali o'zgarish yo'q.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

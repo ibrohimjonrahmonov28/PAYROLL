@@ -160,6 +160,12 @@
                 <span>Menejerlar (Zakaz & Razmer)</span>
             </a>
 
+            <a href="{% url 'managers_new:order_list' %}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition text-emerald-400 hover:bg-slate-800 hover:text-emerald-300">
+                <i class="fa-solid fa-file-signature w-5 text-center"></i>
+                <span>Managerlar NEW</span>
+            </a>
+
             <a href="{% url 'cutting_dashboard' %}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition {% if 'cutting' in request.resolver_match.url_name %}bg-rose-600 text-white font-bold shadow-md{% else %}text-rose-400 hover:bg-slate-800 hover:text-rose-300{% endif %}">
                 <i class="fa-solid fa-scissors w-5 text-center"></i>

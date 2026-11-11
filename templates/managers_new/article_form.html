@@ -1,0 +1,131 @@
+{% extends 'managers_new/base.html' %}
+
+{% block title %}{% if item %}{{ item.article_code }}{% else %}Yangi artikul{% endif %} — {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <h1 class="text-2xl font-black text-white">
+        {% if item %}«{{ item.article_code }}» artikuli{% else %}Yangi artikul{% endif %}
+        <span class="text-base font-bold text-slate-400">— {{ order.order_number }}</span>
+    </h1>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <label><span class="block text-xs font-bold text-slate-400 uppercase mb-1">Artikul kodi *</span>
+                <input name="article_code" value="{{ values.article_code }}" required maxlength="40" placeholder="TJ-SS27-MSH-01"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold"></label>
+            <label><span class="block text-xs font-bold text-slate-400 uppercase mb-1">Model nomi *</span>
+                <input name="model_name" value="{{ values.model_name }}" required maxlength="200" placeholder="Футболка мужская"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"></label>
+            <label><span class="block text-xs font-bold text-slate-400 uppercase mb-1">Jo'natish sanasi *</span>
+                <input type="date" name="ship_date" value="{{ values.ship_date }}" required
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"></label>
+            <label><span class="block text-xs font-bold text-slate-400 uppercase mb-1">Просчет (dona)</span>
+                <input id="prosjyot" name="prosjyot" value="{{ values.prosjyot }}" inputmode="numeric" placeholder="Bo'sh — zakaz soni"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                <span class="block text-[11px] text-slate-500 mt-1">Zakaz + qo'shimcha (masalan namuna uchun)</span></label>
+        </section>
+
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Model rasmi *</span>
+                <img id="model-preview" src="{% if item.article.image %}{{ item.article.image.url }}{% endif %}" alt=""
+                    class="{% if not item.article.image %}hidden {% endif %}w-40 h-40 object-cover rounded-xl border border-slate-700 mb-2">
+                <input type="file" name="model_image" accept="image/*" {% if not item.article.image %}required{% endif %}
+                    onchange="previewImage(this, 'model-preview')"
+                    class="text-sm text-slate-400 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200 file:font-bold">
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Pechat rasmi</span>
+                <img id="print-preview" src="{% if item.print_image %}{{ item.print_image.url }}{% endif %}" alt=""
+                    class="{% if not item.print_image %}hidden {% endif %}w-40 h-40 object-contain bg-white rounded-xl border border-slate-700 mb-2">
+                <input type="file" name="print_image" accept="image/*" onchange="previewImage(this, 'print-preview')"
+                    class="text-sm text-slate-400 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-200 file:font-bold">
+                {% if item.print_image %}
+                <label class="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+                    <input type="checkbox" name="remove_print" value="1"> Pechat rasmini olib tashlash
+                </label>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="block text-xs font-bold text-slate-400 uppercase mb-2">Razmerlar bo'yicha soni *</span>
+            <div class="flex flex-wrap items-end gap-2">
+                {% for i, size, qty in size_rows %}
+                <label class="w-24"><span class="block text-xs font-bold text-slate-300 text-center">{{ size }}</span>
+                    <input name="size-{{ i }}" value="{{ qty }}" inputmode="numeric" placeholder="0"
+                        class="size-input w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-bold"></label>
+                {% endfor %}
+                <div class="px-4 py-2 rounded-xl bg-slate-800 text-white font-black">Jami: <span id="size-total">0</span></div>
+            </div>
+        </section>
+
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase">Mato qismlari * <span class="normal-case font-normal">(har detal o'z rangi bilan)</span></span>
+                <button type="button" onclick="addFabricRow()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white">
+                    <i class="fa-solid fa-plus mr-1"></i> Mato qo'shish
+                </button>
+            </div>
+            <div id="fabric-rows" class="space-y-3">
+                {% for row in fabric_rows %}{% include 'managers_new/partials/fabric_row.html' with row=row idx=row.idx %}{% endfor %}
+            </div>
+        </section>
+
+        <div class="flex items-center gap-3">
+            <button class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash
+            </button>
+            <a href="{% url 'managers_new:order_detail' order.id %}" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">Bekor qilish</a>
+        </div>
+    </form>
+
+    <template id="fabric-template">{% include 'managers_new/partials/fabric_row.html' with idx='__IDX__' row=None %}</template>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let fabricCounter = 0;
+
+    function num(value) {
+        const n = parseFloat(String(value || '').replace(/\s/g, '').replace(',', '.'));
+        return isNaN(n) ? 0 : n;
+    }
+
+    // Jami dona va har mato qismining kg'ini (tayyor = 1 dona kg × Просчет, xom = tayyor + %) jonli ko'rsatish
+    function recalc() {
+        let total = 0;
+        document.querySelectorAll('.size-input').forEach(input => total += Math.floor(num(input.value)));
+        document.getElementById('size-total').textContent = total;
+        const prosjyot = num(document.getElementById('prosjyot').value) || total;
+        document.querySelectorAll('.fabric-row').forEach(row => {
+            const kg = num(row.querySelector('.kg-input').value);
+            const raw = num(row.querySelector('.raw-input').value);
+            const finished = kg * prosjyot;
+            row.querySelector('.kg-result').textContent = kg
+                ? `Tayyor: ${finished.toFixed(1)} kg · Xom: ${(finished * (1 + raw / 100)).toFixed(1)} kg`
+                : '';
+        });
+    }
+
+    function addFabricRow() {
+        const key = 'n' + Date.now() + '_' + (++fabricCounter);
+        const html = document.getElementById('fabric-template').innerHTML.replaceAll('__IDX__', key);
+        document.getElementById('fabric-rows').insertAdjacentHTML('beforeend', html);
+        recalc();
+    }
+
+    function removeFabricRow(button) {
+        button.closest('.fabric-row').remove();
+        recalc();
+    }
+
+    document.addEventListener('input', recalc);
+    if (!document.querySelector('#fabric-rows .fabric-row')) addFabricRow();
+    recalc();
+</script>
+{% endblock %}

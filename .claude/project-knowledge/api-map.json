@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 186,
+ "route_count": 198,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1040,6 +1040,114 @@
    ]
   },
   {
+   "path": "/managers-new/",
+   "name": "managers_new:order_list",
+   "view": "production.manager_new_views.order_list",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/new/",
+   "name": "managers_new:order_create",
+   "view": "production.manager_new_views.order_form",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/",
+   "name": "managers_new:order_detail",
+   "view": "production.manager_new_views.order_detail",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/edit/",
+   "name": "managers_new:order_edit",
+   "view": "production.manager_new_views.order_form",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/status/",
+   "name": "managers_new:order_status",
+   "view": "production.manager_new_views.order_status",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/manager/",
+   "name": "managers_new:order_reassign",
+   "view": "production.manager_new_views.order_reassign",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/delete/",
+   "name": "managers_new:order_delete",
+   "view": "production.manager_new_views.order_delete",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/articles/new/",
+   "name": "managers_new:article_create",
+   "view": "production.manager_new_views.article_form",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/articles/<int:item_id>/",
+   "name": "managers_new:article_edit",
+   "view": "production.manager_new_views.article_form",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/articles/<int:item_id>/delete/",
+   "name": "managers_new:article_delete",
+   "view": "production.manager_new_views.article_delete",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/excel/order-list/",
+   "name": "managers_new:export_order_list",
+   "view": "production.manager_new_views.export_order_list",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
+   "path": "/managers-new/orders/<int:order_id>/excel/fabric-order/",
+   "name": "managers_new:export_fabric_order",
+   "view": "production.manager_new_views.export_fabric_order",
+   "urlconf": "production.manager_new_urls",
+   "decorators": [
+    "manager_new_required"
+   ]
+  },
+  {
    "path": "/cutting/",
    "name": "cutting_dashboard",
    "view": "production.cutting_views.cutting_dashboard",
@@ -1612,6 +1720,7 @@
   "/gifts/",
   "/login/",
   "/logout/",
+  "/managers-new/",
   "/master-tablet",
   "/master-tablet/",
   "/media/",

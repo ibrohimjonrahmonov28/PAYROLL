@@ -80,9 +80,10 @@ def superadmin_dashboard(request):
     all_time_balance = all_time_earned - all_time_paid
 
     # 2. Ishlab chiqarish buyurtmalari
-    orders_count = Order.objects.count()
-    active_orders = Order.objects.filter(status=Order.Status.IN_PROGRESS).count()
-    completed_orders = Order.objects.filter(status=Order.Status.COMPLETED).count()
+    old_flow_orders = Order.objects.filter(is_new_flow=False)   # Managerlar NEW zakazlari test davrida hisoblanmaydi
+    orders_count = old_flow_orders.count()
+    active_orders = old_flow_orders.filter(status=Order.Status.IN_PROGRESS).count()
+    completed_orders = old_flow_orders.filter(status=Order.Status.COMPLETED).count()
 
     # 3. Foydalanuvchilar soni
     masters_count = User.objects.filter(role=User.Role.MASTER).count()
@@ -322,7 +323,7 @@ def superadmin_users(request):
             role = request.POST.get('role', User.Role.USER)
             if is_branch_admin:
                 branch = user_branch
-                if role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+                if role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER]:
                     role = User.Role.USER
             else:
                 branch = request.POST.get('branch', User.Branch.HQ)
@@ -418,7 +419,7 @@ def superadmin_users(request):
             
             old_role = user.role
             new_role = request.POST.get('role', user.role)
-            if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+            if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER]:
                 new_role = user.role
             if user == request.user and new_role != User.Role.SUPER_ADMIN and not is_branch_admin:
                 messages.warning(request, "O'zingizning Super Admin rolingizni tushira olmaysiz!")
@@ -2576,7 +2577,7 @@ def superadmin_orders_list(request):
                 messages.error(request, f"Xatolik yuz berdi: {str(e)}")
 
     search_q = request.GET.get('q', '').strip()
-    orders = Order.objects.annotate(
+    orders = Order.objects.filter(is_new_flow=False).annotate(   # Managerlar NEW zakazlari test davrida ko'rinmaydi
         annotated_completed_tickets=Count('boxes__tickets', filter=Q(boxes__tickets__status=Ticket.Status.SCANNED), distinct=True),
         annotated_total_tickets=Count('boxes__tickets', distinct=True),
         annotated_total_boxes_qty=Sum('boxes__quantity', distinct=True)
@@ -4103,7 +4104,7 @@ def superadmin_orders_balance(request):
     search_query = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '').strip()
 
-    orders_qs = Order.objects.all().select_related('customer', 'article__model').prefetch_related(
+    orders_qs = Order.objects.filter(is_new_flow=False).select_related('customer', 'article__model').prefetch_related(   # Managerlar NEW test davrida ko'rinmaydi
         'items__article__model'
     ).order_by('-created_at')
 
@@ -4139,7 +4140,7 @@ def superadmin_orders_balance_export_excel(request):
     search_query = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '').strip()
 
-    orders_qs = Order.objects.all().select_related('customer', 'article__model').prefetch_related(
+    orders_qs = Order.objects.filter(is_new_flow=False).select_related('customer', 'article__model').prefetch_related(   # Managerlar NEW test davrida ko'rinmaydi
         'items__article__model'
     ).order_by('-created_at')
 

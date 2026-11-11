@@ -479,7 +479,8 @@ def norma_canvas_view(request):
     - Har bir artikulning statusi (Yashil: Norma + Operatsiya bor; Kulrang/Kutilmoqda: yo'q)
     """
     orders_qs = Order.objects.filter(
-        status__in=[Order.Status.IN_PROGRESS, Order.Status.DRAFT]
+        status__in=[Order.Status.IN_PROGRESS, Order.Status.DRAFT],
+        is_new_flow=False,   # Managerlar NEW zakazlari test davrida ko'rinmaydi
     ).prefetch_related(
         'items__article__model__model_operations__operation',
         'items__article__article_operations__operation',

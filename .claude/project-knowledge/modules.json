@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1019,
+  "lines": 1050,
   "depends_on": [
    "production.models",
    "production.services"
@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4347,
+  "lines": 4348,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2277,
+  "lines": 2345,
   "depends_on": [
    "accounts.core"
   ]
@@ -178,7 +178,7 @@
    "production/gift_urls.py",
    "production/gift_views.py"
   ],
-  "lines": 304,
+  "lines": 307,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -187,13 +187,18 @@
   ]
  },
  "production.managers": {
-  "description": "Manager portal (/managers/): order creation and overview.",
+  "description": "Manager portals: old /managers/ (order creation and overview) and Managerlar NEW /managers-new/ (order list + fabric order entry, Excel export; MANAGER role limited to it).",
   "files": [
+   "production/manager_new_excel.py",
+   "production/manager_new_urls.py",
+   "production/manager_new_views.py",
    "production/manager_urls.py",
    "production/manager_views.py"
   ],
-  "lines": 585,
+  "lines": 1406,
   "depends_on": [
+   "accounts.core",
+   "production.gifts",
    "production.models"
   ]
  },
@@ -231,7 +236,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 1837,
+  "lines": 1932,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -244,7 +249,7 @@
    "production/norma_urls.py",
    "production/norma_views.py"
   ],
-  "lines": 1405,
+  "lines": 1406,
   "depends_on": [
    "accounts.core",
    "production.models"
@@ -408,6 +413,13 @@
    "templates/managers/dashboard.html",
    "templates/managers/order_create.html",
    "templates/managers/order_detail.html",
+   "templates/managers_new/article_form.html",
+   "templates/managers_new/base.html",
+   "templates/managers_new/order_detail.html",
+   "templates/managers_new/order_form.html",
+   "templates/managers_new/order_list.html",
+   "templates/managers_new/partials/fabric_row.html",
+   "templates/managers_new/partials/status_badge.html",
    "templates/meto/base_meto.html",
    "templates/meto/dashboard.html",
    "templates/meto/order_detail.html",
@@ -467,7 +479,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 43087,
+  "lines": 43724,
   "depends_on": []
  },
  "tests": {
@@ -476,6 +488,7 @@
    "accounts/tests.py",
    "production/test_daily_dazmol.py",
    "production/test_gifts.py",
+   "production/test_managers_new.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
    "production/test_passport_bot.py",
@@ -488,7 +501,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 10871,
+  "lines": 11076,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

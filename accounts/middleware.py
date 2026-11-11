@@ -253,6 +253,34 @@ class MasterTerminalAccessRestrictionMiddleware:
 
                     return redirect('production:sewing_statistics_daily')
 
+            # Menejer faqat "Managerlar NEW" bo'limini ko'radi (egasi qarori 2026-11-11)
+            elif getattr(request.user, 'role', None) == User.Role.MANAGER:
+                path = request.path_info
+                allowed_prefixes = (
+                    '/managers-new/',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+                    is_ajax = (
+                        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                        'application/json' in request.headers.get('accept', '') or
+                        request.content_type == 'application/json' or
+                        '/api/' in path
+                    )
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'FORBIDDEN',
+                            'message': "Ruxsat etilmagan! Menejer hisobi faqat Managerlar NEW bo'limidan foydalana oladi."
+                        }, status=403)
+
+                    return redirect('managers_new:order_list')
+
             elif getattr(request.user, 'role', None) == User.Role.CUTTER:
                 path = request.path_info
                 allowed_prefixes = (
