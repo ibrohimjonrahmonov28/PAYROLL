@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 08:34
+### 🔹 [Commit: `d7d5287`] — 11.11.2026, 08:34
 * **Turi:** `feat(gifts)` — TV taqdirlash sahifasida taqdirlashlar har 5 soniyada almashadi (avval 15)
 * **Mavzu:** `/gifts/<patok>/` (egasining so'rovi bilan).
 * **O'zgartirilgan fayllar:**
@@ -38,7 +38,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web`; ochiq turgan TV sahifasi yangi kiritilgan taqdirlashda yoki F5 bilan yangilanadi.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout d7d5287
   ```
 
 ---
