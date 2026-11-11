@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 11.11.2026, 13:29
+### 🔹 [Commit: `b7d7809`] — 11.11.2026, 13:29
 * **Turi:** `feat(managers-new)` — Razmerlar zakazda emas, har artikulda alohida
 * **Mavzu:** `/managers-new/` (egasining so'rovi bilan): yangi zakaz ochishda razmer so'ralmaydi, chunki bir zakazdagi artikullarning razmerlari har xil bo'lishi mumkin (masalan kattalar va bolalar).
 * **O'zgartirilgan fayllar:**
@@ -45,7 +45,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (0038 migratsiyasi o'zi ishlaydi).
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout b7d7809
   ```
 
 ---
