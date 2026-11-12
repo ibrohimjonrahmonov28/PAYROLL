@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 12.11.2026, 11:49
+### 🔹 [Commit: `91ffc1a`] — 12.11.2026, 11:49
 * **Turi:** `feat(beta)` — OTK → taxlovchi → qadoqlash, bitta `/beta/` sahifasida (faqat belgilangan zakazlarda): ta'mir cheki, taxlovchi, sanoqchi, upakovka
 * **Mavzu:** Egasining 12.11.2026 dagi qarorlari. OTK stoli orqasidagi qadoqlash va 2-sortni sanash avtomatlashtirildi. Hozircha faqat superadmin belgilagan zakazlarda (test uchun ishlamayotgan patokda); boshqa zakazlar avvalgidek ishlaydi. Egasining so'rovi bilan hammasi bitta "Beta" sahifasida, tablar bilan — test uchun akkaunt almashtirib kirib-chiqish shart emas. Muzlatilgan `/control/` sahifasi o'zgarmadi. Karobka/eksport va upakovka masterining qabul qilishi keyin gaplashiladi.
 * **O'zgartirilgan fayllar:**
@@ -51,7 +51,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiyalar `0039` va `0021` avtomatik qo'llanadi). Keyin superadmin → "Beta (OTK → qadoqlash)" → "Beta zakazlar" tabida test zakazini yoqing.
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 91ffc1a
   ```
 
 ---
