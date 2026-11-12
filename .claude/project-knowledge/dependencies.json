@@ -1320,6 +1320,7 @@
     "includes/theme_toggle.html"
    ],
    "url_names": [
+    "packing:hub",
     "root_logout",
     "superadmin_dashboard"
    ]
@@ -1332,12 +1333,10 @@
    ]
   },
   "templates/packing/tabs/sanoqchi.html": {
-   "includes": [
-    "packing/partials/cards.html"
-   ],
    "url_names": [
     "packing:counter_accept",
     "packing:counter_cancel",
+    "packing:counter_remove",
     "packing:counter_send"
    ]
   },

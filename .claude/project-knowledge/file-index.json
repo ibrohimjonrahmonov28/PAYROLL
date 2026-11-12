@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 760,
-   "sha256_16": "6b94ea41d824e820"
+   "lines": 779,
+   "sha256_16": "c6713faee2acd986"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 137,
-   "sha256_16": "5569d1ce3a2f3888"
+   "sha256_16": "4a17b3c69389b43b"
   },
   "Dockerfile": {
    "module": "ops",
@@ -876,26 +876,26 @@
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 68,
-   "sha256_16": "47c1b488c71acbff",
+   "lines": 74,
+   "sha256_16": "8a49eaaa3992f02e",
    "symbols": [
     "create_repair_receipt:19",
     "parse_packing_code:40",
-    "portion_total:51",
-    "packed_total:58",
-    "available_for_packing:62",
-    "find_box:66"
+    "portion_total:57",
+    "packed_total:64",
+    "available_for_packing:68",
+    "find_box:72"
    ]
   },
   "production/packing_urls.py": {
    "module": "production.platform",
-   "lines": 20,
-   "sha256_16": "7f75ca0520d4deb4"
+   "lines": 21,
+   "sha256_16": "112149fe41bf6015"
   },
   "production/packing_views.py": {
    "module": "production.platform",
-   "lines": 443,
-   "sha256_16": "7a46b3ade3bfdad2",
+   "lines": 592,
+   "sha256_16": "3d5f0490bd5cacbe",
    "symbols": [
     "_role_required:48",
     "_hub_url:65",
@@ -907,25 +907,30 @@
     "_find_worker:99",
     "_article_card:110",
     "_group_by_order_article:121",
-    "_pending_second_sort:141",
-    "_open_basket:146",
-    "_screen_filter:153",
-    "_otk_context:159",
-    "_taxlovchi_context:168",
-    "_sanoqchi_context:172",
-    "_upakovka_context:209",
-    "_zakazlar_context:230",
-    "hub_view:248",
-    "repair_receipt_view:262",
-    "_not_beta_response:277",
-    "api_otk_lookup:286",
-    "api_otk_submit:297",
-    "api_identify:319",
-    "api_scan:330",
-    "counter_accept:376",
-    "counter_send:405",
-    "counter_cancel:420",
-    "beta_toggle:436"
+    "_pending_second_sort:151",
+    "_open_basket:156",
+    "_screen_filter:163",
+    "_today_beta_scans:167",
+    "_tab_badges:176",
+    "_otk_context:195",
+    "_taxlovchi_context:211",
+    "_log_notes_map:216",
+    "_sanoqchi_context:226",
+    "_upakovka_context:264",
+    "_zakazlar_context:290",
+    "hub_view:328",
+    "repair_receipt_view:350",
+    "_not_beta_response:365",
+    "_receipt_summary:373",
+    "api_otk_lookup:392",
+    "api_otk_submit:412",
+    "api_identify:441",
+    "api_scan:452",
+    "counter_accept:499",
+    "counter_basket_remove:528",
+    "counter_send:553",
+    "counter_cancel:568",
+    "beta_toggle:585"
    ]
   },
   "production/passport_bot_service.py": {
@@ -1154,10 +1159,10 @@
   },
   "production/test_packing_beta.py": {
    "module": "tests",
-   "lines": 183,
-   "sha256_16": "a8c85290a77064a9",
+   "lines": 247,
+   "sha256_16": "6339486c55b68122",
    "symbols": [
-    "PackingBetaTest:14"
+    "PackingBetaTest:15"
    ]
   },
   "production/test_passport_bot.py": {
@@ -1581,13 +1586,13 @@
   },
   "templates/packing/hub.html": {
    "module": "templates",
-   "lines": 81,
-   "sha256_16": "aca3976e6df6d046"
+   "lines": 105,
+   "sha256_16": "62e4a4b3962d2ab4"
   },
   "templates/packing/partials/cards.html": {
    "module": "templates",
-   "lines": 26,
-   "sha256_16": "850e64af84291cc5"
+   "lines": 55,
+   "sha256_16": "3e675882d4326a3b"
   },
   "templates/packing/repair_receipt.html": {
    "module": "templates",
@@ -1596,28 +1601,28 @@
   },
   "templates/packing/tabs/otk.html": {
    "module": "templates",
-   "lines": 355,
-   "sha256_16": "e549efed2e783fe6"
+   "lines": 583,
+   "sha256_16": "9c5b6849881cc7e6"
   },
   "templates/packing/tabs/sanoqchi.html": {
    "module": "templates",
-   "lines": 101,
-   "sha256_16": "072fb9be36670bf4"
+   "lines": 188,
+   "sha256_16": "f324cf5f567c71f5"
   },
   "templates/packing/tabs/taxlovchi.html": {
    "module": "templates",
-   "lines": 85,
-   "sha256_16": "58e54082744f31c9"
+   "lines": 160,
+   "sha256_16": "1f3e5dc512cef716"
   },
   "templates/packing/tabs/upakovka.html": {
    "module": "templates",
-   "lines": 36,
-   "sha256_16": "6c761b3aa7c55f99"
+   "lines": 101,
+   "sha256_16": "90ee352ca657d725"
   },
   "templates/packing/tabs/zakazlar.html": {
    "module": "templates",
-   "lines": 32,
-   "sha256_16": "daf7bf3801512ebf"
+   "lines": 63,
+   "sha256_16": "835cc69dfcffc925"
   },
   "templates/production/articles_catalog.html": {
    "module": "templates",

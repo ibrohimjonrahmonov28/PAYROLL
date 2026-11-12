@@ -1,35 +1,100 @@
 {% comment %}Upakovka tabi: qadoqlash kutayotgan ishlar, bugun kim qancha taxladi, sanoqchidan kelgan 2-sort.{% endcomment %}
 <div class="space-y-6">
-    <section>
-        <div class="flex items-center justify-between mb-3">
-            <h1 class="text-xl font-black text-white">Qadoqlash kutayotgan ishlar</h1>
-            <span class="text-sm text-slate-400">Jami: <b class="text-orange-300 text-lg">{{ waiting_total }}</b> dona</span>
+    <section class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase">Qadoqlash kutmoqda</p>
+                <p class="text-3xl font-black text-orange-300 mt-1">{{ waiting_total }} <span class="text-sm font-bold text-slate-400">dona</span></p>
+            </div>
+            <span class="w-11 h-11 rounded-xl bg-orange-500/15 text-orange-300 flex items-center justify-center text-lg"><i class="fa-solid fa-boxes-packing"></i></span>
         </div>
-        <p class="text-xs text-slate-500 mb-3">Taxlovchi CONTROL stikeri yoki TAMIR chekini urganda shu yerga tushadi; karobka yig'ilganda ayriladi.</p>
-        {% include 'packing/partials/cards.html' with cards=waiting %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase">Bugun taxlandi</p>
+                <p class="text-3xl font-black text-emerald-300 mt-1">{{ today_total }} <span class="text-sm font-bold text-slate-400">dona</span></p>
+            </div>
+            <span class="w-11 h-11 rounded-xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center text-lg"><i class="fa-solid fa-barcode"></i></span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase">2-sort omborida</p>
+                <p class="text-3xl font-black text-rose-300 mt-1">{{ second_sort_total }} <span class="text-sm font-bold text-slate-400">dona</span></p>
+            </div>
+            <span class="w-11 h-11 rounded-xl bg-rose-500/15 text-rose-300 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></span>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h1 class="text-xl font-black text-white">Qadoqlash kutayotgan ishlar ({{ waiting|length }})</h1>
+                <p class="text-xs text-slate-400">Taxlovchi CONTROL stikeri yoki TAMIR chekini urganda shu yerga tushadi; karobka yig'ilganda ayriladi.</p>
+            </div>
+            <input id="upakovka-search" oninput="filterWaitingCards()" placeholder="Zakaz, artikul yoki quti kodi..."
+                class="w-full sm:w-72 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-orange-500">
+        </div>
+        {% include 'packing/partials/cards.html' with cards=waiting list_id='waiting-cards' tone='orange' %}
     </section>
 
     <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-            <h2 class="text-sm font-black text-white uppercase mb-3">Bugun kim qancha taxladi</h2>
-            <table class="w-full text-sm">
-                <thead class="text-xs text-slate-400"><tr><th class="text-left py-1">Taxlovchi</th><th class="text-right">Skan</th><th class="text-right">Dona</th></tr></thead>
-                <tbody class="divide-y divide-slate-800">
-                    {% for row in today_packers %}
-                    <tr><td class="py-1.5 text-white">{{ row.worker__first_name }} {{ row.worker__last_name }} <span class="text-slate-500 text-xs">{{ row.worker__worker_id }}</span></td>
-                        <td class="text-right text-slate-300">{{ row.scans }}</td><td class="text-right font-black text-orange-300">{{ row.pieces }}</td></tr>
+        <div class="space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-black text-white uppercase">Bugun kim qancha taxladi</h2>
+                    <span class="text-xs font-bold text-emerald-300">{{ today_total }} dona</span>
+                </div>
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-slate-400 border-b border-slate-800">
+                        <tr><th class="text-left py-1.5">Taxlovchi</th><th class="text-right">Skan</th><th class="text-right">Dona</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for row in today_packers %}
+                        <tr>
+                            <td class="py-2 text-white font-bold">{{ row.worker__first_name }} {{ row.worker__last_name }}
+                                <span class="text-slate-500 text-xs font-normal">{{ row.worker__worker_id }}</span></td>
+                            <td class="text-right text-slate-300">{{ row.scans }}</td>
+                            <td class="text-right font-black text-orange-300">{{ row.pieces }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="py-4 text-center text-slate-500">Bugun hali skan yo'q.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <h2 class="text-sm font-black text-white uppercase">Bugungi oxirgi skanlar</h2>
+                <div class="divide-y divide-slate-800 max-h-72 overflow-y-auto pr-1 text-xs">
+                    {% for scan in today_scans %}
+                    <div class="py-2 flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="font-bold text-white truncate">{{ scan.worker.full_name }} · {{ scan.box.box_code }}</p>
+                            <p class="text-slate-400 truncate">{{ scan.box.order.order_number }} · {{ scan.get_source_display }} · {{ scan.scanned_at|date:"H:i" }}</p>
+                        </div>
+                        <span class="font-black text-emerald-300 flex-shrink-0">+{{ scan.quantity }}</span>
+                    </div>
                     {% empty %}
-                    <tr><td colspan="3" class="py-3 text-slate-500">Bugun hali skan yo'q.</td></tr>
+                    <p class="py-3 text-slate-500">Bugun hali skan yo'q.</p>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
+
         <div class="xl:col-span-2">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-sm font-black text-white uppercase">2-sort: sanoqchidan kelganlar</h2>
                 <span class="text-sm text-slate-400">Jami: <b class="text-rose-300">{{ second_sort_total }}</b> dona</span>
             </div>
-            {% include 'packing/partials/cards.html' with cards=second_sort %}
+            {% include 'packing/partials/cards.html' with cards=second_sort tone='rose' %}
         </div>
     </section>
 </div>
+
+<script>
+    function filterWaitingCards() {
+        const q = (document.getElementById('upakovka-search')?.value || '').trim().toLowerCase();
+        document.querySelectorAll('#waiting-cards [data-card-search]').forEach(card => {
+            card.classList.toggle('hidden', !!q && !card.dataset.cardSearch.toLowerCase().includes(q));
+        });
+    }
+</script>

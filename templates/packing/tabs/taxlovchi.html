@@ -1,19 +1,60 @@
 {% comment %}Taxlovchi tabi: avval badge, keyin CONTROL stikeri yoki TAMIR cheki (api_identify / api_scan).{% endcomment %}
-<div class="max-w-3xl mx-auto space-y-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center">
-        <p class="text-sm text-slate-400 uppercase font-bold">Taxlovchi</p>
-        <p id="packer-name" class="text-3xl font-black text-white mt-1">Badge'ingizni uring</p>
-        <p id="packer-today" class="text-slate-400 mt-1"></p>
-        <button type="button" id="packer-reset" onclick="resetPacker()" class="hidden mt-3 px-4 py-1.5 rounded-lg bg-slate-800 text-sm font-bold text-slate-300 hover:bg-slate-700">
-            <i class="fa-solid fa-user-xmark mr-1"></i> Taxlovchini almashtirish
+<div class="max-w-4xl mx-auto space-y-4">
+    <div id="packer-card" class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+            <div id="packer-avatar" class="w-14 h-14 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl flex-shrink-0">
+                <i class="fa-solid fa-id-badge"></i>
+            </div>
+            <div class="min-w-0">
+                <p id="packer-step" class="text-xs font-black uppercase tracking-wider text-orange-400">1-qadam · Taxlovchi badge'i</p>
+                <p id="packer-name" class="text-2xl sm:text-3xl font-black text-white truncate">Badge'ingizni uring</p>
+                <p id="packer-today" class="text-sm text-slate-400 mt-0.5">Skaner bilan ID / badge'ni o'qiting</p>
+            </div>
+        </div>
+        <button type="button" id="packer-reset" onclick="resetPacker()"
+            class="hidden px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-200 border border-slate-700">
+            <i class="fa-solid fa-user-xmark mr-1.5"></i>Taxlovchini almashtirish
         </button>
     </div>
 
-    <input id="scan-input" autocomplete="off" autofocus placeholder="Skaner bilan uring (badge, CONTROL stikeri yoki TAMIR cheki)"
-        class="w-full px-4 py-3 rounded-2xl bg-slate-950 border-2 border-orange-500/60 text-white text-lg focus:outline-none focus:border-orange-400">
+    <div class="relative">
+        <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-orange-400 text-lg pointer-events-none"></i>
+        <input id="scan-input" autocomplete="off" autofocus
+            placeholder="Skaner bilan uring yoki yozing: ID / badge, CONTROL stikeri, TAMIR cheki, quti kodi"
+            class="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-slate-950 border-2 border-orange-500/60 text-white text-lg focus:outline-none focus:border-orange-400">
+        <button type="button" onclick="scanInput.value=''; scanInput.focus();" title="Tozalash"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 px-2 py-1 text-lg">&times;</button>
+    </div>
 
     <div id="results" class="space-y-2"></div>
-    <p class="text-xs text-slate-500 text-center">Avval o'z badge'ingizni, keyin qutining CONTROL stikerini yoki TAMIR chekini uring. Bitta qog'ozni qayta urish hech narsa qo'shmaydi.</p>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+            <h2 class="text-xs font-black text-slate-300 uppercase">Bugungi oxirgi skanlar</h2>
+            <span class="text-xs text-slate-400">Jami bugun: <b id="tab-today-total" class="text-orange-300">{{ today_total }}</b> dona</span>
+        </div>
+        <div id="server-recent" class="divide-y divide-slate-800 text-sm">
+            {% for scan in recent_scans %}
+            <div class="py-2 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-bold text-white truncate">
+                        {{ scan.worker.full_name }}
+                        <span class="text-xs text-slate-400 font-normal">· {{ scan.box.box_code }} ({{ scan.get_source_display }})</span>
+                    </p>
+                    <p class="text-[11px] text-slate-400 truncate">{{ scan.box.order.order_number }} · {{ scan.box.razmer|default:"—" }} · {{ scan.scanned_at|date:"H:i" }}</p>
+                </div>
+                <span class="font-black text-emerald-300 flex-shrink-0">+{{ scan.quantity }}</span>
+            </div>
+            {% empty %}
+            <p class="py-2 text-xs text-slate-500">Bugun hali skan qilinmagan.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <p class="text-xs text-slate-500 text-center">
+        Avval o'z ID / badge'ingizni, keyin qutining CONTROL stikerini (yoki quti kodini yozing) yoki TAMIR chekini uring.
+        Qo'lda yozilgan quti kodi CONTROL stikeri hisoblanadi; ta'mir chekini qo'lda yozish: <b class="text-slate-400">TAMIR:quti kodi</b>.
+    </p>
 </div>
 
 <script>
@@ -22,18 +63,25 @@
 
     function showResult(ok, title, subtitle) {
         const row = document.createElement('div');
-        row.className = `p-4 rounded-2xl border ${ok ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'}`;
-        row.innerHTML = `<p class="text-lg font-black"></p><p class="text-sm opacity-80"></p>`;
-        row.children[0].textContent = title;
-        row.children[1].textContent = subtitle || '';
+        row.className = `p-4 rounded-2xl border flex items-start justify-between gap-3 ${ok ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'}`;
+        row.innerHTML = `<div class="min-w-0"><p class="text-lg font-black"></p><p class="text-sm opacity-85"></p></div>`
+            + `<i class="fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-circle-exclamation text-rose-400'} text-xl mt-0.5 flex-shrink-0"></i>`;
+        row.querySelector('p').textContent = title;
+        row.querySelectorAll('p')[1].textContent = subtitle || '';
         const box = document.getElementById('results');
         box.prepend(row);
         while (box.children.length > 8) box.lastChild.remove();
     }
 
     function renderPacker() {
+        const card = document.getElementById('packer-card');
+        const avatar = document.getElementById('packer-avatar');
+        const step = document.getElementById('packer-step');
+        card.className = `bg-slate-900 border-2 rounded-2xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 ${packer ? 'border-emerald-600/80' : 'border-slate-800'}`;
+        avatar.className = `w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 ${packer ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+        step.textContent = packer ? "2-qadam · Qog'oz yoki qutini skanerlang" : "1-qadam · Taxlovchi badge'i";
         document.getElementById('packer-name').textContent = packer ? `${packer.name} (${packer.code})` : "Badge'ingizni uring";
-        document.getElementById('packer-today').textContent = packer ? `Bugun: ${packer.today} dona` : '';
+        document.getElementById('packer-today').textContent = packer ? `Bugungi natija: ${packer.today} dona` : "Skaner bilan ID / badge'ni o'qiting";
         document.getElementById('packer-reset').classList.toggle('hidden', !packer);
     }
 
@@ -43,31 +91,55 @@
         scanInput.focus();
     }
 
+    async function identifyWorker(code) {
+        const r = await postJSON('{% url "packing:api_identify" %}', {code});
+        if (r.ok) {
+            packer = r.data.worker;
+            renderPacker();
+            showResult(true, `${packer.name} — tayyor`, 'Endi CONTROL stikeri, TAMIR cheki yoki quti kodini uring');
+            return true;
+        }
+        return r;
+    }
+
     async function handle(code) {
-        if (/^(TICKET|TK|BOX|QUTI)\s*[:+]/i.test(code)) {
-            showResult(false, "Faqat CONTROL stikeri yoki TAMIR chekini uring.");
+        if (/^(TICKET\s*[:+]|TK[-+])/i.test(code)) {
+            showResult(false, "Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.");
             return;
         }
-        if (!/^(CONTROL|TAMIR)\s*[:+]/i.test(code)) {
-            const r = await postJSON('{% url "packing:api_identify" %}', {code});
-            if (r.ok) {
-                packer = r.data.worker;
-                renderPacker();
-                showResult(true, `${packer.name} — tayyor`, 'Endi CONTROL stikeri yoki TAMIR chekini uring');
-            } else {
-                showResult(false, r.data.message || 'Xatolik');
+        const isBoxPrefixed = /^(CONTROL|TAMIR|BOX|QUTI)\s*[:+]/i.test(code);
+        const isWorkerExplicit = /^(WORKER\s*[:+]|W-\d+$|\d+$)/i.test(code);
+        const looksLikeBoxCode = /^[A-Za-z]{1,4}\d+-\d+/.test(code);
+
+        if (!packer) {
+            if (isBoxPrefixed || looksLikeBoxCode) {
+                showResult(false, "Avval o'z badge'ingizni uring.");
+                return;
+            }
+            const r = await identifyWorker(code);
+            if (r !== true) {
+                showResult(false, r.data.message || 'Xodim topilmadi', "Avval o'z ID / badge'ingizni uring, keyin quti kodini.");
             }
             return;
         }
-        if (!packer) {
-            showResult(false, "Avval o'z badge'ingizni uring.");
+
+        if (isWorkerExplicit) {
+            const r = await identifyWorker(code);
+            if (r !== true) showResult(false, r.data.message || 'Xodim topilmadi');
             return;
         }
+
         const r = await postJSON('{% url "packing:api_scan" %}', {code, worker_id: packer.id});
+        if (!r.ok && !isBoxPrefixed && !looksLikeBoxCode && r.data.status === 'NOT_FOUND') {
+            const idRes = await identifyWorker(code);
+            if (idRes === true) return;
+        }
         if (r.ok) {
             const s = r.data.scan;
             packer.today = r.data.worker_today;
             renderPacker();
+            const totalEl = document.getElementById('tab-today-total');
+            if (totalEl) totalEl.textContent = (parseInt(totalEl.textContent, 10) || 0) + s.quantity;
             showResult(true, `+${s.quantity} dona — ${s.box_code}`, `${s.source} · ${s.order} · ${s.article} · razmer ${s.size}`);
         } else {
             showResult(false, r.data.message || 'Xatolik');
@@ -80,5 +152,8 @@
         scanInput.value = '';
         if (code) handle(code);
     });
-    document.addEventListener('click', () => setTimeout(() => scanInput.focus(), 50));
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('button, a, input, select, textarea') || window.getSelection()?.toString()) return;
+        setTimeout(() => scanInput.focus(), 50);
+    });
 </script>

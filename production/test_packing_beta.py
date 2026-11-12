@@ -8,7 +8,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User, Worker
-from production.models import Article, Box, Order, PackingScan, RepairReceipt, SecondSortBatch
+from production.models import (Article, Box, BoxQualityInspectionLog, Order, PackingScan,
+                               RepairReceipt, SecondSortBatch)
 
 
 class PackingBetaTest(TestCase):
@@ -96,6 +97,18 @@ class PackingBetaTest(TestCase):
         self.assertEqual(self.scan(f"TAMIR:{self.box.box_code}")['scan']['quantity'], 3)
         self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).context['waiting_total'], 47)
 
+    def test_typed_box_code_counts_as_control_sticker(self):
+        # Taxlovchi quti kodini qo'lda yozadi (stiker ustidagi yozuv) — CONTROL stikeri bilan bir xil
+        self.initial()
+        self.assertEqual(self.scan(self.box.box_code.lower())['scan']['quantity'], 40)
+        self.assertEqual(self.scan(f"CONTROL:{self.box.box_code}")['status'], 'NOTHING')
+        self.assertEqual(self.scan(f"BOX:{self.box.box_code}")['status'], 'NOTHING')
+        self.assertEqual(self.scan('TK-12345678')['status'], 'BAD_CODE')
+        self.assertEqual(self.scan('ZZ-404')['status'], 'NOT_FOUND')
+        self.client.force_login(self.counter)
+        listed = self.client.get(self.hub, {'tab': 'sanoqchi', 'cancel': self.box.box_code}).context['cancel_scans']
+        self.assertEqual(len(listed), 1)
+
     def test_scan_errors(self):
         self.initial()
         no_worker = self.post_json(self.packing, reverse('packing:api_scan'), {'code': f"CONTROL:{self.box.box_code}"})
@@ -180,3 +193,54 @@ class PackingBetaTest(TestCase):
             self.client.logout()
             res = self.client.post(reverse('root_login'), {'username': user.username, 'password': 'x'})
             self.assertRedirects(res, self.hub, fetch_redirect_response=False)
+
+    def test_otk_lookup_returns_patok_and_existing_receipt(self):
+        initial = self.initial()
+        self.assertEqual(initial['receipt_meta']['patok_code'], 'K1')
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse('packing:api_otk_lookup'), {'code': f"TAMIR:{self.box.box_code}"})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['box']['patok_code'], 'K1')
+        self.assertEqual(data['existing_receipt']['quantity'], 7)
+        self.assertEqual(data['existing_receipt']['remaining'], 7)
+        self.assertIn('/beta/tamir-cheki/', data['existing_receipt']['receipt_url'])
+
+    def test_counter_basket_remove_and_box_breakdown(self):
+        self.initial()
+        self.client.force_login(self.counter)
+        patok_page = self.client.get(self.hub, {'tab': 'sanoqchi', 'patok': 1})
+        card = patok_page.context['cards'][0]
+        self.assertEqual(card['box_count'], 1)
+        self.assertEqual(card['boxes'][0]['box_code'], self.box.box_code)
+        self.assertEqual(card['boxes'][0]['qty'], 3)
+
+        self.client.post(reverse('packing:counter_accept'), {
+            'screen': 1, 'order_id': self.order.id, 'article_id': self.article.id, 'counted': '3',
+        })
+        self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi'}).context['basket_total'], 3)
+
+        res = self.client.post(reverse('packing:counter_remove'), {
+            'order_id': self.order.id, 'article_id': self.article.id, 'patok': 1,
+        })
+        self.assertRedirects(res, f"{self.hub}?tab=sanoqchi&patok=1", fetch_redirect_response=False)
+        after = self.client.get(self.hub, {'tab': 'sanoqchi'})
+        self.assertEqual(after.context['basket_total'], 0)
+        self.assertEqual([(p['code'], p['qty']) for p in after.context['patoks']], [('K1', 3)])
+
+    def test_zakazlar_filter_modes(self):
+        Order.objects.create(order_number='ORD-NONBETA', article=self.article, packing_beta=False)
+        self.client.force_login(self.admin)
+        beta_page = self.client.get(self.hub, {'tab': 'zakazlar', 'filter': 'beta'})
+        self.assertEqual([o.order_number for o in beta_page.context['orders']], ['ORD-PK'])
+        off_page = self.client.get(self.hub, {'tab': 'zakazlar', 'filter': 'off'})
+        self.assertEqual([o.order_number for o in off_page.context['orders']], ['ORD-NONBETA'])
+
+    def test_upakovka_ignores_non_beta_second_sort(self):
+        non_beta = Order.objects.create(order_number='ORD-OLD', article=self.article, packing_beta=False)
+        old_box = Box.objects.create(order=non_beta, article=self.article, box_number=1, quantity=20, razmer='L')
+        sent = SecondSortBatch.objects.create(counter=self.counter, status=SecondSortBatch.Status.SENT)
+        BoxQualityInspectionLog.objects.create(box=old_box, second_sort_qty=5, second_sort_batch=sent)
+        self.client.force_login(self.packing)
+        self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).context['second_sort_total'], 0)
+

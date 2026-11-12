@@ -118,24 +118,34 @@ def _article_card(box):
     return article, image
 
 
-def _group_by_order_article(boxes_with_qty):
-    """[(box, qty)] -> zakaz → artikul (rasmi bilan) → razmerlar bo'yicha son."""
+def _group_by_order_article(boxes_with_qty, notes_by_box=None):
+    """[(box, qty)] -> zakaz → artikul (rasmi bilan) → razmerlar va qutilar bo'yicha son."""
     groups = OrderedDict()
+    notes_by_box = notes_by_box or {}
     for box, qty in boxes_with_qty:
         article, image = _article_card(box)
         key = (box.order_id, article.id if article else 0)
         card = groups.setdefault(key, {
-            'order': box.order, 'article': article, 'image': image, 'sizes': OrderedDict(), 'total': 0,
+            'order': box.order, 'article': article, 'image': image,
+            'sizes': OrderedDict(), 'boxes_map': OrderedDict(), 'total': 0,
         })
         size = box.razmer or '—'
         card['sizes'][size] = card['sizes'].get(size, 0) + qty
+        box_entry = card['boxes_map'].setdefault(box.id, {
+            'box_code': box.box_code, 'razmer': size, 'qty': 0, 'notes': notes_by_box.get(box.id, []),
+        })
+        box_entry['qty'] += qty
         card['total'] += qty
     for card in groups.values():
         card['sizes'] = OrderedDict(sorted(card['sizes'].items(), key=lambda item: natural_size_sort_key(item[0])))
+        card['boxes'] = sorted(card.pop('boxes_map').values(),
+                               key=lambda b: (natural_size_sort_key(b['razmer']), b['box_code']))
+        card['box_count'] = len(card['boxes'])
     return list(groups.values())
 
 
 BOX_RELATED = ('box__order', 'box__article', 'box__cutting_batch_item__batch__order_item__article')
+SCAN_RELATED = BOX_RELATED + ('worker',)
 
 
 def _pending_second_sort():
@@ -154,19 +164,63 @@ def _screen_filter(screen):
     return Q(box__assigned_screen__isnull=True) if not screen else Q(box__assigned_screen=screen)
 
 
+def _today_beta_scans(limit=15):
+    start, end = _today_range()
+    qs = (PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True,
+                                     scanned_at__gte=start, scanned_at__lt=end)
+          .select_related(*SCAN_RELATED).order_by('-scanned_at'))
+    total = qs.aggregate(s=Sum('quantity'))['s'] or 0
+    return list(qs[:limit]), total
+
+
+def _tab_badges(allowed_keys):
+    """Tab sarlavhalaridagi jonli ko'rsatkichlar (0 bo'lsa ko'rsatilmaydi)."""
+    badges = {}
+    if 'otk' in allowed_keys:
+        badges['otk'] = RepairReceipt.objects.filter(
+            box__order__packing_beta=True, box__controlled_repair_qty__gt=0).count()
+    if 'sanoqchi' in allowed_keys:
+        badges['sanoqchi'] = _pending_second_sort().aggregate(s=Sum('second_sort_qty'))['s'] or 0
+    if 'upakovka' in allowed_keys:
+        badges['upakovka'] = (PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True)
+                              .aggregate(s=Sum('quantity'))['s'] or 0)
+    if 'zakazlar' in allowed_keys:
+        badges['zakazlar'] = (Order.objects.exclude(status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED])
+                              .filter(packing_beta=True).count())
+    return badges
+
+
 # ------------------------------------------------------------------ bitta sahifa, tablar
 
 def _otk_context(request):
     since = timezone.now() - timezone.timedelta(days=7)
     receipts = list(RepairReceipt.objects.filter(created_at__gte=since)
-                    .select_related('box__order', 'inspector').order_by('-created_at')[:100])
+                    .select_related(*BOX_RELATED, 'inspector').order_by('-created_at')[:100])
+    active_count = 0
     for receipt in receipts:
-        receipt.patok_code = _patok_label(receipt.box.assigned_screen) if receipt.box.assigned_screen else '—'
-    return {'receipts': receipts}
+        box = receipt.box
+        receipt.patok_code = _patok_label(box.assigned_screen) if box.assigned_screen else '—'
+        receipt.remaining_repair_qty = box.controlled_repair_qty or 0
+        receipt.is_repair_active = receipt.remaining_repair_qty > 0
+        receipt.article_code = box.target_article.code if box.target_article else ''
+        if receipt.is_repair_active:
+            active_count += 1
+    return {'receipts': receipts, 'active_repairs_count': active_count}
 
 
 def _taxlovchi_context(request):
-    return {}
+    recent_scans, today_total = _today_beta_scans(limit=12)
+    return {'recent_scans': recent_scans, 'today_total': today_total}
+
+
+def _log_notes_map(logs):
+    notes = defaultdict(list)
+    for log in logs:
+        if log.notes:
+            text = log.notes.strip()
+            if text and text not in notes[log.box_id]:
+                notes[log.box_id].append(text)
+    return notes
 
 
 def _sanoqchi_context(request):
@@ -178,21 +232,22 @@ def _sanoqchi_context(request):
     selected = _int_or_none(request.GET.get('patok'))
     cards = []
     if selected is not None:
-        logs = _pending_second_sort().filter(_screen_filter(selected)).select_related(*BOX_RELATED)
-        cards = _group_by_order_article((log.box, log.second_sort_qty) for log in logs)
+        logs = list(_pending_second_sort().filter(_screen_filter(selected)).select_related(*BOX_RELATED))
+        cards = _group_by_order_article(((log.box, log.second_sort_qty) for log in logs), _log_notes_map(logs))
 
     basket = _open_basket(request.user)
     basket_cards = []
     if basket:
+        b_logs = list(basket.inspection_logs.select_related(*BOX_RELATED))
         basket_cards = _group_by_order_article(
-            (log.box, log.second_sort_qty) for log in basket.inspection_logs.select_related(*BOX_RELATED))
+            ((log.box, log.second_sort_qty) for log in b_logs), _log_notes_map(b_logs))
 
     cancel_code = request.GET.get('cancel', '').strip()
     source, box_code = parse_packing_code(cancel_code)
     cancel_scans = []
     if source:
         cancel_scans = list(PackingScan.objects.filter(box__box_code__iexact=box_code, source=source, is_cancelled=False)
-                            .select_related('worker', 'box').order_by('-scanned_at'))
+                            .select_related(*SCAN_RELATED).order_by('-scanned_at'))
     return {
         'patoks': patoks,
         'selected_patok': selected,
@@ -211,17 +266,22 @@ def _upakovka_context(request):
     waiting = _group_by_order_article((s.box, s.quantity) for s in scans.order_by('box__order__order_number', 'box__razmer'))
 
     start, end = _today_range()
-    today_packers = (PackingScan.objects.filter(is_cancelled=False, scanned_at__gte=start, scanned_at__lt=end)
-                     .values('worker__worker_id', 'worker__first_name', 'worker__last_name')
-                     .annotate(pieces=Sum('quantity'), scans=Count('id')).order_by('-pieces'))
+    today_packers = list(PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True,
+                                                    scanned_at__gte=start, scanned_at__lt=end)
+                         .values('worker__worker_id', 'worker__first_name', 'worker__last_name')
+                         .annotate(pieces=Sum('quantity'), scans=Count('id')).order_by('-pieces'))
+    today_scans, today_total = _today_beta_scans(limit=15)
 
     sent_logs = BoxQualityInspectionLog.objects.filter(
-        second_sort_batch__status=SecondSortBatch.Status.SENT).select_related(*BOX_RELATED)
+        box__order__packing_beta=True, second_sort_batch__status=SecondSortBatch.Status.SENT
+    ).select_related(*BOX_RELATED)
     second_sort = _group_by_order_article((log.box, log.second_sort_qty) for log in sent_logs)
     return {
         'waiting': waiting,
         'waiting_total': sum(card['total'] for card in waiting),
         'today_packers': today_packers,
+        'today_scans': today_scans,
+        'today_total': today_total,
         'second_sort': second_sort,
         'second_sort_total': sum(card['total'] for card in second_sort),
     }
@@ -229,10 +289,30 @@ def _upakovka_context(request):
 
 def _zakazlar_context(request):
     search = request.GET.get('q', '').strip()
-    orders = Order.objects.exclude(status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED])
+    filter_mode = request.GET.get('filter', 'all')
+    if filter_mode not in ('all', 'beta', 'off'):
+        filter_mode = 'all'
+    base = Order.objects.exclude(status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED])
     if search:
-        orders = orders.filter(Q(order_number__icontains=search) | Q(client_name__icontains=search))
-    return {'orders': orders.order_by('-packing_beta', '-created_at')[:200], 'search': search}
+        base = base.filter(Q(order_number__icontains=search) | Q(client_name__icontains=search))
+    beta_count = base.filter(packing_beta=True).count()
+    total_count = base.count()
+    orders = base
+    if filter_mode == 'beta':
+        orders = orders.filter(packing_beta=True)
+    elif filter_mode == 'off':
+        orders = orders.filter(packing_beta=False)
+    orders = orders.annotate(
+        boxes_count=Count('boxes', filter=~Q(boxes__status=Box.Status.CANCELLED), distinct=True),
+        articles_count=Count('items__article', distinct=True),
+    )
+    return {
+        'orders': orders.order_by('-packing_beta', '-created_at')[:200],
+        'search': search,
+        'filter_mode': filter_mode,
+        'beta_count': beta_count,
+        'total_count': total_count,
+    }
 
 
 TAB_CONTEXT = {
@@ -251,7 +331,15 @@ def hub_view(request):
     tab = request.GET.get('tab')
     if tab not in dict(tabs):
         tab = tabs[0][0]
-    context = {'tabs': tabs, 'tab': tab, 'tab_label': dict(tabs)[tab], 'tab_template': f"packing/tabs/{tab}.html"}
+    badges = _tab_badges({key for key, _ in tabs})
+    tab_items = [{'key': key, 'label': label, 'badge': badges.get(key, 0)} for key, label in tabs]
+    context = {
+        'tabs': tabs,
+        'tab_items': tab_items,
+        'tab': tab,
+        'tab_label': dict(tabs)[tab],
+        'tab_template': f"packing/tabs/{tab}.html",
+    }
     context.update(TAB_CONTEXT[tab](request))
     return render(request, 'packing/hub.html', context)
 
@@ -282,14 +370,41 @@ def _not_beta_response(box):
         f"«{box.box_code}» qutisining zakazi ({order}) beta tartibda emas — «Beta zakazlar» tabida yoqing.")}, status=400)
 
 
+def _receipt_summary(receipt, box):
+    return {
+        'id': receipt.id,
+        'box_code': box.box_code,
+        'patok_code': _patok_label(box.assigned_screen) if box.assigned_screen else '—',
+        'order_number': box.order.order_number if box.order else '',
+        'article_code': box.target_article.code if box.target_article else '',
+        'razmer': box.razmer or '—',
+        'quantity': receipt.quantity,
+        'remaining': box.controlled_repair_qty or 0,
+        'details': receipt.details or [],
+        'operator_name': receipt.operator_name or '',
+        'inspector': receipt.inspector.get_full_name() or receipt.inspector.username if receipt.inspector else '',
+        'created_at': timezone.localtime(receipt.created_at).strftime('%d.%m %H:%M'),
+        'receipt_url': f"{reverse('packing:repair_receipt', args=[receipt.id])}?print=1",
+    }
+
+
 @_role_required()
 def api_otk_lookup(request):
     """/control/ qidiruvining o'zi (CONTROL:, TAMIR: yoki quti kodi), faqat beta zakaz qutilari uchun."""
     response = control_box_lookup_api(request)
     if response.status_code != 200:
         return response
-    box = Box.objects.select_related('order').get(id=json.loads(response.content)['box']['id'])
-    return _not_beta_response(box) or response
+    payload = json.loads(response.content)
+    box = Box.objects.select_related('order', 'article', 'cutting_batch_item__batch__order_item__article').get(
+        id=payload['box']['id'])
+    error = _not_beta_response(box)
+    if error:
+        return error
+    payload['box']['patok_code'] = _patok_label(box.assigned_screen) if box.assigned_screen else '—'
+    receipt = RepairReceipt.objects.filter(box=box).select_related('inspector').first()
+    if receipt:
+        payload['existing_receipt'] = _receipt_summary(receipt, box)
+    return JsonResponse(payload)
 
 
 @_role_required()
@@ -297,7 +412,8 @@ def api_otk_lookup(request):
 def api_otk_submit(request):
     """/control/ saqlash funksiyasining o'zi; ta'mir bo'lsa javobda chek manzili (A4 ga chop etiladi)."""
     data = _json_body(request)
-    box = Box.objects.select_related('order').filter(id=_int_or_none(data.get('box_id'))).first()
+    box = Box.objects.select_related('order', 'article', 'cutting_batch_item__batch__order_item__article').filter(
+        id=_int_or_none(data.get('box_id'))).first()
     if not box:
         return JsonResponse({'status': 'NOT_FOUND', 'message': "Quti topilmadi."}, status=404)
     error = _not_beta_response(box)
@@ -307,8 +423,14 @@ def api_otk_submit(request):
     if response.status_code != 200 or data.get('mode') != 'INITIAL':
         return response
     payload = json.loads(response.content)
-    receipt = RepairReceipt.objects.filter(box=box).first() if payload.get('repair_qty') else None
-    payload['receipt_url'] = f"{reverse('packing:repair_receipt', args=[receipt.id])}?print=1" if receipt else None
+    receipt = RepairReceipt.objects.filter(box=box).select_related('inspector').first() if payload.get('repair_qty') else None
+    if receipt:
+        box.refresh_from_db(fields=['controlled_repair_qty'])
+        summary = _receipt_summary(receipt, box)
+        payload['receipt_url'] = summary['receipt_url']
+        payload['receipt_meta'] = summary
+    else:
+        payload['receipt_url'] = None
     return JsonResponse(payload)
 
 
@@ -334,7 +456,8 @@ def api_scan(request):
         return JsonResponse({'status': 'NO_WORKER', 'message': "Avval o'z badge'ingizni uring."}, status=400)
     source, box_code = parse_packing_code(data.get('code'))
     if not source:
-        return JsonResponse({'status': 'BAD_CODE', 'message': "Faqat CONTROL stikeri yoki TAMIR chekini uring."}, status=400)
+        return JsonResponse({'status': 'BAD_CODE', 'message': (
+            "Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.")}, status=400)
 
     with transaction.atomic():
         box = Box.objects.select_for_update(of=('self',)).select_related('order', 'article').filter(
@@ -402,6 +525,31 @@ def counter_accept(request):
 
 @_role_required(User.Role.COUNTER)
 @require_POST
+def counter_basket_remove(request):
+    """Savatga adashib olingan kartochkani patok navbatiga qaytarish (jo'natilishidan oldin)."""
+    order_id = _int_or_none(request.POST.get('order_id'))
+    article_id = _int_or_none(request.POST.get('article_id')) or 0
+    patok = _int_or_none(request.POST.get('patok'))
+    back = redirect(_hub_url(tab='sanoqchi', patok=patok))
+    with transaction.atomic():
+        basket = _open_basket(request.user)
+        if not basket:
+            messages.error(request, "Savat bo'sh.")
+            return back
+        logs = [log for log in basket.inspection_logs.select_for_update(of=('self',))
+                .filter(box__order_id=order_id).select_related(*BOX_RELATED)
+                if (log.box.target_article.id if log.box.target_article else 0) == article_id]
+        if not logs:
+            messages.error(request, "Bu kartochka savatda topilmadi.")
+            return back
+        qty = sum(log.second_sort_qty for log in logs)
+        BoxQualityInspectionLog.objects.filter(id__in=[log.id for log in logs]).update(second_sort_batch=None)
+    messages.success(request, f"{qty} dona 2-sort savatdan patok navbatiga qaytarildi.")
+    return back
+
+
+@_role_required(User.Role.COUNTER)
+@require_POST
 def counter_send(request):
     basket = _open_basket(request.user)
     if not basket or not basket.inspection_logs.exists():
@@ -426,7 +574,8 @@ def counter_cancel(request):
     scan.cancelled_by = request.user
     scan.save(update_fields=['is_cancelled', 'cancelled_at', 'cancelled_by'])
     messages.success(request, f"{scan.worker.full_name}: {scan.quantity} dona bekor qilindi.")
-    return redirect(_hub_url(tab='sanoqchi', cancel=request.POST.get('code', '')))
+    return redirect(_hub_url(tab='sanoqchi', patok=_int_or_none(request.POST.get('patok')),
+                             cancel=request.POST.get('code', '')))
 
 
 # ------------------------------------------------------------------ Beta zakazlar tabi
@@ -439,4 +588,4 @@ def beta_toggle(request):
     order.save(update_fields=['packing_beta'])
     state = "yoqildi" if order.packing_beta else "o'chirildi"
     messages.success(request, f"«{order.order_number}»: yangi qadoqlash tartibi {state}.")
-    return redirect(_hub_url(tab='zakazlar', q=request.POST.get('q', '')))
+    return redirect(_hub_url(tab='zakazlar', q=request.POST.get('q', ''), filter=request.POST.get('filter', '')))

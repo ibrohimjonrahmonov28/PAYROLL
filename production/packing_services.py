@@ -38,14 +38,20 @@ def create_repair_receipt(box, quantity, repair_details, inspector, operator_nam
 
 
 def parse_packing_code(raw):
-    """'CONTROL:A10-394' / 'TAMIR:A10-394' (skaner '+' xatosi ham) -> (manba, quti kodi); boshqasi -> (None, None)."""
+    """
+    'CONTROL:A10-394' / 'TAMIR:A10-394' (skaner '+' xatosi ham) -> (manba, quti kodi).
+    Qo'lda yozilgan quti kodi ('A10-394', 'BOX:'/'QUTI:' bilan ham) = CONTROL stikeri (stiker ustidagi yozuv shu kod).
+    Tikuvchi stikeri (TICKET:, TK-) yoki bo'sh -> (None, None).
+    """
     text = (raw or '').strip()
     if '+' in text:
-        text = re.sub(r'^(CONTROL|TAMIR)\+', r'\1:', text, flags=re.IGNORECASE).replace('+', '-')
-    match = re.match(r'^(CONTROL|TAMIR)\s*:\s*(.+)$', text, flags=re.IGNORECASE)
-    if not match:
+        text = re.sub(r'^(CONTROL|TAMIR|BOX|QUTI)\+', r'\1:', text, flags=re.IGNORECASE).replace('+', '-')
+    if not text or re.match(r'^(TICKET:|TK-)', text, flags=re.IGNORECASE):
         return None, None
-    return QR_PREFIXES[match.group(1).upper()], match.group(2).strip()
+    match = re.match(r'^(CONTROL|TAMIR|BOX|QUTI)\s*:\s*(.+)$', text, flags=re.IGNORECASE)
+    if not match:
+        return PackingScan.Source.CONTROL, text
+    return QR_PREFIXES.get(match.group(1).upper(), PackingScan.Source.CONTROL), match.group(2).strip()
 
 
 def portion_total(box, source):

@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 208,
+ "route_count": 209,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1758,6 +1758,16 @@
    "path": "/beta/sanoqchi/qabul/",
    "name": "packing:counter_accept",
    "view": "production.packing_views.counter_accept",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/sanoqchi/qaytarish/",
+   "name": "packing:counter_remove",
+   "view": "production.packing_views.counter_basket_remove",
    "urlconf": "production.packing_urls",
    "decorators": [
     "_role_required",
