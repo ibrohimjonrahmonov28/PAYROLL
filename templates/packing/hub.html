@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tab_label }} — Beta — TERRY JAR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>body { font-family: 'Times New Roman', Times, serif; }</style>
+    {% include 'includes/theme_head.html' %}
+    <script>
+        const CSRF_TOKEN = '{{ csrf_token }}';
+
+        async function postJSON(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+                body: JSON.stringify(body),
+            });
+            const data = await res.json().catch(() => ({status: 'ERROR', message: 'Server javob bermadi'}));
+            return {ok: res.ok && data.status === 'OK', data};
+        }
+
+        // Ta'mir cheki shu kompyuterda yashirin oynada ochilib A4 ga chop etiladi (keyin chek apparatiga o'tkaziladi)
+        function printReceipt(url) {
+            const frame = document.createElement('iframe');
+            frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+            frame.src = url;
+            document.body.appendChild(frame);
+            setTimeout(() => frame.remove(), 120000);
+        }
+    </script>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    {% comment %}
+    Beta (production/packing_views.py::hub_view): bitta sahifa, tablar — OTK, taxlovchi, sanoqchi, upakovka, beta zakazlar.
+    Superadmin hamma tabni ko'radi; PACKING — taxlovchi va upakovka; COUNTER — sanoqchi. Faqat beta zakazlar.
+    {% endcomment %}
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
+        <div class="px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-4">
+                <span class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-orange-500 text-slate-950 flex items-center justify-center"><i class="fa-solid fa-flask"></i></span>
+                    <span>
+                        <span class="block font-black text-white leading-tight">Beta</span>
+                        <span class="block text-[11px] text-slate-400">OTK → taxlovchi → sanoqchi → upakovka</span>
+                    </span>
+                </span>
+                <nav class="flex flex-wrap items-center gap-1.5 text-sm font-bold">
+                    {% for key, label in tabs %}
+                    <a href="?tab={{ key }}" class="px-3.5 py-1.5 rounded-lg {% if key == tab %}bg-orange-500 text-slate-950{% else %}text-slate-300 hover:bg-slate-800{% endif %}">{{ label }}</a>
+                    {% endfor %}
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                {% include 'includes/theme_toggle.html' %}
+                {% if request.user.is_superadmin %}
+                <a href="{% url 'superadmin_dashboard' %}" class="text-sm font-bold text-amber-400"><i class="fa-solid fa-crown mr-1"></i> Super Admin</a>
+                {% endif %}
+                <span class="text-sm text-slate-300">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <a href="{% url 'root_logout' %}" class="text-slate-400 hover:text-rose-400" title="Chiqish"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+            </div>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div id="flash-toast" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-md">
+        {% for message in messages %}
+        <div class="p-3.5 rounded-xl text-sm font-bold shadow-2xl border {% if message.tags == 'error' %}bg-rose-950 text-rose-200 border-rose-700{% else %}bg-emerald-950 text-emerald-200 border-emerald-700{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    <script>setTimeout(() => document.getElementById('flash-toast')?.remove(), 7000);</script>
+    {% endif %}
+
+    <main class="px-6 py-6">{% include tab_template %}</main>
+</body>
+
+</html>

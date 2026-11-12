@@ -19,6 +19,8 @@ def login_view(request):
             return redirect('production:terminal_home')
         if getattr(request.user, 'role', None) == User.Role.MANAGER:
             return redirect('managers_new:order_list')
+        if getattr(request.user, 'role', None) in (User.Role.PACKING, User.Role.COUNTER):
+            return redirect('packing:hub')
         if getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN:
             return redirect('superadmin_payroll')
         if getattr(request.user, 'role', None) == User.Role.PLAN:
@@ -103,6 +105,8 @@ def login_view(request):
                     if next_url and next_url.startswith('/managers-new/'):
                         return redirect(next_url)
                     return redirect('managers_new:order_list')
+                if user.role in (User.Role.PACKING, User.Role.COUNTER):
+                    return redirect('packing:hub')
 
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)

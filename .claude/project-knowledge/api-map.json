@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 198,
+ "route_count": 208,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1698,6 +1698,103 @@
    ]
   },
   {
+   "path": "/beta/",
+   "name": "packing:hub",
+   "view": "production.packing_views.hub_view",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required"
+   ]
+  },
+  {
+   "path": "/beta/tamir-cheki/<int:receipt_id>/",
+   "name": "packing:repair_receipt",
+   "view": "production.packing_views.repair_receipt_view",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required"
+   ]
+  },
+  {
+   "path": "/beta/api/otk/lookup/",
+   "name": "packing:api_otk_lookup",
+   "view": "production.packing_views.api_otk_lookup",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required"
+   ]
+  },
+  {
+   "path": "/beta/api/otk/submit/",
+   "name": "packing:api_otk_submit",
+   "view": "production.packing_views.api_otk_submit",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/identify/",
+   "name": "packing:api_identify",
+   "view": "production.packing_views.api_identify",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/scan/",
+   "name": "packing:api_scan",
+   "view": "production.packing_views.api_scan",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/sanoqchi/qabul/",
+   "name": "packing:counter_accept",
+   "view": "production.packing_views.counter_accept",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/sanoqchi/jonatish/",
+   "name": "packing:counter_send",
+   "view": "production.packing_views.counter_send",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/sanoqchi/bekor/",
+   "name": "packing:counter_cancel",
+   "view": "production.packing_views.counter_cancel",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/zakazlar/almashtirish/",
+   "name": "packing:beta_toggle",
+   "view": "production.packing_views.beta_toggle",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
    "path": "/^media/(?P<path>.*)$",
    "name": null,
    "view": "django.views.static.serve",
@@ -1710,6 +1807,7 @@
   "/accounts/logout/",
   "/admin/logout/",
   "/apk",
+  "/beta/",
   "/boxes/",
   "/control",
   "/control/",

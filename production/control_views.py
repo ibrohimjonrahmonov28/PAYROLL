@@ -356,7 +356,7 @@ def control_box_lookup_api(request):
 
     # Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish, masalan CONTROL+A9+1 yoki A9+1)
     if '+' in raw_code:
-        raw_code = re.sub(r'^(CONTROL|BOX|TICKET|TK)\+', r'\1:', raw_code, flags=re.IGNORECASE)
+        raw_code = re.sub(r'^(CONTROL|TAMIR|BOX|TICKET|TK)\+', r'\1:', raw_code, flags=re.IGNORECASE)
         raw_code = raw_code.replace('+', '-')
 
     # 0. Tikuvchi bilet kodi prefikslari (TICKET:, TK-) bo'lsa darhol bloklash
@@ -367,9 +367,9 @@ def control_box_lookup_api(request):
             'message': "Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!"
         }, status=403)
 
-    # Prefikslarni tozalash (CONTROL:, BOX:, QUTI:)
+    # Prefikslarni tozalash (CONTROL:, TAMIR: — beta ta'mir cheki, BOX:, QUTI:)
     cleaned = raw_code.upper()
-    for prefix in ['CONTROL:', 'BOX:', 'QUTI:', 'QUTI ']:
+    for prefix in ['CONTROL:', 'TAMIR:', 'BOX:', 'QUTI:', 'QUTI ']:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):].strip()
 
@@ -668,6 +668,12 @@ def control_submit_inspection_api(request):
             defect_qty=0,
             notes=final_notes
         )
+
+        # Beta qadoqlash zakazi ta'mirga yuborilsa: ta'mir cheki (QR "TAMIR:<box_code>"); /beta/ sahifasida chop etiladi
+        if repair_qty > 0 and box.order and box.order.packing_beta:
+            from production.packing_services import create_repair_receipt
+            create_repair_receipt(box, repair_qty, repair_details, inspector_user,
+                                  (active_operator or {}).get('full_name') or '')
 
         if is_closed:
             msg = f"Quti {box.box_code} yopildi: {first_sort} ta 1-sort, {second_sort} ta 2-sort. Mahsulot qabul qilindi!"

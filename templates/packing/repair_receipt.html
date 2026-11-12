@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ta'mir cheki — {{ box.box_code }}</title>
+    {% comment %}
+    Beta: OTK ta'mir cheki (production/packing_views.py::repair_receipt_view). Hozircha /beta/ sahifasidan shu kompyuterda
+    A4 ga chop etiladi (?print=1 — sahifa ochilishi bilan chop etish oynasi), keyin chek apparatiga o'tkaziladi.
+    Chop etish sahifasi: Kun/Tun mavzusi ulanmagan.
+    {% endcomment %}
+    <style>
+        @page { size: A4 portrait; margin: 14mm; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Times New Roman', Times, serif; color: #000; background: #fff; margin: 0; }
+        .sheet { max-width: 182mm; margin: 0 auto; padding: 8mm 0; }
+        .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #000; padding-bottom: 4mm; }
+        .head h1 { margin: 0; font-size: 30pt; letter-spacing: 1px; }
+        .head .sub { font-size: 12pt; margin-top: 2mm; }
+        .qr { text-align: center; }
+        .qr img { width: 46mm; height: 46mm; image-rendering: pixelated; }
+        .qr .code { font-family: monospace; font-size: 14pt; font-weight: bold; margin-top: 1mm; }
+        .info { width: 100%; border-collapse: collapse; margin-top: 6mm; font-size: 13pt; }
+        .info td { border: 1px solid #000; padding: 2.5mm 3mm; }
+        .info td.label { width: 32%; font-weight: bold; background: #f1f1f1; }
+        .big { font-size: 22pt; font-weight: bold; }
+        h2 { font-size: 15pt; margin: 7mm 0 2mm; }
+        .items { width: 100%; border-collapse: collapse; font-size: 12pt; }
+        .items th, .items td { border: 1px solid #000; padding: 2mm 3mm; text-align: left; vertical-align: top; }
+        .items th { background: #f1f1f1; }
+        .note { margin-top: 6mm; padding: 3mm; border: 2px dashed #000; font-size: 12pt; }
+        .foot { margin-top: 6mm; display: flex; justify-content: space-between; font-size: 12pt; }
+        .toolbar { text-align: center; margin: 6mm 0; }
+        .toolbar button { font-size: 14pt; padding: 3mm 8mm; cursor: pointer; }
+        @media print { .toolbar { display: none; } .sheet { padding: 0; } }
+    </style>
+</head>
+
+<body>
+    <div class="toolbar"><button onclick="window.print()">Chop etish</button></div>
+    <div class="sheet">
+        <div class="head">
+            <div>
+                <h1>TA'MIR CHEKI</h1>
+                <div class="sub">TERRY JAR · {{ receipt.created_at|date:"d.m.Y H:i" }}</div>
+                <div class="sub">Patok: <b>{{ patok_code }}</b></div>
+            </div>
+            <div class="qr">
+                <img src="{{ qr_data_uri }}" alt="{{ receipt.qr_text }}">
+                <div class="code">{{ receipt.qr_text }}</div>
+            </div>
+        </div>
+
+        <table class="info">
+            <tr><td class="label">Ta'mirga</td><td class="big">{{ receipt.quantity }} dona</td></tr>
+            <tr><td class="label">Quti</td><td><b>{{ box.box_code }}</b> (#{{ box.box_number }}){% if box.pastal_code %} · Pastal {{ box.pastal_code }}{% endif %}</td></tr>
+            <tr><td class="label">Zakaz</td><td>{{ box.order.order_number }}{% if box.order.client_name %} · {{ box.order.client_name }}{% endif %}</td></tr>
+            <tr><td class="label">Model</td><td>{{ article.code }} — {{ article.name }}</td></tr>
+            <tr><td class="label">Razmer</td><td class="big">{{ box.razmer|default:"—" }}</td></tr>
+        </table>
+
+        {% if receipt.details %}
+        <h2>Ta'mir qilinadigan donalar</h2>
+        <table class="items">
+            <thead><tr><th style="width:10%">№</th><th>Operatsiya</th><th>Tikuvchi</th><th style="width:22%">Izoh</th></tr></thead>
+            <tbody>
+                {% for item in receipt.details %}
+                <tr>
+                    <td>{{ item.number }}</td>
+                    <td>{{ item.operations|join:", "|default:"—" }}</td>
+                    <td>{{ item.workers|join:", "|default:"—" }}</td>
+                    <td>{{ item.notes }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <div class="note">
+            Ta'mirdan qaytganda OTK shu chekni urib qabul qiladi. Tuzalganlarini taxlovchi shu chekni urib oladi va chekni
+            OTK'ga qaytaradi — qayta ta'mirga ketsa, chek o'sha ishlar bilan birga ketadi.
+        </div>
+
+        <div class="foot">
+            <span>OTK: <b>{{ receipt.operator_name|default:receipt.inspector.username|default:"—" }}</b></span>
+            <span>Imzo: ____________________</span>
+        </div>
+    </div>
+    {% if auto_print %}
+    <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
+    {% endif %}
+</body>
+
+</html>

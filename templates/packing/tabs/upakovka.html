@@ -1,0 +1,35 @@
+{% comment %}Upakovka tabi: qadoqlash kutayotgan ishlar, bugun kim qancha taxladi, sanoqchidan kelgan 2-sort.{% endcomment %}
+<div class="space-y-6">
+    <section>
+        <div class="flex items-center justify-between mb-3">
+            <h1 class="text-xl font-black text-white">Qadoqlash kutayotgan ishlar</h1>
+            <span class="text-sm text-slate-400">Jami: <b class="text-orange-300 text-lg">{{ waiting_total }}</b> dona</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-3">Taxlovchi CONTROL stikeri yoki TAMIR chekini urganda shu yerga tushadi; karobka yig'ilganda ayriladi.</p>
+        {% include 'packing/partials/cards.html' with cards=waiting %}
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <h2 class="text-sm font-black text-white uppercase mb-3">Bugun kim qancha taxladi</h2>
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400"><tr><th class="text-left py-1">Taxlovchi</th><th class="text-right">Skan</th><th class="text-right">Dona</th></tr></thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for row in today_packers %}
+                    <tr><td class="py-1.5 text-white">{{ row.worker__first_name }} {{ row.worker__last_name }} <span class="text-slate-500 text-xs">{{ row.worker__worker_id }}</span></td>
+                        <td class="text-right text-slate-300">{{ row.scans }}</td><td class="text-right font-black text-orange-300">{{ row.pieces }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="py-3 text-slate-500">Bugun hali skan yo'q.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="xl:col-span-2">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-black text-white uppercase">2-sort: sanoqchidan kelganlar</h2>
+                <span class="text-sm text-slate-400">Jami: <b class="text-rose-300">{{ second_sort_total }}</b> dona</span>
+            </div>
+            {% include 'packing/partials/cards.html' with cards=second_sort %}
+        </div>
+    </section>
+</div>

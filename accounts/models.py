@@ -35,6 +35,8 @@ class User(AbstractUser):
         CONTROL = 'CONTROL', 'Kontrolchi (Sifat Nazorati)'
         SCREEN = 'SCREEN', 'Ekran (Monitor)'
         PLAN = 'PLAN', 'Plan (Rejalashtirish)'
+        PACKING = 'PACKING', 'Upakovka (Taxlovchi terminali)'
+        COUNTER = 'COUNTER', 'Sanoqchi (2-sort)'
         USER = 'USER', 'Oddiy User'
 
     username = models.CharField(

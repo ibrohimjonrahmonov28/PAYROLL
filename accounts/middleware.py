@@ -281,6 +281,24 @@ class MasterTerminalAccessRestrictionMiddleware:
 
                     return redirect('managers_new:order_list')
 
+            # Beta qadoqlash (2026-11-12): upakovka va sanoqchi faqat /beta/ sahifasiga (qaysi tab — view'da tekshiriladi)
+            elif getattr(request.user, 'role', None) in (User.Role.PACKING, User.Role.COUNTER):
+                path = request.path_info
+                allowed_prefixes = (
+                    '/beta/',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+                    if '/api/' in path or request.content_type == 'application/json':
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
+                    return redirect('packing:hub')
+
             elif getattr(request.user, 'role', None) == User.Role.CUTTER:
                 path = request.path_info
                 allowed_prefixes = (

@@ -1,0 +1,354 @@
+{% comment %}
+OTK tabi (superadmin, beta): /control/ ning o'sha qidiruv va saqlash funksiyalari (api_otk_lookup / api_otk_submit), faqat beta
+zakaz qutilari. Har 2-sort va ta'mir donasi uchun operatsiya (tikuvchi avtomatik) — /control/ bilan bir xil ma'lumot ketadi.
+Ta'mir bo'lsa chek (QR "TAMIR:<quti kodi>") shu kompyuterda A4 ga chiqadi; o'ngda — qayta chop etish.
+{% endcomment %}
+<div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-5">
+    <section class="space-y-4">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+            <h1 class="text-xl font-black text-white">OTK: sifat nazorati</h1>
+            <p class="text-xs text-slate-400">Faqat beta zakaz qutilari. /control/ dagi bilan bir xil saqlanadi.</p>
+        </div>
+        <input id="otk-input" autocomplete="off" autofocus placeholder="Qutining CONTROL stikeri, TAMIR cheki yoki quti kodi"
+            class="w-full px-4 py-3 rounded-2xl bg-slate-950 border-2 border-orange-500/60 text-white text-lg focus:outline-none focus:border-orange-400">
+        <div id="otk-alert" class="hidden"></div>
+
+        <div id="otk-box" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+            <div class="flex gap-4">
+                <img id="otk-img" alt="" class="hidden w-24 h-24 object-cover rounded-xl border border-slate-700 flex-shrink-0">
+                <div class="flex-1 min-w-0">
+                    <p id="otk-order" class="text-xs text-slate-400"></p>
+                    <p id="otk-code" class="text-2xl font-black text-white"></p>
+                    <p id="otk-article" class="text-sm text-slate-300"></p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span id="otk-mode" class="inline-block px-3 py-1 rounded-lg text-xs font-black"></span>
+                    <p id="otk-qty" class="text-3xl font-black text-white mt-1"></p>
+                    <p id="otk-qty-label" class="text-[11px] text-slate-400"></p>
+                </div>
+            </div>
+            <div id="otk-missing" class="hidden p-3 rounded-xl bg-amber-950 border border-amber-700 text-amber-200 text-sm"></div>
+
+            <div id="otk-form" class="space-y-4">
+                <label id="otk-total-wrap" class="flex items-center gap-3 text-sm font-bold text-slate-300">
+                    Qutida jami (sanaldi):
+                    <input id="otk-total" type="number" min="1" class="w-28 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-lg font-black text-center">
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="rounded-2xl bg-emerald-950/60 border border-emerald-800 p-3">
+                        <p id="otk-first-label" class="text-xs font-bold text-emerald-300">1-sort</p>
+                        <p id="otk-first" class="text-3xl font-black text-emerald-300">0</p>
+                    </div>
+                    <div class="rounded-2xl bg-rose-950/60 border border-rose-800 p-3 flex items-center justify-between gap-2">
+                        <div><p id="otk-defect-label" class="text-xs font-bold text-rose-300">2-sort</p><p id="otk-defect-count" class="text-3xl font-black text-rose-300">0</p></div>
+                        <button type="button" onclick="openPiece('defect')" class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">+ dona</button>
+                    </div>
+                    <div class="rounded-2xl bg-amber-950/60 border border-amber-800 p-3 flex items-center justify-between gap-2">
+                        <div><p id="otk-repair-label" class="text-xs font-bold text-amber-300">Ta'mir</p><p id="otk-repair-count" class="text-3xl font-black text-amber-300">0</p></div>
+                        <button type="button" onclick="openPiece('repair')" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-black">+ dona</button>
+                    </div>
+                </div>
+                <div id="otk-pieces" class="space-y-2"></div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <button type="button" onclick="resetOtk()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">Bekor qilish</button>
+                    <button type="button" id="otk-save" onclick="saveOtk()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">
+                        <i class="fa-solid fa-check mr-1"></i> Saqlash
+                    </button>
+                </div>
+            </div>
+            <div id="otk-done" class="hidden p-4 rounded-xl bg-slate-800 text-slate-300 font-bold">Bu quti OTK'dan to'liq o'tgan.</div>
+        </div>
+    </section>
+
+    <aside class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 self-start">
+        <h2 class="text-sm font-black text-white uppercase">Ta'mir cheklari <span class="text-slate-400 normal-case font-bold">(oxirgi 7 kun)</span></h2>
+        <p class="text-xs text-slate-400">Chek chiqmay qolsa yoki yo'qolsa shu yerdan qayta chop eting — QR o'sha qoladi.</p>
+        <div id="otk-receipts" class="divide-y divide-slate-800">
+            {% for receipt in receipts %}
+            <div class="py-2.5 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="font-black text-white text-sm">{{ receipt.box.box_code }} <span class="text-xs text-slate-400 font-bold">· {{ receipt.patok_code }} · {{ receipt.box.razmer|default:"—" }}</span></p>
+                    <p class="text-[11px] text-slate-400">{{ receipt.created_at|date:"d.m H:i" }} · {{ receipt.box.order.order_number }} · {{ receipt.operator_name|default:receipt.inspector.username|default:"—" }}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-black text-amber-300">{{ receipt.quantity }}</span>
+                    <button type="button" title="Chop etish" onclick="printReceipt('{% url 'packing:repair_receipt' receipt.id %}?print=1')"
+                        class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black"><i class="fa-solid fa-print"></i></button>
+                </div>
+            </div>
+            {% empty %}
+            <p id="otk-receipts-empty" class="py-3 text-sm text-slate-500">Hozircha chek yo'q.</p>
+            {% endfor %}
+        </div>
+    </aside>
+</div>
+
+<div id="otk-piece" class="hidden fixed inset-0 z-40 bg-black/70 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 id="otk-piece-title" class="text-lg font-black text-white"></h3>
+            <button type="button" onclick="closePiece()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div>
+            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Qaysi operatsiyada nuqson (tikuvchi avtomatik)</p>
+            <div id="otk-piece-ops" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div id="otk-piece-reasons-wrap">
+            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Sabab</p>
+            <div id="otk-piece-reasons" class="flex flex-wrap gap-2"></div>
+        </div>
+        <input id="otk-piece-note" placeholder="Izoh (ixtiyoriy)" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="closePiece()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold">Bekor</button>
+            <button type="button" onclick="savePiece()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">Qo'shish</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const otkInput = document.getElementById('otk-input');
+    let otkBox = null, otkReasons = [], otkDefects = [], otkRepairs = [];
+    let pieceKind = null, pieceOps = new Set(), pieceReasons = new Set();
+
+    const isRepairMode = () => !!otkBox && otkBox.mode === 'REPAIR_RETURN';
+    const activeTickets = () => (otkBox && otkBox.tickets ? otkBox.tickets : []).filter(t => !t.is_cancelled);
+
+    function otkAlert(ok, text) {
+        const el = document.getElementById('otk-alert');
+        el.className = `p-4 rounded-2xl border text-sm font-bold ${ok ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'}`;
+        el.textContent = text;
+    }
+
+    function baseQty() {
+        if (!otkBox) return 0;
+        if (isRepairMode()) return otkBox.controlled_repair_qty;
+        return parseInt(document.getElementById('otk-total').value, 10) || 0;
+    }
+
+    async function lookupOtk(code) {
+        if ((otkDefects.length || otkRepairs.length) && !confirm("Saqlanmagan donalar o'chadi. Yangi quti ochilsinmi?")) return;
+        const res = await fetch(`{% url 'packing:api_otk_lookup' %}?code=${encodeURIComponent(code)}`);
+        const data = await res.json().catch(() => ({status: 'ERROR', message: 'Server javob bermadi'}));
+        if (!res.ok || data.status !== 'OK') {
+            resetOtk();
+            otkAlert(false, data.message || 'Xatolik');
+            return;
+        }
+        document.getElementById('otk-alert').className = 'hidden';
+        otkBox = data.box;
+        otkReasons = data.defect_reasons || [];
+        otkDefects = [];
+        otkRepairs = [];
+        renderBox();
+    }
+
+    function renderBox() {
+        const b = otkBox;
+        const repair = isRepairMode(), done = b.mode === 'COMPLETED';
+        document.getElementById('otk-box').classList.remove('hidden');
+        const img = document.getElementById('otk-img');
+        img.classList.toggle('hidden', !b.image_url);
+        if (b.image_url) img.src = b.image_url;
+        document.getElementById('otk-order').textContent = `${b.order_number}${b.order_client ? ' · ' + b.order_client : ''} · pastal ${b.pastal_code}`;
+        document.getElementById('otk-code').textContent = `${b.box_code} (#${b.box_number})`;
+        document.getElementById('otk-article').textContent = `${b.article_code} — ${b.article_name} · razmer ${b.razmer}`;
+        const mode = document.getElementById('otk-mode');
+        mode.textContent = repair ? "TA'MIRDAN QAYTDI" : (done ? 'YOPILGAN' : 'BIRLAMCHI TEKSHIRUV');
+        mode.className = `inline-block px-3 py-1 rounded-lg text-xs font-black ${repair ? 'bg-amber-500 text-slate-950' : (done ? 'bg-slate-700 text-slate-200' : 'bg-emerald-600 text-white')}`;
+        document.getElementById('otk-qty').textContent = repair ? b.controlled_repair_qty : b.quantity;
+        document.getElementById('otk-qty-label').textContent = repair ? "ta'mirdagi dona" : 'qutidagi dona';
+        document.getElementById('otk-form').classList.toggle('hidden', done);
+        document.getElementById('otk-done').classList.toggle('hidden', !done);
+        document.getElementById('otk-total-wrap').classList.toggle('hidden', repair);
+        document.getElementById('otk-total').value = b.quantity;
+        document.getElementById('otk-first-label').textContent = repair ? 'Tuzaldi → 1-sort' : '1-sort';
+        document.getElementById('otk-defect-label').textContent = repair ? 'Brak → 2-sort' : '2-sort';
+        document.getElementById('otk-repair-label').textContent = repair ? "Qayta ta'mir" : "Ta'mir";
+        const missing = document.getElementById('otk-missing');
+        const showMissing = !repair && !done && b.missing_tickets_count > 0;
+        missing.classList.toggle('hidden', !showMissing);
+        if (showMissing) {
+            missing.textContent = `Hali urilmagan operatsiyalar: ${b.missing_operations.map(m => m.operation_name).join(', ')}`
+                + (b.require_all_operations_scanned ? " — hammasi urilmaguncha qabul qilinmaydi." : '');
+        }
+        renderPieces();
+    }
+
+    function pieceTitle(kind, index) {
+        const name = kind === 'defect' ? (isRepairMode() ? 'Brak' : '2-sort') : (isRepairMode() ? "Qayta ta'mir" : "Ta'mir");
+        return index === undefined ? `${name} donasi` : `${name} #${index + 1}`;
+    }
+
+    function renderPieces() {
+        document.getElementById('otk-defect-count').textContent = otkDefects.length;
+        document.getElementById('otk-repair-count').textContent = otkRepairs.length;
+        document.getElementById('otk-first').textContent = Math.max(0, baseQty() - otkDefects.length - otkRepairs.length);
+        const list = document.getElementById('otk-pieces');
+        list.innerHTML = '';
+        [['defect', otkDefects], ['repair', otkRepairs]].forEach(([kind, items]) => items.forEach((p, i) => {
+            const row = document.createElement('div');
+            row.className = `flex items-start justify-between gap-3 p-3 rounded-xl border ${kind === 'defect' ? 'border-rose-800 bg-rose-950/40' : 'border-amber-800 bg-amber-950/40'}`;
+            row.innerHTML = '<div class="text-sm"><p class="font-black text-white"></p><p class="text-slate-300"></p></div>'
+                + '<button type="button" class="text-slate-400 hover:text-rose-400" title="O\'chirish"><i class="fa-solid fa-trash"></i></button>';
+            const parts = [];
+            if (p.operation_names.length) parts.push(p.operation_names.join(', ') + (p.workers.length ? ` (${p.workers.join(', ')})` : ''));
+            if (p.reason_names && p.reason_names.length) parts.push(p.reason_names.join(', '));
+            if (p.notes) parts.push(p.notes);
+            row.querySelector('p').textContent = pieceTitle(kind, i);
+            row.querySelectorAll('p')[1].textContent = parts.join(' · ') || '—';
+            row.querySelector('button').onclick = () => {
+                items.splice(i, 1);
+                items.forEach((it, n) => it.item_number = n + 1);
+                renderPieces();
+            };
+            list.append(row);
+        }));
+    }
+
+    function chip(label, active, activeClass, onClick) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `px-3 py-2 rounded-xl border-2 text-sm font-bold text-left ${active ? activeClass : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500'}`;
+        b.textContent = label;
+        b.onclick = onClick;
+        return b;
+    }
+
+    function toggleIn(set, id) {
+        if (set.has(id)) set.delete(id); else set.add(id);
+        renderPieceChips();
+    }
+
+    function renderPieceChips() {
+        const ops = document.getElementById('otk-piece-ops');
+        ops.innerHTML = '';
+        activeTickets().forEach(t => ops.append(chip(
+            `${t.operation_name} — ${t.worker ? t.worker.full_name : 'urilmagan'}`, pieceOps.has(t.id),
+            'border-orange-400 bg-orange-500/20 text-white', () => toggleIn(pieceOps, t.id))));
+        if (!ops.children.length) ops.innerHTML = '<p class="text-sm text-slate-500">Operatsiyalar topilmadi.</p>';
+        const reasons = document.getElementById('otk-piece-reasons');
+        reasons.innerHTML = '';
+        otkReasons.forEach(r => reasons.append(chip(
+            r.name, pieceReasons.has(r.id), 'border-rose-400 bg-rose-500/20 text-white', () => toggleIn(pieceReasons, r.id))));
+    }
+
+    function openPiece(kind) {
+        if (!otkBox) return;
+        if (otkDefects.length + otkRepairs.length >= baseQty()) {
+            otkAlert(false, "Hamma dona saralab bo'lindi — 1-sort qolmadi.");
+            return;
+        }
+        pieceKind = kind;
+        pieceOps = new Set();
+        pieceReasons = new Set();
+        document.getElementById('otk-piece-title').textContent = pieceTitle(kind);
+        document.getElementById('otk-piece-reasons-wrap').classList.toggle('hidden', kind !== 'defect');
+        document.getElementById('otk-piece-note').value = '';
+        renderPieceChips();
+        document.getElementById('otk-piece').classList.remove('hidden');
+    }
+
+    function closePiece() {
+        document.getElementById('otk-piece').classList.add('hidden');
+        pieceKind = null;
+        otkInput.focus();
+    }
+
+    function savePiece() {
+        if (pieceKind === 'repair' && pieceOps.size === 0) {
+            alert("Nuqsonli operatsiyani tanlang — tikuvchi shundan aniqlanadi.");
+            return;
+        }
+        if (pieceKind === 'defect' && pieceOps.size === 0 && pieceReasons.size === 0) {
+            alert("Sabab yoki operatsiyani tanlang.");
+            return;
+        }
+        const tickets = activeTickets().filter(t => pieceOps.has(t.id));
+        const items = pieceKind === 'defect' ? otkDefects : otkRepairs;
+        const item = {
+            item_number: items.length + 1,
+            operation_ids: tickets.map(t => t.id),
+            operation_names: tickets.map(t => t.operation_name),
+            workers: tickets.filter(t => t.worker).map(t => t.worker.full_name),
+            notes: document.getElementById('otk-piece-note').value.trim(),
+        };
+        if (pieceKind === 'defect') {
+            const chosen = otkReasons.filter(r => pieceReasons.has(r.id));
+            item.reason_ids = chosen.map(r => r.id);
+            item.reason_names = chosen.map(r => r.name);
+        }
+        items.push(item);
+        closePiece();
+        renderPieces();
+    }
+
+    function resetOtk() {
+        otkBox = null;
+        otkDefects = [];
+        otkRepairs = [];
+        document.getElementById('otk-box').classList.add('hidden');
+        otkInput.focus();
+    }
+
+    function addReceiptRow(boxCode, qty, url) {
+        document.getElementById('otk-receipts-empty')?.remove();
+        const row = document.createElement('div');
+        row.className = 'py-2.5 flex items-center justify-between gap-2';
+        row.innerHTML = '<div class="min-w-0"><p class="font-black text-white text-sm"></p><p class="text-[11px] text-slate-400">hozirgina</p></div>'
+            + '<div class="flex items-center gap-2"><span class="font-black text-amber-300"></span>'
+            + '<button type="button" title="Chop etish" class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black"><i class="fa-solid fa-print"></i></button></div>';
+        row.querySelector('p').textContent = boxCode;
+        row.querySelector('span').textContent = qty;
+        row.querySelector('button').onclick = () => printReceipt(url);
+        document.getElementById('otk-receipts').prepend(row);
+    }
+
+    async function saveOtk() {
+        if (!otkBox) return;
+        const base = baseQty();
+        if (!isRepairMode() && base < 1) {
+            otkAlert(false, 'Qutidagi sonni kiriting.');
+            return;
+        }
+        if (otkDefects.length + otkRepairs.length > base) {
+            otkAlert(false, "2-sort va ta'mir jami sondan oshib ketdi.");
+            return;
+        }
+        const button = document.getElementById('otk-save');
+        button.disabled = true;
+        const r = await postJSON('{% url "packing:api_otk_submit" %}', {
+            box_id: otkBox.id,
+            mode: isRepairMode() ? 'REPAIR_RETURN' : 'INITIAL',
+            total_qty: base,
+            second_sort_qty: otkDefects.length,
+            defect_qty: otkDefects.length,
+            repair_qty: otkRepairs.length,
+            re_repair_qty: otkRepairs.length,
+            defect_details: otkDefects,
+            repair_details: otkRepairs,
+            notes: '',
+        });
+        button.disabled = false;
+        if (!r.ok) {
+            otkAlert(false, r.data.message || 'Xatolik');
+            return;
+        }
+        otkAlert(true, r.data.message);
+        if (r.data.receipt_url) {
+            printReceipt(r.data.receipt_url);
+            addReceiptRow(r.data.box.box_code, r.data.repair_qty, r.data.receipt_url);
+        }
+        resetOtk();
+    }
+
+    otkInput.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const code = otkInput.value.trim();
+        otkInput.value = '';
+        if (code) lookupOtk(code);
+    });
+    document.getElementById('otk-total').addEventListener('input', renderPieces);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && pieceKind) closePiece();
+    });
+</script>

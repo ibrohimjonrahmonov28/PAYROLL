@@ -51,6 +51,7 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('screens/', include('screens.urls')),
     path('gifts/', include('production.gift_urls')),
+    path('beta/', include('production.packing_urls')),
 ]
 
 if settings.DEBUG:

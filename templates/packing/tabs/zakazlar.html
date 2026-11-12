@@ -1,0 +1,31 @@
+{% comment %}Beta zakazlar tabi (superadmin): yangi tartib qaysi zakazlarda ishlashini belgilash.{% endcomment %}
+<div class="space-y-4">
+    <h1 class="text-xl font-black text-white">Yangi qadoqlash tartibi qaysi zakazlarda ishlaydi</h1>
+    <p class="text-sm text-slate-400">Belgilangan zakazlarda: OTK tabida ta'mirga yuborilsa ta'mir cheki (A4) chiqadi, taxlovchi CONTROL / TAMIR qog'ozini uradi,
+        sanoqchi 2-sortni qabul qiladi. Boshqa zakazlar hozirgidek ishlaydi.</p>
+    <form method="GET" class="flex gap-2">
+        <input type="hidden" name="tab" value="zakazlar">
+        <input name="q" value="{{ search }}" placeholder="Zakaz raqami yoki mijoz..." class="w-72 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+        <button class="px-4 py-2 rounded-xl bg-slate-800 text-sm font-bold text-white">Qidirish</button>
+    </form>
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl divide-y divide-slate-800">
+        {% for order in orders %}
+        <form method="POST" action="{% url 'packing:beta_toggle' %}" class="px-4 py-3 flex items-center justify-between gap-3">
+            {% csrf_token %}
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+            <input type="hidden" name="q" value="{{ search }}">
+            <div>
+                <p class="font-black text-white">{{ order.order_number }}</p>
+                <p class="text-xs text-slate-400">{{ order.client_name|default:"—" }} · {{ order.get_status_display }}</p>
+            </div>
+            {% if order.packing_beta %}
+            <button class="px-4 py-1.5 rounded-xl bg-orange-500 text-slate-950 text-sm font-black"><i class="fa-solid fa-check mr-1"></i> Beta yoqilgan</button>
+            {% else %}
+            <button class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold">Beta'ni yoqish</button>
+            {% endif %}
+        </form>
+        {% empty %}
+        <p class="px-4 py-6 text-slate-500">Zakaz topilmadi.</p>
+        {% endfor %}
+    </div>
+</div>

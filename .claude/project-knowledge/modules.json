@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1050,
+  "lines": 1074,
   "depends_on": [
    "production.models",
    "production.services"
@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4381,
+  "lines": 4383,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -91,7 +91,7 @@
    "config/urls.py",
    "config/wsgi.py"
   ],
-  "lines": 357,
+  "lines": 358,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2427,
+  "lines": 2464,
   "depends_on": [
    "accounts.core"
   ]
@@ -154,10 +154,11 @@
    "production/control_urls.py",
    "production/control_views.py"
   ],
-  "lines": 926,
+  "lines": 932,
   "depends_on": [
    "accounts.core",
    "production.models",
+   "production.platform",
    "production.terminal"
   ]
  },
@@ -237,7 +238,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 1939,
+  "lines": 2028,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -294,17 +295,24 @@
    "production/__init__.py",
    "production/admin.py",
    "production/apps.py",
+   "production/packing_services.py",
+   "production/packing_urls.py",
+   "production/packing_views.py",
    "production/pastal_info.py",
    "production/static/brand/favicon.ico",
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 549,
+  "lines": 1080,
   "depends_on": [
+   "accounts.core",
+   "production.control",
    "production.models",
    "production.passport",
    "production.reports",
-   "production.services"
+   "production.services",
+   "production.sewing_statistics",
+   "production.terminal"
   ]
  },
  "production.reports": {
@@ -439,6 +447,14 @@
    "templates/norma/models_list.html",
    "templates/norma/operations_catalog.html",
    "templates/norma/workers.html",
+   "templates/packing/hub.html",
+   "templates/packing/partials/cards.html",
+   "templates/packing/repair_receipt.html",
+   "templates/packing/tabs/otk.html",
+   "templates/packing/tabs/sanoqchi.html",
+   "templates/packing/tabs/taxlovchi.html",
+   "templates/packing/tabs/upakovka.html",
+   "templates/packing/tabs/zakazlar.html",
    "templates/production/articles_catalog.html",
    "templates/production/box_split_wizard.html",
    "templates/production/box_stickers_print.html",
@@ -480,7 +496,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 43840,
+  "lines": 44661,
   "depends_on": []
  },
  "tests": {
@@ -492,6 +508,7 @@
    "production/test_managers_new.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
+   "production/test_packing_beta.py",
    "production/test_passport_bot.py",
    "production/test_pastal_info.py",
    "production/test_payroll_page.py",
@@ -503,7 +520,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 11224,
+  "lines": 11407,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

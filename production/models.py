@@ -531,6 +531,8 @@ class Order(models.Model):
     export_dates = models.CharField(max_length=200, blank=True, verbose_name="Eksport sanalari")
     # Eski maydon: 2026-11-11 dan razmerlar har artikulda alohida (OrderItem.size_labels), bu yerga yozilmaydi
     size_labels = models.CharField(max_length=300, blank=True, verbose_name="Razmerlar (vergul bilan)")
+    # Yangi OTK → taxlovchi → qadoqlash tartibi (beta, egasi talabi 2026-11-12): faqat belgilangan zakazlarda ishlaydi
+    packing_beta = models.BooleanField(default=False, db_index=True, verbose_name="Yangi qadoqlash tartibi (beta)")
 
     class Meta:
         verbose_name = "Buyurtma"
@@ -1418,6 +1420,15 @@ class BoxQualityInspectionLog(models.Model):
     defect_qty = models.PositiveIntegerField(default=0, verbose_name="Brak deb topilgan")
     notes = models.TextField(blank=True, verbose_name="Izoh")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqt")
+    # Beta qadoqlash: sanoqchi shu yozuvdagi 2-sortni (brak ham) sanab qabul qilgan savat
+    second_sort_batch = models.ForeignKey(
+        'SecondSortBatch',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inspection_logs',
+        verbose_name="2-sort savati"
+    )
 
     class Meta:
         verbose_name = "Sifat Nazorati Jurnali"
@@ -1936,3 +1947,81 @@ class PatokAward(models.Model):
     def gift_photo_src(self):
         return self._image_src(self.gift_photo)
 
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Beta qadoqlash tartibi (egasi talabi 2026-11-12, faqat Order.packing_beta zakazlarda):
+# OTK ta'mir cheki (QR "TAMIR:<box_code>") → taxlovchi CONTROL / TAMIR QR ni uradi → "qadoqlash kutayotgan" ishlar;
+# sanoqchi patoklardan 2-sortni (brak ham) sanab savatga oladi va upakovkaning 2-sort omboriga jo'natadi.
+# Eski stikerlar, CONTROL stikeri va quti kodi o'zgarmaydi (oltin qoida): ta'mir cheki — yangi qog'oz, QR'i qutining
+# o'sha kodi, faqat oldida "TAMIR:".
+# ---------------------------------------------------------------------------------------------------------------------
+
+class RepairReceipt(models.Model):
+    """OTK ta'mirga yuborganda chiqadigan chek (hozircha A4, keyin chek apparati). Qayta ta'mirda yangisi chiqmaydi."""
+    box = models.OneToOneField(Box, on_delete=models.CASCADE, related_name='repair_receipt', verbose_name="Quti")
+    quantity = models.PositiveIntegerField(verbose_name="Ta'mirga yuborilgan soni")
+    details = models.JSONField(default=list, blank=True, verbose_name="Har dona: operatsiya va tikuvchi")
+    inspector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="OTK")
+    operator_name = models.CharField(max_length=150, blank=True, verbose_name="OTK nazoratchisi")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Ta'mir cheki"
+        verbose_name_plural = "Ta'mir cheklari"
+        ordering = ['-created_at']
+
+    @property
+    def qr_text(self):
+        return f"TAMIR:{self.box.box_code}"
+
+    def __str__(self):
+        return f"{self.qr_text} ({self.quantity} dona)"
+
+
+class PackingScan(models.Model):
+    """Taxlovchi CONTROL yoki TAMIR QR ni urdi: shu qism (OTK 1-sorti yoki ta'mirdan chiqqan 1-sort) qadoqlashga o'tdi."""
+
+    class Source(models.TextChoices):
+        CONTROL = 'CONTROL', "OTK 1-sorti (CONTROL stikeri)"
+        TAMIR = 'TAMIR', "Ta'mirdan chiqqan 1-sort (ta'mir cheki)"
+
+    box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='packing_scans', verbose_name="Quti")
+    source = models.CharField(max_length=10, choices=Source.choices, verbose_name="Qism")
+    worker = models.ForeignKey(Worker, on_delete=models.PROTECT, related_name='packing_scans', verbose_name="Taxlovchi")
+    quantity = models.PositiveIntegerField(verbose_name="Soni")
+    terminal_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Terminal")
+    scanned_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Urilgan vaqt")
+    is_cancelled = models.BooleanField(default=False, db_index=True, verbose_name="Bekor qilingan")
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Bekor qilgan")
+
+    class Meta:
+        verbose_name = "Taxlovchi skani"
+        verbose_name_plural = "Taxlovchi skanlari"
+        ordering = ['-scanned_at']
+        indexes = [models.Index(fields=['box', 'source', 'is_cancelled'], name='pack_scan_box_src_idx')]
+
+    def __str__(self):
+        return f"{self.box.box_code} {self.source}: {self.quantity} ({self.worker})"
+
+
+class SecondSortBatch(models.Model):
+    """Sanoqchining 2-sort savati: patoklardan qabul qilingan 2-sort (brak ham), keyin upakovkaning 2-sort omboriga."""
+
+    class Status(models.TextChoices):
+        BASKET = 'BASKET', "Sanoqchi savatida"
+        SENT = 'SENT', "Upakovkaga jo'natildi"
+
+    counter = models.ForeignKey(User, on_delete=models.PROTECT, related_name='second_sort_batches', verbose_name="Sanoqchi")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.BASKET, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Jo'natilgan vaqt")
+
+    class Meta:
+        verbose_name = "2-sort savati"
+        verbose_name_plural = "2-sort savatlari"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"2-sort savati #{self.id} ({self.get_status_display()})"

@@ -1,0 +1,84 @@
+{% comment %}Taxlovchi tabi: avval badge, keyin CONTROL stikeri yoki TAMIR cheki (api_identify / api_scan).{% endcomment %}
+<div class="max-w-3xl mx-auto space-y-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center">
+        <p class="text-sm text-slate-400 uppercase font-bold">Taxlovchi</p>
+        <p id="packer-name" class="text-3xl font-black text-white mt-1">Badge'ingizni uring</p>
+        <p id="packer-today" class="text-slate-400 mt-1"></p>
+        <button type="button" id="packer-reset" onclick="resetPacker()" class="hidden mt-3 px-4 py-1.5 rounded-lg bg-slate-800 text-sm font-bold text-slate-300 hover:bg-slate-700">
+            <i class="fa-solid fa-user-xmark mr-1"></i> Taxlovchini almashtirish
+        </button>
+    </div>
+
+    <input id="scan-input" autocomplete="off" autofocus placeholder="Skaner bilan uring (badge, CONTROL stikeri yoki TAMIR cheki)"
+        class="w-full px-4 py-3 rounded-2xl bg-slate-950 border-2 border-orange-500/60 text-white text-lg focus:outline-none focus:border-orange-400">
+
+    <div id="results" class="space-y-2"></div>
+    <p class="text-xs text-slate-500 text-center">Avval o'z badge'ingizni, keyin qutining CONTROL stikerini yoki TAMIR chekini uring. Bitta qog'ozni qayta urish hech narsa qo'shmaydi.</p>
+</div>
+
+<script>
+    const scanInput = document.getElementById('scan-input');
+    let packer = null;
+
+    function showResult(ok, title, subtitle) {
+        const row = document.createElement('div');
+        row.className = `p-4 rounded-2xl border ${ok ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'}`;
+        row.innerHTML = `<p class="text-lg font-black"></p><p class="text-sm opacity-80"></p>`;
+        row.children[0].textContent = title;
+        row.children[1].textContent = subtitle || '';
+        const box = document.getElementById('results');
+        box.prepend(row);
+        while (box.children.length > 8) box.lastChild.remove();
+    }
+
+    function renderPacker() {
+        document.getElementById('packer-name').textContent = packer ? `${packer.name} (${packer.code})` : "Badge'ingizni uring";
+        document.getElementById('packer-today').textContent = packer ? `Bugun: ${packer.today} dona` : '';
+        document.getElementById('packer-reset').classList.toggle('hidden', !packer);
+    }
+
+    function resetPacker() {
+        packer = null;
+        renderPacker();
+        scanInput.focus();
+    }
+
+    async function handle(code) {
+        if (/^(TICKET|TK|BOX|QUTI)\s*[:+]/i.test(code)) {
+            showResult(false, "Faqat CONTROL stikeri yoki TAMIR chekini uring.");
+            return;
+        }
+        if (!/^(CONTROL|TAMIR)\s*[:+]/i.test(code)) {
+            const r = await postJSON('{% url "packing:api_identify" %}', {code});
+            if (r.ok) {
+                packer = r.data.worker;
+                renderPacker();
+                showResult(true, `${packer.name} — tayyor`, 'Endi CONTROL stikeri yoki TAMIR chekini uring');
+            } else {
+                showResult(false, r.data.message || 'Xatolik');
+            }
+            return;
+        }
+        if (!packer) {
+            showResult(false, "Avval o'z badge'ingizni uring.");
+            return;
+        }
+        const r = await postJSON('{% url "packing:api_scan" %}', {code, worker_id: packer.id});
+        if (r.ok) {
+            const s = r.data.scan;
+            packer.today = r.data.worker_today;
+            renderPacker();
+            showResult(true, `+${s.quantity} dona — ${s.box_code}`, `${s.source} · ${s.order} · ${s.article} · razmer ${s.size}`);
+        } else {
+            showResult(false, r.data.message || 'Xatolik');
+        }
+    }
+
+    scanInput.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const code = scanInput.value.trim();
+        scanInput.value = '';
+        if (code) handle(code);
+    });
+    document.addEventListener('click', () => setTimeout(() => scanInput.focus(), 50));
+</script>

@@ -96,6 +96,9 @@
    "production/norma_services.py",
    "production/norma_urls.py",
    "production/norma_views.py",
+   "production/packing_services.py",
+   "production/packing_urls.py",
+   "production/packing_views.py",
    "production/passport_bot_service.py",
    "production/passport_views.py",
    "production/pastal_info.py",
@@ -111,6 +114,7 @@
    "production/test_managers_new.py",
    "production/test_master_statistics.py",
    "production/test_norma_canvas.py",
+   "production/test_packing_beta.py",
    "production/test_passport_bot.py",
    "production/test_pastal_info.py",
    "production/test_payroll_page.py",
@@ -294,6 +298,9 @@
     "accounts.models",
     "production.models",
     "production.terminal_views"
+   ],
+   "lazy": [
+    "production.packing_services"
    ]
   },
   "production.cutting_urls": {
@@ -496,6 +503,27 @@
     "production.norma_services"
    ]
   },
+  "production.packing_services": {
+   "imports": [
+    "production.models"
+   ]
+  },
+  "production.packing_urls": {
+   "imports": [
+    "production.packing_views"
+   ]
+  },
+  "production.packing_views": {
+   "imports": [
+    "accounts.models",
+    "production.control_views",
+    "production.models",
+    "production.packing_services",
+    "production.services",
+    "production.sewing_statistics_views",
+    "production.terminal_views"
+   ]
+  },
   "production.passport_bot_service": {
    "imports": [
     "production.models",
@@ -617,6 +645,12 @@
   },
   "production.test_norma_canvas": {
    "imports": [
+    "production.models"
+   ]
+  },
+  "production.test_packing_beta": {
+   "imports": [
+    "accounts.models",
     "production.models"
    ]
   },
@@ -842,6 +876,10 @@
    "norma/models_list.html",
    "norma/operations_catalog.html",
    "norma/workers.html"
+  ],
+  "production/packing_views.py": [
+   "packing/hub.html",
+   "packing/repair_receipt.html"
   ],
   "production/passport_views.py": [
    "production/passport_checker.html"
@@ -1276,6 +1314,50 @@
     "norma/base_norma.html"
    ]
   },
+  "templates/packing/hub.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "root_logout",
+    "superadmin_dashboard"
+   ]
+  },
+  "templates/packing/tabs/otk.html": {
+   "url_names": [
+    "packing:api_otk_lookup",
+    "packing:api_otk_submit",
+    "packing:repair_receipt"
+   ]
+  },
+  "templates/packing/tabs/sanoqchi.html": {
+   "includes": [
+    "packing/partials/cards.html"
+   ],
+   "url_names": [
+    "packing:counter_accept",
+    "packing:counter_cancel",
+    "packing:counter_send"
+   ]
+  },
+  "templates/packing/tabs/taxlovchi.html": {
+   "url_names": [
+    "packing:api_identify",
+    "packing:api_scan"
+   ]
+  },
+  "templates/packing/tabs/upakovka.html": {
+   "includes": [
+    "packing/partials/cards.html",
+    "packing/partials/cards.html"
+   ]
+  },
+  "templates/packing/tabs/zakazlar.html": {
+   "url_names": [
+    "packing:beta_toggle"
+   ]
+  },
   "templates/production/articles_catalog.html": {
    "extends": [
     "base.html"
@@ -1548,6 +1630,7 @@
     "managers_new:order_list",
     "meto_dashboard",
     "norma_canvas",
+    "packing:hub",
     "production:dashboard",
     "production:master_statistics",
     "production:master_tablet",

@@ -29,6 +29,33 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 12.11.2026, 11:49
+* **Turi:** `feat(beta)` — OTK → taxlovchi → qadoqlash, bitta `/beta/` sahifasida (faqat belgilangan zakazlarda): ta'mir cheki, taxlovchi, sanoqchi, upakovka
+* **Mavzu:** Egasining 12.11.2026 dagi qarorlari. OTK stoli orqasidagi qadoqlash va 2-sortni sanash avtomatlashtirildi. Hozircha faqat superadmin belgilagan zakazlarda (test uchun ishlamayotgan patokda); boshqa zakazlar avvalgidek ishlaydi. Egasining so'rovi bilan hammasi bitta "Beta" sahifasida, tablar bilan — test uchun akkaunt almashtirib kirib-chiqish shart emas. Muzlatilgan `/control/` sahifasi o'zgarmadi. Karobka/eksport va upakovka masterining qabul qilishi keyin gaplashiladi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` (`Order.packing_beta`, `RepairReceipt`, `PackingScan`, `SecondSortBatch`, `BoxQualityInspectionLog.second_sort_batch`), `production/migrations/0039_packing_beta.py`
+  - `accounts/models.py` (yangi rollar `PACKING` — upakovka/taxlovchi, `COUNTER` — sanoqchi), `accounts/migrations/0021_packing_counter_roles.py`
+  - `production/packing_services.py`, `production/packing_views.py`, `production/packing_urls.py`, `templates/packing/` (yangi), `config/urls.py` (`/beta/`)
+  - `production/control_views.py` (OTK `TAMIR:` QR ni ham taniydi; beta qutida ta'mir cheki yaratiladi — sahifa o'zgarmagan)
+  - `accounts/middleware.py`, `accounts/views.py` (yangi rollar faqat `/beta/` ga kiradi), `accounts/superadmin_views.py`, `templates/superadmin/users.html`, `templates/superadmin/base_superadmin.html` ("Beta (OTK → qadoqlash)" havolasi)
+  - `production/test_packing_beta.py` (10 ta test), `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Bitta sahifa** (`/beta/`): OTK, Taxlovchi, Sanoqchi, Upakovka, Beta zakazlar tablari. Superadmin hammasini ko'radi; upakovka akkaunti — Taxlovchi va Upakovka; sanoqchi akkaunti — faqat Sanoqchi.
+  2. **Beta zakazlar tabi:** zakazni beta qilish yoki qaytarish.
+  3. **OTK tabi:** qutining CONTROL stikeri yoki TAMIR cheki uriladi; har 2-sort va ta'mir donasi uchun operatsiya tanlanadi (tikuvchi avtomatik), 2-sortga sabab ham. Saqlash `/control/` ning o'sha server funksiyasi bilan, bir xil yoziladi; beta bo'lmagan zakaz qutisi qabul qilinmaydi.
+  4. **Ta'mir cheki:** ta'mir bo'lsa shu kompyuterda A4 chek chiqadi; chekda har dona uchun operatsiya va tikuvchi; ta'mir uchun pul yo'q, faqat statistika. QR `TAMIR:<quti kodi>` — qutining o'sha kodi, faqat oldida boshqa so'z; eski stikerlar, CONTROL stikeri va quti kodi o'zgarmaydi (oltin qoida). Qayta ta'mirda yangi chek chiqmaydi, o'sha chek qaytadi. OTK tabining o'ng tomonida oxirgi 7 kun cheklari — qayta chop etish.
+  5. **Ikki qism, ikki qog'oz:** CONTROL stikeri OTK birinchi tekshiruvdagi 1-sortni beradi (masalan, 40), ta'mir cheki ta'mirdan tuzalib chiqqanlarni (masalan, 4, keyin yana). Har urishda shu qismning hali qadoqlanmagani yoziladi: qaysi tartibda urilsa ham 40 va 4 to'g'ri bo'linadi, bitta qog'ozni qayta urish hech narsa qo'shmaydi.
+  6. **Taxlovchi tabi:** avval badge, keyin CONTROL stikeri yoki TAMIR cheki; bitta qog'oz — bitta taxlovchi. Urilgan ish "Qadoqlash kutayotgan ishlar"ga tushadi.
+  7. **Upakovka tabi:** qadoqlash kutayotgan ishlar (zakaz → artikul rasmi bilan → razmerlar), "Bugun kim qancha taxladi", sanoqchidan kelgan 2-sort. Taxlovchi puli hozircha yo'q.
+  8. **Sanoqchi tabi:** patoklardagi OTK 2-sorti va brak (oxirgi qabuldan beri), har zakaz/artikul kartochkasi rasmi va razmerlari bilan. Sanalgan son OTK soniga teng bo'lsagina qabul qilinadi, aks holda OTK topib beradi. Qabul qilingani savatga, keyin "Upakovka 2-sort omboriga jo'natish". Xato urilgan taxlovchi skanini shu yerda bekor qiladi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiyalar `0039` va `0021` avtomatik qo'llanadi). Keyin superadmin → "Beta (OTK → qadoqlash)" → "Beta zakazlar" tabida test zakazini yoqing.
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `2c48f36`] — 11.11.2026, 16:34
 * **Turi:** `fix(freeze)` — Oyni muzlatish endi saytni to'xtatmaydi (5000 tadan bo'lib, fonda) va "Oyliklar" sahifasi tez ochiladi (sahifalash, qidiruv)
 * **Mavzu:** 11.11.2026 da "Oyliklar" sahifasidagi "Muzlatish" tugmasi oktyabrning ~208 ming stikerini bitta katta yozuv bilan sayt so'rovi ichida muzlatdi; stikerlar jadvalida 21 ta indeks, server 4 GB — so'rov uzoq davom etib, butun sayt (terminal ham) 504 Gateway Time-out bo'lib qoldi. Muzlatishning o'zi (to'langan oyni narx o'zgarishidan himoya qilish) o'zgarmadi, faqat bajarilishi.
