@@ -29,6 +29,29 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `54453f6`] — 12.11.2026, 12:55
+* **Turi:** `feat(beta)` — `/beta/` barcha tablar dizayni, UX va funksional kamchiliklarini tuzatish + qo'lda kiritilgan quti kodi
+* **Mavzu:** Egasi talabiga ko'ra `/beta/` (OTK, Taxlovchi, Sanoqchi, Upakovka, Beta zakazlar) barcha tablaridagi dizayn, ishlash qulayligi va mantiqiy kamchiliklar bartaraf etildi hamda taxlovchi qo'lda yozgan quti kodini (`A10-394`, `BOX:`, `QUTI:`) tanish qo'shildi.
+* **O'zgartirilgan fayllar:**
+  - `production/packing_services.py` (`parse_packing_code`: old qo'shimchasiz quti kodi, `BOX:` / `QUTI:` ham = CONTROL stikeri; tikuvchi stikeri rad etiladi)
+  - `production/packing_views.py` (`_tab_badges`, `_receipt_summary`, `api_otk_lookup` da `patok_code` + `existing_receipt`, `api_otk_submit` da `receipt_meta`, `_group_by_order_article` da `boxes`/`box_count`, `counter_basket_remove`, `_upakovka_context` da `packing_beta` himoyasi + `today_scans`, `_zakazlar_context` filtrlari)
+  - `production/packing_urls.py` (`packing:counter_remove` — savatdan patok navbatiga qaytarish)
+  - `templates/packing/hub.html`, `partials/cards.html`, `tabs/otk.html`, `tabs/taxlovchi.html`, `tabs/sanoqchi.html`, `tabs/upakovka.html`, `tabs/zakazlar.html`
+  - `production/test_packing_beta.py` (15 ta test — hammasi o'tgan), `CLAUDE.md`, `.claude/project-knowledge/*`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **OTK tabi:** Patok va Pastal badge'lari, "Qutida jami" `-`/`+` tugmalari, son oshib ketishida qizil ogohlantirish, bir xil nuqson uchun `Soni` stepper (1 donadan bosib chiqmaslik uchun), tikilgan va urilmagan operatsiyalarni ajratish, ta'mirdan qaytishda oldingi chek tafsiloti va qayta chop etish, qidiriladigan/filtrlanadigan `Ta'mir cheklari` ro'yxati (`Ta'mirda: X` / `Yopilgan`).
+  2. **Taxlovchi tabi:** 2-qadamli vizual banner, qo'lda yozilgan quti kodini (`A10-394`) to'g'ri tanish va ortiqcha `404` so'rov yubormaslik, matn belgilaganda fokusni tortib olmaslik, bugungi oxirgi skanlar ro'yxati.
+  3. **Sanoqchi tabi:** Patok kartochkalarida "Qaysi qutilardan" tafsiloti, savatdan adashib olingan kartochkani qaytarish (`counter_remove`), skan bekor qilishda `patok` filtrini saqlab qolish.
+  4. **Upakovka & Beta zakazlar:** Upakovkada KPI strip, tezkor qidiruv, bugungi skanlar jurnali va non-beta 2-sort filtr himoyasi; Beta zakazlarda `Barchasi / Beta yoqilgan / Beta o'chirilgan` filtrlari hamda model/quti sonlari.
+  5. **Hub:** Tablarda jonli ko'rsatkich badge'lari, yopiladigan xabarlar va Kun/Tun (light/dark) mosligi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya yo'q).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout 54453f6
+  ```
+
+---
+
 ### 🔹 [Commit: `91ffc1a`] — 12.11.2026, 11:49
 * **Turi:** `feat(beta)` — OTK → taxlovchi → qadoqlash, bitta `/beta/` sahifasida (faqat belgilangan zakazlarda): ta'mir cheki, taxlovchi, sanoqchi, upakovka
 * **Mavzu:** Egasining 12.11.2026 dagi qarorlari. OTK stoli orqasidagi qadoqlash va 2-sortni sanash avtomatlashtirildi. Hozircha faqat superadmin belgilagan zakazlarda (test uchun ishlamayotgan patokda); boshqa zakazlar avvalgidek ishlaydi. Egasining so'rovi bilan hammasi bitta "Beta" sahifasida, tablar bilan — test uchun akkaunt almashtirib kirib-chiqish shart emas. Muzlatilgan `/control/` sahifasi o'zgarmadi. Karobka/eksport va upakovka masterining qabul qilishi keyin gaplashiladi.
