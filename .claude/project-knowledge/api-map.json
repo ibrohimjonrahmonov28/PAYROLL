@@ -1701,31 +1701,49 @@
    "path": "/printers/",
    "name": "printers:page",
    "view": "production.print_views.printers_page",
-   "urlconf": "production.print_urls"
+   "urlconf": "production.print_urls",
+   "decorators": [
+    "superadmin_required"
+   ]
   },
   {
    "path": "/printers/<int:screen_number>/test/",
    "name": "printers:test",
    "view": "production.print_views.printer_test",
-   "urlconf": "production.print_urls"
+   "urlconf": "production.print_urls",
+   "decorators": [
+    "superadmin_required",
+    "require_POST"
+   ]
   },
   {
    "path": "/printers/jobs/<int:job_id>/reprint/",
    "name": "printers:reprint",
    "view": "production.print_views.job_reprint",
-   "urlconf": "production.print_urls"
+   "urlconf": "production.print_urls",
+   "decorators": [
+    "superadmin_required",
+    "require_POST"
+   ]
   },
   {
    "path": "/printers/agent/jobs/",
    "name": "printers:agent_jobs",
    "view": "production.print_views.agent_jobs",
-   "urlconf": "production.print_urls"
+   "urlconf": "production.print_urls",
+   "decorators": [
+    "require_http_methods"
+   ]
   },
   {
    "path": "/printers/agent/jobs/<int:job_id>/result/",
    "name": "printers:agent_result",
    "view": "production.print_views.agent_result",
-   "urlconf": "production.print_urls"
+   "urlconf": "production.print_urls",
+   "decorators": [
+    "csrf_exempt",
+    "require_POST"
+   ]
   },
   {
    "path": "/beta/",

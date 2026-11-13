@@ -113,11 +113,14 @@
    "generate_stickers_100x60.py",
    "manage.py",
    "nginx/default.conf",
+   "print_agent/agent.conf.example",
+   "print_agent/install.sh",
+   "print_agent/terryjar_print_agent.py",
    "requirements.txt",
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2489,
+  "lines": 2634,
   "depends_on": [
    "accounts.core"
   ]
@@ -299,13 +302,17 @@
    "production/packing_urls.py",
    "production/packing_views.py",
    "production/pastal_info.py",
+   "production/print_urls.py",
+   "production/print_views.py",
+   "production/receipt_printing.py",
    "production/static/brand/favicon.ico",
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 1236,
+  "lines": 1587,
   "depends_on": [
    "accounts.core",
+   "accounts.superadmin",
    "production.control",
    "production.models",
    "production.passport",
@@ -490,13 +497,14 @@
    "templates/superadmin/orders_list.html",
    "templates/superadmin/payroll.html",
    "templates/superadmin/pricing.html",
+   "templates/superadmin/printers.html",
    "templates/superadmin/user_badge_print.html",
    "templates/superadmin/users.html",
    "templates/superadmin/users_badges_batch_print.html",
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45206,
+  "lines": 45306,
   "depends_on": []
  },
  "tests": {
@@ -513,6 +521,7 @@
    "production/test_pastal_info.py",
    "production/test_payroll_page.py",
    "production/test_pipeline_summary.py",
+   "production/test_receipt_printing.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_telegram_reports.py",
@@ -520,7 +529,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 11471,
+  "lines": 11636,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

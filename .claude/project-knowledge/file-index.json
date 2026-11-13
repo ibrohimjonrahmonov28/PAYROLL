@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 783,
-   "sha256_16": "6af30e6dfa37ae9b"
+   "lines": 795,
+   "sha256_16": "43520977685db90b"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 139,
-   "sha256_16": "b4736040ae4e5ebc"
+   "sha256_16": "f98dca5bcb6ffe1e"
   },
   "Dockerfile": {
    "module": "ops",
@@ -378,6 +378,29 @@
    "module": "ops",
    "lines": 67,
    "sha256_16": "b1d1c46854ea5ad8"
+  },
+  "print_agent/agent.conf.example": {
+   "module": "ops",
+   "lines": 4,
+   "sha256_16": "768a8a59cd45ba40"
+  },
+  "print_agent/install.sh": {
+   "module": "ops",
+   "lines": 15,
+   "sha256_16": "f2abaf6dcf97a22e"
+  },
+  "print_agent/terryjar_print_agent.py": {
+   "module": "ops",
+   "lines": 114,
+   "sha256_16": "ea53b19dab92b4ef",
+   "symbols": [
+    "log:31",
+    "read_config:35",
+    "api:51",
+    "send_to_printer:62",
+    "run:72",
+    "test:102"
+   ]
   },
   "production/__init__.py": {
    "module": "production.platform",
@@ -970,6 +993,44 @@
     "build_pastal_info:81"
    ]
   },
+  "production/print_urls.py": {
+   "module": "production.platform",
+   "lines": 14,
+   "sha256_16": "567f1006a875389c"
+  },
+  "production/print_views.py": {
+   "module": "production.platform",
+   "lines": 157,
+   "sha256_16": "ecfc8fce6f2bcee5",
+   "symbols": [
+    "agent_token:36",
+    "_agent_ok:40",
+    "agent_jobs:45",
+    "agent_result:67",
+    "_valid_host:85",
+    "printers_page:96",
+    "printer_test:141",
+    "job_reprint:151"
+   ]
+  },
+  "production/receipt_printing.py": {
+   "module": "production.platform",
+   "lines": 180,
+   "sha256_16": "58409f7a18c5d4f3",
+   "symbols": [
+    "_text:39",
+    "_cut:43",
+    "_font:48",
+    "_qr_block:57",
+    "_render:88",
+    "_worker_uid:104",
+    "_repair_rows:108",
+    "repair_receipt_data:134",
+    "build_repair_receipt:149",
+    "queue_repair_receipt:154",
+    "build_test_receipt:174"
+   ]
+  },
   "production/services.py": {
    "module": "production.services",
    "lines": 611,
@@ -1198,6 +1259,16 @@
    "symbols": [
     "FactoryPipelineSummaryTest:18",
     "PipelineIdentityTest:152"
+   ]
+  },
+  "production/test_receipt_printing.py": {
+   "module": "tests",
+   "lines": 165,
+   "sha256_16": "dc569d7ed0867252",
+   "symbols": [
+    "RepairReceiptTest:20",
+    "PrintAgentApiTest:110",
+    "PrintersPageTest:141"
    ]
   },
   "production/test_salary_freeze.py": {
@@ -1800,6 +1871,11 @@
    "module": "templates",
    "lines": 1912,
    "sha256_16": "d0107fce67f445c0"
+  },
+  "templates/superadmin/printers.html": {
+   "module": "templates",
+   "lines": 100,
+   "sha256_16": "f4a304319496ea5f"
   },
   "templates/superadmin/user_badge_print.html": {
    "module": "templates",

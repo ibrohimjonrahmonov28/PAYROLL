@@ -14,6 +14,7 @@ from production.models import (
     Article, ArticleOperation, Box, Operation, Order, PrintJob, ReceiptPrinter, Ticket,
 )
 from production.print_views import agent_token
+from production.receipt_printing import repair_receipt_data
 
 
 class RepairReceiptTest(TestCase):
@@ -31,12 +32,15 @@ class RepairReceiptTest(TestCase):
                                             status=Ticket.Status.SCANNED, screen_number=3)
         self.client.force_login(self.otk)
 
+    def details(self):
+        return [
+            {'item_number': 1, 'operation_ids': [self.ticket.id], 'operation_names': ['soxta'], 'workers': ['soxta']},
+            {'item_number': 2, 'operation_ids': [self.ticket.id], 'notes': 'chok ochilgan'},
+        ]
+
     def submit(self, **data):
         body = {'box_id': self.box.id, 'mode': 'INITIAL', 'total_qty': 10, 'second_sort_qty': 0, 'repair_qty': 2,
-                'repair_details': [
-                    {'item_number': 1, 'operation_ids': [self.ticket.id], 'operation_names': ['soxta'], 'workers': ['soxta']},
-                    {'item_number': 2, 'operation_ids': [self.ticket.id], 'notes': 'chok ochilgan'},
-                ]}
+                'repair_details': self.details()}
         body.update(data)
         return self.client.post(reverse('control:api_submit'), json.dumps(body), content_type='application/json')
 
@@ -45,13 +49,20 @@ class RepairReceiptTest(TestCase):
         self.assertEqual(self.submit().status_code, 200)
         job = PrintJob.objects.get()
         data = base64.b64decode(job.payload)
-        self.assertIn(f"CONTROL:{self.box.box_code}".encode(), data)          # qutining mavjud QR kodi
-        self.assertIn("Aliyeva".encode('cp866'), data)                         # ishchi bazadan, planshet matnidan emas
-        self.assertNotIn(b'soxta', data)
-        self.assertIn("YOQA TIKISH".encode('cp866'), data)
-        self.assertIn("chok ochilgan".encode('cp866'), data)
-        self.assertIn(b'K3', data)
+        self.assertIn(b'\x1b@\x1c.', data[:80])                                # holat tiklanadi, xitoy rejimi o'chiq
+        self.assertIn("K3 · TA'MIR · 2 dona".encode('cp866'), data)             # sarlavha — printer matni
+        self.assertIn("Nodira Aliyeva x2".encode('cp866'), data)
+        self.assertIn(b'\x1dv0\x00H\x00\x18\x00', data)                       # QR bloki: 576 nuqta, 24 qatorli bo'laklar
+        self.assertLess(len(data), 20000)                                       # faqat QR bloki rasm — printer xotirasi to'lmaydi
         self.assertTrue(data.endswith(b'\x1dVB\x00'))                          # kesish
+
+        receipt = repair_receipt_data(self.box, 2, self.details(), screen_number=3)
+        self.assertEqual(receipt['qr'], f"CONTROL:{self.box.box_code}")         # qutining mavjud QR kodi
+        self.assertEqual(receipt['title'], "K3 · TA'MIR · 2 dona")
+        self.assertEqual((receipt['order'], receipt['model'], receipt['article']), ('DM-46', 'Футболка', 'TJ-01'))
+        self.worker.refresh_from_db()
+        self.assertEqual(receipt['rows'], [(self.worker.user.uid, 'Nodira Aliyeva', 'YOQA TIKISH', 2)])   # bazadan, 6 xonali UID, ×2
+        self.assertEqual(receipt['notes'], ['chok ochilgan'])
         self.assertEqual(job.status, PrintJob.Status.PENDING)
 
     def test_no_receipt_without_printer_or_repair(self):
@@ -92,7 +103,8 @@ class RepairReceiptTest(TestCase):
             'repair_details': [{'item_number': 1, 'operation_ids': [self.ticket.id]}],
         }), content_type='application/json')
         self.assertEqual(PrintJob.objects.count(), 2)
-        self.assertIn("QAYTA TA'MIR".encode('cp866'), base64.b64decode(PrintJob.objects.latest('id').payload))
+        self.assertTrue(PrintJob.objects.latest('id').title.startswith("Qayta ta'mir"))
+        self.assertEqual(repair_receipt_data(self.box, 1, [], screen_number=3, is_return=True)['title'], "K3 · QAYTA TA'MIR · 1 dona")
 
 
 class PrintAgentApiTest(TestCase):

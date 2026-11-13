@@ -28,6 +28,7 @@
    "production/daily_image_reports.py",
    "production/gift_views.py",
    "production/manager_new_excel.py",
+   "production/receipt_printing.py",
    "production/sticker_generator.py",
    "production/test_gifts.py",
    "production/test_managers_new.py",
@@ -102,6 +103,9 @@
    "production/passport_bot_service.py",
    "production/passport_views.py",
    "production/pastal_info.py",
+   "production/print_urls.py",
+   "production/print_views.py",
+   "production/receipt_printing.py",
    "production/services.py",
    "production/sewing_pipeline_summary.py",
    "production/sewing_statistics_views.py",
@@ -119,6 +123,7 @@
    "production/test_pastal_info.py",
    "production/test_payroll_page.py",
    "production/test_pipeline_summary.py",
+   "production/test_receipt_printing.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_telegram_reports.py",
@@ -157,6 +162,7 @@
   "qrcode": [
    "accounts/models.py",
    "production/models.py",
+   "production/receipt_printing.py",
    "production/sticker_generator.py",
    "production/test_passport_bot.py"
   ],
@@ -549,6 +555,25 @@
     "production.passport_bot_service"
    ]
   },
+  "production.print_urls": {
+   "imports": [
+    "production"
+   ]
+  },
+  "production.print_views": {
+   "imports": [
+    "accounts.superadmin_views",
+    "production.models",
+    "production.receipt_printing",
+    "production.services"
+   ]
+  },
+  "production.receipt_printing": {
+   "imports": [
+    "production.models",
+    "production.services"
+   ]
+  },
   "production.services": {
    "imports": [
     "production.models"
@@ -695,6 +720,14 @@
    "lazy": [
     "production.sewing_pipeline_summary",
     "production.sewing_statistics_views"
+   ]
+  },
+  "production.test_receipt_printing": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.print_views",
+    "production.receipt_printing"
    ]
   },
   "production.test_salary_freeze": {
@@ -884,6 +917,9 @@
   ],
   "production/passport_views.py": [
    "production/passport_checker.html"
+  ],
+  "production/print_views.py": [
+   "superadmin/printers.html"
   ],
   "production/sewing_statistics_views.py": [
    "production/partials/size_boxes_pipeline.html",
@@ -1746,6 +1782,15 @@
    ],
    "url_names": [
     "superadmin_pricing"
+   ]
+  },
+  "templates/superadmin/printers.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "url_names": [
+    "printers:reprint",
+    "printers:test"
    ]
   },
   "templates/superadmin/user_badge_print.html": {
