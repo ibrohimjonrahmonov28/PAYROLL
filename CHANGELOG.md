@@ -29,6 +29,18 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `f73b886`] — 13.11.2026, 15:20
+* **Turi:** `feat(control)` — OTK ta'mir cheki termo printerda
+* **Mavzu:** Egasi talabiga ko'ra ta'mirga ketgan qutiga OTK stikerini qaytarish o'rniga, OTK `/control/` da ta'mirni saqlaganda shu patok printeridan chek chiqadi: patok, quti, pastal, zakaz, model, razmer, ta'mir soni, har dona bo'yicha operatsiya va uni tikkan ishchi, OTK nazoratchisi, vaqt va qutining mavjud QR kodi (`CONTROL:<quti kodi>`). Yangi kod yaratilmaydi; chek chiqmasa ham OTK saqlanadi. Test bosqichida bir necha patok egasining stolidagi Xprinter XP-80TS ga biriktiriladi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` (`ReceiptPrinter`, `PrintJob`), `production/migrations/0040_receipt_printers.py`
+  - `production/receipt_printing.py` (ESC/POS chek, QR, kesish; `queue_repair_receipt`)
+  - `production/print_views.py`, `production/print_urls.py` (`/printers/` superadmin sahifasi + pechat agenti API), `config/urls.py`
+  - `production/control_views.py` (ta'mir / qayta ta'mir saqlanganda chek navbatga)
+  - `templates/superadmin/printers.html`, `templates/superadmin/base_superadmin.html` (menyu: "Chek printerlari (OTK)")
+  - `print_agent/` (agent: LAN 9100-port yoki USB `lp` raw; `install.sh`, `agent.conf.example`), `.gitignore`
+  - `production/test_receipt_printing.py` (8 ta test — hammasi o'tgan), `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `54453f6`] — 12.11.2026, 12:55
 * **Turi:** `feat(beta)` — `/beta/` barcha tablar dizayni, UX va funksional kamchiliklarini tuzatish + qo'lda kiritilgan quti kodi
 * **Mavzu:** Egasi talabiga ko'ra `/beta/` (OTK, Taxlovchi, Sanoqchi, Upakovka, Beta zakazlar) barcha tablaridagi dizayn, ishlash qulayligi va mantiqiy kamchiliklar bartaraf etildi hamda taxlovchi qo'lda yozgan quti kodini (`A10-394`, `BOX:`, `QUTI:`) tanish qo'shildi.
