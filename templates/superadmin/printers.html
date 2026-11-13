@@ -1,0 +1,99 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}Chek printerlari — OTK{% endblock %}
+
+{% block superadmin_header %}
+<div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-500 text-slate-950 flex items-center justify-center font-black text-lg">
+        <i class="fa-solid fa-receipt"></i>
+    </div>
+    <div>
+        <h2 class="text-lg font-black text-white leading-tight">OTK chek printerlari</h2>
+        <span class="text-[11px] text-cyan-400 font-bold uppercase tracking-wider">Ta'mir saqlanganda shu patok printeridan chek chiqadi</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <h3 class="text-sm font-black text-white">Pechat agenti</h3>
+        <p class="text-xs text-slate-400">Printer ulangan kompyuterda <code class="text-slate-200">print_agent/terryjar_print_agent.py</code> shu ma'lumot bilan ishga tushiriladi.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800"><span class="text-slate-500 text-xs">Server:</span> <span class="font-mono text-white">{{ server_url }}</span></div>
+            <div class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800"><span class="text-slate-500 text-xs">Token:</span> <span class="font-mono text-white select-all">{{ token }}</span></div>
+        </div>
+        <p class="text-xs {% if pending %}text-amber-400{% else %}text-slate-500{% endif %}">Navbatda: {{ pending }} ta chek{% if pending %} — agent ishlamayotgan yoki printer o'chiq bo'lishi mumkin{% endif %}.</p>
+    </section>
+
+    <form method="POST" class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        {% csrf_token %}
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-black text-white">Patoklar bo'yicha printerlar</h3>
+            <button class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black"><i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash</button>
+        </div>
+        <p class="text-xs text-slate-500 mb-3">LAN printer — IP manzil (masalan 192.168.1.53, port 9100). Agent kompyuteriga USB bilan ulangan printer — <code class="text-slate-300">usb:</code> + kompyuterdagi printer nomi (masalan usb:XP80). Bo'sh qoldirilsa printer o'chiriladi.</p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400 text-left">
+                    <tr><th class="px-2 py-1.5">Patok</th><th class="px-2 py-1.5">Printer</th><th class="px-2 py-1.5">Faol</th><th class="px-2 py-1.5">Oxirgi chek</th><th class="px-2 py-1.5"></th></tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr class="border-t border-slate-800">
+                        <td class="px-2 py-1.5 font-black text-white">{{ r.code }}</td>
+                        <td class="px-2 py-1.5"><input name="host-{{ r.n }}" value="{{ r.printer.host|default:'' }}" placeholder="IP yoki usb:nomi"
+                            class="w-48 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono"></td>
+                        <td class="px-2 py-1.5"><input type="checkbox" name="active-{{ r.n }}" value="1" {% if not r.printer or r.printer.is_active %}checked{% endif %}></td>
+                        <td class="px-2 py-1.5 text-xs">
+                            {% if r.printer.last_at %}
+                            <span class="{% if r.printer.last_status == 'PRINTED' %}text-emerald-400{% elif r.printer.last_status == 'FAILED' %}text-rose-400{% else %}text-amber-400{% endif %}">{{ r.printer.last_status }}</span>
+                            <span class="text-slate-500">{{ r.printer.last_at|date:"d.m H:i" }}</span>
+                            {% if r.printer.last_error %}<span class="text-rose-400">· {{ r.printer.last_error|truncatechars:60 }}</span>{% endif %}
+                            {% else %}<span class="text-slate-600">—</span>{% endif %}
+                        </td>
+                        <td class="px-2 py-1.5 text-right">
+                            {% if r.printer %}
+                            <button formaction="{% url 'printers:test' r.n %}" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">Sinov cheki</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <h3 class="text-sm font-black text-white mb-3">Oxirgi 50 ta chek</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400 text-left">
+                    <tr><th class="px-2 py-1.5">Vaqt</th><th class="px-2 py-1.5">Patok</th><th class="px-2 py-1.5">Chek</th><th class="px-2 py-1.5">Holat</th><th class="px-2 py-1.5"></th></tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr class="border-t border-slate-800">
+                        <td class="px-2 py-1.5 text-slate-400 text-xs">{{ job.created_at|date:"d.m H:i:s" }}</td>
+                        <td class="px-2 py-1.5 font-bold text-white">#{{ job.printer.screen_number }}</td>
+                        <td class="px-2 py-1.5 text-slate-200">{{ job.title }}</td>
+                        <td class="px-2 py-1.5 text-xs">
+                            <span class="{% if job.status == 'PRINTED' %}text-emerald-400{% elif job.status == 'FAILED' %}text-rose-400{% else %}text-amber-400{% endif %}">{{ job.get_status_display }}</span>
+                            {% if job.error %}<span class="text-rose-400">· {{ job.error|truncatechars:60 }}</span>{% endif %}
+                        </td>
+                        <td class="px-2 py-1.5 text-right">
+                            <form method="POST" action="{% url 'printers:reprint' job.id %}">{% csrf_token %}
+                                <button class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">Qayta chiqarish</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-2 py-4 text-center text-slate-500">Hali chek yo'q</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 209,
+ "route_count": 214,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1696,6 +1696,36 @@
    "decorators": [
     "require_GET"
    ]
+  },
+  {
+   "path": "/printers/",
+   "name": "printers:page",
+   "view": "production.print_views.printers_page",
+   "urlconf": "production.print_urls"
+  },
+  {
+   "path": "/printers/<int:screen_number>/test/",
+   "name": "printers:test",
+   "view": "production.print_views.printer_test",
+   "urlconf": "production.print_urls"
+  },
+  {
+   "path": "/printers/jobs/<int:job_id>/reprint/",
+   "name": "printers:reprint",
+   "view": "production.print_views.job_reprint",
+   "urlconf": "production.print_urls"
+  },
+  {
+   "path": "/printers/agent/jobs/",
+   "name": "printers:agent_jobs",
+   "view": "production.print_views.agent_jobs",
+   "urlconf": "production.print_urls"
+  },
+  {
+   "path": "/printers/agent/jobs/<int:job_id>/result/",
+   "name": "printers:agent_result",
+   "view": "production.print_views.agent_result",
+   "urlconf": "production.print_urls"
   },
   {
    "path": "/beta/",

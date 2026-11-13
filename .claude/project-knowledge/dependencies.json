@@ -297,6 +297,7 @@
    "imports": [
     "accounts.models",
     "production.models",
+    "production.receipt_printing",
     "production.terminal_views"
    ],
    "lazy": [
@@ -1630,6 +1631,7 @@
     "meto_dashboard",
     "norma_canvas",
     "packing:hub",
+    "printers:page",
     "production:dashboard",
     "production:master_statistics",
     "production:master_tablet",

@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 779,
-   "sha256_16": "c6713faee2acd986"
+   "lines": 783,
+   "sha256_16": "6af30e6dfa37ae9b"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 137,
-   "sha256_16": "4a17b3c69389b43b"
+   "lines": 139,
+   "sha256_16": "b4736040ae4e5ebc"
   },
   "Dockerfile": {
    "module": "ops",
@@ -343,8 +343,8 @@
   },
   "config/urls.py": {
    "module": "config",
-   "lines": 59,
-   "sha256_16": "4adf4cd9e066f345"
+   "lines": 60,
+   "sha256_16": "a8bfe38392136b44"
   },
   "config/wsgi.py": {
    "module": "config",
@@ -428,21 +428,21 @@
   },
   "production/control_views.py": {
    "module": "production.control",
-   "lines": 916,
-   "sha256_16": "a1d5ed6e4fad3483",
+   "lines": 923,
+   "sha256_16": "041c89669f9c86f2",
    "symbols": [
-    "_get_active_defect_reasons:18",
-    "_is_control_authorized:56",
-    "_get_active_operator:64",
-    "_get_scoped_inspection_logs_qs:80",
-    "_get_today_stats:122",
-    "control_home_view:151",
-    "control_identify_operator_api:185",
-    "control_logout_operator_api:310",
-    "control_box_lookup_api:335",
-    "control_submit_inspection_api:516",
-    "control_recent_inspections_api:833",
-    "control_download_apk_view:884"
+    "_get_active_defect_reasons:19",
+    "_is_control_authorized:57",
+    "_get_active_operator:65",
+    "_get_scoped_inspection_logs_qs:81",
+    "_get_today_stats:123",
+    "control_home_view:152",
+    "control_identify_operator_api:186",
+    "control_logout_operator_api:311",
+    "control_box_lookup_api:336",
+    "control_submit_inspection_api:517",
+    "control_recent_inspections_api:840",
+    "control_download_apk_view:891"
    ]
   },
   "production/cutting_urls.py": {
@@ -796,8 +796,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2028,
-   "sha256_16": "2e21edba4cf59797",
+   "lines": 2075,
+   "sha256_16": "1e5ed0757a8e6e9f",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -832,7 +832,9 @@
     "PatokAward:1895",
     "RepairReceipt:1960",
     "PackingScan:1982",
-    "SecondSortBatch:2009"
+    "SecondSortBatch:2009",
+    "ReceiptPrinter:2030",
+    "PrintJob:2050"
    ]
   },
   "production/norma_services.py": {
@@ -1761,8 +1763,8 @@
   },
   "templates/superadmin/base_superadmin.html": {
    "module": "templates",
-   "lines": 380,
-   "sha256_16": "8dec19c779edf6f6"
+   "lines": 386,
+   "sha256_16": "712cb5dd045abdad"
   },
   "templates/superadmin/dashboard.html": {
    "module": "templates",

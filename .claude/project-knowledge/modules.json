@@ -91,7 +91,7 @@
    "config/urls.py",
    "config/wsgi.py"
   ],
-  "lines": 358,
+  "lines": 359,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -117,7 +117,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2483,
+  "lines": 2489,
   "depends_on": [
    "accounts.core"
   ]
@@ -154,7 +154,7 @@
    "production/control_urls.py",
    "production/control_views.py"
   ],
-  "lines": 932,
+  "lines": 939,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -238,7 +238,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2028,
+  "lines": 2075,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -496,7 +496,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45200,
+  "lines": 45206,
   "depends_on": []
  },
  "tests": {

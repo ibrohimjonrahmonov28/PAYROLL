@@ -6,8 +6,8 @@
    "latest": "0021_packing_counter_roles"
   },
   "production": {
-   "count": 39,
-   "latest": "0039_packing_beta"
+   "count": 40,
+   "latest": "0040_receipt_printers"
   },
   "screens": {
    "count": 0,
@@ -1113,6 +1113,58 @@
      "to": "accounts.User",
      "on_delete": "PROTECT",
      "related_name": "second_sort_batches"
+    }
+   ]
+  },
+  "production.ReceiptPrinter": {
+   "table": "production_receiptprinter",
+   "file": "production/models.py:2030",
+   "fields": {
+    "id": "BigAutoField",
+    "screen_number": "PositiveSmallIntegerField[unique]",
+    "host": "CharField",
+    "port": "PositiveIntegerField",
+    "is_active": "BooleanField",
+    "created_at": "DateTimeField",
+    "updated_at": "DateTimeField"
+   },
+   "relations": []
+  },
+  "production.PrintJob": {
+   "table": "production_printjob",
+   "file": "production/models.py:2050",
+   "fields": {
+    "id": "BigAutoField",
+    "title": "CharField",
+    "payload": "TextField",
+    "status": "CharField[idx,choices]",
+    "attempts": "PositiveIntegerField",
+    "error": "CharField",
+    "created_at": "DateTimeField[idx]",
+    "sent_at": "DateTimeField",
+    "printed_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "printer",
+     "type": "ForeignKey",
+     "to": "production.ReceiptPrinter",
+     "on_delete": "CASCADE",
+     "related_name": "jobs"
+    },
+    {
+     "field": "box",
+     "type": "ForeignKey",
+     "to": "production.Box",
+     "on_delete": "SET_NULL",
+     "related_name": "print_jobs"
+    },
+    {
+     "field": "inspection_log",
+     "type": "ForeignKey",
+     "to": "production.BoxQualityInspectionLog",
+     "on_delete": "SET_NULL",
+     "related_name": "print_jobs"
     }
    ]
   }

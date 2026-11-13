@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from accounts.models import User, Worker
 from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason, ControlSetting
+from production.receipt_printing import queue_repair_receipt
 from production.terminal_views import extract_worker_code
 
 
@@ -668,6 +669,9 @@ def control_submit_inspection_api(request):
             defect_qty=0,
             notes=final_notes
         )
+        if repair_qty > 0:   # OTK stolidagi printerdan ta'mir cheki (printer sozlangan bo'lsa)
+            queue_repair_receipt(box, log, repair_qty, repair_details, user=request.user,
+                                 operator_name=(active_operator or {}).get('full_name') or '')
 
         # Beta qadoqlash zakazi ta'mirga yuborilsa: ta'mir cheki (QR "TAMIR:<box_code>"); /beta/ sahifasida chop etiladi
         if repair_qty > 0 and box.order and box.order.packing_beta:
@@ -796,6 +800,9 @@ def control_submit_inspection_api(request):
             defect_qty=0,
             notes=final_notes
         )
+        if re_repair_qty > 0:
+            queue_repair_receipt(box, log, re_repair_qty, repair_details, user=request.user, is_return=True,
+                                 operator_name=(active_operator or {}).get('full_name') or '')
 
         if is_closed:
             msg = f"Quti {box.box_code} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort."

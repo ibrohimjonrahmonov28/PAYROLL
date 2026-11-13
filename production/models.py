@@ -2025,3 +2025,50 @@ class SecondSortBatch(models.Model):
 
     def __str__(self):
         return f"2-sort savati #{self.id} ({self.get_status_display()})"
+
+
+class ReceiptPrinter(models.Model):
+    """OTK chek printeri (egasi talabi 2026-11-11): patok OTK stolidagi termo printer (ESC/POS).
+    host — LAN printer IP manzili (9100-port) yoki "usb:<navbat nomi>" (agent kompyuteridagi USB printer).
+    Server chekni navbatga qo'yadi, fabrikadagi pechat agenti (print_agent/) uni printerga yuboradi."""
+    screen_number = models.PositiveSmallIntegerField(unique=True, verbose_name="Patok raqami (1..40)")
+    host = models.CharField(max_length=100, verbose_name="Printer (IP yoki usb:nomi)")
+    port = models.PositiveIntegerField(default=9100, verbose_name="Port")
+    is_active = models.BooleanField(default=True, verbose_name="Faol")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Chek printeri"
+        verbose_name_plural = "Chek printerlari"
+        ordering = ['screen_number']
+
+    def __str__(self):
+        return f"Printer #{self.screen_number} ({self.host})"
+
+
+class PrintJob(models.Model):
+    """Chop etish navbati: agent PENDING (yoki 60 s dan beri javobsiz SENDING) cheklarni oladi va natijani qaytaradi."""
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Navbatda'
+        SENDING = 'SENDING', 'Agentda'
+        PRINTED = 'PRINTED', 'Chiqdi'
+        FAILED = 'FAILED', 'Xato'
+
+    printer = models.ForeignKey(ReceiptPrinter, on_delete=models.CASCADE, related_name='jobs', verbose_name="Printer")
+    box = models.ForeignKey('Box', on_delete=models.SET_NULL, null=True, blank=True, related_name='print_jobs')
+    inspection_log = models.ForeignKey('BoxQualityInspectionLog', on_delete=models.SET_NULL, null=True, blank=True,
+                                       related_name='print_jobs')
+    title = models.CharField(max_length=200, blank=True, verbose_name="Qisqa tavsif")
+    payload = models.TextField(verbose_name="ESC/POS (base64)")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True)
+    attempts = models.PositiveIntegerField(default=0)
+    error = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    printed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Chek (navbat)"
+        verbose_name_plural = "Cheklar navbati"
+        ordering = ['-created_at']

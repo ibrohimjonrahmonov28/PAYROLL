@@ -53,3 +53,5 @@ staticfiles/
 *.tar.gz
 qr_codes/
 env
+print_agent/agent.conf
+print_agent/agent.log
