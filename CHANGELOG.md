@@ -29,6 +29,13 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `bcdc10e`] — 13.11.2026, 17:10
+* **Turi:** `feat(control)` — ixcham OTK ta'mir cheki (egasi tasdiqlagan dizayn)
+* **Mavzu:** Qog'oz imkon qadar kam bo'lishi uchun chek qayta chizildi: tepada qalin "K2 · TA'MIR · 8 dona", har tikuvchi bir qatorda (6 xonali UID, ism, ×N, operatsiya), pastda QR chapda va yonida zakaz / quti ID / model / artikul. Oldingi tuzatishlar: xitoy rejimi o'chirildi (`a0c7cb8`), OTK foydalanuvchisining patoki login nomidan aniqlanadi (`c3fdcbb`).
+* **O'zgartirilgan fayllar:**
+  - `production/receipt_printing.py` (sarlavha va ro'yxat printer matni; faqat QR bloki kichik rasm, 24 qatorli bo'laklarda; boshida NUL + ikki marta ESC @)
+  - `production/test_receipt_printing.py` (9 ta test — hammasi o'tgan), `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `f73b886`] — 13.11.2026, 15:20
 * **Turi:** `feat(control)` — OTK ta'mir cheki termo printerda
 * **Mavzu:** Egasi talabiga ko'ra ta'mirga ketgan qutiga OTK stikerini qaytarish o'rniga, OTK `/control/` da ta'mirni saqlaganda shu patok printeridan chek chiqadi: patok, quti, pastal, zakaz, model, razmer, ta'mir soni, har dona bo'yicha operatsiya va uni tikkan ishchi, OTK nazoratchisi, vaqt va qutining mavjud QR kodi (`CONTROL:<quti kodi>`). Yangi kod yaratilmaydi; chek chiqmasa ham OTK saqlanadi. Test bosqichida bir necha patok egasining stolidagi Xprinter XP-80TS ga biriktiriladi.
