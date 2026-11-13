@@ -20,6 +20,7 @@ ENCODING = 'cp866'       # kirill + lotin; Xprinter'da 17-kod sahifa (PC866)
 CODEPAGE = 17
 
 ESC_INIT = b'\x1b@'
+CHINESE_OFF = b'\x1c.'   # Xprinter zavoddan xitoy rejimida keladi — kirill "xitoycha" chiqmasin
 ALIGN_LEFT, ALIGN_CENTER = b'\x1ba\x00', b'\x1ba\x01'
 BOLD_ON, BOLD_OFF = b'\x1bE\x01', b'\x1bE\x00'
 SIZE_NORMAL, SIZE_DOUBLE = b'\x1d!\x00', b'\x1d!\x11'
@@ -31,7 +32,7 @@ class Receipt:
     """Oddiy ESC/POS quruvchi: matn qatorlari, katta sarlavha, chiziq, QR va kesish."""
 
     def __init__(self):
-        self.data = bytearray(ESC_INIT + b'\x1bt' + bytes([CODEPAGE]))
+        self.data = bytearray(ESC_INIT + CHINESE_OFF + b'\x1bt' + bytes([CODEPAGE]))
 
     def _text(self, text):
         return str(text).translate(APOSTROPHES).encode(ENCODING, errors='replace')

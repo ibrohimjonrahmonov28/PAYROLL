@@ -100,7 +100,7 @@ def run():
 
 
 def test(host):
-    data = (b'\x1b@\x1ba\x01\x1d!\x11TERRY JAR\n\x1d!\x00Printer ishlayapti\n' + host.encode() +
+    data = (b'\x1b@\x1c.\x1ba\x01\x1d!\x11TERRY JAR\n\x1d!\x00Printer ishlayapti\n' + host.encode() +
             b'\n\n\n\x1dVB\x00')
     send_to_printer(host, 9100, data)
     print("Yuborildi. Chek chiqdimi?")
