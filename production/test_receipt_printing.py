@@ -18,7 +18,8 @@ from production.print_views import agent_token
 
 class RepairReceiptTest(TestCase):
     def setUp(self):
-        self.otk = User.objects.create_user(username='patokk3', password='x', role=User.Role.CONTROL, assigned_screen=3)
+        # real patok OTK userlari kabi: assigned_screen yo'q, patok login nomidan
+        self.otk = User.objects.create_user(username='patokk3', password='x', role=User.Role.CONTROL)
         self.worker = Worker.objects.create(worker_id='777001', first_name='Nodira', last_name='Aliyeva')
         article = Article.objects.create(code='TJ-01', name='Футболка')
         self.order = Order.objects.create(order_number='DM-46', article=article, total_quantity=10)
@@ -62,6 +63,21 @@ class RepairReceiptTest(TestCase):
         self.client.post(reverse('control:api_submit'), json.dumps({'box_id': box2.id, 'mode': 'INITIAL', 'total_qty': 5}),
                          content_type='application/json')
         self.assertFalse(PrintJob.objects.exists())                             # ta'mirsiz — chek yo'q
+
+    def test_old_patok_login_and_personal_login(self):
+        ReceiptPrinter.objects.create(screen_number=3, host='192.168.1.53')
+        old_style, _ = User.objects.get_or_create(username='patok3', defaults={'role': User.Role.CONTROL})
+        self.assertIsNone(old_style.assigned_screen)                           # eski login uslubi, patok yozilmagan
+        self.client.force_login(old_style)
+        self.submit()
+        self.assertEqual(PrintJob.objects.count(), 1)
+
+        personal = User.objects.create_user(username='otk_nodira', password='x', role=User.Role.CONTROL)
+        self.client.force_login(personal)                                       # patoki noma'lum — chek yo'q
+        box2 = Box.objects.create(order=self.order, article=self.box.article, box_number=9, quantity=5)
+        self.client.post(reverse('control:api_submit'), json.dumps({'box_id': box2.id, 'mode': 'INITIAL', 'total_qty': 5,
+                                                                    'repair_qty': 1}), content_type='application/json')
+        self.assertEqual(PrintJob.objects.count(), 1)
 
     def test_other_patok_printer_not_used(self):
         ReceiptPrinter.objects.create(screen_number=4, host='192.168.1.54')

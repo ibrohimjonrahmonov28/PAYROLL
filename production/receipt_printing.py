@@ -11,7 +11,7 @@ import textwrap
 from django.utils import timezone
 
 from production.models import PrintJob, ReceiptPrinter, Ticket
-from production.services import get_patok_code
+from production.services import get_patok_code, parse_patok_number
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,8 @@ def build_repair_receipt(box, repair_qty, repair_details, *, screen_number, oper
 def queue_repair_receipt(box, log, repair_qty, repair_details, *, user, operator_name='', is_return=False):
     """Terminal foydalanuvchisi patokining faol printeriga chek qo'yadi. Printer yo'q yoki xato bo'lsa jim qaytadi."""
     try:
-        screen = user.assigned_screen_number
+        # patok OTK userlarida assigned_screen yozilmagan — patok login nomidan (patok3, patokk3, patoku5)
+        screen = user.assigned_screen_number or parse_patok_number(user.username)
         printer = ReceiptPrinter.objects.filter(screen_number=screen, is_active=True).first() if screen else None
         if printer is None or repair_qty <= 0:
             return None
