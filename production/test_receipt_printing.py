@@ -50,18 +50,21 @@ class RepairReceiptTest(TestCase):
         job = PrintJob.objects.get()
         data = base64.b64decode(job.payload)
         self.assertIn(b'\x1b@\x1c.', data[:80])                                # holat tiklanadi, xitoy rejimi o'chiq
-        self.assertIn("K3 · TA'MIR · 2 dona".encode('cp866'), data)             # sarlavha — printer matni
-        self.assertIn("Nodira Aliyeva x2".encode('cp866'), data)
-        self.assertIn(b'\x1dv0\x00H\x00\x18\x00', data)                       # QR bloki: 576 nuqta, 24 qatorli bo'laklar
-        self.assertLess(len(data), 20000)                                       # faqat QR bloki rasm — printer xotirasi to'lmaydi
+        self.assertIn("Ta'mirga: 2 dona".encode('cp866'), data)
+        self.assertIn("  YOQA TIKISH 2 ta".encode('cp866'), data)               # tikuvchi ostida operatsiya soni
+        self.assertIn(f"1P0CONTROL:{self.box.box_code}".encode(), data)        # printerning o'z QR buyrug'i, mavjud kod
+        self.assertNotIn(f"{self.box.box_code}\n\x1dVB".encode(), data)        # QR tagida quti raqami yo'q
+        self.assertTrue(data.endswith(b'1Q0\x1dVB\x00'))                       # QR'dan keyin darhol kesiladi
+        self.assertLess(len(data), 2000)                                        # rasm yo'q — printer xotirasi to'lmaydi
         self.assertTrue(data.endswith(b'\x1dVB\x00'))                          # kesish
 
         receipt = repair_receipt_data(self.box, 2, self.details(), screen_number=3)
         self.assertEqual(receipt['qr'], f"CONTROL:{self.box.box_code}")         # qutining mavjud QR kodi
-        self.assertEqual(receipt['title'], "K3 · TA'MIR · 2 dona")
-        self.assertEqual((receipt['order'], receipt['model'], receipt['article']), ('DM-46', 'Футболка', 'TJ-01'))
+        self.assertEqual(receipt['qty_line'], "Ta'mirga: 2 dona")
+        self.assertEqual(receipt['info'], [f"Quti: {self.box.box_code} (#7)", 'Zakaz: DM-46', 'Model: TJ-01 Футболка'])
+        self.assertTrue(receipt['footer'].startswith('K3 · '))
         self.worker.refresh_from_db()
-        self.assertEqual(receipt['rows'], [(self.worker.user.uid, 'Nodira Aliyeva', 'YOQA TIKISH', 2)])   # bazadan, 6 xonali UID, ×2
+        self.assertEqual(receipt['workers'], [(('Nodira Aliyeva', self.worker.user.uid), [('YOQA TIKISH', 2)])])   # bazadan, UID
         self.assertEqual(receipt['notes'], ['chok ochilgan'])
         self.assertEqual(job.status, PrintJob.Status.PENDING)
 
@@ -104,7 +107,16 @@ class RepairReceiptTest(TestCase):
         }), content_type='application/json')
         self.assertEqual(PrintJob.objects.count(), 2)
         self.assertTrue(PrintJob.objects.latest('id').title.startswith("Qayta ta'mir"))
-        self.assertEqual(repair_receipt_data(self.box, 1, [], screen_number=3, is_return=True)['title'], "K3 · QAYTA TA'MIR · 1 dona")
+        self.assertEqual(repair_receipt_data(self.box, 1, [], screen_number=3, is_return=True)['qty_line'], "Qayta ta'mirga: 1 dona")
+
+    def test_worker_operations_grouped_under_name(self):
+        op2 = Operation.objects.create(code='OP-YC', name='YON CHOK')
+        ao2 = ArticleOperation.objects.create(article=self.box.article, operation=op2, price_per_unit=Decimal('50'), sequence=2)
+        t2 = Ticket.objects.create(box=self.box, article_operation=ao2, quantity=10, worker=self.worker,
+                                   status=Ticket.Status.SCANNED, screen_number=3)
+        details = [{'operation_ids': [self.ticket.id]}] * 3 + [{'operation_ids': [t2.id]}] * 2
+        workers = repair_receipt_data(self.box, 5, details, screen_number=3)['workers']
+        self.assertEqual([ops for _, ops in workers], [[('YOQA TIKISH', 3), ('YON CHOK', 2)]])   # bitta ism ostida
 
 
 class PrintAgentApiTest(TestCase):
