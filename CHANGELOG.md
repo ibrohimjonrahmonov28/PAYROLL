@@ -29,6 +29,16 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `04c5212`] — 14.11.2026
+* **Turi:** `feat(control)` — har ta'mir aylanmasiga alohida chek: `TAMIR1:`, `TAMIR2:`, ...
+* **Mavzu:** Yangi qadoqlash tartibining 2-bosqichi. OTK ta'mirga yuborsa 1-chek (`TAMIR1:<quti kodi>`) chiqadi; ta'mirdan qaytganda ochiq chek yopiladi (tuzalganlar — shu chekning 1-sorti), yana ta'mirga ketganlari uchun keyingi chek (`TAMIR2:`, ...). Quti necha marta ta'mirga ketgani bazada ko'rinadi; quti kodi va stikerlar o'zgarmaydi. Eski `TAMIR:` cheklari 1-chek sifatida ishlayveradi. OTK plansheti (`/control/`) `TAMIRn:` ni, skaner "+" xatosi bilan kelganini ham, taniydi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `0043_repair_receipt_cycles.py` (`RepairReceipt`: cycle, created_log, returned_log, returned_at, first_sort_qty; `PackingScan.repair_receipt`; eski cheklarni ko'chirish)
+  - `production/packing_services.py` (`create_repair_receipt`, `close_repair_receipt`, `parse_packing_code` → TAMIRn, chek bo'yicha qism)
+  - `production/control_views.py` (har ta'mirda chek, qaytishda yopish; TAMIRn qidiruvi), `production/receipt_printing.py` (QR va "N-ta'mir")
+  - `production/packing_views.py`, `templates/packing/` (OTK tabi, A4 chek, taxlovchi)
+  - `production/test_packing_beta.py`, `production/test_receipt_printing.py` (32 ta test — hammasi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `92529a2`] — 14.11.2026
 * **Turi:** `feat(pricing)` — narx shablonida Beta belgisi va sariq "OTK Control/Taxlov" qatori
 * **Mavzu:** Yangi qadoqlash tartibining 1-bosqichi: beta belgisi zakazdan narx shabloniga ko'chdi. Har shablon jadvali ostida sariq qator — beta belgisi, Control/Taxlov narxi (hozircha 1 so'm) va qiyinligi. Qutidagi mavjud CONTROL stikeri shu ish bo'ladi; yangi stiker yaratilmaydi. Faqat belgi yoqilgandan keyin yaratilgan qutilar yangi tartibda ishlaydi.
