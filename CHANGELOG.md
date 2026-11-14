@@ -29,6 +29,14 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `92529a2`] — 14.11.2026
+* **Turi:** `feat(pricing)` — narx shablonida Beta belgisi va sariq "OTK Control/Taxlov" qatori
+* **Mavzu:** Yangi qadoqlash tartibining 1-bosqichi: beta belgisi zakazdan narx shabloniga ko'chdi. Har shablon jadvali ostida sariq qator — beta belgisi, Control/Taxlov narxi (hozircha 1 so'm) va qiyinligi. Qutidagi mavjud CONTROL stikeri shu ish bo'ladi; yangi stiker yaratilmaydi. Faqat belgi yoqilgandan keyin yaratilgan qutilar yangi tartibda ishlaydi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `0042_operation_group_beta.py` (`OperationGroup.is_beta`, `beta_since`, `taxlov_price`, `taxlov_difficulty`)
+  - `accounts/superadmin_views.py` (`update_group_beta` action), `templates/superadmin/pricing.html` (sariq qator, BETA belgisi)
+  - `production/packing_services.py` (`beta_group`), `production/test_template_beta.py` (3 ta test — hammasi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `f38b98e`] — 14.11.2026
 * **Turi:** `feat(control)` — Terry Jar Print: planshetga USB bilan ulangan printerdan ta'mir cheki
 * **Mavzu:** Boshliq kompyuter agentiga ruxsat bermadi. Printer patok OTK planshetiga USB (OTG hub) bilan ulanadi; planshetdagi "Terry Jar Print" ilovasi (Android 11–16) orqa fonda shu patokning cheklarini serverdan olib printerga chiqaradi. DLT ilovasi va `/control/` o'zgarmaydi.
