@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 809,
-   "sha256_16": "b4653ee18786cb50"
+   "lines": 818,
+   "sha256_16": "bad276045904ba73"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 139,
-   "sha256_16": "23eb75ee8ff16c7e"
+   "lines": 140,
+   "sha256_16": "98ec9a093d6f2134"
   },
   "Dockerfile": {
    "module": "ops",
@@ -169,8 +169,8 @@
   },
   "accounts/superadmin_views.py": {
    "module": "accounts.superadmin",
-   "lines": 4333,
-   "sha256_16": "26ae31b4b9100973",
+   "lines": 4355,
+   "sha256_16": "a194daec59d4b5b9",
    "symbols": [
     "superadmin_required:28",
     "payroll_admin_required:43",
@@ -189,34 +189,34 @@
     "superadmin_download_monthly_excel:1854",
     "get_or_create_operation_safely:1899",
     "superadmin_pricing:1949",
-    "superadmin_orders_list:2521",
-    "superadmin_order_detail:2671",
-    "superadmin_order_edit:2720",
-    "superadmin_order_add_model:2750",
-    "superadmin_order_model_edit:2815",
-    "superadmin_order_model_delete:2844",
-    "superadmin_order_delete:2877",
-    "superadmin_order_model_update_operation:2895",
-    "superadmin_order_model_add_operation:2921",
-    "superadmin_order_model_delete_operation:2948",
-    "superadmin_worker_history:2961",
-    "api_worker_tickets_by_date:3162",
-    "superadmin_payroll_bulk_pay:3238",
-    "superadmin_start_month_freeze_timer:3326",
-    "superadmin_month_freeze_toggle:3362",
-    "superadmin_ticket_freeze_toggle:3416",
-    "superadmin_recalculate_unfrozen_tickets:3463",
-    "superadmin_update_worker_branch:3496",
-    "superadmin_defect_reasons:3531",
-    "superadmin_toggle_require_all_operations_scanned:3585",
-    "superadmin_defect_reason_create:3617",
-    "superadmin_defect_reason_edit:3659",
-    "superadmin_defect_reason_toggle:3703",
-    "superadmin_defect_reason_delete:3728",
-    "superadmin_defect_reason_seed_defaults:3744",
-    "_build_orders_balance_data:3857",
-    "superadmin_orders_balance:4129",
-    "superadmin_orders_balance_export_excel:4167"
+    "superadmin_orders_list:2543",
+    "superadmin_order_detail:2693",
+    "superadmin_order_edit:2742",
+    "superadmin_order_add_model:2772",
+    "superadmin_order_model_edit:2837",
+    "superadmin_order_model_delete:2866",
+    "superadmin_order_delete:2899",
+    "superadmin_order_model_update_operation:2917",
+    "superadmin_order_model_add_operation:2943",
+    "superadmin_order_model_delete_operation:2970",
+    "superadmin_worker_history:2983",
+    "api_worker_tickets_by_date:3184",
+    "superadmin_payroll_bulk_pay:3260",
+    "superadmin_start_month_freeze_timer:3348",
+    "superadmin_month_freeze_toggle:3384",
+    "superadmin_ticket_freeze_toggle:3438",
+    "superadmin_recalculate_unfrozen_tickets:3485",
+    "superadmin_update_worker_branch:3518",
+    "superadmin_defect_reasons:3553",
+    "superadmin_toggle_require_all_operations_scanned:3607",
+    "superadmin_defect_reason_create:3639",
+    "superadmin_defect_reason_edit:3681",
+    "superadmin_defect_reason_toggle:3725",
+    "superadmin_defect_reason_delete:3750",
+    "superadmin_defect_reason_seed_defaults:3766",
+    "_build_orders_balance_data:3879",
+    "superadmin_orders_balance:4151",
+    "superadmin_orders_balance_export_excel:4189"
    ]
   },
   "accounts/tests.py": {
@@ -322,6 +322,56 @@
    "module": "android_control",
    "lines": 18,
    "sha256_16": "d0a090f8861f76e5"
+  },
+  "android_print/README.md": {
+   "module": "ops",
+   "lines": 17,
+   "sha256_16": "94c746ea66a04738"
+  },
+  "android_print/app/src/main/AndroidManifest.xml": {
+   "module": "ops",
+   "lines": 60,
+   "sha256_16": "7aed6097e334a976"
+  },
+  "android_print/app/src/main/java/uz/terryjar/print/BootReceiver.java": {
+   "module": "ops",
+   "lines": 16,
+   "sha256_16": "ec55ca008bfccdbe"
+  },
+  "android_print/app/src/main/java/uz/terryjar/print/MainActivity.java": {
+   "module": "ops",
+   "lines": 172,
+   "sha256_16": "4c921b077e42fc3e"
+  },
+  "android_print/app/src/main/java/uz/terryjar/print/PrintService.java": {
+   "module": "ops",
+   "lines": 217,
+   "sha256_16": "48335dac30a76d42"
+  },
+  "android_print/app/src/main/java/uz/terryjar/print/UsbPrinter.java": {
+   "module": "ops",
+   "lines": 111,
+   "sha256_16": "a5ac729e4656041a"
+  },
+  "android_print/app/src/main/res/drawable/ic_launcher.xml": {
+   "module": "ops",
+   "lines": 13,
+   "sha256_16": "3930f19881fc6c91"
+  },
+  "android_print/app/src/main/res/values/strings.xml": {
+   "module": "ops",
+   "lines": 5,
+   "sha256_16": "d4410596d4bc4b20"
+  },
+  "android_print/app/src/main/res/xml/device_filter.xml": {
+   "module": "ops",
+   "lines": 6,
+   "sha256_16": "2decb38857304466"
+  },
+  "android_print/build_apk.sh": {
+   "module": "ops",
+   "lines": 66,
+   "sha256_16": "2798416a9549a6aa"
   },
   "config/__init__.py": {
    "module": "config",
@@ -819,8 +869,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2078,
-   "sha256_16": "140b0fe655979fb7",
+   "lines": 2088,
+   "sha256_16": "e2587e448fc1022a",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -829,35 +879,35 @@
     "Operation:220",
     "ProductModelOperation:267",
     "OperationGroup:326",
-    "OperationGroupItem:383",
-    "ArticleOperation:423",
-    "Order:492",
-    "OrderItem:612",
-    "OrderItemSize:714",
-    "OrderItemFabric:781",
-    "OrderChangeLog:817",
-    "generate_unique_waybill_number:833",
-    "Waybill:847",
-    "CuttingBatch:949",
-    "CuttingBatchItem:1047",
-    "index_to_letters:1115",
-    "letters_to_index:1125",
-    "generate_unique_box_code:1133",
-    "generate_unique_stiker_code:1183",
-    "Box:1192",
-    "BoxQualityInspectionLog:1391",
-    "DefectReason:1442",
-    "ControlSetting:1527",
-    "Ticket:1562",
-    "DailyModelProgress:1746",
-    "DailyPatokProgress:1799",
-    "CancelledBatchLog:1862",
-    "PatokAward:1895",
-    "RepairReceipt:1960",
-    "PackingScan:1982",
-    "SecondSortBatch:2009",
-    "ReceiptPrinter:2030",
-    "PrintJob:2053"
+    "OperationGroupItem:393",
+    "ArticleOperation:433",
+    "Order:502",
+    "OrderItem:622",
+    "OrderItemSize:724",
+    "OrderItemFabric:791",
+    "OrderChangeLog:827",
+    "generate_unique_waybill_number:843",
+    "Waybill:857",
+    "CuttingBatch:959",
+    "CuttingBatchItem:1057",
+    "index_to_letters:1125",
+    "letters_to_index:1135",
+    "generate_unique_box_code:1143",
+    "generate_unique_stiker_code:1193",
+    "Box:1202",
+    "BoxQualityInspectionLog:1401",
+    "DefectReason:1452",
+    "ControlSetting:1537",
+    "Ticket:1572",
+    "DailyModelProgress:1756",
+    "DailyPatokProgress:1809",
+    "CancelledBatchLog:1872",
+    "PatokAward:1905",
+    "RepairReceipt:1970",
+    "PackingScan:1992",
+    "SecondSortBatch:2019",
+    "ReceiptPrinter:2040",
+    "PrintJob:2063"
    ]
   },
   "production/norma_services.py": {
@@ -901,15 +951,16 @@
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 74,
-   "sha256_16": "8a49eaaa3992f02e",
+   "lines": 84,
+   "sha256_16": "3fe8354ea8963e6f",
    "symbols": [
-    "create_repair_receipt:19",
-    "parse_packing_code:40",
-    "portion_total:57",
-    "packed_total:64",
-    "available_for_packing:68",
-    "find_box:72"
+    "beta_group:19",
+    "create_repair_receipt:29",
+    "parse_packing_code:50",
+    "portion_total:67",
+    "packed_total:74",
+    "available_for_packing:78",
+    "find_box:82"
    ]
   },
   "production/packing_urls.py": {
@@ -1869,8 +1920,8 @@
   },
   "templates/superadmin/pricing.html": {
    "module": "templates",
-   "lines": 1912,
-   "sha256_16": "d0107fce67f445c0"
+   "lines": 1944,
+   "sha256_16": "866cc42828b7e0c8"
   },
   "templates/superadmin/printers.html": {
    "module": "templates",

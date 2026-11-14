@@ -16,6 +16,16 @@ from production.models import Box, BoxQualityInspectionLog, PackingScan, RepairR
 QR_PREFIXES = {'CONTROL': PackingScan.Source.CONTROL, 'TAMIR': PackingScan.Source.TAMIR}
 
 
+def beta_group(box):
+    """Quti beta shablon bo'yicha ishlaydimi: artikul shabloni beta va quti belgi yoqilgandan keyin yaratilgan.
+    Ha bo'lsa — shu shablon (CONTROL stikeri "OTK Control/Taxlov" narxi va qiyinligi undan), aks holda None."""
+    article = box.target_article
+    group = article.operation_group if article else None
+    if group and group.is_beta and group.beta_since and box.created_at and box.created_at >= group.beta_since:
+        return group
+    return None
+
+
 def create_repair_receipt(box, quantity, repair_details, inspector, operator_name=''):
     """OTK ta'mirga yuborganda chek; har dona uchun operatsiya va tikuvchi (OTK tanlagan) saqlanadi."""
     details = []

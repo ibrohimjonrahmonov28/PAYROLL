@@ -2444,6 +2444,28 @@ def superadmin_pricing(request):
             messages.success(request, msg)
             return redirect('superadmin_pricing')
 
+        # 4b. BETA QADOQLASH TARTIBI (egasi talabi 2026-11-14): shablonga belgi + sariq "OTK Control/Taxlov" qatori.
+        # Bu operatsiya artikul operatsiyalariga qo'shilmaydi — stikerlar o'zgarmaydi; faqat belgi birinchi yoqilgandan
+        # keyin yaratilgan qutilar yangi tartibda ishlaydi (beta_since qayta yoqilganda o'zgarmaydi).
+        elif action == 'update_group_beta':
+            group = get_object_or_404(OperationGroup, id=request.POST.get('group_id'))
+            try:
+                price = Decimal(str(request.POST.get('taxlov_price', group.taxlov_price)).replace(',', '.').strip())
+                difficulty = float(str(request.POST.get('taxlov_difficulty', group.taxlov_difficulty)).replace(',', '.').strip())
+                if price < 0 or difficulty <= 0:
+                    raise ValueError
+            except (ValueError, ArithmeticError):
+                messages.error(request, "Control/Taxlov narxi manfiy bo'lmasin, qiyinlik 0 dan katta bo'lsin.")
+                return redirect('superadmin_pricing')
+            group.is_beta = request.POST.get('is_beta') == '1'
+            if group.is_beta and not group.beta_since:
+                group.beta_since = timezone.now()
+            group.taxlov_price, group.taxlov_difficulty = price, difficulty
+            group.save(update_fields=['is_beta', 'beta_since', 'taxlov_price', 'taxlov_difficulty'])
+            state = "yoqilgan" if group.is_beta else "o'chirilgan"
+            messages.success(request, f"'{group.name}': beta tartib {state}, Control/Taxlov {price:,.0f} so'm".replace(',', ' '))
+            return redirect('superadmin_pricing')
+
         # 5. GURUHNI TO'LIQ O'CHIRISH
         elif action == 'delete_group':
             group_id = request.POST.get('group_id')

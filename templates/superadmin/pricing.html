@@ -77,6 +77,9 @@
                         <span id="group-count-badge-{{ group.id }}" class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-mono font-bold border border-slate-700/60">
                             {{ group.items.all|length }} ta operatsiya
                         </span>
+                        {% if group.is_beta %}
+                        <span class="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 text-xs font-black">BETA · Control/Taxlov {{ group.taxlov_price|floatformat:"-2" }} so'm</span>
+                        {% endif %}
                         <span id="group-total-badge-{{ group.id }}"
                             class="px-2.5 py-0.5 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs font-bold font-mono">
                             Jami: {{ group.total_unit_rate|floatformat:0 }} so'm
@@ -227,6 +230,35 @@
                             </tr>
                             {% endfor %}
                         </tbody>
+                        <!-- Beta qadoqlash: qutidagi CONTROL stikeri = "OTK Control/Taxlov" ishi. Artikul operatsiyalariga
+                             qo'shilmaydi (stikerlar o'zgarmaydi), shuning uchun doim alohida, eng oxirida. -->
+                        <tfoot>
+                            <tr class="{% if group.is_beta %}bg-amber-400/15 border-t-2 border-amber-400{% else %}border-t border-slate-800{% endif %}">
+                                <td colspan="7" class="py-2.5 px-3">
+                                    <form method="POST" action="{% url 'superadmin_pricing' %}" class="flex flex-wrap items-center gap-3">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="update_group_beta">
+                                        <input type="hidden" name="group_id" value="{{ group.id }}">
+                                        <label class="flex items-center gap-2 font-black {% if group.is_beta %}text-amber-300{% else %}text-slate-400{% endif %}">
+                                            <input type="checkbox" name="is_beta" value="1" {% if group.is_beta %}checked{% endif %} class="w-4 h-4 accent-amber-400">
+                                            BETA · OTK Control/Taxlov
+                                        </label>
+                                        <label class="flex items-center gap-1.5 text-slate-400">Qiyinlik
+                                            <input name="taxlov_difficulty" value="{{ group.taxlov_difficulty }}" inputmode="decimal"
+                                                class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center font-mono">
+                                        </label>
+                                        <label class="flex items-center gap-1.5 text-slate-400">Narx (so'm)
+                                            <input name="taxlov_price" value="{{ group.taxlov_price|floatformat:"-2" }}" inputmode="decimal"
+                                                class="w-20 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-right font-mono">
+                                        </label>
+                                        <button class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">Saqlash</button>
+                                        <span class="text-[11px] text-slate-500">
+                                            {% if group.beta_since %}Beta {{ group.beta_since|date:"d.m.Y H:i" }} dan keyin yaratilgan qutilarga.{% else %}Belgi yoqilgandan keyin yaratilgan qutilarga; stikerlar o'zgarmaydi.{% endif %}
+                                        </span>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>

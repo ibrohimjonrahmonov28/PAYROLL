@@ -328,6 +328,16 @@ class OperationGroup(models.Model):
     description = models.TextField(blank=True, verbose_name="Tavsif")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Beta qadoqlash tartibi (egasi talabi 2026-11-14): shablonga belgi qo'yiladi. Qutidagi mavjud CONTROL stikeri
+    # "OTK Control/Taxlov" ishi bo'ladi — narxi va qiyinligi shu yerda (sariq qator, doim oxirida). Bu operatsiya
+    # artikul operatsiyalariga QO'SHILMAYDI: aks holda har qutiga yangi stiker yaratilardi (oltin qoida).
+    # Faqat belgi birinchi yoqilgandan (beta_since) keyin yaratilgan qutilar yangi tartibda ishlaydi.
+    is_beta = models.BooleanField(default=False, db_index=True, verbose_name="Beta qadoqlash tartibi")
+    beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Beta yoqilgan vaqt")
+    taxlov_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('1.00'),
+                                       verbose_name="OTK Control/Taxlov narxi (dona)")
+    taxlov_difficulty = models.FloatField(default=1.0, verbose_name="OTK Control/Taxlov qiyinligi")
+
     class Meta:
         verbose_name = "Operatsiyalar guruhi"
         verbose_name_plural = "Operatsiyalar guruhlari"

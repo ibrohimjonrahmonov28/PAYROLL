@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4383,
+  "lines": 4405,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -109,6 +109,16 @@
    "Dockerfile",
    "README.md",
    "SYSTEM_ARCHITECTURE_GUIDE.md",
+   "android_print/README.md",
+   "android_print/app/src/main/AndroidManifest.xml",
+   "android_print/app/src/main/java/uz/terryjar/print/BootReceiver.java",
+   "android_print/app/src/main/java/uz/terryjar/print/MainActivity.java",
+   "android_print/app/src/main/java/uz/terryjar/print/PrintService.java",
+   "android_print/app/src/main/java/uz/terryjar/print/UsbPrinter.java",
+   "android_print/app/src/main/res/drawable/ic_launcher.xml",
+   "android_print/app/src/main/res/values/strings.xml",
+   "android_print/app/src/main/res/xml/device_filter.xml",
+   "android_print/build_apk.sh",
    "docker-compose.yml",
    "generate_stickers_100x60.py",
    "manage.py",
@@ -120,7 +130,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 2648,
+  "lines": 3341,
   "depends_on": [
    "accounts.core"
   ]
@@ -241,7 +251,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2078,
+  "lines": 2088,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -309,7 +319,7 @@
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 1601,
+  "lines": 1611,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -504,7 +514,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45313,
+  "lines": 45345,
   "depends_on": []
  },
  "tests": {
