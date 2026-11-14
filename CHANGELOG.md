@@ -29,6 +29,15 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `f38b98e`] — 14.11.2026
+* **Turi:** `feat(control)` — Terry Jar Print: planshetga USB bilan ulangan printerdan ta'mir cheki
+* **Mavzu:** Boshliq kompyuter agentiga ruxsat bermadi. Printer patok OTK planshetiga USB (OTG hub) bilan ulanadi; planshetdagi "Terry Jar Print" ilovasi (Android 11–16) orqa fonda shu patokning cheklarini serverdan olib printerga chiqaradi. DLT ilovasi va `/control/` o'zgarmaydi.
+* **O'zgartirilgan fayllar:**
+  - `android_print/` (ilova: `MainActivity`, `PrintService`, `UsbPrinter`, `BootReceiver`; `build_apk.sh`, `README.md`)
+  - `production/print_views.py` (`tablet` printer turi, `?patok=` filtri, kompyuter agenti planshet cheklariga tegmaydi)
+  - `production/models.py` + `0041_receipt_printer_last_seen.py` (`ReceiptPrinter.last_seen_at`), `templates/superadmin/printers.html` ("● ulangan / uzilgan")
+  - `production/test_receipt_printing.py` (13 ta test — hammasi o'tgan), `CLAUDE.md`, `.gitignore`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `19468ec`] — 14.11.2026
 * **Turi:** `feat(control)` — OTK ta'mir cheki: tikuvchi bo'yicha guruhlash, kattaroq QR, bo'sh qog'ozsiz
 * **Mavzu:** Egasi tasdiqlagan yakuniy dizayn: quti / pastal / zakaz / model / razmer, katta "Ta'mirga: N dona", har tikuvchi qalin "Ism (UID):" va ostida u qilgan operatsiyalar soni ("ETAK RESHMA 5 ta"), OTK, patok va vaqt, kattaroq QR (~26 mm). QR tagidagi quti raqami va tepa/pastdagi bo'sh qatorlar olib tashlandi. Rasm (raster) ishlatilmaydi — XP-80TS USB'da buzib chiqargan.
