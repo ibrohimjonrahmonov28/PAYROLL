@@ -29,6 +29,13 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `19468ec`] — 14.11.2026
+* **Turi:** `feat(control)` — OTK ta'mir cheki: tikuvchi bo'yicha guruhlash, kattaroq QR, bo'sh qog'ozsiz
+* **Mavzu:** Egasi tasdiqlagan yakuniy dizayn: quti / pastal / zakaz / model / razmer, katta "Ta'mirga: N dona", har tikuvchi qalin "Ism (UID):" va ostida u qilgan operatsiyalar soni ("ETAK RESHMA 5 ta"), OTK, patok va vaqt, kattaroq QR (~26 mm). QR tagidagi quti raqami va tepa/pastdagi bo'sh qatorlar olib tashlandi. Rasm (raster) ishlatilmaydi — XP-80TS USB'da buzib chiqargan.
+* **O'zgartirilgan fayllar:**
+  - `production/receipt_printing.py` (printer matni + o'z QR buyrug'i, ~1 KB; `_repair_workers` tikuvchi bo'yicha guruhlaydi)
+  - `production/test_receipt_printing.py` (10 ta test — hammasi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `bcdc10e`] — 13.11.2026, 17:10
 * **Turi:** `feat(control)` — ixcham OTK ta'mir cheki (egasi tasdiqlagan dizayn)
 * **Mavzu:** Qog'oz imkon qadar kam bo'lishi uchun chek qayta chizildi: tepada qalin "K2 · TA'MIR · 8 dona", har tikuvchi bir qatorda (6 xonali UID, ism, ×N, operatsiya), pastda QR chapda va yonida zakaz / quti ID / model / artikul. Oldingi tuzatishlar: xitoy rejimi o'chirildi (`a0c7cb8`), OTK foydalanuvchisining patoki login nomidan aniqlanadi (`c3fdcbb`).
