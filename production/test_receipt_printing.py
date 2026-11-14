@@ -11,9 +11,10 @@ from django.urls import reverse
 
 from accounts.models import User, Worker
 from production.models import (
-    Article, ArticleOperation, Box, Operation, Order, PrintJob, ReceiptPrinter, Ticket,
+    Article, ArticleOperation, Box, Operation, Order, PrintJob, ReceiptPrinter, RepairReceipt, Ticket,
 )
 from production.print_views import agent_token
+from production.packing_services import create_repair_receipt
 from production.receipt_printing import repair_receipt_data
 
 
@@ -50,22 +51,22 @@ class RepairReceiptTest(TestCase):
         job = PrintJob.objects.get()
         data = base64.b64decode(job.payload)
         self.assertIn(b'\x1b@\x1c.', data[:80])                                # holat tiklanadi, xitoy rejimi o'chiq
-        self.assertIn("Ta'mirga: 2 dona".encode('cp866'), data)
+        self.assertIn("1-ta'mir: 2 dona".encode('cp866'), data)
         self.assertIn("  YOQA TIKISH 2 ta".encode('cp866'), data)               # tikuvchi ostida operatsiya soni
-        self.assertIn(f"1P0CONTROL:{self.box.box_code}".encode(), data)        # printerning o'z QR buyrug'i, mavjud kod
+        self.assertIn(f"1P0TAMIR1:{self.box.box_code}".encode(), data)         # 1-ta'mir cheki QR'i, quti kodi o'sha
         self.assertNotIn(f"{self.box.box_code}\n\x1dVB".encode(), data)        # QR tagida quti raqami yo'q
         self.assertTrue(data.endswith(b'1Q0\x1dVB\x00'))                       # QR'dan keyin darhol kesiladi
         self.assertLess(len(data), 2000)                                        # rasm yo'q — printer xotirasi to'lmaydi
         self.assertTrue(data.endswith(b'\x1dVB\x00'))                          # kesish
 
-        receipt = repair_receipt_data(self.box, 2, self.details(), screen_number=3)
-        self.assertEqual(receipt['qr'], f"CONTROL:{self.box.box_code}")         # qutining mavjud QR kodi
-        self.assertEqual(receipt['qty_line'], "Ta'mirga: 2 dona")
-        self.assertEqual(receipt['info'], [f"Quti: {self.box.box_code} (#7)", 'Zakaz: DM-46', 'Model: TJ-01 Футболка'])
-        self.assertTrue(receipt['footer'].startswith('K3 · '))
+        content = repair_receipt_data(RepairReceipt.objects.get(box=self.box), self.details(), screen_number=3)
+        self.assertEqual(content['qr'], f"TAMIR1:{self.box.box_code}")
+        self.assertEqual(content['qty_line'], "1-ta'mir: 2 dona")
+        self.assertEqual(content['info'], [f"Quti: {self.box.box_code} (#7)", 'Zakaz: DM-46', 'Model: TJ-01 Футболка'])
+        self.assertTrue(content['footer'].startswith('K3 · '))
         self.worker.refresh_from_db()
-        self.assertEqual(receipt['workers'], [(('Nodira Aliyeva', self.worker.user.uid), [('YOQA TIKISH', 2)])])   # bazadan, UID
-        self.assertEqual(receipt['notes'], ['chok ochilgan'])
+        self.assertEqual(content['workers'], [(('Nodira Aliyeva', self.worker.user.uid), [('YOQA TIKISH', 2)])])   # bazadan, UID
+        self.assertEqual(content['notes'], ['chok ochilgan'])
         self.assertEqual(job.status, PrintJob.Status.PENDING)
 
     def test_no_receipt_without_printer_or_repair(self):
@@ -106,8 +107,12 @@ class RepairReceiptTest(TestCase):
             'repair_details': [{'item_number': 1, 'operation_ids': [self.ticket.id]}],
         }), content_type='application/json')
         self.assertEqual(PrintJob.objects.count(), 2)
-        self.assertTrue(PrintJob.objects.latest('id').title.startswith("Qayta ta'mir"))
-        self.assertEqual(repair_receipt_data(self.box, 1, [], screen_number=3, is_return=True)['qty_line'], "Qayta ta'mirga: 1 dona")
+        job = PrintJob.objects.latest('id')
+        self.assertTrue(job.title.startswith("2-ta'mir"))                       # qolgan 1 donaga yangi chek
+        self.assertIn(f"1P0TAMIR2:{self.box.box_code}".encode(), base64.b64decode(job.payload))
+        second = RepairReceipt.objects.get(box=self.box, cycle=2)
+        self.assertEqual(repair_receipt_data(second, [], screen_number=3)['qty_line'], "2-ta'mir: 1 dona")
+        self.assertEqual(RepairReceipt.objects.get(box=self.box, cycle=1).first_sort_qty, 1)   # 2 tadan 1 tasi tuzaldi
 
     def test_worker_operations_grouped_under_name(self):
         op2 = Operation.objects.create(code='OP-YC', name='YON CHOK')
@@ -115,7 +120,8 @@ class RepairReceiptTest(TestCase):
         t2 = Ticket.objects.create(box=self.box, article_operation=ao2, quantity=10, worker=self.worker,
                                    status=Ticket.Status.SCANNED, screen_number=3)
         details = [{'operation_ids': [self.ticket.id]}] * 3 + [{'operation_ids': [t2.id]}] * 2
-        workers = repair_receipt_data(self.box, 5, details, screen_number=3)['workers']
+        receipt = create_repair_receipt(self.box, 5, details, None)
+        workers = repair_receipt_data(receipt, details, screen_number=3)['workers']
         self.assertEqual([ops for _, ops in workers], [[('YOQA TIKISH', 3), ('YON CHOK', 2)]])   # bitta ism ostida
 
 

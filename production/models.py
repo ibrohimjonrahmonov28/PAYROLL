@@ -1961,29 +1961,44 @@ class PatokAward(models.Model):
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Beta qadoqlash tartibi (egasi talabi 2026-11-12, faqat Order.packing_beta zakazlarda):
-# OTK ta'mir cheki (QR "TAMIR:<box_code>") → taxlovchi CONTROL / TAMIR QR ni uradi → "qadoqlash kutayotgan" ishlar;
+# OTK ta'mir cheki (QR "TAMIR1:<box_code>", "TAMIR2:..." — har aylanmaga) → taxlovchi CONTROL / TAMIRn QR ni uradi;
 # sanoqchi patoklardan 2-sortni (brak ham) sanab savatga oladi va upakovkaning 2-sort omboriga jo'natadi.
 # Eski stikerlar, CONTROL stikeri va quti kodi o'zgarmaydi (oltin qoida): ta'mir cheki — yangi qog'oz, QR'i qutining
 # o'sha kodi, faqat oldida "TAMIR:".
 # ---------------------------------------------------------------------------------------------------------------------
 
 class RepairReceipt(models.Model):
-    """OTK ta'mirga yuborganda chiqadigan chek (hozircha A4, keyin chek apparati). Qayta ta'mirda yangisi chiqmaydi."""
-    box = models.OneToOneField(Box, on_delete=models.CASCADE, related_name='repair_receipt', verbose_name="Quti")
+    """OTK ta'mir cheki — har ta'mir aylanmasiga alohida (egasi talabi 2026-11-14): QR "TAMIR1:<box_code>",
+    qayta ta'mirda qolganlari uchun "TAMIR2:<box_code>" va h.k. — quti necha marta ta'mirga ketgani ko'rinadi.
+    Ta'mirdan qaytganda chek yopiladi: tuzalganlar shu chekning 1-sorti (first_sort_qty). Quti kodi va stikerlar
+    o'zgarmaydi (oltin qoida) — chek yangi qog'oz, QR'i qutining o'sha kodi. Eski "TAMIR:<box_code>" = 1-chek."""
+    box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='repair_receipts', verbose_name="Quti")
+    cycle = models.PositiveSmallIntegerField(default=1, verbose_name="Ta'mir aylanmasi (1, 2, ...)")
     quantity = models.PositiveIntegerField(verbose_name="Ta'mirga yuborilgan soni")
     details = models.JSONField(default=list, blank=True, verbose_name="Har dona: operatsiya va tikuvchi")
     inspector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="OTK")
     operator_name = models.CharField(max_length=150, blank=True, verbose_name="OTK nazoratchisi")
+    created_log = models.ForeignKey('BoxQualityInspectionLog', on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='+', verbose_name="Ta'mirga yuborgan tekshiruv")
+    returned_log = models.ForeignKey('BoxQualityInspectionLog', on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name='+', verbose_name="Ta'mirdan qaytgan tekshiruv")
+    returned_at = models.DateTimeField(null=True, blank=True, verbose_name="Ta'mirdan qaytgan vaqt")
+    first_sort_qty = models.PositiveIntegerField(default=0, verbose_name="Shu chekdan chiqqan 1-sort")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Ta'mir cheki"
         verbose_name_plural = "Ta'mir cheklari"
         ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['box', 'cycle'], name='repair_receipt_box_cycle')]
 
     @property
     def qr_text(self):
-        return f"TAMIR:{self.box.box_code}"
+        return f"TAMIR{self.cycle}:{self.box.box_code}"
+
+    @property
+    def is_open(self):
+        return self.returned_at is None
 
     def __str__(self):
         return f"{self.qr_text} ({self.quantity} dona)"
@@ -1999,6 +2014,8 @@ class PackingScan(models.Model):
     box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='packing_scans', verbose_name="Quti")
     source = models.CharField(max_length=10, choices=Source.choices, verbose_name="Qism")
     worker = models.ForeignKey(Worker, on_delete=models.PROTECT, related_name='packing_scans', verbose_name="Taxlovchi")
+    repair_receipt = models.ForeignKey(RepairReceipt, on_delete=models.PROTECT, null=True, blank=True,
+                                       related_name='packing_scans', verbose_name="Ta'mir cheki (TAMIR qismi)")
     quantity = models.PositiveIntegerField(verbose_name="Soni")
     terminal_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Terminal")
     scanned_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Urilgan vaqt")

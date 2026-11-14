@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 818,
-   "sha256_16": "bad276045904ba73"
+   "lines": 826,
+   "sha256_16": "17d8a151fe403f12"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 140,
-   "sha256_16": "98ec9a093d6f2134"
+   "sha256_16": "2f299247aebd4dfc"
   },
   "Dockerfile": {
    "module": "ops",
@@ -501,21 +501,21 @@
   },
   "production/control_views.py": {
    "module": "production.control",
-   "lines": 923,
-   "sha256_16": "041c89669f9c86f2",
+   "lines": 922,
+   "sha256_16": "d4c4480e6baaef12",
    "symbols": [
-    "_get_active_defect_reasons:19",
-    "_is_control_authorized:57",
-    "_get_active_operator:65",
-    "_get_scoped_inspection_logs_qs:81",
-    "_get_today_stats:123",
-    "control_home_view:152",
-    "control_identify_operator_api:186",
-    "control_logout_operator_api:311",
-    "control_box_lookup_api:336",
-    "control_submit_inspection_api:517",
-    "control_recent_inspections_api:840",
-    "control_download_apk_view:891"
+    "_get_active_defect_reasons:20",
+    "_is_control_authorized:58",
+    "_get_active_operator:66",
+    "_get_scoped_inspection_logs_qs:82",
+    "_get_today_stats:124",
+    "control_home_view:153",
+    "control_identify_operator_api:187",
+    "control_logout_operator_api:312",
+    "control_box_lookup_api:337",
+    "control_submit_inspection_api:518",
+    "control_recent_inspections_api:839",
+    "control_download_apk_view:890"
    ]
   },
   "production/cutting_urls.py": {
@@ -869,8 +869,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2088,
-   "sha256_16": "e2587e448fc1022a",
+   "lines": 2105,
+   "sha256_16": "d054875e4134fe8c",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -904,10 +904,10 @@
     "CancelledBatchLog:1872",
     "PatokAward:1905",
     "RepairReceipt:1970",
-    "PackingScan:1992",
-    "SecondSortBatch:2019",
-    "ReceiptPrinter:2040",
-    "PrintJob:2063"
+    "PackingScan:2007",
+    "SecondSortBatch:2036",
+    "ReceiptPrinter:2057",
+    "PrintJob:2080"
    ]
   },
   "production/norma_services.py": {
@@ -951,16 +951,19 @@
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 84,
-   "sha256_16": "3fe8354ea8963e6f",
+   "lines": 110,
+   "sha256_16": "24c24f506cc414dc",
    "symbols": [
-    "beta_group:19",
-    "create_repair_receipt:29",
-    "parse_packing_code:50",
-    "portion_total:67",
-    "packed_total:74",
-    "available_for_packing:78",
-    "find_box:82"
+    "beta_group:21",
+    "_details:31",
+    "create_repair_receipt:45",
+    "close_repair_receipt:52",
+    "parse_packing_code:65",
+    "find_receipt:85",
+    "portion_total:89",
+    "packed_total:97",
+    "available_for_packing:104",
+    "find_box:108"
    ]
   },
   "production/packing_urls.py": {
@@ -970,43 +973,43 @@
   },
   "production/packing_views.py": {
    "module": "production.platform",
-   "lines": 592,
-   "sha256_16": "3d5f0490bd5cacbe",
+   "lines": 604,
+   "sha256_16": "8d89a694f1180334",
    "symbols": [
-    "_role_required:48",
-    "_hub_url:65",
-    "_int_or_none:70",
-    "_json_body:77",
-    "_today_range:84",
-    "_patok_label:89",
-    "_worker_today_total:93",
-    "_find_worker:99",
-    "_article_card:110",
-    "_group_by_order_article:121",
-    "_pending_second_sort:151",
-    "_open_basket:156",
-    "_screen_filter:163",
-    "_today_beta_scans:167",
-    "_tab_badges:176",
+    "_role_required:49",
+    "_hub_url:66",
+    "_int_or_none:71",
+    "_json_body:78",
+    "_today_range:85",
+    "_patok_label:90",
+    "_worker_today_total:94",
+    "_find_worker:100",
+    "_article_card:111",
+    "_group_by_order_article:122",
+    "_pending_second_sort:152",
+    "_open_basket:157",
+    "_screen_filter:164",
+    "_today_beta_scans:168",
+    "_tab_badges:177",
     "_otk_context:195",
     "_taxlovchi_context:211",
     "_log_notes_map:216",
     "_sanoqchi_context:226",
-    "_upakovka_context:264",
-    "_zakazlar_context:290",
-    "hub_view:328",
-    "repair_receipt_view:350",
-    "_not_beta_response:365",
-    "_receipt_summary:373",
-    "api_otk_lookup:392",
-    "api_otk_submit:412",
-    "api_identify:441",
-    "api_scan:452",
-    "counter_accept:499",
-    "counter_basket_remove:528",
-    "counter_send:553",
-    "counter_cancel:568",
-    "beta_toggle:585"
+    "_upakovka_context:266",
+    "_zakazlar_context:292",
+    "hub_view:330",
+    "repair_receipt_view:352",
+    "_not_beta_response:367",
+    "_receipt_summary:375",
+    "api_otk_lookup:396",
+    "api_otk_submit:416",
+    "api_identify:447",
+    "api_scan:458",
+    "counter_accept:511",
+    "counter_basket_remove:540",
+    "counter_send:565",
+    "counter_cancel:580",
+    "beta_toggle:597"
    ]
   },
   "production/passport_bot_service.py": {
@@ -1066,8 +1069,8 @@
   },
   "production/receipt_printing.py": {
    "module": "production.platform",
-   "lines": 174,
-   "sha256_16": "76ad91daf191fb5c",
+   "lines": 176,
+   "sha256_16": "6506eab7bc2b6085",
    "symbols": [
     "_text:47",
     "_line:51",
@@ -1076,9 +1079,9 @@
     "_worker_uid:86",
     "_repair_workers:90",
     "repair_receipt_data:117",
-    "build_repair_receipt:142",
-    "queue_repair_receipt:147",
-    "build_test_receipt:167"
+    "build_repair_receipt:144",
+    "queue_repair_receipt:149",
+    "build_test_receipt:169"
    ]
   },
   "production/services.py": {
@@ -1272,10 +1275,10 @@
   },
   "production/test_packing_beta.py": {
    "module": "tests",
-   "lines": 247,
-   "sha256_16": "6339486c55b68122",
+   "lines": 271,
+   "sha256_16": "cfadbe6bb6f79908",
    "symbols": [
-    "PackingBetaTest:15"
+    "PackingBetaTest:16"
    ]
   },
   "production/test_passport_bot.py": {
@@ -1313,13 +1316,13 @@
   },
   "production/test_receipt_printing.py": {
    "module": "tests",
-   "lines": 205,
-   "sha256_16": "561e44a128822378",
+   "lines": 211,
+   "sha256_16": "832ffc7919a15899",
    "symbols": [
-    "RepairReceiptTest:20",
-    "PrintAgentApiTest:122",
-    "TabletPrintApiTest:153",
-    "PrintersPageTest:180"
+    "RepairReceiptTest:21",
+    "PrintAgentApiTest:128",
+    "TabletPrintApiTest:159",
+    "PrintersPageTest:186"
    ]
   },
   "production/test_salary_freeze.py": {
@@ -1345,6 +1348,14 @@
    "sha256_16": "43a0b29ed4c7dc8b",
    "symbols": [
     "TelegramDailyReportTest:20"
+   ]
+  },
+  "production/test_template_beta.py": {
+   "module": "tests",
+   "lines": 77,
+   "sha256_16": "c090234dd9bd850c",
+   "symbols": [
+    "TemplateBetaTest:18"
    ]
   },
   "production/test_terminal.py": {
@@ -1721,12 +1732,12 @@
   "templates/packing/repair_receipt.html": {
    "module": "templates",
    "lines": 95,
-   "sha256_16": "699acf0387329b01"
+   "sha256_16": "1078f1be956ae1b7"
   },
   "templates/packing/tabs/otk.html": {
    "module": "templates",
-   "lines": 583,
-   "sha256_16": "9c5b6849881cc7e6"
+   "lines": 584,
+   "sha256_16": "72877c4e64d7268b"
   },
   "templates/packing/tabs/sanoqchi.html": {
    "module": "templates",
@@ -1736,7 +1747,7 @@
   "templates/packing/tabs/taxlovchi.html": {
    "module": "templates",
    "lines": 160,
-   "sha256_16": "1f3e5dc512cef716"
+   "sha256_16": "9927c4c55dc7446a"
   },
   "templates/packing/tabs/upakovka.html": {
    "module": "templates",

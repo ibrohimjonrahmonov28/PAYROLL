@@ -52,7 +52,7 @@
         </div>
 
         <table class="info">
-            <tr><td class="label">Ta'mirga</td><td class="big">{{ receipt.quantity }} dona</td></tr>
+            <tr><td class="label">{{ receipt.cycle }}-ta'mir</td><td class="big">{{ receipt.quantity }} dona</td></tr>
             <tr><td class="label">Quti</td><td><b>{{ box.box_code }}</b> (#{{ box.box_number }}){% if box.pastal_code %} · Pastal {{ box.pastal_code }}{% endif %}</td></tr>
             <tr><td class="label">Zakaz</td><td>{{ box.order.order_number }}{% if box.order.client_name %} · {{ box.order.client_name }}{% endif %}</td></tr>
             <tr><td class="label">Model</td><td>{{ article.code }} — {{ article.name }}</td></tr>

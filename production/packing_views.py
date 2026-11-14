@@ -28,7 +28,8 @@ from accounts.models import User, Worker
 from production.control_views import control_box_lookup_api, control_submit_inspection_api
 from production.models import (Box, BoxQualityInspectionLog, Order, PackingScan, RepairReceipt, SecondSortBatch,
                                _generate_qr_data_uri)
-from production.packing_services import available_for_packing, packed_total, parse_packing_code, portion_total
+from production.packing_services import (available_for_packing, find_receipt, packed_total, parse_packing_code,
+                                         portion_total)
 from production.services import get_patok_code
 from production.sewing_statistics_views import natural_size_sort_key
 from production.terminal_views import extract_worker_code
@@ -177,8 +178,7 @@ def _tab_badges(allowed_keys):
     """Tab sarlavhalaridagi jonli ko'rsatkichlar (0 bo'lsa ko'rsatilmaydi)."""
     badges = {}
     if 'otk' in allowed_keys:
-        badges['otk'] = RepairReceipt.objects.filter(
-            box__order__packing_beta=True, box__controlled_repair_qty__gt=0).count()
+        badges['otk'] = RepairReceipt.objects.filter(box__order__packing_beta=True, returned_at__isnull=True).count()
     if 'sanoqchi' in allowed_keys:
         badges['sanoqchi'] = _pending_second_sort().aggregate(s=Sum('second_sort_qty'))['s'] or 0
     if 'upakovka' in allowed_keys:
@@ -194,14 +194,14 @@ def _tab_badges(allowed_keys):
 
 def _otk_context(request):
     since = timezone.now() - timezone.timedelta(days=7)
-    receipts = list(RepairReceipt.objects.filter(created_at__gte=since)
+    receipts = list(RepairReceipt.objects.filter(created_at__gte=since, box__order__packing_beta=True)
                     .select_related(*BOX_RELATED, 'inspector').order_by('-created_at')[:100])
     active_count = 0
     for receipt in receipts:
         box = receipt.box
         receipt.patok_code = _patok_label(box.assigned_screen) if box.assigned_screen else '—'
-        receipt.remaining_repair_qty = box.controlled_repair_qty or 0
-        receipt.is_repair_active = receipt.remaining_repair_qty > 0
+        receipt.is_repair_active = receipt.is_open                 # har ta'mir aylanmasi — alohida chek
+        receipt.remaining_repair_qty = receipt.quantity if receipt.is_open else 0
         receipt.article_code = box.target_article.code if box.target_article else ''
         if receipt.is_repair_active:
             active_count += 1
@@ -243,11 +243,13 @@ def _sanoqchi_context(request):
             ((log.box, log.second_sort_qty) for log in b_logs), _log_notes_map(b_logs))
 
     cancel_code = request.GET.get('cancel', '').strip()
-    source, box_code = parse_packing_code(cancel_code)
+    source, box_code, cycle = parse_packing_code(cancel_code)
     cancel_scans = []
     if source:
-        cancel_scans = list(PackingScan.objects.filter(box__box_code__iexact=box_code, source=source, is_cancelled=False)
-                            .select_related(*SCAN_RELATED).order_by('-scanned_at'))
+        scans = PackingScan.objects.filter(box__box_code__iexact=box_code, source=source, is_cancelled=False)
+        if cycle:
+            scans = scans.filter(repair_receipt__cycle=cycle)
+        cancel_scans = list(scans.select_related(*SCAN_RELATED).order_by('-scanned_at'))
     return {
         'patoks': patoks,
         'selected_patok': selected,
@@ -379,7 +381,9 @@ def _receipt_summary(receipt, box):
         'article_code': box.target_article.code if box.target_article else '',
         'razmer': box.razmer or '—',
         'quantity': receipt.quantity,
-        'remaining': box.controlled_repair_qty or 0,
+        'remaining': receipt.quantity if receipt.is_open else 0,
+        'code': receipt.qr_text,
+        'cycle': receipt.cycle,
         'details': receipt.details or [],
         'operator_name': receipt.operator_name or '',
         'inspector': receipt.inspector.get_full_name() or receipt.inspector.username if receipt.inspector else '',
@@ -401,7 +405,7 @@ def api_otk_lookup(request):
     if error:
         return error
     payload['box']['patok_code'] = _patok_label(box.assigned_screen) if box.assigned_screen else '—'
-    receipt = RepairReceipt.objects.filter(box=box).select_related('inspector').first()
+    receipt = box.repair_receipts.select_related('inspector').order_by('-cycle').first()
     if receipt:
         payload['existing_receipt'] = _receipt_summary(receipt, box)
     return JsonResponse(payload)
@@ -420,12 +424,14 @@ def api_otk_submit(request):
     if error:
         return error
     response = control_submit_inspection_api(request)
-    if response.status_code != 200 or data.get('mode') != 'INITIAL':
+    if response.status_code != 200:
         return response
     payload = json.loads(response.content)
-    receipt = RepairReceipt.objects.filter(box=box).select_related('inspector').first() if payload.get('repair_qty') else None
+    # shu saqlashda chiqqan ta'mir cheki: birlamchi ta'mir (TAMIR1) yoki qayta ta'mir (TAMIR2, ...)
+    last_log = box.quality_inspection_logs.order_by('-id').first()
+    receipt = (RepairReceipt.objects.filter(box=box, created_log=last_log).select_related('inspector').first()
+               if last_log else None)
     if receipt:
-        box.refresh_from_db(fields=['controlled_repair_qty'])
         summary = _receipt_summary(receipt, box)
         payload['receipt_url'] = summary['receipt_url']
         payload['receipt_meta'] = summary
@@ -454,7 +460,7 @@ def api_scan(request):
     worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id')), is_active=True).first()
     if not worker:
         return JsonResponse({'status': 'NO_WORKER', 'message': "Avval o'z badge'ingizni uring."}, status=400)
-    source, box_code = parse_packing_code(data.get('code'))
+    source, box_code, cycle = parse_packing_code(data.get('code'))
     if not source:
         return JsonResponse({'status': 'BAD_CODE', 'message': (
             "Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.")}, status=400)
@@ -469,22 +475,28 @@ def api_scan(request):
         if box.status == Box.Status.CANCELLED:
             return JsonResponse({'status': 'CANCELLED', 'message': "Bu quti bekor qilingan."}, status=400)
 
-        available = available_for_packing(box, source)
+        receipt = find_receipt(box, cycle) if source == PackingScan.Source.TAMIR else None
+        if source == PackingScan.Source.TAMIR and receipt is None:
+            return JsonResponse({'status': 'NOT_FOUND', 'message': f"«TAMIR{cycle}:{box.box_code}» cheki yo'q."}, status=404)
+        available = available_for_packing(box, source, receipt)
         if available <= 0:
             if source == PackingScan.Source.CONTROL and not portion_total(box, source):
                 message = "OTK bu qutini hali tekshirmagan (yoki 1-sort yo'q)."
-            elif source == PackingScan.Source.TAMIR and not portion_total(box, source):
-                message = "Ta'mirdan hali 1-sort qaytmagan."
+            elif receipt is not None and receipt.is_open:
+                message = f"{receipt.cycle}-ta'mir cheki hali ta'mirdan qaytmagan."
+            elif receipt is not None and not receipt.first_sort_qty:
+                message = f"{receipt.cycle}-ta'mir chekidan 1-sort chiqmagan."
             else:
-                message = f"Bu qog'oz allaqachon urilgan: {packed_total(box, source)} dona qadoqlangan."
+                message = f"Bu qog'oz allaqachon urilgan: {packed_total(box, source, receipt)} dona qadoqlangan."
             return JsonResponse({'status': 'NOTHING', 'message': message}, status=400)
 
-        PackingScan.objects.create(box=box, source=source, worker=worker, quantity=available, terminal_user=request.user)
+        PackingScan.objects.create(box=box, source=source, repair_receipt=receipt, worker=worker, quantity=available,
+                                   terminal_user=request.user)
 
     article = box.target_article
     return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: +{available} dona", 'scan': {
         'quantity': available,
-        'source': PackingScan.Source(source).label,
+        'source': f"{receipt.cycle}-ta'mir cheki" if receipt else PackingScan.Source(source).label,
         'box_code': box.box_code,
         'order': box.order.order_number,
         'article': f"{article.code} — {article.name}" if article else '',

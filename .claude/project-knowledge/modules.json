@@ -130,7 +130,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3341,
+  "lines": 3349,
   "depends_on": [
    "accounts.core"
   ]
@@ -167,7 +167,7 @@
    "production/control_urls.py",
    "production/control_views.py"
   ],
-  "lines": 939,
+  "lines": 938,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -251,7 +251,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2088,
+  "lines": 2105,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -319,7 +319,7 @@
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 1611,
+  "lines": 1651,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -514,7 +514,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45345,
+  "lines": 45346,
   "depends_on": []
  },
  "tests": {
@@ -535,11 +535,12 @@
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_telegram_reports.py",
+   "production/test_template_beta.py",
    "production/test_terminal.py",
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 11676,
+  "lines": 11783,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

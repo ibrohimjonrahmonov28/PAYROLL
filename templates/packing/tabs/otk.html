@@ -1,7 +1,7 @@
 {% comment %}
 OTK tabi (superadmin, beta): /control/ ning o'sha qidiruv va saqlash funksiyalari (api_otk_lookup / api_otk_submit), faqat beta
 zakaz qutilari. Har 2-sort va ta'mir donasi uchun operatsiya (tikuvchi avtomatik) — /control/ bilan bir xil ma'lumot ketadi.
-Ta'mir bo'lsa chek (QR "TAMIR:<quti kodi>") shu kompyuterda A4 ga chiqadi; o'ngda — qayta chop etish.
+Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu kompyuterda A4 ga chiqadi; o'ngda — qayta chop etish.
 {% endcomment %}
 <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-5">
     <section class="space-y-4">
@@ -130,6 +130,7 @@ Ta'mir bo'lsa chek (QR "TAMIR:<quti kodi>") shu kompyuterda A4 ga chiqadi; o'ngd
                 <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="font-black text-white text-sm">{{ receipt.box.box_code }}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-black">{{ receipt.cycle }}-ta'mir</span>
                         <span class="text-[11px] text-slate-400 font-bold">· {{ receipt.patok_code }} · {{ receipt.box.razmer|default:"—" }}</span>
                         {% if receipt.is_repair_active %}
                         <span class="px-1.5 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 text-[10px] font-black">Ta'mirda: {{ receipt.remaining_repair_qty }}</span>

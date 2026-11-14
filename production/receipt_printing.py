@@ -1,13 +1,13 @@
 """
 OTK ta'mir cheki (egasi talabi 2026-11-11): OTK ta'mir sonini saqlaganda shu patok OTK stolidagi printerdan chek chiqadi
-— ta'mir soni, har tikuvchi (ism, 6 xonali UID) va u qilgan operatsiyalar soni, hamda qutining MAVJUD OTK QR kodi
-(CONTROL:<box_code>). Yangi kod yaratilmaydi (oltin qoida). Server chekni PrintJob navbatiga qo'yadi, fabrikadagi pechat
+— ta'mir soni, har tikuvchi (ism, 6 xonali UID) va u qilgan operatsiyalar soni, hamda shu ta'mir chekining QR kodi
+(TAMIR1:<box_code>, qayta ta'mirda TAMIR2:... — quti kodi va stikerlar o'zgarmaydi, oltin qoida). Server chekni PrintJob navbatiga qo'yadi, fabrikadagi pechat
 agenti (print_agent/terryjar_print_agent.py) uni printerga yuboradi. Chek chiqmasa ham OTK saqlanadi.
 
 Dizayn (egasi tasdiqlagan, 2026-11-14):
   Quti: D11-356 (#1722)
   Pastal / Zakaz / Model (kod + nom) / Razmer
-  Ta'mirga: 5 dona                       <- katta
+  1-ta'mir: 5 dona                       <- katta (qayta ta'mirda 2-ta'mir, ...)
   ------------------------------------------------
   Iroda Egamberdiyeva (447123):          <- qalin
     ETAK RESHMA 1 ta                     <- shu tikuvchining operatsiyalari ostma-ost
@@ -114,8 +114,10 @@ def _repair_workers(box, repair_details):
     return [(who, list(ops.items())) for who, ops in workers.items()], notes
 
 
-def repair_receipt_data(box, repair_qty, repair_details, *, screen_number, operator_name='', is_return=False, when=None):
-    """Chek mazmuni (ESC/POS baytlaridan alohida — testlar shu yerni tekshiradi)."""
+def repair_receipt_data(receipt, repair_details, *, screen_number, operator_name='', when=None):
+    """Chek mazmuni (ESC/POS baytlaridan alohida — testlar shu yerni tekshiradi). QR — shu ta'mir chekining kodi
+    ("TAMIR1:<box_code>", "TAMIR2:..."), quti kodi va stikerlar o'zgarmaydi."""
+    box = receipt.box
     when = timezone.localtime(when or timezone.now())
     article = box.article
     info = [f"Quti: {box.box_code} (#{box.box_number})"]
@@ -130,33 +132,33 @@ def repair_receipt_data(box, repair_qty, repair_details, *, screen_number, opera
     workers, notes = _repair_workers(box, repair_details)
     return {
         'info': info,
-        'qty_line': f"{'Qayta ta' if is_return else 'Ta'}'mirga: {repair_qty} dona",
+        'qty_line': f"{receipt.cycle}-ta'mir: {receipt.quantity} dona",
         'workers': workers,
         'notes': notes,
         'operator': operator_name,
         'footer': f"{get_patok_code(screen_number)} · {when:%d.%m.%Y %H:%M}",
-        'qr': f"CONTROL:{box.box_code}",
+        'qr': receipt.qr_text,
     }
 
 
-def build_repair_receipt(box, repair_qty, repair_details, *, screen_number, operator_name='', is_return=False, when=None):
-    return _render(repair_receipt_data(box, repair_qty, repair_details, screen_number=screen_number,
-                                       operator_name=operator_name, is_return=is_return, when=when))
+def build_repair_receipt(receipt, repair_details, *, screen_number, operator_name='', when=None):
+    return _render(repair_receipt_data(receipt, repair_details, screen_number=screen_number,
+                                       operator_name=operator_name, when=when))
 
 
-def queue_repair_receipt(box, log, repair_qty, repair_details, *, user, operator_name='', is_return=False):
-    """Terminal foydalanuvchisi patokining faol printeriga chek qo'yadi. Printer yo'q yoki xato bo'lsa jim qaytadi."""
+def queue_repair_receipt(box, log, receipt, repair_details, *, user, operator_name=''):
+    """Terminal foydalanuvchisi patokining faol printeriga ta'mir chekini qo'yadi. Printer yo'q yoki xato bo'lsa jim qaytadi."""
     try:
         # patok OTK userlarida assigned_screen yozilmagan — patok login nomidan (patok3, patokk3, patoku5)
         screen = user.assigned_screen_number or parse_patok_number(user.username)
         printer = ReceiptPrinter.objects.filter(screen_number=screen, is_active=True).first() if screen else None
-        if printer is None or repair_qty <= 0:
+        if printer is None or receipt is None:
             return None
-        data = build_repair_receipt(box, repair_qty, repair_details if isinstance(repair_details, list) else [],
-                                    screen_number=screen, operator_name=operator_name, is_return=is_return)
+        data = build_repair_receipt(receipt, repair_details if isinstance(repair_details, list) else [],
+                                    screen_number=screen, operator_name=operator_name)
         return PrintJob.objects.create(
             printer=printer, box=box, inspection_log=log,
-            title=f"{'Qayta ta' if is_return else 'Ta'}'mir · {box.box_code} · {repair_qty} dona",
+            title=f"{receipt.cycle}-ta'mir · {box.box_code} · {receipt.quantity} dona",
             payload=base64.b64encode(data).decode('ascii'),
         )
     except Exception:   # chek hech qachon OTK saqlashini buzmasin
@@ -166,8 +168,8 @@ def queue_repair_receipt(box, log, repair_qty, repair_details, *, user, operator
 
 def build_test_receipt(printer):
     return _render({
-        'info': [f"SINOV CHEKI · {printer.host}", "Kirill: Шорты мужские"], 'qty_line': "Ta'mirga: 1 dona",
+        'info': [f"SINOV CHEKI · {printer.host}", "Kirill: Шорты мужские"], 'qty_line': "1-ta'mir: 1 dona",
         'workers': [(('Sinov Ishchi', '123456'), [('YOQA TIKISH', 1)])], 'notes': [], 'operator': "O'zbek",
         'footer': f"{get_patok_code(printer.screen_number)} · {timezone.localtime():%d.%m.%Y %H:%M}",
-        'qr': "CONTROL:TEST-001",
+        'qr': "TAMIR1:TEST-001",
     })

@@ -6,8 +6,8 @@
    "latest": "0021_packing_counter_roles"
   },
   "production": {
-   "count": 42,
-   "latest": "0042_operation_group_beta"
+   "count": 43,
+   "latest": "0043_repair_receipt_cycles"
   },
   "screens": {
    "count": 0,
@@ -1037,18 +1037,21 @@
    "file": "production/models.py:1970",
    "fields": {
     "id": "BigAutoField",
+    "cycle": "PositiveSmallIntegerField",
     "quantity": "PositiveIntegerField",
     "details": "JSONField",
     "operator_name": "CharField",
+    "returned_at": "DateTimeField",
+    "first_sort_qty": "PositiveIntegerField",
     "created_at": "DateTimeField"
    },
    "relations": [
     {
      "field": "box",
-     "type": "OneToOneField",
+     "type": "ForeignKey",
      "to": "production.Box",
      "on_delete": "CASCADE",
-     "related_name": "repair_receipt"
+     "related_name": "repair_receipts"
     },
     {
      "field": "inspector",
@@ -1056,12 +1059,26 @@
      "to": "accounts.User",
      "on_delete": "SET_NULL",
      "related_name": "+"
+    },
+    {
+     "field": "created_log",
+     "type": "ForeignKey",
+     "to": "production.BoxQualityInspectionLog",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "returned_log",
+     "type": "ForeignKey",
+     "to": "production.BoxQualityInspectionLog",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
     }
    ]
   },
   "production.PackingScan": {
    "table": "production_packingscan",
-   "file": "production/models.py:1992",
+   "file": "production/models.py:2007",
    "fields": {
     "id": "BigAutoField",
     "source": "CharField[choices]",
@@ -1086,6 +1103,13 @@
      "related_name": "packing_scans"
     },
     {
+     "field": "repair_receipt",
+     "type": "ForeignKey",
+     "to": "production.RepairReceipt",
+     "on_delete": "PROTECT",
+     "related_name": "packing_scans"
+    },
+    {
      "field": "terminal_user",
      "type": "ForeignKey",
      "to": "accounts.User",
@@ -1103,7 +1127,7 @@
   },
   "production.SecondSortBatch": {
    "table": "production_secondsortbatch",
-   "file": "production/models.py:2019",
+   "file": "production/models.py:2036",
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",
@@ -1122,7 +1146,7 @@
   },
   "production.ReceiptPrinter": {
    "table": "production_receiptprinter",
-   "file": "production/models.py:2040",
+   "file": "production/models.py:2057",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField[unique]",
@@ -1137,7 +1161,7 @@
   },
   "production.PrintJob": {
    "table": "production_printjob",
-   "file": "production/models.py:2063",
+   "file": "production/models.py:2080",
    "fields": {
     "id": "BigAutoField",
     "title": "CharField",

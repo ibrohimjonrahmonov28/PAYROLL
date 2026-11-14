@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from accounts.models import User, Worker
 from production.models import Box, BoxQualityInspectionLog, Ticket, DefectReason, ControlSetting
+from production.packing_services import close_repair_receipt, create_repair_receipt
 from production.receipt_printing import queue_repair_receipt
 from production.terminal_views import extract_worker_code
 
@@ -357,8 +358,11 @@ def control_box_lookup_api(request):
 
     # Skaner klaviatura xatosini to'g'rilash (+ ni - ga o'girish, masalan CONTROL+A9+1 yoki A9+1)
     if '+' in raw_code:
-        raw_code = re.sub(r'^(CONTROL|TAMIR|BOX|TICKET|TK)\+', r'\1:', raw_code, flags=re.IGNORECASE)
+        raw_code = re.sub(r'^(CONTROL|TAMIR\d*|BOX|TICKET|TK)\+', r'\1:', raw_code, flags=re.IGNORECASE)
         raw_code = raw_code.replace('+', '-')
+    # Muzlatilgan /control/ sahifasi "+" ni o'zi "-" ga aylantiradi, TAMIR esa uning ro'yxatida yo'q:
+    # "TAMIR1+A11+1" bu yerga "TAMIR1-A11-1" bo'lib keladi (quti kodi hech qachon TAMIR bilan boshlanmaydi)
+    raw_code = re.sub(r'^(TAMIR\d*)-', r'\1:', raw_code, flags=re.IGNORECASE)
 
     # 0. Tikuvchi bilet kodi prefikslari (TICKET:, TK-) bo'lsa darhol bloklash
     raw_upper = raw_code.upper()
@@ -368,11 +372,8 @@ def control_box_lookup_api(request):
             'message': "Sizda bunday huquq yo'q! Bu tikuvchining operatsiya stikeri. Sifat nazorati (OTK) uchun faqat qutidagi CONTROL stikerini yoki Quti ID sini skanerlang!"
         }, status=403)
 
-    # Prefikslarni tozalash (CONTROL:, TAMIR: — beta ta'mir cheki, BOX:, QUTI:)
-    cleaned = raw_code.upper()
-    for prefix in ['CONTROL:', 'TAMIR:', 'BOX:', 'QUTI:', 'QUTI ']:
-        if cleaned.startswith(prefix):
-            cleaned = cleaned[len(prefix):].strip()
+    # Prefikslarni tozalash (CONTROL:, TAMIR1:/TAMIR2:... — ta'mir cheki, eski TAMIR:, BOX:, QUTI:)
+    cleaned = re.sub(r'^(CONTROL|TAMIR\d*|BOX|QUTI)\s*:\s*|^QUTI\s+', '', raw_code.upper()).strip()
 
     # User talabi: Quti raqami (#456) qabul qilinmaydi! Faqat Quti ID kodi (masalan: A10-394 yoki unikal Box ID)!
     if raw_code.strip().startswith('#') or cleaned.startswith('#'):
@@ -669,15 +670,11 @@ def control_submit_inspection_api(request):
             defect_qty=0,
             notes=final_notes
         )
-        if repair_qty > 0:   # OTK stolidagi printerdan ta'mir cheki (printer sozlangan bo'lsa)
-            queue_repair_receipt(box, log, repair_qty, repair_details, user=request.user,
-                                 operator_name=(active_operator or {}).get('full_name') or '')
-
-        # Beta qadoqlash zakazi ta'mirga yuborilsa: ta'mir cheki (QR "TAMIR:<box_code>"); /beta/ sahifasida chop etiladi
-        if repair_qty > 0 and box.order and box.order.packing_beta:
-            from production.packing_services import create_repair_receipt
-            create_repair_receipt(box, repair_qty, repair_details, inspector_user,
-                                  (active_operator or {}).get('full_name') or '')
+        if repair_qty > 0:
+            # 1-ta'mir cheki (QR "TAMIR1:<box_code>") — /beta/ da A4, OTK stolidagi printerda termo chek
+            operator_name = (active_operator or {}).get('full_name') or ''
+            receipt = create_repair_receipt(box, repair_qty, repair_details, inspector_user, operator_name, log)
+            queue_repair_receipt(box, log, receipt, repair_details, user=request.user, operator_name=operator_name)
 
         if is_closed:
             msg = f"Quti {box.box_code} yopildi: {first_sort} ta 1-sort, {second_sort} ta 2-sort. Mahsulot qabul qilindi!"
@@ -800,9 +797,11 @@ def control_submit_inspection_api(request):
             defect_qty=0,
             notes=final_notes
         )
-        if re_repair_qty > 0:
-            queue_repair_receipt(box, log, re_repair_qty, repair_details, user=request.user, is_return=True,
-                                 operator_name=(active_operator or {}).get('full_name') or '')
+        # ochiq ta'mir cheki yopiladi (tuzalganlar — uning 1-sorti); yana ta'mirga ketganlari uchun keyingi chek (TAMIR2, ...)
+        operator_name = (active_operator or {}).get('full_name') or ''
+        next_receipt = close_repair_receipt(box, log, fixed_qty, re_repair_qty, repair_details, inspector_user, operator_name)
+        if next_receipt is not None:
+            queue_repair_receipt(box, log, next_receipt, repair_details, user=request.user, operator_name=operator_name)
 
         if is_closed:
             msg = f"Quti {box.box_code} ta'miri yakunlandi va quti to'liq yopildi: {fixed_qty} ta 1-sortga qo'shildi, {defect_qty} ta 2-sort."

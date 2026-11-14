@@ -1,5 +1,6 @@
 """
-Beta (2026-11-12): bitta /beta/ sahifasi — OTK ta'mir cheki ("TAMIR:<box_code>"), taxlovchi CONTROL/TAMIR qismlari,
+Beta (2026-11-12): bitta /beta/ sahifasi — OTK ta'mir cheklari (har aylanmaga: "TAMIR1:<box_code>", "TAMIR2:..."),
+taxlovchi CONTROL/TAMIRn qismlari,
 sanoqchi 2-sorti, rollar bo'yicha tablar. Muzlatilgan /control/ sahifasi o'zgarmaydi.
 """
 import json
@@ -47,12 +48,12 @@ class PackingBetaTest(TestCase):
     def test_otk_tab_prints_repair_receipt(self):
         data = self.initial()
         receipt = RepairReceipt.objects.get(box=self.box)
-        self.assertEqual((receipt.quantity, receipt.qr_text), (7, f"TAMIR:{self.box.box_code}"))
+        self.assertEqual((receipt.cycle, receipt.quantity, receipt.qr_text), (1, 7, f"TAMIR1:{self.box.box_code}"))
         self.assertEqual(receipt.details[0]['workers'], ['Malika (W-1)'])
         self.assertEqual(data['receipt_url'], reverse('packing:repair_receipt', args=[receipt.id]) + '?print=1')
 
         page = self.client.get(data['receipt_url'])
-        self.assertContains(page, f"TAMIR:{self.box.box_code}")
+        self.assertContains(page, f"TAMIR1:{self.box.box_code}")
         self.assertContains(page, 'window.print()')
         self.assertEqual([r.id for r in self.client.get(self.hub, {'tab': 'otk'}).context['receipts']], [receipt.id])
 
@@ -78,24 +79,47 @@ class PackingBetaTest(TestCase):
     def test_tamir_qr_opens_repair_return(self):
         self.initial()
         self.client.force_login(self.admin)
-        res = self.client.get(reverse('packing:api_otk_lookup'), {'code': f"TAMIR:{self.box.box_code}"})
+        res = self.client.get(reverse('packing:api_otk_lookup'), {'code': f"TAMIR1:{self.box.box_code}"})
         self.assertEqual(res.json()['box']['mode'], 'REPAIR_RETURN')
+        old_style = self.client.get(reverse('packing:api_otk_lookup'), {'code': f"TAMIR:{self.box.box_code}"})
+        self.assertEqual(old_style.json()['box']['mode'], 'REPAIR_RETURN')     # eski chek ham ochiladi
+
+    def test_otk_tablet_reads_tamir_receipt_with_scanner_plus_error(self):
+        # Planshet /control/ sahifasi: skaner ":" va "-" o'rniga "+" yuborsa, sahifa "+" ni "-" ga aylantiradi
+        self.post_json(self.otk, reverse('control:api_submit'),
+                       {'box_id': self.box.id, 'mode': 'INITIAL', 'total_qty': 50, 'repair_qty': 2})
+        code = self.box.box_code
+        for scanned in (f"TAMIR1:{code}", f"tamir1:{code}", f"TAMIR1+{code.replace('-', '+')}", f"TAMIR1-{code}",
+                        f"TAMIR:{code}", code):
+            res = self.client.get(reverse('control:api_lookup'), {'code': scanned})
+            self.assertEqual((res.status_code, res.json()['box']['mode']), (200, 'REPAIR_RETURN'), scanned)
+        from production.packing_services import parse_packing_code
+        self.assertEqual(parse_packing_code(f"TAMIR2-{code}"), (PackingScan.Source.TAMIR, code, 2))
+        self.assertEqual(parse_packing_code(f"TAMIR2+{code.replace('-', '+')}"), (PackingScan.Source.TAMIR, code, 2))
 
     def test_each_paper_gets_only_its_own_portion(self):
-        # Egasi misoli: 40 ta 1-sort hali urilmagan, ta'mirdan 4 tasi 1-sort bo'ldi (3 tasi qayta ta'mirga)
+        # Egasi misoli: 40 ta 1-sort, 7 ta ta'mir; ta'mirdan 4 tasi 1-sort, 3 tasi qayta ta'mirga — TAMIR2 cheki chiqadi
         self.initial()
-        self.repair_return(re_repair=3)
+        data = self.repair_return(re_repair=3)
+        second = RepairReceipt.objects.get(box=self.box, cycle=2)
+        self.assertEqual((second.quantity, second.qr_text), (3, f"TAMIR2:{self.box.box_code}"))
+        self.assertEqual(data['receipt_meta']['code'], second.qr_text)          # /beta/ da 2-chek ham chop etiladi
+        first = RepairReceipt.objects.get(box=self.box, cycle=1)
+        self.assertEqual((first.first_sort_qty, first.is_open), (4, False))
         identified = self.post_json(self.packing, reverse('packing:api_identify'), {'code': 'WORKER:W-900'}).json()
         self.assertEqual(identified['worker']['id'], self.packer.id)
 
-        self.assertEqual(self.scan(f"TAMIR:{self.box.box_code}")['scan']['quantity'], 4)
+        self.assertEqual(self.scan(f"TAMIR1:{self.box.box_code}")['scan']['quantity'], 4)   # chekda 7, bazada 4
         self.assertEqual(self.scan(f"CONTROL:{self.box.box_code}")['scan']['quantity'], 40)
         self.assertEqual(self.scan(f"CONTROL+{self.box.box_code}")['status'], 'NOTHING')   # qayta urish hech narsa qo'shmaydi
-        self.assertEqual(self.scan(f"TAMIR:{self.box.box_code}")['status'], 'NOTHING')
+        self.assertEqual(self.scan(f"TAMIR:{self.box.box_code}")['status'], 'NOTHING')     # eski kod = TAMIR1
+        self.assertEqual(self.scan(f"TAMIR2:{self.box.box_code}")['status'], 'NOTHING')    # hali ta'mirdan qaytmagan
+        self.assertEqual(self.scan(f"TAMIR3:{self.box.box_code}")['status'], 'NOT_FOUND')
 
-        self.repair_return(re_repair=0)   # qolgan 3 tasi tuzaldi, o'sha chek qaytdi
-        self.assertEqual(self.scan(f"TAMIR:{self.box.box_code}")['scan']['quantity'], 3)
+        self.repair_return(re_repair=0)   # 2-chekdagi 3 tasi tuzaldi
+        self.assertEqual(self.scan(f"TAMIR2:{self.box.box_code}")['scan']['quantity'], 3)
         self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).context['waiting_total'], 47)
+        self.assertEqual(RepairReceipt.objects.filter(box=self.box).count(), 2)
 
     def test_typed_box_code_counts_as_control_sticker(self):
         # Taxlovchi quti kodini qo'lda yozadi (stiker ustidagi yozuv) — CONTROL stikeri bilan bir xil

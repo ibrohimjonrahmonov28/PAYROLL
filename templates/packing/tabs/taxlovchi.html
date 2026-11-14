@@ -53,7 +53,7 @@
 
     <p class="text-xs text-slate-500 text-center">
         Avval o'z ID / badge'ingizni, keyin qutining CONTROL stikerini (yoki quti kodini yozing) yoki TAMIR chekini uring.
-        Qo'lda yozilgan quti kodi CONTROL stikeri hisoblanadi; ta'mir chekini qo'lda yozish: <b class="text-slate-400">TAMIR:quti kodi</b>.
+        Qo'lda yozilgan quti kodi CONTROL stikeri hisoblanadi; ta'mir chekini qo'lda yozish: <b class="text-slate-400">TAMIR1:quti kodi</b>.
     </p>
 </div>
 
@@ -107,7 +107,7 @@
             showResult(false, "Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.");
             return;
         }
-        const isBoxPrefixed = /^(CONTROL|TAMIR|BOX|QUTI)\s*[:+]/i.test(code);
+        const isBoxPrefixed = /^(CONTROL|TAMIR\d*|BOX|QUTI)\s*[:+]/i.test(code);
         const isWorkerExplicit = /^(WORKER\s*[:+]|W-\d+$|\d+$)/i.test(code);
         const looksLikeBoxCode = /^[A-Za-z]{1,4}\d+-\d+/.test(code);
 

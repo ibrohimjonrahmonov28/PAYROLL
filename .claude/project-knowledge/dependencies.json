@@ -126,6 +126,7 @@
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_telegram_reports.py",
+   "production/test_template_beta.py",
    "production/test_terminal.py",
    "production/tests.py",
    "production/urls.py",
@@ -301,11 +302,9 @@
    "imports": [
     "accounts.models",
     "production.models",
+    "production.packing_services",
     "production.receipt_printing",
     "production.terminal_views"
-   ],
-   "lazy": [
-    "production.packing_services"
    ]
   },
   "production.cutting_urls": {
@@ -676,6 +675,9 @@
    "imports": [
     "accounts.models",
     "production.models"
+   ],
+   "lazy": [
+    "production.packing_services"
    ]
   },
   "production.test_passport_bot": {
@@ -724,6 +726,7 @@
    "imports": [
     "accounts.models",
     "production.models",
+    "production.packing_services",
     "production.print_views",
     "production.receipt_printing"
    ]
@@ -752,6 +755,14 @@
     "production.excel_reports",
     "production.models",
     "production.telegram_reports"
+   ]
+  },
+  "production.test_template_beta": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.packing_services",
+    "production.services"
    ]
   },
   "production.test_terminal": {
