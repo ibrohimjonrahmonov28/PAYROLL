@@ -150,6 +150,33 @@ class PrintAgentApiTest(TestCase):
         self.assertIn('timed out', self.job.error)
 
 
+class TabletPrintApiTest(TestCase):
+    """Planshetdagi Terry Jar Print ilovasi: ?patok= bilan faqat o'z patokining "tablet" printeri cheklari."""
+    def setUp(self):
+        self.headers = {'HTTP_X_AGENT_TOKEN': agent_token()}
+        self.k13 = ReceiptPrinter.objects.create(screen_number=13, host='tablet')
+        self.k2 = ReceiptPrinter.objects.create(screen_number=2, host='tablet')
+        self.lan = ReceiptPrinter.objects.create(screen_number=1, host='192.168.1.51')
+        for printer in (self.k13, self.k2, self.lan):
+            PrintJob.objects.create(printer=printer, title=f"#{printer.screen_number}", payload='eA==')
+
+    def jobs(self, **params):
+        return self.client.get(reverse('printers:agent_jobs'), params, **self.headers).json()
+
+    def test_tablet_gets_only_its_patok_and_is_marked_seen(self):
+        self.assertEqual([j['title'] for j in self.jobs(patok='K13')['jobs']], ['#13'])
+        self.k13.refresh_from_db()
+        self.assertIsNotNone(self.k13.last_seen_at)
+        self.assertEqual([j['title'] for j in self.jobs(patok='2')['jobs']], ['#2'])
+
+    def test_computer_agent_skips_tablet_printers(self):
+        self.assertEqual([j['title'] for j in self.jobs()['jobs']], ['#1'])
+
+    def test_patok_without_tablet_printer(self):
+        self.assertEqual(self.jobs(patok='K1')['status'], 'NO_PRINTER')        # K1 — LAN printer, planshet emas
+        self.assertEqual(self.jobs(patok='abc')['status'], 'NO_PRINTER')
+
+
 class PrintersPageTest(TestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser(username='pr_admin', password='x', role=User.Role.SUPER_ADMIN)
@@ -158,10 +185,11 @@ class PrintersPageTest(TestCase):
     def test_save_printers_test_print_and_reprint(self):
         self.client.post(reverse('printers:page'), {
             'host-1': '192.168.1.51', 'active-1': '1', 'host-2': 'printer-2', 'host-3': 'usb:XP80', 'active-3': '1',
+            'host-5': 'Tablet', 'active-5': '1',
             'host-4': 'usb:bad name;rm',
         })
         self.assertEqual(list(ReceiptPrinter.objects.values_list('screen_number', 'host')),
-                         [(1, '192.168.1.51'), (3, 'usb:XP80')])
+                         [(1, '192.168.1.51'), (3, 'usb:XP80'), (5, 'tablet')])
 
         self.client.post(reverse('printers:test', args=[1]))
         job = PrintJob.objects.get()

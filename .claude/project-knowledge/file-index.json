@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 795,
-   "sha256_16": "43520977685db90b"
+   "lines": 809,
+   "sha256_16": "b4653ee18786cb50"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 139,
-   "sha256_16": "f98dca5bcb6ffe1e"
+   "sha256_16": "23eb75ee8ff16c7e"
   },
   "Dockerfile": {
    "module": "ops",
@@ -819,8 +819,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2075,
-   "sha256_16": "1e5ed0757a8e6e9f",
+   "lines": 2078,
+   "sha256_16": "140b0fe655979fb7",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -857,7 +857,7 @@
     "PackingScan:1982",
     "SecondSortBatch:2009",
     "ReceiptPrinter:2030",
-    "PrintJob:2050"
+    "PrintJob:2053"
    ]
   },
   "production/norma_services.py": {
@@ -1000,35 +1000,34 @@
   },
   "production/print_views.py": {
    "module": "production.platform",
-   "lines": 157,
-   "sha256_16": "ecfc8fce6f2bcee5",
+   "lines": 177,
+   "sha256_16": "9194c4826091aa8e",
    "symbols": [
-    "agent_token:36",
-    "_agent_ok:40",
-    "agent_jobs:45",
-    "agent_result:67",
-    "_valid_host:85",
-    "printers_page:96",
-    "printer_test:141",
-    "job_reprint:151"
+    "agent_token:40",
+    "_agent_ok:44",
+    "agent_jobs:49",
+    "agent_result:84",
+    "_valid_host:102",
+    "printers_page:113",
+    "printer_test:161",
+    "job_reprint:171"
    ]
   },
   "production/receipt_printing.py": {
    "module": "production.platform",
-   "lines": 180,
-   "sha256_16": "58409f7a18c5d4f3",
+   "lines": 174,
+   "sha256_16": "76ad91daf191fb5c",
    "symbols": [
-    "_text:39",
-    "_cut:43",
-    "_font:48",
-    "_qr_block:57",
-    "_render:88",
-    "_worker_uid:104",
-    "_repair_rows:108",
-    "repair_receipt_data:134",
-    "build_repair_receipt:149",
-    "queue_repair_receipt:154",
-    "build_test_receipt:174"
+    "_text:47",
+    "_line:51",
+    "_qr:56",
+    "_render:66",
+    "_worker_uid:86",
+    "_repair_workers:90",
+    "repair_receipt_data:117",
+    "build_repair_receipt:142",
+    "queue_repair_receipt:147",
+    "build_test_receipt:167"
    ]
   },
   "production/services.py": {
@@ -1263,12 +1262,13 @@
   },
   "production/test_receipt_printing.py": {
    "module": "tests",
-   "lines": 165,
-   "sha256_16": "dc569d7ed0867252",
+   "lines": 205,
+   "sha256_16": "561e44a128822378",
    "symbols": [
     "RepairReceiptTest:20",
-    "PrintAgentApiTest:110",
-    "PrintersPageTest:141"
+    "PrintAgentApiTest:122",
+    "TabletPrintApiTest:153",
+    "PrintersPageTest:180"
    ]
   },
   "production/test_salary_freeze.py": {
@@ -1874,8 +1874,8 @@
   },
   "templates/superadmin/printers.html": {
    "module": "templates",
-   "lines": 100,
-   "sha256_16": "f4a304319496ea5f"
+   "lines": 107,
+   "sha256_16": "3706f9b1ba6d842e"
   },
   "templates/superadmin/user_badge_print.html": {
    "module": "templates",

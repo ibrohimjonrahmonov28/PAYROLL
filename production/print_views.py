@@ -1,8 +1,10 @@
 """
 OTK chek printerlari (egasi talabi 2026-11-11).
 - /printers/ — superadmin: har patok OTK printeri (IP yoki usb:<nomi>), sinov cheki, oxirgi cheklar va qayta chiqarish.
-- /printers/agent/... — fabrikadagi pechat agenti (print_agent/terryjar_print_agent.py) uchun API, X-Agent-Token bilan.
-  Token SECRET_KEY'dan hosil qilinadi va superadmin sahifasida ko'rsatiladi (alohida sozlama shart emas).
+- /printers/agent/... — pechat agentlari uchun API, X-Agent-Token bilan (token SECRET_KEY'dan, /printers/ da ko'rinadi):
+  * kompyuterdagi agent (print_agent/) — IP va usb:<nomi> printerlar;
+  * patok OTK planshetidagi Terry Jar Print ilovasi (android_print/, egasi talabi 2026-11-14) — ?patok=<n> bilan faqat
+    o'z patokining "tablet" printeri cheklarini oladi va printer planshetga USB bilan ulangan.
 """
 import base64
 import datetime
@@ -25,12 +27,14 @@ from django.views.decorators.http import require_http_methods, require_POST
 from accounts.superadmin_views import superadmin_required
 from production.models import PrintJob, ReceiptPrinter
 from production.receipt_printing import build_test_receipt
-from production.services import get_patok_code
+from production.services import get_patok_code, parse_patok_number
 
 PATOK_NUMBERS = range(1, 41)
 CLAIM_TIMEOUT = datetime.timedelta(seconds=60)   # agent javob bermasa chek qayta beriladi
 MAX_ATTEMPTS = 5
 USB_NAME = re.compile(r'^usb:[A-Za-z0-9_.-]{1,60}$')
+TABLET = 'tablet'
+SEEN_EVERY = datetime.timedelta(seconds=20)      # planshet har 3 s so'raydi — bazaga 20 s da bir yoziladi
 
 
 def agent_token():
@@ -47,11 +51,24 @@ def agent_jobs(request):
     if not _agent_ok(request):
         return JsonResponse({'status': 'FORBIDDEN'}, status=403)
     now = timezone.now()
+    jobs_qs = PrintJob.objects.select_for_update().select_related('printer').filter(
+        Q(status=PrintJob.Status.PENDING) | Q(status=PrintJob.Status.SENDING, sent_at__lt=now - CLAIM_TIMEOUT),
+        printer__is_active=True,
+    )
+    patok = parse_patok_number(request.GET.get('patok'))
+    if request.GET.get('patok') is not None:
+        # planshet ilovasi: faqat o'z patokining "tablet" printeri; ilova tirikligi /printers/ da ko'rinadi
+        printer = ReceiptPrinter.objects.filter(screen_number=patok, host=TABLET).first() if patok else None
+        if printer is None:
+            return JsonResponse({'status': 'NO_PRINTER', 'jobs': [],
+                                 'message': "Bu patokka /printers/ da \"tablet\" printer belgilanmagan"})
+        if not printer.last_seen_at or printer.last_seen_at < now - SEEN_EVERY:
+            ReceiptPrinter.objects.filter(pk=printer.pk).update(last_seen_at=now)
+        jobs_qs = jobs_qs.filter(printer=printer)
+    else:
+        jobs_qs = jobs_qs.exclude(printer__host=TABLET)    # kompyuter agenti planshet printerlariga tegmaydi
     with transaction.atomic():
-        jobs = list(PrintJob.objects.select_for_update().select_related('printer').filter(
-            Q(status=PrintJob.Status.PENDING) | Q(status=PrintJob.Status.SENDING, sent_at__lt=now - CLAIM_TIMEOUT),
-            printer__is_active=True,
-        ).order_by('created_at')[:20])
+        jobs = list(jobs_qs.order_by('created_at')[:20])
         for job in jobs:
             job.status = PrintJob.Status.SENDING
             job.sent_at = now
@@ -83,7 +100,7 @@ def agent_result(request, job_id):
 
 
 def _valid_host(host):
-    if USB_NAME.match(host):
+    if host == TABLET or USB_NAME.match(host):
         return True
     try:
         ipaddress.ip_address(host)
@@ -99,6 +116,8 @@ def printers_page(request):
         errors, saved = [], 0
         for n in PATOK_NUMBERS:
             host = (request.POST.get(f'host-{n}') or '').strip()
+            if host.lower() == TABLET:
+                host = TABLET
             active = request.POST.get(f'active-{n}') == '1'
             printer = printers.get(n)
             if not host:
@@ -107,7 +126,7 @@ def printers_page(request):
                     saved += 1
                 continue
             if not _valid_host(host):
-                errors.append(f"{get_patok_code(n)}: «{host}» — IP manzil yoki usb:nomi bo'lishi kerak")
+                errors.append(f"{get_patok_code(n)}: «{host}» — IP manzil, usb:nomi yoki tablet bo'lishi kerak")
                 continue
             if printer is None:
                 ReceiptPrinter.objects.create(screen_number=n, host=host, is_active=active)
@@ -132,6 +151,7 @@ def printers_page(request):
         'jobs': PrintJob.objects.select_related('printer')[:50],
         'token': agent_token(),
         'server_url': request.build_absolute_uri('/').rstrip('/'),
+        'online_since': timezone.now() - datetime.timedelta(minutes=1),
         'pending': PrintJob.objects.filter(status__in=[PrintJob.Status.PENDING, PrintJob.Status.SENDING]).count(),
     })
 

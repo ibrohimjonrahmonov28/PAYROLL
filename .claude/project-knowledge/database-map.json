@@ -6,8 +6,8 @@
    "latest": "0021_packing_counter_roles"
   },
   "production": {
-   "count": 40,
-   "latest": "0040_receipt_printers"
+   "count": 41,
+   "latest": "0041_receipt_printer_last_seen"
   },
   "screens": {
    "count": 0,
@@ -1125,6 +1125,7 @@
     "host": "CharField",
     "port": "PositiveIntegerField",
     "is_active": "BooleanField",
+    "last_seen_at": "DateTimeField",
     "created_at": "DateTimeField",
     "updated_at": "DateTimeField"
    },
@@ -1132,7 +1133,7 @@
   },
   "production.PrintJob": {
    "table": "production_printjob",
-   "file": "production/models.py:2050",
+   "file": "production/models.py:2053",
    "fields": {
     "id": "BigAutoField",
     "title": "CharField",

@@ -28,7 +28,6 @@
    "production/daily_image_reports.py",
    "production/gift_views.py",
    "production/manager_new_excel.py",
-   "production/receipt_printing.py",
    "production/sticker_generator.py",
    "production/test_gifts.py",
    "production/test_managers_new.py",
@@ -162,7 +161,6 @@
   "qrcode": [
    "accounts/models.py",
    "production/models.py",
-   "production/receipt_printing.py",
    "production/sticker_generator.py",
    "production/test_passport_bot.py"
   ],

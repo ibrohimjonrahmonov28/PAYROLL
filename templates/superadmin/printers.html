@@ -33,19 +33,26 @@
             <h3 class="text-sm font-black text-white">Patoklar bo'yicha printerlar</h3>
             <button class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black"><i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash</button>
         </div>
-        <p class="text-xs text-slate-500 mb-3">LAN printer — IP manzil (masalan 192.168.1.53, port 9100). Agent kompyuteriga USB bilan ulangan printer — <code class="text-slate-300">usb:</code> + kompyuterdagi printer nomi (masalan usb:XP80). Bo'sh qoldirilsa printer o'chiriladi.</p>
+        <p class="text-xs text-slate-500 mb-3"><code class="text-slate-300">tablet</code> — printer shu patok OTK planshetiga USB bilan ulangan (planshetda Terry Jar Print ilovasi). LAN printer — IP manzil (masalan 192.168.1.53, port 9100). Agent kompyuteriga USB bilan ulangan printer — <code class="text-slate-300">usb:</code> + printer nomi (masalan usb:XP80). Bo'sh qoldirilsa printer o'chiriladi.</p>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="text-xs text-slate-400 text-left">
-                    <tr><th class="px-2 py-1.5">Patok</th><th class="px-2 py-1.5">Printer</th><th class="px-2 py-1.5">Faol</th><th class="px-2 py-1.5">Oxirgi chek</th><th class="px-2 py-1.5"></th></tr>
+                    <tr><th class="px-2 py-1.5">Patok</th><th class="px-2 py-1.5">Printer</th><th class="px-2 py-1.5">Faol</th><th class="px-2 py-1.5">Planshet</th><th class="px-2 py-1.5">Oxirgi chek</th><th class="px-2 py-1.5"></th></tr>
                 </thead>
                 <tbody>
                     {% for r in rows %}
                     <tr class="border-t border-slate-800">
                         <td class="px-2 py-1.5 font-black text-white">{{ r.code }}</td>
-                        <td class="px-2 py-1.5"><input name="host-{{ r.n }}" value="{{ r.printer.host|default:'' }}" placeholder="IP yoki usb:nomi"
+                        <td class="px-2 py-1.5"><input name="host-{{ r.n }}" value="{{ r.printer.host|default:'' }}" placeholder="tablet, IP yoki usb:nomi"
                             class="w-48 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono"></td>
                         <td class="px-2 py-1.5"><input type="checkbox" name="active-{{ r.n }}" value="1" {% if not r.printer or r.printer.is_active %}checked{% endif %}></td>
+                        <td class="px-2 py-1.5 text-xs">
+                            {% if r.printer.host == 'tablet' %}
+                            {% if r.printer.last_seen_at and r.printer.last_seen_at >= online_since %}<span class="text-emerald-400 font-bold">● ulangan</span>
+                            {% elif r.printer.last_seen_at %}<span class="text-rose-400 font-bold">● uzilgan</span> <span class="text-slate-500">{{ r.printer.last_seen_at|date:"d.m H:i" }}</span>
+                            {% else %}<span class="text-slate-500">hali ulanmagan</span>{% endif %}
+                            {% else %}<span class="text-slate-600">—</span>{% endif %}
+                        </td>
                         <td class="px-2 py-1.5 text-xs">
                             {% if r.printer.last_at %}
                             <span class="{% if r.printer.last_status == 'PRINTED' %}text-emerald-400{% elif r.printer.last_status == 'FAILED' %}text-rose-400{% else %}text-amber-400{% endif %}">{{ r.printer.last_status }}</span>

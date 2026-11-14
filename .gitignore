@@ -55,3 +55,6 @@ qr_codes/
 env
 print_agent/agent.conf
 print_agent/agent.log
+android_print/token.txt
+android_print/build_temp/
+android_print/terryjar_print.apk

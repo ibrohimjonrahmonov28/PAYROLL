@@ -2029,12 +2029,15 @@ class SecondSortBatch(models.Model):
 
 class ReceiptPrinter(models.Model):
     """OTK chek printeri (egasi talabi 2026-11-11): patok OTK stolidagi termo printer (ESC/POS).
-    host — LAN printer IP manzili (9100-port) yoki "usb:<navbat nomi>" (agent kompyuteridagi USB printer).
+    host — LAN printer IP manzili (9100-port), "usb:<navbat nomi>" (agent kompyuteridagi USB printer) yoki "tablet"
+    (planshetga USB bilan ulangan printer — cheklarni planshetdagi android_print ilovasi o'z patoki bo'yicha oladi).
     Server chekni navbatga qo'yadi, fabrikadagi pechat agenti (print_agent/) uni printerga yuboradi."""
     screen_number = models.PositiveSmallIntegerField(unique=True, verbose_name="Patok raqami (1..40)")
     host = models.CharField(max_length=100, verbose_name="Printer (IP yoki usb:nomi)")
     port = models.PositiveIntegerField(default=9100, verbose_name="Port")
     is_active = models.BooleanField(default=True, verbose_name="Faol")
+    # host = "tablet": printer patok OTK planshetiga USB bilan ulangan, cheklarni planshetdagi Terry Jar Print ilovasi oladi
+    last_seen_at = models.DateTimeField(null=True, blank=True, verbose_name="Planshet oxirgi marta ulangan")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
