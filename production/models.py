@@ -2019,6 +2019,7 @@ class PackingBatch(models.Model):
     counter = models.ForeignKey(User, on_delete=models.PROTECT, related_name='packing_batches', verbose_name="Sanoqchi")
     worker = models.ForeignKey(Worker, on_delete=models.PROTECT, related_name='packing_batches', verbose_name="Taxlovchi")
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN, db_index=True)
+    screen_number = models.PositiveSmallIntegerField(null=True, blank=True, db_index=True, verbose_name="Patok raqami")
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Yuborilgan vaqt")
 
@@ -2072,6 +2073,7 @@ class PackingScan(models.Model):
                                        related_name='packing_scans', verbose_name="Ta'mir cheki (TAMIR qismi)")
     batch = models.ForeignKey(PackingBatch, on_delete=models.PROTECT, null=True, blank=True, related_name='scans',
                               verbose_name="Sanoqchi ro'yxati")
+    screen_number = models.PositiveSmallIntegerField(null=True, blank=True, db_index=True, verbose_name="Patok raqami")
     quantity = models.PositiveIntegerField(verbose_name="Soni")
     terminal_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Terminal")
     scanned_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Urilgan vaqt")

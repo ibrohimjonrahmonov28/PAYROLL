@@ -124,6 +124,37 @@ class CounterPackingTest(TestCase):
         self.assertEqual(self.post(self.counter, 'api_counter_paper', {'code': self.code, 'worker_id': 0}).json()['status'], 'NO_WORKER')
         self.assertFalse(PackingScan.objects.exists())
 
+    def test_counter_selects_patok_before_badge_and_updates_open_batch(self):
+        self.initial_and_return()
+        # Quti K3 ga tegishli bo'lsa ham sanoqchi taxlovchini K5 patokdan deb belgilaydi
+        identified = self.post(self.counter, 'api_counter_packer',
+                               {'code': 'WORKER:W-901', 'screen_number': 5}).json()
+        self.assertEqual((identified['status'], identified['screen_number'], identified['patok_code']),
+                         ('OK', 5, 'K5'))
+
+        res = self.post(self.counter, 'api_counter_paper',
+                        {'code': f"CONTROL:{self.code}", 'worker_id': self.packer.id, 'screen_number': 5}).json()
+        self.assertEqual((res['status'], res['line']['patok'], res['batch']['patok_code']), ('OK', 'K5', 'K5'))
+        batch = PackingBatch.objects.get()
+        scan = PackingScan.objects.get(source=PackingScan.Source.CONTROL)
+        self.assertEqual((batch.screen_number, scan.screen_number), (5, 5))
+
+        # Yuborishdan oldin patokni K2 ga o'zgartirish ham mavjud qatorlarni yangilaydi
+        switched = self.post(self.counter, 'api_counter_patok',
+                             {'worker_id': self.packer.id, 'screen_number': 'K2'}).json()
+        self.assertEqual((switched['status'], switched['patok_code'], switched['batch']['lines'][0]['patok']),
+                         ('OK', 'K2', 'K2'))
+        sent = self.post(self.counter, 'api_counter_send',
+                         {'worker_id': self.packer.id, 'screen_number': 2}).json()
+        self.assertEqual(sent['status'], 'OK')
+        scan.refresh_from_db()
+        self.assertEqual(scan.screen_number, 2)
+
+        self.client.force_login(self.counter)
+        page = self.client.get(reverse('packing:hub'), {'tab': 'sanoqchi'})
+        self.assertContains(page, 'selectCounterPatok')
+        self.assertContains(page, reverse('packing:api_counter_patok'))
+
 
 class OrderBetaStartsTodayTest(TestCase):
     """Zakazga beta belgisi qo'yilsa — faqat shu vaqtdan keyin OTK dan o'tgan qutilar (egasi talabi 2026-11-16)."""

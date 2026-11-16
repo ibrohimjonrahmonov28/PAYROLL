@@ -17,6 +17,7 @@ from collections import OrderedDict, defaultdict
 from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
@@ -27,11 +28,11 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User, Worker
 from production.control_views import control_box_lookup_api, control_submit_inspection_api
-from production.models import (Box, BoxQualityInspectionLog, Order, PackingBatch, PackingScan, RepairReceipt,
-                               SecondSortBatch, _generate_qr_data_uri)
+from production.models import (Box, BoxQualityInspectionLog, Order, PackerScreen, PackingBatch, PackingScan,
+                               RepairReceipt, SecondSortBatch, _generate_qr_data_uri)
 from production.packing_services import (SENT_SCANS, beta_box_q, is_beta_box, paper_label, paper_status,
                                          parse_packing_code, take_paper)
-from production.services import get_patok_code
+from production.services import get_patok_code, parse_patok_number
 from production.taxlov_pay import credit_batch
 from production.sewing_statistics_views import natural_size_sort_key
 from production.terminal_views import extract_worker_code
@@ -90,6 +91,11 @@ def _today_range():
 
 def _patok_label(screen):
     return get_patok_code(screen) if screen else 'Patoksiz'
+
+
+def _parse_screen_number(value):
+    screen = parse_patok_number(value)
+    return screen if screen and 1 <= screen <= 40 else None
 
 
 def _worker_today_total(worker):
@@ -246,6 +252,9 @@ def _sanoqchi_context(request):
         cancel_scans = list(scans.select_related(*SCAN_RELATED).order_by('-scanned_at'))
     returned = SecondSortBatch.objects.filter(counter=request.user, status=SecondSortBatch.Status.RETURNED).select_related('returned_by')
     search_code = request.GET.get('sv', '').strip()
+    screen_map = {n: {'number': s.number, 'title': s.title} for s in PackerScreen.objects.all() for n in s.patok_list}
+    hq_patok_choices = [{'number': n, 'code': get_patok_code(n), 'tv': screen_map.get(n)} for n in range(1, 14)]
+    uychi_patok_choices = [{'number': n, 'code': get_patok_code(n), 'tv': screen_map.get(n)} for n in range(14, 41)]
     return {
         'basket': basket,
         'basket_view': _basket_view(basket) if basket else None,
@@ -253,6 +262,9 @@ def _sanoqchi_context(request):
         'search_code': search_code,
         'search_basket': (_basket_view(found) if (found := _find_basket(search_code)) else None) if search_code else None,
         'patoks': patoks,
+        'hq_patok_choices': hq_patok_choices,
+        'uychi_patok_choices': uychi_patok_choices,
+        'packer_screens_json': json.dumps({str(k): v for k, v in screen_map.items()}),
         'selected_patok': selected,
         'selected_patok_code': _patok_label(selected) if selected is not None else '',
         'cards': cards,
@@ -467,21 +479,40 @@ def _open_packing_batch(counter, worker, create=False):
     return batch
 
 
+def _apply_batch_patok(batch, screen):
+    if batch is None:
+        return
+    if screen is not None and batch.screen_number != screen:
+        batch.screen_number = screen
+        batch.save(update_fields=['screen_number'])
+        batch.scans.filter(is_cancelled=False).update(screen_number=screen)
+    elif batch.screen_number is not None:
+        batch.scans.filter(is_cancelled=False, screen_number__isnull=True).update(screen_number=batch.screen_number)
+
+
 def _scan_line(scan):
     box = scan.box
     article = box.target_article
+    effective_screen = scan.screen_number or (scan.batch.screen_number if scan.batch_id else None) or box.assigned_screen
     return {
         'id': scan.id, 'box_code': box.box_code, 'paper': paper_label(scan.source, scan.repair_receipt),
         'quantity': scan.quantity, 'order': box.order.order_number if box.order_id else '',
         'article': article.code if article else '', 'size': box.razmer or '—',
-        'patok': _patok_label(box.assigned_screen),
+        'patok': _patok_label(effective_screen),
+        'box_patok': _patok_label(box.assigned_screen),
     }
 
 
 def _batch_payload(batch):
-    scans = (batch.scans.select_related(*BOX_RELATED, 'repair_receipt').order_by('scanned_at') if batch else [])
+    scans = (batch.scans.select_related(*BOX_RELATED, 'repair_receipt', 'batch').order_by('scanned_at') if batch else [])
     lines = [_scan_line(scan) for scan in scans]
-    return {'lines': lines, 'total': sum(line['quantity'] for line in lines)}
+    screen = batch.screen_number if batch else None
+    return {
+        'lines': lines,
+        'total': sum(line['quantity'] for line in lines),
+        'screen_number': screen,
+        'patok_code': get_patok_code(screen) if screen else '',
+    }
 
 
 def _worker_payload(worker):
@@ -498,11 +529,43 @@ def _box_papers_for_code(raw_code):
 @_role_required(User.Role.COUNTER)
 @require_POST
 def api_counter_packer(request):
-    worker = _find_worker(_json_body(request).get('code'))
+    data = _json_body(request)
+    worker = _find_worker(data.get('code'))
     if not worker:
         return JsonResponse({'status': 'NOT_FOUND', 'message': "Taxlovchi topilmadi — badge'ni qayta uring."}, status=404)
-    return JsonResponse({'status': 'OK', 'worker': _worker_payload(worker),
-                         'batch': _batch_payload(_open_packing_batch(request.user, worker))})
+    screen = _parse_screen_number(data.get('screen_number') or data.get('patok'))
+    batch = _open_packing_batch(request.user, worker)
+    _apply_batch_patok(batch, screen)
+    effective_screen = screen if screen is not None else (batch.screen_number if batch else None)
+    return JsonResponse({
+        'status': 'OK',
+        'worker': _worker_payload(worker),
+        'batch': _batch_payload(batch),
+        'screen_number': effective_screen,
+        'patok_code': get_patok_code(effective_screen) if effective_screen else '',
+    })
+
+
+@_role_required(User.Role.COUNTER)
+@require_POST
+def api_counter_patok(request):
+    """Sanoqchi tanlagan patokni saqlash (ochiq ro'yxat bo'lsa uning skanlariga ham darhol yoziladi)."""
+    data = _json_body(request)
+    screen = _parse_screen_number(data.get('screen_number') or data.get('patok'))
+    if screen is None:
+        return JsonResponse({'status': 'BAD_PATOK', 'message': "Patokni tanlang (K1..K13 yoki U1..U27)."}, status=400)
+    worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id')), is_active=True).first()
+    batch = None
+    if worker:
+        with transaction.atomic():
+            batch = _open_packing_batch(request.user, worker)
+            _apply_batch_patok(batch, screen)
+    return JsonResponse({
+        'status': 'OK',
+        'screen_number': screen,
+        'patok_code': get_patok_code(screen),
+        'batch': _batch_payload(batch) if batch else None,
+    })
 
 
 @_role_required(User.Role.COUNTER)
@@ -512,10 +575,12 @@ def api_counter_paper(request):
     worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id')), is_active=True).first()
     if not worker:
         return JsonResponse({'status': 'NO_WORKER', 'message': "Avval taxlovchi badge'ini uring."}, status=400)
+    screen = _parse_screen_number(data.get('screen_number') or data.get('patok'))
     code = data.get('code')
     with transaction.atomic():
         batch = _open_packing_batch(request.user, worker, create=True)
-        scan, error = take_paper(code, worker, request.user, batch=batch)
+        _apply_batch_patok(batch, screen)
+        scan, error = take_paper(code, worker, request.user, batch=batch, screen_number=batch.screen_number)
         if error:
             transaction.set_rollback(True)          # qog'oz olinmadi — bo'sh ro'yxat ham qolmasin
     if error:
@@ -542,16 +607,24 @@ def api_counter_remove(request):
 @_role_required(User.Role.COUNTER)
 @require_POST
 def api_counter_send(request):
-    worker = Worker.objects.filter(id=_int_or_none(_json_body(request).get('worker_id'))).first()
+    data = _json_body(request)
+    worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id'))).first()
     batch = _open_packing_batch(request.user, worker) if worker else None
     if batch is None or not batch.scans.exists():
         return JsonResponse({'status': 'EMPTY', 'message': "Ro'yxat bo'sh — avval qog'ozlarni uring."}, status=400)
+    screen = _parse_screen_number(data.get('screen_number') or data.get('patok'))
     total = batch.scans.aggregate(s=Sum('quantity'))['s'] or 0
     with transaction.atomic():
+        _apply_batch_patok(batch, screen)
         batch.status, batch.sent_at = PackingBatch.Status.SENT, timezone.now()
         batch.save(update_fields=['status', 'sent_at'])
         credit_batch(batch)                          # taxlovchi puli: dona × shablondagi Control/Taxlov narxi
-    return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: {total} dona yozildi va upakovkaga yuborildi.",
+    today_iso = timezone.localdate().isoformat()
+    cache.delete(f"packer_screens_overview_{today_iso}")
+    for n in PackerScreen.objects.values_list('number', flat=True):
+        cache.delete(f"packer_screen_api_{n}_{today_iso}")
+    patok_suffix = f" ({get_patok_code(batch.screen_number)})" if batch.screen_number else ''
+    return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}{patok_suffix}: {total} dona yozildi va upakovkaga yuborildi.",
                          'worker': _worker_payload(worker)})
 
 

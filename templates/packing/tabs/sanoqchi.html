@@ -1,405 +1,441 @@
 {% comment %}
 Sanoqchi tabi:
-1-sort — taxlovchi badge'i, keyin uning CONTROL / TAMIRn qog'ozlari → "Saqlash va yuborish" (upakovka 1-sort balansi);
-patoklardagi 2-sort (brak ham) → kartochka bo'yicha sanab qabul → savat → upakovkaga jo'natish;
-xato skanni bekor qilish va savat qidirish.
+1-sort — avval patok tanlash (ekran uchun), keyin taxlovchi badge'i va CONTROL / TAMIRn qog'ozlari → "Saqlash va yuborish" (upakovka 1-sort balansi);
+2-sort — patoklardagi balans → kartochka bo'yicha sanab savatga → upakovkaga jo'natish;
+qidiruv va xato skanni bekor qilish.
 {% endcomment %}
-<div class="space-y-6">
-    <!-- Sub-navigation switcher for Sanoqchi -->
-    <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-2 shadow-sm">
-        <div class="flex flex-wrap items-center gap-1.5" id="sanoqchi-subtabs">
+<div class="space-y-4">
+    <!-- Top Workspace Switcher -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div class="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800" id="sanoqchi-subtabs">
             <button type="button" onclick="switchSanoqchiSection('first_sort')" id="btn-sec-first_sort"
-                class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-950/40">
+                class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-emerald-600 text-white shadow-sm">
                 <i class="fa-solid fa-barcode text-xs"></i>
-                <span>1-Sort: Taxlovchilar</span>
+                <span>1-Sort · Qog'oz qabuli</span>
             </button>
             <button type="button" onclick="switchSanoqchiSection('second_sort')" id="btn-sec-second_sort"
-                class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all">
+                class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
                 <i class="fa-solid fa-basket-shopping text-xs"></i>
-                <span>2-Sort: Patoklar & Savat</span>
+                <span>2-Sort · Savat</span>
+                {% if patoks %}
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-black font-mono bg-slate-800 text-slate-300">{{ patoks|length }} patok</span>
+                {% endif %}
                 {% if basket_total %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-500/20 text-orange-300 border border-orange-500/30">{{ basket_total }} savatda</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-black font-mono bg-orange-500/20 text-orange-300">{{ basket_total }} savatda</span>
                 {% endif %}
                 {% if returned_baskets %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">{{ returned_baskets|length }} qaytgan</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-black font-mono bg-rose-600 text-white">{{ returned_baskets|length }} qaytgan</span>
                 {% endif %}
             </button>
             <button type="button" onclick="switchSanoqchiSection('tools')" id="btn-sec-tools"
-                class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all">
-                <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                <span>Qidiruv & Bekor qilish</span>
+                class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+                <i class="fa-solid fa-sliders text-xs"></i>
+                <span>Qidiruv &amp; Bekor</span>
                 {% if cancel_scans %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">Natija bor</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white">Natija</span>
                 {% endif %}
             </button>
         </div>
+
         <button type="button" onclick="toggleAllSanoqchiSections()" id="btn-toggle-all"
-            class="px-3 py-1.5 rounded-xl border border-slate-700/60 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-semibold transition-all flex items-center gap-1.5">
-            <i class="fa-solid fa-table-cells-large text-[11px]"></i>
-            <span id="txt-toggle-all">Barchasini ko'rsatish</span>
+            class="px-3 py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-[11px]"></i>
+            <span id="txt-toggle-all">Hammasini ko'rsatish</span>
         </button>
     </div>
 
-    <!-- ==================== 1-SORT SECTION ==================== -->
-    <div id="section-first_sort" class="sanoqchi-section space-y-6">
-        <!-- 1-Sort Scanner & Batch HUD -->
-        <section class="bg-slate-900/90 border border-emerald-700/50 rounded-3xl p-4 sm:p-6 space-y-5 shadow-xl shadow-emerald-950/20">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-                <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-900/40 text-lg">
-                        <i class="fa-solid fa-barcode"></i>
-                    </span>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">1-Sort: Taxlovchi qog'ozlari qabuli</h1>
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-0.5">Avval taxlovchi badge'ini, keyin uning CONTROL stikerlari va TAMIR cheklarini uring. Har qog'oz bir marta o'tadi.</p>
+    <!-- ==================== 1-SORT SPLIT WORKBENCH ==================== -->
+    <div id="section-first_sort" class="sanoqchi-section grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <!-- LEFT CONSOLE: 3-STEP SCANNER WORKBENCH -->
+        <section class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <!-- Stepper Strip -->
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 text-[11px] font-black font-mono overflow-x-auto no-scrollbar">
+                    <span id="step-pill-1" class="px-2 py-1 rounded-md bg-amber-500 text-slate-950 whitespace-nowrap">1. PATOK</span>
+                    <i class="fa-solid fa-chevron-right text-[9px] text-slate-600"></i>
+                    <span id="step-pill-2" class="px-2 py-1 rounded-md bg-slate-800 text-slate-400 whitespace-nowrap">2. TAXLOVCHI</span>
+                    <i class="fa-solid fa-chevron-right text-[9px] text-slate-600"></i>
+                    <span id="step-pill-3" class="px-2 py-1 rounded-md bg-slate-800 text-slate-400 whitespace-nowrap">3. QOG'OZ</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-mono hidden sm:inline">Baza soni</span>
+            </div>
+
+            <!-- STEP 1: PATOK SELECTION -->
+            <div id="patok-step-box" class="p-4 border-b border-slate-800 space-y-3 transition-all">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black uppercase tracking-wider text-white">1-qadam · Patok</span>
+                        <span id="patok-active-pill" class="px-2 py-0.5 rounded-md text-xs font-black font-mono bg-slate-800 text-slate-400 border border-slate-700">Tanlanmagan</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" id="patok-pin-btn" onclick="togglePatokPin()" title="Keyingi taxlovchi uchun ham shu patokni saqlab qolish"
+                            class="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[11px] font-bold text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1">
+                            <i id="patok-pin-icon" class="fa-solid fa-thumbtack text-[10px]"></i>
+                            <span id="patok-pin-text">Qulflash</span>
+                        </button>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 text-xs">
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-400 font-mono">
-                        <i class="fa-solid fa-circle-info text-emerald-400 mr-1"></i>Son qog'ozdan emas, bazadan olinadi
-                    </span>
+
+                <!-- Branch Filter Tabs -->
+                <div class="flex items-center justify-between gap-2">
+                    <div class="inline-flex rounded-lg bg-slate-950 border border-slate-800 p-0.5 text-[11px] font-bold">
+                        <button type="button" onclick="switchPatokBranch('hq')" id="branch-btn-hq"
+                            class="px-2.5 py-1 rounded-md bg-slate-800 text-white transition-colors">Bosh (K1–K13)</button>
+                        <button type="button" onclick="switchPatokBranch('uychi')" id="branch-btn-uychi"
+                            class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition-colors">Uychi (U1–U27)</button>
+                    </div>
+                    <span id="patok-tv-hint" class="text-[11px] font-mono text-slate-400 truncate">TV ekranga tushishi uchun tanlang</span>
+                </div>
+
+                <!-- HQ Patok Grid -->
+                <div id="patok-grid-hq" class="grid grid-cols-5 sm:grid-cols-7 gap-1.5">
+                    {% for p in hq_patok_choices %}
+                    <button type="button" data-patok-btn="{{ p.number }}" data-patok-code="{{ p.code }}"
+                        onclick="selectCounterPatok({{ p.number }})"
+                        class="patok-chip py-2 rounded-lg border border-slate-800 bg-slate-950 hover:border-amber-500 text-xs font-black font-mono text-slate-300 hover:text-white transition-all text-center">
+                        {{ p.code }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Uychi Patok Grid -->
+                <div id="patok-grid-uychi" class="hidden grid grid-cols-5 sm:grid-cols-7 gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+                    {% for p in uychi_patok_choices %}
+                    <button type="button" data-patok-btn="{{ p.number }}" data-patok-code="{{ p.code }}"
+                        onclick="selectCounterPatok({{ p.number }})"
+                        class="patok-chip py-2 rounded-lg border border-slate-800 bg-slate-950 hover:border-amber-500 text-xs font-black font-mono text-slate-300 hover:text-white transition-all text-center">
+                        {{ p.code }}
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Barcode Scanner Input -->
-            <div class="relative group">
-                <i class="fa-solid fa-barcode absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-emerald-400 text-xl pointer-events-none group-focus-within:animate-pulse"></i>
-                <input id="counter-input" autocomplete="off" autofocus
-                    placeholder="Skaner bilan uring: taxlovchi badge'i, CONTROL stikeri, TAMIR cheki yoki quti kodi..."
-                    class="w-full pl-12 sm:pl-14 pr-4 py-3.5 sm:py-4 rounded-2xl bg-slate-950 border-2 border-emerald-600/80 focus:border-emerald-400 text-white text-base sm:text-lg focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all font-mono placeholder:font-sans placeholder:text-slate-500 shadow-inner">
-            </div>
-
-            <!-- Packer Status Card -->
-            <div id="packer-card" class="bg-slate-950/90 border-2 border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 transition-all duration-200">
-                <div class="flex items-center gap-4 min-w-0">
-                    <div id="packer-avatar" class="w-12 h-12 rounded-2xl bg-slate-800/90 border border-slate-700/60 flex items-center justify-center text-slate-400 text-xl flex-shrink-0 transition-colors">
+            <!-- STEP 2: PACKER STATUS BAR -->
+            <div id="packer-card" class="px-4 py-3 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between gap-3 transition-colors">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div id="packer-avatar" class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 text-base flex-shrink-0">
                         <i class="fa-solid fa-user-tag"></i>
                     </div>
                     <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span id="packer-step" class="text-[11px] font-black uppercase tracking-wider text-slate-500">1-qadam · Taxlovchi badge'i</span>
-                        </div>
-                        <p id="packer-name" class="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5 truncate">Taxlovchi tanlanmagan</p>
-                        <p id="packer-today" class="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">Taxlovchining badge'ini skaner bilan uring</p>
+                        <span id="packer-step" class="block text-[10px] font-black uppercase tracking-wider text-slate-500">2-qadam · Taxlovchi badge'i</span>
+                        <p id="packer-name" class="text-sm sm:text-base font-black text-white truncate">Taxlovchi tanlanmagan</p>
+                        <p id="packer-today" class="text-xs text-slate-400 truncate">Avval patok tanlab, keyin badge uring</p>
                     </div>
                 </div>
-                <button type="button" id="packer-reset" class="hidden px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-all shadow-sm flex items-center gap-2">
-                    <i class="fa-solid fa-user-pen"></i>
-                    <span>Boshqa taxlovchi</span>
+                <button type="button" id="packer-reset"
+                    class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-colors flex-shrink-0">
+                    <i class="fa-solid fa-user-pen mr-1"></i>Almashtirish
                 </button>
             </div>
 
-            <!-- Batch Table & Box Papers View -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-                <!-- Batch List -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider">Ro'yxat:</h2>
-                            <span id="batch-total" class="text-emerald-400 text-lg sm:text-xl font-black tabular-nums font-mono">0</span>
-                            <span class="text-xs font-bold text-slate-400">dona</span>
+            <!-- STEP 3: BARCODE INPUT & LIVE RESULTS -->
+            <div class="p-4 space-y-3">
+                <div class="relative">
+                    <i class="fa-solid fa-barcode absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-400 text-lg pointer-events-none"></i>
+                    <input id="counter-input" autocomplete="off" autofocus
+                        placeholder="Patok → Badge → CONTROL / TAMIR / Quti kodi..."
+                        class="w-full pl-11 pr-3 py-3 rounded-xl bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono transition-all placeholder:font-sans placeholder:text-slate-500">
+                </div>
+                <div id="counter-results" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANE: MANIFEST & BOX PAPERS -->
+        <section class="lg:col-span-7 space-y-4">
+            <!-- Open Batch Manifest -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <h2 class="text-sm font-black text-white uppercase tracking-wide">Yuboriladigan ro'yxat</h2>
+                        <span id="manifest-patok-badge" class="hidden px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono font-black text-xs"></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-baseline gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
+                            <span id="batch-total" class="text-lg sm:text-xl font-black text-emerald-400 font-mono tabular-nums leading-none">0</span>
+                            <span class="text-[11px] font-bold text-slate-400">dona</span>
                         </div>
                         <button type="button" id="send-btn" disabled
-                            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 enabled:hover:from-emerald-500 enabled:hover:to-teal-400 disabled:opacity-40 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-950/40 transition-all flex items-center gap-2">
+                            class="px-4 py-2 rounded-xl bg-emerald-600 enabled:hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-xs sm:text-sm transition-colors inline-flex items-center gap-2 shadow-sm">
                             <i class="fa-solid fa-paper-plane text-xs"></i>
                             <span>Saqlash va yuborish</span>
                         </button>
                     </div>
-                    <div id="batch-lines" class="space-y-2 max-h-[380px] overflow-y-auto pr-1"></div>
-                    <div id="counter-results" class="space-y-2 pt-1"></div>
                 </div>
 
-                <!-- Box Papers Breakdown -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                        <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-boxes-stacked text-slate-400 text-xs"></i>
-                            <span>Quti qog'ozlari tarkibi</span>
-                        </h2>
-                    </div>
-                    <div id="box-papers" class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 text-xs sm:text-sm text-slate-500 min-h-[160px] flex flex-col items-center justify-center text-center">
-                        <i class="fa-solid fa-qrcode text-3xl text-slate-700 mb-2"></i>
-                        <span>Qog'oz urilganda shu qutining hamma qog'ozlari chiqadi: qaysi biri urilgan, qaysi biri hali kutilmoqda.</span>
-                    </div>
+                <div id="batch-lines" class="divide-y divide-slate-800 max-h-[380px] overflow-y-auto"></div>
+            </div>
+
+            <!-- Last Scanned Box Papers Inspector -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div class="px-4 py-2.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-boxes-stacked text-slate-500"></i>
+                        <span>Quti qog'ozlari tarkibi</span>
+                    </h3>
+                </div>
+                <div id="box-papers" class="p-4 text-xs sm:text-sm text-slate-500 text-center">
+                    Qog'oz urilganda shu qutining barcha qog'ozlari (CONTROL va ta'mir cheklari) shu yerda ko'rinadi.
                 </div>
             </div>
         </section>
     </div>
 
-    <!-- ==================== 2-SORT SECTION ==================== -->
-    <div id="section-second_sort" class="sanoqchi-section space-y-6">
-        <!-- Patok Balansi Grid -->
-        <section class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-4 sm:p-6 space-y-4 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-900/30 text-lg">
-                        <i class="fa-solid fa-shapes"></i>
-                    </span>
+    <!-- ==================== 2-SORT SIDE-BY-SIDE SPLIT ==================== -->
+    <div id="section-second_sort" class="sanoqchi-section grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+        <!-- LEFT: PATOK CHIPS + PATOK ITEMS LEDGER -->
+        <div class="xl:col-span-7 space-y-4">
+            <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
                     <div>
-                        <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">2-Sort: Patoklardagi balans (brak ham)</h1>
-                        <p class="text-xs text-slate-400 mt-0.5">OTK saqlashi bilan 2-sort shu patok balansiga tushadi. Patokni tanlang va qatorlarni savatga oling.</p>
+                        <h2 class="text-sm font-black text-white uppercase tracking-wide">2-Sort · Patoklar navbati</h2>
+                        <p class="text-[11px] text-slate-400">OTK saqlagan 2-sort va brak. Patokni tanlab savatga oling.</p>
                     </div>
                 </div>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
-                {% for p in patoks %}
-                <a href="?tab=sanoqchi&patok={{ p.screen }}"
-                    class="rounded-2xl p-4 text-center transition-all duration-200 border-2 {% if p.screen == selected_patok %}border-orange-500 bg-orange-500/10 shadow-lg shadow-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02]{% else %}border-slate-800 bg-slate-950/80 hover:border-orange-500/50 hover:bg-slate-900{% endif %}">
-                    <p class="text-2xl font-black text-white tracking-tight font-mono">{{ p.code }}</p>
-                    <p class="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
-                        <b class="text-rose-400 text-base sm:text-lg tabular-nums font-mono">{{ p.qty }}</b> dona
-                    </p>
-                </a>
-                {% empty %}
-                <div class="col-span-full rounded-2xl border border-dashed border-slate-800 py-8 text-center text-slate-500 text-sm">
-                    <i class="fa-solid fa-circle-check text-2xl text-slate-600 mb-1.5 block"></i>
-                    Hozircha patoklarda 2-sort yo'q.
+                <div class="p-3.5 flex flex-wrap gap-2">
+                    {% for p in patoks %}
+                    <a href="?tab=sanoqchi&patok={{ p.screen }}"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-black font-mono transition-all {% if p.screen == selected_patok %}border-orange-500 bg-orange-500 text-slate-950 shadow-sm{% else %}border-slate-800 bg-slate-950 text-white hover:border-orange-500/60{% endif %}">
+                        <span>{{ p.code }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[11px] {% if p.screen == selected_patok %}bg-slate-950/20 text-slate-950{% else %}bg-rose-500/15 text-rose-400{% endif %}">{{ p.qty }}</span>
+                    </a>
+                    {% empty %}
+                    <div class="w-full py-6 text-center text-slate-500 text-xs sm:text-sm">
+                        <i class="fa-solid fa-circle-check text-emerald-500/60 mr-1.5"></i>
+                        Hozircha patoklarda 2-sort yo'q.
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-        </section>
+            </section>
 
-        <!-- Selected Patok Cards -->
-        {% if selected_patok is not None %}
-        <section class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-4 sm:p-6 space-y-4 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div>
+            {% if selected_patok is not None %}
+            <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-1 rounded-lg bg-orange-500/20 border border-orange-500/40 text-orange-300 font-mono font-black text-sm">{{ selected_patok_code }}</span>
-                        <h2 class="text-base sm:text-lg font-black text-white">Zakaz × Model × Razmer</h2>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-1">«Real son» maydoni hozircha yopiq — OTK soni to'g'ridan-to'g'ri olinadi.</p>
-                </div>
-                {% if cards %}
-                <form method="POST" action="{% url 'packing:counter_accept' %}" onsubmit="return confirm('{{ selected_patok_code }} dagi hamma 2-sort savatga olinsinmi?');">
-                    {% csrf_token %}
-                    <input type="hidden" name="screen" value="{{ selected_patok }}">
-                    <input type="hidden" name="all" value="1">
-                    <button class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-orange-950/40 transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-basket-shopping text-xs"></i>
-                        <span>Hammasini savatga olish</span>
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3.5">
-                {% for card in cards %}
-                <div class="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 space-y-3 shadow-sm hover:border-slate-700 transition-colors">
-                    <div class="flex items-start gap-3.5">
-                        {% if card.image %}
-                        <img src="{{ card.image }}" alt="" class="w-20 h-20 object-cover rounded-xl border border-slate-700/80 flex-shrink-0 shadow-sm">
-                        {% else %}
-                        <div class="w-20 h-20 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center text-slate-500 flex-shrink-0 shadow-sm">
-                            <i class="fa-solid fa-shirt text-2xl text-slate-400"></i>
-                        </div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">{{ card.order.order_number }}</span>
-                            <p class="font-black text-white text-base truncate mt-1 tracking-tight">{{ card.article.code|default:"—" }}</p>
-                            <p class="text-xs text-slate-400 truncate">{{ card.article.name|default:"" }}</p>
-                        </div>
-                        <div class="text-right flex-shrink-0 pl-1">
-                            <p class="text-3xl font-black text-rose-400 tabular-nums font-mono leading-none">{{ card.total }}</p>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">OTK</p>
+                        <span class="px-2.5 py-1 rounded-lg bg-orange-500 text-slate-950 font-mono font-black text-xs">{{ selected_patok_code }}</span>
+                        <div>
+                            <h3 class="text-sm font-black text-white">Zakaz × Model × Razmer</h3>
+                            <p class="text-[11px] text-slate-400">«Real son» maydoni hozircha yopiq — OTK soni olinadi</p>
                         </div>
                     </div>
-
-                    <div class="space-y-2 bg-slate-900/60 rounded-xl border border-slate-800/60 p-2.5">
-                        {% for size, qty in card.sizes.items %}
-                        <form method="POST" action="{% url 'packing:counter_accept' %}" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                            {% csrf_token %}
-                            <input type="hidden" name="screen" value="{{ selected_patok }}">
-                            <input type="hidden" name="order_id" value="{{ card.order.id }}">
-                            <input type="hidden" name="article_id" value="{{ card.article.id|default:0 }}">
-                            <input type="hidden" name="size" value="{{ size }}">
-                            <span class="w-24 text-xs sm:text-sm text-slate-300 font-medium">Razmer <b class="text-white">{{ size }}</b></span>
-                            <span class="w-16 text-right font-black text-rose-400 tabular-nums font-mono text-sm sm:text-base">{{ qty }}</span>
-                            <input disabled placeholder="Real son" title="Hozircha yopiq — keyinchalik ochiladi"
-                                class="flex-1 min-w-0 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 text-xs text-center cursor-not-allowed font-mono">
-                            <button class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black whitespace-nowrap shadow-sm transition-all">Savatga</button>
-                        </form>
-                        {% endfor %}
-                    </div>
-
-                    {% if card.boxes %}
-                    <details class="text-xs border-t border-slate-800/80 pt-2.5 group">
-                        <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200 font-bold flex items-center justify-between">
-                            <span class="flex items-center gap-1.5">
-                                <i class="fa-solid fa-boxes-stacked text-slate-500"></i>
-                                <span>Qaysi qutilardan ({{ card.box_count }})</span>
-                            </span>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
-                        </summary>
-                        <div class="mt-2 space-y-1.5">
-                            {% for b in card.boxes %}
-                            <div class="px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                                <span><b class="text-white font-mono">{{ b.box_code }}</b> · razmer {{ b.razmer }}</span>
-                                <span class="font-black text-rose-400 font-mono">{{ b.qty }} dona</span>
-                                {% if b.notes %}<p class="w-full text-[11px] text-slate-400">{{ b.notes|join:" · " }}</p>{% endif %}
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </details>
+                    {% if cards %}
+                    <form method="POST" action="{% url 'packing:counter_accept' %}" onsubmit="return confirm('{{ selected_patok_code }} dagi hamma 2-sort savatga olinsinmi?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="screen" value="{{ selected_patok }}">
+                        <input type="hidden" name="all" value="1">
+                        <button class="px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs transition-colors inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-basket-shopping text-[11px]"></i>
+                            <span>Hammasini savatga</span>
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
-                {% empty %}
-                <div class="col-span-full text-slate-500 text-sm py-6 text-center rounded-2xl border border-dashed border-slate-800">
-                    Bu patokda 2-sort qolmadi.
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
 
-        <!-- My Basket Section -->
-        <section class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-4 sm:p-6 space-y-4 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-900/30 text-lg">
-                        <i class="fa-solid fa-basket-shopping"></i>
-                    </span>
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">Mening savatim</h2>
-                            {% if basket %}
-                            <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-orange-400 font-mono font-black text-sm border border-slate-700">{{ basket.code }}</span>
-                            {% endif %}
-                            <span class="text-rose-400 text-base sm:text-lg font-black tabular-nums font-mono">{{ basket_total }} <span class="text-xs font-normal text-slate-400">dona</span></span>
+                <div class="p-3.5 space-y-3">
+                    {% for card in cards %}
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                        <div class="px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-900/50">
+                            <div class="flex items-center gap-3 min-w-0">
+                                {% if card.image %}
+                                <img src="{{ card.image }}" alt="" class="w-11 h-11 object-cover rounded-lg border border-slate-700 flex-shrink-0">
+                                {% else %}
+                                <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 flex-shrink-0">
+                                    <i class="fa-solid fa-shirt text-sm"></i>
+                                </div>
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">{{ card.order.order_number }}</span>
+                                        <span class="font-black text-white text-sm truncate">{{ card.article.code|default:"—" }}</span>
+                                    </div>
+                                    {% if card.article.name %}
+                                    <p class="text-[11px] text-slate-400 truncate">{{ card.article.name }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-xl font-black text-rose-400 font-mono tabular-nums">{{ card.total }}</span>
+                                <span class="block text-[10px] font-bold text-slate-500 uppercase">OTK</span>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-0.5">Jo'natishdan oldin adashib olingan qatorni patokka qaytarishingiz mumkin. Upakovka masteri qabul qilguncha savat "kutilmoqda" holatida bo'ladi.</p>
-                    </div>
-                </div>
-                {% if basket_total %}
-                <form method="POST" action="{% url 'packing:counter_send' %}" onsubmit="return confirm('{{ basket.code }} savati upakovkaga jo\'natilsinmi?');">
-                    {% csrf_token %}
-                    <button class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-orange-950/40 transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-truck-ramp-box text-xs"></i>
-                        <span>Upakovkaga jo'natish</span>
-                    </button>
-                </form>
-                {% endif %}
-            </div>
 
-            {% if basket %}
-            {% include 'packing/partials/basket_rows.html' with view=basket_view removable=True %}
-            {% else %}
-            <div class="py-8 text-center text-slate-500 text-sm rounded-2xl border border-dashed border-slate-800">
-                <i class="fa-solid fa-basket-shopping text-2xl text-slate-600 mb-1.5 block"></i>
-                Savat hozircha bo'sh.
-            </div>
+                        <div class="divide-y divide-slate-800/80 px-3.5">
+                            {% for size, qty in card.sizes.items %}
+                            <form method="POST" action="{% url 'packing:counter_accept' %}" class="py-2 flex items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="screen" value="{{ selected_patok }}">
+                                <input type="hidden" name="order_id" value="{{ card.order.id }}">
+                                <input type="hidden" name="article_id" value="{{ card.article.id|default:0 }}">
+                                <input type="hidden" name="size" value="{{ size }}">
+                                <span class="w-24 text-xs sm:text-sm text-slate-300 font-medium">Razmer <b class="text-white font-mono">{{ size }}</b></span>
+                                <span class="w-14 text-right font-black text-rose-400 font-mono tabular-nums text-sm">{{ qty }}</span>
+                                <input disabled placeholder="Real son" title="Hozircha yopiq — keyinchalik ochiladi"
+                                    class="flex-1 min-w-0 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 text-xs text-center cursor-not-allowed font-mono">
+                                <button class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black whitespace-nowrap transition-colors">+ Savatga</button>
+                            </form>
+                            {% endfor %}
+                        </div>
+
+                        {% if card.boxes %}
+                        <details class="border-t border-slate-800 bg-slate-900/40 px-3.5 py-2 text-xs group">
+                            <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200 font-bold flex items-center justify-between">
+                                <span><i class="fa-solid fa-boxes-stacked mr-1.5 text-slate-500"></i>Qaysi qutilardan ({{ card.box_count }})</span>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="mt-2 space-y-1">
+                                {% for b in card.boxes %}
+                                <div class="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                                    <span><b class="text-white font-mono">{{ b.box_code }}</b> · razmer {{ b.razmer }}</span>
+                                    <span class="font-black text-rose-400 font-mono">{{ b.qty }} dona</span>
+                                    {% if b.notes %}<p class="w-full text-[11px] text-slate-400">{{ b.notes|join:" · " }}</p>{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="py-6 text-center text-slate-500 text-xs sm:text-sm">Bu patokda 2-sort qolmadi.</div>
+                    {% endfor %}
+                </div>
+            </section>
             {% endif %}
-        </section>
+        </div>
 
-        <!-- Returned Baskets Section -->
-        {% for view in returned_baskets %}
-        <section class="bg-rose-950/40 border-2 border-rose-700/70 rounded-3xl p-4 sm:p-6 space-y-4 shadow-lg shadow-rose-950/20">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-rose-800/60">
-                <div class="flex items-start gap-3">
-                    <span class="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-900/40 text-lg flex-shrink-0">
-                        <i class="fa-solid fa-rotate-left"></i>
-                    </span>
+        <!-- RIGHT STICKY COLUMN: RETURNED + OPEN BASKET -->
+        <aside class="xl:col-span-5 xl:sticky xl:top-20 space-y-4">
+            {% for view in returned_baskets %}
+            <section class="bg-slate-900 border border-rose-700/80 border-l-4 rounded-2xl overflow-hidden shadow-sm">
+                <div class="px-4 py-3 bg-rose-950/50 border-b border-rose-800/60 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono font-black text-rose-300 text-sm">{{ view.basket.code }}</span>
+                            <span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-black">QAYTARILGAN</span>
+                            <span class="text-xs font-black text-rose-200 font-mono">{{ view.total }} dona</span>
+                        </div>
+                        <p class="text-xs text-rose-200 mt-1"><b>Sabab:</b> {{ view.basket.return_reason }}</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">{% if view.basket.returned_by %}{{ view.basket.returned_by.get_full_name|default:view.basket.returned_by.username }}{% else %}—{% endif %} · {{ view.basket.returned_at|date:"d.m H:i" }}</p>
+                    </div>
+                    {% if view.total %}
+                    <form method="POST" action="{% url 'packing:counter_send' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
+                        <button class="px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs transition-colors">
+                            <i class="fa-solid fa-rotate-right mr-1"></i>Qayta jo'natish
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="p-3.5">
+                    {% include 'packing/partials/basket_rows.html' with view=view removable=True returned=True %}
+                </div>
+            </section>
+            {% endfor %}
+
+            <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">Upakovka qaytardi:</h2>
-                            <span class="font-mono font-black text-rose-300 text-base sm:text-lg">{{ view.basket.code }}</span>
-                            <span class="text-sm font-bold text-rose-200">· {{ view.total }} dona</span>
+                            <h2 class="text-sm font-black text-white uppercase tracking-wide">Mening savatim</h2>
+                            {% if basket %}
+                            <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-orange-400 font-mono font-black text-xs">{{ basket.code }}</span>
+                            {% endif %}
+                            <span class="text-sm font-black text-rose-400 font-mono tabular-nums">{{ basket_total }} dona</span>
                         </div>
-                        <div class="mt-1 p-2 rounded-xl bg-rose-900/40 border border-rose-800/80 text-rose-200 text-xs sm:text-sm flex items-start gap-2">
-                            <i class="fa-solid fa-circle-exclamation text-rose-400 mt-0.5"></i>
-                            <span><b>Sababi:</b> {{ view.basket.return_reason }}</span>
-                        </div>
-                        <p class="text-[11px] text-slate-400 mt-1">{% if view.basket.returned_by %}{{ view.basket.returned_by.get_full_name|default:view.basket.returned_by.username }}{% else %}—{% endif %} · {{ view.basket.returned_at|date:"d.m H:i" }}</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Jo'natilgach master tasdiqlaydi.</p>
                     </div>
+                    {% if basket_total %}
+                    <form method="POST" action="{% url 'packing:counter_send' %}" onsubmit="return confirm('{{ basket.code }} savati upakovkaga jo\'natilsinmi?');">
+                        {% csrf_token %}
+                        <button class="px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs transition-colors inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-truck-ramp-box text-[11px]"></i>
+                            <span>Upakovkaga jo'natish</span>
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
-                {% if view.total %}
-                <form method="POST" action="{% url 'packing:counter_send' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
-                    <button class="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-rotate-right text-xs"></i>
-                        <span>Tuzatildi — qayta jo'natish</span>
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-            {% include 'packing/partials/basket_rows.html' with view=view removable=True returned=True %}
-        </section>
-        {% endfor %}
+                <div class="p-3.5">
+                    {% if basket %}
+                    {% include 'packing/partials/basket_rows.html' with view=basket_view removable=True %}
+                    {% else %}
+                    <div class="rounded-xl border border-dashed border-slate-800 py-8 text-center text-slate-500 text-xs sm:text-sm">
+                        <i class="fa-solid fa-basket-shopping text-xl text-slate-600 mb-1.5 block"></i>
+                        Savat hozircha bo'sh. Chapdan patok tanlab qatorlarni qo'shing.
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+        </aside>
     </div>
 
-    <!-- ==================== TOOLS SECTION (SEARCH & CANCEL) ==================== -->
-    <div id="section-tools" class="sanoqchi-section space-y-6">
-        <!-- Basket Search -->
+    <!-- ==================== TOOLS: SEARCH & CANCEL ==================== -->
+    <div id="section-tools" class="sanoqchi-section grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {% include 'packing/partials/basket_search.html' with tab='sanoqchi' %}
 
-        <!-- Cancel Scan Section -->
-        <section class="bg-slate-900/90 border border-rose-800/50 rounded-3xl p-4 sm:p-6 space-y-4 shadow-sm">
-            <div class="flex items-start gap-3 pb-3 border-b border-slate-800">
-                <span class="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center text-lg flex-shrink-0">
-                    <i class="fa-solid fa-ban"></i>
-                </span>
-                <div>
-                    <h2 class="text-base sm:text-lg font-black text-white uppercase tracking-wider">Taxlovchi skanini bekor qilish</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">Qog'ozni noto'g'ri urib yuborgan taxlovchi skanini quti kodi orqali topib bekor qiling.</p>
+        <section class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-ban"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-sm font-black text-white uppercase tracking-wide">Taxlovchi skanini bekor qilish</h2>
+                        <p class="text-[11px] text-slate-400">CONTROL, TAMIR cheki yoki quti kodi orqali topib bekor qiling</p>
+                    </div>
                 </div>
             </div>
 
-            <form method="GET" class="flex gap-2 max-w-2xl">
-                <input type="hidden" name="tab" value="sanoqchi">
-                {% if selected_patok is not None %}<input type="hidden" name="patok" value="{{ selected_patok }}">{% endif %}
-                <div class="relative flex-1">
-                    <i class="fa-solid fa-barcode absolute left-3.5 top-1/2 -translate-y-1/2 text-rose-400 text-base pointer-events-none"></i>
-                    <input name="cancel" value="{{ cancel_code }}" autocomplete="off" placeholder="Xato urilgan CONTROL stikeri, TAMIR cheki yoki quti kodi..."
-                        class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border-2 border-rose-500/50 text-white text-sm sm:text-base focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-500/20 font-mono transition-all placeholder:font-sans placeholder:text-slate-600">
-                </div>
-                <button type="submit" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm transition-all shadow-sm flex items-center gap-2">
-                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    <span>Topish</span>
-                </button>
-            </form>
-
-            {% if cancel_bad_code %}
-            <div class="p-3.5 rounded-xl bg-rose-950/60 border border-rose-800 text-sm text-rose-300 flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
-                <span>Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.</span>
-            </div>
-            {% elif cancel_code and not cancel_scans %}
-            <p class="text-sm text-slate-400 py-3">Bu qog'oz bo'yicha bekor qilinadigan skan yo'q.</p>
-            {% endif %}
-
-            {% for scan in cancel_scans %}
-            <form method="POST" action="{% url 'packing:counter_cancel' %}" class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm"
-                onsubmit="return confirm('Shu skan bekor qilinsinmi?');">
-                {% csrf_token %}
-                <input type="hidden" name="scan_id" value="{{ scan.id }}">
-                <input type="hidden" name="code" value="{{ cancel_code }}">
-                {% if selected_patok is not None %}<input type="hidden" name="patok" value="{{ selected_patok }}">{% endif %}
-                <div class="min-w-0">
-                    <p class="font-black text-white text-base">{{ scan.worker.full_name }} <span class="text-slate-500 text-xs font-mono font-normal">({{ scan.worker.worker_id }})</span></p>
-                    <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
-                        <span class="font-mono text-slate-300">{{ scan.box.order.order_number }}</span> · <b class="text-slate-200 font-mono">{{ scan.box.box_code }}</b> ({{ scan.box.razmer|default:"—" }}) · <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-xs">{{ scan.get_source_display }}</span> · {{ scan.scanned_at|date:"d.m.Y H:i" }}
-                    </p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-xl sm:text-2xl font-black text-orange-400 tabular-nums font-mono">{{ scan.quantity }} dona</span>
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5">
-                        <i class="fa-solid fa-trash-can text-xs"></i>
-                        <span>Bekor qilish</span>
+            <div class="p-4 space-y-3">
+                <form method="GET" class="flex gap-2">
+                    <input type="hidden" name="tab" value="sanoqchi">
+                    {% if selected_patok is not None %}<input type="hidden" name="patok" value="{{ selected_patok }}">{% endif %}
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-barcode absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 text-sm pointer-events-none"></i>
+                        <input name="cancel" value="{{ cancel_code }}" autocomplete="off" placeholder="Xato urilgan CONTROL stikeri, TAMIR cheki yoki quti kodi..."
+                            class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-rose-500 font-mono placeholder:font-sans placeholder:text-slate-600">
+                    </div>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs sm:text-sm transition-colors">
+                        Topish
                     </button>
+                </form>
+
+                {% if cancel_bad_code %}
+                <div class="p-3 rounded-lg bg-rose-950/60 border border-rose-800 text-xs sm:text-sm text-rose-300 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                    <span>Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.</span>
                 </div>
-            </form>
-            {% endfor %}
+                {% elif cancel_code and not cancel_scans %}
+                <p class="text-xs sm:text-sm text-slate-400 py-2">Bu qog'oz bo'yicha bekor qilinadigan skan yo'q.</p>
+                {% endif %}
+
+                <div class="divide-y divide-slate-800">
+                    {% for scan in cancel_scans %}
+                    <form method="POST" action="{% url 'packing:counter_cancel' %}" class="py-3 flex flex-wrap items-center justify-between gap-3"
+                        onsubmit="return confirm('Shu skan bekor qilinsinmi?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="scan_id" value="{{ scan.id }}">
+                        <input type="hidden" name="code" value="{{ cancel_code }}">
+                        {% if selected_patok is not None %}<input type="hidden" name="patok" value="{{ selected_patok }}">{% endif %}
+                        <div class="min-w-0">
+                            <p class="font-black text-white text-sm">{{ scan.worker.full_name }} <span class="text-slate-500 text-xs font-mono font-normal">({{ scan.worker.worker_id }})</span></p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                <span class="font-mono text-slate-300">{{ scan.box.order.order_number }}</span> · <b class="text-slate-200 font-mono">{{ scan.box.box_code }}</b> ({{ scan.box.razmer|default:"—" }}) · {{ scan.get_source_display }} · {{ scan.scanned_at|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-lg font-black text-orange-400 font-mono tabular-nums">{{ scan.quantity }} dona</span>
+                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs transition-colors">
+                                Bekor qilish
+                            </button>
+                        </div>
+                    </form>
+                    {% endfor %}
+                </div>
+            </div>
         </section>
     </div>
 </div>
 
 <script>
-    // Sub-section switcher logic
     let showAllSections = false;
 
     function switchSanoqchiSection(secId) {
@@ -409,15 +445,15 @@ xato skanni bekor qilish va savat qidirish.
         if (target) target.classList.remove('hidden');
 
         document.querySelectorAll('.sanoqchi-nav-btn').forEach(btn => {
-            btn.className = 'sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all';
+            btn.className = 'sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all';
         });
         const activeBtn = document.getElementById('btn-sec-' + secId);
         if (activeBtn) {
-            activeBtn.className = 'sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-950/40';
+            activeBtn.className = 'sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-emerald-600 text-white shadow-sm';
         }
 
         const toggleBtnTxt = document.getElementById('txt-toggle-all');
-        if (toggleBtnTxt) toggleBtnTxt.textContent = "Barchasini ko'rsatish";
+        if (toggleBtnTxt) toggleBtnTxt.textContent = "Hammasini ko'rsatish";
 
         if (secId === 'first_sort') {
             setTimeout(() => document.getElementById('counter-input')?.focus(), 50);
@@ -430,7 +466,7 @@ xato skanni bekor qilish va savat qidirish.
         if (showAllSections) {
             document.querySelectorAll('.sanoqchi-section').forEach(sec => sec.classList.remove('hidden'));
             document.querySelectorAll('.sanoqchi-nav-btn').forEach(btn => {
-                btn.className = 'sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all';
+                btn.className = 'sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all';
             });
             if (toggleBtnTxt) toggleBtnTxt.textContent = "Bo'limlarga ajratish";
         } else {
@@ -438,7 +474,6 @@ xato skanni bekor qilish va savat qidirish.
         }
     }
 
-    // Auto-detect initial section based on query params
     (function initSubSection() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('cancel') || urlParams.has('sv')) {
@@ -453,20 +488,31 @@ xato skanni bekor qilish va savat qidirish.
 
 <script>
     (function () {
+        const PACKER_SCREENS = {{ packer_screens_json|safe }};
         const input = document.getElementById('counter-input');
         const urls = {
-            packer: '{% url "packing:api_counter_packer" %}', paper: '{% url "packing:api_counter_paper" %}',
-            remove: '{% url "packing:api_counter_remove" %}', send: '{% url "packing:api_counter_send" %}',
+            packer: '{% url "packing:api_counter_packer" %}',
+            patok: '{% url "packing:api_counter_patok" %}',
+            paper: '{% url "packing:api_counter_paper" %}',
+            remove: '{% url "packing:api_counter_remove" %}',
+            send: '{% url "packing:api_counter_send" %}',
         };
         const STATES = {
             done: ['fa-circle-check text-emerald-400', "urilgan"],
-            waiting: ['fa-circle-exclamation text-rose-400', "hali urilmagan"],
+            waiting: ['fa-circle-exclamation text-rose-400', "kutilmoqda"],
             in_repair: ['fa-screwdriver-wrench text-amber-400', "ta'mirda"],
-            not_inspected: ['fa-hourglass-half text-slate-400', "OTK hali tekshirmagan"],
-            empty: ['fa-minus text-slate-500', "1-sort chiqmagan"],
+            not_inspected: ['fa-hourglass-half text-slate-400', "OTK tekshirmagan"],
+            empty: ['fa-minus text-slate-500', "1-sort yo'q"],
         };
+        let selectedPatok = null;
+        let pinPatok = false;
         let packer = null;
         let batch = {lines: [], total: 0};
+
+        function patokCodeOf(num) {
+            if (!num) return '';
+            return num <= 13 ? `K${num}` : `U${num - 13}`;
+        }
 
         function el(tag, className, text) {
             const node = document.createElement(tag);
@@ -476,33 +522,140 @@ xato skanni bekor qilish va savat qidirish.
         }
 
         function message(ok, title, subtitle) {
-            const row = el('div', `p-3.5 rounded-2xl border shadow-lg flex items-start gap-3 transition-all ${ok ? 'bg-emerald-950/90 border-emerald-700/80 text-emerald-100 shadow-emerald-950/30' : 'bg-rose-950/90 border-rose-700/80 text-rose-100 shadow-rose-950/30'}`);
-            const icon = el('i', `fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400'} text-base mt-0.5`);
+            const row = el('div', `p-3 rounded-xl border flex items-start gap-2.5 text-xs sm:text-sm ${ok ? 'bg-emerald-950/70 border-emerald-700/80 text-emerald-100' : 'bg-rose-950/70 border-rose-700/80 text-rose-100'}`);
+            const icon = el('i', `fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400'} mt-0.5`);
             const content = el('div', 'flex-1 min-w-0');
-            content.append(el('p', 'font-black tracking-tight leading-snug', title));
-            if (subtitle) content.append(el('p', 'text-xs opacity-85 mt-0.5', subtitle));
+            content.append(el('p', 'font-black leading-snug', title));
+            if (subtitle) content.append(el('p', 'text-[11px] opacity-85 mt-0.5', subtitle));
             row.append(icon, content);
 
             const box = document.getElementById('counter-results');
             box.prepend(row);
-            while (box.children.length > 5) box.lastChild.remove();
+            while (box.children.length > 4) box.lastChild.remove();
+        }
+
+        function renderStepper() {
+            const s1 = document.getElementById('step-pill-1');
+            const s2 = document.getElementById('step-pill-2');
+            const s3 = document.getElementById('step-pill-3');
+            if (!selectedPatok) {
+                s1.className = 'px-2 py-1 rounded-md bg-amber-500 text-slate-950 whitespace-nowrap';
+                s2.className = 'px-2 py-1 rounded-md bg-slate-800 text-slate-400 whitespace-nowrap';
+                s3.className = 'px-2 py-1 rounded-md bg-slate-800 text-slate-400 whitespace-nowrap';
+                input.placeholder = "Avval 1-qadamda patokni tanlang...";
+                input.className = 'w-full pl-11 pr-3 py-3 rounded-xl bg-slate-950 border-2 border-amber-500/70 focus:border-amber-400 text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono transition-all placeholder:font-sans placeholder:text-slate-500';
+            } else if (!packer) {
+                s1.className = 'px-2 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/70 whitespace-nowrap';
+                s2.className = 'px-2 py-1 rounded-md bg-cyan-500 text-slate-950 whitespace-nowrap';
+                s3.className = 'px-2 py-1 rounded-md bg-slate-800 text-slate-400 whitespace-nowrap';
+                input.placeholder = "Endi taxlovchi badge'ini skaner bilan uring...";
+                input.className = 'w-full pl-11 pr-3 py-3 rounded-xl bg-slate-950 border-2 border-cyan-500/80 focus:border-cyan-400 text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-cyan-500/20 font-mono transition-all placeholder:font-sans placeholder:text-slate-500';
+            } else {
+                s1.className = 'px-2 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/70 whitespace-nowrap';
+                s2.className = 'px-2 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/70 whitespace-nowrap';
+                s3.className = 'px-2 py-1 rounded-md bg-emerald-500 text-slate-950 whitespace-nowrap';
+                input.placeholder = "CONTROL stikeri, TAMIR cheki yoki quti kodini uring...";
+                input.className = 'w-full pl-11 pr-3 py-3 rounded-xl bg-slate-950 border-2 border-emerald-500/80 focus:border-emerald-400 text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono transition-all placeholder:font-sans placeholder:text-slate-500';
+            }
+        }
+
+        window.switchPatokBranch = function (branch) {
+            const hqGrid = document.getElementById('patok-grid-hq');
+            const uychiGrid = document.getElementById('patok-grid-uychi');
+            const hqBtn = document.getElementById('branch-btn-hq');
+            const uychiBtn = document.getElementById('branch-btn-uychi');
+            if (branch === 'uychi') {
+                hqGrid.classList.add('hidden');
+                uychiGrid.classList.remove('hidden');
+                hqBtn.className = 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition-colors';
+                uychiBtn.className = 'px-2.5 py-1 rounded-md bg-slate-800 text-white transition-colors';
+            } else {
+                uychiGrid.classList.add('hidden');
+                hqGrid.classList.remove('hidden');
+                uychiBtn.className = 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition-colors';
+                hqBtn.className = 'px-2.5 py-1 rounded-md bg-slate-800 text-white transition-colors';
+            }
+        };
+
+        function renderPatok() {
+            const code = patokCodeOf(selectedPatok);
+            const activePill = document.getElementById('patok-active-pill');
+            const tvHint = document.getElementById('patok-tv-hint');
+            const manifestBadge = document.getElementById('manifest-patok-badge');
+
+            if (selectedPatok) {
+                if (selectedPatok >= 14) window.switchPatokBranch('uychi');
+                const tv = PACKER_SCREENS[String(selectedPatok)];
+                activePill.textContent = code;
+                activePill.className = 'px-2 py-0.5 rounded-md text-xs font-black font-mono bg-amber-500 text-slate-950';
+                tvHint.textContent = tv ? `TV: ${tv.title}` : 'TV ekran biriktirilmagan';
+                manifestBadge.textContent = tv ? `${code} · ${tv.title}` : code;
+                manifestBadge.classList.remove('hidden');
+            } else {
+                activePill.textContent = 'Tanlanmagan';
+                activePill.className = 'px-2 py-0.5 rounded-md text-xs font-black font-mono bg-slate-800 text-slate-400 border border-slate-700';
+                tvHint.textContent = 'TV ekranga tushishi uchun tanlang';
+                manifestBadge.classList.add('hidden');
+            }
+
+            document.querySelectorAll('[data-patok-btn]').forEach(btn => {
+                const isSelected = Number(btn.dataset.patokBtn) === selectedPatok;
+                btn.className = isSelected
+                    ? 'patok-chip py-2 rounded-lg border border-amber-400 bg-amber-500 text-slate-950 text-xs font-black font-mono transition-all text-center shadow-sm'
+                    : 'patok-chip py-2 rounded-lg border border-slate-800 bg-slate-950 hover:border-amber-500 text-xs font-black font-mono text-slate-300 hover:text-white transition-all text-center';
+            });
+
+            const pinBtn = document.getElementById('patok-pin-btn');
+            const pinText = document.getElementById('patok-pin-text');
+            pinBtn.className = pinPatok
+                ? 'px-2.5 py-1 rounded-lg border border-amber-500 bg-amber-500/20 text-[11px] font-black text-amber-300 transition-colors inline-flex items-center gap-1'
+                : 'px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-950 text-[11px] font-bold text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1';
+            pinText.textContent = pinPatok ? 'Qulflangan' : 'Qulflash';
+
+            renderStepper();
+        }
+
+        window.togglePatokPin = function () {
+            pinPatok = !pinPatok;
+            renderPatok();
+            input.focus();
+        };
+
+        window.selectCounterPatok = async function (num) {
+            selectedPatok = num;
+            renderPatok();
+            if (packer) {
+                const r = await postJSON(urls.patok, {worker_id: packer.id, screen_number: selectedPatok});
+                if (r.ok && r.data.batch) renderBatch(r.data.batch);
+                message(true, `${packer.name}: patok ${patokCodeOf(selectedPatok)} belgilandi`, "Qog'ozlarni skanerlang yoki yuboring");
+            }
+            input.focus();
+        };
+
+        function highlightPatokStep() {
+            const box = document.getElementById('patok-step-box');
+            box.classList.add('ring-2', 'ring-amber-500', 'bg-amber-950/20');
+            setTimeout(() => box.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-950/20'), 1400);
         }
 
         function renderPacker() {
             const card = document.getElementById('packer-card');
             const avatar = document.getElementById('packer-avatar');
             if (packer) {
-                card.className = 'bg-slate-950/90 border-2 border-emerald-500 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg shadow-emerald-950/30 transition-all duration-200';
-                avatar.className = 'w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0';
+                card.className = 'px-4 py-3 border-b border-slate-800 bg-emerald-950/25 flex items-center justify-between gap-3 transition-colors';
+                avatar.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-base flex-shrink-0';
             } else {
-                card.className = 'bg-slate-950/90 border-2 border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 transition-all duration-200';
-                avatar.className = 'w-12 h-12 rounded-2xl bg-slate-800/90 border border-slate-700/60 flex items-center justify-center text-slate-400 text-xl flex-shrink-0';
+                card.className = 'px-4 py-3 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between gap-3 transition-colors';
+                avatar.className = 'w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 text-base flex-shrink-0';
             }
-            document.getElementById('packer-step').textContent = packer ? "2-qadam · Taxlovchining qog'ozlarini uring" : "1-qadam · Taxlovchi badge'i";
-            document.getElementById('packer-step').className = packer ? "text-[11px] font-black uppercase tracking-wider text-emerald-400" : "text-[11px] font-black uppercase tracking-wider text-slate-500";
+            document.getElementById('packer-step').textContent = packer ? "2-qadam · Taxlovchi tayyor" : "2-qadam · Taxlovchi badge'i";
+            document.getElementById('packer-step').className = packer ? "block text-[10px] font-black uppercase tracking-wider text-emerald-400" : "block text-[10px] font-black uppercase tracking-wider text-slate-500";
             document.getElementById('packer-name').textContent = packer ? `${packer.name} (${packer.code})` : 'Taxlovchi tanlanmagan';
-            document.getElementById('packer-today').textContent = packer ? `Bugun yuborilgan: ${packer.today} dona` : "Taxlovchining badge'ini skaner bilan uring";
+            document.getElementById('packer-today').textContent = packer
+                ? `Bugun yuborilgan: ${packer.today} dona`
+                : (selectedPatok ? `${patokCodeOf(selectedPatok)} tanlandi — badge uring` : 'Avval patok tanlab, keyin badge uring');
             document.getElementById('packer-reset').classList.toggle('hidden', !packer);
+            renderStepper();
         }
 
         function renderBatch(data) {
@@ -512,16 +665,17 @@ xato skanni bekor qilish va savat qidirish.
             const list = document.getElementById('batch-lines');
             list.replaceChildren();
             batch.lines.slice().reverse().forEach((line) => {
-                const row = el('div', 'px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-slate-800/90 hover:border-slate-700 flex items-center justify-between gap-3 shadow-sm transition-colors');
+                const row = el('div', 'px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-950/60 transition-colors');
                 const info = el('div', 'min-w-0');
-                const top = el('div', 'flex items-center gap-2');
-                top.append(el('span', 'font-black text-white font-mono text-sm tracking-tight', line.box_code));
+                const top = el('div', 'flex items-center gap-2 flex-wrap');
+                top.append(el('span', 'font-black text-white font-mono text-sm', line.box_code));
                 top.append(el('span', `px-1.5 py-0.5 rounded text-[10px] font-black font-mono ${line.paper === 'CONTROL' ? 'bg-slate-800 text-slate-200' : 'bg-amber-950 text-amber-300'}`, line.paper));
+                top.append(el('span', 'px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono font-bold text-[10px]', line.patok));
                 info.append(top);
-                info.append(el('p', 'text-xs text-slate-400 truncate mt-0.5', `${line.patok} · ${line.order} · ${line.article} · razmer ${line.size}`));
-                const right = el('div', 'flex items-center gap-2.5 flex-shrink-0');
-                right.append(el('span', 'text-lg sm:text-xl font-black text-emerald-400 font-mono tabular-nums', `${line.quantity}`));
-                const remove = el('button', 'w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-rose-600 hover:text-white border border-slate-700/60 text-xs text-slate-400 transition-colors flex items-center justify-center', '✕');
+                info.append(el('p', 'text-xs text-slate-400 truncate mt-0.5', `${line.order} · ${line.article} · razmer ${line.size}`));
+                const right = el('div', 'flex items-center gap-3 flex-shrink-0');
+                right.append(el('span', 'text-base sm:text-lg font-black text-emerald-400 font-mono tabular-nums', `${line.quantity}`));
+                const remove = el('button', 'w-7 h-7 rounded-lg bg-slate-950 hover:bg-rose-600 hover:text-white border border-slate-700 text-xs text-slate-400 transition-colors flex items-center justify-center', '✕');
                 remove.type = 'button';
                 remove.title = "Ro'yxatdan olib tashlash";
                 remove.addEventListener('click', () => removeLine(line.id));
@@ -530,44 +684,47 @@ xato skanni bekor qilish va savat qidirish.
                 list.append(row);
             });
             if (!batch.lines.length) {
-                list.append(el('div', 'p-4 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-500', packer ? "Ro'yxat bo'sh — qog'ozlarni uring." : "Taxlovchi tanlangach, qog'ozlar shu yerda chiqadi."));
+                list.append(el('div', 'py-10 px-4 text-center text-xs text-slate-500', packer ? "Ro'yxat bo'sh — taxlovchining qog'ozlarini skanerlang." : "Patok va taxlovchi tanlangach, urilgan qog'ozlar shu jadvalga tushadi."));
             }
         }
 
         function renderBox(box) {
             const panel = document.getElementById('box-papers');
             panel.replaceChildren();
-            panel.className = 'bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 space-y-3';
+            panel.className = 'p-4 space-y-2.5 text-left';
             const head = el('div', 'flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800');
-            head.append(el('p', 'text-base sm:text-lg font-black text-white font-mono tracking-tight', box.box_code));
-            head.append(el('span', `px-2.5 py-1 rounded-lg text-xs font-black ${box.repair_cycles ? 'bg-amber-950 text-amber-300 border border-amber-800/60' : 'bg-slate-800 text-slate-400'}`,
+            head.append(el('p', 'text-sm sm:text-base font-black text-white font-mono', box.box_code));
+            head.append(el('span', `px-2 py-0.5 rounded text-[11px] font-black ${box.repair_cycles ? 'bg-amber-950 text-amber-300 border border-amber-800/60' : 'bg-slate-800 text-slate-400'}`,
                 box.repair_cycles ? `Ta'mirga ${box.repair_cycles} marta ketgan` : "Ta'mirga ketmagan"));
             panel.append(head);
             box.papers.forEach((paper) => {
                 const [icon, label] = STATES[paper.state] || STATES.empty;
-                const row = el('div', 'p-3 rounded-xl border border-slate-800/80 bg-slate-900/80 space-y-1.5');
+                const row = el('div', 'p-2.5 rounded-xl border border-slate-800 bg-slate-950 space-y-1');
                 const top = el('div', 'flex items-center justify-between gap-2');
-                const name = el('p', 'font-black text-white text-xs sm:text-sm');
+                const name = el('p', 'font-black text-white text-xs');
                 const i = el('i', `fa-solid ${icon} mr-1.5`);
                 name.append(i, document.createTextNode(paper.label));
                 const detail = paper.sent_to_repair !== undefined
                     ? `${paper.sent_to_repair} ta'mirga → ${paper.portion} ta 1-sort` : `${paper.portion} ta 1-sort`;
-                top.append(name, el('span', 'text-xs text-slate-400 font-medium', `${detail} · ${label}`));
+                top.append(name, el('span', 'text-[11px] text-slate-400 font-medium', `${detail} · ${label}`));
                 row.append(top);
-                if (paper.waiting) row.append(el('p', 'text-xs font-black text-rose-400 font-mono', `${paper.waiting} dona kutilmoqda`));
-                paper.scans.forEach((sc) => row.append(el('p', 'text-xs text-slate-400',
+                if (paper.waiting) row.append(el('p', 'text-[11px] font-black text-rose-400 font-mono', `${paper.waiting} dona kutilmoqda`));
+                paper.scans.forEach((sc) => row.append(el('p', 'text-[11px] text-slate-400',
                     `${sc.worker} · ${sc.quantity} dona · ${sc.at}${sc.sent ? '' : ' · yuborilmagan'}`)));
                 panel.append(row);
             });
         }
 
         async function identify(code) {
-            const r = await postJSON(urls.packer, {code});
+            const r = await postJSON(urls.packer, {code, screen_number: selectedPatok});
             if (!r.ok) return r;
             packer = r.data.worker;
+            if (!selectedPatok && r.data.screen_number) selectedPatok = r.data.screen_number;
+            renderPatok();
             renderPacker();
             renderBatch(r.data.batch);
-            message(true, `${packer.name} — tayyor`, r.data.batch.lines.length
+            const pLabel = selectedPatok ? ` (${patokCodeOf(selectedPatok)})` : '';
+            message(true, `${packer.name}${pLabel} — tayyor`, r.data.batch.lines.length
                 ? `Yuborilmagan ro'yxat davom etadi: ${r.data.batch.total} dona` : "Endi uning qog'ozlarini uring");
             return true;
         }
@@ -580,11 +737,19 @@ xato skanni bekor qilish va savat qidirish.
 
         async function send() {
             if (!packer || !batch.lines.length) return;
-            if (!confirm(`${packer.name}: ${batch.total} dona yozilsin va upakovkaga yuborilsinmi?`)) return;
-            const r = await postJSON(urls.send, {worker_id: packer.id});
+            if (!selectedPatok) {
+                highlightPatokStep();
+                message(false, "Yuborishdan oldin patokni tanlang.");
+                return;
+            }
+            const pCode = patokCodeOf(selectedPatok);
+            if (!confirm(`${packer.name} (${pCode}): ${batch.total} dona yozilsin va upakovkaga yuborilsinmi?`)) return;
+            const r = await postJSON(urls.send, {worker_id: packer.id, screen_number: selectedPatok});
             if (!r.ok) { message(false, r.data.message || 'Xatolik'); return; }
-            message(true, r.data.message, "Keyingi taxlovchining badge'ini uring");
+            message(true, r.data.message, pinPatok ? `Keyingi taxlovchi badge'ini uring (${pCode} qulflangan)` : "Keyingi taxlovchi uchun patok tanlab badge uring");
             packer = null;
+            if (!pinPatok) selectedPatok = null;
+            renderPatok();
             renderPacker();
             renderBatch(null);
             input.focus();
@@ -597,19 +762,47 @@ xato skanni bekor qilish va savat qidirish.
             }
             const isPaper = /^(CONTROL|TAMIR\d*|BOX|QUTI)\s*[:+-]/i.test(code) || /^[A-Za-z]{1,4}\d+-\d+/.test(code);
             const isWorker = /^(WORKER\s*[:+]|W-\d+$|\d{6}$)/i.test(code);
+
             if (!packer) {
-                if (isPaper) { message(false, "Avval taxlovchi badge'ini uring."); return; }
+                if (isPaper) {
+                    message(false, selectedPatok ? "Avval taxlovchi badge'ini uring." : "Avval 1-qadamda patokni tanlang, keyin taxlovchi badge'ini uring.");
+                    if (!selectedPatok) highlightPatokStep();
+                    return;
+                }
+                if (!selectedPatok) {
+                    highlightPatokStep();
+                    message(false, "Avval 1-qadamda taxlovchining patogini tanlang (masalan: K1, K5...)!", "Patok tanlanmasa TV ekranga tushmaydi.");
+                    return;
+                }
                 const r = await identify(code);
                 if (r !== true) message(false, r.data.message || 'Taxlovchi topilmadi');
                 return;
             }
+
             if (isWorker) {
                 if (batch.lines.length && !confirm(`${packer.name}: ${batch.total} dona hali yuborilmagan (ro'yxat saqlanib turadi). Boshqa taxlovchiga o'tilsinmi?`)) return;
+                if (!pinPatok) {
+                    packer = null;
+                    selectedPatok = null;
+                    renderPatok();
+                    renderPacker();
+                    renderBatch(null);
+                    highlightPatokStep();
+                    message(false, "Boshqa taxlovchiga o'tishdan oldin patokni tanlang.");
+                    return;
+                }
                 const r = await identify(code);
                 if (r !== true) message(false, r.data.message || 'Taxlovchi topilmadi');
                 return;
             }
-            const r = await postJSON(urls.paper, {code, worker_id: packer.id});
+
+            if (!selectedPatok) {
+                highlightPatokStep();
+                message(false, "Patok tanlanmagan — yuqoridan patokni belgilang.");
+                return;
+            }
+
+            const r = await postJSON(urls.paper, {code, worker_id: packer.id, screen_number: selectedPatok});
             if (!r.ok && !isPaper && r.data.status === 'NOT_FOUND') {
                 const switched = await identify(code);
                 if (switched === true) return;
@@ -618,7 +811,7 @@ xato skanni bekor qilish va savat qidirish.
             if (r.ok) {
                 const line = r.data.line;
                 renderBatch(r.data.batch);
-                message(true, `+${line.quantity} dona — ${line.box_code} · ${line.paper}`, `${line.order} · ${line.article} · razmer ${line.size}`);
+                message(true, `+${line.quantity} dona — ${line.box_code} · ${line.paper}`, `${line.patok} · ${line.order} · ${line.article} · razmer ${line.size}`);
             } else {
                 message(false, r.data.message || 'Xatolik');
             }
@@ -633,12 +826,18 @@ xato skanni bekor qilish va savat qidirish.
         document.getElementById('send-btn').addEventListener('click', send);
         document.getElementById('packer-reset').addEventListener('click', () => {
             if (batch.lines.length && !confirm(`${batch.total} dona hali yuborilmagan (ro'yxat saqlanib turadi). Boshqa taxlovchiga o'tilsinmi?`)) return;
-            packer = null; renderPacker(); renderBatch(null); input.focus();
+            packer = null;
+            if (!pinPatok) selectedPatok = null;
+            renderPatok();
+            renderPacker();
+            renderBatch(null);
+            input.focus();
         });
         document.addEventListener('click', (e) => {
             if (e.target.closest('button, a, input, select, textarea, label, summary, form') || window.getSelection()?.toString()) return;
             setTimeout(() => input.focus(), 50);
         });
+        renderPatok();
         renderPacker();
         renderBatch(null);
     })();

@@ -108,3 +108,17 @@ class PackerScreensTest(TestCase):
         screens = {s.number: s for s in PackerScreen.objects.all()}
         self.assertEqual((screens[1].title, screens[1].patoks), ('QADOQ-A', '2'))
         self.assertEqual((screens[2].patoks, screens[3].patoks), ('5,14', '1'))   # K1 3-ekranga ko'chdi; 9-ekran yo'q
+
+    def test_sanoqchi_selected_patok_assigns_tv_screen(self):
+        # Qutida patok yo'q (yoki boshqa patok) bo'lsa ham sanoqchi qo'ygan patok bo'yicha TV ekraniga chiqadi
+        no_patok_box = Box.objects.create(order=self.order, article=self.article, box_number=99, quantity=100, razmer='L')
+        PackingScan.objects.create(box=no_patok_box, source=PackingScan.Source.CONTROL, worker=self.aziz,
+                                   screen_number=5, quantity=100, price_per_unit=Decimal('2.00'),
+                                   total_amount=Decimal('200.00'), credited_at=at(DAY, 12))
+        PackingScan.objects.create(box=self.boxes[1], source=PackingScan.Source.CONTROL, worker=self.malika,
+                                   screen_number=2, quantity=50, price_per_unit=Decimal('2.00'),
+                                   total_amount=Decimal('100.00'), credited_at=at(DAY, 12))
+        data = packer_screens_data(DAY)
+        self.assertEqual([w['full_name'] for w in data[2]['workers']], ['Aziz Taxlov'])
+        self.assertEqual(data[2]['workers'][0]['patoks'], [{'code': 'K5', 'units': 100}])
+        self.assertEqual(data[1]['workers'][0]['patoks'], [{'code': 'K2', 'units': 50}])

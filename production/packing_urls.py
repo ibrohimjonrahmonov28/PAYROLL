@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/otk/lookup/', packing_views.api_otk_lookup, name='api_otk_lookup'),
     path('api/otk/submit/', packing_views.api_otk_submit, name='api_otk_submit'),
     path('api/sanoqchi/taxlovchi/', packing_views.api_counter_packer, name='api_counter_packer'),
+    path('api/sanoqchi/patok/', packing_views.api_counter_patok, name='api_counter_patok'),
     path('api/sanoqchi/qogoz/', packing_views.api_counter_paper, name='api_counter_paper'),
     path('api/sanoqchi/olib-tashlash/', packing_views.api_counter_remove, name='api_counter_remove'),
     path('api/sanoqchi/yuborish/', packing_views.api_counter_send, name='api_counter_send'),

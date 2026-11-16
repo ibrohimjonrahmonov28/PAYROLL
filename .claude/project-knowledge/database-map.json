@@ -6,8 +6,8 @@
    "latest": "0023_basket_master"
   },
   "production": {
-   "count": 49,
-   "latest": "0049_packer_screens_seed"
+   "count": 50,
+   "latest": "0050_packing_patok"
   },
   "screens": {
    "count": 0,
@@ -1085,6 +1085,7 @@
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",
+    "screen_number": "PositiveSmallIntegerField[idx]",
     "created_at": "DateTimeField",
     "sent_at": "DateTimeField"
    },
@@ -1107,7 +1108,7 @@
   },
   "production.PackerScreen": {
    "table": "production_packerscreen",
-   "file": "production/models.py:2034",
+   "file": "production/models.py:2035",
    "fields": {
     "id": "BigAutoField",
     "number": "PositiveSmallIntegerField[unique]",
@@ -1119,10 +1120,11 @@
   },
   "production.PackingScan": {
    "table": "production_packingscan",
-   "file": "production/models.py:2060",
+   "file": "production/models.py:2061",
    "fields": {
     "id": "BigAutoField",
     "source": "CharField[choices]",
+    "screen_number": "PositiveSmallIntegerField[idx]",
     "quantity": "PositiveIntegerField",
     "scanned_at": "DateTimeField[idx]",
     "is_cancelled": "BooleanField[idx]",
@@ -1180,7 +1182,7 @@
   },
   "production.SecondSortBatch": {
    "table": "production_secondsortbatch",
-   "file": "production/models.py:2109",
+   "file": "production/models.py:2111",
    "fields": {
     "id": "BigAutoField",
     "code": "CharField[unique]",
@@ -1217,7 +1219,7 @@
   },
   "production.ReceiptPrinter": {
    "table": "production_receiptprinter",
-   "file": "production/models.py:2148",
+   "file": "production/models.py:2150",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField[unique]",
@@ -1232,7 +1234,7 @@
   },
   "production.PrintJob": {
    "table": "production_printjob",
-   "file": "production/models.py:2171",
+   "file": "production/models.py:2173",
    "fields": {
     "id": "BigAutoField",
     "title": "CharField",

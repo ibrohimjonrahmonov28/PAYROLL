@@ -27,8 +27,8 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 889,
-   "sha256_16": "f7300928b6a1fd37"
+   "lines": 898,
+   "sha256_16": "5218c7b3f38c4b11"
   },
   "CLAUDE.md": {
    "module": "ops",
@@ -878,8 +878,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2196,
-   "sha256_16": "c06d1fbb0ad09f25",
+   "lines": 2198,
+   "sha256_16": "1d948f3edb6ee59f",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -914,12 +914,12 @@
     "PatokAward:1907",
     "RepairReceipt:1972",
     "PackingBatch:2009",
-    "PackerScreen:2034",
-    "PackingScan:2060",
-    "generate_basket_code:2100",
-    "SecondSortBatch:2109",
-    "ReceiptPrinter:2148",
-    "PrintJob:2171"
+    "PackerScreen:2035",
+    "PackingScan:2061",
+    "generate_basket_code:2102",
+    "SecondSortBatch:2111",
+    "ReceiptPrinter:2150",
+    "PrintJob:2173"
    ]
   },
   "production/norma_services.py": {
@@ -963,8 +963,8 @@
   },
   "production/packer_screens.py": {
    "module": "production.platform",
-   "lines": 140,
-   "sha256_16": "b966aca73067f8b5",
+   "lines": 143,
+   "sha256_16": "98abf09389c7ea24",
    "symbols": [
     "_day_bounds:25",
     "_month_bounds:31",
@@ -972,13 +972,13 @@
     "_pct_color:42",
     "_number:47",
     "packer_screens_data:52",
-    "packer_screen_data:138"
+    "packer_screen_data:141"
    ]
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 269,
-   "sha256_16": "a8b46686e7a37446",
+   "lines": 271,
+   "sha256_16": "52ea1a9267b45db1",
    "symbols": [
     "beta_group:23",
     "is_beta_box:33",
@@ -994,68 +994,71 @@
     "find_box:136",
     "paper_label:140",
     "take_paper:144",
-    "paper_status:178",
-    "_format_taxlov_difficulty:217",
-    "_format_taxlov_price:227",
-    "control_sticker_meta:243"
+    "paper_status:180",
+    "_format_taxlov_difficulty:219",
+    "_format_taxlov_price:229",
+    "control_sticker_meta:245"
    ]
   },
   "production/packing_urls.py": {
    "module": "production.platform",
-   "lines": 25,
-   "sha256_16": "4c1162b5a8253b27"
+   "lines": 26,
+   "sha256_16": "f0aff07aaf62eba2"
   },
   "production/packing_views.py": {
    "module": "production.platform",
-   "lines": 722,
-   "sha256_16": "575c185889d4d9de",
+   "lines": 795,
+   "sha256_16": "b8cc2065b11c9326",
    "symbols": [
-    "_role_required:50",
-    "_hub_url:67",
-    "_int_or_none:72",
-    "_json_body:79",
-    "_today_range:86",
-    "_patok_label:91",
-    "_worker_today_total:95",
-    "_find_worker:101",
-    "_article_card:112",
-    "_group_by_order_article:123",
-    "_pending_second_sort:153",
-    "_open_basket:157",
-    "_screen_filter:164",
-    "_today_beta_scans:168",
-    "_tab_badges:176",
-    "_otk_context:194",
-    "_log_notes_map:210",
-    "_sanoqchi_context:220",
-    "_upakovka_context:267",
-    "_zakazlar_context:306",
-    "hub_view:343",
-    "repair_receipt_view:365",
-    "_not_beta_response:380",
-    "_receipt_summary:388",
-    "api_otk_lookup:409",
-    "api_otk_submit:429",
-    "_open_packing_batch:463",
-    "_scan_line:470",
-    "_batch_payload:481",
-    "_worker_payload:487",
-    "_box_papers_for_code:491",
-    "api_counter_packer:500",
-    "api_counter_paper:510",
-    "api_counter_remove:531",
-    "api_counter_send:544",
-    "_row_logs:558",
-    "_counter_basket:567",
-    "counter_accept:576",
-    "counter_basket_remove:601",
-    "counter_send:624",
-    "master_accept:641",
-    "master_return:658",
-    "_find_basket:677",
-    "_basket_view:684",
-    "counter_cancel:693",
-    "beta_toggle:713"
+    "_role_required:51",
+    "_hub_url:68",
+    "_int_or_none:73",
+    "_json_body:80",
+    "_today_range:87",
+    "_patok_label:92",
+    "_parse_screen_number:96",
+    "_worker_today_total:101",
+    "_find_worker:107",
+    "_article_card:118",
+    "_group_by_order_article:129",
+    "_pending_second_sort:159",
+    "_open_basket:163",
+    "_screen_filter:170",
+    "_today_beta_scans:174",
+    "_tab_badges:182",
+    "_otk_context:200",
+    "_log_notes_map:216",
+    "_sanoqchi_context:226",
+    "_upakovka_context:279",
+    "_zakazlar_context:318",
+    "hub_view:355",
+    "repair_receipt_view:377",
+    "_not_beta_response:392",
+    "_receipt_summary:400",
+    "api_otk_lookup:421",
+    "api_otk_submit:441",
+    "_open_packing_batch:475",
+    "_apply_batch_patok:482",
+    "_scan_line:493",
+    "_batch_payload:506",
+    "_worker_payload:518",
+    "_box_papers_for_code:522",
+    "api_counter_packer:531",
+    "api_counter_patok:551",
+    "api_counter_paper:573",
+    "api_counter_remove:596",
+    "api_counter_send:609",
+    "_row_logs:631",
+    "_counter_basket:640",
+    "counter_accept:649",
+    "counter_basket_remove:674",
+    "counter_send:697",
+    "master_accept:714",
+    "master_return:731",
+    "_find_basket:750",
+    "_basket_view:757",
+    "counter_cancel:766",
+    "beta_toggle:786"
    ]
   },
   "production/passport_bot_service.py": {
@@ -1292,11 +1295,11 @@
   },
   "production/test_counter_packing.py": {
    "module": "tests",
-   "lines": 172,
-   "sha256_16": "c917354bc60c5b77",
+   "lines": 203,
+   "sha256_16": "f4eeabd6f4bc0a08",
    "symbols": [
     "CounterPackingTest:18",
-    "OrderBetaStartsTodayTest:128"
+    "OrderBetaStartsTodayTest:159"
    ]
   },
   "production/test_daily_dazmol.py": {
@@ -1542,8 +1545,8 @@
   },
   "screens/test_packer_screens.py": {
    "module": "tests",
-   "lines": 111,
-   "sha256_16": "9d0b45ed13b71b06",
+   "lines": 125,
+   "sha256_16": "b45090ffc5521550",
    "symbols": [
     "at:22",
     "PackerScreensTest:26"
@@ -1816,18 +1819,18 @@
   },
   "templates/packing/partials/basket_rows.html": {
    "module": "templates",
-   "lines": 62,
-   "sha256_16": "39e2f0ce1c3c0096"
+   "lines": 67,
+   "sha256_16": "a7259dd6b0ca205b"
   },
   "templates/packing/partials/basket_search.html": {
    "module": "templates",
-   "lines": 70,
-   "sha256_16": "b0cb9afe5b42fe23"
+   "lines": 73,
+   "sha256_16": "768a13c63036934f"
   },
   "templates/packing/partials/cards.html": {
    "module": "templates",
-   "lines": 62,
-   "sha256_16": "707076b002caafb3"
+   "lines": 73,
+   "sha256_16": "c37eebe83e557194"
   },
   "templates/packing/repair_receipt.html": {
    "module": "templates",
@@ -1841,13 +1844,13 @@
   },
   "templates/packing/tabs/sanoqchi.html": {
    "module": "templates",
-   "lines": 646,
-   "sha256_16": "7ef0936fd395d0ca"
+   "lines": 845,
+   "sha256_16": "78603e9b1823dcf8"
   },
   "templates/packing/tabs/upakovka.html": {
    "module": "templates",
-   "lines": 270,
-   "sha256_16": "fd804a481e6fb417"
+   "lines": 341,
+   "sha256_16": "99a4e37517b9401a"
   },
   "templates/packing/tabs/zakazlar.html": {
    "module": "templates",

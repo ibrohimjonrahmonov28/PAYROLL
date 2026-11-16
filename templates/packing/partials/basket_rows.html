@@ -1,38 +1,42 @@
 {% comment %}2-sort savati tarkibi (view = _basket_view): zakaz × model kartochkalari, har razmer alohida qator.
 removable — sanoqchi qatorni patok navbatiga qaytara oladi (ochiq savat yoki returned=True bilan qaytarilgan savat).{% endcomment %}
-<div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+<div class="space-y-2.5">
     {% for card in view.cards %}
-    <div class="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 space-y-3 shadow-sm hover:border-slate-700 transition-colors">
-        <div class="flex items-start gap-3.5">
-            {% if card.image %}
-            <img src="{{ card.image }}" alt="" class="w-16 h-16 object-cover rounded-xl border border-slate-700/80 flex-shrink-0 shadow-sm">
-            {% else %}
-            <div class="w-16 h-16 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center text-slate-500 flex-shrink-0 shadow-sm">
-                <i class="fa-solid fa-shirt text-xl text-slate-400"></i>
-            </div>
-            {% endif %}
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-200 border border-slate-700/60 font-mono">{{ card.order.order_number }}</span>
-                    {% if card.box_count %}
-                    <span class="text-[11px] text-slate-400 font-medium">{{ card.box_count }} quti</span>
+    <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-900/60">
+            <div class="flex items-center gap-2.5 min-w-0">
+                {% if card.image %}
+                <img src="{{ card.image }}" alt="" class="w-10 h-10 object-cover rounded-lg border border-slate-700 flex-shrink-0">
+                {% else %}
+                <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 flex-shrink-0">
+                    <i class="fa-solid fa-shirt text-sm"></i>
+                </div>
+                {% endif %}
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 font-mono">{{ card.order.order_number }}</span>
+                        <span class="font-black text-white text-sm truncate">{{ card.article.code|default:"—" }}</span>
+                        {% if card.box_count %}
+                        <span class="text-[11px] text-slate-500 font-mono">· {{ card.box_count }} quti</span>
+                        {% endif %}
+                    </div>
+                    {% if card.article.name %}
+                    <p class="text-[11px] text-slate-400 truncate">{{ card.article.name }}</p>
                     {% endif %}
                 </div>
-                <p class="font-black text-white text-base truncate mt-1 tracking-tight">{{ card.article.code|default:"—" }}</p>
-                <p class="text-xs text-slate-400 truncate">{{ card.article.name|default:"" }}</p>
             </div>
-            <div class="text-right flex-shrink-0 pl-1">
-                <p class="text-2xl font-black text-rose-400 tabular-nums leading-none">{{ card.total }}</p>
-                <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">dona</p>
+            <div class="text-right flex-shrink-0">
+                <span class="text-lg font-black text-rose-400 font-mono tabular-nums">{{ card.total }}</span>
+                <span class="text-[11px] text-slate-500 font-medium">dona</span>
             </div>
         </div>
 
-        <div class="divide-y divide-slate-800/80 bg-slate-900/60 rounded-xl border border-slate-800/60 px-3 text-sm">
+        <div class="divide-y divide-slate-800/80 px-3.5 text-xs sm:text-sm">
             {% for size, qty in card.sizes.items %}
             <div class="py-2 flex items-center justify-between gap-2">
-                <span class="text-slate-300 text-xs sm:text-sm font-medium">Razmer <b class="text-white font-bold ml-1">{{ size }}</b></span>
+                <span class="text-slate-300 font-medium">Razmer <b class="text-white font-mono ml-1">{{ size }}</b></span>
                 <div class="flex items-center gap-2.5">
-                    <span class="font-black text-rose-400 tabular-nums text-sm">{{ qty }} <span class="text-xs font-normal text-slate-400">dona</span></span>
+                    <span class="font-black text-rose-400 font-mono tabular-nums">{{ qty }} <span class="text-[11px] font-normal text-slate-500">dona</span></span>
                     {% if removable %}
                     <form method="POST" action="{% url 'packing:counter_remove' %}" class="inline-block">
                         {% csrf_token %}
@@ -41,9 +45,10 @@ removable — sanoqchi qatorni patok navbatiga qaytara oladi (ochiq savat yoki r
                         <input type="hidden" name="size" value="{{ size }}">
                         {% if returned %}<input type="hidden" name="basket_id" value="{{ view.basket.id }}">{% endif %}
                         {% if selected_patok is not None %}<input type="hidden" name="patok" value="{{ selected_patok }}">{% endif %}
-                        <button type="submit" class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-rose-600 hover:text-white border border-slate-700/70 text-[11px] font-bold text-slate-400 hover:border-rose-500 transition-all flex items-center justify-center"
+                        <button type="submit" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-rose-600 hover:text-white border border-slate-700 text-[11px] font-bold text-slate-400 hover:border-rose-500 transition-colors inline-flex items-center gap-1"
                             title="Patok navbatiga qaytarish">
-                            <i class="fa-solid fa-rotate-left"></i>
+                            <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                            <span>Qaytarish</span>
                         </button>
                     </form>
                     {% endif %}
@@ -53,8 +58,8 @@ removable — sanoqchi qatorni patok navbatiga qaytara oladi (ochiq savat yoki r
         </div>
     </div>
     {% empty %}
-    <div class="col-span-full rounded-2xl border border-dashed border-slate-800 py-8 text-center text-slate-500 text-sm">
-        <i class="fa-solid fa-basket-shopping text-2xl text-slate-600 mb-2 block"></i>
+    <div class="rounded-xl border border-dashed border-slate-800 py-8 text-center text-slate-500 text-xs sm:text-sm">
+        <i class="fa-solid fa-basket-shopping text-xl text-slate-600 mb-1.5 block"></i>
         Savat hozircha bo'sh.
     </div>
     {% endfor %}

@@ -1,189 +1,251 @@
 {% comment %}
-Upakovka tabi: master sanoqchi savatlarini qabul qiladi yoki qaytaradi; qadoqlash kutayotgan 1-sort,
-bugun kim qancha taxladi, 2-sort balansi (qabul qilingan savatlar), savatlar tarixi va qidiruv.
+Upakovka tabi: KPI lentasi, master qabul navbati, 1-sort balansi va bugungi reyting, 2-sort balansi, tarix va savat qidiruvi.
 {% endcomment %}
-<div class="space-y-6">
-    <!-- Waiting Baskets (Master Acceptance Queue) -->
-    <section class="bg-slate-900/90 border-2 {% if waiting_baskets %}border-amber-500/70 shadow-lg shadow-amber-950/20{% else %}border-slate-800/90{% endif %} rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm transition-all">
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-            <div class="flex items-center gap-3">
-                <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-900/30 text-lg">
-                    <i class="fa-solid fa-inbox"></i>
-                </span>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">Qabul qilish: Sanoqchi savatlari</h1>
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black font-mono {% if waiting_baskets %}bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse{% else %}bg-slate-800 text-slate-400{% endif %}">
-                            {{ waiting_baskets|length }} ta
-                        </span>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-0.5">Savatni tekshiring: to'g'ri bo'lsa qabul qiling (2-sort balansiga tushadi); kamchilik bo'lsa sababini yozib qaytaring.</p>
-                </div>
+<div class="space-y-4">
+    <!-- Top Compact KPI Ledger -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <button type="button" onclick="switchUpakovkaSection('approve')"
+            class="text-left bg-slate-900 border border-slate-800 border-l-4 border-l-amber-500 rounded-xl px-4 py-3 hover:border-slate-700 transition-colors">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Qabul navbati</span>
+                <span class="text-[11px] font-mono font-bold text-amber-400">{{ waiting_baskets|length }} savat</span>
             </div>
-            <div class="flex items-center gap-2 text-xs sm:text-sm">
-                <span class="text-slate-400 font-medium">Kutilmoqda:</span>
-                <span class="text-base sm:text-lg font-black text-amber-400 font-mono tabular-nums">{{ waiting_baskets_total }} <span class="text-xs font-normal text-slate-400">dona</span></span>
+            <p class="text-2xl font-black text-amber-400 font-mono tabular-nums mt-1 leading-none">
+                {{ waiting_baskets_total }} <span class="text-xs font-normal text-slate-400">dona</span>
+            </p>
+        </button>
+
+        <button type="button" onclick="switchUpakovkaSection('balance1')"
+            class="text-left bg-slate-900 border border-slate-800 border-l-4 border-l-emerald-500 rounded-xl px-4 py-3 hover:border-slate-700 transition-colors">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">1-Sort Balans</span>
+                <span class="text-[11px] font-mono font-bold text-emerald-400">{{ waiting|length }} model</span>
             </div>
-        </div>
+            <p class="text-2xl font-black text-emerald-400 font-mono tabular-nums mt-1 leading-none">
+                {{ waiting_total }} <span class="text-xs font-normal text-slate-400">dona</span>
+            </p>
+        </button>
 
-        {% for view in waiting_baskets %}
-        <div class="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs sm:text-sm">
-                    <span class="font-mono font-black text-orange-400 text-lg sm:text-xl tracking-wider">{{ view.basket.code }}</span>
-                    <span class="inline-flex items-center gap-1.5 text-slate-300">
-                        <i class="fa-solid fa-calculator text-slate-500 text-xs"></i>
-                        <span>Sanoqchi:</span>
-                        <b class="text-white">{% if view.basket.counter %}{{ view.basket.counter.get_full_name|default:view.basket.counter.username }}{% else %}—{% endif %}</b>
-                    </span>
-                    <span class="text-slate-500 font-mono">· {{ view.basket.sent_at|date:"d.m H:i" }}</span>
-                    <span class="inline-flex items-center gap-1.5 text-slate-300">
-                        <span>Jami:</span>
-                        <b class="text-rose-400 text-base sm:text-lg tabular-nums font-mono font-black">{{ view.total }} dona</b>
-                    </span>
-                </div>
+        <button type="button" onclick="switchUpakovkaSection('balance1')"
+            class="text-left bg-slate-900 border border-slate-800 border-l-4 border-l-cyan-500 rounded-xl px-4 py-3 hover:border-slate-700 transition-colors">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bugun taxlandi</span>
+                <span class="text-[11px] font-mono font-bold text-cyan-400">{{ today_packers|length }} xodim</span>
+            </div>
+            <p class="text-2xl font-black text-cyan-400 font-mono tabular-nums mt-1 leading-none">
+                {{ today_total }} <span class="text-xs font-normal text-slate-400">dona</span>
+            </p>
+        </button>
 
-                {% if can_accept %}
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <form method="POST" action="{% url 'packing:master_accept' %}" onsubmit="return confirm('{{ view.basket.code }}: {{ view.total }} dona qabul qilinsinmi?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-950/40 transition-all flex items-center gap-1.5">
-                            <i class="fa-solid fa-check text-xs"></i>
-                            <span>Qabul qilish</span>
-                        </button>
-                    </form>
-                    <form method="POST" action="{% url 'packing:master_return' %}" class="flex items-center gap-1.5">
-                        {% csrf_token %}
-                        <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
-                        <input name="reason" required maxlength="300" placeholder="Qaytarish sababi..."
-                            class="w-44 sm:w-56 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs sm:text-sm focus:outline-none focus:border-rose-500 transition-all placeholder:text-slate-600">
-                        <button type="submit" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5">
-                            <i class="fa-solid fa-rotate-left text-xs"></i>
-                            <span>Qaytarish</span>
-                        </button>
-                    </form>
-                </div>
+        <button type="button" onclick="switchUpakovkaSection('balance2')"
+            class="text-left bg-slate-900 border border-slate-800 border-l-4 border-l-rose-500 rounded-xl px-4 py-3 hover:border-slate-700 transition-colors">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">2-Sort Balans</span>
+                <span class="text-[11px] font-mono font-bold text-rose-400">{{ second_sort|length }} model</span>
+            </div>
+            <p class="text-2xl font-black text-rose-400 font-mono tabular-nums mt-1 leading-none">
+                {{ second_sort_total }} <span class="text-xs font-normal text-slate-400">dona</span>
+            </p>
+        </button>
+    </section>
+
+    <!-- Workspace Sub-Navigation -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div class="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800" id="upakovka-subtabs">
+            <button type="button" onclick="switchUpakovkaSection('approve')" id="btn-up-approve"
+                class="upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+                <i class="fa-solid fa-inbox text-xs"></i>
+                <span>Qabul navbati</span>
+                {% if waiting_baskets %}
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-black font-mono bg-amber-500 text-slate-950">{{ waiting_baskets|length }}</span>
                 {% endif %}
-            </div>
-            {% include 'packing/partials/basket_rows.html' with view=view removable=False %}
+            </button>
+            <button type="button" onclick="switchUpakovkaSection('balance1')" id="btn-up-balance1"
+                class="upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+                <i class="fa-solid fa-layer-group text-xs"></i>
+                <span>1-Sort &amp; Bugun</span>
+            </button>
+            <button type="button" onclick="switchUpakovkaSection('balance2')" id="btn-up-balance2"
+                class="upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+                <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                <span>2-Sort Balans</span>
+                {% if second_sort_total %}
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-black font-mono bg-rose-500/20 text-rose-300">{{ second_sort_total }}</span>
+                {% endif %}
+            </button>
+            <button type="button" onclick="switchUpakovkaSection('search')" id="btn-up-search"
+                class="upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                <span>Savat qidirish</span>
+            </button>
         </div>
-        {% empty %}
-        <div class="py-8 text-center text-slate-500 text-sm rounded-2xl border border-dashed border-slate-800">
-            <i class="fa-solid fa-circle-check text-2xl text-emerald-500/50 mb-1.5 block"></i>
-            Hozircha kutilayotgan savat yo'q.
-        </div>
-        {% endfor %}
-    </section>
 
-    <!-- KPI Summary Cards -->
-    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:border-slate-700 transition-all">
-            <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Qadoqlash kutmoqda (1-sort)</p>
-                <p class="text-3xl sm:text-4xl font-black text-orange-400 font-mono tabular-nums mt-1 leading-tight">
-                    {{ waiting_total }} <span class="text-xs sm:text-sm font-normal text-slate-400">dona</span>
-                </p>
-            </div>
-            <span class="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center text-xl flex-shrink-0 shadow-md">
-                <i class="fa-solid fa-boxes-packing"></i>
-            </span>
-        </div>
-        <div class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:border-slate-700 transition-all">
-            <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bugun taxlandi</p>
-                <p class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tabular-nums mt-1 leading-tight">
-                    {{ today_total }} <span class="text-xs sm:text-sm font-normal text-slate-400">dona</span>
-                </p>
-            </div>
-            <span class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0 shadow-md">
-                <i class="fa-solid fa-barcode"></i>
-            </span>
-        </div>
-        <div class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:border-slate-700 transition-all">
-            <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">2-sort balansi (qabul qilingan)</p>
-                <p class="text-3xl sm:text-4xl font-black text-rose-400 font-mono tabular-nums mt-1 leading-tight">
-                    {{ second_sort_total }} <span class="text-xs sm:text-sm font-normal text-slate-400">dona</span>
-                </p>
-            </div>
-            <span class="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center text-xl flex-shrink-0 shadow-md">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </span>
-        </div>
-    </section>
+        <button type="button" onclick="toggleAllUpakovkaSections()" id="btn-up-all"
+            class="px-3 py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-[11px]"></i>
+            <span id="txt-up-all">Hammasini ko'rsatish</span>
+        </button>
+    </div>
 
-    <!-- Waiting Batches (1-Sort Balansi) -->
-    <section class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
-            <div class="flex items-center gap-3">
-                <span class="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-layer-group"></i>
-                </span>
+    <!-- ==================== PANE 1: MASTER APPROVAL & HISTORY ==================== -->
+    <div id="up-sec-approve" class="upakovka-section space-y-4">
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-base sm:text-lg font-black text-white tracking-tight uppercase">Qadoqlash kutayotgan ishlar</h1>
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black font-mono bg-orange-500/20 text-orange-300 border border-orange-500/30">{{ waiting|length }} model</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-0.5">Sanoqchi taxlovchi ro'yxatini «Saqlash va yuborish» qilganda shu yerga tushadi (upakovkaning 1-sort balansi).</p>
+                    <h2 class="text-sm font-black text-white uppercase tracking-wide">Qabul qilish · Sanoqchi savatlari</h2>
+                    <p class="text-[11px] text-slate-400">To'g'ri bo'lsa qabul qiling (2-sort balansiga tushadi); kamchilik bo'lsa sabab bilan qaytaring.</p>
                 </div>
+                <span class="text-xs font-mono font-black text-amber-400">{{ waiting_baskets|length }} ta · {{ waiting_baskets_total }} dona</span>
             </div>
-            <div class="relative w-full sm:w-72">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
-                <input id="upakovka-search" oninput="filterWaitingCards()" placeholder="Zakaz, artikul yoki quti kodi..."
-                    class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700/80 text-xs sm:text-sm text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600">
-            </div>
-        </div>
-        {% include 'packing/partials/cards.html' with cards=waiting list_id='waiting-cards' tone='orange' %}
-    </section>
 
-    <!-- Split Grid: Packer Performance & 2-Sort Inventory -->
-    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <!-- Left: Today's Packers Output & Scans Feed -->
-        <div class="space-y-4">
-            <div class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 shadow-sm space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                    <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-users text-emerald-400 text-xs"></i>
-                        <span>Bugun kim qancha taxladi</span>
-                    </h2>
-                    <span class="text-xs font-black text-emerald-400 font-mono">{{ today_total }} dona</span>
+            <div class="p-4 space-y-3">
+                {% for view in waiting_baskets %}
+                <div class="bg-slate-950 border border-amber-500/40 rounded-xl overflow-hidden">
+                    <div class="px-4 py-3 bg-slate-900/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+                            <span class="font-mono font-black text-orange-400 text-base">{{ view.basket.code }}</span>
+                            <span class="text-slate-300">Sanoqchi: <b class="text-white">{% if view.basket.counter %}{{ view.basket.counter.get_full_name|default:view.basket.counter.username }}{% else %}—{% endif %}</b></span>
+                            <span class="text-slate-500 font-mono">{{ view.basket.sent_at|date:"d.m H:i" }}</span>
+                            <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 font-mono font-black">{{ view.total }} dona</span>
+                        </div>
+
+                        {% if can_accept %}
+                        <div class="flex flex-wrap items-center gap-2">
+                            <form method="POST" action="{% url 'packing:master_accept' %}" onsubmit="return confirm('{{ view.basket.code }}: {{ view.total }} dona qabul qilinsinmi?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
+                                <button type="submit" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-colors inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-check text-[11px]"></i>
+                                    <span>Qabul qilish</span>
+                                </button>
+                            </form>
+                            <form method="POST" action="{% url 'packing:master_return' %}" class="flex items-center gap-1.5">
+                                {% csrf_token %}
+                                <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
+                                <input name="reason" required maxlength="300" placeholder="Qaytarish sababi..."
+                                    class="w-40 sm:w-52 px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-rose-500 placeholder:text-slate-600">
+                                <button type="submit" class="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs transition-colors">
+                                    Qaytarish
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-3.5">
+                        {% include 'packing/partials/basket_rows.html' with view=view removable=False %}
+                    </div>
                 </div>
-                <table class="w-full text-xs sm:text-sm">
-                    <thead class="text-xs text-slate-400 border-b border-slate-800/80 uppercase tracking-wider font-semibold">
+                {% empty %}
+                <div class="rounded-xl border border-dashed border-slate-800 py-8 text-center text-slate-500 text-xs sm:text-sm">
+                    <i class="fa-solid fa-circle-check text-xl text-emerald-500/60 mb-1.5 block"></i>
+                    Hozircha kutilayotgan savat yo'q.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- History Ledger Table -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider">Oxirgi savatlar tarixi</h2>
+                <span class="text-[11px] font-mono text-slate-500">Oxirgi 10 ta</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs sm:text-sm text-left">
+                    <thead class="text-[11px] text-slate-400 bg-slate-950/60 border-b border-slate-800 uppercase tracking-wider font-bold">
                         <tr>
-                            <th class="text-left py-2">Taxlovchi</th>
-                            <th class="text-right py-2">Skan</th>
-                            <th class="text-right py-2">Dona</th>
+                            <th class="px-4 py-2.5">Savat</th>
+                            <th class="px-4 py-2.5">Holat</th>
+                            <th class="px-4 py-2.5">Sanoqchi</th>
+                            <th class="px-4 py-2.5">Master</th>
+                            <th class="px-4 py-2.5">Vaqt</th>
+                            <th class="px-4 py-2.5">Izoh</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-800/60">
-                        {% for row in today_packers %}
-                        <tr class="hover:bg-slate-800/40 transition-colors">
-                            <td class="py-2.5 text-white font-bold">
-                                {{ row.worker__first_name }} {{ row.worker__last_name }}
-                                <span class="text-slate-500 text-xs font-mono font-normal block sm:inline">({{ row.worker__worker_id }})</span>
+                    <tbody class="divide-y divide-slate-800/80">
+                        {% for b in recent_baskets %}
+                        <tr class="hover:bg-slate-950/60 transition-colors">
+                            <td class="px-4 py-2.5"><a href="?tab=upakovka&sv={{ b.code }}" class="font-mono font-black text-orange-400 hover:underline">{{ b.code }}</a></td>
+                            <td class="px-4 py-2.5">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-black {% if b.status == 'ACCEPTED' %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-rose-950 text-rose-300 border border-rose-700/60{% endif %}">
+                                    {{ b.get_status_display }}
+                                </span>
                             </td>
-                            <td class="text-right text-slate-400 font-mono">{{ row.scans }}</td>
-                            <td class="text-right font-black text-orange-400 font-mono tabular-nums text-sm sm:text-base">{{ row.pieces }}</td>
+                            <td class="px-4 py-2.5 text-slate-300">{% if b.counter %}{{ b.counter.get_full_name|default:b.counter.username }}{% else %}—{% endif %}</td>
+                            <td class="px-4 py-2.5 text-slate-300">{% if b.status == 'ACCEPTED' and b.accepted_by %}{{ b.accepted_by.get_full_name|default:b.accepted_by.username }}{% elif b.returned_by %}{{ b.returned_by.get_full_name|default:b.returned_by.username }}{% else %}—{% endif %}</td>
+                            <td class="px-4 py-2.5 text-xs text-slate-400 font-mono">{% if b.status == 'ACCEPTED' %}{{ b.accepted_at|date:"d.m H:i" }}{% else %}{{ b.returned_at|date:"d.m H:i" }}{% endif %}</td>
+                            <td class="px-4 py-2.5 text-xs text-rose-300">{{ b.return_reason|default:"—" }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="3" class="py-6 text-center text-slate-500 text-xs">Bugun hali skan yo'q.</td></tr>
+                        <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500 text-xs">Hali qabul qilingan yoki qaytarilgan savat yo'q.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </section>
+    </div>
 
-            <div class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 shadow-sm space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                    <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-slate-400 text-xs"></i>
-                        <span>Bugungi oxirgi skanlar</span>
-                    </h2>
+    <!-- ==================== PANE 2: 1-SORT BALANS + TODAY PACKERS ==================== -->
+    <div id="up-sec-balance1" class="upakovka-section grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+        <section class="xl:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-black text-white uppercase tracking-wide">Qadoqlash kutayotgan 1-Sort</h2>
+                    <p class="text-[11px] text-slate-400">Sanoqchi «Saqlash va yuborish» qilgan ishlar balansi ({{ waiting_total }} dona)</p>
                 </div>
-                <div class="divide-y divide-slate-800/70 max-h-72 overflow-y-auto pr-1 text-xs">
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                    <input id="upakovka-search" oninput="filterCardsList('waiting-cards', this.value)" placeholder="Zakaz, artikul yoki quti..."
+                        class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-600">
+                </div>
+            </div>
+            <div class="p-3.5">
+                {% include 'packing/partials/cards.html' with cards=waiting list_id='waiting-cards' tone='emerald' %}
+            </div>
+        </section>
+
+        <aside class="xl:col-span-4 space-y-4">
+            <!-- Today's Packers Leaderboard -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="text-xs font-black text-white uppercase tracking-wider">Bugun kim qancha taxladi</h3>
+                    <span class="text-xs font-black text-emerald-400 font-mono">{{ today_total }} dona</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs sm:text-sm">
+                        <thead class="text-[11px] text-slate-400 border-b border-slate-800 uppercase font-bold">
+                            <tr>
+                                <th class="text-left px-3.5 py-2">Taxlovchi</th>
+                                <th class="text-right px-2 py-2">Skan</th>
+                                <th class="text-right px-3.5 py-2">Dona</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80">
+                            {% for row in today_packers %}
+                            <tr class="hover:bg-slate-950/60">
+                                <td class="px-3.5 py-2 text-white font-bold">
+                                    {{ row.worker__first_name }} {{ row.worker__last_name }}
+                                    <span class="text-slate-500 text-[11px] font-mono font-normal">({{ row.worker__worker_id }})</span>
+                                </td>
+                                <td class="text-right px-2 py-2 text-slate-400 font-mono">{{ row.scans }}</td>
+                                <td class="text-right px-3.5 py-2 font-black text-cyan-400 font-mono tabular-nums">{{ row.pieces }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="px-3.5 py-6 text-center text-slate-500 text-xs">Bugun hali skan yo'q.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Live Scans Feed -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-950 border-b border-slate-800">
+                    <h3 class="text-xs font-black text-white uppercase tracking-wider">Bugungi oxirgi skanlar</h3>
+                </div>
+                <div class="divide-y divide-slate-800/80 max-h-72 overflow-y-auto text-xs">
                     {% for scan in today_scans %}
-                    <div class="py-2.5 flex items-center justify-between gap-2.5 hover:bg-slate-800/30 px-1 rounded-xl transition-colors">
+                    <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-950/50">
                         <div class="min-w-0">
                             <p class="font-bold text-white truncate">{{ scan.worker.full_name }} · <span class="font-mono text-slate-300">{{ scan.box.box_code }}</span></p>
                             <p class="text-slate-400 truncate mt-0.5 font-mono text-[11px]">{{ scan.box.order.order_number }} · {{ scan.get_source_display }} · {{ scan.scanned_at|date:"H:i" }}</p>
@@ -191,79 +253,88 @@ bugun kim qancha taxladi, 2-sort balansi (qabul qilingan savatlar), savatlar tar
                         <span class="font-black text-emerald-400 font-mono tabular-nums text-sm flex-shrink-0">+{{ scan.quantity }}</span>
                     </div>
                     {% empty %}
-                    <p class="py-4 text-center text-slate-500 text-xs">Bugun hali skan yo'q.</p>
+                    <p class="py-5 text-center text-slate-500 text-xs">Bugun hali skan yo'q.</p>
                     {% endfor %}
                 </div>
             </div>
-        </div>
+        </aside>
+    </div>
 
-        <!-- Right: 2-Sort Accepted Inventory -->
-        <div class="xl:col-span-2 space-y-4">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
-                <div class="flex items-center gap-2">
-                    <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-400 text-xs"></i>
-                        <span>2-Sort balansi: Qabul qilingan savatlar</span>
-                    </h2>
+    <!-- ==================== PANE 3: 2-SORT BALANS ==================== -->
+    <div id="up-sec-balance2" class="upakovka-section">
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-black text-white uppercase tracking-wide">2-Sort balansi · Qabul qilingan savatlar</h2>
+                    <p class="text-[11px] text-slate-400">Upakovka masteri tasdiqlagan 2-sort inventari ({{ second_sort_total }} dona)</p>
                 </div>
-                <span class="text-xs sm:text-sm text-slate-400 font-medium">Jami: <b class="text-rose-400 font-mono font-black tabular-nums">{{ second_sort_total }}</b> dona</span>
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                    <input id="second-sort-search" oninput="filterCardsList('second-sort-cards', this.value)" placeholder="Zakaz, artikul yoki quti..."
+                        class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-rose-500 placeholder:text-slate-600">
+                </div>
             </div>
-            {% include 'packing/partials/cards.html' with cards=second_sort tone='rose' %}
-        </div>
-    </section>
+            <div class="p-3.5">
+                {% include 'packing/partials/cards.html' with cards=second_sort list_id='second-sort-cards' tone='rose' %}
+            </div>
+        </section>
+    </div>
 
-    <!-- Recent Baskets History Table -->
-    <section class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 space-y-3 shadow-sm">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-            <h2 class="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-history text-slate-400 text-xs"></i>
-                <span>Oxirgi savatlar tarixi</span>
-            </h2>
-        </div>
-        <div class="overflow-x-auto rounded-2xl border border-slate-800/80">
-            <table class="w-full text-xs sm:text-sm text-left">
-                <thead class="text-xs text-slate-400 bg-slate-950/80 border-b border-slate-800 uppercase tracking-wider font-semibold">
-                    <tr>
-                        <th class="px-3.5 py-2.5">Savat kodi</th>
-                        <th class="px-3.5 py-2.5">Holati</th>
-                        <th class="px-3.5 py-2.5">Sanoqchi</th>
-                        <th class="px-3.5 py-2.5">Master</th>
-                        <th class="px-3.5 py-2.5">Vaqt</th>
-                        <th class="px-3.5 py-2.5">Izoh</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/60">
-                    {% for b in recent_baskets %}
-                    <tr class="hover:bg-slate-800/40 transition-colors">
-                        <td class="px-3.5 py-2.5"><a href="?tab=upakovka&sv={{ b.code }}" class="font-mono font-black text-orange-400 hover:text-orange-300 hover:underline">{{ b.code }}</a></td>
-                        <td class="px-3.5 py-2.5">
-                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-black {% if b.status == 'ACCEPTED' %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-rose-950 text-rose-300 border border-rose-700/60{% endif %}">
-                                <i class="fa-solid {% if b.status == 'ACCEPTED' %}fa-circle-check{% else %}fa-circle-xmark{% endif %} text-[10px]"></i>
-                                {{ b.get_status_display }}
-                            </span>
-                        </td>
-                        <td class="px-3.5 py-2.5 text-slate-300 font-medium">{% if b.counter %}{{ b.counter.get_full_name|default:b.counter.username }}{% else %}—{% endif %}</td>
-                        <td class="px-3.5 py-2.5 text-slate-300 font-medium">{% if b.status == 'ACCEPTED' and b.accepted_by %}{{ b.accepted_by.get_full_name|default:b.accepted_by.username }}{% elif b.returned_by %}{{ b.returned_by.get_full_name|default:b.returned_by.username }}{% else %}—{% endif %}</td>
-                        <td class="px-3.5 py-2.5 text-xs text-slate-400 font-mono">{% if b.status == 'ACCEPTED' %}{{ b.accepted_at|date:"d.m H:i" }}{% else %}{{ b.returned_at|date:"d.m H:i" }}{% endif %}</td>
-                        <td class="px-3.5 py-2.5 text-xs text-rose-300 font-medium">{{ b.return_reason|default:"—" }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="6" class="px-3.5 py-6 text-center text-slate-500 text-xs">Hali qabul qilingan yoki qaytarilgan savat yo'q.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <!-- Basket Search Partial -->
-    {% include 'packing/partials/basket_search.html' with tab='upakovka' %}
+    <!-- ==================== PANE 4: BASKET SEARCH ==================== -->
+    <div id="up-sec-search" class="upakovka-section">
+        {% include 'packing/partials/basket_search.html' with tab='upakovka' %}
+    </div>
 </div>
 
 <script>
-    function filterWaitingCards() {
-        const q = (document.getElementById('upakovka-search')?.value || '').trim().toLowerCase();
-        document.querySelectorAll('#waiting-cards [data-card-search]').forEach(card => {
+    let showAllUpakovka = false;
+
+    function switchUpakovkaSection(secId) {
+        showAllUpakovka = false;
+        document.querySelectorAll('.upakovka-section').forEach(sec => sec.classList.add('hidden'));
+        const target = document.getElementById('up-sec-' + secId);
+        if (target) target.classList.remove('hidden');
+
+        document.querySelectorAll('.upakovka-nav-btn').forEach(btn => {
+            btn.className = 'upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all';
+        });
+        const activeBtn = document.getElementById('btn-up-' + secId);
+        if (activeBtn) {
+            activeBtn.className = 'upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-orange-500 text-slate-950 shadow-sm';
+        }
+        const txt = document.getElementById('txt-up-all');
+        if (txt) txt.textContent = "Hammasini ko'rsatish";
+    }
+
+    function toggleAllUpakovkaSections() {
+        showAllUpakovka = !showAllUpakovka;
+        const txt = document.getElementById('txt-up-all');
+        if (showAllUpakovka) {
+            document.querySelectorAll('.upakovka-section').forEach(sec => sec.classList.remove('hidden'));
+            document.querySelectorAll('.upakovka-nav-btn').forEach(btn => {
+                btn.className = 'upakovka-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all';
+            });
+            if (txt) txt.textContent = "Bo'limlarga ajratish";
+        } else {
+            switchUpakovkaSection('balance1');
+        }
+    }
+
+    function filterCardsList(containerId, rawQuery) {
+        const q = (rawQuery || '').trim().toLowerCase();
+        document.querySelectorAll(`#${containerId} [data-card-search]`).forEach(card => {
             card.classList.toggle('hidden', !!q && !card.dataset.cardSearch.toLowerCase().includes(q));
         });
     }
+
+    (function initUpakovkaTab() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('sv') || {% if search_code %}true{% else %}false{% endif %}) {
+            switchUpakovkaSection('search');
+        } else if ({% if waiting_baskets %}true{% else %}false{% endif %}) {
+            switchUpakovkaSection('approve');
+        } else {
+            switchUpakovkaSection('balance1');
+        }
+    })();
 </script>

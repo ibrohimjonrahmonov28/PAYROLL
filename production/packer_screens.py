@@ -60,17 +60,20 @@ def packer_screens_data(target_date=None):
 
     start, end = _day_bounds(target_date)
     day_scans = paid_scans().filter(credited_at__gte=start, credited_at__lt=end)
+    scan_patok = Coalesce('screen_number', 'batch__screen_number', 'box__assigned_screen')
     owner = {}
     if patok_screen:
-        for worker_pk, patok in (day_scans.filter(box__assigned_screen__in=list(patok_screen))
-                                 .order_by('credited_at', 'id').values_list('worker_id', 'box__assigned_screen')):
+        for worker_pk, patok in (day_scans.annotate(effective_patok=scan_patok)
+                                 .filter(effective_patok__in=list(patok_screen))
+                                 .order_by('credited_at', 'id').values_list('worker_id', 'effective_patok')):
             owner[worker_pk] = patok_screen[patok]
 
     workers = OrderedDict()
     if owner:
         points = Coalesce(F('box__article__operation_group__taxlov_difficulty'), Value(1.0), output_field=FloatField())
         rows = (day_scans.filter(worker_id__in=list(owner))
-                .values('worker_id', 'worker__worker_id', 'worker__first_name', 'worker__last_name', 'box__assigned_screen')
+                .annotate(effective_patok=scan_patok)
+                .values('worker_id', 'worker__worker_id', 'worker__first_name', 'worker__last_name', 'effective_patok')
                 .annotate(units=Sum('quantity'), amount=Sum('total_amount'),
                           points=Sum(F('quantity') * points, output_field=FloatField())))
         for row in rows:
@@ -82,7 +85,7 @@ def packer_screens_data(target_date=None):
             worker['units'] += row['units'] or 0
             worker['points'] += row['points'] or 0.0
             worker['earnings'] += row['amount'] or ZERO
-            patok = row['box__assigned_screen']
+            patok = row['effective_patok']
             worker['patoks'][patok] = worker['patoks'].get(patok, 0) + (row['units'] or 0)
 
     month = {}

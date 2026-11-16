@@ -1,61 +1,72 @@
 {% comment %}Zakaz/artikul kartochkalari (rasmi, razmerlari va qutilar tarkibi bilan). cards: packing_views._group_by_order_article{% endcomment %}
-<div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3.5" {% if list_id %}id="{{ list_id }}"{% endif %}>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3" {% if list_id %}id="{{ list_id }}"{% endif %}>
     {% for card in cards %}
-    <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 space-y-3 shadow-sm hover:border-slate-700/80 transition-all"
+    <article class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors"
         data-card-search="{{ card.order.order_number }} {{ card.article.code|default:'' }} {{ card.article.name|default:'' }} {% for b in card.boxes %}{{ b.box_code }} {% endfor %}">
-        <div class="flex items-start gap-3.5">
-            {% if card.image %}
-            <img src="{{ card.image }}" alt="" class="w-20 h-20 object-cover rounded-xl border border-slate-700/80 flex-shrink-0 shadow-sm">
-            {% else %}
-            <div class="w-20 h-20 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center text-slate-500 flex-shrink-0 shadow-sm">
-                <i class="fa-solid fa-shirt text-2xl text-slate-400"></i>
-            </div>
-            {% endif %}
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-200 border border-slate-700/60 font-mono">{{ card.order.order_number }}</span>
-                    {% if card.box_count %}
-                    <span class="text-[11px] text-slate-400 font-medium">{{ card.box_count }} quti</span>
+        <div class="p-3.5 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                    {% if card.image %}
+                    <img src="{{ card.image }}" alt="" class="w-12 h-12 object-cover rounded-lg border border-slate-700 flex-shrink-0">
+                    {% else %}
+                    <div class="w-12 h-12 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500 flex-shrink-0">
+                        <i class="fa-solid fa-shirt text-base"></i>
+                    </div>
                     {% endif %}
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px] font-bold font-mono text-slate-300">{{ card.order.order_number }}</span>
+                            {% if card.box_count %}
+                            <span class="text-[11px] font-medium text-slate-500 font-mono">{{ card.box_count }} quti</span>
+                            {% endif %}
+                        </div>
+                        <p class="font-black text-white text-sm sm:text-base truncate mt-1 leading-tight">{{ card.article.code|default:"—" }}</p>
+                        {% if card.article.name %}
+                        <p class="text-xs text-slate-400 truncate">{{ card.article.name }}</p>
+                        {% endif %}
+                    </div>
                 </div>
-                <p class="font-black text-white text-base truncate mt-1 tracking-tight">{{ card.article.code|default:"—" }}</p>
-                <p class="text-xs text-slate-400 truncate">{{ card.article.name|default:"" }}</p>
-                <div class="flex flex-wrap gap-1 mt-2">
-                    {% for size, qty in card.sizes.items %}
-                    <span class="px-2 py-0.5 rounded-lg bg-slate-950/80 border border-slate-800/80 text-xs font-medium">
-                        <b class="text-white">{{ size }}</b>: <span class="{% if tone == 'rose' %}text-rose-400{% else %}text-orange-400{% endif %} font-bold font-mono">{{ qty }}</span>
-                    </span>
-                    {% endfor %}
+                <div class="text-right flex-shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                    <p class="text-xl font-black font-mono tabular-nums leading-none {% if tone == 'rose' %}text-rose-400{% else %}text-emerald-400{% endif %}">{{ card.total }}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">dona</p>
                 </div>
             </div>
-            <div class="text-right flex-shrink-0 pl-1">
-                <p class="text-2xl sm:text-3xl font-black {% if tone == 'rose' %}text-rose-400{% else %}text-orange-400{% endif %} tabular-nums leading-none">{{ card.total }}</p>
-                <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">dona</p>
+
+            <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/80">
+                {% for size, qty in card.sizes.items %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs font-medium">
+                    <span class="text-slate-400 font-semibold">{{ size }}</span>
+                    <span class="font-black font-mono tabular-nums {% if tone == 'rose' %}text-rose-400{% else %}text-emerald-400{% endif %}">{{ qty }}</span>
+                </span>
+                {% endfor %}
             </div>
         </div>
+
         {% if card.boxes %}
-        <details class="text-xs border-t border-slate-800/80 pt-2.5 group">
+        <details class="border-t border-slate-800 bg-slate-950/60 px-3.5 py-2 text-xs group">
             <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200 font-bold flex items-center justify-between">
                 <span class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-boxes-stacked text-slate-500"></i>
-                    <span>Qutilar tarkibi ({{ card.box_count }})</span>
+                    <i class="fa-solid fa-boxes-stacked text-[11px] text-slate-500"></i>
+                    <span>Qutilar ({{ card.box_count }})</span>
                 </span>
                 <i class="fa-solid fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
             </summary>
-            <div class="mt-2.5 flex flex-wrap gap-1.5">
+            <div class="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
                 {% for b in card.boxes %}
-                <span class="px-2 py-1 rounded-lg bg-slate-950/90 border border-slate-800/90 text-slate-300 font-mono text-[11px]">
-                    <b class="text-white">{{ b.box_code }}</b> <span class="text-slate-400">({{ b.razmer }}):</span> <span class="{% if tone == 'rose' %}text-rose-400{% else %}text-orange-400{% endif %} font-bold">{{ b.qty }}</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono">
+                    <b class="text-white">{{ b.box_code }}</b>
+                    <span class="text-slate-500">({{ b.razmer }})</span>
+                    <b class="{% if tone == 'rose' %}text-rose-400{% else %}text-emerald-400{% endif %}">{{ b.qty }}</b>
                 </span>
                 {% endfor %}
             </div>
         </details>
         {% endif %}
-    </div>
+    </article>
     {% empty %}
-    <div class="col-span-full rounded-2xl border border-dashed border-slate-800 py-10 text-center text-slate-500 text-sm">
-        <i class="fa-solid fa-inbox text-3xl text-slate-600 mb-2 block"></i>
-        Hozircha yo'q.
+    <div class="col-span-full rounded-xl border border-dashed border-slate-800 bg-slate-900/50 py-10 text-center text-slate-500 text-sm">
+        <i class="fa-solid fa-inbox text-2xl text-slate-600 mb-2 block"></i>
+        Hozircha ma'lumot yo'q.
     </div>
     {% endfor %}
 </div>

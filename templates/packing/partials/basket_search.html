@@ -1,69 +1,72 @@
 {% comment %}2-sort savatini kodi bo'yicha qidirish (SV-123456): holati, kim/qachon va tarkibi.{% endcomment %}
-<section class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-        <div>
-            <div class="flex items-center gap-2">
-                <span class="w-7 h-7 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center text-xs">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </span>
-                <h2 class="text-sm font-black text-white uppercase tracking-wider">Savatni qidirish</h2>
+<section class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <div>
+                <h2 class="text-sm font-black text-white uppercase tracking-wide">Savatni qidirish</h2>
+                <p class="text-[11px] text-slate-400"><span class="font-mono text-slate-300 font-bold">SV-123456</span> yoki 6 xonali raqamni kiriting</p>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Savat kodi bo'yicha: <span class="font-mono text-slate-300 font-bold">SV-123456</span> yoki faqat 6 ta raqam.</p>
         </div>
+        <form method="GET" class="flex gap-2 w-full sm:w-auto sm:min-w-[290px]">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-basket-shopping absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                <input name="sv" value="{{ search_code }}" autocomplete="off" placeholder="SV-123456..."
+                    class="w-full pl-8 pr-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-orange-500 transition-colors placeholder:text-slate-600">
+            </div>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs sm:text-sm transition-colors flex items-center gap-1.5">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                <span>Topish</span>
+            </button>
+        </form>
     </div>
 
-    <form method="GET" class="flex gap-2 max-w-xl">
-        <input type="hidden" name="tab" value="{{ tab }}">
-        <div class="relative flex-1">
-            <i class="fa-solid fa-basket-shopping absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none"></i>
-            <input name="sv" value="{{ search_code }}" autocomplete="off" placeholder="SV-123456..."
-                class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-mono text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all placeholder:text-slate-600">
-        </div>
-        <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/70 text-white font-bold text-sm shadow-sm transition-all flex items-center gap-2">
-            <i class="fa-solid fa-magnifying-glass text-xs"></i>
-            <span>Topish</span>
-        </button>
-    </form>
-
-    {% if search_basket %}
-    {% with b=search_basket.basket %}
-    <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-            <div class="flex flex-wrap items-center gap-3">
-                <span class="font-mono font-black text-orange-400 text-lg tracking-wider">{{ b.code }}</span>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black {% if b.status == 'ACCEPTED' %}bg-emerald-950 text-emerald-300 border border-emerald-700/70{% elif b.status == 'RETURNED' %}bg-rose-950 text-rose-300 border border-rose-700/70{% elif b.status == 'SENT' %}bg-amber-950 text-amber-300 border border-amber-700/70{% else %}bg-slate-800 text-slate-300 border border-slate-700{% endif %}">
-                    <i class="fa-solid {% if b.status == 'ACCEPTED' %}fa-circle-check{% elif b.status == 'RETURNED' %}fa-circle-xmark{% elif b.status == 'SENT' %}fa-clock{% else %}fa-circle-dot{% endif %} text-[11px]"></i>
-                    {{ b.get_status_display }}
-                </span>
-                <span class="text-xs text-slate-400">Sanoqchi: <b class="text-slate-200">{% if b.counter %}{{ b.counter.get_full_name|default:b.counter.username }}{% else %}—{% endif %}</b></span>
+    <div class="p-4">
+        {% if search_basket %}
+        {% with b=search_basket.basket %}
+        <div class="space-y-3">
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <span class="font-mono font-black text-orange-400 text-base tracking-wider">{{ b.code }}</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-black {% if b.status == 'ACCEPTED' %}bg-emerald-950 text-emerald-300 border border-emerald-700/70{% elif b.status == 'RETURNED' %}bg-rose-950 text-rose-300 border border-rose-700/70{% elif b.status == 'SENT' %}bg-amber-950 text-amber-300 border border-amber-700/70{% else %}bg-slate-800 text-slate-300 border border-slate-700{% endif %}">
+                        <i class="fa-solid {% if b.status == 'ACCEPTED' %}fa-circle-check{% elif b.status == 'RETURNED' %}fa-circle-xmark{% elif b.status == 'SENT' %}fa-clock{% else %}fa-circle-dot{% endif %} text-[10px]"></i>
+                        {{ b.get_status_display }}
+                    </span>
+                    <span class="text-xs text-slate-400">Sanoqchi: <b class="text-slate-200">{% if b.counter %}{{ b.counter.get_full_name|default:b.counter.username }}{% else %}—{% endif %}</b></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Jami:</span>
+                    <span class="text-lg font-black text-rose-400 font-mono tabular-nums">{{ search_basket.total }} dona</span>
+                </div>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="text-xs text-slate-400">Jami tarkib:</span>
-                <span class="text-xl font-black text-rose-400 tabular-nums">{{ search_basket.total }} <span class="text-xs font-normal text-slate-400">dona</span></span>
+
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 px-1">
+                {% if b.sent_at %}
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-paper-plane text-slate-500"></i>Jo'natilgan: <b class="text-slate-300 font-mono">{{ b.sent_at|date:"d.m.Y H:i" }}</b></span>
+                {% endif %}
+                {% if b.accepted_at %}
+                <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500"></i>Qabul: <b class="text-slate-300 font-mono">{{ b.accepted_at|date:"d.m.Y H:i" }}</b> ({% if b.accepted_by %}{{ b.accepted_by.get_full_name|default:b.accepted_by.username }}{% else %}—{% endif %})</span>
+                {% endif %}
+                {% if b.returned_at %}
+                <span class="inline-flex items-center gap-1.5 text-rose-300 font-medium"><i class="fa-solid fa-rotate-left text-rose-400"></i>Qaytarilgan: <span class="font-mono">{{ b.returned_at|date:"d.m.Y H:i" }}</span> — <b class="text-rose-200">{{ b.return_reason }}</b></span>
+                {% endif %}
             </div>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
-            {% if b.sent_at %}
-            <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-paper-plane text-slate-500"></i>Jo'natilgan: <b class="text-slate-300">{{ b.sent_at|date:"d.m.Y H:i" }}</b></span>
-            {% endif %}
-            {% if b.accepted_at %}
-            <span class="inline-flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500"></i>Qabul: <b class="text-slate-300">{{ b.accepted_at|date:"d.m.Y H:i" }}</b> ({% if b.accepted_by %}{{ b.accepted_by.get_full_name|default:b.accepted_by.username }}{% else %}—{% endif %})</span>
-            {% endif %}
-            {% if b.returned_at %}
-            <span class="inline-flex items-center gap-1.5 text-rose-300 font-medium"><i class="fa-solid fa-rotate-left text-rose-400"></i>Qaytarilgan: {{ b.returned_at|date:"d.m.Y H:i" }} — <b class="text-rose-200">{{ b.return_reason }}</b></span>
-            {% endif %}
-        </div>
-
-        <div class="pt-2">
             {% include 'packing/partials/basket_rows.html' with view=search_basket removable=False %}
         </div>
+        {% endwith %}
+        {% elif search_code %}
+        <div class="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-xs sm:text-sm text-rose-300 flex items-center gap-2">
+            <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
+            <span>«<b class="font-mono">{{ search_code }}</b>» kodli savat topilmadi.</span>
+        </div>
+        {% else %}
+        <div class="py-8 text-center text-xs text-slate-500">
+            Savat kodini yuqoriga yozib tekshiring — holati va tarkibi shu yerda chiqadi.
+        </div>
+        {% endif %}
     </div>
-    {% endwith %}
-    {% elif search_code %}
-    <div class="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-sm text-rose-300 flex items-center gap-2">
-        <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
-        <span>«<b class="font-mono">{{ search_code }}</b>» kodli savat topilmadi.</span>
-    </div>
-    {% endif %}
 </section>

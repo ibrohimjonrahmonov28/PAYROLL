@@ -1447,6 +1447,7 @@
    "url_names": [
     "packing:api_counter_packer",
     "packing:api_counter_paper",
+    "packing:api_counter_patok",
     "packing:api_counter_remove",
     "packing:api_counter_send",
     "packing:counter_accept",

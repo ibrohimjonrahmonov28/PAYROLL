@@ -141,7 +141,7 @@ def paper_label(source, receipt=None):
     return f"{receipt.cycle}-ta'mir" if receipt is not None else "CONTROL"
 
 
-def take_paper(raw_code, worker, terminal_user, batch=None):
+def take_paper(raw_code, worker, terminal_user, batch=None, screen_number=None):
     """Qog'ozni (CONTROL stikeri, TAMIRn cheki yoki qo'lda yozilgan quti kodi) taxlovchi hisobiga oladi: shu qismning
     hali olinmagani yoziladi (qog'ozdagi emas, bazadagi son), har qog'oz bir marta. (scan, None) yoki (None, xato)."""
     source, box_code, cycle = parse_packing_code(raw_code)
@@ -170,8 +170,10 @@ def take_paper(raw_code, worker, terminal_user, batch=None):
             else:
                 message = f"Bu qog'oz allaqachon urilgan: {packed_total(box, source, receipt)} dona."
             return None, ('NOTHING', message)
+        scan_screen = screen_number if screen_number is not None else (batch.screen_number if batch else None)
         scan = PackingScan.objects.create(box=box, source=source, repair_receipt=receipt, worker=worker,
-                                          quantity=available, terminal_user=terminal_user, batch=batch)
+                                          quantity=available, terminal_user=terminal_user, batch=batch,
+                                          screen_number=scan_screen)
     return scan, None
 
 
