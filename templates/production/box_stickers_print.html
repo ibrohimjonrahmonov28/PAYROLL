@@ -226,6 +226,13 @@
             </span>
             {% endif %}
             <span class="text-xs text-slate-600">({{ box_item.tickets|length }} ta bilet)</span>
+            {% if box_item.is_beta %}
+            <span
+                class="text-[11px] font-black px-2 py-0.5 bg-amber-300 border border-amber-600 text-slate-950 rounded-md font-mono">
+                BETA · OTK + TAXLOV (Qiyinlik: {{ box_item.taxlov_difficulty_display }} · {{
+                box_item.taxlov_price_display }} so'm)
+            </span>
+            {% endif %}
         </div>
         <a href="{% url 'production:box_print_stickers' box_item.box.id %}" target="_blank"
             class="text-xs font-bold text-amber-900 hover:text-amber-950 hover:underline flex items-center gap-1">
@@ -375,24 +382,34 @@
         </div>
         {% endfor %}
 
-        <!-- ================= MAJBURIY "CONTROL" STIKERI ================= -->
+        {# 1. TOP HEADER #}
         <div
             class="sticker-card rounded-lg shadow-sm border-2 border-slate-950 p-1.5 flex flex-col justify-between bg-white text-slate-950">
-            <!-- 1. TOP HEADER: CONTROL (Katta va qalin, tartib raqamsiz) -->
             <div class="border-b-2 border-slate-950 pb-0.5 flex flex-col justify-center">
                 <div class="flex items-center justify-between">
+                    {% if box_item.is_beta %}
+                    <span class="text-[6.5px] font-black uppercase text-amber-700 tracking-wider leading-none">BOSQICH:
+                        OTK + TAXLOV</span>
+                    {% else %}
                     <span class="text-[6.5px] font-black uppercase text-amber-600 tracking-wider leading-none">BOSQICH:
                         SIFAT NAZORATI</span>
+                    {% endif %}
                     <span
                         class="text-[9px] font-black text-slate-950 bg-slate-100 border border-slate-400 px-1.5 py-0.5 rounded font-mono leading-none whitespace-nowrap">
                         PC: {{ box_item.box.pastal_code|default:box_item.box.pastal_number|default:"—" }}
                     </span>
                 </div>
                 <div
-                    class="text-[14px] font-black text-slate-950 uppercase leading-tight mt-0.5 tracking-wider flex items-center justify-between">
+                    class="{% if box_item.is_beta %}text-[12.5px]{% else %}text-[14px]{% endif %} font-black text-slate-950 uppercase leading-tight mt-0.5 tracking-wider flex items-center justify-between">
+                    {% if box_item.is_beta %}
+                    <span>CONTROL / TAXLOV</span>
+                    <span
+                        class="text-[8.5px] bg-slate-950 text-amber-400 px-1.5 py-0.2 rounded font-mono font-black">BETA</span>
+                    {% else %}
                     <span>CONTROL</span>
                     <span
                         class="text-[9px] bg-slate-950 text-amber-400 px-1.5 py-0.2 rounded font-mono font-bold">OTK</span>
+                    {% endif %}
                 </div>
             </div>
 
@@ -408,8 +425,8 @@
                     <div
                         class="mt-0.5 w-full flex flex-col items-start px-1 py-0.5 border border-slate-950 bg-white text-slate-950 rounded shadow-xs text-center">
                         <span
-                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-slate-500 w-full text-center">CONTROL
-                            STIKER</span>
+                            class="text-[6px] font-bold uppercase tracking-wider leading-none text-slate-500 w-full text-center">{%
+                            if box_item.is_beta %}OTK + TAXLOV{% else %}CONTROL STIKER{% endif %}</span>
                         <span
                             class="font-mono font-black text-[9.5px] leading-none text-slate-950 tracking-wide mt-0.5 w-full text-center">{{
                             box_item.box.box_code }}</span>
@@ -444,7 +461,7 @@
                         </span>
                     </div>
 
-                    <!-- 2-Qavatli Kataklar: SONI & RAZMER (katta) + SIFAT NAZORATI (lenta) -->
+                    <!-- 2-Qavatli Kataklar: SONI & RAZMER (katta) + QIYINLIK/SUMMA (beta) yoki SIFAT NAZORATI -->
                     <div class="space-y-0.5 pt-0.5">
                         <div class="grid grid-cols-2 gap-1">
                             <!-- Soni -->
@@ -467,12 +484,33 @@
                             </div>
                         </div>
 
+                        {% if box_item.is_beta %}
+                        <!-- Beta: QIYINLIK va SUMMA (narxlar shablonidagi OTK Control/Taxlov) -->
+                        <div class="grid grid-cols-2 gap-1">
+                            <div
+                                class="border border-slate-950 rounded px-1 py-0.5 bg-slate-50 flex items-baseline justify-between">
+                                <span class="text-[6px] font-black uppercase text-slate-600">QIYINLIK:</span>
+                                <span class="text-[10.5px] font-black font-mono text-slate-950 leading-none">
+                                    {{ box_item.taxlov_difficulty_display }}
+                                </span>
+                            </div>
+                            <div
+                                class="border border-slate-950 rounded px-1 py-0.5 bg-amber-50 flex items-baseline justify-between text-slate-950">
+                                <span class="text-[6px] font-black uppercase text-amber-900">SUMMA:</span>
+                                <span class="text-[10.5px] font-black font-mono leading-none">
+                                    {{ box_item.taxlov_price_display }} <small
+                                        class="text-[6px] text-slate-600 font-sans">so'm</small>
+                                </span>
+                            </div>
+                        </div>
+                        {% else %}
                         <!-- SIFAT NAZORATI lentasi -->
                         <div
                             class="border border-emerald-800 rounded px-1.5 py-0.5 bg-emerald-50 flex items-baseline justify-between text-emerald-950">
                             <span class="text-[6.5px] font-black uppercase">BOSQICH:</span>
                             <span class="text-[10px] font-black font-mono leading-none">SIFAT NAZORATI (OTK)</span>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -480,7 +518,8 @@
             <!-- 3. FOOTER -->
             <div
                 class="border-t border-slate-300 pt-0.5 flex items-center justify-between text-[7px] text-slate-600 font-bold uppercase tracking-wider">
-                <span class="font-extrabold text-slate-900 tracking-wider">TERRY JAR • SIFAT NAZORATI</span>
+                <span class="font-extrabold text-slate-900 tracking-wider">{% if box_item.is_beta %}TERRY JAR • BETA •
+                    OTK + TAXLOV{% else %}TERRY JAR • SIFAT NAZORATI{% endif %}</span>
                 <span class="font-mono text-[7px] text-slate-700 tracking-tight font-black">CONTROL:{{
                     box_item.box.box_code }}</span>
             </div>

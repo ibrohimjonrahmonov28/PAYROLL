@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3416,
+  "lines": 3426,
   "depends_on": [
    "accounts.core"
   ]
@@ -279,7 +279,7 @@
    "production/urls.py",
    "production/views.py"
   ],
-  "lines": 1334,
+  "lines": 1366,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -311,6 +311,7 @@
    "production/__init__.py",
    "production/admin.py",
    "production/apps.py",
+   "production/packer_screens.py",
    "production/packing_services.py",
    "production/packing_urls.py",
    "production/packing_views.py",
@@ -323,7 +324,7 @@
    "production/static/brand/terryjar-logo.svg",
    "production/taxlov_pay.py"
   ],
-  "lines": 1967,
+  "lines": 2162,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -417,6 +418,7 @@
   "depends_on": [
    "accounts.core",
    "production.models",
+   "production.platform",
    "production.reports",
    "production.services"
   ]
@@ -501,6 +503,9 @@
    "templates/production/statistics_pipeline.html",
    "templates/screens/monitor.html",
    "templates/screens/overview.html",
+   "templates/screens/partials/taxlov_patok_grid.html",
+   "templates/screens/taxlov_monitor.html",
+   "templates/screens/taxlov_settings.html",
    "templates/stickers/base_stickers.html",
    "templates/stickers/dashboard.html",
    "templates/stickers/order_boxes.html",
@@ -520,7 +525,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 46141,
+  "lines": 46890,
   "depends_on": []
  },
  "tests": {
@@ -546,9 +551,10 @@
    "production/test_template_beta.py",
    "production/test_terminal.py",
    "production/tests.py",
+   "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 12164,
+  "lines": 12331,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

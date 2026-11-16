@@ -4,7 +4,7 @@
   ".claude/project-knowledge/architecture.md": {
    "module": "ops",
    "lines": 46,
-   "sha256_16": "d813a44693946f0a"
+   "sha256_16": "0eea83a5d5469ce4"
   },
   ".claude/project-knowledge/build_graph.py": {
    "module": "ops",
@@ -23,12 +23,12 @@
   ".claude/project-knowledge/overview.md": {
    "module": "ops",
    "lines": 35,
-   "sha256_16": "e4827892268f2334"
+   "sha256_16": "e976085df9e7cdbe"
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 879,
-   "sha256_16": "9a33cf1de66311d4"
+   "lines": 889,
+   "sha256_16": "f7300928b6a1fd37"
   },
   "CLAUDE.md": {
    "module": "ops",
@@ -961,26 +961,43 @@
     "norma_canvas_save:738"
    ]
   },
+  "production/packer_screens.py": {
+   "module": "production.platform",
+   "lines": 140,
+   "sha256_16": "b966aca73067f8b5",
+   "symbols": [
+    "_day_bounds:25",
+    "_month_bounds:31",
+    "_money:38",
+    "_pct_color:42",
+    "_number:47",
+    "packer_screens_data:52",
+    "packer_screen_data:138"
+   ]
+  },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 214,
-   "sha256_16": "fc6a695e98bcc58a",
+   "lines": 269,
+   "sha256_16": "a8b46686e7a37446",
    "symbols": [
-    "beta_group:22",
-    "is_beta_box:32",
-    "beta_box_q:44",
-    "_details:58",
-    "create_repair_receipt:72",
-    "close_repair_receipt:79",
-    "parse_packing_code:92",
-    "find_receipt:112",
-    "portion_total:116",
-    "packed_total:124",
-    "available_for_packing:131",
-    "find_box:135",
-    "paper_label:139",
-    "take_paper:143",
-    "paper_status:177"
+    "beta_group:23",
+    "is_beta_box:33",
+    "beta_box_q:45",
+    "_details:59",
+    "create_repair_receipt:73",
+    "close_repair_receipt:80",
+    "parse_packing_code:93",
+    "find_receipt:113",
+    "portion_total:117",
+    "packed_total:125",
+    "available_for_packing:132",
+    "find_box:136",
+    "paper_label:140",
+    "take_paper:144",
+    "paper_status:178",
+    "_format_taxlov_difficulty:217",
+    "_format_taxlov_price:227",
+    "control_sticker_meta:243"
    ]
   },
   "production/packing_urls.py": {
@@ -1412,8 +1429,8 @@
   },
   "production/test_template_beta.py": {
    "module": "tests",
-   "lines": 77,
-   "sha256_16": "c090234dd9bd850c",
+   "lines": 133,
+   "sha256_16": "bbf935c2fbd30fb0",
    "symbols": [
     "TemplateBetaTest:18"
    ]
@@ -1465,21 +1482,21 @@
   },
   "production/views.py": {
    "module": "production.orders",
-   "lines": 1253,
-   "sha256_16": "90f7f2ee2d5f697a",
+   "lines": 1285,
+   "sha256_16": "3218995b09050919",
    "symbols": [
-    "dashboard_view:15",
-    "order_list_view:67",
-    "order_detail_view:181",
-    "box_split_wizard_view:259",
-    "box_print_stickers_view:310",
-    "order_print_all_stickers_view:356",
-    "box_download_stickers_100x60_pdf:527",
-    "order_download_all_stickers_100x60_pdf:556",
-    "articles_catalog_view:640",
-    "box_pipeline_statistics_view:719",
-    "api_ticket_scan_detail:1077",
-    "pastal_passport_view:1140"
+    "dashboard_view:16",
+    "order_list_view:68",
+    "order_detail_view:182",
+    "box_split_wizard_view:260",
+    "box_print_stickers_view:311",
+    "order_print_all_stickers_view:366",
+    "box_download_stickers_100x60_pdf:559",
+    "order_download_all_stickers_100x60_pdf:588",
+    "articles_catalog_view:672",
+    "box_pipeline_statistics_view:751",
+    "api_ticket_scan_detail:1109",
+    "pastal_passport_view:1172"
    ]
   },
   "requirements.txt": {
@@ -1522,6 +1539,15 @@
    "module": "screens",
    "lines": 4,
    "sha256_16": "563734a765db00f8"
+  },
+  "screens/test_packer_screens.py": {
+   "module": "tests",
+   "lines": 111,
+   "sha256_16": "9d0b45ed13b71b06",
+   "symbols": [
+    "at:22",
+    "PackerScreensTest:26"
+   ]
   },
   "screens/tests.py": {
    "module": "tests",
@@ -1840,8 +1866,8 @@
   },
   "templates/production/box_stickers_print.html": {
    "module": "templates",
-   "lines": 512,
-   "sha256_16": "1091026ec4c91c55"
+   "lines": 551,
+   "sha256_16": "084c2ca3e0cab455"
   },
   "templates/production/control_home.html": {
    "module": "templates",
@@ -1942,6 +1968,21 @@
    "module": "templates",
    "lines": 301,
    "sha256_16": "c31ea7a4e5482e3c"
+  },
+  "templates/screens/partials/taxlov_patok_grid.html": {
+   "module": "templates",
+   "lines": 24,
+   "sha256_16": "2b16d6a549b21911"
+  },
+  "templates/screens/taxlov_monitor.html": {
+   "module": "templates",
+   "lines": 605,
+   "sha256_16": "55caa86807aaaf08"
+  },
+  "templates/screens/taxlov_settings.html": {
+   "module": "templates",
+   "lines": 81,
+   "sha256_16": "65ed146986833097"
   },
   "templates/stickers/base_stickers.html": {
    "module": "templates",

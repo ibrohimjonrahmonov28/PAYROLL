@@ -96,6 +96,7 @@
    "production/norma_services.py",
    "production/norma_urls.py",
    "production/norma_views.py",
+   "production/packer_screens.py",
    "production/packing_services.py",
    "production/packing_urls.py",
    "production/packing_views.py",
@@ -138,6 +139,7 @@
    "screens/admin.py",
    "screens/apps.py",
    "screens/models.py",
+   "screens/test_packer_screens.py",
    "screens/tests.py",
    "screens/urls.py",
    "screens/views.py"
@@ -514,6 +516,13 @@
     "production.norma_services"
    ]
   },
+  "production.packer_screens": {
+   "imports": [
+    "production.models",
+    "production.services",
+    "production.taxlov_pay"
+   ]
+  },
   "production.packing_services": {
    "imports": [
     "production.models"
@@ -837,6 +846,7 @@
    "imports": [
     "accounts.models",
     "production.models",
+    "production.packing_services",
     "production.services"
    ],
    "lazy": [
@@ -848,6 +858,13 @@
   "scratch_badges_pdf": {
    "imports": [
     "accounts.models"
+   ]
+  },
+  "screens.test_packer_screens": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.packer_screens"
    ]
   },
   "screens.tests": {
@@ -1663,6 +1680,27 @@
     "screens:packer_settings",
     "screens:packer_view",
     "screens:screen_view"
+   ]
+  },
+  "templates/screens/taxlov_monitor.html": {
+   "includes": [
+    "includes/theme_head_legacy.html"
+   ],
+   "url_names": [
+    "root_logout"
+   ]
+  },
+  "templates/screens/taxlov_settings.html": {
+   "extends": [
+    "superadmin/base_superadmin.html"
+   ],
+   "includes": [
+    "screens/partials/taxlov_patok_grid.html",
+    "screens/partials/taxlov_patok_grid.html"
+   ],
+   "url_names": [
+    "screens:overview",
+    "screens:packer_view"
    ]
   },
   "templates/stickers/base_stickers.html": {

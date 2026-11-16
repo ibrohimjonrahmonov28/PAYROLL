@@ -74,3 +74,59 @@ class TemplateBetaTest(TestCase):
         page = self.client.get(reverse('superadmin_pricing'))
         self.assertContains(page, 'BETA · OTK Control/Taxlov')
         self.assertContains(page, "BETA · Control/Taxlov 2.50 so'm")
+
+    def test_control_sticker_beta_vs_regular_print(self):
+        old_box = self.box(1)
+        self.set_beta(True, price='150', difficulty='1.5')
+        new_box = self.box(2)
+
+        # Belgidan oldingi quti — odatiy CONTROL stikeri
+        old_res = self.client.get(reverse('production:box_print_stickers', args=[old_box.id]))
+        self.assertEqual(old_res.status_code, 200)
+        self.assertContains(old_res, 'SIFAT NAZORATI (OTK)')
+        self.assertNotContains(old_res, '>CONTROL / TAXLOV<')
+        self.assertNotContains(old_res, '>SUMMA:<')
+
+        # Belgidan keyingi quti — Beta CONTROL / TAXLOV stikeri (qiyinlik va summa bilan, QR o'zgarmaydi)
+        new_res = self.client.get(reverse('production:box_print_stickers', args=[new_box.id]))
+        self.assertEqual(new_res.status_code, 200)
+        self.assertContains(new_res, 'OTK + TAXLOV')
+        self.assertContains(new_res, '>CONTROL / TAXLOV<')
+        self.assertContains(new_res, '>BETA<')
+        self.assertContains(new_res, '>QIYINLIK:<')
+        self.assertContains(new_res, '1.5')
+        self.assertContains(new_res, '>SUMMA:<')
+        self.assertContains(new_res, '150')
+        self.assertContains(new_res, f'CONTROL:{new_box.box_code}')
+        self.assertNotContains(new_res, 'SIFAT NAZORATI (OTK)')
+
+        # Buyurtma umumiy chop etish oynasida ham bir xil: eski quti odatiy, yangisi Beta
+        all_res = self.client.get(reverse('production:order_print_all_stickers', args=[self.order.id]))
+        self.assertEqual(all_res.status_code, 200)
+        self.assertContains(all_res, 'SIFAT NAZORATI (OTK)')
+        self.assertContains(all_res, '>CONTROL / TAXLOV<')
+
+    def test_order_beta_flag_prints_beta_control_sticker(self):
+        self.group.taxlov_price = Decimal('2500.00')
+        self.group.taxlov_difficulty = 2.0
+        self.group.save(update_fields=['taxlov_price', 'taxlov_difficulty'])
+
+        box = self.box(3)
+        # Hali zakazda ham, shablonda ham beta o'chiq — odatiy
+        regular_res = self.client.get(reverse('production:box_print_stickers', args=[box.id]))
+        self.assertContains(regular_res, 'SIFAT NAZORATI (OTK)')
+        self.assertNotContains(regular_res, '>CONTROL / TAXLOV<')
+
+        # Zakaz beta yoqildi
+        self.order.packing_beta = True
+        self.order.packing_beta_since = timezone.now()
+        self.order.save(update_fields=['packing_beta', 'packing_beta_since'])
+
+        beta_res = self.client.get(reverse('production:box_print_stickers', args=[box.id]))
+        self.assertContains(beta_res, '>CONTROL / TAXLOV<')
+        self.assertContains(beta_res, '2 500')
+        self.assertContains(beta_res, '>QIYINLIK:<')
+        self.assertContains(beta_res, "Qiyinlik: 2")
+        self.assertContains(beta_res, "2 500 so'm")
+        self.assertContains(beta_res, '>SUMMA:<')
+

@@ -7,8 +7,9 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Q, F, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, Ticket, OrderItem, CuttingBatch, CuttingBatchItem, _generate_qr_data_uri
+from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, Box, BoxQualityInspectionLog, Ticket, OrderItem, CuttingBatch, CuttingBatchItem, _generate_qr_data_uri
 from .services import allocate_ticket_quantities, generate_box_tickets, create_boxes_for_order, create_box_with_tickets, ensure_box_tickets_fresh
+from .packing_services import control_sticker_meta
 from accounts.models import Worker
 
 
@@ -309,7 +310,12 @@ def box_split_wizard_view(request, box_id: int):
 
 def box_print_stickers_view(request, box_id: int):
     box = get_object_or_404(
-        Box.objects.exclude(status=Box.Status.CANCELLED).select_related('order', 'article'), 
+        Box.objects.exclude(status=Box.Status.CANCELLED).select_related(
+            'order',
+            'article__operation_group',
+            'cutting_batch_item__batch__order_item__article__operation_group',
+            'order__article__operation_group',
+        ),
         id=box_id
     )
     # Stikerlar chop etilishidan avval doimo narxlar matritsasining eng so'nggi holatini tekshirish va yangilash
@@ -319,6 +325,7 @@ def box_print_stickers_view(request, box_id: int):
         'article_operation__operation', 'article_operation__article', 'box__order', 'box__article'
     ).order_by('article_operation__sequence', 'split_index')
     art = box.target_article
+    meta = control_sticker_meta(box)
 
     articles_grouped_list = [{
         'article': art,
@@ -328,6 +335,9 @@ def box_print_stickers_view(request, box_id: int):
         'boxes': [{
             'box': box,
             'tickets': list(tickets),
+            'is_beta': meta['is_beta'],
+            'taxlov_difficulty_display': meta['difficulty_display'],
+            'taxlov_price_display': meta['price_display'],
         }],
         'boxes_count': 1,
         'total_tickets': len(tickets),
@@ -446,9 +456,27 @@ def order_print_all_stickers_view(request, order_id: int):
         )
         return redirect(f"/meto/orders/{order.id}/")
 
-    tickets = tickets_qs.select_related(
-        'box', 'box__order', 'box__article', 'box__cutting_batch_item__batch', 'article_operation__operation', 'article_operation__article'
-    ).order_by('box__article__code', 'box__box_number', 'article_operation__sequence', 'split_index')
+    tickets = list(tickets_qs.select_related(
+        'box',
+        'box__order',
+        'box__article__operation_group',
+        'box__cutting_batch_item__batch__order_item__article__operation_group',
+        'box__order__article__operation_group',
+        'article_operation__operation',
+        'article_operation__article__operation_group',
+    ).order_by('box__article__code', 'box__box_number', 'article_operation__sequence', 'split_index'))
+
+    initial_before_beta_ids = set()
+    if order.packing_beta and order.packing_beta_since is not None:
+        all_box_ids = {t.box_id for t in tickets if t.box_id}
+        if all_box_ids:
+            initial_before_beta_ids = set(
+                BoxQualityInspectionLog.objects.filter(
+                    box_id__in=all_box_ids,
+                    action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+                    created_at__lt=order.packing_beta_since,
+                ).values_list('box_id', flat=True)
+            )
 
     grouped_data = OrderedDict()
     for ticket in tickets:
@@ -474,9 +502,13 @@ def order_print_all_stickers_view(request, order_id: int):
         box = ticket.box
         box_id_val = box.id if box else 0
         if box_id_val not in grouped_data[art_id]['boxes']:
+            meta = control_sticker_meta(box, initial_before_beta_ids=initial_before_beta_ids)
             grouped_data[art_id]['boxes'][box_id_val] = {
                 'box': box,
                 'tickets': [],
+                'is_beta': meta['is_beta'],
+                'taxlov_difficulty_display': meta['difficulty_display'],
+                'taxlov_price_display': meta['price_display'],
             }
             if box:
                 grouped_data[art_id]['total_quantity'] += box.quantity

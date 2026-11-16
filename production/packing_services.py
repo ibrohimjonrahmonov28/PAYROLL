@@ -8,6 +8,7 @@ OTK ta'mirga yuborsa TAMIR1 cheki chiqadi; ta'mirdan qaytganda ochiq chek yopila
 1-sorti), yana ta'mirga ketganlari uchun keyingi chek (TAMIR2, ...) chiqadi. Qog'ozdagi son emas, bazadagi son olinadi;
 bitta qog'ozni qayta urish hech narsa qo'shmaydi. Eski "TAMIR:<box_code>" cheki = 1-chek.
 """
+from decimal import Decimal
 import re
 
 from django.db import transaction
@@ -211,3 +212,57 @@ def paper_status(box):
         papers.append(paper)
     return {'box_code': box.box_code, 'repair_cycles': len(receipts), 'papers': papers,
             'waiting_total': sum(p['waiting'] for p in papers)}
+
+
+def _format_taxlov_difficulty(value) -> str:
+    if value is None:
+        return "1"
+    try:
+        val = float(value)
+        return str(int(val)) if val.is_integer() else f"{val:g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _format_taxlov_price(value) -> str:
+    amount = value if value is not None else Decimal('0.00')
+    try:
+        dec = Decimal(amount)
+    except Exception:
+        return str(amount)
+    if dec == dec.to_integral_value():
+        return f"{int(dec):,}".replace(",", " ")
+    s = f"{dec.normalize():f}"
+    if '.' in s:
+        s = s.rstrip('0').rstrip('.')
+    int_part, _, dec_part = s.partition('.')
+    int_fmt = f"{int(int_part):,}".replace(",", " ")
+    return f"{int_fmt}.{dec_part}" if dec_part else int_fmt
+
+
+def control_sticker_meta(box, initial_before_beta_ids=None):
+    """Qutining CONTROL stikerini chop etish uchun beta holati, taxlov qiyinligi va narxi (summa)."""
+    if initial_before_beta_ids is None:
+        is_beta = is_beta_box(box)
+    else:
+        order = box.order if box.order_id else None
+        if order is not None and order.packing_beta and (order.packing_beta_since is None or box.id not in initial_before_beta_ids):
+            is_beta = True
+        else:
+            is_beta = bool(beta_group(box))
+    if not is_beta:
+        return {
+            'is_beta': False,
+            'difficulty_display': '',
+            'price_display': '',
+        }
+    article = box.target_article
+    group = article.operation_group if article else None
+    difficulty = group.taxlov_difficulty if (group and group.taxlov_difficulty is not None) else 1.0
+    price = group.taxlov_price if (group and group.taxlov_price is not None) else Decimal('0.00')
+    return {
+        'is_beta': True,
+        'difficulty_display': _format_taxlov_difficulty(difficulty),
+        'price_display': _format_taxlov_price(price),
+    }
+
