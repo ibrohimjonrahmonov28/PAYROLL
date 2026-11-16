@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db.models import Sum, Count
-from production.models import Ticket
+from production.models import PackingScan, Ticket
 from accounts.models import Worker, DailyWorkerClosing
 
 
@@ -20,21 +20,27 @@ def perform_daily_closing(target_date: datetime.date):
         worker__isnull=False
     )
 
-    stats = tickets.values('worker').annotate(
+    stats = {s['worker']: s for s in tickets.values('worker').annotate(
         total_units=Sum('quantity'),
         total_amount=Sum('total_amount'),
         ticket_count=Count('id')
-    )
+    )}
+    # Taxlovchi puli (sanoqchi yuborgan ro'yxatlar): kunlik jami pulga qo'shiladi, alohida ustunda ham saqlanadi
+    taxlov = {t['worker']: t for t in PackingScan.objects.filter(
+        is_cancelled=False, credited_at__date=target_date
+    ).values('worker').annotate(units=Sum('quantity'), amount=Sum('total_amount'))}
 
     closed_records = []
     total_day_amount = Decimal('0.00')
     total_day_units = 0
 
-    for s in stats:
-        worker_id = s['worker']
-        units = s['total_units'] or 0
-        amount = s['total_amount'] or Decimal('0.00')
-        count = s['ticket_count'] or 0
+    for worker_id in stats.keys() | taxlov.keys():
+        s = stats.get(worker_id, {})
+        t = taxlov.get(worker_id, {})
+        units = s.get('total_units') or 0
+        taxlov_amount = t.get('amount') or Decimal('0.00')
+        amount = (s.get('total_amount') or Decimal('0.00')) + taxlov_amount
+        count = s.get('ticket_count') or 0
 
         closing, created = DailyWorkerClosing.objects.update_or_create(
             worker_id=worker_id,
@@ -43,6 +49,8 @@ def perform_daily_closing(target_date: datetime.date):
                 'total_units': units,
                 'total_amount': amount,
                 'ticket_count': count,
+                'taxlov_units': t.get('units') or 0,
+                'taxlov_amount': taxlov_amount,
             }
         )
         closed_records.append(closing)

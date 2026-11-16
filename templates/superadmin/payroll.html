@@ -340,6 +340,9 @@
             <span class="text-xl lg:text-2xl font-black text-emerald-400 digital-font">
                 {{ grand_gross_month|floatformat:0 }} <small class="text-xs text-slate-400 font-normal">UZS</small>
             </span>
+            {% if grand_taxlov_month %}
+            <span class="mt-1 inline-block px-2 py-0.5 rounded-lg bg-yellow-400 text-slate-950 text-[11px] font-black">shundan taxlov: {{ grand_taxlov_month|floatformat:0 }} so'm</span>
+            {% endif %}
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
@@ -522,6 +525,10 @@
                         <td class="py-3 px-4 text-right font-black text-emerald-400 digital-font text-base">
                             {{ row.month_gross|floatformat:0 }} <small
                                 class="text-xs text-slate-500 font-normal">so'm</small>
+                            {% if row.taxlov_amount %}
+                            <span class="mt-0.5 block w-fit ml-auto px-1.5 py-0.5 rounded bg-yellow-400 text-slate-950 text-[11px] font-black font-sans"
+                                title="Taxlovchi puli (sanoqchi yuborgan ro'yxatlar) — hisoblangan maosh ichida">Taxlov: {{ row.taxlov_amount|floatformat:0 }} so'm · {{ row.taxlov_units }} dona</span>
+                            {% endif %}
                         </td>
                         <td class="py-3 px-4 text-right font-black text-cyan-400 digital-font text-base">
                             {{ row.advances|floatformat:0 }} <small
@@ -1270,6 +1277,13 @@
                     : `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-mono text-[10px]">Bugungi navbat</span>`;
 
                 let opsHtml = '<span class="text-slate-600">—</span>';
+                // Taxlovchi puli (sanoqchi yuborgan ro'yxatlar) — sariq, kunlik ish haqi ichida
+                const taxlovPill = r.taxlov_units > 0
+                    ? `<span class="inline-flex items-center gap-1 bg-yellow-400 text-slate-950 px-1.5 py-0.5 rounded text-[11px] font-black mr-1 mb-1">Taxlov: ${r.taxlov_units} dona · ${r.taxlov_formatted}</span>`
+                    : '';
+                if (taxlovPill && !(r.operations_list && r.operations_list.length > 0)) {
+                    opsHtml = `<div class="flex flex-wrap gap-1">${taxlovPill}</div>`;
+                }
                 if (r.operations_list && r.operations_list.length > 0) {
                     const pills = r.operations_list.map(op => `
                         <span class="inline-flex items-center gap-1 bg-slate-950 border border-slate-800 text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium mr-1 mb-1">
@@ -1278,7 +1292,7 @@
                         </span>
                     `).join('');
                     const boxes = r.boxes_count > 0 ? `<span class="text-[10px] text-teal-400 font-mono block mt-0.5"><i class="fa-solid fa-boxes-stacked mr-1"></i>${r.boxes_count} ta quti</span>` : '';
-                    opsHtml = `<div class="flex flex-wrap gap-1">${pills}</div>${boxes}`;
+                    opsHtml = `<div class="flex flex-wrap gap-1">${taxlovPill}${pills}</div>${boxes}`;
                 }
 
                 const safeWorkerName = (data.full_name || '').replace(/'/g, "\\'");

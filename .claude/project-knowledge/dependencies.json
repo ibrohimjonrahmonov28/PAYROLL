@@ -112,6 +112,7 @@
    "production/sticker_views.py",
    "production/telegram_reports.py",
    "production/terminal_views.py",
+   "production/test_counter_packing.py",
    "production/test_daily_dazmol.py",
    "production/test_gifts.py",
    "production/test_managers_new.py",
@@ -226,7 +227,8 @@
    "lazy": [
     "accounts.models",
     "production.models",
-    "production.services"
+    "production.services",
+    "production.taxlov_pay"
    ]
   },
   "accounts.superadmin_urls": {
@@ -247,6 +249,7 @@
     "accounts.models",
     "production.daily_dazmol",
     "production.excel_reports",
+    "production.taxlov_pay",
     "production.telegram_reports"
    ]
   },
@@ -341,7 +344,8 @@
     "production.services"
    ],
    "lazy": [
-    "production.models"
+    "production.models",
+    "production.taxlov_pay"
    ]
   },
   "production.gift_urls": {
@@ -525,6 +529,7 @@
     "production.packing_services",
     "production.services",
     "production.sewing_statistics_views",
+    "production.taxlov_pay",
     "production.terminal_views"
    ]
   },
@@ -633,6 +638,13 @@
    ],
    "lazy": [
     "accounts.models"
+   ]
+  },
+  "production.test_counter_packing": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.packing_services"
    ]
   },
   "production.test_daily_dazmol": {

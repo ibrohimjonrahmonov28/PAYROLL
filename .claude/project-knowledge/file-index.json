@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 836,
-   "sha256_16": "b7f7d824be57e623"
+   "lines": 846,
+   "sha256_16": "43dfa39fcb8241df"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 140,
-   "sha256_16": "626a2745e3b5aca2"
+   "sha256_16": "208ca6915a3ea55b"
   },
   "Dockerfile": {
    "module": "ops",
@@ -74,18 +74,19 @@
   },
   "accounts/freeze_services.py": {
    "module": "accounts.freeze",
-   "lines": 314,
-   "sha256_16": "31d7398cd6a94342",
+   "lines": 334,
+   "sha256_16": "17d572480dec8a46",
    "symbols": [
     "month_bounds:19",
     "update_in_batches:27",
     "run_in_background:43",
-    "freeze_month_tickets:60",
-    "unfreeze_month_tickets:69",
-    "auto_freeze_past_months:78",
-    "check_and_apply_freeze_timers:164",
-    "start_monthly_freeze_timer:202",
-    "get_monthly_closing_status:256"
+    "_taxlov_scans:60",
+    "freeze_month_tickets:65",
+    "unfreeze_month_tickets:77",
+    "auto_freeze_past_months:88",
+    "check_and_apply_freeze_timers:180",
+    "start_monthly_freeze_timer:218",
+    "get_monthly_closing_status:276"
    ]
   },
   "accounts/management/__init__.py": {
@@ -100,11 +101,11 @@
   },
   "accounts/management/commands/close_daily_payroll.py": {
    "module": "accounts.commands",
-   "lines": 126,
-   "sha256_16": "ca4a7621ca22fc4c",
+   "lines": 134,
+   "sha256_16": "d2df2258201c64fd",
    "symbols": [
     "perform_daily_closing:10",
-    "Command:61"
+    "Command:69"
    ]
   },
   "accounts/management/commands/create_ekran_users.py": {
@@ -149,17 +150,17 @@
   },
   "accounts/models.py": {
    "module": "accounts.core",
-   "lines": 529,
-   "sha256_16": "c9cfefdcab7972f0",
+   "lines": 533,
+   "sha256_16": "541c5f540f0dfd25",
    "symbols": [
     "generate_unique_user_uid:11",
     "User:20",
     "Worker:204",
-    "WorkerPayout:346",
-    "DailyWorkerClosing:373",
-    "MonthlyClosing:408",
-    "MasterPatokHistory:474",
-    "MasterAbsentDay:498"
+    "WorkerPayout:347",
+    "DailyWorkerClosing:374",
+    "MonthlyClosing:412",
+    "MasterPatokHistory:478",
+    "MasterAbsentDay:502"
    ]
   },
   "accounts/superadmin_urls.py": {
@@ -169,8 +170,8 @@
   },
   "accounts/superadmin_views.py": {
    "module": "accounts.superadmin",
-   "lines": 4355,
-   "sha256_16": "a194daec59d4b5b9",
+   "lines": 4397,
+   "sha256_16": "d6429bd0034d141c",
    "symbols": [
     "superadmin_required:28",
     "payroll_admin_required:43",
@@ -180,43 +181,43 @@
     "superadmin_users_print_badges:821",
     "superadmin_users_download_badges_pdf:983",
     "superadmin_payroll:1185",
-    "superadmin_worker_daily_breakdown:1416",
-    "superadmin_close_daily_now:1537",
-    "superadmin_payout_create:1563",
-    "superadmin_payroll_export_csv:1624",
-    "superadmin_send_telegram_report:1754",
-    "superadmin_download_daily_excel:1824",
-    "superadmin_download_monthly_excel:1854",
-    "get_or_create_operation_safely:1899",
-    "superadmin_pricing:1949",
-    "superadmin_orders_list:2543",
-    "superadmin_order_detail:2693",
-    "superadmin_order_edit:2742",
-    "superadmin_order_add_model:2772",
-    "superadmin_order_model_edit:2837",
-    "superadmin_order_model_delete:2866",
-    "superadmin_order_delete:2899",
-    "superadmin_order_model_update_operation:2917",
-    "superadmin_order_model_add_operation:2943",
-    "superadmin_order_model_delete_operation:2970",
-    "superadmin_worker_history:2983",
-    "api_worker_tickets_by_date:3184",
-    "superadmin_payroll_bulk_pay:3260",
-    "superadmin_start_month_freeze_timer:3348",
-    "superadmin_month_freeze_toggle:3384",
-    "superadmin_ticket_freeze_toggle:3438",
-    "superadmin_recalculate_unfrozen_tickets:3485",
-    "superadmin_update_worker_branch:3518",
-    "superadmin_defect_reasons:3553",
-    "superadmin_toggle_require_all_operations_scanned:3607",
-    "superadmin_defect_reason_create:3639",
-    "superadmin_defect_reason_edit:3681",
-    "superadmin_defect_reason_toggle:3725",
-    "superadmin_defect_reason_delete:3750",
-    "superadmin_defect_reason_seed_defaults:3766",
-    "_build_orders_balance_data:3879",
-    "superadmin_orders_balance:4151",
-    "superadmin_orders_balance_export_excel:4189"
+    "superadmin_worker_daily_breakdown:1431",
+    "superadmin_close_daily_now:1560",
+    "superadmin_payout_create:1586",
+    "superadmin_payroll_export_csv:1647",
+    "superadmin_send_telegram_report:1788",
+    "superadmin_download_daily_excel:1858",
+    "superadmin_download_monthly_excel:1888",
+    "get_or_create_operation_safely:1933",
+    "superadmin_pricing:1983",
+    "superadmin_orders_list:2585",
+    "superadmin_order_detail:2735",
+    "superadmin_order_edit:2784",
+    "superadmin_order_add_model:2814",
+    "superadmin_order_model_edit:2879",
+    "superadmin_order_model_delete:2908",
+    "superadmin_order_delete:2941",
+    "superadmin_order_model_update_operation:2959",
+    "superadmin_order_model_add_operation:2985",
+    "superadmin_order_model_delete_operation:3012",
+    "superadmin_worker_history:3025",
+    "api_worker_tickets_by_date:3226",
+    "superadmin_payroll_bulk_pay:3302",
+    "superadmin_start_month_freeze_timer:3390",
+    "superadmin_month_freeze_toggle:3426",
+    "superadmin_ticket_freeze_toggle:3480",
+    "superadmin_recalculate_unfrozen_tickets:3527",
+    "superadmin_update_worker_branch:3560",
+    "superadmin_defect_reasons:3595",
+    "superadmin_toggle_require_all_operations_scanned:3649",
+    "superadmin_defect_reason_create:3681",
+    "superadmin_defect_reason_edit:3723",
+    "superadmin_defect_reason_toggle:3767",
+    "superadmin_defect_reason_delete:3792",
+    "superadmin_defect_reason_seed_defaults:3808",
+    "_build_orders_balance_data:3921",
+    "superadmin_orders_balance:4193",
+    "superadmin_orders_balance_export_excel:4231"
    ]
   },
   "accounts/tests.py": {
@@ -577,16 +578,19 @@
   },
   "production/excel_reports.py": {
    "module": "production.reports",
-   "lines": 2067,
-   "sha256_16": "65c7fb8548e93107",
+   "lines": 2168,
+   "sha256_16": "dc44b0d94c2d79d8",
    "symbols": [
     "get_clean_worker_uid:21",
     "compact_ticket_ids:35",
-    "_build_monthly_tabel_sheet:105",
-    "generate_daily_excel_report:419",
-    "_build_day_sheet:1054",
-    "generate_month_to_date_excel_report:1335",
-    "generate_monthly_patok_production_excel:1705"
+    "_day_bounds:105",
+    "_taxlov_day_rows:113",
+    "_append_taxlov_block:126",
+    "_build_monthly_tabel_sheet:174",
+    "generate_daily_excel_report:510",
+    "_build_day_sheet:1150",
+    "generate_month_to_date_excel_report:1434",
+    "generate_monthly_patok_production_excel:1806"
    ]
   },
   "production/gift_urls.py": {
@@ -869,8 +873,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2133,
-   "sha256_16": "82f82ee380fe22ac",
+   "lines": 2141,
+   "sha256_16": "4b8b9fc3195e3d12",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -906,9 +910,9 @@
     "RepairReceipt:1970",
     "PackingBatch:2007",
     "PackingScan:2032",
-    "SecondSortBatch:2064",
-    "ReceiptPrinter:2085",
-    "PrintJob:2108"
+    "SecondSortBatch:2072",
+    "ReceiptPrinter:2093",
+    "PrintJob:2116"
    ]
   },
   "production/norma_services.py": {
@@ -979,53 +983,53 @@
   },
   "production/packing_views.py": {
    "module": "production.platform",
-   "lines": 704,
-   "sha256_16": "4fcab5c69d394513",
+   "lines": 710,
+   "sha256_16": "add7063a536fccde",
    "symbols": [
-    "_role_required:50",
-    "_hub_url:67",
-    "_int_or_none:72",
-    "_json_body:79",
-    "_today_range:86",
-    "_patok_label:91",
-    "_worker_today_total:95",
-    "_find_worker:101",
-    "_article_card:112",
-    "_group_by_order_article:123",
-    "_pending_second_sort:153",
-    "_open_basket:157",
-    "_screen_filter:164",
-    "_today_beta_scans:168",
-    "_tab_badges:176",
-    "_otk_context:194",
-    "_taxlovchi_context:210",
-    "_log_notes_map:215",
-    "_sanoqchi_context:225",
-    "_upakovka_context:268",
-    "_zakazlar_context:294",
-    "hub_view:332",
-    "repair_receipt_view:354",
-    "_not_beta_response:369",
-    "_receipt_summary:377",
-    "api_otk_lookup:398",
-    "api_otk_submit:418",
-    "api_identify:449",
-    "api_scan:460",
-    "_open_packing_batch:487",
-    "_scan_line:494",
-    "_batch_payload:505",
-    "_worker_payload:511",
-    "_box_papers_for_code:515",
-    "api_counter_packer:524",
-    "api_counter_paper:534",
-    "api_counter_remove:555",
-    "api_counter_send:568",
-    "_unscanned_papers:580",
-    "counter_accept:611",
-    "counter_basket_remove:640",
-    "counter_send:665",
-    "counter_cancel:680",
-    "beta_toggle:697"
+    "_role_required:51",
+    "_hub_url:68",
+    "_int_or_none:73",
+    "_json_body:80",
+    "_today_range:87",
+    "_patok_label:92",
+    "_worker_today_total:96",
+    "_find_worker:102",
+    "_article_card:113",
+    "_group_by_order_article:124",
+    "_pending_second_sort:154",
+    "_open_basket:158",
+    "_screen_filter:165",
+    "_today_beta_scans:169",
+    "_tab_badges:177",
+    "_otk_context:195",
+    "_taxlovchi_context:211",
+    "_log_notes_map:216",
+    "_sanoqchi_context:226",
+    "_upakovka_context:269",
+    "_zakazlar_context:295",
+    "hub_view:333",
+    "repair_receipt_view:355",
+    "_not_beta_response:370",
+    "_receipt_summary:378",
+    "api_otk_lookup:399",
+    "api_otk_submit:419",
+    "api_identify:450",
+    "api_scan:461",
+    "_open_packing_batch:488",
+    "_scan_line:495",
+    "_batch_payload:506",
+    "_worker_payload:512",
+    "_box_papers_for_code:516",
+    "api_counter_packer:525",
+    "api_counter_paper:535",
+    "api_counter_remove:556",
+    "api_counter_send:569",
+    "_unscanned_papers:583",
+    "counter_accept:614",
+    "counter_basket_remove:643",
+    "counter_send:668",
+    "counter_cancel:683",
+    "beta_toggle:703"
    ]
   },
   "production/passport_bot_service.py": {
@@ -1244,6 +1248,14 @@
     "terminal_reset_session_api:844",
     "terminal_revoke_ticket_api:856",
     "terminal_ticket_info_api:965"
+   ]
+  },
+  "production/test_counter_packing.py": {
+   "module": "tests",
+   "lines": 129,
+   "sha256_16": "e42d9dcfeb6a8a49",
+   "symbols": [
+    "CounterPackingTest:18"
    ]
   },
   "production/test_daily_dazmol.py": {
@@ -1942,8 +1954,8 @@
   },
   "templates/superadmin/payroll.html": {
    "module": "templates",
-   "lines": 1360,
-   "sha256_16": "ea15b150b6f8f845"
+   "lines": 1374,
+   "sha256_16": "dfe9fdb2b28bf23c"
   },
   "templates/superadmin/pricing.html": {
    "module": "templates",

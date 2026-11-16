@@ -10,7 +10,7 @@
    "accounts/management/commands/process_freeze_timers.py",
    "accounts/management/commands/setup_branch_admin.py"
   ],
-  "lines": 384,
+  "lines": 392,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",
@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1074,
+  "lines": 1078,
   "depends_on": [
    "production.models",
    "production.services"
@@ -40,7 +40,7 @@
   "files": [
    "accounts/freeze_services.py"
   ],
-  "lines": 314,
+  "lines": 334,
   "depends_on": [
    "accounts.core",
    "production.models"
@@ -52,7 +52,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4405,
+  "lines": 4447,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -130,7 +130,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3359,
+  "lines": 3369,
   "depends_on": [
    "accounts.core"
   ]
@@ -251,7 +251,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2133,
+  "lines": 2141,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -319,7 +319,7 @@
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 1855,
+  "lines": 1861,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -340,7 +340,7 @@
    "production/excel_reports.py",
    "production/telegram_reports.py"
   ],
-  "lines": 3243,
+  "lines": 3344,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -514,13 +514,14 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45621,
+  "lines": 45635,
   "depends_on": []
  },
  "tests": {
   "description": "Django TestCase suites.",
   "files": [
    "accounts/tests.py",
+   "production/test_counter_packing.py",
    "production/test_daily_dazmol.py",
    "production/test_gifts.py",
    "production/test_managers_new.py",
@@ -540,7 +541,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 11783,
+  "lines": 11912,
   "depends_on": [
    "accounts.core",
    "accounts.freeze",

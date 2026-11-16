@@ -102,6 +102,75 @@ def compact_ticket_ids(tickets, max_ranges=8) -> str:
         return f"ID: {ids_part} (jami {total_count} ta)"
     elif boxes_part:
         return f"{boxes_part} (jami {total_count} ta stiker)"
+def _day_bounds(first_day: datetime.date, last_day: datetime.date):
+    """[first_day 00:00, last_day+1 00:00) — Toshkent vaqti."""
+    tz = timezone.get_current_timezone()
+    start = timezone.make_aware(datetime.datetime.combine(first_day, datetime.time.min), tz)
+    end = timezone.make_aware(datetime.datetime.combine(last_day + datetime.timedelta(days=1), datetime.time.min), tz)
+    return start, end
+
+
+def _taxlov_day_rows(first_day: datetime.date, last_day: datetime.date):
+    """{sana: [{'worker', 'units', 'amount'}]} — sanoqchi yuborgan ro'yxatlardan taxlovchi puli (kamayish tartibida)."""
+    from production.taxlov_pay import taxlov_by_worker_day
+    data = taxlov_by_worker_day(*_day_bounds(first_day, last_day))
+    workers = {w.id: w for w in Worker.objects.filter(id__in={wid for wid, _day in data}).select_related('user')}
+    by_day = {}
+    for (worker_id, day), t in data.items():
+        by_day.setdefault(day, []).append({'worker': workers[worker_id], 'units': t['units'], 'amount': t['amount']})
+    for rows in by_day.values():
+        rows.sort(key=lambda r: r['amount'], reverse=True)
+    return by_day
+
+
+def _append_taxlov_block(ws, row_idx, rows, font_bold, font_regular, thin_border, align_center, align_left, align_right):
+    """Kun varag'i oxiriga sariq TAXLOV bloki (egasi talabi 2026-11-14): taxlovchilarning stikeri yo'q, shuning uchun
+    yuqoridagi jadvalda chiqmaydi — UID, F.I.SH, dona va pul (6- va 7-ustun kunlik ish haqi tagida)."""
+    if not rows:
+        return row_idx
+    yellow = PatternFill(start_color="FDE047", end_color="FDE047", fill_type="solid")
+    row_idx += 2
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=7)
+    title = ws.cell(row=row_idx, column=1, value="TAXLOV — sanoqchi yuborgan ro'yxatlar (OTK Control/Taxlov puli)")
+    title.font = font_bold
+    for col in range(1, 8):
+        ws.cell(row=row_idx, column=col).fill = yellow
+    row_idx += 1
+    for col, text in ((1, "№"), (2, "Xodim UID"), (3, "F.I.SH"), (6, "Taxlov donasi"), (7, "Taxlov puli (UZS)")):
+        cell = ws.cell(row=row_idx, column=col, value=text)
+        cell.font = font_bold
+        cell.alignment = align_center
+    for col in range(1, 8):
+        ws.cell(row=row_idx, column=col).fill = yellow
+        ws.cell(row=row_idx, column=col).border = thin_border
+    first = row_idx + 1
+    for number, row in enumerate(rows, start=1):
+        row_idx += 1
+        values = {1: number, 2: get_clean_worker_uid(row['worker']), 3: row['worker'].full_name,
+                  6: row['units'], 7: float(row['amount'])}
+        for col in range(1, 8):
+            cell = ws.cell(row=row_idx, column=col, value=values.get(col))
+            cell.fill = yellow
+            cell.border = thin_border
+            cell.font = font_bold if col in (2, 3, 7) else font_regular
+            cell.alignment = align_left if col == 3 else (align_right if col == 7 else align_center)
+            if col in (6, 7):
+                cell.number_format = '#,##0'
+    row_idx += 1
+    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=5)
+    ws.cell(row=row_idx, column=1, value="JAMI TAXLOV:").font = font_bold
+    ws.cell(row=row_idx, column=1).alignment = align_right
+    for col, formula in ((6, f"=SUM(F{first}:F{row_idx-1})"), (7, f"=SUM(G{first}:G{row_idx-1})")):
+        cell = ws.cell(row=row_idx, column=col, value=formula)
+        cell.font = font_bold
+        cell.alignment = align_right if col == 7 else align_center
+        cell.number_format = '#,##0'
+    for col in range(1, 8):
+        ws.cell(row=row_idx, column=col).fill = yellow
+        ws.cell(row=row_idx, column=col).border = thin_border
+    return row_idx
+
+
 def _build_monthly_tabel_sheet(
     wb,
     target_date: datetime.date,
@@ -145,6 +214,11 @@ def _build_monthly_tabel_sheet(
         days_worked=Count('scanned_at__date', distinct=True)
     )
     worker_ticket_map = {item['worker_id']: item for item in worker_ticket_stats}
+
+    # 1b. Taxlovchi puli (sanoqchi yuborgan ro'yxatlar, target_date gacha): hisoblangan ish haqiga qo'shiladi,
+    # oxirgi sariq ustunda alohida — /superadmin/payroll bilan bir xil
+    from production.taxlov_pay import taxlov_by_worker
+    worker_taxlov_map = taxlov_by_worker(*_day_bounds(start_of_month, target_date))
 
     # 2. Tanlangan oy to'lovlari (target_date gacha)
     month_payout_qs = WorkerPayout.objects.filter(
@@ -206,7 +280,7 @@ def _build_monthly_tabel_sheet(
         worker_latest_screen_map[row['worker_id']] = row['screen_number']
 
     # 5. Barcha xodimlar: ushbu oyda bilet urgan, to'lov olgan yoki faol barcha xodimlar
-    relevant_worker_ids = set(worker_ticket_map.keys()) | set(month_payout_map.keys())
+    relevant_worker_ids = set(worker_ticket_map.keys()) | set(month_payout_map.keys()) | set(worker_taxlov_map.keys())
     workers = list(Worker.objects.filter(
         Q(id__in=relevant_worker_ids) | Q(is_active=True)
     ).select_related('user').order_by('worker_id'))
@@ -242,13 +316,13 @@ def _build_monthly_tabel_sheet(
     align_right = Alignment(horizontal='right', vertical='center')
 
     # Sarlavha
-    ws.merge_cells('A1:K1')
+    ws.merge_cells('A1:L1')
     ws['A1'] = "TERRY JAR — OYLIK ISH HAQI VA XODIMLAR TABELI"
     ws['A1'].font = font_title
     ws['A1'].alignment = align_left
     ws.row_dimensions[1].height = 26
 
-    ws.merge_cells('A2:K2')
+    ws.merge_cells('A2:L2')
     ws['A2'] = (
         f"Davr: {start_of_month.strftime('%d.%m.%Y')} dan {target_date.strftime('%d.%m.%Y')} gacha | "
         f"Shakllantirilgan vaqt: {timezone.localtime().strftime('%d.%m.%Y %H:%M')}"
@@ -269,7 +343,9 @@ def _build_monthly_tabel_sheet(
         ("Magazin (UZS)", 18, align_right),
         ("To'langan Oylik (UZS)", 22, align_right),
         ("To'lanishi Kerak Qoldiq (UZS)", 26, align_right),
+        ("shundan Taxlov (UZS)", 20, align_right),
     ]
+    yellow_fill = PatternFill(start_color="FDE047", end_color="FDE047", fill_type="solid")
 
     header_row = 4
     ws.row_dimensions[header_row].height = 24
@@ -285,8 +361,9 @@ def _build_monthly_tabel_sheet(
     counter = 1
     for w in workers:
         t_stat = worker_ticket_map.get(w.id, {})
-        g = t_stat.get('gross') or Decimal('0.00')
-        days_w = t_stat.get('days_worked') or 0
+        taxlov = worker_taxlov_map.get(w.id) or {'amount': Decimal('0.00'), 'days': 0}
+        g = (t_stat.get('gross') or Decimal('0.00')) + taxlov['amount']
+        days_w = max(t_stat.get('days_worked') or 0, taxlov['days'])
 
         p_stat = month_payout_map.get(w.id, {})
         adv = p_stat.get('advances') or Decimal('0.00')
@@ -355,7 +432,12 @@ def _build_monthly_tabel_sheet(
         c_qoldiq.font = font_bold
         c_qoldiq.number_format = '#,##0'
 
-        for col_idx in range(1, 12):
+        # shundan Taxlov — sariq (hisoblangan ish haqi ichida, qoldiq formulasi o'zgarmaydi)
+        c_taxlov = ws.cell(row=row_idx, column=12, value=float(taxlov['amount']))
+        c_taxlov.alignment = align_right
+        c_taxlov.number_format = '#,##0'
+
+        for col_idx in range(1, 13):
             c_node = ws.cell(row=row_idx, column=col_idx)
             c_node.border = thin_border
             if col_idx != 6 or g == 0:
@@ -363,6 +445,9 @@ def _build_monthly_tabel_sheet(
                     c_node.fill = c_fill
             if col_idx not in (2, 3, 4, 6, 11):
                 c_node.font = font_regular
+        if taxlov['amount']:
+            c_taxlov.fill = yellow_fill
+            c_taxlov.font = font_bold
 
         row_idx += 1
         counter += 1
@@ -403,15 +488,21 @@ def _build_monthly_tabel_sheet(
     c_tot_qoldiq.alignment = align_right
     c_tot_qoldiq.number_format = '#,##0'
 
+    c_tot_taxlov = ws.cell(row=row_idx, column=12, value=f"=SUM(L5:L{row_idx-1})")
+    c_tot_taxlov.font = font_bold
+    c_tot_taxlov.alignment = align_right
+    c_tot_taxlov.number_format = '#,##0'
+
     ws.row_dimensions[row_idx].height = 24
-    for col_idx in range(1, 12):
+    for col_idx in range(1, 13):
         c_node = ws.cell(row=row_idx, column=col_idx)
         c_node.fill = total_fill
         c_node.border = thick_bottom_border
+    c_tot_taxlov.fill = yellow_fill
 
     # AutoFilter yoqish (Patok va boshqa ustunlar bo'yicha filter qilish uchun)
     if row_idx > 5:
-        ws.auto_filter.ref = f"A{header_row}:K{row_idx-1}"
+        ws.auto_filter.ref = f"A{header_row}:L{row_idx-1}"
 
     return ws
 
@@ -765,6 +856,11 @@ def generate_daily_excel_report(target_date: datetime.date = None) -> io.BytesIO
         cell.fill = total_fill
         cell.border = thick_bottom_border
 
+    # Taxlovchi puli (stikeri yo'q — yuqoridagi jadvalda chiqmaydi): sariq blok
+    _append_taxlov_block(ws1, row_idx, _taxlov_day_rows(target_date, target_date).get(target_date),
+                         font_bold, font_regular, thin_border, align_center, align_left,
+                         Alignment(horizontal='right', vertical='center'))
+
     # -------------------------------------------------------------
     # 2-VARAQ: OYLIK UMUMIY TABEL (OY BO'YICHA BARCHA XODIMLAR VA ISH HAQI)
     # -------------------------------------------------------------
@@ -1073,10 +1169,11 @@ def _build_day_sheet(
     align_center=None,
     align_left=None,
     align_right=None,
-    align_wrap=None
+    align_wrap=None,
+    taxlov_rows=None
 ):
     """
-    Har bir kun uchun alohida varaq (list) yaratuvchi funksiya.
+    Har bir kun uchun alohida varaq (list) yaratuvchi funksiya. taxlov_rows — shu kungi taxlovchi puli (oxirida sariq blok).
     Masalan: '01.09', '02.09', ... '10.09'.
     Ustunlar:
     1. №
@@ -1167,6 +1264,7 @@ def _build_day_sheet(
         ws.row_dimensions[5].height = 30
         for col in range(1, 13):
             ws.cell(row=5, column=col).border = thin_border
+        _append_taxlov_block(ws, 5, taxlov_rows, font_bold, font_regular, thin_border, align_center, align_left, align_right)
         return ws
 
     # Xodimlarni ushbu kunda topgan puli bo'yicha kamayish tartibida saralaymiz
@@ -1329,6 +1427,7 @@ def _build_day_sheet(
         c_n.fill = total_fill
         c_n.border = thick_bottom_border
 
+    _append_taxlov_block(ws, row_idx, taxlov_rows, font_bold, font_regular, thin_border, align_center, align_left, align_right)
     return ws
 
 
@@ -1525,6 +1624,7 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
                 tickets_by_date[t_date] = []
             tickets_by_date[t_date].append(t)
 
+    taxlov_by_day = _taxlov_day_rows(start_of_month, target_date)
     for day_num in range(1, target_date.day + 1):
         cur_date = datetime.date(target_date.year, target_date.month, day_num)
         cur_day_tickets = tickets_by_date.get(cur_date, [])
@@ -1561,7 +1661,8 @@ def generate_month_to_date_excel_report(target_date: datetime.date = None) -> io
             align_center=align_center,
             align_left=align_left,
             align_right=align_right,
-            align_wrap=align_wrap
+            align_wrap=align_wrap,
+            taxlov_rows=taxlov_by_day.get(cur_date),
         )
 
         # Ushbu kun yakunida har bir xodimning balansini yangilab qo'yamiz (keyingi kunlar uchun):

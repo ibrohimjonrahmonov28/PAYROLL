@@ -307,8 +307,9 @@ class Worker(models.Model):
     @property
     def total_earned(self):
         from production.models import Ticket
+        from production.taxlov_pay import worker_taxlov_total
         res = self.tickets.filter(status=Ticket.Status.SCANNED).aggregate(s=models.Sum('total_amount'))['s']
-        return res or Decimal('0.00')
+        return (res or Decimal('0.00')) + worker_taxlov_total(self)   # chevar stikerlari + taxlovchi puli
 
     @property
     def today_earned(self):
@@ -390,6 +391,9 @@ class DailyWorkerClosing(models.Model):
         verbose_name="Kunlik ish haqi (UZS)"
     )
     ticket_count = models.PositiveIntegerField(default=0, verbose_name="Biletlar soni")
+    # Taxlovchi puli (2026-11-14): total_amount ichida, bu yerda alohida (maosh sahifasi va tabelda sariq)
+    taxlov_units = models.PositiveIntegerField(default=0, verbose_name="Taxlov donalari")
+    taxlov_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name="Taxlov puli (UZS)")
     closed_at = models.DateTimeField(auto_now_add=True, verbose_name="Yopilgan vaqti")
 
     class Meta:

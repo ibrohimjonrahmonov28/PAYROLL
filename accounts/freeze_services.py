@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import connection
 from django.db.models import Sum, Q
 from accounts.models import MonthlyClosing, WorkerPayout
-from production.models import Ticket
+from production.models import PackingScan, Ticket
 
 logger = logging.getLogger(__name__)
 
@@ -57,21 +57,31 @@ def run_in_background(func, *args, **kwargs):
     return None
 
 
+def _taxlov_scans(**filters):
+    """Taxlovchi puli yozuvlari (yuborilgan sanoqchi ro'yxatlari) — stikerlar bilan birga muzlatiladi va ochiladi."""
+    return PackingScan.objects.filter(is_cancelled=False, credited_at__isnull=False, **filters)
+
+
 def freeze_month_tickets(year: int, month: int, now=None):
-    """Oyning barcha skanerlangan, hali muzlamagan stikerlarini bo'lib-bo'lib muzlatadi."""
+    """Oyning barcha skanerlangan, hali muzlamagan stikerlarini (va taxlov yozuvlarini) bo'lib-bo'lib muzlatadi."""
     start, end = month_bounds(year, month)
+    now = now or timezone.now()
     tickets_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED, is_frozen=False, scanned_at__gte=start, scanned_at__lt=end
     )
-    return update_in_batches(tickets_qs, is_frozen=True, frozen_at=now or timezone.now())
+    update_in_batches(_taxlov_scans(is_frozen=False, credited_at__gte=start, credited_at__lt=end),
+                      is_frozen=True, frozen_at=now)
+    return update_in_batches(tickets_qs, is_frozen=True, frozen_at=now)
 
 
 def unfreeze_month_tickets(year: int, month: int):
-    """Oyning muzlagan stikerlarini bo'lib-bo'lib muzdan chiqaradi."""
+    """Oyning muzlagan stikerlarini (va taxlov yozuvlarini) bo'lib-bo'lib muzdan chiqaradi."""
     start, end = month_bounds(year, month)
     tickets_qs = Ticket.objects.filter(
         status=Ticket.Status.SCANNED, is_frozen=True, scanned_at__gte=start, scanned_at__lt=end
     )
+    update_in_batches(_taxlov_scans(is_frozen=True, credited_at__gte=start, credited_at__lt=end),
+                      is_frozen=False, frozen_at=None)
     return update_in_batches(tickets_qs, is_frozen=False, frozen_at=None)
 
 
@@ -111,6 +121,11 @@ def auto_freeze_past_months(now=None):
         past_tickets = past_tickets.exclude(scanned_at__gte=opened_start, scanned_at__lt=opened_end)
 
     frozen_tickets_cnt = update_in_batches(past_tickets, is_frozen=True, frozen_at=now)
+    past_taxlov = _taxlov_scans(is_frozen=False, credited_at__lt=current_month_start)
+    for (y, m) in manually_opened_past_months:
+        opened_start, opened_end = month_bounds(y, m)
+        past_taxlov = past_taxlov.exclude(credited_at__gte=opened_start, credited_at__lt=opened_end)
+    update_in_batches(past_taxlov, is_frozen=True, frozen_at=now)
 
     # 2. Joriy oydan oldingi barcha oylarning MonthlyClosing holatini FROZEN ga o'tkazish
     # (faqat admin ochib qo'ymagan bo'lsa)
@@ -145,6 +160,7 @@ def auto_freeze_past_months(now=None):
         frozen_at=None,
         frozen_payout=None
     )
+    update_in_batches(_taxlov_scans(is_frozen=True, credited_at__gte=current_month_start), is_frozen=False, frozen_at=None)
 
     # Joriy oy MonthlyClosing reestrini ochish (agar adashib FROZEN yoki PENDING_FREEZE bo'lib qolgan bo'lsa)
     current_closing = MonthlyClosing.objects.filter(year=current_year, month=current_month).first()
@@ -229,8 +245,12 @@ def start_monthly_freeze_timer(year: int, month: int, user=None):
         scanned_at__lt=month_end
     )
     total_units = tickets_qs.aggregate(s=Sum('quantity'))['s'] or 0
-    total_gross = tickets_qs.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
-    workers_count = tickets_qs.values('worker_id').distinct().count()
+    taxlov_qs = _taxlov_scans(credited_at__gte=month_start, credited_at__lt=month_end)
+    # jami hisoblangan pul = chevar stikerlari + taxlovchi puli (donalar — faqat tikilgan, taxlov qo'shilmaydi)
+    total_gross = ((tickets_qs.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00'))
+                   + (taxlov_qs.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')))
+    workers_count = len(set(tickets_qs.order_by().values_list('worker_id', flat=True).distinct())
+                        | set(taxlov_qs.order_by().values_list('worker_id', flat=True).distinct()))
 
     payouts = WorkerPayout.objects.filter(
         payout_date__year=year,

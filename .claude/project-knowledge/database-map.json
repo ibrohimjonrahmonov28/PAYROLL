@@ -2,12 +2,12 @@
  "_note": "Generated from Django model registry. Field flags: unique, idx (db_index), choices. Relations list concrete FK/O2O/M2M only.",
  "migrations": {
   "accounts": {
-   "count": 21,
-   "latest": "0021_packing_counter_roles"
+   "count": 22,
+   "latest": "0022_taxlov_pay"
   },
   "production": {
-   "count": 44,
-   "latest": "0044_packing_batches"
+   "count": 45,
+   "latest": "0045_taxlov_pay"
   },
   "screens": {
    "count": 0,
@@ -80,7 +80,7 @@
   },
   "accounts.WorkerPayout": {
    "table": "accounts_workerpayout",
-   "file": "accounts/models.py:346",
+   "file": "accounts/models.py:347",
    "fields": {
     "id": "BigAutoField",
     "amount": "DecimalField",
@@ -107,13 +107,15 @@
   },
   "accounts.DailyWorkerClosing": {
    "table": "accounts_dailyworkerclosing",
-   "file": "accounts/models.py:373",
+   "file": "accounts/models.py:374",
    "fields": {
     "id": "BigAutoField",
     "date": "DateField[idx]",
     "total_units": "PositiveIntegerField",
     "total_amount": "DecimalField",
     "ticket_count": "PositiveIntegerField",
+    "taxlov_units": "PositiveIntegerField",
+    "taxlov_amount": "DecimalField",
     "closed_at": "DateTimeField"
    },
    "relations": [
@@ -134,7 +136,7 @@
   },
   "accounts.MonthlyClosing": {
    "table": "accounts_monthlyclosing",
-   "file": "accounts/models.py:408",
+   "file": "accounts/models.py:412",
    "fields": {
     "id": "BigAutoField",
     "year": "PositiveIntegerField",
@@ -169,7 +171,7 @@
   },
   "accounts.MasterPatokHistory": {
    "table": "accounts_masterpatokhistory",
-   "file": "accounts/models.py:474",
+   "file": "accounts/models.py:478",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField",
@@ -191,7 +193,7 @@
   },
   "accounts.MasterAbsentDay": {
    "table": "accounts_masterabsentday",
-   "file": "accounts/models.py:498",
+   "file": "accounts/models.py:502",
    "fields": {
     "id": "BigAutoField",
     "date": "DateField[idx]",
@@ -1111,7 +1113,12 @@
     "quantity": "PositiveIntegerField",
     "scanned_at": "DateTimeField[idx]",
     "is_cancelled": "BooleanField[idx]",
-    "cancelled_at": "DateTimeField"
+    "cancelled_at": "DateTimeField",
+    "price_per_unit": "DecimalField",
+    "total_amount": "DecimalField",
+    "credited_at": "DateTimeField[idx]",
+    "is_frozen": "BooleanField[idx]",
+    "frozen_at": "DateTimeField"
    },
    "relations": [
     {
@@ -1160,7 +1167,7 @@
   },
   "production.SecondSortBatch": {
    "table": "production_secondsortbatch",
-   "file": "production/models.py:2064",
+   "file": "production/models.py:2072",
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",
@@ -1179,7 +1186,7 @@
   },
   "production.ReceiptPrinter": {
    "table": "production_receiptprinter",
-   "file": "production/models.py:2085",
+   "file": "production/models.py:2093",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField[unique]",
@@ -1194,7 +1201,7 @@
   },
   "production.PrintJob": {
    "table": "production_printjob",
-   "file": "production/models.py:2108",
+   "file": "production/models.py:2116",
    "fields": {
     "id": "BigAutoField",
     "title": "CharField",

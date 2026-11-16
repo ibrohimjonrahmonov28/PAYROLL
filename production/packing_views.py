@@ -32,6 +32,7 @@ from production.models import (Box, BoxQualityInspectionLog, Order, PackingBatch
 from production.packing_services import (SENT_SCANS, beta_box_q, is_beta_box, paper_label, paper_status,
                                          parse_packing_code, take_paper)
 from production.services import get_patok_code
+from production.taxlov_pay import credit_batch
 from production.sewing_statistics_views import natural_size_sort_key
 from production.terminal_views import extract_worker_code
 
@@ -571,8 +572,10 @@ def api_counter_send(request):
     if batch is None or not batch.scans.exists():
         return JsonResponse({'status': 'EMPTY', 'message': "Ro'yxat bo'sh — avval qog'ozlarni uring."}, status=400)
     total = batch.scans.aggregate(s=Sum('quantity'))['s'] or 0
-    batch.status, batch.sent_at = PackingBatch.Status.SENT, timezone.now()
-    batch.save(update_fields=['status', 'sent_at'])
+    with transaction.atomic():
+        batch.status, batch.sent_at = PackingBatch.Status.SENT, timezone.now()
+        batch.save(update_fields=['status', 'sent_at'])
+        credit_batch(batch)                          # taxlovchi puli: dona × shablondagi Control/Taxlov narxi
     return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: {total} dona yozildi va upakovkaga yuborildi.",
                          'worker': _worker_payload(worker)})
 
@@ -681,6 +684,9 @@ def counter_cancel(request):
     """Xato urilgan taxlovchi skanini bekor qilish (qog'oz urilgach, skan tanlanadi)."""
     scan = get_object_or_404(PackingScan.objects.select_related('worker'),
                              id=_int_or_none(request.POST.get('scan_id')), is_cancelled=False)
+    if scan.is_frozen:                               # muzlatilgan oy puli o'zgarmaydi
+        messages.error(request, "Bu skan muzlatilgan oyga tegishli — bekor qilib bo'lmaydi.")
+        return redirect(_hub_url(tab='sanoqchi', cancel=request.POST.get('code', '')))
     scan.is_cancelled = True
     scan.cancelled_at = timezone.now()
     scan.cancelled_by = request.user

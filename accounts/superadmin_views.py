@@ -1257,6 +1257,12 @@ def superadmin_payroll(request):
     )
     month_ticket_map = {item['worker_id']: item for item in month_ticket_qs}
 
+    # 1b. Taxlovchi puli (sanoqchi yuborgan ro'yxatlar): hisoblangan maoshga qo'shiladi, sariqda alohida ko'rsatiladi
+    from accounts.freeze_services import month_bounds
+    from production.taxlov_pay import taxlov_by_worker
+    taxlov_month_map = taxlov_by_worker(*month_bounds(selected_year, selected_month), worker_ids=worker_ids)
+    grand_taxlov_month = Decimal('0.00')
+
     # 2. Tanlangan oy uchun xodimlarning to'lovlarini bitta so'rovda agregatsiya qilish
     month_payout_qs = WorkerPayout.objects.filter(
         payout_date__year=selected_year,
@@ -1275,6 +1281,8 @@ def superadmin_payroll(request):
         worker_id__in=worker_ids
     ).values('worker_id').annotate(total=Sum('total_amount'))
     lifetime_earned_map = {item['worker_id']: (item['total'] or Decimal('0.00')) for item in lifetime_earnings_qs}
+    for worker_id, taxlov in taxlov_by_worker(worker_ids=worker_ids).items():
+        lifetime_earned_map[worker_id] = lifetime_earned_map.get(worker_id, Decimal('0.00')) + taxlov['amount']
 
     lifetime_paid_qs = WorkerPayout.objects.filter(
         worker_id__in=worker_ids
@@ -1286,6 +1294,10 @@ def superadmin_payroll(request):
         month_units = t_stat.get('units') or 0
         month_gross = t_stat.get('gross') or Decimal('0.00')
         days_worked = t_stat.get('days_worked') or 0
+        taxlov = taxlov_month_map.get(w.id) or {'units': 0, 'amount': Decimal('0.00'), 'days': 0}
+        month_gross += taxlov['amount']
+        days_worked = max(days_worked, taxlov['days'])
+        grand_taxlov_month += taxlov['amount']
         total_tickets = t_stat.get('total_tickets') or 0
         total_boxes = t_stat.get('total_boxes') or 0
 
@@ -1336,6 +1348,8 @@ def superadmin_payroll(request):
             'bonuses_paid': bonuses_paid,
             'net_payable_month': net_payable_month,
             'lifetime_balance': lifetime_balance,
+            'taxlov_amount': taxlov['amount'],
+            'taxlov_units': taxlov['units'],
             'total_tickets': total_tickets,
             'total_boxes': total_boxes,
             'status_text': status_text,
@@ -1394,6 +1408,7 @@ def superadmin_payroll(request):
         'years_list': years_list,
         'months_list': MONTHS_LIST,
         'grand_gross_month': grand_gross_month,
+        'grand_taxlov_month': grand_taxlov_month,
         'grand_advances_month': grand_advances_month,
         'grand_salary_month': grand_salary_month,
         'grand_net_month': grand_net_month,
@@ -1447,7 +1462,11 @@ def superadmin_worker_daily_breakdown(request, worker_id):
         payout_date__month=month
     )
     payout_dates = set(p.payout_date for p in payouts)
-    all_dates = sorted(list(ticket_dates | payout_dates))
+    # Taxlovchi puli kunlar bo'yicha (sanoqchi yuborgan kun) — kunlik ish haqiga qo'shiladi, sariqda alohida
+    from accounts.freeze_services import month_bounds
+    from production.taxlov_pay import taxlov_by_worker_day
+    taxlov_days = {day: t for (_wid, day), t in taxlov_by_worker_day(*month_bounds(year, month), worker_ids=[worker.id]).items()}
+    all_dates = sorted(list(ticket_dates | payout_dates | set(taxlov_days)))
 
     UZ_DAYS = {
         0: 'Dushanba',
@@ -1467,7 +1486,8 @@ def superadmin_worker_daily_breakdown(request, worker_id):
     for d in all_dates:
         d_tickets = [t for t in tickets if t.scanned_at.astimezone(current_tz).date() == d]
         d_units = sum(t.quantity for t in d_tickets)
-        d_earned = sum(t.total_amount for t in d_tickets)
+        d_taxlov = taxlov_days.get(d) or {'units': 0, 'amount': Decimal('0.00')}
+        d_earned = sum(t.total_amount for t in d_tickets) + d_taxlov['amount']
         d_count = len(d_tickets)
 
         # Operatsiyalar xulosasi
@@ -1510,6 +1530,9 @@ def superadmin_worker_daily_breakdown(request, worker_id):
             'advance_amount': float(d_advance),
             'advance_formatted': f"{int(d_advance):,} UZS".replace(",", " ") if d_advance > 0 else "—",
             'is_closed': is_closed,
+            'taxlov_units': d_taxlov['units'],
+            'taxlov_amount': float(d_taxlov['amount']),
+            'taxlov_formatted': f"{int(d_taxlov['amount']):,} UZS".replace(",", " "),
         })
 
     net_sum = total_earned_sum - total_advance_sum
@@ -1652,6 +1675,7 @@ def superadmin_payroll_export_csv(request):
         f"Ishlagan Kunlari ({selected_month_name})",
         f"Tikilgan Dona ({selected_month_name})",
         f"Hisoblangan Maosh Brutto ({selected_month_name}, UZS)",
+        f"shundan Taxlov puli ({selected_month_name}, UZS)",
         f"Berilgan Avanslar ({selected_month_name}, UZS)",
         f"To'langan Oylik ({selected_month_name}, UZS)",
         f"Qo'lga Tegishi Kerak Sof Oylik ({selected_month_name}, UZS)",
@@ -1683,6 +1707,10 @@ def superadmin_payroll_export_csv(request):
         days_worked=Count('scanned_at__date', distinct=True)
     )
     month_ticket_map = {item['worker_id']: item for item in month_ticket_qs}
+    # Taxlovchi puli (sanoqchi yuborgan ro'yxatlar) — brutto va balans ichida, alohida ustunda ham
+    from accounts.freeze_services import month_bounds
+    from production.taxlov_pay import taxlov_by_worker
+    taxlov_month_map = taxlov_by_worker(*month_bounds(selected_year, selected_month), worker_ids=worker_ids)
 
     month_payout_qs = WorkerPayout.objects.filter(
         payout_date__year=selected_year,
@@ -1699,6 +1727,8 @@ def superadmin_payroll_export_csv(request):
         worker_id__in=worker_ids
     ).values('worker_id').annotate(total=Sum('total_amount'))
     lifetime_earned_map = {item['worker_id']: (item['total'] or Decimal('0.00')) for item in lifetime_earnings_qs}
+    for worker_id, taxlov in taxlov_by_worker(worker_ids=worker_ids).items():
+        lifetime_earned_map[worker_id] = lifetime_earned_map.get(worker_id, Decimal('0.00')) + taxlov['amount']
 
     lifetime_paid_qs = WorkerPayout.objects.filter(
         worker_id__in=worker_ids
@@ -1710,6 +1740,9 @@ def superadmin_payroll_export_csv(request):
         month_units = t_stat.get('units') or 0
         month_gross = t_stat.get('gross') or Decimal('0.00')
         days_worked = t_stat.get('days_worked') or 0
+        taxlov = taxlov_month_map.get(w.id) or {'amount': Decimal('0.00'), 'days': 0}
+        month_gross += taxlov['amount']
+        days_worked = max(days_worked, taxlov['days'])
 
         p_stat = month_payout_map.get(w.id, {})
         advances = p_stat.get('advances') or Decimal('0.00')
@@ -1740,6 +1773,7 @@ def superadmin_payroll_export_csv(request):
             days_worked,
             month_units,
             int(month_gross),
+            int(taxlov['amount']),
             int(advances),
             int(salaries),
             int(net_payable),
@@ -2460,10 +2494,18 @@ def superadmin_pricing(request):
             group.is_beta = request.POST.get('is_beta') == '1'
             if group.is_beta and not group.beta_since:
                 group.beta_since = timezone.now()
+            price_changed = price != group.taxlov_price
             group.taxlov_price, group.taxlov_difficulty = price, difficulty
             group.save(update_fields=['is_beta', 'beta_since', 'taxlov_price', 'taxlov_difficulty'])
             state = "yoqilgan" if group.is_beta else "o'chirilgan"
-            messages.success(request, f"'{group.name}': beta tartib {state}, Control/Taxlov {price:,.0f} so'm".replace(',', ' '))
+            msg = f"'{group.name}': beta tartib {state}, Control/Taxlov {price:,.0f} so'm".replace(',', ' ')
+            if price_changed:
+                # chevar stikerlari kabi: muzlatilmagan taxlov yozuvlari yangi narxga o'tadi
+                from production.taxlov_pay import reprice_taxlov
+                repriced = reprice_taxlov(group)
+                if repriced:
+                    msg += f" — {repriced} ta taxlov yozuvi yangi narxga o'tdi"
+            messages.success(request, msg)
             return redirect('superadmin_pricing')
 
         # 5. GURUHNI TO'LIQ O'CHIRISH

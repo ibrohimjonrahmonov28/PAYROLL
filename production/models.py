@@ -2050,6 +2050,14 @@ class PackingScan(models.Model):
     is_cancelled = models.BooleanField(default=False, db_index=True, verbose_name="Bekor qilingan")
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Bekor qilgan")
+    # Taxlovchi puli (egasi talabi 2026-11-14): sanoqchi "Saqlash va yuborish" bosganda yoziladi — dona × shablondagi
+    # "OTK Control/Taxlov" narxi, yuborilgan vaqt (credited_at) kuniga. Chevar stikerlari kabi: narx o'zgarsa muzlatilmagan
+    # yozuvlar yangi narxga o'tadi, oy muzlatilsa qulflanadi. credited_at bo'sh (ochiq ro'yxat, eski taxlovchi tabi) — pul yo'q.
+    price_per_unit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name="Narx (dona)")
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'), verbose_name="Summa")
+    credited_at = models.DateTimeField(null=True, blank=True, db_index=True, verbose_name="Pul yozilgan vaqt")
+    is_frozen = models.BooleanField(default=False, db_index=True, verbose_name="Muzlatilgan")
+    frozen_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Taxlovchi skani"
