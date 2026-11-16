@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 846,
-   "sha256_16": "43dfa39fcb8241df"
+   "lines": 857,
+   "sha256_16": "b93ec6ddd34333fa"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 140,
-   "sha256_16": "208ca6915a3ea55b"
+   "sha256_16": "61191d6aba7148be"
   },
   "Dockerfile": {
    "module": "ops",
@@ -143,24 +143,24 @@
   "accounts/middleware.py": {
    "module": "accounts.core",
    "lines": 333,
-   "sha256_16": "0351b2813d328c64",
+   "sha256_16": "63131e76857c6ec3",
    "symbols": [
     "MasterTerminalAccessRestrictionMiddleware:6"
    ]
   },
   "accounts/models.py": {
    "module": "accounts.core",
-   "lines": 533,
-   "sha256_16": "541c5f540f0dfd25",
+   "lines": 534,
+   "sha256_16": "3dc5e5e47ef874f9",
    "symbols": [
     "generate_unique_user_uid:11",
     "User:20",
-    "Worker:204",
-    "WorkerPayout:347",
-    "DailyWorkerClosing:374",
-    "MonthlyClosing:412",
-    "MasterPatokHistory:478",
-    "MasterAbsentDay:502"
+    "Worker:205",
+    "WorkerPayout:348",
+    "DailyWorkerClosing:375",
+    "MonthlyClosing:413",
+    "MasterPatokHistory:479",
+    "MasterAbsentDay:503"
    ]
   },
   "accounts/superadmin_urls.py": {
@@ -171,7 +171,7 @@
   "accounts/superadmin_views.py": {
    "module": "accounts.superadmin",
    "lines": 4397,
-   "sha256_16": "d6429bd0034d141c",
+   "sha256_16": "1055f6f47d7363ae",
    "symbols": [
     "superadmin_required:28",
     "payroll_admin_required:43",
@@ -251,7 +251,7 @@
   "accounts/views.py": {
    "module": "accounts.core",
    "lines": 170,
-   "sha256_16": "8f6f78a6765a3637",
+   "sha256_16": "57724e58d8d8de75",
    "symbols": [
     "login_view:7",
     "logout_view:127",
@@ -873,8 +873,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2141,
-   "sha256_16": "4b8b9fc3195e3d12",
+   "lines": 2170,
+   "sha256_16": "b07211c6d1ab6e9d",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -886,33 +886,34 @@
     "OperationGroupItem:393",
     "ArticleOperation:433",
     "Order:502",
-    "OrderItem:622",
-    "OrderItemSize:724",
-    "OrderItemFabric:791",
-    "OrderChangeLog:827",
-    "generate_unique_waybill_number:843",
-    "Waybill:857",
-    "CuttingBatch:959",
-    "CuttingBatchItem:1057",
-    "index_to_letters:1125",
-    "letters_to_index:1135",
-    "generate_unique_box_code:1143",
-    "generate_unique_stiker_code:1193",
-    "Box:1202",
-    "BoxQualityInspectionLog:1401",
-    "DefectReason:1452",
-    "ControlSetting:1537",
-    "Ticket:1572",
-    "DailyModelProgress:1756",
-    "DailyPatokProgress:1809",
-    "CancelledBatchLog:1872",
-    "PatokAward:1905",
-    "RepairReceipt:1970",
-    "PackingBatch:2007",
-    "PackingScan:2032",
-    "SecondSortBatch:2072",
-    "ReceiptPrinter:2093",
-    "PrintJob:2116"
+    "OrderItem:624",
+    "OrderItemSize:726",
+    "OrderItemFabric:793",
+    "OrderChangeLog:829",
+    "generate_unique_waybill_number:845",
+    "Waybill:859",
+    "CuttingBatch:961",
+    "CuttingBatchItem:1059",
+    "index_to_letters:1127",
+    "letters_to_index:1137",
+    "generate_unique_box_code:1145",
+    "generate_unique_stiker_code:1195",
+    "Box:1204",
+    "BoxQualityInspectionLog:1403",
+    "DefectReason:1454",
+    "ControlSetting:1539",
+    "Ticket:1574",
+    "DailyModelProgress:1758",
+    "DailyPatokProgress:1811",
+    "CancelledBatchLog:1874",
+    "PatokAward:1907",
+    "RepairReceipt:1972",
+    "PackingBatch:2009",
+    "PackingScan:2034",
+    "generate_basket_code:2074",
+    "SecondSortBatch:2083",
+    "ReceiptPrinter:2122",
+    "PrintJob:2145"
    ]
   },
   "production/norma_services.py": {
@@ -956,35 +957,35 @@
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 204,
-   "sha256_16": "ec5e43ff738a2e3a",
+   "lines": 214,
+   "sha256_16": "fc6a695e98bcc58a",
    "symbols": [
     "beta_group:22",
     "is_beta_box:32",
-    "beta_box_q:37",
-    "_details:48",
-    "create_repair_receipt:62",
-    "close_repair_receipt:69",
-    "parse_packing_code:82",
-    "find_receipt:102",
-    "portion_total:106",
-    "packed_total:114",
-    "available_for_packing:121",
-    "find_box:125",
-    "paper_label:129",
-    "take_paper:133",
-    "paper_status:167"
+    "beta_box_q:44",
+    "_details:58",
+    "create_repair_receipt:72",
+    "close_repair_receipt:79",
+    "parse_packing_code:92",
+    "find_receipt:112",
+    "portion_total:116",
+    "packed_total:124",
+    "available_for_packing:131",
+    "find_box:135",
+    "paper_label:139",
+    "take_paper:143",
+    "paper_status:177"
    ]
   },
   "production/packing_urls.py": {
    "module": "production.platform",
    "lines": 25,
-   "sha256_16": "8627bce8c16163f0"
+   "sha256_16": "4c1162b5a8253b27"
   },
   "production/packing_views.py": {
    "module": "production.platform",
-   "lines": 710,
-   "sha256_16": "add7063a536fccde",
+   "lines": 755,
+   "sha256_16": "fa8e94e1c06291ea",
    "symbols": [
     "_role_required:51",
     "_hub_url:68",
@@ -1002,34 +1003,37 @@
     "_today_beta_scans:169",
     "_tab_badges:177",
     "_otk_context:195",
-    "_taxlovchi_context:211",
-    "_log_notes_map:216",
-    "_sanoqchi_context:226",
-    "_upakovka_context:269",
-    "_zakazlar_context:295",
-    "hub_view:333",
-    "repair_receipt_view:355",
-    "_not_beta_response:370",
-    "_receipt_summary:378",
-    "api_otk_lookup:399",
-    "api_otk_submit:419",
-    "api_identify:450",
-    "api_scan:461",
-    "_open_packing_batch:488",
-    "_scan_line:495",
-    "_batch_payload:506",
-    "_worker_payload:512",
-    "_box_papers_for_code:516",
-    "api_counter_packer:525",
-    "api_counter_paper:535",
-    "api_counter_remove:556",
-    "api_counter_send:569",
-    "_unscanned_papers:583",
-    "counter_accept:614",
-    "counter_basket_remove:643",
-    "counter_send:668",
-    "counter_cancel:683",
-    "beta_toggle:703"
+    "_log_notes_map:211",
+    "_sanoqchi_context:221",
+    "_upakovka_context:271",
+    "_zakazlar_context:310",
+    "hub_view:347",
+    "repair_receipt_view:369",
+    "_not_beta_response:384",
+    "_receipt_summary:392",
+    "api_otk_lookup:413",
+    "api_otk_submit:433",
+    "_open_packing_batch:467",
+    "_scan_line:474",
+    "_batch_payload:485",
+    "_worker_payload:491",
+    "_box_papers_for_code:495",
+    "api_counter_packer:504",
+    "api_counter_paper:514",
+    "api_counter_remove:535",
+    "api_counter_send:548",
+    "_unscanned_papers:562",
+    "_row_logs:591",
+    "_counter_basket:600",
+    "counter_accept:609",
+    "counter_basket_remove:634",
+    "counter_send:657",
+    "master_accept:674",
+    "master_return:691",
+    "_find_basket:710",
+    "_basket_view:717",
+    "counter_cancel:726",
+    "beta_toggle:746"
    ]
   },
   "production/passport_bot_service.py": {
@@ -1217,6 +1221,20 @@
     "sticker_mark_all_printed:437"
    ]
   },
+  "production/taxlov_pay.py": {
+   "module": "production.platform",
+   "lines": 84,
+   "sha256_16": "c0cec99e5ad00783",
+   "symbols": [
+    "taxlov_price_for_box:21",
+    "credit_batch:28",
+    "paid_scans:43",
+    "reprice_taxlov:48",
+    "taxlov_by_worker:57",
+    "taxlov_by_worker_day:72",
+    "worker_taxlov_total:82"
+   ]
+  },
   "production/telegram_reports.py": {
    "module": "production.reports",
    "lines": 381,
@@ -1252,10 +1270,11 @@
   },
   "production/test_counter_packing.py": {
    "module": "tests",
-   "lines": 129,
-   "sha256_16": "e42d9dcfeb6a8a49",
+   "lines": 176,
+   "sha256_16": "7b0ad61bac0f120e",
    "symbols": [
-    "CounterPackingTest:18"
+    "CounterPackingTest:18",
+    "OrderBetaStartsTodayTest:131"
    ]
   },
   "production/test_daily_dazmol.py": {
@@ -1303,8 +1322,8 @@
   },
   "production/test_packing_beta.py": {
    "module": "tests",
-   "lines": 271,
-   "sha256_16": "cfadbe6bb6f79908",
+   "lines": 327,
+   "sha256_16": "c8d60e75ed54c53d",
    "symbols": [
     "PackingBetaTest:16"
    ]
@@ -1368,6 +1387,14 @@
    "sha256_16": "0910117a86998f9d",
    "symbols": [
     "SewingStatisticsOrderModelsTestCase:7"
+   ]
+  },
+  "production/test_taxlov_pay.py": {
+   "module": "tests",
+   "lines": 138,
+   "sha256_16": "af6156062dc9c76c",
+   "symbols": [
+    "TaxlovPayTest:26"
    ]
   },
   "production/test_telegram_reports.py": {
@@ -1769,23 +1796,18 @@
   },
   "templates/packing/tabs/sanoqchi.html": {
    "module": "templates",
-   "lines": 436,
-   "sha256_16": "510935c98ee07d2a"
-  },
-  "templates/packing/tabs/taxlovchi.html": {
-   "module": "templates",
-   "lines": 160,
-   "sha256_16": "9927c4c55dc7446a"
+   "lines": 428,
+   "sha256_16": "8f944cd7cec958b2"
   },
   "templates/packing/tabs/upakovka.html": {
    "module": "templates",
-   "lines": 101,
-   "sha256_16": "90ee352ca657d725"
+   "lines": 170,
+   "sha256_16": "8512552f72fcff94"
   },
   "templates/packing/tabs/zakazlar.html": {
    "module": "templates",
    "lines": 63,
-   "sha256_16": "835cc69dfcffc925"
+   "sha256_16": "c56b693b10ab1cac"
   },
   "templates/production/articles_catalog.html": {
    "module": "templates",
@@ -1974,8 +1996,8 @@
   },
   "templates/superadmin/users.html": {
    "module": "templates",
-   "lines": 1671,
-   "sha256_16": "f32885e9adf045fa"
+   "lines": 1673,
+   "sha256_16": "df927b38b2727ae6"
   },
   "templates/superadmin/users_badges_batch_print.html": {
    "module": "templates",

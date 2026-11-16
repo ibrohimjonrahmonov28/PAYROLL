@@ -29,9 +29,10 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1078,
+  "lines": 1079,
   "depends_on": [
    "production.models",
+   "production.platform",
    "production.services"
   ]
  },
@@ -58,6 +59,7 @@
    "accounts.core",
    "accounts.freeze",
    "production.models",
+   "production.platform",
    "production.reports",
    "production.services"
   ]
@@ -130,7 +132,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3369,
+  "lines": 3380,
   "depends_on": [
    "accounts.core"
   ]
@@ -251,7 +253,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2141,
+  "lines": 2170,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -317,9 +319,10 @@
    "production/receipt_printing.py",
    "production/static/brand/favicon.ico",
    "production/static/brand/terryjar-icon.svg",
-   "production/static/brand/terryjar-logo.svg"
+   "production/static/brand/terryjar-logo.svg",
+   "production/taxlov_pay.py"
   ],
-  "lines": 1861,
+  "lines": 2000,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -344,6 +347,7 @@
   "depends_on": [
    "accounts.core",
    "production.models",
+   "production.platform",
    "production.services",
    "screens"
   ]
@@ -469,7 +473,6 @@
    "templates/packing/repair_receipt.html",
    "templates/packing/tabs/otk.html",
    "templates/packing/tabs/sanoqchi.html",
-   "templates/packing/tabs/taxlovchi.html",
    "templates/packing/tabs/upakovka.html",
    "templates/packing/tabs/zakazlar.html",
    "templates/production/articles_catalog.html",
@@ -514,7 +517,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45635,
+  "lines": 45538,
   "depends_on": []
  },
  "tests": {
@@ -535,14 +538,16 @@
    "production/test_receipt_printing.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
+   "production/test_taxlov_pay.py",
    "production/test_telegram_reports.py",
    "production/test_template_beta.py",
    "production/test_terminal.py",
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 11912,
+  "lines": 12153,
   "depends_on": [
+   "accounts.commands",
    "accounts.core",
    "accounts.freeze",
    "production.commands",

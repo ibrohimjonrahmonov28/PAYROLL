@@ -1783,26 +1783,6 @@
    ]
   },
   {
-   "path": "/beta/api/identify/",
-   "name": "packing:api_identify",
-   "view": "production.packing_views.api_identify",
-   "urlconf": "production.packing_urls",
-   "decorators": [
-    "_role_required",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/beta/api/scan/",
-   "name": "packing:api_scan",
-   "view": "production.packing_views.api_scan",
-   "urlconf": "production.packing_urls",
-   "decorators": [
-    "_role_required",
-    "require_POST"
-   ]
-  },
-  {
    "path": "/beta/api/sanoqchi/taxlovchi/",
    "name": "packing:api_counter_packer",
    "view": "production.packing_views.api_counter_packer",
@@ -1876,6 +1856,26 @@
    "path": "/beta/sanoqchi/bekor/",
    "name": "packing:counter_cancel",
    "view": "production.packing_views.counter_cancel",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/upakovka/qabul/",
+   "name": "packing:master_accept",
+   "view": "production.packing_views.master_accept",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/upakovka/qaytarish/",
+   "name": "packing:master_return",
+   "view": "production.packing_views.master_return",
    "urlconf": "production.packing_urls",
    "decorators": [
     "_role_required",

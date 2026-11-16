@@ -11,7 +11,7 @@ bitta qog'ozni qayta urish hech narsa qo'shmaydi. Eski "TAMIR:<box_code>" cheki 
 import re
 
 from django.db import transaction
-from django.db.models import F, Max, Q, Sum
+from django.db.models import Exists, F, Max, OuterRef, Q, Sum
 from django.utils import timezone
 
 from production.models import Box, BoxQualityInspectionLog, PackingBatch, PackingScan, RepairReceipt
@@ -30,13 +30,23 @@ def beta_group(box):
 
 
 def is_beta_box(box):
-    """Yangi qadoqlash tartibidagi quti: eski zakaz belgisi (Order.packing_beta) yoki beta shablon (belgidan keyin)."""
-    return bool((box.order_id and box.order.packing_beta) or beta_group(box))
+    """Yangi qadoqlash tartibidagi quti: beta shablon (belgidan keyin yaratilgan quti) yoki beta zakaz — zakaz belgisi
+    yoqilgan vaqtdan (packing_beta_since) oldin OTK dan o'tgan quti eski tartibda qoladi (egasi talabi 2026-11-16)."""
+    order = box.order if box.order_id else None
+    if order is not None and order.packing_beta:
+        since = order.packing_beta_since
+        if since is None or not box.quality_inspection_logs.filter(
+                action_type=BoxQualityInspectionLog.ActionType.INITIAL, created_at__lt=since).exists():
+            return True
+    return bool(beta_group(box))
 
 
 def beta_box_q(prefix='box__'):
     """is_beta_box ning so'rov sharti (prefix='' — Box'ning o'zi). Shablon bo'yicha Box.article orqali tekshiriladi."""
-    return (Q(**{f'{prefix}order__packing_beta': True})
+    otk_before_beta = BoxQualityInspectionLog.objects.filter(
+        box=OuterRef(f'{prefix}pk'), action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+        created_at__lt=OuterRef(f'{prefix}order__packing_beta_since'))
+    return ((Q(**{f'{prefix}order__packing_beta': True}) & ~Exists(otk_before_beta))
             | Q(**{f'{prefix}article__operation_group__is_beta': True,
                    f'{prefix}created_at__gte': F(f'{prefix}article__operation_group__beta_since')}))
 

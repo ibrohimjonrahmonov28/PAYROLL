@@ -543,6 +543,8 @@ class Order(models.Model):
     size_labels = models.CharField(max_length=300, blank=True, verbose_name="Razmerlar (vergul bilan)")
     # Yangi OTK → taxlovchi → qadoqlash tartibi (beta, egasi talabi 2026-11-12): faqat belgilangan zakazlarda ishlaydi
     packing_beta = models.BooleanField(default=False, db_index=True, verbose_name="Yangi qadoqlash tartibi (beta)")
+    # Beta faqat yoqilgan vaqtdan (egasi talabi 2026-11-16): bundan oldin OTK dan o'tgan qutilar eski tartibda qoladi
+    packing_beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Beta yoqilgan vaqt")
 
     class Meta:
         verbose_name = "Buyurtma"
@@ -2069,25 +2071,52 @@ class PackingScan(models.Model):
         return f"{self.box.box_code} {self.source}: {self.quantity} ({self.worker})"
 
 
+def generate_basket_code():
+    """2-sort savati kodi "SV-123456" (6 xonali, takrorlanmas) — keyin tizimdan qidirib topish uchun."""
+    import random
+    while True:
+        code = f"SV-{random.randint(100000, 999999)}"
+        if not SecondSortBatch.objects.filter(code=code).exists():
+            return code
+
+
 class SecondSortBatch(models.Model):
-    """Sanoqchining 2-sort savati: patoklardan qabul qilingan 2-sort (brak ham), keyin upakovkaning 2-sort omboriga."""
+    """Sanoqchining 2-sort savati (egasi talabi 2026-11-14): patokdagi 2-sortni zakaz × model × razmer qatorlari
+    bo'yicha tasdiqlab savatga oladi → "Upakovkaga jo'natish" (SENT, kutilmoqda) → upakovka masteri tekshirib qabul
+    qiladi (ACCEPTED — upakovkaning 2-sort balansiga) yoki sabab bilan qaytaradi (RETURNED — sanoqchi tuzatib qayta
+    yuboradi). Har savatning "SV-123456" kodi bor."""
 
     class Status(models.TextChoices):
         BASKET = 'BASKET', "Sanoqchi savatida"
-        SENT = 'SENT', "Upakovkaga jo'natildi"
+        SENT = 'SENT', "Upakovkada kutilmoqda"
+        ACCEPTED = 'ACCEPTED', "Upakovka qabul qildi"
+        RETURNED = 'RETURNED', "Upakovka qaytardi"
 
+    code = models.CharField(max_length=12, unique=True, null=True, blank=True, verbose_name="Savat kodi (SV-123456)")
     counter = models.ForeignKey(User, on_delete=models.PROTECT, related_name='second_sort_batches', verbose_name="Sanoqchi")
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.BASKET, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Jo'natilgan vaqt")
+    accepted_at = models.DateTimeField(null=True, blank=True, verbose_name="Qabul qilingan vaqt")
+    accepted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                                    verbose_name="Qabul qilgan master")
+    returned_at = models.DateTimeField(null=True, blank=True, verbose_name="Qaytarilgan vaqt")
+    returned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                                    verbose_name="Qaytargan master")
+    return_reason = models.CharField(max_length=300, blank=True, verbose_name="Qaytarish sababi")
 
     class Meta:
         verbose_name = "2-sort savati"
         verbose_name_plural = "2-sort savatlari"
         ordering = ['-created_at']
 
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_basket_code()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"2-sort savati #{self.id} ({self.get_status_display()})"
+        return f"{self.code or self.id} ({self.get_status_display()})"
 
 
 class ReceiptPrinter(models.Model):

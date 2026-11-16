@@ -110,6 +110,7 @@
    "production/sewing_statistics_views.py",
    "production/sticker_urls.py",
    "production/sticker_views.py",
+   "production/taxlov_pay.py",
    "production/telegram_reports.py",
    "production/terminal_views.py",
    "production/test_counter_packing.py",
@@ -126,6 +127,7 @@
    "production/test_receipt_printing.py",
    "production/test_salary_freeze.py",
    "production/test_sewing_statistics_order_models.py",
+   "production/test_taxlov_pay.py",
    "production/test_telegram_reports.py",
    "production/test_template_beta.py",
    "production/test_terminal.py",
@@ -157,6 +159,7 @@
    "production/manager_new_excel.py",
    "production/test_daily_dazmol.py",
    "production/test_managers_new.py",
+   "production/test_taxlov_pay.py",
    "production/test_telegram_reports.py",
    "production/tests.py"
   ],
@@ -619,6 +622,11 @@
     "production.services"
    ]
   },
+  "production.taxlov_pay": {
+   "imports": [
+    "production.models"
+   ]
+  },
   "production.telegram_reports": {
    "imports": [
     "production.excel_reports",
@@ -759,6 +767,15 @@
   },
   "production.test_sewing_statistics_order_models": {
    "imports": [
+    "production.models"
+   ]
+  },
+  "production.test_taxlov_pay": {
+   "imports": [
+    "accounts.freeze_services",
+    "accounts.management.commands.close_daily_payroll",
+    "accounts.models",
+    "production.excel_reports",
     "production.models"
    ]
   },
@@ -1392,6 +1409,11 @@
    ]
   },
   "templates/packing/tabs/sanoqchi.html": {
+   "includes": [
+    "packing/partials/basket_rows.html",
+    "packing/partials/basket_rows.html",
+    "packing/partials/basket_search.html"
+   ],
    "url_names": [
     "packing:api_counter_packer",
     "packing:api_counter_paper",
@@ -1399,20 +1421,19 @@
     "packing:api_counter_send",
     "packing:counter_accept",
     "packing:counter_cancel",
-    "packing:counter_remove",
     "packing:counter_send"
-   ]
-  },
-  "templates/packing/tabs/taxlovchi.html": {
-   "url_names": [
-    "packing:api_identify",
-    "packing:api_scan"
    ]
   },
   "templates/packing/tabs/upakovka.html": {
    "includes": [
+    "packing/partials/basket_rows.html",
     "packing/partials/cards.html",
-    "packing/partials/cards.html"
+    "packing/partials/cards.html",
+    "packing/partials/basket_search.html"
+   ],
+   "url_names": [
+    "packing:master_accept",
+    "packing:master_return"
    ]
   },
   "templates/packing/tabs/zakazlar.html": {

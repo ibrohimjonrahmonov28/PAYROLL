@@ -324,7 +324,7 @@ def superadmin_users(request):
             if is_branch_admin:
                 branch = user_branch
                 if role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER,
-                            User.Role.PACKING, User.Role.COUNTER]:
+                            User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER]:
                     role = User.Role.USER
             else:
                 branch = request.POST.get('branch', User.Branch.HQ)
@@ -421,7 +421,7 @@ def superadmin_users(request):
             old_role = user.role
             new_role = request.POST.get('role', user.role)
             if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER,
-                                                User.Role.PACKING, User.Role.COUNTER]:
+                                                User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER]:
                 new_role = user.role
             if user == request.user and new_role != User.Role.SUPER_ADMIN and not is_branch_admin:
                 messages.warning(request, "O'zingizning Super Admin rolingizni tushira olmaysiz!")

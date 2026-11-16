@@ -19,6 +19,7 @@ class PackingBetaTest(TestCase):
         self.otk = User.objects.create_user(username='patokk1', password='x', role=User.Role.CONTROL, assigned_screen=1)
         self.packing = User.objects.create_user(username='upakovka1', password='x', role=User.Role.PACKING)
         self.counter = User.objects.create_user(username='sanoqchi1', password='x', role=User.Role.COUNTER)
+        self.master = User.objects.create_user(username='upakovka_master', password='x', role=User.Role.PACKING_MASTER)
         self.packer = Worker.objects.create(worker_id='W-900', first_name='Taxlovchi', last_name='Bir')
         self.article = Article.objects.create(code='ART-PK', name='Futbolka')
         self.order = Order.objects.create(order_number='ORD-PK', article=self.article, packing_beta=True)
@@ -43,7 +44,12 @@ class PackingBetaTest(TestCase):
         return self.otk_submit(self.box, mode='REPAIR_RETURN', defect_qty=defect, re_repair_qty=re_repair)
 
     def scan(self, code):
-        return self.post_json(self.packing, reverse('packing:api_scan'), {'code': code, 'worker_id': self.packer.id}).json()
+        """Qog'ozni sanoqchi uradi (taxlovchi tizimda hech narsa urmaydi, 2026-11-14) va darhol yuboradi."""
+        data = self.post_json(self.counter, reverse('packing:api_counter_paper'), {'code': code, 'worker_id': self.packer.id}).json()
+        if data.get('status') == 'OK':
+            data['scan'] = data['line']
+            self.post_json(self.counter, reverse('packing:api_counter_send'), {'worker_id': self.packer.id})
+        return data
 
     def test_otk_tab_prints_repair_receipt(self):
         data = self.initial()
@@ -106,7 +112,7 @@ class PackingBetaTest(TestCase):
         self.assertEqual(data['receipt_meta']['code'], second.qr_text)          # /beta/ da 2-chek ham chop etiladi
         first = RepairReceipt.objects.get(box=self.box, cycle=1)
         self.assertEqual((first.first_sort_qty, first.is_open), (4, False))
-        identified = self.post_json(self.packing, reverse('packing:api_identify'), {'code': 'WORKER:W-900'}).json()
+        identified = self.post_json(self.counter, reverse('packing:api_counter_packer'), {'code': 'WORKER:W-900'}).json()
         self.assertEqual(identified['worker']['id'], self.packer.id)
 
         self.assertEqual(self.scan(f"TAMIR1:{self.box.box_code}")['scan']['quantity'], 4)   # chekda 7, bazada 4
@@ -118,6 +124,7 @@ class PackingBetaTest(TestCase):
 
         self.repair_return(re_repair=0)   # 2-chekdagi 3 tasi tuzaldi
         self.assertEqual(self.scan(f"TAMIR2:{self.box.box_code}")['scan']['quantity'], 3)
+        self.client.force_login(self.admin)
         self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).context['waiting_total'], 47)
         self.assertEqual(RepairReceipt.objects.filter(box=self.box).count(), 2)
 
@@ -135,7 +142,7 @@ class PackingBetaTest(TestCase):
 
     def test_scan_errors(self):
         self.initial()
-        no_worker = self.post_json(self.packing, reverse('packing:api_scan'), {'code': f"CONTROL:{self.box.box_code}"})
+        no_worker = self.post_json(self.counter, reverse('packing:api_counter_paper'), {'code': f"CONTROL:{self.box.box_code}"})
         self.assertEqual(no_worker.json()['status'], 'NO_WORKER')
         self.assertEqual(self.scan('TICKET:TK-1')['status'], 'BAD_CODE')
         self.order.packing_beta = False
@@ -150,19 +157,27 @@ class PackingBetaTest(TestCase):
         self.assertEqual([(p['code'], p['qty']) for p in page.context['patoks']], [('K1', 4)])
         self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi', 'patok': 1}).context['cards'][0]['total'], 4)
 
-        data = {'screen': 1, 'order_id': self.order.id, 'article_id': self.article.id}
-        self.client.post(reverse('packing:counter_accept'), dict(data, counted='3'))   # OTK soniga teng emas
-        self.assertFalse(SecondSortBatch.objects.exists())
-        res = self.client.post(reverse('packing:counter_accept'), dict(data, counted='4'))
+        res = self.client.post(reverse('packing:counter_accept'), {      # zakaz × model × razmer qatori, son OTK'dan
+            'screen': 1, 'order_id': self.order.id, 'article_id': self.article.id, 'size': 'M'})
         self.assertRedirects(res, f"{self.hub}?tab=sanoqchi&patok=1", fetch_redirect_response=False)
         basket = SecondSortBatch.objects.get(counter=self.counter)
         self.assertEqual(basket.status, SecondSortBatch.Status.BASKET)
+        self.assertRegex(basket.code, r'^SV-\d{6}$')
         self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi'}).context['patoks'], [])
 
         self.client.post(reverse('packing:counter_send'))
         basket.refresh_from_db()
         self.assertEqual(basket.status, SecondSortBatch.Status.SENT)
         self.client.force_login(self.packing)
+        page = self.client.get(self.hub, {'tab': 'upakovka'})
+        self.assertEqual((page.context['second_sort_total'], page.context['waiting_baskets_total']), (0, 4))  # master kutmoqda
+        self.client.post(reverse('packing:master_accept'), {'basket_id': basket.id})       # upakovkachi qabul qila olmaydi
+        basket.refresh_from_db()
+        self.assertEqual(basket.status, SecondSortBatch.Status.SENT)
+        self.client.force_login(self.master)
+        self.client.post(reverse('packing:master_accept'), {'basket_id': basket.id})
+        basket.refresh_from_db()
+        self.assertEqual((basket.status, basket.accepted_by), (SecondSortBatch.Status.ACCEPTED, self.master))
         self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).context['second_sort_total'], 4)
 
         # xato urilgan taxlovchi skani sanoqchida bekor qilinadi va qog'oz qayta urilishi mumkin
@@ -180,15 +195,20 @@ class PackingBetaTest(TestCase):
     def test_tabs_follow_roles(self):
         self.client.force_login(self.packing)
         page = self.client.get(self.hub, {'tab': 'otk'})
-        self.assertEqual([key for key, _ in page.context['tabs']], ['taxlovchi', 'upakovka'])
-        self.assertEqual(page.context['tab'], 'taxlovchi')
+        self.assertEqual([key for key, _ in page.context['tabs']], ['upakovka'])   # eski taxlovchi tabi yo'q
+        self.assertEqual(page.context['tab'], 'upakovka')
+        self.assertFalse(page.context['can_accept'])
+        self.client.force_login(self.master)
+        master_page = self.client.get(self.hub)
+        self.assertEqual(([key for key, _ in master_page.context['tabs']], master_page.context['can_accept']), (['upakovka'], True))
+        self.client.force_login(self.packing)
         self.assertRedirects(self.client.get(reverse('production:order_list')), self.hub, fetch_redirect_response=False)
         res = self.post_json(self.packing, reverse('packing:api_otk_submit'), {'box_id': self.box.id, 'mode': 'INITIAL'})
         self.assertEqual(res.status_code, 403)
 
         self.client.force_login(self.counter)
         self.assertEqual([key for key, _ in self.client.get(self.hub).context['tabs']], ['sanoqchi'])
-        self.assertEqual(self.post_json(self.counter, reverse('packing:api_scan'), {'code': 'CONTROL:X'}).status_code, 403)
+        self.assertEqual(self.post_json(self.packing, reverse('packing:api_counter_paper'), {'code': 'CONTROL:X'}).status_code, 403)
         self.client.force_login(self.counter)
         self.client.post(reverse('packing:beta_toggle'), {'order_id': self.order.id})
         self.order.refresh_from_db()
@@ -196,7 +216,7 @@ class PackingBetaTest(TestCase):
 
         self.client.force_login(self.admin)
         tabs = [key for key, _ in self.client.get(self.hub).context['tabs']]
-        self.assertEqual(tabs, ['otk', 'taxlovchi', 'sanoqchi', 'upakovka', 'zakazlar'])
+        self.assertEqual(tabs, ['otk', 'sanoqchi', 'upakovka', 'zakazlar'])
         self.client.post(reverse('packing:beta_toggle'), {'order_id': self.order.id})
         self.order.refresh_from_db()
         self.assertFalse(self.order.packing_beta)
@@ -206,14 +226,14 @@ class PackingBetaTest(TestCase):
         self.repair_return(defect=1)
         self.scan(f"CONTROL:{self.box.box_code}")
         self.client.force_login(self.admin)
-        for params in ({'tab': 'otk'}, {'tab': 'taxlovchi'}, {'tab': 'upakovka'}, {'tab': 'zakazlar', 'q': 'ORD-PK'},
+        for params in ({'tab': 'otk'}, {'tab': 'upakovka'}, {'tab': 'zakazlar', 'q': 'ORD-PK'},
                        {'tab': 'sanoqchi', 'patok': 1, 'cancel': f"CONTROL:{self.box.box_code}"},
                        {'tab': 'sanoqchi', 'cancel': 'TICKET:1'}):
             self.assertEqual(self.client.get(self.hub, params).status_code, 200, params)
         self.assertContains(self.client.get(self.hub, {'tab': 'zakazlar', 'q': 'ORD-PK'}), 'ORD-PK')
 
     def test_login_redirects_to_beta_page(self):
-        for user in (self.packing, self.counter):
+        for user in (self.packing, self.counter, self.master):
             self.client.logout()
             res = self.client.post(reverse('root_login'), {'username': user.username, 'password': 'x'})
             self.assertRedirects(res, self.hub, fetch_redirect_response=False)
@@ -240,12 +260,12 @@ class PackingBetaTest(TestCase):
         self.assertEqual(card['boxes'][0]['qty'], 3)
 
         self.client.post(reverse('packing:counter_accept'), {
-            'screen': 1, 'order_id': self.order.id, 'article_id': self.article.id, 'counted': '3',
+            'screen': 1, 'order_id': self.order.id, 'article_id': self.article.id, 'size': 'M',
         })
         self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi'}).context['basket_total'], 3)
 
         res = self.client.post(reverse('packing:counter_remove'), {
-            'order_id': self.order.id, 'article_id': self.article.id, 'patok': 1,
+            'order_id': self.order.id, 'article_id': self.article.id, 'size': 'M', 'patok': 1,
         })
         self.assertRedirects(res, f"{self.hub}?tab=sanoqchi&patok=1", fetch_redirect_response=False)
         after = self.client.get(self.hub, {'tab': 'sanoqchi'})
@@ -268,3 +288,39 @@ class PackingBetaTest(TestCase):
         self.client.force_login(self.packing)
         self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).context['second_sort_total'], 0)
 
+
+
+    def test_master_returns_basket_counter_fixes_and_resends_and_search(self):
+        self.initial()                                                       # 3 ta 2-sort, razmer M
+        other = Box.objects.create(order=self.order, article=self.article, box_number=2, quantity=10, razmer='L',
+                                   assigned_screen=1)
+        self.otk_submit(other, mode='INITIAL', total_qty=10, second_sort_qty=2)
+        self.client.force_login(self.counter)
+        self.client.post(reverse('packing:counter_accept'), {'screen': 1, 'all': '1'})   # hammasini savatga
+        basket = SecondSortBatch.objects.get()
+        self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi'}).context['basket_total'], 5)
+        self.client.post(reverse('packing:counter_send'))
+
+        self.client.force_login(self.master)
+        self.client.post(reverse('packing:master_return'), {'basket_id': basket.id, 'reason': ''})   # sababsiz bo'lmaydi
+        basket.refresh_from_db()
+        self.assertEqual(basket.status, SecondSortBatch.Status.SENT)
+        self.client.post(reverse('packing:master_return'), {'basket_id': basket.id, 'reason': "L razmerdan 1 ta kam"})
+        basket.refresh_from_db()
+        self.assertEqual((basket.status, basket.return_reason), (SecondSortBatch.Status.RETURNED, "L razmerdan 1 ta kam"))
+
+        self.client.force_login(self.counter)
+        page = self.client.get(self.hub, {'tab': 'sanoqchi'})
+        self.assertEqual([view['basket'].code for view in page.context['returned_baskets']], [basket.code])
+        self.client.post(reverse('packing:counter_remove'), {'basket_id': basket.id, 'order_id': self.order.id,
+                                                             'article_id': self.article.id, 'size': 'L'})
+        self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi', 'patok': 1}).context['patoks'][0]['qty'], 2)
+        self.client.post(reverse('packing:counter_send'), {'basket_id': basket.id})       # tuzatib qayta jo'natish
+        basket.refresh_from_db()
+        self.assertEqual(basket.status, SecondSortBatch.Status.SENT)
+
+        digits = basket.code[3:]
+        for query in (basket.code, basket.code.lower(), digits):
+            found = self.client.get(self.hub, {'tab': 'sanoqchi', 'sv': query}).context['search_basket']
+            self.assertEqual((found['basket'], found['total']), (basket, 3), query)
+        self.assertIsNone(self.client.get(self.hub, {'tab': 'sanoqchi', 'sv': 'SV-000000'}).context['search_basket'])

@@ -11,8 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User, Worker
-from production.models import Article, Box, OperationGroup, Order, PackingBatch, PackingScan
-from production.packing_services import paper_status
+from production.models import Article, Box, BoxQualityInspectionLog, OperationGroup, Order, PackingBatch, PackingScan
+from production.packing_services import is_beta_box, paper_status
 
 
 class CounterPackingTest(TestCase):
@@ -126,3 +126,50 @@ class CounterPackingTest(TestCase):
         self.assertEqual(self.post(self.counter, 'api_counter_packer', {'code': 'W-404'}).json()['status'], 'NOT_FOUND')
         self.assertEqual(self.post(self.counter, 'api_counter_paper', {'code': self.code, 'worker_id': 0}).json()['status'], 'NO_WORKER')
         self.assertFalse(PackingScan.objects.exists())
+
+
+class OrderBetaStartsTodayTest(TestCase):
+    """Zakazga beta belgisi qo'yilsa — faqat shu vaqtdan keyin OTK dan o'tgan qutilar (egasi talabi 2026-11-16)."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='bt_admin', password='x', role=User.Role.SUPER_ADMIN)
+        self.counter = User.objects.create_user(username='sanoqchi_bt', password='x', role=User.Role.COUNTER)
+        self.packer = Worker.objects.create(worker_id='W-960', first_name='Bek', last_name='Taxlov')
+        self.article = Article.objects.create(code='ART-BT', name='Futbolka')
+        self.order = Order.objects.create(order_number='ORD-BT', article=self.article)          # hali beta emas
+        self.old_box = Box.objects.create(order=self.order, article=self.article, box_number=1, quantity=30,
+                                          razmer='M', assigned_screen=2)
+        self.new_box = Box.objects.create(order=self.order, article=self.article, box_number=2, quantity=20,
+                                          razmer='M', assigned_screen=2)
+
+    def otk(self, box):
+        self.client.force_login(self.admin)
+        return self.client.post(reverse('control:api_submit'), json.dumps(
+            {'box_id': box.id, 'mode': 'INITIAL', 'total_qty': box.quantity, 'second_sort_qty': 2}),
+            content_type='application/json')
+
+    def test_only_boxes_inspected_after_beta_enabled(self):
+        self.otk(self.old_box)                                                  # belgidan OLDIN OTK
+        BoxQualityInspectionLog.objects.filter(box=self.old_box).update(
+            created_at=timezone.now() - timezone.timedelta(minutes=5))
+        self.client.force_login(self.admin)
+        self.client.post(reverse('packing:beta_toggle'), {'order_id': self.order.id})
+        self.order.refresh_from_db()
+        self.assertTrue(self.order.packing_beta and self.order.packing_beta_since)
+        self.otk(self.new_box)                                                  # belgidan KEYIN OTK
+
+        self.assertFalse(is_beta_box(self.old_box))
+        self.assertTrue(is_beta_box(self.new_box))
+        self.client.force_login(self.counter)
+        page = self.client.get(reverse('packing:hub'), {'tab': 'sanoqchi'})
+        self.assertEqual([(p['code'], p['qty']) for p in page.context['patoks']], [('K2', 2)])   # faqat yangi qutining 2-sorti
+        self.assertEqual([r['box_code'] for r in page.context['unscanned']], [self.new_box.box_code])
+        old = self.client.post(reverse('packing:api_counter_paper'), json.dumps(
+            {'code': f"CONTROL:{self.old_box.box_code}", 'worker_id': self.packer.id}), content_type='application/json')
+        self.assertEqual(old.json()['status'], 'NOT_BETA')
+
+        self.client.force_login(self.admin)
+        self.client.post(reverse('packing:beta_toggle'), {'order_id': self.order.id})          # o'chirildi
+        self.order.refresh_from_db()
+        self.assertEqual((self.order.packing_beta, self.order.packing_beta_since), (False, None))
+        self.assertFalse(is_beta_box(Box.objects.get(pk=self.new_box.pk)))

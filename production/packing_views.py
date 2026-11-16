@@ -1,14 +1,15 @@
 """
-Beta qadoqlash tartibi (egasi talabi 2026-11-12) — bitta /beta/ sahifasi, tablar bilan; faqat Order.packing_beta zakazlar.
-Superadmin bitta akkaunt bilan hamma tabni ko'radi (test uchun akkaunt almashtirmaydi):
-- OTK           (superadmin): CONTROL stikeri / TAMIR cheki → 2-sort va ta'mir donalari → saqlash (/control/ ning o'sha
+Beta qadoqlash tartibi (egasi talabi 2026-11-12, qayta loyiha 2026-11-14) — bitta /beta/ sahifasi, tablar bilan; faqat
+beta qutilar (eski zakaz belgisi yoki beta narx shabloni). Superadmin bitta akkaunt bilan hamma tabni ko'radi:
+- OTK           (superadmin): CONTROL stikeri / TAMIRn cheki → 2-sort va ta'mir donalari → saqlash (/control/ ning o'sha
                               server funksiyalari); ta'mir bo'lsa chek A4 ga chiqadi; cheklarni qayta chop etish;
-- Taxlovchi     (PACKING):    avval badge, keyin CONTROL stikeri yoki TAMIR cheki;
-- Sanoqchi      (COUNTER):    patoklardagi 2-sortni (brak ham) sanab qabul qiladi, savatni upakovkaga jo'natadi,
-                              xato urilgan taxlovchi skanini bekor qiladi;
-- Upakovka      (PACKING):    qadoqlash kutayotgan ishlar, bugun kim qancha taxladi, kelgan 2-sort;
-- Beta zakazlar (superadmin): qaysi zakazlar beta tartibda ishlashini belgilaydi.
-Muzlatilgan /control/ sahifasi o'zgarmaydi. Taxlovchi puli hozircha yo'q (keyin operatsiya shabloni orqali).
+- Sanoqchi      (COUNTER):    1-sort — taxlovchi badge'i, keyin uning CONTROL / TAMIRn qog'ozlari → "Saqlash va yuborish"
+                              (taxlovchi puli, upakovkaning 1-sort balansi); 2-sort — patok → zakaz × model × razmer
+                              qatorlari → savat (SV-123456) → upakovkaga jo'natish; xato skanni bekor qilish;
+- Upakovka      (PACKING, PACKING_MASTER): qadoqlash kutayotgan 1-sort, bugun kim qancha taxladi, 2-sort balansi;
+                              master sanoqchi savatlarini tekshirib qabul qiladi yoki sabab bilan qaytaradi;
+- Beta zakazlar (superadmin): qaysi zakazlar beta tartibda ishlashini belgilaydi (keyinchalik faqat shablon belgisi).
+Taxlovchi tizimda hech narsa urmaydi (chevar kabi). Muzlatilgan /control/ sahifasi o'zgarmaydi.
 """
 import functools
 import json
@@ -36,14 +37,13 @@ from production.taxlov_pay import credit_batch
 from production.sewing_statistics_views import natural_size_sort_key
 from production.terminal_views import extract_worker_code
 
-HUB_ROLES = (User.Role.PACKING, User.Role.COUNTER)
+HUB_ROLES = (User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER)
 
 # (tab, nomi, kimga ochiq — superadmin hammasini ko'radi)
 TABS = (
     ('otk', "OTK", ()),
-    ('taxlovchi', "Taxlovchi", (User.Role.PACKING,)),
     ('sanoqchi', "Sanoqchi", (User.Role.COUNTER,)),
-    ('upakovka', "Upakovka", (User.Role.PACKING,)),
+    ('upakovka', "Upakovka", (User.Role.PACKING, User.Role.PACKING_MASTER)),
     ('zakazlar', "Beta zakazlar", ()),
 )
 
@@ -208,11 +208,6 @@ def _otk_context(request):
     return {'receipts': receipts, 'active_repairs_count': active_count}
 
 
-def _taxlovchi_context(request):
-    recent_scans, today_total = _today_beta_scans(limit=12)
-    return {'recent_scans': recent_scans, 'today_total': today_total}
-
-
 def _log_notes_map(logs):
     notes = defaultdict(list)
     for log in logs:
@@ -251,9 +246,16 @@ def _sanoqchi_context(request):
             scans = scans.filter(repair_receipt__cycle=cycle)
         cancel_scans = list(scans.select_related(*SCAN_RELATED).order_by('-scanned_at'))
     unscanned = _unscanned_papers()
+    returned = SecondSortBatch.objects.filter(counter=request.user, status=SecondSortBatch.Status.RETURNED).select_related('returned_by')
+    search_code = request.GET.get('sv', '').strip()
     return {
         'unscanned': unscanned,
         'unscanned_total': sum(row['waiting'] for row in unscanned),
+        'basket': basket,
+        'basket_view': _basket_view(basket) if basket else None,
+        'returned_baskets': [_basket_view(b) for b in returned],
+        'search_code': search_code,
+        'search_basket': (_basket_view(found) if (found := _find_basket(search_code)) else None) if search_code else None,
         'patoks': patoks,
         'selected_patok': selected,
         'selected_patok_code': _patok_label(selected) if selected is not None else '',
@@ -277,11 +279,24 @@ def _upakovka_context(request):
                          .annotate(pieces=Sum('quantity'), scans=Count('id')).order_by('-pieces'))
     today_scans, today_total = _today_beta_scans(limit=15)
 
-    sent_logs = BoxQualityInspectionLog.objects.filter(
-        beta_box_q(), second_sort_batch__status=SecondSortBatch.Status.SENT
+    # 2-sort balansi — upakovka masteri qabul qilgan savatlar; kutilayotgan savatlar master tekshiruvida
+    accepted_logs = BoxQualityInspectionLog.objects.filter(
+        beta_box_q(), second_sort_batch__status=SecondSortBatch.Status.ACCEPTED
     ).select_related(*BOX_RELATED)
-    second_sort = _group_by_order_article((log.box, log.second_sort_qty) for log in sent_logs)
+    second_sort = _group_by_order_article((log.box, log.second_sort_qty) for log in accepted_logs)
+    waiting_baskets = [_basket_view(b) for b in SecondSortBatch.objects.filter(status=SecondSortBatch.Status.SENT)
+                       .select_related('counter').order_by('sent_at')]
+    recent_baskets = list(SecondSortBatch.objects.filter(status__in=[SecondSortBatch.Status.ACCEPTED,
+                                                                     SecondSortBatch.Status.RETURNED])
+                          .select_related('counter', 'accepted_by', 'returned_by').order_by('-sent_at')[:10])
+    search_code = request.GET.get('sv', '').strip()
     return {
+        'waiting_baskets': waiting_baskets,
+        'waiting_baskets_total': sum(view['total'] for view in waiting_baskets),
+        'recent_baskets': recent_baskets,
+        'can_accept': request.user.is_superadmin() or request.user.role == User.Role.PACKING_MASTER,
+        'search_code': search_code,
+        'search_basket': (_basket_view(found) if (found := _find_basket(search_code)) else None) if search_code else None,
         'waiting': waiting,
         'waiting_total': sum(card['total'] for card in waiting),
         'today_packers': today_packers,
@@ -322,7 +337,6 @@ def _zakazlar_context(request):
 
 TAB_CONTEXT = {
     'otk': _otk_context,
-    'taxlovchi': _taxlovchi_context,
     'sanoqchi': _sanoqchi_context,
     'upakovka': _upakovka_context,
     'zakazlar': _zakazlar_context,
@@ -444,41 +458,6 @@ def api_otk_submit(request):
 
 
 # ------------------------------------------------------------------ Taxlovchi tabi
-
-@_role_required(User.Role.PACKING)
-@require_POST
-def api_identify(request):
-    worker = _find_worker(_json_body(request).get('code'))
-    if not worker:
-        return JsonResponse({'status': 'NOT_FOUND', 'message': "Xodim topilmadi — badge'ni qayta uring."}, status=404)
-    return JsonResponse({'status': 'OK', 'worker': {
-        'id': worker.id, 'name': worker.full_name, 'code': worker.worker_id, 'today': _worker_today_total(worker),
-    }})
-
-
-@_role_required(User.Role.PACKING)
-@require_POST
-def api_scan(request):
-    data = _json_body(request)
-    worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id')), is_active=True).first()
-    if not worker:
-        return JsonResponse({'status': 'NO_WORKER', 'message': "Avval o'z badge'ingizni uring."}, status=400)
-    scan, error = take_paper(data.get('code'), worker, request.user)
-    if error:
-        status, message = error
-        return JsonResponse({'status': status, 'message': message}, status=404 if status == 'NOT_FOUND' else 400)
-    box, available, receipt = scan.box, scan.quantity, scan.repair_receipt
-
-    article = box.target_article
-    return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: +{available} dona", 'scan': {
-        'quantity': available,
-        'source': f"{receipt.cycle}-ta'mir cheki" if receipt else PackingScan.Source(scan.source).label,
-        'box_code': box.box_code,
-        'order': box.order.order_number if box.order_id else '',
-        'article': f"{article.code} — {article.name}" if article else '',
-        'size': box.razmer or '—',
-    }, 'worker_today': _worker_today_total(worker)})
-
 
 # ------------------------------------------------------------------ Sanoqchi tabi: taxlovchi qog'ozlari (1-sort)
 # Egasi talabi 2026-11-14: taxlovchi tizimda hech narsa urmaydi (chevar kabi). Sanoqchi avval taxlovchi badge'ini, keyin
@@ -609,73 +588,137 @@ def _unscanned_papers(limit=150):
 
 # ------------------------------------------------------------------ Sanoqchi tabi: 2-sort savati
 
+def _row_logs(logs, article_id, size=None):
+    """Zakaz × model (× razmer) qatori: shu artikul va razmerdagi OTK 2-sort yozuvlari."""
+    def matches(log):
+        article = log.box.target_article
+        return ((article.id if article else 0) == article_id
+                and (size is None or (log.box.razmer or '—') == size))
+    return [log for log in logs if matches(log)]
+
+
+def _counter_basket(user, basket_id=None):
+    """Sanoqchining ochiq savati yoki (basket_id bilan) upakovka qaytargan savati."""
+    if basket_id:
+        return SecondSortBatch.objects.filter(id=basket_id, counter=user, status=SecondSortBatch.Status.RETURNED).first()
+    return _open_basket(user)
+
+
 @_role_required(User.Role.COUNTER)
 @require_POST
 def counter_accept(request):
+    """Patokdagi 2-sortni zakaz × model × razmer qatori (yoki butun patokni) tasdiqlab savatga olish. "Real son"
+    maydoni hozircha yopiq (egasi talabi 2026-11-14 — keyinchalik ochiladi), shuning uchun OTK soni olinadi."""
     screen = _int_or_none(request.POST.get('screen')) or 0
+    take_all = request.POST.get('all') == '1'
     order_id = _int_or_none(request.POST.get('order_id'))
     article_id = _int_or_none(request.POST.get('article_id')) or 0
-    counted_text = (request.POST.get('counted') or '').strip()
+    size = request.POST.get('size') or None
     back = redirect(_hub_url(tab='sanoqchi', patok=screen))
-    if not counted_text.isdigit():
-        messages.error(request, "Sanagan soningizni yozing.")
-        return back
-
     with transaction.atomic():
-        logs = [log for log in _pending_second_sort().select_for_update(of=('self',))
-                .filter(_screen_filter(screen), box__order_id=order_id).select_related(*BOX_RELATED)
-                if (log.box.target_article.id if log.box.target_article else 0) == article_id]
-        expected = sum(log.second_sort_qty for log in logs)
+        qs = _pending_second_sort().select_for_update(of=('self',)).filter(_screen_filter(screen)).select_related(*BOX_RELATED)
+        if not take_all:
+            qs = qs.filter(box__order_id=order_id)
+        logs = list(qs) if take_all else _row_logs(qs, article_id, size)
         if not logs:
-            messages.error(request, "Bu kartochka allaqachon qabul qilingan.")
-            return back
-        if int(counted_text) != expected:
-            messages.error(request, f"Sanalgan son ({counted_text}) OTK soniga ({expected}) teng emas — OTK topib berishi kerak.")
+            messages.error(request, "Bu 2-sort allaqachon savatga olingan.")
             return back
         basket = _open_basket(request.user, create=True)
         BoxQualityInspectionLog.objects.filter(id__in=[log.id for log in logs]).update(second_sort_batch=basket)
-    messages.success(request, f"{expected} dona 2-sort savatga olindi.")
+    messages.success(request, f"{sum(log.second_sort_qty for log in logs)} dona 2-sort {basket.code} savatiga olindi.")
     return back
 
 
 @_role_required(User.Role.COUNTER)
 @require_POST
 def counter_basket_remove(request):
-    """Savatga adashib olingan kartochkani patok navbatiga qaytarish (jo'natilishidan oldin)."""
+    """Savatdagi qatorni (zakaz × model × razmer) patok navbatiga qaytarish — ochiq yoki upakovka qaytargan savatdan."""
     order_id = _int_or_none(request.POST.get('order_id'))
     article_id = _int_or_none(request.POST.get('article_id')) or 0
-    patok = _int_or_none(request.POST.get('patok'))
-    back = redirect(_hub_url(tab='sanoqchi', patok=patok))
+    size = request.POST.get('size') or None
+    back = redirect(_hub_url(tab='sanoqchi', patok=_int_or_none(request.POST.get('patok'))))
     with transaction.atomic():
-        basket = _open_basket(request.user)
+        basket = _counter_basket(request.user, _int_or_none(request.POST.get('basket_id')))
         if not basket:
-            messages.error(request, "Savat bo'sh.")
+            messages.error(request, "Savat topilmadi.")
             return back
-        logs = [log for log in basket.inspection_logs.select_for_update(of=('self',))
-                .filter(box__order_id=order_id).select_related(*BOX_RELATED)
-                if (log.box.target_article.id if log.box.target_article else 0) == article_id]
+        logs = _row_logs(basket.inspection_logs.select_for_update(of=('self',)).filter(box__order_id=order_id)
+                         .select_related(*BOX_RELATED), article_id, size)
         if not logs:
-            messages.error(request, "Bu kartochka savatda topilmadi.")
+            messages.error(request, "Bu qator savatda topilmadi.")
             return back
-        qty = sum(log.second_sort_qty for log in logs)
         BoxQualityInspectionLog.objects.filter(id__in=[log.id for log in logs]).update(second_sort_batch=None)
-    messages.success(request, f"{qty} dona 2-sort savatdan patok navbatiga qaytarildi.")
+    messages.success(request, f"{sum(log.second_sort_qty for log in logs)} dona 2-sort {basket.code} savatidan patok navbatiga qaytarildi.")
     return back
 
 
 @_role_required(User.Role.COUNTER)
 @require_POST
 def counter_send(request):
-    basket = _open_basket(request.user)
+    """Savatni upakovkaga jo'natish (master qabul qilguncha "kutilmoqda"); qaytarilgan savatni tuzatib qayta jo'natish."""
+    basket = _counter_basket(request.user, _int_or_none(request.POST.get('basket_id')))
     if not basket or not basket.inspection_logs.exists():
         messages.error(request, "Savat bo'sh.")
     else:
-        basket.status = SecondSortBatch.Status.SENT
-        basket.sent_at = timezone.now()
+        basket.status, basket.sent_at = SecondSortBatch.Status.SENT, timezone.now()
         basket.save(update_fields=['status', 'sent_at'])
         total = basket.inspection_logs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
-        messages.success(request, f"{total} dona 2-sort upakovkaning 2-sort omboriga jo'natildi.")
+        messages.success(request, f"{basket.code}: {total} dona 2-sort upakovkaga jo'natildi — master qabul qilishi kutilmoqda.")
     return redirect(_hub_url(tab='sanoqchi'))
+
+
+# ------------------------------------------------------------------ Upakovka: master savatlarni qabul qiladi
+
+@_role_required(User.Role.PACKING_MASTER)
+@require_POST
+def master_accept(request):
+    """Upakovka masteri savatni tekshirib qabul qiladi — hammasi upakovkaning 2-sort balansiga tushadi."""
+    with transaction.atomic():
+        basket = (SecondSortBatch.objects.select_for_update()
+                  .filter(id=_int_or_none(request.POST.get('basket_id')), status=SecondSortBatch.Status.SENT).first())
+        if not basket:
+            messages.error(request, "Bu savat kutilayotganlar orasida yo'q (allaqachon qabul qilingan yoki qaytarilgan).")
+            return redirect(_hub_url(tab='upakovka'))
+        basket.status, basket.accepted_at, basket.accepted_by = SecondSortBatch.Status.ACCEPTED, timezone.now(), request.user
+        basket.save(update_fields=['status', 'accepted_at', 'accepted_by'])
+    total = basket.inspection_logs.aggregate(s=Sum('second_sort_qty'))['s'] or 0
+    messages.success(request, f"{basket.code}: {total} dona 2-sort qabul qilindi va upakovkaning 2-sort balansiga tushdi.")
+    return redirect(_hub_url(tab='upakovka'))
+
+
+@_role_required(User.Role.PACKING_MASTER)
+@require_POST
+def master_return(request):
+    """Savatda kamchilik bo'lsa sabab bilan sanoqchiga qaytariladi — sanoqchi tuzatib qayta jo'natadi."""
+    reason = (request.POST.get('reason') or '').strip()
+    if not reason:
+        messages.error(request, "Qaytarish sababini yozing.")
+        return redirect(_hub_url(tab='upakovka'))
+    with transaction.atomic():
+        basket = (SecondSortBatch.objects.select_for_update()
+                  .filter(id=_int_or_none(request.POST.get('basket_id')), status=SecondSortBatch.Status.SENT).first())
+        if not basket:
+            messages.error(request, "Bu savat kutilayotganlar orasida yo'q.")
+            return redirect(_hub_url(tab='upakovka'))
+        basket.status, basket.returned_at, basket.returned_by = SecondSortBatch.Status.RETURNED, timezone.now(), request.user
+        basket.return_reason = reason[:300]
+        basket.save(update_fields=['status', 'returned_at', 'returned_by', 'return_reason'])
+    messages.success(request, f"{basket.code} sanoqchiga qaytarildi: {reason}")
+    return redirect(_hub_url(tab='upakovka'))
+
+
+def _find_basket(raw):
+    """"SV-123456", "sv123456" yoki "123456" bo'yicha savat."""
+    digits = ''.join(ch for ch in (raw or '') if ch.isdigit())
+    return SecondSortBatch.objects.select_related('counter', 'accepted_by', 'returned_by').filter(
+        code=f"SV-{digits}").first() if len(digits) == 6 else None
+
+
+def _basket_view(basket):
+    """Savat kartochkasi: kodi, holati, kim/qachon va zakaz × model × razmer bo'yicha tarkibi."""
+    logs = list(basket.inspection_logs.select_related(*BOX_RELATED))
+    cards = _group_by_order_article(((log.box, log.second_sort_qty) for log in logs), _log_notes_map(logs))
+    return {'basket': basket, 'cards': cards, 'total': sum(card['total'] for card in cards)}
 
 
 @_role_required(User.Role.COUNTER)
@@ -703,7 +746,9 @@ def counter_cancel(request):
 def beta_toggle(request):
     order = get_object_or_404(Order, id=_int_or_none(request.POST.get('order_id')))
     order.packing_beta = not order.packing_beta
-    order.save(update_fields=['packing_beta'])
+    # beta faqat yoqilgan vaqtdan: bundan oldin OTK dan o'tgan qutilar eski tartibda qoladi (qayta yoqilsa — yangidan)
+    order.packing_beta_since = timezone.now() if order.packing_beta else None
+    order.save(update_fields=['packing_beta', 'packing_beta_since'])
     state = "yoqildi" if order.packing_beta else "o'chirildi"
     messages.success(request, f"«{order.order_number}»: yangi qadoqlash tartibi {state}.")
     return redirect(_hub_url(tab='zakazlar', q=request.POST.get('q', ''), filter=request.POST.get('filter', '')))

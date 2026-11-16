@@ -1,5 +1,47 @@
-{% comment %}Upakovka tabi: qadoqlash kutayotgan ishlar, bugun kim qancha taxladi, sanoqchidan kelgan 2-sort.{% endcomment %}
+{% comment %}Upakovka tabi: master sanoqchi savatlarini qabul qiladi yoki qaytaradi; qadoqlash kutayotgan 1-sort, bugun kim qancha
+taxladi, 2-sort balansi (qabul qilingan savatlar), savatlar tarixi va qidiruv.{% endcomment %}
 <div class="space-y-6">
+    <section class="bg-slate-900 border-2 {% if waiting_baskets %}border-amber-500/70{% else %}border-slate-800{% endif %} rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h1 class="text-xl font-black text-white">Qabul qilish: sanoqchi savatlari ({{ waiting_baskets|length }})</h1>
+                <p class="text-xs text-slate-400">Savatni tekshiring: hammasi to'g'ri bo'lsa qabul qiling — 2-sort balansiga tushadi; kamchilik bo'lsa sababini yozib qaytaring.</p>
+            </div>
+            <span class="text-sm text-slate-400">Kutilmoqda: <b class="text-amber-300">{{ waiting_baskets_total }}</b> dona</span>
+        </div>
+        {% for view in waiting_baskets %}
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span class="font-mono font-black text-orange-300 text-lg">{{ view.basket.code }}</span>
+                    <span class="text-slate-400">Sanoqchi: <b class="text-slate-200">{{ view.basket.counter.get_full_name|default:view.basket.counter.username }}</b></span>
+                    <span class="text-slate-400">{{ view.basket.sent_at|date:"d.m H:i" }}</span>
+                    <span class="text-slate-400">Jami: <b class="text-rose-300 text-base">{{ view.total }}</b> dona</span>
+                </div>
+                {% if can_accept %}
+                <div class="flex flex-wrap items-center gap-2">
+                    <form method="POST" action="{% url 'packing:master_accept' %}" onsubmit="return confirm('{{ view.basket.code }}: {{ view.total }} dona qabul qilinsinmi?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
+                        <button class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm"><i class="fa-solid fa-check mr-1"></i>Qabul qilish</button>
+                    </form>
+                    <form method="POST" action="{% url 'packing:master_return' %}" class="flex items-center gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
+                        <input name="reason" required maxlength="300" placeholder="Qaytarish sababi"
+                            class="w-44 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500">
+                        <button class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm"><i class="fa-solid fa-rotate-left mr-1"></i>Qaytarish</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% include 'packing/partials/basket_rows.html' with view=view removable=False %}
+        </div>
+        {% empty %}
+        <p class="text-sm text-slate-500">Hozircha kutilayotgan savat yo'q.</p>
+        {% endfor %}
+    </section>
+
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div>
@@ -17,7 +59,7 @@
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div>
-                <p class="text-xs font-bold text-slate-400 uppercase">2-sort omborida</p>
+                <p class="text-xs font-bold text-slate-400 uppercase">2-sort balansi</p>
                 <p class="text-3xl font-black text-rose-300 mt-1">{{ second_sort_total }} <span class="text-sm font-bold text-slate-400">dona</span></p>
             </div>
             <span class="w-11 h-11 rounded-xl bg-rose-500/15 text-rose-300 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></span>
@@ -28,7 +70,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-xl font-black text-white">Qadoqlash kutayotgan ishlar ({{ waiting|length }})</h1>
-                <p class="text-xs text-slate-400">Taxlovchi CONTROL stikeri yoki TAMIR chekini urganda shu yerga tushadi; karobka yig'ilganda ayriladi.</p>
+                <p class="text-xs text-slate-400">Sanoqchi taxlovchi ro'yxatini "Saqlash va yuborish" qilganda shu yerga tushadi (upakovkaning 1-sort balansi).</p>
             </div>
             <input id="upakovka-search" oninput="filterWaitingCards()" placeholder="Zakaz, artikul yoki quti kodi..."
                 class="w-full sm:w-72 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-orange-500">
@@ -82,12 +124,39 @@
 
         <div class="xl:col-span-2">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-sm font-black text-white uppercase">2-sort: sanoqchidan kelganlar</h2>
+                <h2 class="text-sm font-black text-white uppercase">2-sort balansi: qabul qilingan savatlar</h2>
                 <span class="text-sm text-slate-400">Jami: <b class="text-rose-300">{{ second_sort_total }}</b> dona</span>
             </div>
             {% include 'packing/partials/cards.html' with cards=second_sort tone='rose' %}
         </div>
     </section>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <h2 class="text-sm font-black text-white uppercase">Oxirgi savatlar</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400 text-left">
+                    <tr><th class="px-2 py-1.5">Kod</th><th class="px-2 py-1.5">Holati</th><th class="px-2 py-1.5">Sanoqchi</th><th class="px-2 py-1.5">Master</th><th class="px-2 py-1.5">Vaqt</th><th class="px-2 py-1.5">Izoh</th></tr>
+                </thead>
+                <tbody>
+                    {% for b in recent_baskets %}
+                    <tr class="border-t border-slate-800">
+                        <td class="px-2 py-1.5"><a href="?tab=upakovka&sv={{ b.code }}" class="font-mono font-black text-orange-300 hover:underline">{{ b.code }}</a></td>
+                        <td class="px-2 py-1.5 text-xs font-black {% if b.status == 'ACCEPTED' %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ b.get_status_display }}</td>
+                        <td class="px-2 py-1.5 text-slate-300">{{ b.counter.get_full_name|default:b.counter.username }}</td>
+                        <td class="px-2 py-1.5 text-slate-300">{% if b.status == 'ACCEPTED' %}{{ b.accepted_by.get_full_name|default:b.accepted_by.username|default:"—" }}{% else %}{{ b.returned_by.get_full_name|default:b.returned_by.username|default:"—" }}{% endif %}</td>
+                        <td class="px-2 py-1.5 text-xs text-slate-500">{% if b.status == 'ACCEPTED' %}{{ b.accepted_at|date:"d.m H:i" }}{% else %}{{ b.returned_at|date:"d.m H:i" }}{% endif %}</td>
+                        <td class="px-2 py-1.5 text-xs text-rose-300">{{ b.return_reason }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="px-2 py-3 text-slate-500">Hali qabul qilingan yoki qaytarilgan savat yo'q.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% include 'packing/partials/basket_search.html' with tab='upakovka' %}
 </div>
 
 <script>

@@ -47,7 +47,7 @@
             </div>
             {% if order.packing_beta %}
             <button class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-sm font-black">
-                <i class="fa-solid fa-check mr-1"></i> Beta yoqilgan
+                <i class="fa-solid fa-check mr-1"></i> Beta yoqilgan{% if order.packing_beta_since %} · {{ order.packing_beta_since|date:"d.m H:i" }} dan{% endif %}
             </button>
             {% else %}
             <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold border border-slate-700">

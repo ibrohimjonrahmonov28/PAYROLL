@@ -282,7 +282,7 @@ class MasterTerminalAccessRestrictionMiddleware:
                     return redirect('managers_new:order_list')
 
             # Beta qadoqlash (2026-11-12): upakovka va sanoqchi faqat /beta/ sahifasiga (qaysi tab — view'da tekshiriladi)
-            elif getattr(request.user, 'role', None) in (User.Role.PACKING, User.Role.COUNTER):
+            elif getattr(request.user, 'role', None) in (User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER):
                 path = request.path_info
                 allowed_prefixes = (
                     '/beta/',

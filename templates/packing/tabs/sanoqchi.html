@@ -75,8 +75,8 @@ hali urilmagan qog'ozlar; patoklardagi 2-sort (brak ham) → kartochka bo'yicha 
 
     <section>
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h1 class="text-xl font-black text-white">Patoklardagi 2-sort (brak ham)</h1>
-            <p class="text-xs text-slate-400">Patokni tanlang, donalarni sanang va kartochka bo'yicha savatga oling.</p>
+            <h1 class="text-xl font-black text-white">2-sort: patoklardagi balans (brak ham)</h1>
+            <p class="text-xs text-slate-400">OTK saqlashi bilan 2-sort shu patok balansiga tushadi. Patokni tanlang va qatorlarni savatga oling.</p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
             {% for p in patoks %}
@@ -87,7 +87,7 @@ hali urilmagan qog'ozlar; patoklardagi 2-sort (brak ham) → kartochka bo'yicha 
             </a>
             {% empty %}
             <div class="col-span-full rounded-2xl border border-dashed border-slate-800 py-6 text-center text-slate-500 text-sm">
-                Hozircha sanaladigan 2-sort yo'q.
+                Hozircha patoklarda 2-sort yo'q.
             </div>
             {% endfor %}
         </div>
@@ -96,70 +96,75 @@ hali urilmagan qog'ozlar; patoklardagi 2-sort (brak ham) → kartochka bo'yicha 
     {% if selected_patok is not None %}
     <section class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-lg font-black text-white">{{ selected_patok_code }}: kartochkalar ({{ cards|length }})</h2>
-            <p class="text-xs text-slate-400">Har kartochkani alohida sanang. Son OTK soni bilan teng bo'lsagina qabul qilinadi — farq bo'lsa OTK topib beradi.</p>
+            <div>
+                <h2 class="text-lg font-black text-white">{{ selected_patok_code }}: zakaz × model × razmer</h2>
+                <p class="text-xs text-slate-400">"Real son" maydoni hozircha yopiq — OTK soni olinadi.</p>
+            </div>
+            {% if cards %}
+            <form method="POST" action="{% url 'packing:counter_accept' %}" onsubmit="return confirm('{{ selected_patok_code }} dagi hamma 2-sort savatga olinsinmi?');">
+                {% csrf_token %}
+                <input type="hidden" name="screen" value="{{ selected_patok }}">
+                <input type="hidden" name="all" value="1">
+                <button class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-sm">
+                    <i class="fa-solid fa-basket-shopping mr-1.5"></i>Hammasini savatga olish
+                </button>
+            </form>
+            {% endif %}
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
             {% for card in cards %}
-            <form method="POST" action="{% url 'packing:counter_accept' %}" class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3 flex flex-col justify-between">
-                {% csrf_token %}
-                <input type="hidden" name="screen" value="{{ selected_patok }}">
-                <input type="hidden" name="order_id" value="{{ card.order.id }}">
-                <input type="hidden" name="article_id" value="{{ card.article.id|default:0 }}">
-                <div class="space-y-2.5">
-                    <div class="flex gap-3">
-                        {% if card.image %}
-                        <img src="{{ card.image }}" alt="" class="w-24 h-24 object-cover rounded-xl border border-slate-700 flex-shrink-0">
-                        {% else %}
-                        <div class="w-24 h-24 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0"><i class="fa-solid fa-shirt text-3xl"></i></div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">{{ card.order.order_number }}</span>
-                                <span class="text-[11px] text-slate-400">{{ card.box_count }} quti</span>
-                            </div>
-                            <p class="font-black text-white truncate mt-1">{{ card.article.code|default:"—" }}</p>
-                            <p class="text-xs text-slate-400 truncate">{{ card.article.name|default:"" }}</p>
-                            <div class="flex flex-wrap gap-1 mt-1.5">
-                                {% for size, qty in card.sizes.items %}
-                                <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ size }}</b>: {{ qty }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="text-right flex-shrink-0">
-                            <p class="text-3xl font-black text-rose-300">{{ card.total }}</p>
-                            <p class="text-[11px] text-slate-500">OTK</p>
-                        </div>
-                    </div>
-
-                    {% if card.boxes %}
-                    <details class="text-xs border-t border-slate-800 pt-2">
-                        <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200 font-bold">
-                            <i class="fa-solid fa-boxes-stacked mr-1"></i>Qaysi qutilardan ({{ card.box_count }})
-                        </summary>
-                        <div class="mt-2 space-y-1">
-                            {% for b in card.boxes %}
-                            <div class="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-2">
-                                <span><b class="text-white">{{ b.box_code }}</b> · razmer {{ b.razmer }}</span>
-                                <span class="font-black text-rose-300">{{ b.qty }} dona</span>
-                                {% if b.notes %}
-                                <p class="w-full text-[11px] text-slate-400">{{ b.notes|join:" · " }}</p>
-                                {% endif %}
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </details>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+                <div class="flex gap-3">
+                    {% if card.image %}
+                    <img src="{{ card.image }}" alt="" class="w-20 h-20 object-cover rounded-xl border border-slate-700 flex-shrink-0">
+                    {% else %}
+                    <div class="w-20 h-20 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0"><i class="fa-solid fa-shirt text-2xl"></i></div>
                     {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">{{ card.order.order_number }}</span>
+                        <p class="font-black text-white truncate mt-1">{{ card.article.code|default:"—" }}</p>
+                        <p class="text-xs text-slate-400 truncate">{{ card.article.name|default:"" }}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-3xl font-black text-rose-300">{{ card.total }}</p>
+                        <p class="text-[11px] text-slate-500">OTK</p>
+                    </div>
                 </div>
-
-                <div class="flex items-center gap-2 pt-1">
-                    <input name="counted" inputmode="numeric" required placeholder="Sanagan soningiz"
-                        class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-lg font-bold text-center focus:outline-none focus:border-emerald-500">
-                    <button class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black whitespace-nowrap">Qabul qilish</button>
+                <div class="space-y-1.5">
+                    {% for size, qty in card.sizes.items %}
+                    <form method="POST" action="{% url 'packing:counter_accept' %}" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800">
+                        {% csrf_token %}
+                        <input type="hidden" name="screen" value="{{ selected_patok }}">
+                        <input type="hidden" name="order_id" value="{{ card.order.id }}">
+                        <input type="hidden" name="article_id" value="{{ card.article.id|default:0 }}">
+                        <input type="hidden" name="size" value="{{ size }}">
+                        <span class="w-20 text-sm text-slate-300">Razmer <b class="text-white">{{ size }}</b></span>
+                        <span class="w-16 text-right font-black text-rose-300">{{ qty }}</span>
+                        <input disabled placeholder="Real son" title="Hozircha yopiq — keyinchalik ochiladi"
+                            class="flex-1 min-w-0 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 text-sm text-center cursor-not-allowed">
+                        <button class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black whitespace-nowrap">Savatga</button>
+                    </form>
+                    {% endfor %}
                 </div>
-            </form>
+                {% if card.boxes %}
+                <details class="text-xs border-t border-slate-800 pt-2">
+                    <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200 font-bold">
+                        <i class="fa-solid fa-boxes-stacked mr-1"></i>Qaysi qutilardan ({{ card.box_count }})
+                    </summary>
+                    <div class="mt-2 space-y-1">
+                        {% for b in card.boxes %}
+                        <div class="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                            <span><b class="text-white">{{ b.box_code }}</b> · razmer {{ b.razmer }}</span>
+                            <span class="font-black text-rose-300">{{ b.qty }} dona</span>
+                            {% if b.notes %}<p class="w-full text-[11px] text-slate-400">{{ b.notes|join:" · " }}</p>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+            </div>
             {% empty %}
-            <p class="col-span-full text-slate-500 text-sm">Bu patokda sanaladigan 2-sort qolmadi.</p>
+            <p class="col-span-full text-slate-500 text-sm">Bu patokda 2-sort qolmadi.</p>
             {% endfor %}
         </div>
     </section>
@@ -168,57 +173,44 @@ hali urilmagan qog'ozlar; patoklardagi 2-sort (brak ham) → kartochka bo'yicha 
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h2 class="text-sm font-black text-white uppercase">Mening savatim: <span class="text-rose-300 text-base">{{ basket_total }}</span> dona</h2>
-                <p class="text-xs text-slate-400">Jo'natishdan oldin adashib olingan kartochkani qaytarishingiz mumkin.</p>
+                <h2 class="text-sm font-black text-white uppercase">Mening savatim{% if basket %} <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-orange-300 font-mono">{{ basket.code }}</span>{% endif %}: <span class="text-rose-300 text-base">{{ basket_total }}</span> dona</h2>
+                <p class="text-xs text-slate-400">Jo'natishdan oldin adashib olingan qatorni patokka qaytarishingiz mumkin. Upakovka masteri qabul qilguncha savat "kutilmoqda".</p>
             </div>
             {% if basket_total %}
-            <form method="POST" action="{% url 'packing:counter_send' %}" onsubmit="return confirm('Savatdagi 2-sort upakovkaga jo\'natilsinmi?');">
+            <form method="POST" action="{% url 'packing:counter_send' %}" onsubmit="return confirm('{{ basket.code }} savati upakovkaga jo\'natilsinmi?');">
                 {% csrf_token %}
                 <button class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-sm">
-                    <i class="fa-solid fa-truck-ramp-box mr-1.5"></i>Upakovka 2-sort omboriga jo'natish
+                    <i class="fa-solid fa-truck-ramp-box mr-1.5"></i>Upakovkaga jo'natish
                 </button>
             </form>
             {% endif %}
         </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
-            {% for card in basket_cards %}
-            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
-                <div class="flex gap-3">
-                    {% if card.image %}
-                    <img src="{{ card.image }}" alt="" class="w-20 h-20 object-cover rounded-xl border border-slate-700 flex-shrink-0">
-                    {% else %}
-                    <div class="w-20 h-20 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0"><i class="fa-solid fa-shirt text-2xl"></i></div>
-                    {% endif %}
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[11px] text-slate-400">{{ card.order.order_number }} · {{ card.box_count }} quti</p>
-                        <p class="font-black text-white truncate">{{ card.article.code|default:"—" }}</p>
-                        <div class="flex flex-wrap gap-1 mt-1.5">
-                            {% for size, qty in card.sizes.items %}
-                            <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ size }}</b>: {{ qty }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                        <p class="text-2xl font-black text-rose-300">{{ card.total }}</p>
-                        <p class="text-[11px] text-slate-500">dona</p>
-                    </div>
-                </div>
-                <form method="POST" action="{% url 'packing:counter_remove' %}" class="flex justify-end border-t border-slate-800/80 pt-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="order_id" value="{{ card.order.id }}">
-                    <input type="hidden" name="article_id" value="{{ card.article.id|default:0 }}">
-                    {% if selected_patok is not None %}<input type="hidden" name="patok" value="{{ selected_patok }}">{% endif %}
-                    <button class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-rose-900/60 border border-slate-700 text-xs font-bold text-slate-300 hover:text-rose-200">
-                        <i class="fa-solid fa-rotate-left mr-1"></i>Savatdan qaytarish
-                    </button>
-                </form>
-            </div>
-            {% empty %}
-            <p class="col-span-full text-slate-500 text-sm">Savat hozircha bo'sh.</p>
-            {% endfor %}
-        </div>
+        {% if basket %}{% include 'packing/partials/basket_rows.html' with view=basket_view removable=True %}{% else %}<p class="text-slate-500 text-sm">Savat hozircha bo'sh.</p>{% endif %}
     </section>
+
+    {% for view in returned_baskets %}
+    <section class="bg-rose-950/40 border-2 border-rose-700/70 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-black text-white uppercase">Upakovka qaytardi: <span class="font-mono text-rose-300">{{ view.basket.code }}</span> · {{ view.total }} dona</h2>
+                <p class="text-sm text-rose-200"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ view.basket.return_reason }}</p>
+                <p class="text-xs text-slate-400">{{ view.basket.returned_by.get_full_name|default:view.basket.returned_by.username|default:"—" }} · {{ view.basket.returned_at|date:"d.m H:i" }}</p>
+            </div>
+            {% if view.total %}
+            <form method="POST" action="{% url 'packing:counter_send' %}">
+                {% csrf_token %}
+                <input type="hidden" name="basket_id" value="{{ view.basket.id }}">
+                <button class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-sm">
+                    <i class="fa-solid fa-rotate-right mr-1.5"></i>Tuzatildi — qayta jo'natish
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% include 'packing/partials/basket_rows.html' with view=view removable=True returned=True %}
+    </section>
+    {% endfor %}
+
+    {% include 'packing/partials/basket_search.html' with tab='sanoqchi' %}
 
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
         <div>

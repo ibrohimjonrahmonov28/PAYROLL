@@ -1,0 +1,29 @@
+{% comment %}2-sort savatini kodi bo'yicha qidirish (SV-123456): holati, kim/qachon va tarkibi.{% endcomment %}
+<section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+    <div>
+        <h2 class="text-sm font-black text-white uppercase">Savatni qidirish</h2>
+        <p class="text-xs text-slate-400">Savat kodi bo'yicha: SV-123456 (yoki faqat 6 ta raqam).</p>
+    </div>
+    <form method="GET" class="flex gap-2">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <input name="sv" value="{{ search_code }}" autocomplete="off" placeholder="SV-123456"
+            class="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:outline-none focus:border-orange-500">
+        <button class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black">Topish</button>
+    </form>
+    {% if search_basket %}
+    {% with b=search_basket.basket %}
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        <span class="font-mono font-black text-orange-300 text-base">{{ b.code }}</span>
+        <span class="px-2 py-0.5 rounded-lg text-xs font-black {% if b.status == 'ACCEPTED' %}bg-emerald-950 text-emerald-300{% elif b.status == 'RETURNED' %}bg-rose-950 text-rose-300{% elif b.status == 'SENT' %}bg-amber-950 text-amber-300{% else %}bg-slate-800 text-slate-300{% endif %}">{{ b.get_status_display }}</span>
+        <span class="text-slate-400">Sanoqchi: <b class="text-slate-200">{{ b.counter.get_full_name|default:b.counter.username }}</b></span>
+        <span class="text-slate-400">Jami: <b class="text-rose-300">{{ search_basket.total }}</b> dona</span>
+        {% if b.sent_at %}<span class="text-slate-400">Jo'natilgan: {{ b.sent_at|date:"d.m.Y H:i" }}</span>{% endif %}
+        {% if b.accepted_at %}<span class="text-slate-400">Qabul: {{ b.accepted_at|date:"d.m.Y H:i" }} · {{ b.accepted_by.get_full_name|default:b.accepted_by.username }}</span>{% endif %}
+        {% if b.returned_at %}<span class="text-rose-300">Qaytarilgan: {{ b.returned_at|date:"d.m.Y H:i" }} — {{ b.return_reason }}</span>{% endif %}
+    </div>
+    {% include 'packing/partials/basket_rows.html' with view=search_basket removable=False %}
+    {% endwith %}
+    {% elif search_code %}
+    <p class="text-sm text-rose-300">«{{ search_code }}» kodli savat topilmadi.</p>
+    {% endif %}
+</section>
