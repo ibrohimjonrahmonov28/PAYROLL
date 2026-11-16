@@ -29,6 +29,17 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `efd0fda`] — 16.11.2026
+* **Turi:** `feat(payroll)` — taxlovchi puli (sanoqchi yuborgan ro'yxatlardan), sariq rangda alohida
+* **Mavzu:** Yangi qadoqlash tartibining 4-bosqichi. Sanoqchi "Saqlash va yuborish" bosganda har qator taxlovchi hisobiga pul bo'ladi: dona × shablondagi "OTK Control/Taxlov" narxi (hozircha 1 so'm), yuborilgan kunga. Chevar stikerlari bilan bir xil qoidalar: narx o'zgarsa muzlatilmaganlari qayta hisoblanadi, oy muzlatilsa qulflanadi, kunlik yopishda muhrlanadi. Maosh sahifasi, kunlik tafsilot, CSV, oylik Excel tabel va kun varaqlarida sariqda alohida ko'rinadi.
+* **O'zgartirilgan fayllar:**
+  - `production/taxlov_pay.py` (yangi: `credit_batch`, `reprice_taxlov`, `taxlov_by_worker`, `taxlov_by_worker_day`)
+  - `production/models.py` + `0045_taxlov_pay.py` (`PackingScan`: narx, summa, pul vaqti, muzlatish), `accounts/models.py` + `0022_taxlov_pay.py` (`DailyWorkerClosing.taxlov_units/amount`, `Worker.total_earned`)
+  - `accounts/freeze_services.py` (muzlatish/ochish va oylik reestr), `accounts/management/commands/close_daily_payroll.py`
+  - `accounts/superadmin_views.py`, `templates/superadmin/payroll.html` (maosh sahifasi, kunlik tafsilot, CSV, narx o'zgarishi)
+  - `production/excel_reports.py` (oylik tabel L ustuni, kun varaqlari va kunlik hisobotda TAXLOV bloki), `production/packing_views.py`
+  - `production/test_taxlov_pay.py` (6 ta test — hammasi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `3266dee`] — 16.11.2026
 * **Turi:** `feat(beta)` — sanoqchi taxlovchi badge'i va qog'ozlarini uradi; ta'mir tarixi va urilmagan qog'ozlar
 * **Mavzu:** Yangi qadoqlash tartibining 3-bosqichi. Taxlovchi tizimda hech narsa urmaydi. Sanoqchi tabida: taxlovchi badge'i → uning CONTROL stikerlari va TAMIRn cheklari (son bazadan; har qog'oz bir marta, tartib ahamiyatsiz) → ochiq ro'yxat → "Saqlash va yuborish" → upakovkaning 1-sort balansi. Har skanda qutining hamma qog'ozlari ko'rinadi (necha marta ta'mir, qaysi qog'oz urilmagan); "Hali urilmagan qog'ozlar" ro'yxati; pastal kartochkasida "Ta'mir cheklari". Beta quti endi shablon belgisi bilan ham aniqlanadi.
