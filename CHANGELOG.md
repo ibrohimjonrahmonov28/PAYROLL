@@ -29,6 +29,11 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `22c0ce3`] — 16.11.2026
+* **Turi:** `feat(beta)` — sanoqchi tabidan "Hali urilmagan qog'ozlar" ro'yxati olib tashlandi
+* **Mavzu:** Egasi talabi: sanoqchiga kerak emas. Jadval, "1-Sort" tugmasidagi "N kutilmoqda" belgisi va uning hisob-kitobi olib tashlandi. Keyinchalik superadmin uchun ochiladi (kod `3266dee` da). Qutining qog'ozlari paneli va pastal kartochkasidagi "Ta'mir cheklari" qoladi.
+* **O'zgartirilgan fayllar:** `production/packing_views.py`, `templates/packing/tabs/sanoqchi.html`, `production/test_counter_packing.py`, `CLAUDE.md`
+
 ### 🔹 [Commit: `240b126` + `c61d6b8`] — 16.11.2026
 * **Turi:** `feat(packing)` + `test(beta)` — /beta/ dizayni yangilandi; upakovka tabidagi 500 xatosi tuzatildi
 * **Mavzu:** `0047` migratsiyasi avvalgi "jo'natilgan" savatlarni qabul qilingan deb belgiladi, lekin ularda qabul qilgan master yo'q edi — "Oxirgi savatlar" jadvali va savat qidiruvi bo'sh maydonni o'qib 500 berdi (`/beta/?tab=upakovka`). Yangi dizayn shablonlarida bunday maydonlar himoyalangan; regressiya testi eski shablonlarda aynan shu xato bilan yiqiladi.
