@@ -29,6 +29,13 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `e672c55`] — 16.11.2026
+* **Turi:** `feat(screens)` — Taxlovchilar TV ekranida (`taxlov/<n>/`) tepa patoklar ro'yxati va pul ustunlari olib tashlandi
+* **Mavzu:** TV sarlavhasidan umumiy `PATOKLAR` ro'yxati olib tashlandi; har taxlovchining patogi alohida o'z qatorida (yonida) `Patok` va `Jami Taxladi` ustunlari bilan ko'rsatildi. `Bugungi Ish Haqi` va `Oylik Maosh` ustunlari TV ekranidan hozircha yashirildi.
+* **O'zgartirilgan fayllar:**
+  - `templates/screens/taxlov_monitor.html` (`PATOKLAR` bloki va pul ustunlari olib tashlandi, `Patok` + `Jami Taxladi` ustunlari, JS `fetchScreenData` yangilandi)
+  - `screens/test_packer_screens.py` (yangi tekshiruv — jami 30 ta test o'tgan)
+
 ### 🔹 [Commit: `615d3e2`] — 16.11.2026
 * **Turi:** `feat(beta)` — Sanoqchida badge'dan oldin patok tanlash (TV ekranlar uchun) + Sanoqchi va Upakovka yangi dizayni
 * **Mavzu:** Sanoqchi taxlovchi badge'ini skanerlashdan avval patok (`K1–K13` / `U1–U27`) ni tanlaydi va shu patok `PackingBatch` / `PackingScan` (`screen_number`) ga saqlanib, taxlovchi TV ekranlari (`packer_screens.py`) qutining patogidan ustuvor ravishda aynan sanoqchi qo'ygan patok bo'yicha chiqaradi. Sanoqchi (`sanoqchi.html`), Upakovka (`upakovka.html`) va umumiy qismlar (`cards.html`, `basket_rows.html`, `basket_search.html`) barcha funksiyalari saqlangan holda split-workbench va KPI lentali yangi ko'rinishga o'tkazildi.
