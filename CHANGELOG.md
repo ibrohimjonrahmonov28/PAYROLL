@@ -29,6 +29,13 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `240b126` + `c61d6b8`] — 16.11.2026
+* **Turi:** `feat(packing)` + `test(beta)` — /beta/ dizayni yangilandi; upakovka tabidagi 500 xatosi tuzatildi
+* **Mavzu:** `0047` migratsiyasi avvalgi "jo'natilgan" savatlarni qabul qilingan deb belgiladi, lekin ularda qabul qilgan master yo'q edi — "Oxirgi savatlar" jadvali va savat qidiruvi bo'sh maydonni o'qib 500 berdi (`/beta/?tab=upakovka`). Yangi dizayn shablonlarida bunday maydonlar himoyalangan; regressiya testi eski shablonlarda aynan shu xato bilan yiqiladi.
+* **O'zgartirilgan fayllar:**
+  - `templates/packing/` (hub, tablar va qismlar — yangi dizayn, bo'sh master/sanoqchi uchun himoya)
+  - `production/test_packing_beta.py` (`test_pages_render_with_migrated_basket_without_master`)
+
 ### 🔹 [Commit: `95589a6`] — 16.11.2026
 * **Turi:** `feat(beta)` — 2-sort savatlari (SV-123456), upakovka masteri, beta "bugundan"
 * **Mavzu:** Yangi qadoqlash tartibining 5-bosqichi. Sanoqchi patokdagi 2-sortni zakaz × model × razmer qatorlari bo'yicha (yoki hammasini) savatga oladi — "real son" maydoni hozircha yopiq; savat kodi SV-123456 bo'yicha qidiriladi. Yangi rol "Upakovka masteri" savatni qabul qiladi (upakovkaning 2-sort balansiga) yoki sabab bilan qaytaradi — sanoqchi tuzatib qayta jo'natadi. Eski taxlovchi tabi olib tashlandi. Zakaz beta belgisi endi yoqilgan vaqtdan ishlaydi: undan oldin OTK dan o'tgan qutilar eski tartibda qoladi.
