@@ -29,6 +29,16 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `95589a6`] — 16.11.2026
+* **Turi:** `feat(beta)` — 2-sort savatlari (SV-123456), upakovka masteri, beta "bugundan"
+* **Mavzu:** Yangi qadoqlash tartibining 5-bosqichi. Sanoqchi patokdagi 2-sortni zakaz × model × razmer qatorlari bo'yicha (yoki hammasini) savatga oladi — "real son" maydoni hozircha yopiq; savat kodi SV-123456 bo'yicha qidiriladi. Yangi rol "Upakovka masteri" savatni qabul qiladi (upakovkaning 2-sort balansiga) yoki sabab bilan qaytaradi — sanoqchi tuzatib qayta jo'natadi. Eski taxlovchi tabi olib tashlandi. Zakaz beta belgisi endi yoqilgan vaqtdan ishlaydi: undan oldin OTK dan o'tgan qutilar eski tartibda qoladi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `0046_basket_master.py`, `0047_basket_codes.py` (`SecondSortBatch`: kod, qabul/qaytarish; `Order.packing_beta_since`; eski savatlarga kod, eski jo'natilganlar qabul qilingan)
+  - `accounts/models.py` + `0023_basket_master.py` (rol `PACKING_MASTER`), `accounts/views.py`, `accounts/middleware.py`, `accounts/superadmin_views.py`, `templates/superadmin/users.html`
+  - `production/packing_views.py`, `production/packing_urls.py`, `production/packing_services.py` (`master_accept`, `master_return`, `is_beta_box` / `beta_box_q` boshlanish vaqti bilan)
+  - `templates/packing/tabs/sanoqchi.html`, `upakovka.html`, `zakazlar.html`, `partials/basket_rows.html`, `partials/basket_search.html`; `templates/packing/tabs/taxlovchi.html` o'chirildi
+  - `production/test_packing_beta.py`, `production/test_counter_packing.py` (qadoqlash testlari 48 ta — hammasi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `efd0fda`] — 16.11.2026
 * **Turi:** `feat(payroll)` — taxlovchi puli (sanoqchi yuborgan ro'yxatlardan), sariq rangda alohida
 * **Mavzu:** Yangi qadoqlash tartibining 4-bosqichi. Sanoqchi "Saqlash va yuborish" bosganda har qator taxlovchi hisobiga pul bo'ladi: dona × shablondagi "OTK Control/Taxlov" narxi (hozircha 1 so'm), yuborilgan kunga. Chevar stikerlari bilan bir xil qoidalar: narx o'zgarsa muzlatilmaganlari qayta hisoblanadi, oy muzlatilsa qulflanadi, kunlik yopishda muhrlanadi. Maosh sahifasi, kunlik tafsilot, CSV, oylik Excel tabel va kun varaqlarida sariqda alohida ko'rinadi.
