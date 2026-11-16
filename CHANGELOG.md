@@ -29,6 +29,16 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `a38aec9`] — 16.11.2026
+* **Turi:** `feat(screens)` — taxlovchilar uchun 3 ta TV, sex ekranlarida alohida bo'lim
+* **Mavzu:** Yangi qadoqlash tartibining 6-bosqichi (oxirgisi). `/screens/` sahifasida 40 ta chevar kartochkasi ostida alohida "Taxlovchilar ekranlari" bo'limi; chevarlar kartochkalari va TV'lari o'zgarmagan. TV sahifasi `/screens/taxlov/<n>/` chevarlar TV'si bilan bir xil, faqat headeri boshqacha (PATOKLAR, TAXLOVCHI, BUGUN TAXLANDI, NORMA 1000, O'RTACHA FOIZ). Superadmin `/screens/taxlov/sozlash/` da har patokni bitta ekranga bir marta biriktiradi. Faqat sanoqchi yuborgan taxlov hisoblanadi: taxlovchi bugungi oxirgi yuborilgan qutisi patogining ekranida, kunlik butun ishi bilan; ball = dona × shablondagi taxlov qiyinligi, foiz = ball / 1000; oylik maosh = oylik taxlov + stiker puli.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `0048_packer_screens.py`, `0049_packer_screens_seed.py` (`PackerScreen`, 3 ta ekran)
+  - `production/packer_screens.py` (yangi: `packer_screens_data`)
+  - `screens/views.py`, `screens/urls.py` (TV, API, sozlash; `/screens/` dagi bo'lim)
+  - `templates/screens/taxlov_monitor.html`, `taxlov_settings.html`, `partials/taxlov_patok_grid.html` (yangi), `templates/screens/overview.html` (faqat pastga yangi bo'lim)
+  - `screens/test_packer_screens.py` (4 ta test — hammasi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `22c0ce3`] — 16.11.2026
 * **Turi:** `feat(beta)` — sanoqchi tabidan "Hali urilmagan qog'ozlar" ro'yxati olib tashlandi
 * **Mavzu:** Egasi talabi: sanoqchiga kerak emas. Jadval, "1-Sort" tugmasidagi "N kutilmoqda" belgisi va uning hisob-kitobi olib tashlandi. Keyinchalik superadmin uchun ochiladi (kod `3266dee` da). Qutining qog'ozlari paneli va pastal kartochkasidagi "Ta'mir cheklari" qoladi.
