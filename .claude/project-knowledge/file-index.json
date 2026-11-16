@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 826,
-   "sha256_16": "17d8a151fe403f12"
+   "lines": 836,
+   "sha256_16": "b7f7d824be57e623"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 140,
-   "sha256_16": "2f299247aebd4dfc"
+   "sha256_16": "626a2745e3b5aca2"
   },
   "Dockerfile": {
    "module": "ops",
@@ -869,8 +869,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2105,
-   "sha256_16": "d054875e4134fe8c",
+   "lines": 2133,
+   "sha256_16": "82f82ee380fe22ac",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -904,10 +904,11 @@
     "CancelledBatchLog:1872",
     "PatokAward:1905",
     "RepairReceipt:1970",
-    "PackingScan:2007",
-    "SecondSortBatch:2036",
-    "ReceiptPrinter:2057",
-    "PrintJob:2080"
+    "PackingBatch:2007",
+    "PackingScan:2032",
+    "SecondSortBatch:2064",
+    "ReceiptPrinter:2085",
+    "PrintJob:2108"
    ]
   },
   "production/norma_services.py": {
@@ -951,65 +952,80 @@
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 110,
-   "sha256_16": "24c24f506cc414dc",
+   "lines": 204,
+   "sha256_16": "ec5e43ff738a2e3a",
    "symbols": [
-    "beta_group:21",
-    "_details:31",
-    "create_repair_receipt:45",
-    "close_repair_receipt:52",
-    "parse_packing_code:65",
-    "find_receipt:85",
-    "portion_total:89",
-    "packed_total:97",
-    "available_for_packing:104",
-    "find_box:108"
+    "beta_group:22",
+    "is_beta_box:32",
+    "beta_box_q:37",
+    "_details:48",
+    "create_repair_receipt:62",
+    "close_repair_receipt:69",
+    "parse_packing_code:82",
+    "find_receipt:102",
+    "portion_total:106",
+    "packed_total:114",
+    "available_for_packing:121",
+    "find_box:125",
+    "paper_label:129",
+    "take_paper:133",
+    "paper_status:167"
    ]
   },
   "production/packing_urls.py": {
    "module": "production.platform",
-   "lines": 21,
-   "sha256_16": "112149fe41bf6015"
+   "lines": 25,
+   "sha256_16": "8627bce8c16163f0"
   },
   "production/packing_views.py": {
    "module": "production.platform",
-   "lines": 604,
-   "sha256_16": "8d89a694f1180334",
+   "lines": 704,
+   "sha256_16": "4fcab5c69d394513",
    "symbols": [
-    "_role_required:49",
-    "_hub_url:66",
-    "_int_or_none:71",
-    "_json_body:78",
-    "_today_range:85",
-    "_patok_label:90",
-    "_worker_today_total:94",
-    "_find_worker:100",
-    "_article_card:111",
-    "_group_by_order_article:122",
-    "_pending_second_sort:152",
+    "_role_required:50",
+    "_hub_url:67",
+    "_int_or_none:72",
+    "_json_body:79",
+    "_today_range:86",
+    "_patok_label:91",
+    "_worker_today_total:95",
+    "_find_worker:101",
+    "_article_card:112",
+    "_group_by_order_article:123",
+    "_pending_second_sort:153",
     "_open_basket:157",
     "_screen_filter:164",
     "_today_beta_scans:168",
-    "_tab_badges:177",
-    "_otk_context:195",
-    "_taxlovchi_context:211",
-    "_log_notes_map:216",
-    "_sanoqchi_context:226",
-    "_upakovka_context:266",
-    "_zakazlar_context:292",
-    "hub_view:330",
-    "repair_receipt_view:352",
-    "_not_beta_response:367",
-    "_receipt_summary:375",
-    "api_otk_lookup:396",
-    "api_otk_submit:416",
-    "api_identify:447",
-    "api_scan:458",
-    "counter_accept:511",
-    "counter_basket_remove:540",
-    "counter_send:565",
-    "counter_cancel:580",
-    "beta_toggle:597"
+    "_tab_badges:176",
+    "_otk_context:194",
+    "_taxlovchi_context:210",
+    "_log_notes_map:215",
+    "_sanoqchi_context:225",
+    "_upakovka_context:268",
+    "_zakazlar_context:294",
+    "hub_view:332",
+    "repair_receipt_view:354",
+    "_not_beta_response:369",
+    "_receipt_summary:377",
+    "api_otk_lookup:398",
+    "api_otk_submit:418",
+    "api_identify:449",
+    "api_scan:460",
+    "_open_packing_batch:487",
+    "_scan_line:494",
+    "_batch_payload:505",
+    "_worker_payload:511",
+    "_box_papers_for_code:515",
+    "api_counter_packer:524",
+    "api_counter_paper:534",
+    "api_counter_remove:555",
+    "api_counter_send:568",
+    "_unscanned_papers:580",
+    "counter_accept:611",
+    "counter_basket_remove:640",
+    "counter_send:665",
+    "counter_cancel:680",
+    "beta_toggle:697"
    ]
   },
   "production/passport_bot_service.py": {
@@ -1038,13 +1054,13 @@
   },
   "production/pastal_info.py": {
    "module": "production.platform",
-   "lines": 292,
-   "sha256_16": "155c5976a7011453",
+   "lines": 298,
+   "sha256_16": "add3cbaf302c668f",
    "symbols": [
-    "_user_name:27",
-    "find_pastal_batches:33",
-    "_pastal_state:62",
-    "build_pastal_info:81"
+    "_user_name:28",
+    "find_pastal_batches:34",
+    "_pastal_state:63",
+    "build_pastal_info:82"
    ]
   },
   "production/print_urls.py": {
@@ -1741,8 +1757,8 @@
   },
   "templates/packing/tabs/sanoqchi.html": {
    "module": "templates",
-   "lines": 188,
-   "sha256_16": "f324cf5f567c71f5"
+   "lines": 436,
+   "sha256_16": "510935c98ee07d2a"
   },
   "templates/packing/tabs/taxlovchi.html": {
    "module": "templates",
@@ -1806,8 +1822,8 @@
   },
   "templates/production/partials/pastal_info_card.html": {
    "module": "templates",
-   "lines": 243,
-   "sha256_16": "17ec70eadc913b78"
+   "lines": 270,
+   "sha256_16": "7c2eaadff01f1ed2"
   },
   "templates/production/partials/size_boxes_pipeline.html": {
    "module": "templates",

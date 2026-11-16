@@ -224,6 +224,33 @@ Kontekst: info — production/pastal_info.py::build_pastal_info natijasi.
         </div>
     </div>
 
+    {% if info.repairs %}
+    <!-- Ta'mir cheklari: har quti necha marta ta'mirga ketgan va qaysi qog'oz hali urilmagan -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-screwdriver-wrench text-amber-400"></i> Ta'mir cheklari ({{ info.repairs|length }} quti)
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {% for box in info.repairs %}
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                    <b class="text-white text-xs">{{ box.box_code }}</b>
+                    <span class="px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 font-black">Ta'mirga {{ box.repair_cycles }} marta</span>
+                </div>
+                {% for paper in box.papers %}
+                <div class="flex flex-wrap items-center justify-between gap-1 text-slate-400">
+                    <span><b class="text-slate-200">{{ paper.label }}</b>{% if paper.sent_to_repair is not None %} · {{ paper.sent_to_repair }} ta'mirga{% endif %} · {{ paper.portion }} ta 1-sort</span>
+                    <span class="font-bold {% if paper.state == 'done' %}text-emerald-300{% elif paper.state == 'waiting' %}text-rose-300{% elif paper.state == 'in_repair' %}text-amber-300{% else %}text-slate-500{% endif %}">
+                        {% if paper.state == 'done' %}urilgan{% elif paper.state == 'waiting' %}{{ paper.waiting }} dona urilmagan{% elif paper.state == 'in_repair' %}ta'mirda{% elif paper.state == 'not_inspected' %}OTK tekshirmagan{% else %}1-sort yo'q{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Voqealar tarixi -->
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
         <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 mb-2">

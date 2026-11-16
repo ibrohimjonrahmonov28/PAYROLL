@@ -130,7 +130,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3349,
+  "lines": 3359,
   "depends_on": [
    "accounts.core"
   ]
@@ -251,7 +251,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2105,
+  "lines": 2133,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -319,7 +319,7 @@
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg"
   ],
-  "lines": 1651,
+  "lines": 1855,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -514,7 +514,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45346,
+  "lines": 45621,
   "depends_on": []
  },
  "tests": {

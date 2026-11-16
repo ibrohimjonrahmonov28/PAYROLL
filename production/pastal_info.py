@@ -9,7 +9,8 @@ from collections import defaultdict
 from django.db.models import Count, Max, Min, Q, Sum
 
 from production.daily_dazmol import main_dazmol_operation_ids
-from production.models import Box, BoxQualityInspectionLog, CuttingBatch, CuttingBatchItem, Ticket
+from production.models import Box, BoxQualityInspectionLog, CuttingBatch, CuttingBatchItem, RepairReceipt, Ticket
+from production.packing_services import paper_status
 from production.services import get_patok_code
 
 BATCH_SELECT = (
@@ -184,6 +185,10 @@ def build_pastal_info(batch):
         'last_at': lg['last'],
     }
 
+    # 4b. Ta'mir cheklari (TAMIR1, TAMIR2, ...): qaysi quti necha marta ta'mirga ketgan, qaysi qog'oz hali urilmagan
+    repair_box_ids = set(RepairReceipt.objects.filter(box_id__in=active_ids).values_list('box_id', flat=True))
+    repairs = [paper_status(b) for b in active if b.id in repair_box_ids]
+
     # 5. Patokka jo'natish va qabul, Uychi yuk xati
     dispatch = {
         'status': batch.dispatch_status,
@@ -283,6 +288,7 @@ def build_pastal_info(batch):
         'sewing': sewing,
         'dazmol': dazmol,
         'otk': otk,
+        'repairs': repairs,
         'dispatch': dispatch,
         'waybill': waybill,
         'state_label': state_label,

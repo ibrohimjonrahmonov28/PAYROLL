@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 214,
+ "route_count": 218,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1796,6 +1796,46 @@
    "path": "/beta/api/scan/",
    "name": "packing:api_scan",
    "view": "production.packing_views.api_scan",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/sanoqchi/taxlovchi/",
+   "name": "packing:api_counter_packer",
+   "view": "production.packing_views.api_counter_packer",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/sanoqchi/qogoz/",
+   "name": "packing:api_counter_paper",
+   "view": "production.packing_views.api_counter_paper",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/sanoqchi/olib-tashlash/",
+   "name": "packing:api_counter_remove",
+   "view": "production.packing_views.api_counter_remove",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/sanoqchi/yuborish/",
+   "name": "packing:api_counter_send",
+   "view": "production.packing_views.api_counter_send",
    "urlconf": "production.packing_urls",
    "decorators": [
     "_role_required",

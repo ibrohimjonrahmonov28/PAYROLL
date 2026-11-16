@@ -6,8 +6,8 @@
    "latest": "0021_packing_counter_roles"
   },
   "production": {
-   "count": 43,
-   "latest": "0043_repair_receipt_cycles"
+   "count": 44,
+   "latest": "0044_packing_batches"
   },
   "screens": {
    "count": 0,
@@ -1076,9 +1076,35 @@
     }
    ]
   },
+  "production.PackingBatch": {
+   "table": "production_packingbatch",
+   "file": "production/models.py:2007",
+   "fields": {
+    "id": "BigAutoField",
+    "status": "CharField[idx,choices]",
+    "created_at": "DateTimeField",
+    "sent_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "counter",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "PROTECT",
+     "related_name": "packing_batches"
+    },
+    {
+     "field": "worker",
+     "type": "ForeignKey",
+     "to": "accounts.Worker",
+     "on_delete": "PROTECT",
+     "related_name": "packing_batches"
+    }
+   ]
+  },
   "production.PackingScan": {
    "table": "production_packingscan",
-   "file": "production/models.py:2007",
+   "file": "production/models.py:2032",
    "fields": {
     "id": "BigAutoField",
     "source": "CharField[choices]",
@@ -1110,6 +1136,13 @@
      "related_name": "packing_scans"
     },
     {
+     "field": "batch",
+     "type": "ForeignKey",
+     "to": "production.PackingBatch",
+     "on_delete": "PROTECT",
+     "related_name": "scans"
+    },
+    {
      "field": "terminal_user",
      "type": "ForeignKey",
      "to": "accounts.User",
@@ -1127,7 +1160,7 @@
   },
   "production.SecondSortBatch": {
    "table": "production_secondsortbatch",
-   "file": "production/models.py:2036",
+   "file": "production/models.py:2064",
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",
@@ -1146,7 +1179,7 @@
   },
   "production.ReceiptPrinter": {
    "table": "production_receiptprinter",
-   "file": "production/models.py:2057",
+   "file": "production/models.py:2085",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField[unique]",
@@ -1161,7 +1194,7 @@
   },
   "production.PrintJob": {
    "table": "production_printjob",
-   "file": "production/models.py:2080",
+   "file": "production/models.py:2108",
    "fields": {
     "id": "BigAutoField",
     "title": "CharField",

@@ -17,7 +17,8 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, IntegerField, OuterRef, Q, Subquery, Sum
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -26,10 +27,10 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User, Worker
 from production.control_views import control_box_lookup_api, control_submit_inspection_api
-from production.models import (Box, BoxQualityInspectionLog, Order, PackingScan, RepairReceipt, SecondSortBatch,
-                               _generate_qr_data_uri)
-from production.packing_services import (available_for_packing, find_receipt, packed_total, parse_packing_code,
-                                         portion_total)
+from production.models import (Box, BoxQualityInspectionLog, Order, PackingBatch, PackingScan, RepairReceipt,
+                               SecondSortBatch, _generate_qr_data_uri)
+from production.packing_services import (SENT_SCANS, beta_box_q, is_beta_box, paper_label, paper_status,
+                                         parse_packing_code, take_paper)
 from production.services import get_patok_code
 from production.sewing_statistics_views import natural_size_sort_key
 from production.terminal_views import extract_worker_code
@@ -93,7 +94,7 @@ def _patok_label(screen):
 
 def _worker_today_total(worker):
     start, end = _today_range()
-    return PackingScan.objects.filter(worker=worker, is_cancelled=False, scanned_at__gte=start,
+    return PackingScan.objects.filter(SENT_SCANS, worker=worker, is_cancelled=False, scanned_at__gte=start,
                                       scanned_at__lt=end).aggregate(s=Sum('quantity'))['s'] or 0
 
 
@@ -150,8 +151,7 @@ SCAN_RELATED = BOX_RELATED + ('worker',)
 
 
 def _pending_second_sort():
-    return BoxQualityInspectionLog.objects.filter(
-        box__order__packing_beta=True, second_sort_qty__gt=0, second_sort_batch__isnull=True)
+    return BoxQualityInspectionLog.objects.filter(beta_box_q(), second_sort_qty__gt=0, second_sort_batch__isnull=True)
 
 
 def _open_basket(user, create=False):
@@ -167,8 +167,7 @@ def _screen_filter(screen):
 
 def _today_beta_scans(limit=15):
     start, end = _today_range()
-    qs = (PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True,
-                                     scanned_at__gte=start, scanned_at__lt=end)
+    qs = (PackingScan.objects.filter(SENT_SCANS, beta_box_q(), is_cancelled=False, scanned_at__gte=start, scanned_at__lt=end)
           .select_related(*SCAN_RELATED).order_by('-scanned_at'))
     total = qs.aggregate(s=Sum('quantity'))['s'] or 0
     return list(qs[:limit]), total
@@ -178,11 +177,11 @@ def _tab_badges(allowed_keys):
     """Tab sarlavhalaridagi jonli ko'rsatkichlar (0 bo'lsa ko'rsatilmaydi)."""
     badges = {}
     if 'otk' in allowed_keys:
-        badges['otk'] = RepairReceipt.objects.filter(box__order__packing_beta=True, returned_at__isnull=True).count()
+        badges['otk'] = RepairReceipt.objects.filter(beta_box_q(), returned_at__isnull=True).count()
     if 'sanoqchi' in allowed_keys:
         badges['sanoqchi'] = _pending_second_sort().aggregate(s=Sum('second_sort_qty'))['s'] or 0
     if 'upakovka' in allowed_keys:
-        badges['upakovka'] = (PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True)
+        badges['upakovka'] = (PackingScan.objects.filter(SENT_SCANS, beta_box_q(), is_cancelled=False)
                               .aggregate(s=Sum('quantity'))['s'] or 0)
     if 'zakazlar' in allowed_keys:
         badges['zakazlar'] = (Order.objects.exclude(status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED])
@@ -194,7 +193,7 @@ def _tab_badges(allowed_keys):
 
 def _otk_context(request):
     since = timezone.now() - timezone.timedelta(days=7)
-    receipts = list(RepairReceipt.objects.filter(created_at__gte=since, box__order__packing_beta=True)
+    receipts = list(RepairReceipt.objects.filter(beta_box_q(), created_at__gte=since)
                     .select_related(*BOX_RELATED, 'inspector').order_by('-created_at')[:100])
     active_count = 0
     for receipt in receipts:
@@ -250,7 +249,10 @@ def _sanoqchi_context(request):
         if cycle:
             scans = scans.filter(repair_receipt__cycle=cycle)
         cancel_scans = list(scans.select_related(*SCAN_RELATED).order_by('-scanned_at'))
+    unscanned = _unscanned_papers()
     return {
+        'unscanned': unscanned,
+        'unscanned_total': sum(row['waiting'] for row in unscanned),
         'patoks': patoks,
         'selected_patok': selected,
         'selected_patok_code': _patok_label(selected) if selected is not None else '',
@@ -264,18 +266,18 @@ def _sanoqchi_context(request):
 
 
 def _upakovka_context(request):
-    scans = PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True).select_related(*BOX_RELATED)
+    scans = PackingScan.objects.filter(SENT_SCANS, beta_box_q(), is_cancelled=False).select_related(*BOX_RELATED)
     waiting = _group_by_order_article((s.box, s.quantity) for s in scans.order_by('box__order__order_number', 'box__razmer'))
 
     start, end = _today_range()
-    today_packers = list(PackingScan.objects.filter(is_cancelled=False, box__order__packing_beta=True,
+    today_packers = list(PackingScan.objects.filter(SENT_SCANS, beta_box_q(), is_cancelled=False,
                                                     scanned_at__gte=start, scanned_at__lt=end)
                          .values('worker__worker_id', 'worker__first_name', 'worker__last_name')
                          .annotate(pieces=Sum('quantity'), scans=Count('id')).order_by('-pieces'))
     today_scans, today_total = _today_beta_scans(limit=15)
 
     sent_logs = BoxQualityInspectionLog.objects.filter(
-        box__order__packing_beta=True, second_sort_batch__status=SecondSortBatch.Status.SENT
+        beta_box_q(), second_sort_batch__status=SecondSortBatch.Status.SENT
     ).select_related(*BOX_RELATED)
     second_sort = _group_by_order_article((log.box, log.second_sort_qty) for log in sent_logs)
     return {
@@ -365,7 +367,7 @@ def repair_receipt_view(request, receipt_id):
 
 
 def _not_beta_response(box):
-    if box.order and box.order.packing_beta:
+    if is_beta_box(box):
         return None
     order = box.order.order_number if box.order else '—'
     return JsonResponse({'status': 'NOT_BETA', 'message': (
@@ -460,51 +462,149 @@ def api_scan(request):
     worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id')), is_active=True).first()
     if not worker:
         return JsonResponse({'status': 'NO_WORKER', 'message': "Avval o'z badge'ingizni uring."}, status=400)
-    source, box_code, cycle = parse_packing_code(data.get('code'))
-    if not source:
-        return JsonResponse({'status': 'BAD_CODE', 'message': (
-            "Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.")}, status=400)
-
-    with transaction.atomic():
-        box = Box.objects.select_for_update(of=('self',)).select_related('order', 'article').filter(
-            box_code__iexact=box_code).first()
-        if not box:
-            return JsonResponse({'status': 'NOT_FOUND', 'message': f"«{box_code}» quti topilmadi."}, status=404)
-        if not box.order or not box.order.packing_beta:
-            return JsonResponse({'status': 'NOT_BETA', 'message': "Bu zakaz yangi qadoqlash tartibida emas."}, status=400)
-        if box.status == Box.Status.CANCELLED:
-            return JsonResponse({'status': 'CANCELLED', 'message': "Bu quti bekor qilingan."}, status=400)
-
-        receipt = find_receipt(box, cycle) if source == PackingScan.Source.TAMIR else None
-        if source == PackingScan.Source.TAMIR and receipt is None:
-            return JsonResponse({'status': 'NOT_FOUND', 'message': f"«TAMIR{cycle}:{box.box_code}» cheki yo'q."}, status=404)
-        available = available_for_packing(box, source, receipt)
-        if available <= 0:
-            if source == PackingScan.Source.CONTROL and not portion_total(box, source):
-                message = "OTK bu qutini hali tekshirmagan (yoki 1-sort yo'q)."
-            elif receipt is not None and receipt.is_open:
-                message = f"{receipt.cycle}-ta'mir cheki hali ta'mirdan qaytmagan."
-            elif receipt is not None and not receipt.first_sort_qty:
-                message = f"{receipt.cycle}-ta'mir chekidan 1-sort chiqmagan."
-            else:
-                message = f"Bu qog'oz allaqachon urilgan: {packed_total(box, source, receipt)} dona qadoqlangan."
-            return JsonResponse({'status': 'NOTHING', 'message': message}, status=400)
-
-        PackingScan.objects.create(box=box, source=source, repair_receipt=receipt, worker=worker, quantity=available,
-                                   terminal_user=request.user)
+    scan, error = take_paper(data.get('code'), worker, request.user)
+    if error:
+        status, message = error
+        return JsonResponse({'status': status, 'message': message}, status=404 if status == 'NOT_FOUND' else 400)
+    box, available, receipt = scan.box, scan.quantity, scan.repair_receipt
 
     article = box.target_article
     return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: +{available} dona", 'scan': {
         'quantity': available,
-        'source': f"{receipt.cycle}-ta'mir cheki" if receipt else PackingScan.Source(source).label,
+        'source': f"{receipt.cycle}-ta'mir cheki" if receipt else PackingScan.Source(scan.source).label,
         'box_code': box.box_code,
-        'order': box.order.order_number,
+        'order': box.order.order_number if box.order_id else '',
         'article': f"{article.code} — {article.name}" if article else '',
         'size': box.razmer or '—',
     }, 'worker_today': _worker_today_total(worker)})
 
 
-# ------------------------------------------------------------------ Sanoqchi tabi
+# ------------------------------------------------------------------ Sanoqchi tabi: taxlovchi qog'ozlari (1-sort)
+# Egasi talabi 2026-11-14: taxlovchi tizimda hech narsa urmaydi (chevar kabi). Sanoqchi avval taxlovchi badge'ini, keyin
+# uning qog'ozlarini uradi — CONTROL stikeri (qog'ozda 50, bazada OTK 1-sorti 40) va TAMIRn cheklari, har biri bir marta.
+# "Saqlash va yuborish" — ro'yxat shu taxlovchi hisobiga yoziladi va upakovkaning 1-sort balansiga tushadi.
+
+def _open_packing_batch(counter, worker, create=False):
+    batch = PackingBatch.objects.filter(counter=counter, worker=worker, status=PackingBatch.Status.OPEN).first()
+    if batch is None and create:
+        batch = PackingBatch.objects.create(counter=counter, worker=worker)
+    return batch
+
+
+def _scan_line(scan):
+    box = scan.box
+    article = box.target_article
+    return {
+        'id': scan.id, 'box_code': box.box_code, 'paper': paper_label(scan.source, scan.repair_receipt),
+        'quantity': scan.quantity, 'order': box.order.order_number if box.order_id else '',
+        'article': article.code if article else '', 'size': box.razmer or '—',
+        'patok': _patok_label(box.assigned_screen),
+    }
+
+
+def _batch_payload(batch):
+    scans = (batch.scans.select_related(*BOX_RELATED, 'repair_receipt').order_by('scanned_at') if batch else [])
+    lines = [_scan_line(scan) for scan in scans]
+    return {'lines': lines, 'total': sum(line['quantity'] for line in lines)}
+
+
+def _worker_payload(worker):
+    return {'id': worker.id, 'name': worker.full_name, 'code': worker.worker_id, 'today': _worker_today_total(worker)}
+
+
+def _box_papers_for_code(raw_code):
+    """Xato bo'lsa ham sanoqchi qutining hamma qog'ozlarini ko'rsin (qaysi biri urilgan, qaysi biri yo'qolgan)."""
+    source, box_code, _cycle = parse_packing_code(raw_code)
+    box = Box.objects.select_related('order', 'article').filter(box_code__iexact=box_code).first() if source else None
+    return paper_status(box) if box is not None and is_beta_box(box) else None
+
+
+@_role_required(User.Role.COUNTER)
+@require_POST
+def api_counter_packer(request):
+    worker = _find_worker(_json_body(request).get('code'))
+    if not worker:
+        return JsonResponse({'status': 'NOT_FOUND', 'message': "Taxlovchi topilmadi — badge'ni qayta uring."}, status=404)
+    return JsonResponse({'status': 'OK', 'worker': _worker_payload(worker),
+                         'batch': _batch_payload(_open_packing_batch(request.user, worker))})
+
+
+@_role_required(User.Role.COUNTER)
+@require_POST
+def api_counter_paper(request):
+    data = _json_body(request)
+    worker = Worker.objects.filter(id=_int_or_none(data.get('worker_id')), is_active=True).first()
+    if not worker:
+        return JsonResponse({'status': 'NO_WORKER', 'message': "Avval taxlovchi badge'ini uring."}, status=400)
+    code = data.get('code')
+    with transaction.atomic():
+        batch = _open_packing_batch(request.user, worker, create=True)
+        scan, error = take_paper(code, worker, request.user, batch=batch)
+        if error:
+            transaction.set_rollback(True)          # qog'oz olinmadi — bo'sh ro'yxat ham qolmasin
+    if error:
+        status, message = error
+        return JsonResponse({'status': status, 'message': message, 'box': _box_papers_for_code(code)},
+                            status=404 if status == 'NOT_FOUND' else 400)
+    return JsonResponse({'status': 'OK', 'line': _scan_line(scan), 'batch': _batch_payload(batch),
+                         'box': paper_status(scan.box)})
+
+
+@_role_required(User.Role.COUNTER)
+@require_POST
+def api_counter_remove(request):
+    """Hali yuborilmagan ro'yxatdan qatorni olib tashlash (qog'oz yana bo'sh bo'ladi)."""
+    scan = PackingScan.objects.filter(id=_int_or_none(_json_body(request).get('scan_id')), batch__counter=request.user,
+                                      batch__status=PackingBatch.Status.OPEN).select_related('batch').first()
+    if not scan:
+        return JsonResponse({'status': 'NOT_FOUND', 'message': "Bu qator ro'yxatda yo'q yoki allaqachon yuborilgan."}, status=404)
+    batch = scan.batch
+    scan.delete()
+    return JsonResponse({'status': 'OK', 'batch': _batch_payload(batch)})
+
+
+@_role_required(User.Role.COUNTER)
+@require_POST
+def api_counter_send(request):
+    worker = Worker.objects.filter(id=_int_or_none(_json_body(request).get('worker_id'))).first()
+    batch = _open_packing_batch(request.user, worker) if worker else None
+    if batch is None or not batch.scans.exists():
+        return JsonResponse({'status': 'EMPTY', 'message': "Ro'yxat bo'sh — avval qog'ozlarni uring."}, status=400)
+    total = batch.scans.aggregate(s=Sum('quantity'))['s'] or 0
+    batch.status, batch.sent_at = PackingBatch.Status.SENT, timezone.now()
+    batch.save(update_fields=['status', 'sent_at'])
+    return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: {total} dona yozildi va upakovkaga yuborildi.",
+                         'worker': _worker_payload(worker)})
+
+
+def _unscanned_papers(limit=150):
+    """Hali urilmagan qog'ozlar (beta qutilar): OTK 1-sorti bor, lekin CONTROL stikeri urilmagan; ta'mirdan qaytgan,
+    1-sorti bor, lekin TAMIRn cheki urilmagan. Ochiq ro'yxatdagi qog'oz urilgan hisoblanadi."""
+    control_portion = (BoxQualityInspectionLog.objects
+                       .filter(box=OuterRef('pk'), action_type=BoxQualityInspectionLog.ActionType.INITIAL)
+                       .values('box').annotate(s=Sum('first_sort_qty')).values('s')[:1])
+    control_taken = (PackingScan.objects.filter(box=OuterRef('pk'), source=PackingScan.Source.CONTROL, is_cancelled=False)
+                     .values('box').annotate(s=Sum('quantity')).values('s')[:1])
+    boxes = (Box.objects.filter(beta_box_q('')).exclude(status=Box.Status.CANCELLED)
+             .annotate(portion=Coalesce(Subquery(control_portion, output_field=IntegerField()), 0),
+                       taken=Coalesce(Subquery(control_taken, output_field=IntegerField()), 0))
+             .filter(portion__gt=F('taken')).select_related('order').order_by('controlled_at')[:limit])
+    receipt_taken = (PackingScan.objects.filter(repair_receipt=OuterRef('pk'), is_cancelled=False)
+                     .values('repair_receipt').annotate(s=Sum('quantity')).values('s')[:1])
+    receipts = (RepairReceipt.objects.filter(beta_box_q(), returned_at__isnull=False, first_sort_qty__gt=0)
+                .annotate(taken=Coalesce(Subquery(receipt_taken, output_field=IntegerField()), 0))
+                .filter(first_sort_qty__gt=F('taken')).select_related('box__order').order_by('returned_at')[:limit])
+    rows = [{'patok': _patok_label(b.assigned_screen), 'box_code': b.box_code, 'paper': "CONTROL",
+             'code': f"CONTROL:{b.box_code}", 'waiting': b.portion - b.taken, 'since': b.controlled_at,
+             'order': b.order.order_number if b.order_id else ''} for b in boxes]
+    rows += [{'patok': _patok_label(r.box.assigned_screen), 'box_code': r.box.box_code,
+              'paper': paper_label(PackingScan.Source.TAMIR, r), 'code': r.qr_text, 'waiting': r.first_sort_qty - r.taken,
+              'since': r.returned_at, 'order': r.box.order.order_number if r.box.order_id else ''} for r in receipts]
+    rows.sort(key=lambda row: row['since'] or timezone.now())
+    return rows[:limit]
+
+
+# ------------------------------------------------------------------ Sanoqchi tabi: 2-sort savati
 
 @_role_required(User.Role.COUNTER)
 @require_POST

@@ -1,5 +1,78 @@
-{% comment %}Sanoqchi tabi: patoklardagi 2-sort (brak ham) → kartochka bo'yicha sanab qabul → savat → upakovkaga jo'natish; xato skanni bekor qilish.{% endcomment %}
+{% comment %}Sanoqchi tabi: 1-sort — taxlovchi badge'i, keyin uning CONTROL / TAMIRn qog'ozlari → "Saqlash va yuborish" (upakovka 1-sort balansi);
+hali urilmagan qog'ozlar; patoklardagi 2-sort (brak ham) → kartochka bo'yicha sanab qabul → savat → upakovkaga jo'natish; xato skanni bekor qilish.{% endcomment %}
 <div class="space-y-6">
+    <section class="bg-slate-900 border-2 border-emerald-700/60 rounded-2xl p-4 space-y-4">
+        <div>
+            <h1 class="text-xl font-black text-white">1-sort: taxlovchi qog'ozlari</h1>
+            <p class="text-xs text-slate-400">Avval taxlovchi badge'ini, keyin uning CONTROL stikerlari va TAMIR cheklarini uring. Son qog'ozdan emas, bazadan olinadi; har qog'oz bir marta.</p>
+        </div>
+        <input id="counter-input" autocomplete="off" autofocus
+            placeholder="Skaner bilan uring: taxlovchi badge'i, CONTROL stikeri, TAMIR cheki yoki quti kodi"
+            class="w-full px-4 py-3 rounded-2xl bg-slate-950 border-2 border-emerald-600 text-white text-base sm:text-lg focus:outline-none">
+
+        <div id="packer-card" class="bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p id="packer-step" class="text-[11px] font-bold uppercase text-slate-500">1-qadam · Taxlovchi badge'i</p>
+                <p id="packer-name" class="text-xl font-black text-white">Taxlovchi tanlanmagan</p>
+                <p id="packer-today" class="text-sm text-slate-400">Taxlovchining badge'ini skaner bilan uring</p>
+            </div>
+            <button type="button" id="packer-reset" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Boshqa taxlovchi</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="text-sm font-black text-white uppercase">Ro'yxat: <span id="batch-total" class="text-emerald-300 text-base">0</span> dona</h2>
+                    <button type="button" id="send-btn" disabled
+                        class="px-4 py-2.5 rounded-xl bg-emerald-600 enabled:hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-sm">
+                        <i class="fa-solid fa-paper-plane mr-1.5"></i>Saqlash va yuborish
+                    </button>
+                </div>
+                <div id="batch-lines" class="space-y-1.5"></div>
+                <div id="counter-results" class="space-y-2"></div>
+            </div>
+            <div class="space-y-2">
+                <h2 class="text-sm font-black text-white uppercase">Quti qog'ozlari</h2>
+                <div id="box-papers" class="bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-slate-500">
+                    Qog'oz urilganda shu qutining hamma qog'ozlari chiqadi: qaysi biri urilgan, qaysi biri hali kutilmoqda.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="text-sm font-black text-white uppercase">Hali urilmagan qog'ozlar: <span class="text-rose-300 text-base">{{ unscanned_total }}</span> dona</h2>
+                <p class="text-xs text-slate-400">OTK yoki ta'mirdan 1-sort chiqqan, lekin CONTROL stikeri yoki TAMIR cheki hali urilmagan. Eng eskisi tepada.</p>
+            </div>
+            <a href="?tab=sanoqchi" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"><i class="fa-solid fa-rotate mr-1"></i>Yangilash</a>
+        </div>
+        {% if unscanned %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400 text-left">
+                    <tr><th class="px-2 py-1.5">Patok</th><th class="px-2 py-1.5">Quti</th><th class="px-2 py-1.5">Qog'oz</th><th class="px-2 py-1.5">Zakaz</th><th class="px-2 py-1.5 text-right">Kutilmoqda</th><th class="px-2 py-1.5">Qachondan</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in unscanned %}
+                    <tr class="border-t border-slate-800">
+                        <td class="px-2 py-1.5 font-black text-white">{{ row.patok }}</td>
+                        <td class="px-2 py-1.5 font-bold text-slate-200">{{ row.box_code }}</td>
+                        <td class="px-2 py-1.5"><span class="px-1.5 py-0.5 rounded {% if row.paper == 'CONTROL' %}bg-slate-800 text-slate-200{% else %}bg-amber-950 text-amber-300{% endif %} text-xs font-black">{{ row.paper }}</span></td>
+                        <td class="px-2 py-1.5 text-slate-400">{{ row.order }}</td>
+                        <td class="px-2 py-1.5 text-right font-black text-rose-300">{{ row.waiting }}</td>
+                        <td class="px-2 py-1.5 text-xs text-slate-500">{{ row.since|date:"d.m H:i"|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500">Hamma qog'ozlar urilgan.</p>
+        {% endif %}
+    </section>
+
     <section>
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h1 class="text-xl font-black text-white">Patoklardagi 2-sort (brak ham)</h1>
@@ -185,3 +258,178 @@
         {% endfor %}
     </section>
 </div>
+
+<script>
+    (function () {
+        const input = document.getElementById('counter-input');
+        const urls = {
+            packer: '{% url "packing:api_counter_packer" %}', paper: '{% url "packing:api_counter_paper" %}',
+            remove: '{% url "packing:api_counter_remove" %}', send: '{% url "packing:api_counter_send" %}',
+        };
+        const STATES = {
+            done: ['fa-circle-check text-emerald-400', "urilgan"],
+            waiting: ['fa-circle-exclamation text-rose-400', "hali urilmagan"],
+            in_repair: ['fa-screwdriver-wrench text-amber-400', "ta'mirda"],
+            not_inspected: ['fa-hourglass-half text-slate-400', "OTK hali tekshirmagan"],
+            empty: ['fa-minus text-slate-500', "1-sort chiqmagan"],
+        };
+        let packer = null;
+        let batch = {lines: [], total: 0};
+
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+
+        function message(ok, title, subtitle) {
+            const row = el('div', `p-3 rounded-xl border ${ok ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'}`);
+            row.append(el('p', 'font-black', title));
+            if (subtitle) row.append(el('p', 'text-sm opacity-85', subtitle));
+            const box = document.getElementById('counter-results');
+            box.prepend(row);
+            while (box.children.length > 5) box.lastChild.remove();
+        }
+
+        function renderPacker() {
+            document.getElementById('packer-card').classList.toggle('border-emerald-600', !!packer);
+            document.getElementById('packer-step').textContent = packer ? "2-qadam · Taxlovchining qog'ozlarini uring" : "1-qadam · Taxlovchi badge'i";
+            document.getElementById('packer-name').textContent = packer ? `${packer.name} (${packer.code})` : 'Taxlovchi tanlanmagan';
+            document.getElementById('packer-today').textContent = packer ? `Bugun yuborilgan: ${packer.today} dona` : "Taxlovchining badge'ini skaner bilan uring";
+            document.getElementById('packer-reset').classList.toggle('hidden', !packer);
+        }
+
+        function renderBatch(data) {
+            batch = data || {lines: [], total: 0};
+            document.getElementById('batch-total').textContent = batch.total;
+            document.getElementById('send-btn').disabled = !packer || !batch.lines.length;
+            const list = document.getElementById('batch-lines');
+            list.replaceChildren();
+            batch.lines.slice().reverse().forEach((line) => {
+                const row = el('div', 'px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2');
+                const info = el('div', 'min-w-0');
+                info.append(el('p', 'font-black text-white', `${line.box_code} · ${line.paper}`));
+                info.append(el('p', 'text-xs text-slate-400 truncate', `${line.patok} · ${line.order} · ${line.article} · razmer ${line.size}`));
+                const right = el('div', 'flex items-center gap-2 flex-shrink-0');
+                right.append(el('span', 'text-xl font-black text-emerald-300', `${line.quantity}`));
+                const remove = el('button', 'px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-xs text-slate-300', '✕');
+                remove.type = 'button';
+                remove.title = "Ro'yxatdan olib tashlash";
+                remove.addEventListener('click', () => removeLine(line.id));
+                right.append(remove);
+                row.append(info, right);
+                list.append(row);
+            });
+            if (!batch.lines.length) list.append(el('p', 'text-sm text-slate-500', packer ? "Ro'yxat bo'sh — qog'ozlarni uring." : ''));
+        }
+
+        function renderBox(box) {
+            const panel = document.getElementById('box-papers');
+            panel.replaceChildren();
+            panel.className = 'bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2';
+            const head = el('div', 'flex flex-wrap items-center justify-between gap-2');
+            head.append(el('p', 'text-lg font-black text-white', box.box_code));
+            head.append(el('span', `px-2 py-0.5 rounded-lg text-xs font-black ${box.repair_cycles ? 'bg-amber-950 text-amber-300' : 'bg-slate-800 text-slate-400'}`,
+                box.repair_cycles ? `Ta'mirga ${box.repair_cycles} marta ketgan` : "Ta'mirga ketmagan"));
+            panel.append(head);
+            box.papers.forEach((paper) => {
+                const [icon, label] = STATES[paper.state] || STATES.empty;
+                const row = el('div', 'px-3 py-2 rounded-xl border border-slate-800 bg-slate-900');
+                const top = el('div', 'flex items-center justify-between gap-2');
+                const name = el('p', 'font-black text-white');
+                const i = el('i', `fa-solid ${icon} mr-1.5`);
+                name.append(i, document.createTextNode(paper.label));
+                const detail = paper.sent_to_repair !== undefined
+                    ? `${paper.sent_to_repair} ta'mirga → ${paper.portion} ta 1-sort` : `${paper.portion} ta 1-sort`;
+                top.append(name, el('span', 'text-xs text-slate-400', `${detail} · ${label}`));
+                row.append(top);
+                if (paper.waiting) row.append(el('p', 'text-sm font-black text-rose-300', `${paper.waiting} dona kutilmoqda`));
+                paper.scans.forEach((sc) => row.append(el('p', 'text-xs text-slate-400',
+                    `${sc.worker} · ${sc.quantity} dona · ${sc.at}${sc.sent ? '' : ' · yuborilmagan'}`)));
+                panel.append(row);
+            });
+        }
+
+        async function identify(code) {
+            const r = await postJSON(urls.packer, {code});
+            if (!r.ok) return r;
+            packer = r.data.worker;
+            renderPacker();
+            renderBatch(r.data.batch);
+            message(true, `${packer.name} — tayyor`, r.data.batch.lines.length
+                ? `Yuborilmagan ro'yxat davom etadi: ${r.data.batch.total} dona` : "Endi uning qog'ozlarini uring");
+            return true;
+        }
+
+        async function removeLine(id) {
+            const r = await postJSON(urls.remove, {scan_id: id});
+            if (r.ok) renderBatch(r.data.batch); else message(false, r.data.message || 'Xatolik');
+            input.focus();
+        }
+
+        async function send() {
+            if (!packer || !batch.lines.length) return;
+            if (!confirm(`${packer.name}: ${batch.total} dona yozilsin va upakovkaga yuborilsinmi?`)) return;
+            const r = await postJSON(urls.send, {worker_id: packer.id});
+            if (!r.ok) { message(false, r.data.message || 'Xatolik'); return; }
+            message(true, r.data.message, "Keyingi taxlovchining badge'ini uring");
+            packer = null;
+            renderPacker();
+            renderBatch(null);
+            input.focus();
+        }
+
+        async function handle(code) {
+            if (/^(TICKET\s*[:+]|TK[-+])/i.test(code)) {
+                message(false, "Bu tikuvchi stikeri — CONTROL stikeri, TAMIR cheki yoki quti kodini uring.");
+                return;
+            }
+            const isPaper = /^(CONTROL|TAMIR\d*|BOX|QUTI)\s*[:+-]/i.test(code) || /^[A-Za-z]{1,4}\d+-\d+/.test(code);
+            const isWorker = /^(WORKER\s*[:+]|W-\d+$|\d{6}$)/i.test(code);
+            if (!packer) {
+                if (isPaper) { message(false, "Avval taxlovchi badge'ini uring."); return; }
+                const r = await identify(code);
+                if (r !== true) message(false, r.data.message || 'Taxlovchi topilmadi');
+                return;
+            }
+            if (isWorker) {
+                if (batch.lines.length && !confirm(`${packer.name}: ${batch.total} dona hali yuborilmagan (ro'yxat saqlanib turadi). Boshqa taxlovchiga o'tilsinmi?`)) return;
+                const r = await identify(code);
+                if (r !== true) message(false, r.data.message || 'Taxlovchi topilmadi');
+                return;
+            }
+            const r = await postJSON(urls.paper, {code, worker_id: packer.id});
+            if (!r.ok && !isPaper && r.data.status === 'NOT_FOUND') {
+                const switched = await identify(code);
+                if (switched === true) return;
+            }
+            if (r.data.box) renderBox(r.data.box);
+            if (r.ok) {
+                const line = r.data.line;
+                renderBatch(r.data.batch);
+                message(true, `+${line.quantity} dona — ${line.box_code} · ${line.paper}`, `${line.order} · ${line.article} · razmer ${line.size}`);
+            } else {
+                message(false, r.data.message || 'Xatolik');
+            }
+        }
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            const code = input.value.trim();
+            input.value = '';
+            if (code) handle(code);
+        });
+        document.getElementById('send-btn').addEventListener('click', send);
+        document.getElementById('packer-reset').addEventListener('click', () => {
+            if (batch.lines.length && !confirm(`${batch.total} dona hali yuborilmagan (ro'yxat saqlanib turadi). Boshqa taxlovchiga o'tilsinmi?`)) return;
+            packer = null; renderPacker(); renderBatch(null); input.focus();
+        });
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('button, a, input, select, textarea, label, summary, form') || window.getSelection()?.toString()) return;
+            setTimeout(() => input.focus(), 50);
+        });
+        renderPacker();
+        renderBatch(null);
+    })();
+</script>

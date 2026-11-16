@@ -2004,8 +2004,34 @@ class RepairReceipt(models.Model):
         return f"{self.qr_text} ({self.quantity} dona)"
 
 
+class PackingBatch(models.Model):
+    """Sanoqchining bitta taxlovchi bo'yicha ro'yxati (egasi talabi 2026-11-14): avval taxlovchi badge'i, keyin uning
+    qog'ozlari (CONTROL stikeri, TAMIRn cheki) — har biri haqiqiy son bilan. "Saqlash va yuborish" (SENT) bilan
+    hammasi shu taxlovchi hisobiga yoziladi va upakovkaning 1-sort balansiga tushadi. Ochiq ro'yxatdagi qog'oz band
+    hisoblanadi (boshqa planshetda qayta urib bo'lmaydi)."""
+
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', "Sanoqchi ro'yxatida"
+        SENT = 'SENT', "Upakovkaga yuborildi"
+
+    counter = models.ForeignKey(User, on_delete=models.PROTECT, related_name='packing_batches', verbose_name="Sanoqchi")
+    worker = models.ForeignKey(Worker, on_delete=models.PROTECT, related_name='packing_batches', verbose_name="Taxlovchi")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Yuborilgan vaqt")
+
+    class Meta:
+        verbose_name = "Taxlovchi ro'yxati (sanoqchi)"
+        verbose_name_plural = "Taxlovchi ro'yxatlari (sanoqchi)"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.worker} · {self.get_status_display()}"
+
+
 class PackingScan(models.Model):
-    """Taxlovchi CONTROL yoki TAMIR QR ni urdi: shu qism (OTK 1-sorti yoki ta'mirdan chiqqan 1-sort) qadoqlashga o'tdi."""
+    """Qog'oz (CONTROL stikeri yoki TAMIRn cheki) urildi: shu qism (OTK 1-sorti yoki shu chekdan tuzalgan 1-sort)
+    taxlovchi hisobiga. Sanoqchi urganda ro'yxatga (batch) tushadi; batch'siz eski skanlar — taxlovchi tabidan."""
 
     class Source(models.TextChoices):
         CONTROL = 'CONTROL', "OTK 1-sorti (CONTROL stikeri)"
@@ -2016,6 +2042,8 @@ class PackingScan(models.Model):
     worker = models.ForeignKey(Worker, on_delete=models.PROTECT, related_name='packing_scans', verbose_name="Taxlovchi")
     repair_receipt = models.ForeignKey(RepairReceipt, on_delete=models.PROTECT, null=True, blank=True,
                                        related_name='packing_scans', verbose_name="Ta'mir cheki (TAMIR qismi)")
+    batch = models.ForeignKey(PackingBatch, on_delete=models.PROTECT, null=True, blank=True, related_name='scans',
+                              verbose_name="Sanoqchi ro'yxati")
     quantity = models.PositiveIntegerField(verbose_name="Soni")
     terminal_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="Terminal")
     scanned_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Urilgan vaqt")

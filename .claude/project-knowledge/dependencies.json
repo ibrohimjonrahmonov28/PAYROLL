@@ -546,6 +546,7 @@
    "imports": [
     "production.daily_dazmol",
     "production.models",
+    "production.packing_services",
     "production.services"
    ],
    "lazy": [
@@ -1380,6 +1381,10 @@
   },
   "templates/packing/tabs/sanoqchi.html": {
    "url_names": [
+    "packing:api_counter_packer",
+    "packing:api_counter_paper",
+    "packing:api_counter_remove",
+    "packing:api_counter_send",
     "packing:counter_accept",
     "packing:counter_cancel",
     "packing:counter_remove",
