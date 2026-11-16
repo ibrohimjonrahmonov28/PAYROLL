@@ -25,7 +25,7 @@ Use `symbols` in `file-index.json` (`name:line`) to Read only the needed range o
 - Portals (`production.<x>`): orders (`views.py`), terminal, master, control, sewing_statistics, cutting, meto (+ meto_hub), stickers, managers (+ Managerlar NEW `/managers-new/`), norma, passport, gifts (patok awards `/gifts/`), packing (beta OTK → packer → 2nd-sort counter, one tabbed page `/beta/`)
 - `production.reports`: excel_reports.py, telegram_reports.py, daily_image_reports.py, daily_dazmol.py (single source for asosiy / patok / egasiz daily dazmol)
 - `production.commands` / `accounts.commands`: management commands (scheduler daemon, bots, closings)
-- `screens`: TV monitors per patok
+- `screens`: TV monitors per patok, plus 3 packer TVs `/screens/taxlov/<n>/` (`production/packer_screens.py`)
 - `android_control`: separate Java kiosk app (not part of Django)
 
 ## Regenerating

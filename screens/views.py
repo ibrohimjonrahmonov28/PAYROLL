@@ -654,6 +654,12 @@ def all_screens_overview(request):
         cache_key = f"all_screens_overview_data_{effective_date.isoformat()}"
         screens_range = list(range(1, MAX_SCREENS + 1))
 
+    # Taxlovchilar ekranlari — alohida bo'lim (egasi talabi 2026-11-14)
+    packer_ctx = {
+        'packer_screens': get_packer_overview(effective_date, uychi_only=is_uychi_admin),
+        'can_configure_packers': request.user.is_authenticated and request.user.is_superadmin(),
+    }
+
     cached_summary = cache.get(cache_key)
     if cached_summary is not None:
         return render(request, 'screens/overview.html', {
@@ -663,6 +669,7 @@ def all_screens_overview(request):
             'is_custom_date': bool(target_date and target_date != timezone.localdate()),
             'max_screens': MAX_SCREENS,
             'is_uychi_admin': is_uychi_admin,
+            **packer_ctx,
         })
 
     tz = timezone.get_current_timezone()
@@ -703,4 +710,78 @@ def all_screens_overview(request):
         'is_custom_date': bool(target_date and target_date != timezone.localdate()),
         'max_screens': MAX_SCREENS,
         'is_uychi_admin': is_uychi_admin,
+        **packer_ctx,
+    })
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Taxlovchilar TV ekranlari (egasi talabi 2026-11-14): sex ekranlarida alohida, 3 ta. Chevarlar TV'si (40 ta, muzlatilgan)
+# o'zgarmaydi — bu alohida sahifalar. Hisob: production/packer_screens.py.
+# ---------------------------------------------------------------------------------------------------------------------
+
+def packer_screen_view(request, number):
+    from production.models import PackerScreen
+    from production.packer_screens import packer_screen_data
+    screen = get_object_or_404(PackerScreen, number=number)
+    target_date = parse_date_param(request.GET.get('date'))
+    data = packer_screen_data(screen, target_date)
+    data['is_custom_date'] = bool(target_date and target_date != timezone.localdate())
+    return render(request, 'screens/taxlov_monitor.html', data)
+
+
+def packer_screen_api(request, number):
+    from production.models import PackerScreen
+    from production.packer_screens import packer_screen_data
+    target_date = parse_date_param(request.GET.get('date')) or timezone.localdate()
+    cache_key = f"packer_screen_api_{number}_{target_date.isoformat()}"
+    data = cache.get(cache_key)
+    if data is None:
+        data = packer_screen_data(get_object_or_404(PackerScreen, number=number), target_date)
+        cache.set(cache_key, data, timeout=10)
+    return JsonResponse(data)
+
+
+def get_packer_overview(target_date, uychi_only=False):
+    """Sex ekranlari sahifasidagi alohida "Taxlovchilar ekranlari" bo'limi (10 soniya kesh)."""
+    from production.models import PackerScreen
+    from production.packer_screens import packer_screens_data
+    cache_key = f"packer_screens_overview_{target_date.isoformat()}"
+    data = cache.get(cache_key)
+    if data is None:
+        data = list(packer_screens_data(target_date).values())
+        cache.set(cache_key, data, timeout=10)
+    if uychi_only:
+        data = [d for d in data if any(code.startswith('U') for code in d['patok_codes'])]
+    return data
+
+
+def packer_screens_settings(request):
+    """Superadmin: har taxlovchi TV'siga nom beradi va har patokni bitta ekranga bir marta biriktiradi."""
+    from django.contrib import messages
+    from django.shortcuts import redirect
+    from production.models import PackerScreen
+    if not request.user.is_authenticated:
+        return redirect(f"/login/?next={request.path}")
+    if not request.user.is_superadmin():
+        messages.error(request, "Taxlovchi ekranlarini faqat superadmin sozlaydi.")
+        return redirect('screens:overview')
+    screens = list(PackerScreen.objects.all())
+    if request.method == 'POST':
+        chosen = {screen.number: [] for screen in screens}
+        for patok in range(1, MAX_SCREENS + 1):
+            value = request.POST.get(f'tv-{patok}', '')
+            if value.isdigit() and int(value) in chosen:
+                chosen[int(value)].append(patok)
+        for screen in screens:
+            screen.name = (request.POST.get(f'name-{screen.number}') or '').strip()[:60]
+            screen.patoks = ','.join(str(n) for n in chosen[screen.number])
+            screen.save(update_fields=['name', 'patoks', 'updated_at'])
+        messages.success(request, "Taxlovchi ekranlari saqlandi.")
+        return redirect('screens:packer_settings')
+    owner = {n: s.number for s in screens for n in s.patok_list}
+    patoks = [{'number': n, 'code': get_patok_code(n), 'screen': owner.get(n)} for n in range(1, MAX_SCREENS + 1)]
+    return render(request, 'screens/taxlov_settings.html', {
+        'screens': screens,
+        'hq_patoks': [p for p in patoks if p['number'] < 14],
+        'uychi_patoks': [p for p in patoks if p['number'] >= 14],
     })

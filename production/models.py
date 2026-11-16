@@ -2031,6 +2031,32 @@ class PackingBatch(models.Model):
         return f"{self.worker} · {self.get_status_display()}"
 
 
+class PackerScreen(models.Model):
+    """Taxlovchilar TV ekrani (egasi talabi 2026-11-14): 3 ta, sex ekranlarida alohida. Har biriga patoklar bir marta
+    biriktiriladi — shu patoklar qutilarini taxlagan taxlovchilar (sanoqchi yuborgan ro'yxatlar) shu ekranda.
+    Ko'rinishi chevarlar TV'si bilan bir xil (norma 1000, foiz = ball / norma), faqat headeri boshqacha."""
+    number = models.PositiveSmallIntegerField(unique=True, verbose_name="Ekran raqami")
+    name = models.CharField(max_length=60, blank=True, verbose_name="Nomi")
+    patoks = models.CharField(max_length=200, blank=True, verbose_name="Patoklar (raqamlar, vergul bilan)")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Taxlovchilar ekrani"
+        verbose_name_plural = "Taxlovchilar ekranlari"
+        ordering = ['number']
+
+    @property
+    def patok_list(self):
+        return sorted({int(x) for x in self.patoks.split(',') if x.strip().isdigit()})
+
+    @property
+    def title(self):
+        return self.name or f"TAXLOV-{self.number}"
+
+    def __str__(self):
+        return self.title
+
+
 class PackingScan(models.Model):
     """Qog'oz (CONTROL stikeri yoki TAMIRn cheki) urildi: shu qism (OTK 1-sorti yoki shu chekdan tuzalgan 1-sort)
     taxlovchi hisobiga. Sanoqchi urganda ro'yxatga (batch) tushadi; batch'siz eski skanlar — taxlovchi tabidan."""

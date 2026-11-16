@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3411,
+  "lines": 3416,
   "depends_on": [
    "accounts.core"
   ]
@@ -254,7 +254,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2170,
+  "lines": 2196,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -413,7 +413,7 @@
    "screens/urls.py",
    "screens/views.py"
   ],
-  "lines": 738,
+  "lines": 823,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -520,7 +520,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 46064,
+  "lines": 46141,
   "depends_on": []
  },
  "tests": {

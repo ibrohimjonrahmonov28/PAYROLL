@@ -1,0 +1,80 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}Taxlovchilar ekranlari — sozlash{% endblock %}
+
+{% block superadmin_header %}
+<div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-yellow-300 to-orange-500 text-slate-950 flex items-center justify-center font-black text-lg">
+        <i class="fa-solid fa-box-open"></i>
+    </div>
+    <div>
+        <h2 class="text-lg font-black text-white leading-tight">Taxlovchilar ekranlari</h2>
+        <span class="text-[11px] text-yellow-400 font-bold uppercase tracking-wider">Har patok bitta ekranga bir marta biriktiriladi</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="max-w-6xl mx-auto space-y-6">
+    {% csrf_token %}
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for s in screens %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+                <span class="w-9 h-9 rounded-xl bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 font-black flex items-center justify-center">{{ s.number }}</span>
+                <a href="{% url 'screens:packer_view' s.number %}" target="_blank"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-yellow-400 hover:text-slate-950 text-slate-300 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Ekranni ochish
+                </a>
+            </div>
+            <label class="block">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ekran nomi</span>
+                <input type="text" name="name-{{ s.number }}" value="{{ s.name }}" maxlength="60" placeholder="TAXLOV-{{ s.number }}"
+                    class="mt-1 w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm font-bold focus:outline-none focus:border-yellow-400">
+            </label>
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Patoklar</span>
+                <div class="mt-1 flex flex-wrap gap-1" data-screen-chips="{{ s.number }}"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-black text-white">Patok → ekran</h3>
+            <p class="text-xs text-slate-400">«—» — patok hech qaysi taxlovchi ekraniga chiqmaydi.</p>
+        </div>
+        {% include 'screens/partials/taxlov_patok_grid.html' with title="Bosh filial (K1–K13)" patoks=hq_patoks %}
+        {% include 'screens/partials/taxlov_patok_grid.html' with title="Uychi filiali (U1–U27)" patoks=uychi_patoks %}
+    </section>
+
+    <div class="flex justify-end gap-2">
+        <a href="{% url 'screens:overview' %}"
+            class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold transition">Sex ekranlari</a>
+        <button type="submit"
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-950 text-sm font-black shadow-md hover:opacity-90 transition">
+            <i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Ekran kartochkalaridagi patok ro'yxatini tanlovga qarab yangilab turadi
+    function refreshChips() {
+        document.querySelectorAll('[data-screen-chips]').forEach(box => {
+            const number = box.dataset.screenChips;
+            const codes = [...document.querySelectorAll(`input[data-patok-code]:checked`)]
+                .filter(input => input.value === number).map(input => input.dataset.patokCode);
+            box.innerHTML = codes.length
+                ? codes.map(code => `<span class="px-2 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs font-black">${code}</span>`).join('')
+                : '<span class="text-xs text-slate-500">Biriktirilmagan</span>';
+        });
+    }
+    document.addEventListener('change', e => { if (e.target.matches('input[data-patok-code]')) refreshChips(); });
+    refreshChips();
+</script>
+{% endblock %}

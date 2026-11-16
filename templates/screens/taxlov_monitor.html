@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} — TAXLOVCHILAR EKRANI — TERRY JAR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: #070d18;
+            color: #f1f5f9;
+        }
+
+        .digital-font {
+            font-family: 'Times New Roman', Times, serif;
+        }
+    </style>
+    {% comment %}Taxlovchilar TV'si (egasi talabi 2026-11-14): chevarlar TV'si (screens/monitor.html) bilan bir xil ko'rinish,
+    faqat headeri boshqacha. Ma'lumot: production/packer_screens.py, har 30 soniyada /screens/taxlov/api/<n>/.{% endcomment %}
+    {% include 'includes/theme_head_legacy.html' %}
+    <style>
+
+        /* High contrast glow effects */
+        .glow-rose {
+            text-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+        }
+
+        .glow-amber {
+            text-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+
+        .glow-emerald {
+            text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .glow-cyan {
+            text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+
+        .glow-yellow {
+            text-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+        }
+
+        /* Alternating row subtle highlighting */
+        tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Top 3 rank badges */
+        .rank-1 {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #000;
+            font-weight: 900;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+            color: #000;
+            font-weight: 900;
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #b45309, #78350f);
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .rank-default {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        /* TV mode: Hide scrollbars for clean display */
+        #table-scroll-container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        #table-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col p-2.5 md:p-3.5 select-none overflow-hidden bg-[#070d18] text-[#f1f5f9]">
+
+    <!-- HEADER / STATUS BAR — taxlovchilar ekrani -->
+    <header class="flex items-center justify-between border-b border-yellow-500/30 pb-2.5 mb-2.5 gap-3 flex-shrink-0">
+        <div class="flex items-center gap-3 md:gap-4 min-w-0">
+            <!-- Ekran nomi -->
+            <div
+                class="bg-gradient-to-br from-yellow-300 to-orange-500 text-slate-950 font-black text-2xl md:text-3xl px-3.5 py-1.5 md:py-2 rounded-xl shadow-lg shadow-yellow-500/20 flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-box-open"></i>
+                <span>{{ title }}</span>
+            </div>
+
+            <div class="shrink-0">
+                <h1 class="text-xl md:text-2xl font-black tracking-wide text-yellow-300 leading-tight">
+                    TAXLOVCHILAR
+                </h1>
+                <p class="text-[11px] text-slate-400 font-medium">TERRY JAR · taxlov monitoringi</p>
+            </div>
+
+            <div
+                class="flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 md:py-2 rounded-xl shrink-0">
+                <i class="fa-regular fa-clock text-yellow-400 text-2xl md:text-3xl"></i>
+                <div id="live-clock"
+                    class="text-2xl md:text-3xl lg:text-4xl font-black digital-font text-yellow-400 leading-none tracking-wider">
+                    00:00:00</div>
+            </div>
+
+            <!-- PATOKLAR, TAXLOVCHI, TAXLANDI, NORMA, O'RTACHA FOIZ -->
+            <div
+                class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-yellow-500/20 px-4 md:px-5 py-1.5 rounded-xl min-w-0">
+                <div class="text-center px-0.5 min-w-0">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOKLAR</span>
+                    <div id="stat-patoks" class="flex flex-wrap justify-center gap-1 mt-0.5 max-w-[240px]">
+                        {% for code in patok_codes %}
+                        <span class="px-1.5 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs md:text-sm font-black digital-font leading-none">{{ code }}</span>
+                        {% empty %}
+                        <span class="text-sm text-slate-500 font-bold">—</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">TAXLOVCHI</span>
+                    <span id="stat-davomat" class="text-xl md:text-2xl lg:text-3xl font-black text-cyan-400 digital-font">{{ davomat }}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">BUGUN TAXLANDI</span>
+                    <span id="stat-units" class="text-xl md:text-2xl lg:text-3xl font-black text-yellow-300 digital-font glow-yellow">{{ units_total }}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">NORMA</span>
+                    <span class="text-xl md:text-2xl lg:text-3xl font-black text-white digital-font">{{ norm }}</span>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div class="text-center px-0.5">
+                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">O'RTACHA FOIZ</span>
+                    <span id="stat-avg"
+                        class="text-xl md:text-2xl lg:text-3xl font-black digital-font {{ avg_color_class }}">{% if davomat %}{{ avg_percentage }}%{% else %}—{% endif %}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
+            {% if is_custom_date %}
+            <span class="px-3 py-2 rounded-xl text-xs font-black bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i>{{ date_str }}
+            </span>
+            {% endif %}
+
+            <!-- Auto-scroll indicator & toggle for TV -->
+            <button id="btn-toggle-scroll" onclick="toggleAutoScroll()"
+                class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70"
+                title="64-lik TV: Avtomatik pastga tushish (Auto-scroll)">
+                <i id="scroll-icon" class="fa-solid fa-arrows-up-down animate-pulse"></i>
+                <span id="scroll-text" class="hidden xl:inline">Avto-tushish: Faol</span>
+            </button>
+
+            <!-- Fullscreen Button -->
+            <button id="btn-fullscreen" onclick="toggleFullscreen()"
+                class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70 shadow-sm"
+                title="To'liq ekran (F11 yoki F)">
+                <i id="fullscreen-icon" class="fa-solid fa-expand"></i>
+                <span id="fullscreen-text" class="hidden sm:inline">To'liq ekran</span>
+            </button>
+
+            {% if request.user.is_authenticated %}
+            <!-- Logout Button -->
+            <a href="{% url 'root_logout' %}"
+                class="bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-300 px-3 py-2 rounded-xl transition flex items-center gap-1.5 text-xs font-bold border border-slate-700/70 shadow-sm"
+                title="Tizimdan chiqish ({{ request.user.username }})">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="hidden sm:inline">Chiqish</span>
+            </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- MAIN LEADERBOARD TABLE -->
+    <main
+        class="flex-1 min-h-0 bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative">
+        <div id="table-scroll-container" class="overflow-y-auto overflow-x-hidden flex-1 relative">
+            <table class="w-full table-fixed text-left border-collapse">
+                <thead
+                    class="sticky top-0 z-20 bg-[#070d18] border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold shadow-lg">
+                    <tr>
+                        <th class="py-3 px-2 text-center w-14">№</th>
+                        <th class="py-3 px-4 w-[24%]">Taxlovchi F.I.SH</th>
+                        <th class="py-3 px-4 text-center w-[23%]">Patoklar Bo'yicha Taxlov</th>
+                        <th class="py-3 px-4 text-center w-[15%]">Norma Foizi</th>
+                        <th class="py-3 px-4 text-right w-[19%]">Bugungi Ish Haqi</th>
+                        <th class="py-3 px-4 text-right w-[19%]">Oylik Maosh</th>
+                    </tr>
+                </thead>
+                <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-lg">
+                    {% for w in workers %}
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="py-2 px-2 text-center">
+                            <span
+                                class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs md:text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
+                                {{ forloop.counter }}
+                            </span>
+                        </td>
+                        <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
+                            {{ w.full_name }}
+                        </td>
+
+                        <!-- Patoklar bo'yicha taxlangan dona -->
+                        <td class="py-2 px-3 text-center">
+                            <div class="flex flex-wrap items-center justify-center gap-1.5">
+                                {% for p in w.patoks %}
+                                <div
+                                    class="bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
+                                    <span class="text-xs text-cyan-400 font-mono font-bold">{{ p.code }}:</span>
+                                    <span class="text-sm md:text-base font-black text-yellow-300 digital-font">{{ p.units }}</span>
+                                    <span class="text-xs font-bold text-slate-400">dona</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <!-- Norma foizi = ball / 1000 -->
+                        <td class="py-2 px-3 text-center">
+                            <div class="flex flex-col items-center justify-center gap-1">
+                                <span class="text-lg md:text-xl font-bold digital-font {% if w.is_above_norm %}text-emerald-400 glow-emerald{% elif w.total_percentage >= 70 %}text-amber-400 glow-amber{% else %}text-rose-400 glow-rose{% endif %} leading-none">
+                                    {{ w.total_percentage }}%
+                                </span>
+                                <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 max-w-[90px] mx-auto p-0.5 shadow-inner">
+                                    <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
+                                        style="width: {{ w.progress_width }}%;"></div>
+                                </div>
+                                <span class="text-xs font-bold text-slate-400 digital-font leading-none">{{ w.ratio_str }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Bugungi Ish haqi -->
+                        <td
+                            class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
+                            {{ w.total_earnings_formatted }} <span
+                                class="text-xs md:text-sm font-semibold text-emerald-500 font-sans ml-1">so'm</span>
+                        </td>
+
+                        <!-- Oylik Maosh -->
+                        <td
+                            class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-cyan-300 digital-font glow-cyan whitespace-nowrap">
+                            {{ w.month_earnings_formatted }} <span
+                                class="text-xs md:text-sm font-semibold text-cyan-500 font-sans ml-1">so'm</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="empty-row">
+                        <td colspan="6" class="py-16 text-center text-slate-500">
+                            <i class="fa-solid fa-box-open text-5xl mb-3 block text-slate-700"></i>
+                            {% if patok_codes %}
+                            <span class="text-xl font-bold block text-slate-400">Ushbu kunda ({{ date_str }}) bu ekran patoklaridan hali taxlov yuborilmadi</span>
+                            <span class="text-sm text-slate-600 mt-1 block">Sanoqchi taxlovchi ro'yxatini «Saqlash va yuborish» qilishi bilan natijalar avtomatik paydo bo'ladi.</span>
+                            {% else %}
+                            <span class="text-xl font-bold block text-slate-400">Bu ekranga hali patok biriktirilmagan</span>
+                            <span class="text-sm text-slate-600 mt-1 block">Superadmin «Sex ekranlari → Taxlovchilar ekranlari → Patoklarni biriktirish» bo'limida biriktiradi.</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- FOOTER INFO -->
+    <footer
+        class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500 font-medium px-2 flex-shrink-0">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Tizim holati: Barcha xizmatlar normal ishlamoqda</span>
+        </div>
+        <div>
+            Har 30 soniyada avtomatik yangilanadi • Norma {{ norm }} • Sdelshina Payroll
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT: Auto-refresh, TV Auto-scroll, and live clock -->
+    <script>
+        const PACKER_SCREEN = {{ number }};
+        const CURRENT_DATE = "{% if is_custom_date %}{{ target_date_iso }}{% endif %}";
+        let countdown = 30;
+
+        function esc(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
+        }
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('live-clock').innerText = `${hours}:${minutes}:${seconds}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function emptyRow(data) {
+            const text = (data.patok_codes && data.patok_codes.length)
+                ? `<span class="text-xl font-bold block text-slate-400">Ushbu kunda (${esc(data.date_str)}) bu ekran patoklaridan hali taxlov yuborilmadi</span>
+                   <span class="text-sm text-slate-600 mt-1 block">Sanoqchi taxlovchi ro'yxatini «Saqlash va yuborish» qilishi bilan natijalar avtomatik paydo bo'ladi.</span>`
+                : `<span class="text-xl font-bold block text-slate-400">Bu ekranga hali patok biriktirilmagan</span>
+                   <span class="text-sm text-slate-600 mt-1 block">Superadmin «Sex ekranlari → Taxlovchilar ekranlari → Patoklarni biriktirish» bo'limida biriktiradi.</span>`;
+            return `<tr id="empty-row"><td colspan="6" class="py-16 text-center text-slate-500">
+                        <i class="fa-solid fa-box-open text-5xl mb-3 block text-slate-700"></i>${text}</td></tr>`;
+        }
+
+        // Refresh Countdown & Polling
+        async function fetchScreenData() {
+            try {
+                let apiUrl = `/screens/taxlov/api/${PACKER_SCREEN}/`;
+                if (CURRENT_DATE) {
+                    apiUrl += `?date=${encodeURIComponent(CURRENT_DATE)}`;
+                }
+                const response = await fetch(apiUrl);
+                if (!response.ok) return;
+                const data = await response.json();
+
+                const statPatoks = document.getElementById('stat-patoks');
+                if (statPatoks && data.patok_codes) {
+                    statPatoks.innerHTML = data.patok_codes.length
+                        ? data.patok_codes.map(code => `<span class="px-1.5 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs md:text-sm font-black digital-font leading-none">${esc(code)}</span>`).join('')
+                        : '<span class="text-sm text-slate-500 font-bold">—</span>';
+                }
+                const statDavomat = document.getElementById('stat-davomat');
+                if (statDavomat && data.davomat !== undefined) statDavomat.innerText = data.davomat;
+                const statUnits = document.getElementById('stat-units');
+                if (statUnits && data.units_total !== undefined) statUnits.innerText = data.units_total;
+                const statAvg = document.getElementById('stat-avg');
+                if (statAvg && data.avg_percentage !== undefined) {
+                    statAvg.innerText = data.davomat ? `${data.avg_percentage}%` : '—';
+                    statAvg.className = `text-xl md:text-2xl lg:text-3xl font-black digital-font ${data.avg_color_class || 'text-rose-400 glow-rose'}`;
+                }
+
+                // Render Table Rows
+                const tbody = document.getElementById('workers-tbody');
+                if (!tbody) return;
+                if (!data.workers || data.workers.length === 0) {
+                    tbody.innerHTML = emptyRow(data);
+                } else {
+                    let html = '';
+                    data.workers.forEach((w, index) => {
+                        const rank = index + 1;
+                        let rankClass = 'rank-default';
+                        if (rank === 1) rankClass = 'rank-1';
+                        else if (rank === 2) rankClass = 'rank-2';
+                        else if (rank === 3) rankClass = 'rank-3';
+
+                        const patoksHtml = `<div class="flex flex-wrap items-center justify-center gap-1.5">` +
+                            (w.patoks || []).map(p => `
+                                <div class="bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
+                                    <span class="text-xs text-cyan-400 font-mono font-bold">${esc(p.code)}:</span>
+                                    <span class="text-sm md:text-base font-black text-yellow-300 digital-font">${esc(p.units)}</span>
+                                    <span class="text-xs font-bold text-slate-400">dona</span>
+                                </div>
+                            `).join('') + `</div>`;
+
+                        let barGradient = 'bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]';
+                        let pctColor = 'text-rose-400 glow-rose';
+                        if (w.is_above_norm) {
+                            barGradient = 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]';
+                            pctColor = 'text-emerald-400 glow-emerald';
+                        } else if (w.total_percentage >= 70) {
+                            barGradient = 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]';
+                            pctColor = 'text-amber-400 glow-amber';
+                        }
+
+                        html += `
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="py-2 px-2 text-center">
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs md:text-sm ${rankClass}">
+                                    ${rank}
+                                </span>
+                            </td>
+                            <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
+                                ${esc(w.full_name)}
+                            </td>
+                            <td class="py-2 px-3 text-center">
+                                ${patoksHtml}
+                            </td>
+                            <td class="py-2 px-3 text-center">
+                                <div class="flex flex-col items-center justify-center gap-1">
+                                    <span class="text-lg md:text-xl font-bold digital-font ${pctColor} leading-none">
+                                        ${w.total_percentage}%
+                                    </span>
+                                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 max-w-[90px] mx-auto p-0.5 shadow-inner">
+                                        <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
+                                            style="width: ${w.progress_width}%;"></div>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 digital-font leading-none">${esc(w.ratio_str)}</span>
+                                </div>
+                            </td>
+                            <td class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
+                                ${esc(w.total_earnings_formatted)} <span class="text-xs md:text-sm font-semibold text-emerald-500 font-sans ml-1">so'm</span>
+                            </td>
+                            <td class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-cyan-300 digital-font glow-cyan whitespace-nowrap">
+                                ${esc(w.month_earnings_formatted)} <span class="text-xs md:text-sm font-semibold text-cyan-500 font-sans ml-1">so'm</span>
+                            </td>
+                        </tr>`;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (err) {
+                console.error("Packer screen polling error:", err);
+            }
+        }
+
+        // Auto-refresh interval (har 30 soniyada ma'lumotlarni yangilash)
+        setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                countdown = 30;
+                fetchScreenData();
+            }
+        }, 1000);
+
+        // Fullscreen Engine with Vendor Prefixes (Supports Smart TVs, iPads, Android TV, PCs)
+        function toggleFullscreen() {
+            const doc = document;
+            const docEl = document.documentElement;
+
+            const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+            if (!isFullscreen) {
+                const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFS) {
+                    requestFS.call(docEl).catch(err => {
+                        console.warn("Fullscreen request error:", err);
+                    });
+                }
+            } else {
+                const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+                if (exitFS) {
+                    exitFS.call(doc).catch(err => {
+                        console.warn("Fullscreen exit error:", err);
+                    });
+                }
+            }
+        }
+
+        function updateFullscreenUI() {
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            const icon = document.getElementById('fullscreen-icon');
+            const text = document.getElementById('fullscreen-text');
+            const btn = document.getElementById('btn-fullscreen');
+
+            if (isFullscreen) {
+                if (icon) {
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                }
+                if (text) text.innerText = 'Kichraytirish';
+                if (btn) {
+                    btn.classList.add('bg-amber-500/20', 'border-amber-500/40');
+                }
+            } else {
+                if (icon) {
+                    icon.classList.remove('fa-compress');
+                    icon.classList.add('fa-expand');
+                }
+                if (text) text.innerText = 'To\'liq ekran';
+                if (btn) {
+                    btn.classList.remove('bg-amber-500/20', 'border-amber-500/40');
+                }
+            }
+        }
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, updateFullscreenUI);
+        });
+
+        // Double click anywhere on header to toggle fullscreen (Very handy for TVs with mouse/remote)
+        document.addEventListener('DOMContentLoaded', () => {
+            const header = document.querySelector('header');
+            if (header) {
+                header.addEventListener('dblclick', toggleFullscreen);
+            }
+            // Keyboard shortcut: Press 'F' to toggle fullscreen
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'f' || e.key === 'F') {
+                    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+                    toggleFullscreen();
+                }
+            });
+        });
+
+        // ==========================================
+        // AUTO-SCROLL ENGINE FOR 64" TV MONITORS
+        // ==========================================
+        let autoScrollEnabled = true;
+        let scrollInterval = null;
+        let isScrollPaused = false;
+        let pauseTimeout = null;
+        let resetTimeout = null;
+        let currentScrollPos = 0;
+
+        function pauseAutoScroll(durationMs = 3500) {
+            isScrollPaused = true;
+            if (pauseTimeout) clearTimeout(pauseTimeout);
+            pauseTimeout = setTimeout(() => {
+                isScrollPaused = false;
+            }, durationMs);
+        }
+
+        function initAutoScroll() {
+            const container = document.getElementById('table-scroll-container');
+            if (!container) return;
+
+            if (scrollInterval) clearInterval(scrollInterval);
+            if (resetTimeout) clearTimeout(resetTimeout);
+
+            currentScrollPos = container.scrollTop;
+            pauseAutoScroll(3500);
+            const scrollStep = 1.3;
+
+            scrollInterval = setInterval(() => {
+                if (!autoScrollEnabled || isScrollPaused) return;
+
+                const maxScroll = container.scrollHeight - container.clientHeight;
+                if (maxScroll <= 15) {
+                    return;
+                }
+
+                currentScrollPos += scrollStep;
+                container.scrollTop = Math.round(currentScrollPos);
+
+                if (container.scrollTop >= maxScroll - 2) {
+                    container.scrollTop = maxScroll;
+                    currentScrollPos = maxScroll;
+                    pauseAutoScroll(3500);
+
+                    if (resetTimeout) clearTimeout(resetTimeout);
+                    resetTimeout = setTimeout(() => {
+                        if (!autoScrollEnabled) return;
+                        container.scrollTop = 0;
+                        currentScrollPos = 0;
+                        pauseAutoScroll(3500);
+                    }, 3500);
+                }
+            }, 20);
+        }
+
+        function toggleAutoScroll() {
+            autoScrollEnabled = !autoScrollEnabled;
+            const icon = document.getElementById('scroll-icon');
+            const text = document.getElementById('scroll-text');
+            const btn = document.getElementById('btn-toggle-scroll');
+            const container = document.getElementById('table-scroll-container');
+            if (autoScrollEnabled) {
+                if (btn) {
+                    btn.classList.add('text-amber-400');
+                    btn.classList.remove('text-slate-500');
+                }
+                if (icon) icon.classList.add('animate-pulse');
+                if (text) text.innerText = 'Avto-tushish: Faol';
+                if (container) {
+                    currentScrollPos = container.scrollTop;
+                }
+                pauseAutoScroll(2000);
+            } else {
+                if (btn) {
+                    btn.classList.remove('text-amber-400');
+                    btn.classList.add('text-slate-500');
+                }
+                if (icon) icon.classList.remove('animate-pulse');
+                if (text) text.innerText = 'Avto-tushish: To\'xtatilgan';
+                if (resetTimeout) clearTimeout(resetTimeout);
+            }
+        }
+
+        // Pause on manual touch or mouse wheel
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('table-scroll-container');
+            if (container) {
+                const handleManualInteraction = () => {
+                    currentScrollPos = container.scrollTop;
+                    if (resetTimeout) clearTimeout(resetTimeout);
+                    pauseAutoScroll(6000);
+                };
+                container.addEventListener('wheel', handleManualInteraction, { passive: true });
+                container.addEventListener('touchstart', handleManualInteraction, { passive: true });
+                container.addEventListener('mousedown', handleManualInteraction, { passive: true });
+            }
+            initAutoScroll();
+        });
+    </script>
+</body>
+
+</html>

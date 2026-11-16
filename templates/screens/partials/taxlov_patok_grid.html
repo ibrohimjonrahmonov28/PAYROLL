@@ -1,0 +1,23 @@
+{% comment %}Taxlovchilar ekranlari sozlamasi: har patok uchun «— / 1 / 2 / 3» — bitta patok faqat bitta ekranga.{% endcomment %}
+<div>
+    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{{ title }}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {% for p in patoks %}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-800">
+            <span class="text-sm font-black text-white w-9">{{ p.code }}</span>
+            <div class="flex gap-1">
+                <label class="cursor-pointer">
+                    <input type="radio" name="tv-{{ p.number }}" value="" class="peer sr-only" {% if not p.screen %}checked{% endif %}>
+                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border border-slate-700 text-slate-500 peer-checked:bg-slate-700 peer-checked:text-white">—</span>
+                </label>
+                {% for s in screens %}
+                <label class="cursor-pointer" title="{{ s.title }}">
+                    <input type="radio" name="tv-{{ p.number }}" value="{{ s.number }}" data-patok-code="{{ p.code }}" class="peer sr-only" {% if p.screen == s.number %}checked{% endif %}>
+                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black border border-slate-700 text-slate-400 peer-checked:bg-yellow-400 peer-checked:border-yellow-300 peer-checked:text-slate-950">{{ s.number }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>

@@ -177,6 +177,83 @@
         {% endfor %}
     </div>
 
+    <!-- Taxlovchilar ekranlari (egasi talabi 2026-11-14): sex ekranlarida alohida bo'lim, chevarlar kartochkalari o'zgarmaydi -->
+    {% if packer_screens or can_configure_packers %}
+    <section class="mt-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-yellow-500/30 pb-3 mb-4">
+            <div>
+                <h2 class="text-lg md:text-xl font-black text-white flex items-center gap-3">
+                    <i class="fa-solid fa-box-open text-yellow-400"></i> TAXLOVCHILAR EKRANLARI
+                </h2>
+                <p class="text-slate-400 text-xs mt-1">Sanoqchi yuborgan taxlov · norma 1000 · foiz = ball / norma</p>
+            </div>
+            {% if can_configure_packers %}
+            <a href="{% url 'screens:packer_settings' %}"
+                class="px-3.5 py-2 bg-slate-800 hover:bg-yellow-400 hover:text-slate-950 text-yellow-300 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-yellow-500/30">
+                <i class="fa-solid fa-sliders"></i> Patoklarni biriktirish
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for p in packer_screens %}
+            <div
+                class="bg-slate-900/90 border {% if p.davomat %}border-yellow-500/40 shadow-lg shadow-yellow-950/20 hover:border-yellow-400{% else %}border-slate-800/80 opacity-75 hover:opacity-100{% endif %} rounded-2xl p-3 flex flex-col justify-between transition-all duration-200">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <span class="text-sm font-black text-yellow-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-box-open text-xs"></i> {{ p.title }}
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800 {% if p.davomat %}text-slate-300 border border-slate-700{% else %}text-slate-500{% endif %}">
+                        {{ p.davomat }} taxlovchi
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap gap-1 pt-2">
+                    {% for code in p.patok_codes %}
+                    <span class="px-1.5 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-[11px] font-black">{{ code }}</span>
+                    {% empty %}
+                    <span class="text-[11px] text-slate-500 italic">Patok biriktirilmagan</span>
+                    {% endfor %}
+                </div>
+
+                <div class="my-2.5 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">O'RTACHA FOIZ:</span>
+                        <span class="text-xs px-2.5 py-0.5 rounded-md font-black digital-font bg-slate-800 {{ p.avg_color_class }}">
+                            {% if p.davomat %}{{ p.avg_percentage }}%{% else %}—{% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-400">
+                        <span class="text-[11px]">Taxlandi:</span>
+                        <strong class="text-slate-200 digital-font text-xs">{{ p.units_total }} dona</strong>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto max-h-32 border-t border-slate-800/80 pt-1.5 text-xs space-y-1 scrollbar-none">
+                    {% for w in p.workers|slice:":3" %}
+                    <div class="flex items-center justify-between py-0.5 px-1.5 rounded bg-slate-800/50 text-[11px]">
+                        <span class="font-bold text-cyan-400 digital-font">{{ w.worker_id }}</span>
+                        <span class="text-slate-300 truncate max-w-[140px]">{{ w.full_name }}</span>
+                        <span class="text-emerald-400 digital-font font-semibold">{{ w.total_percentage }}%</span>
+                    </div>
+                    {% empty %}
+                    <div class="py-3 text-center text-slate-600 text-[10px] italic">Bugun taxlov yuborilmagan</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-2.5 pt-2 border-t border-slate-800">
+                    <a href="{% url 'screens:packer_view' p.number %}{% if is_custom_date %}?date={{ target_date_iso }}{% endif %}"
+                        target="_blank"
+                        class="w-full py-1.5 bg-slate-800 hover:bg-yellow-400 hover:text-slate-950 text-slate-300 font-bold rounded-xl text-center text-xs block transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Ekranni Ochish (TV)
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <script>
         function changeOverviewDate(val) {
             if (val) {

@@ -875,7 +875,8 @@
    ],
    "lazy": [
     "production.daily_image_reports",
-    "production.models"
+    "production.models",
+    "production.packer_screens"
    ]
   }
  },
@@ -990,7 +991,9 @@
   ],
   "screens/views.py": [
    "screens/monitor.html",
-   "screens/overview.html"
+   "screens/overview.html",
+   "screens/taxlov_monitor.html",
+   "screens/taxlov_settings.html"
   ]
  },
  "template_refs": {
@@ -1657,6 +1660,8 @@
    ],
    "url_names": [
     "production:terminal_home",
+    "screens:packer_settings",
+    "screens:packer_view",
     "screens:screen_view"
    ]
   },

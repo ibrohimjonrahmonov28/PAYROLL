@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 874,
-   "sha256_16": "8e45fdb0ce5decf7"
+   "lines": 879,
+   "sha256_16": "9a33cf1de66311d4"
   },
   "CLAUDE.md": {
    "module": "ops",
    "lines": 140,
-   "sha256_16": "93d47ffbb99f9720"
+   "sha256_16": "d651f67d1bdda91e"
   },
   "Dockerfile": {
    "module": "ops",
@@ -878,8 +878,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2170,
-   "sha256_16": "b07211c6d1ab6e9d",
+   "lines": 2196,
+   "sha256_16": "c06d1fbb0ad09f25",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -914,11 +914,12 @@
     "PatokAward:1907",
     "RepairReceipt:1972",
     "PackingBatch:2009",
-    "PackingScan:2034",
-    "generate_basket_code:2074",
-    "SecondSortBatch:2083",
-    "ReceiptPrinter:2122",
-    "PrintJob:2145"
+    "PackerScreen:2034",
+    "PackingScan:2060",
+    "generate_basket_code:2100",
+    "SecondSortBatch:2109",
+    "ReceiptPrinter:2148",
+    "PrintJob:2171"
    ]
   },
   "production/norma_services.py": {
@@ -1534,13 +1535,13 @@
   },
   "screens/urls.py": {
    "module": "screens",
-   "lines": 15,
-   "sha256_16": "ebf6398c34a2d39f"
+   "lines": 19,
+   "sha256_16": "59e7e842141e344f"
   },
   "screens/views.py": {
    "module": "screens",
-   "lines": 707,
-   "sha256_16": "14b21e805cc9ac9c",
+   "lines": 788,
+   "sha256_16": "b7b63084949e3b44",
    "symbols": [
     "calculate_quvvat_color_info:19",
     "calculate_screen_aniqlik:51",
@@ -1550,7 +1551,11 @@
     "parse_date_param:578",
     "screen_view:590",
     "screen_api_view:615",
-    "all_screens_overview:638"
+    "all_screens_overview:638",
+    "packer_screen_view:722",
+    "packer_screen_api:732",
+    "get_packer_overview:744",
+    "packer_screens_settings:758"
    ]
   },
   "templates/404.html": {
@@ -1935,8 +1940,8 @@
   },
   "templates/screens/overview.html": {
    "module": "templates",
-   "lines": 224,
-   "sha256_16": "01035c0241b497bc"
+   "lines": 301,
+   "sha256_16": "c31ea7a4e5482e3c"
   },
   "templates/stickers/base_stickers.html": {
    "module": "templates",

@@ -31,7 +31,7 @@ Stats    (/sewing-statistics/, /statistics/, /screens/)  read-side aggregation
 - **Norma/progress:** `DailyModelProgress` (per ProductModel, `norma_services`) and `DailyPatokProgress` (per patok) hold daily norm vs. done, with carry-over percentages (business rules in `NEED.TXT`).
 
 ## Patoks / screens
-`screen_number` 1–40 is the canonical line id. Display codes: 1–13 → K1..K13 (HQ branch), 14+ → U1.. (Uychi). Logins: `patokk{n}`/`patoku{n}` (CONTROL), `ekrank{n}`/`ekranu{n}` (SCREEN). Always convert via `production.services.get_patok_code / get_patok_name / parse_patok_number`. Screens: `screens/views.get_screen_data` builds the payload, and `templates/screens/monitor.html` polls `/screens/api/<n|code>/` with `setInterval`.
+`screen_number` 1–40 is the canonical line id. Display codes: 1–13 → K1..K13 (HQ branch), 14+ → U1.. (Uychi). Logins: `patokk{n}`/`patoku{n}` (CONTROL), `ekrank{n}`/`ekranu{n}` (SCREEN). Always convert via `production.services.get_patok_code / get_patok_name / parse_patok_number`. Screens: `screens/views.get_screen_data` builds the payload, and `templates/screens/monitor.html` polls `/screens/api/<n|code>/` with `setInterval`. Packer TVs (`PackerScreen`, patoks mapped once at `/screens/taxlov/sozlash/`): `production/packer_screens.packer_screens_data` → `templates/screens/taxlov_monitor.html` polling `/screens/taxlov/api/<n>/`.
 
 ## Coupling and circular-import notes
 - `accounts.models` ↔ `production.models/services` reference each other. The cycle is broken with **lazy in-function imports** (see `lazy` in `dependencies.json`). Keep new cross-app imports lazy, otherwise you get import cycles at startup.

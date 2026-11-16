@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 218,
+ "route_count": 221,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1627,6 +1627,24 @@
    "name": "accounts:print_worker_badges",
    "view": "accounts.views.worker_badges_print_view",
    "urlconf": "accounts.urls"
+  },
+  {
+   "path": "/screens/taxlov/sozlash/",
+   "name": "screens:packer_settings",
+   "view": "screens.views.packer_screens_settings",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/taxlov/api/<int:number>/",
+   "name": "screens:packer_api",
+   "view": "screens.views.packer_screen_api",
+   "urlconf": "screens.urls"
+  },
+  {
+   "path": "/screens/taxlov/<int:number>/",
+   "name": "screens:packer_view",
+   "view": "screens.views.packer_screen_view",
+   "urlconf": "screens.urls"
   },
   {
    "path": "/screens/",
