@@ -114,20 +114,9 @@
                     00:00:00</div>
             </div>
 
-            <!-- PATOKLAR, TAXLOVCHI, TAXLANDI, NORMA, O'RTACHA FOIZ -->
+            <!-- TAXLOVCHI, BUGUN TAXLANDI, NORMA, O'RTACHA FOIZ (patoklar ro'yxati tepada chiqmaydi — har user yonida alohida) -->
             <div
                 class="flex items-center gap-3 md:gap-5 bg-slate-900/90 border border-yellow-500/20 px-4 md:px-5 py-1.5 rounded-xl min-w-0">
-                <div class="text-center px-0.5 min-w-0">
-                    <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">PATOKLAR</span>
-                    <div id="stat-patoks" class="flex flex-wrap justify-center gap-1 mt-0.5 max-w-[240px]">
-                        {% for code in patok_codes %}
-                        <span class="px-1.5 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs md:text-sm font-black digital-font leading-none">{{ code }}</span>
-                        {% empty %}
-                        <span class="text-sm text-slate-500 font-bold">—</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="h-8 w-px bg-slate-800"></div>
                 <div class="text-center px-0.5">
                     <span class="text-[10px] md:text-[11px] uppercase tracking-wider text-slate-400 font-bold block whitespace-nowrap">TAXLOVCHI</span>
                     <span id="stat-davomat" class="text-xl md:text-2xl lg:text-3xl font-black text-cyan-400 digital-font">{{ davomat }}</span>
@@ -196,33 +185,32 @@
                     class="sticky top-0 z-20 bg-[#070d18] border-b border-slate-800 text-slate-400 text-sm md:text-base uppercase tracking-wider font-extrabold shadow-lg">
                     <tr>
                         <th class="py-3 px-2 text-center w-14">№</th>
-                        <th class="py-3 px-4 w-[24%]">Taxlovchi F.I.SH</th>
-                        <th class="py-3 px-4 text-center w-[23%]">Patoklar Bo'yicha Taxlov</th>
-                        <th class="py-3 px-4 text-center w-[15%]">Norma Foizi</th>
-                        <th class="py-3 px-4 text-right w-[19%]">Bugungi Ish Haqi</th>
-                        <th class="py-3 px-4 text-right w-[19%]">Oylik Maosh</th>
+                        <th class="py-3 px-4 w-[30%]">Taxlovchi F.I.SH</th>
+                        <th class="py-3 px-4 text-left w-[32%]">Patok</th>
+                        <th class="py-3 px-4 text-center w-[16%]">Jami Taxladi</th>
+                        <th class="py-3 px-4 text-center w-[22%]">Norma Foizi</th>
                     </tr>
                 </thead>
                 <tbody id="workers-tbody" class="divide-y divide-slate-800/80 text-base md:text-lg">
                     {% for w in workers %}
                     <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="py-2 px-2 text-center">
+                        <td class="py-2.5 px-2 text-center">
                             <span
                                 class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs md:text-sm {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-default{% endif %}">
                                 {{ forloop.counter }}
                             </span>
                         </td>
-                        <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
+                        <td class="py-2.5 px-4 font-bold text-white tracking-wide text-base md:text-xl truncate">
                             {{ w.full_name }}
                         </td>
 
-                        <!-- Patoklar bo'yicha taxlangan dona -->
-                        <td class="py-2 px-3 text-center">
-                            <div class="flex flex-wrap items-center justify-center gap-1.5">
+                        <!-- Har user yonida alohida patoklari -->
+                        <td class="py-2.5 px-4 text-left">
+                            <div class="flex flex-wrap items-center gap-1.5">
                                 {% for p in w.patoks %}
                                 <div
-                                    class="bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
-                                    <span class="text-xs text-cyan-400 font-mono font-bold">{{ p.code }}:</span>
+                                    class="bg-slate-950/90 border border-slate-800 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
+                                    <span class="text-xs md:text-sm text-cyan-400 font-mono font-black">{{ p.code }}:</span>
                                     <span class="text-sm md:text-base font-black text-yellow-300 digital-font">{{ p.units }}</span>
                                     <span class="text-xs font-bold text-slate-400">dona</span>
                                 </div>
@@ -230,37 +218,28 @@
                             </div>
                         </td>
 
+                        <!-- Jami dona -->
+                        <td class="py-2.5 px-4 text-center font-black text-xl md:text-2xl text-yellow-300 digital-font glow-yellow whitespace-nowrap">
+                            {{ w.total_units }} <span class="text-xs md:text-sm font-semibold text-slate-400 font-sans ml-0.5">dona</span>
+                        </td>
+
                         <!-- Norma foizi = ball / 1000 -->
-                        <td class="py-2 px-3 text-center">
+                        <td class="py-2.5 px-4 text-center">
                             <div class="flex flex-col items-center justify-center gap-1">
-                                <span class="text-lg md:text-xl font-bold digital-font {% if w.is_above_norm %}text-emerald-400 glow-emerald{% elif w.total_percentage >= 70 %}text-amber-400 glow-amber{% else %}text-rose-400 glow-rose{% endif %} leading-none">
+                                <span class="text-lg md:text-2xl font-bold digital-font {% if w.is_above_norm %}text-emerald-400 glow-emerald{% elif w.total_percentage >= 70 %}text-amber-400 glow-amber{% else %}text-rose-400 glow-rose{% endif %} leading-none">
                                     {{ w.total_percentage }}%
                                 </span>
-                                <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 max-w-[90px] mx-auto p-0.5 shadow-inner">
+                                <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 max-w-[110px] mx-auto p-0.5 shadow-inner">
                                     <div class="h-full rounded-full transition-all duration-500 {% if w.is_above_norm %}bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% elif w.total_percentage >= 70 %}bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]{% else %}bg-gradient-to-r from-rose-500 to-red-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% endif %}"
                                         style="width: {{ w.progress_width }}%;"></div>
                                 </div>
                                 <span class="text-xs font-bold text-slate-400 digital-font leading-none">{{ w.ratio_str }}</span>
                             </div>
                         </td>
-
-                        <!-- Bugungi Ish haqi -->
-                        <td
-                            class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
-                            {{ w.total_earnings_formatted }} <span
-                                class="text-xs md:text-sm font-semibold text-emerald-500 font-sans ml-1">so'm</span>
-                        </td>
-
-                        <!-- Oylik Maosh -->
-                        <td
-                            class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-cyan-300 digital-font glow-cyan whitespace-nowrap">
-                            {{ w.month_earnings_formatted }} <span
-                                class="text-xs md:text-sm font-semibold text-cyan-500 font-sans ml-1">so'm</span>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr id="empty-row">
-                        <td colspan="6" class="py-16 text-center text-slate-500">
+                        <td colspan="5" class="py-16 text-center text-slate-500">
                             <i class="fa-solid fa-box-open text-5xl mb-3 block text-slate-700"></i>
                             {% if patok_codes %}
                             <span class="text-xl font-bold block text-slate-400">Ushbu kunda ({{ date_str }}) bu ekran patoklaridan hali taxlov yuborilmadi</span>
@@ -316,7 +295,7 @@
                    <span class="text-sm text-slate-600 mt-1 block">Sanoqchi taxlovchi ro'yxatini «Saqlash va yuborish» qilishi bilan natijalar avtomatik paydo bo'ladi.</span>`
                 : `<span class="text-xl font-bold block text-slate-400">Bu ekranga hali patok biriktirilmagan</span>
                    <span class="text-sm text-slate-600 mt-1 block">Superadmin «Sex ekranlari → Taxlovchilar ekranlari → Patoklarni biriktirish» bo'limida biriktiradi.</span>`;
-            return `<tr id="empty-row"><td colspan="6" class="py-16 text-center text-slate-500">
+            return `<tr id="empty-row"><td colspan="5" class="py-16 text-center text-slate-500">
                         <i class="fa-solid fa-box-open text-5xl mb-3 block text-slate-700"></i>${text}</td></tr>`;
         }
 
@@ -331,12 +310,6 @@
                 if (!response.ok) return;
                 const data = await response.json();
 
-                const statPatoks = document.getElementById('stat-patoks');
-                if (statPatoks && data.patok_codes) {
-                    statPatoks.innerHTML = data.patok_codes.length
-                        ? data.patok_codes.map(code => `<span class="px-1.5 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs md:text-sm font-black digital-font leading-none">${esc(code)}</span>`).join('')
-                        : '<span class="text-sm text-slate-500 font-bold">—</span>';
-                }
                 const statDavomat = document.getElementById('stat-davomat');
                 if (statDavomat && data.davomat !== undefined) statDavomat.innerText = data.davomat;
                 const statUnits = document.getElementById('stat-units');
@@ -361,10 +334,10 @@
                         else if (rank === 2) rankClass = 'rank-2';
                         else if (rank === 3) rankClass = 'rank-3';
 
-                        const patoksHtml = `<div class="flex flex-wrap items-center justify-center gap-1.5">` +
+                        const patoksHtml = `<div class="flex flex-wrap items-center gap-1.5">` +
                             (w.patoks || []).map(p => `
-                                <div class="bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
-                                    <span class="text-xs text-cyan-400 font-mono font-bold">${esc(p.code)}:</span>
+                                <div class="bg-slate-950/90 border border-slate-800 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 shadow-sm">
+                                    <span class="text-xs md:text-sm text-cyan-400 font-mono font-black">${esc(p.code)}:</span>
                                     <span class="text-sm md:text-base font-black text-yellow-300 digital-font">${esc(p.units)}</span>
                                     <span class="text-xs font-bold text-slate-400">dona</span>
                                 </div>
@@ -382,34 +355,31 @@
 
                         html += `
                         <tr class="hover:bg-slate-800/50 transition-colors">
-                            <td class="py-2 px-2 text-center">
+                            <td class="py-2.5 px-2 text-center">
                                 <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs md:text-sm ${rankClass}">
                                     ${rank}
                                 </span>
                             </td>
-                            <td class="py-2 px-3 font-bold text-white tracking-wide text-base md:text-lg truncate">
+                            <td class="py-2.5 px-4 font-bold text-white tracking-wide text-base md:text-xl truncate">
                                 ${esc(w.full_name)}
                             </td>
-                            <td class="py-2 px-3 text-center">
+                            <td class="py-2.5 px-4 text-left">
                                 ${patoksHtml}
                             </td>
-                            <td class="py-2 px-3 text-center">
+                            <td class="py-2.5 px-4 text-center font-black text-xl md:text-2xl text-yellow-300 digital-font glow-yellow whitespace-nowrap">
+                                ${esc(w.total_units)} <span class="text-xs md:text-sm font-semibold text-slate-400 font-sans ml-0.5">dona</span>
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
                                 <div class="flex flex-col items-center justify-center gap-1">
-                                    <span class="text-lg md:text-xl font-bold digital-font ${pctColor} leading-none">
+                                    <span class="text-lg md:text-2xl font-bold digital-font ${pctColor} leading-none">
                                         ${w.total_percentage}%
                                     </span>
-                                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 max-w-[90px] mx-auto p-0.5 shadow-inner">
+                                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 max-w-[110px] mx-auto p-0.5 shadow-inner">
                                         <div class="h-full rounded-full transition-all duration-500 ${barGradient}"
                                             style="width: ${w.progress_width}%;"></div>
                                     </div>
                                     <span class="text-xs font-bold text-slate-400 digital-font leading-none">${esc(w.ratio_str)}</span>
                                 </div>
-                            </td>
-                            <td class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-emerald-400 digital-font glow-emerald whitespace-nowrap">
-                                ${esc(w.total_earnings_formatted)} <span class="text-xs md:text-sm font-semibold text-emerald-500 font-sans ml-1">so'm</span>
-                            </td>
-                            <td class="py-2 px-3 text-right font-black text-2xl md:text-3xl text-cyan-300 digital-font glow-cyan whitespace-nowrap">
-                                ${esc(w.month_earnings_formatted)} <span class="text-xs md:text-sm font-semibold text-cyan-500 font-sans ml-1">so'm</span>
                             </td>
                         </tr>`;
                     });

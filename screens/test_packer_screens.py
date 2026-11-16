@@ -81,6 +81,10 @@ class PackerScreensTest(TestCase):
         page = self.client.get(reverse('screens:packer_view', args=[2]), {'date': DAY.isoformat()})
         self.assertContains(page, 'TAXLOV-2')
         self.assertContains(page, 'Aziz Taxlov')
+        self.assertContains(page, 'K5:')
+        self.assertNotContains(page, 'id="stat-patoks"')
+        self.assertNotContains(page, 'Bugungi Ish Haqi')
+        self.assertNotContains(page, 'Oylik Maosh')
         api = self.client.get(reverse('screens:packer_api', args=[2]), {'date': DAY.isoformat()}).json()
         self.assertEqual((api['workers'][0]['total_percentage'], api['workers'][0]['is_above_norm'], api['units_total']),
                          (180.0, True, 1200))
