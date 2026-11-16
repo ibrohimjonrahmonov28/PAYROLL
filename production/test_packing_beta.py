@@ -7,6 +7,7 @@ import json
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import User, Worker
 from production.models import (Article, Box, BoxQualityInspectionLog, Order, PackingScan,
@@ -324,3 +325,17 @@ class PackingBetaTest(TestCase):
             found = self.client.get(self.hub, {'tab': 'sanoqchi', 'sv': query}).context['search_basket']
             self.assertEqual((found['basket'], found['total']), (basket, 3), query)
         self.assertIsNone(self.client.get(self.hub, {'tab': 'sanoqchi', 'sv': 'SV-000000'}).context['search_basket'])
+
+    def test_pages_render_with_migrated_basket_without_master(self):
+        # 0047: avvalgi "jo'natilgan" savatlar qabul qilingan (ACCEPTED) bo'ldi, lekin qabul qilgan masteri yo'q —
+        # serverda "Oxirgi savatlar" va qidiruv shu sabab 500 bergan (2026-11-16)
+        self.initial()
+        basket = SecondSortBatch.objects.create(counter=self.counter, status=SecondSortBatch.Status.ACCEPTED,
+                                                sent_at=timezone.now(), accepted_at=timezone.now())
+        BoxQualityInspectionLog.objects.filter(box=self.box).update(second_sort_batch=basket)
+        for user in (self.admin, self.master, self.packing):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka'}).status_code, 200, user.role)
+            self.assertEqual(self.client.get(self.hub, {'tab': 'upakovka', 'sv': basket.code}).status_code, 200, user.role)
+        self.client.force_login(self.counter)
+        self.assertEqual(self.client.get(self.hub, {'tab': 'sanoqchi', 'sv': basket.code}).status_code, 200)
