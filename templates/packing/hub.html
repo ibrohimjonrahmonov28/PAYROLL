@@ -4,15 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ tab_label }} — Beta — TERRY JAR</title>
+    <title>{{ tab_label }} — Qadoqlash Markazi — TERRY JAR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    {% include 'includes/theme_head.html' with keep_font=True %}
     <style>
-        body { font-family: 'Times New Roman', Times, serif; }
+        :root {
+            --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            font-family: var(--font-sans);
+            letter-spacing: -0.011em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .font-mono, .tabular-nums {
+            font-feature-settings: "tnum" 1, "zero" 1;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Custom smooth scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.6); }
     </style>
-    {% include 'includes/theme_head.html' %}
     <script>
         const CSRF_TOKEN = '{{ csrf_token }}';
 
@@ -37,47 +56,58 @@
     </script>
 </head>
 
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-orange-500 selection:text-white">
     {% comment %}
-    Beta (production/packing_views.py::hub_view): bitta sahifa, tablar — OTK, taxlovchi, sanoqchi, upakovka, beta zakazlar.
-    Superadmin hamma tabni ko'radi; PACKING — taxlovchi va upakovka; COUNTER — sanoqchi. Faqat beta zakazlar.
+    Beta Qadoqlash Markazi (production/packing_views.py::hub_view):
+    OTK → Taxlovchi → Sanoqchi → Upakovka → Zakazlar.
     {% endcomment %}
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-3 sm:gap-5 min-w-0">
-                <a href="{% url 'packing:hub' %}" class="flex items-center gap-2.5 flex-shrink-0">
-                    <span class="w-9 h-9 rounded-xl bg-orange-500 text-slate-950 flex items-center justify-center shadow"><i class="fa-solid fa-flask"></i></span>
-                    <span>
-                        <span class="block font-black text-white leading-tight text-base">Beta Qadoqlash</span>
-                        <span class="block text-[11px] text-slate-400">OTK → Taxlovchi → Sanoqchi → Upakovka</span>
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-30 shadow-lg shadow-black/10">
+        <div class="max-w-[1680px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-3 sm:gap-6 min-w-0">
+                <a href="{% url 'packing:hub' %}" class="flex items-center gap-3 flex-shrink-0 group">
+                    <span class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform duration-200">
+                        <i class="fa-solid fa-boxes-stacked text-base"></i>
                     </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-white leading-tight text-base tracking-tight">Qadoqlash Markazi</span>
+                            <span class="px-1.5 py-0.5 rounded-md bg-orange-500/15 border border-orange-500/30 text-[10px] font-black text-orange-400 tracking-wider uppercase">BETA v2</span>
+                        </div>
+                        <span class="block text-[11px] text-slate-400 font-medium">OTK · Taxlovchi · Sanoqchi · Upakovka</span>
+                    </div>
                 </a>
-                <nav class="flex items-center gap-1.5 text-sm font-bold overflow-x-auto no-scrollbar py-0.5">
+
+                <nav class="flex items-center gap-1.5 text-xs sm:text-sm font-bold overflow-x-auto no-scrollbar py-0.5">
                     {% for item in tab_items %}
                     <a href="?tab={{ item.key }}"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-colors whitespace-nowrap {% if item.key == tab %}bg-orange-500 text-slate-950 border-orange-400 shadow-sm{% else %}text-slate-300 border-transparent hover:bg-slate-800 hover:border-slate-700{% endif %}">
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all duration-150 whitespace-nowrap {% if item.key == tab %}bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black border-orange-400 shadow-md shadow-orange-500/25 scale-[1.02]{% else %}text-slate-300 border-transparent hover:bg-slate-800/80 hover:text-white hover:border-slate-700/80{% endif %}">
                         <i class="fa-solid {% if item.key == 'otk' %}fa-shield-halved{% elif item.key == 'taxlovchi' %}fa-barcode{% elif item.key == 'sanoqchi' %}fa-calculator{% elif item.key == 'upakovka' %}fa-boxes-packing{% else %}fa-sliders{% endif %} text-xs"></i>
                         <span>{{ item.label }}</span>
                         {% if item.badge %}
-                        <span class="px-1.5 py-0.5 rounded-md text-[11px] font-black leading-none {% if item.key == tab %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-orange-300{% endif %}">{{ item.badge }}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black leading-none {% if item.key == tab %}bg-slate-950/20 text-slate-950{% else %}bg-orange-500/15 text-orange-400 border border-orange-500/30{% endif %}">{{ item.badge }}</span>
                         {% endif %}
                     </a>
                     {% endfor %}
                 </nav>
             </div>
-            <div class="flex items-center gap-2.5 flex-shrink-0">
+
+            <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 {% include 'includes/theme_toggle.html' %}
                 {% if request.user.is_superadmin %}
-                <a href="{% url 'superadmin_dashboard' %}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-400">
-                    <i class="fa-solid fa-crown mr-1"></i><span class="hidden sm:inline">Super Admin</span>
+                <a href="{% url 'superadmin_dashboard' %}" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xs font-bold text-amber-400 transition-colors shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-crown text-[11px]"></i>
+                    <span class="hidden sm:inline">Super Admin</span>
                 </a>
                 {% endif %}
-                <span class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 text-xs text-slate-300 font-bold">
-                    <i class="fa-solid fa-user text-slate-400"></i>
-                    {{ request.user.get_full_name|default:request.user.username }}
-                </span>
-                <a href="{% url 'root_logout' %}" class="px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs font-bold text-slate-300 hover:text-rose-400 hover:border-rose-700 transition-colors" title="Chiqish">
-                    <i class="fa-solid fa-arrow-right-from-bracket sm:mr-1"></i><span class="hidden sm:inline">Chiqish</span>
+                <div class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-xs text-slate-300 font-semibold">
+                    <span class="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-slate-300 font-bold">
+                        {{ request.user.first_name|first|default:request.user.username|first|upper }}
+                    </span>
+                    <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                </div>
+                <a href="{% url 'root_logout' %}" class="px-3 py-1.5 rounded-xl border border-slate-700/70 text-xs font-bold text-slate-300 hover:text-rose-400 hover:border-rose-700/80 hover:bg-rose-950/20 transition-all" title="Chiqish">
+                    <i class="fa-solid fa-arrow-right-from-bracket sm:mr-1 text-[11px]"></i>
+                    <span class="hidden sm:inline">Chiqish</span>
                 </a>
             </div>
         </div>
@@ -86,19 +116,21 @@
     {% if messages %}
     <div id="flash-toast" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-md w-[calc(100vw-2.5rem)]">
         {% for message in messages %}
-        <div class="p-3.5 rounded-2xl text-sm font-bold shadow-2xl border flex items-start justify-between gap-3 {% if message.tags == 'error' %}bg-rose-950 text-rose-200 border-rose-700{% else %}bg-emerald-950 text-emerald-200 border-emerald-700{% endif %}">
+        <div class="p-4 rounded-2xl text-sm font-semibold shadow-2xl backdrop-blur-md border flex items-start justify-between gap-3 {% if message.tags == 'error' %}bg-rose-950/90 text-rose-200 border-rose-700/80 shadow-rose-950/50{% else %}bg-emerald-950/90 text-emerald-200 border-emerald-700/80 shadow-emerald-950/50{% endif %} animate-[slideIn_0.2s_ease-out]">
             <div class="flex items-start gap-2.5">
-                <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %} mt-0.5"></i>
-                <span>{{ message }}</span>
+                <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation text-rose-400{% else %}fa-circle-check text-emerald-400{% endif %} mt-0.5 text-base"></i>
+                <span class="leading-snug">{{ message }}</span>
             </div>
-            <button type="button" onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100 leading-none text-base">&times;</button>
+            <button type="button" onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 leading-none text-base p-1">&times;</button>
         </div>
         {% endfor %}
     </div>
     <script>setTimeout(() => document.getElementById('flash-toast')?.remove(), 7000);</script>
     {% endif %}
 
-    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 sm:py-6">{% include tab_template %}</main>
+    <main class="max-w-[1680px] mx-auto px-3 sm:px-6 py-5 sm:py-6">
+        {% include tab_template %}
+    </main>
 </body>
 
 </html>

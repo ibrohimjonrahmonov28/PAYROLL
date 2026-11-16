@@ -1,196 +1,217 @@
 {% comment %}
-OTK tabi (superadmin, beta): /control/ ning o'sha qidiruv va saqlash funksiyalari (api_otk_lookup / api_otk_submit), faqat beta
-zakaz qutilari. Har 2-sort va ta'mir donasi uchun operatsiya (tikuvchi avtomatik) — /control/ bilan bir xil ma'lumot ketadi.
+OTK tabi (superadmin, beta): sifat nazorati, ta'mir va 2-sort/brak ajratish.
 Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu kompyuterda A4 ga chiqadi; o'ngda — qayta chop etish.
 {% endcomment %}
-<div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-5">
-    <section class="space-y-4">
-        <div class="flex flex-wrap items-end justify-between gap-2">
-            <div>
-                <h1 class="text-xl font-black text-white">OTK: sifat nazorati</h1>
-                <p class="text-xs text-slate-400">Faqat beta zakaz qutilari. Quti kodi, CONTROL stikeri yoki TAMIR chekini skanerlang.</p>
+<div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-6">
+    <section class="space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-900/30 text-lg">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </span>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">OTK: Sifat nazorati</h1>
+                    <p class="text-xs text-slate-400 mt-0.5">Faqat beta zakaz qutilari. Quti kodi, CONTROL stikeri yoki TAMIR chekini skanerlang.</p>
+                </div>
             </div>
         </div>
 
-        <div class="relative">
-            <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-orange-400 text-lg pointer-events-none"></i>
+        <div class="relative group">
+            <i class="fa-solid fa-barcode absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-orange-400 text-xl pointer-events-none group-focus-within:animate-pulse"></i>
             <input id="otk-input" autocomplete="off" autofocus placeholder="Qutining CONTROL stikeri, TAMIR cheki yoki quti kodi..."
-                class="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-slate-950 border-2 border-orange-500/60 text-white text-lg focus:outline-none focus:border-orange-400">
+                class="w-full pl-12 sm:pl-14 pr-12 py-3.5 sm:py-4 rounded-2xl bg-slate-950 border-2 border-orange-500/70 focus:border-orange-400 text-white text-base sm:text-lg focus:outline-none focus:ring-4 focus:ring-orange-500/20 transition-all font-mono placeholder:font-sans placeholder:text-slate-500 shadow-inner">
             <button type="button" onclick="otkInput.value=''; otkInput.focus();" title="Tozalash"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 px-2 py-1 text-lg">&times;</button>
+                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 w-8 h-8 rounded-xl bg-slate-900/80 hover:bg-slate-800 flex items-center justify-center text-sm transition-colors">&times;</button>
         </div>
 
         <div id="otk-alert" class="hidden"></div>
 
-        <div id="otk-box" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div class="flex flex-wrap sm:flex-nowrap gap-4">
-                <img id="otk-img" alt="" class="hidden w-24 h-24 object-cover rounded-xl border border-slate-700 flex-shrink-0">
-                <div class="flex-1 min-w-0 space-y-1">
+        <div id="otk-box" class="hidden bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 sm:p-6 space-y-5 shadow-xl shadow-black/20">
+            <div class="flex flex-wrap sm:flex-nowrap gap-4 pb-4 border-b border-slate-800/80">
+                <img id="otk-img" alt="" class="hidden w-24 h-24 object-cover rounded-2xl border border-slate-700/80 flex-shrink-0 shadow-md">
+                <div class="flex-1 min-w-0 space-y-1.5">
                     <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
-                        <span id="otk-patok" class="px-2 py-0.5 rounded-md bg-orange-500/20 border border-orange-500/40 text-orange-300"></span>
-                        <span id="otk-order" class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300"></span>
-                        <span id="otk-pastal" class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400"></span>
+                        <span id="otk-patok" class="px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-300 font-mono"></span>
+                        <span id="otk-order" class="px-2.5 py-1 rounded-lg bg-slate-800/90 text-slate-200 border border-slate-700/50 font-mono"></span>
+                        <span id="otk-pastal" class="px-2.5 py-1 rounded-lg bg-slate-800/90 text-slate-400 border border-slate-700/50 font-mono"></span>
                     </div>
-                    <p id="otk-code" class="text-2xl font-black text-white"></p>
-                    <p id="otk-article" class="text-sm text-slate-300"></p>
+                    <p id="otk-code" class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight"></p>
+                    <p id="otk-article" class="text-xs sm:text-sm text-slate-300 font-medium"></p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                    <span id="otk-mode" class="inline-block px-3 py-1 rounded-lg text-xs font-black"></span>
-                    <p id="otk-qty" class="text-3xl font-black text-white mt-1"></p>
-                    <p id="otk-qty-label" class="text-[11px] text-slate-400"></p>
+                    <span id="otk-mode" class="inline-block px-3 py-1 rounded-xl text-xs font-black shadow-sm"></span>
+                    <p id="otk-qty" class="text-3xl sm:text-4xl font-black text-white font-mono tabular-nums mt-1 leading-none"></p>
+                    <p id="otk-qty-label" class="text-[11px] font-medium text-slate-400 mt-1 uppercase"></p>
                 </div>
             </div>
 
-            <div id="otk-missing" class="hidden p-3 rounded-xl bg-amber-950 border border-amber-700 text-amber-200 text-sm"></div>
+            <div id="otk-missing" class="hidden p-3.5 rounded-2xl bg-amber-950/80 border border-amber-700/80 text-amber-200 text-xs sm:text-sm font-medium"></div>
 
-            <div id="otk-existing-receipt" class="hidden p-3.5 rounded-xl bg-amber-950/60 border border-amber-700/80 flex flex-wrap items-center justify-between gap-3">
-                <div class="min-w-0 space-y-0.5 text-xs">
-                    <p class="font-black text-amber-200 text-sm"><i class="fa-solid fa-receipt mr-1.5"></i>Oldingi ta'mir cheki</p>
-                    <p id="otk-existing-meta" class="text-amber-100/90"></p>
-                    <p id="otk-existing-details" class="text-amber-200/80"></p>
+            <div id="otk-existing-receipt" class="hidden p-4 rounded-2xl bg-amber-950/60 border border-amber-700/80 flex flex-wrap items-center justify-between gap-3 shadow-md">
+                <div class="min-w-0 space-y-1 text-xs">
+                    <p class="font-black text-amber-300 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span>Oldingi ta'mir cheki</span>
+                    </p>
+                    <p id="otk-existing-meta" class="text-amber-100/90 font-mono"></p>
+                    <p id="otk-existing-details" class="text-amber-200/80 font-medium"></p>
                 </div>
-                <button type="button" id="otk-existing-print" class="px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black flex-shrink-0">
-                    <i class="fa-solid fa-print mr-1"></i> Chekni qayta chiqarish
+                <button type="button" id="otk-existing-print" class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black flex-shrink-0 shadow-md transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Chekni qayta chiqarish</span>
                 </button>
             </div>
 
-            <div id="otk-form" class="space-y-4">
-                <div id="otk-total-wrap" class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800">
-                    <span class="text-sm font-bold text-slate-300">Qutida jami (sanaldi):</span>
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="stepTotal(-1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg">-</button>
-                        <input id="otk-total" type="number" min="1" class="w-24 px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xl font-black text-center">
-                        <button type="button" onclick="stepTotal(1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg">+</button>
-                        <span id="otk-total-diff" class="text-xs font-bold text-amber-300 hidden"></span>
+            <div id="otk-form" class="space-y-5">
+                <div id="otk-total-wrap" class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                    <span class="text-xs sm:text-sm font-bold text-slate-300 uppercase tracking-wider">Qutida jami dona (sanaldi):</span>
+                    <div class="flex items-center gap-2.5">
+                        <button type="button" onclick="stepTotal(-1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg border border-slate-700 transition-colors">-</button>
+                        <input id="otk-total" type="number" min="1" class="w-24 px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xl font-black font-mono text-center focus:outline-none focus:border-orange-500">
+                        <button type="button" onclick="stepTotal(1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg border border-slate-700 transition-colors">+</button>
+                        <span id="otk-total-diff" class="text-xs font-bold text-amber-400 font-mono hidden ml-1"></span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div id="otk-first-card" class="rounded-2xl bg-emerald-950/60 border border-emerald-800 p-3.5">
-                        <p id="otk-first-label" class="text-xs font-bold text-emerald-300">1-sort</p>
-                        <p id="otk-first" class="text-3xl font-black text-emerald-300 mt-0.5">0</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div id="otk-first-card" class="rounded-2xl bg-emerald-950/60 border border-emerald-800/80 p-4 shadow-sm">
+                        <p id="otk-first-label" class="text-xs font-bold text-emerald-400 uppercase tracking-wider">1-sort</p>
+                        <p id="otk-first" class="text-3xl font-black text-emerald-300 font-mono tabular-nums mt-1">0</p>
                     </div>
-                    <div class="rounded-2xl bg-rose-950/60 border border-rose-800 p-3.5 flex items-center justify-between gap-2">
+                    <div class="rounded-2xl bg-rose-950/60 border border-rose-800/80 p-4 flex items-center justify-between gap-2 shadow-sm">
                         <div>
-                            <p id="otk-defect-label" class="text-xs font-bold text-rose-300">2-sort</p>
-                            <p id="otk-defect-count" class="text-3xl font-black text-rose-300 mt-0.5">0</p>
+                            <p id="otk-defect-label" class="text-xs font-bold text-rose-400 uppercase tracking-wider">2-sort</p>
+                            <p id="otk-defect-count" class="text-3xl font-black text-rose-300 font-mono tabular-nums mt-1">0</p>
                         </div>
-                        <button type="button" onclick="openPiece('defect')" class="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">+ dona</button>
+                        <button type="button" onclick="openPiece('defect')" class="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-black shadow-md transition-all">+ dona</button>
                     </div>
-                    <div class="rounded-2xl bg-amber-950/60 border border-amber-800 p-3.5 flex items-center justify-between gap-2">
+                    <div class="rounded-2xl bg-amber-950/60 border border-amber-800/80 p-4 flex items-center justify-between gap-2 shadow-sm">
                         <div>
-                            <p id="otk-repair-label" class="text-xs font-bold text-amber-300">Ta'mir</p>
-                            <p id="otk-repair-count" class="text-3xl font-black text-amber-300 mt-0.5">0</p>
+                            <p id="otk-repair-label" class="text-xs font-bold text-amber-400 uppercase tracking-wider">Ta'mir</p>
+                            <p id="otk-repair-count" class="text-3xl font-black text-amber-300 font-mono tabular-nums mt-1">0</p>
                         </div>
-                        <button type="button" onclick="openPiece('repair')" class="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-black">+ dona</button>
+                        <button type="button" onclick="openPiece('repair')" class="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-black shadow-md transition-all">+ dona</button>
                     </div>
                 </div>
 
-                <div id="otk-over-warn" class="hidden p-3 rounded-xl bg-rose-950 border border-rose-700 text-rose-200 text-xs font-bold">
+                <div id="otk-over-warn" class="hidden p-3.5 rounded-2xl bg-rose-950 border border-rose-700 text-rose-200 text-xs font-bold">
+                    <i class="fa-solid fa-circle-exclamation mr-1.5"></i>
                     2-sort va ta'mir soni quti sonidan oshib ketdi! Donalarni kamaytiring yoki quti sonini tekshiring.
                 </div>
 
                 <div id="otk-pieces" class="space-y-2"></div>
 
-                <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
-                    <button type="button" onclick="resetOtk()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">Bekor qilish</button>
-                    <button type="button" id="otk-save" onclick="saveOtk()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black">
-                        <i class="fa-solid fa-check mr-1"></i> Saqlash
+                <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="resetOtk()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition-all">Bekor qilish</button>
+                    <button type="button" id="otk-save" onclick="saveOtk()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-40 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-950/40 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Saqlash</span>
                     </button>
                 </div>
             </div>
 
-            <div id="otk-done" class="hidden p-4 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 space-y-2">
-                <p class="font-bold"><i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i>Bu quti OTK'dan to'liq o'tgan.</p>
-                <p id="otk-done-summary" class="text-xs text-slate-400"></p>
+            <div id="otk-done" class="hidden p-5 rounded-2xl bg-slate-950/90 border border-slate-800 text-slate-200 space-y-2">
+                <p class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+                    <span>Bu quti OTK'dan to'liq o'tgan.</span>
+                </p>
+                <p id="otk-done-summary" class="text-xs sm:text-sm text-slate-400 font-mono"></p>
             </div>
         </div>
     </section>
 
-    <aside class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 self-start">
-        <div class="flex items-center justify-between gap-2">
+    <!-- Ta'mir Cheklari Sidebar -->
+    <aside class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 space-y-4 self-start shadow-sm">
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-800">
             <div>
-                <h2 class="text-sm font-black text-white uppercase">Ta'mir cheklari</h2>
-                <p class="text-[11px] text-slate-400">Oxirgi 7 kun · jami {{ receipts|length }} ta{% if active_repairs_count %} · <b class="text-amber-300">{{ active_repairs_count }} faol</b>{% endif %}</p>
+                <h2 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-receipt text-orange-400"></i>
+                    <span>Ta'mir cheklari</span>
+                </h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">Oxirgi 7 kun · jami {{ receipts|length }} ta{% if active_repairs_count %} · <b class="text-amber-400 font-mono">{{ active_repairs_count }} faol</b>{% endif %}</p>
             </div>
-            <div class="flex rounded-lg bg-slate-950 border border-slate-800 p-0.5 text-[11px] font-bold">
-                <button type="button" onclick="setReceiptFilter('all')" id="rf-all" class="px-2 py-1 rounded-md bg-orange-500 text-slate-950">Barchasi</button>
-                <button type="button" onclick="setReceiptFilter('active')" id="rf-active" class="px-2 py-1 rounded-md text-slate-300">Ta'mirda</button>
+            <div class="flex rounded-xl bg-slate-950 border border-slate-800 p-1 text-[11px] font-bold">
+                <button type="button" onclick="setReceiptFilter('all')" id="rf-all" class="px-2.5 py-1 rounded-lg bg-orange-500 text-slate-950 font-black">Barchasi</button>
+                <button type="button" onclick="setReceiptFilter('active')" id="rf-active" class="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white">Ta'mirda</button>
             </div>
         </div>
 
-        <input id="otk-receipt-search" oninput="filterReceipts()" placeholder="Chek qidirish (quti, zakaz, patok, tikuvchi)..."
-            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-orange-500">
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+            <input id="otk-receipt-search" oninput="filterReceipts()" placeholder="Chek qidirish (quti, zakaz, patok, tikuvchi)..."
+                class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600">
+        </div>
 
-        <div id="otk-receipts" class="divide-y divide-slate-800 max-h-[65vh] overflow-y-auto pr-1">
+        <div id="otk-receipts" class="divide-y divide-slate-800/80 max-h-[65vh] overflow-y-auto pr-1">
             {% for receipt in receipts %}
-            <div class="py-2.5 flex items-center justify-between gap-2 receipt-row"
+            <div class="py-3 flex items-center justify-between gap-3 receipt-row hover:bg-slate-800/30 px-2 rounded-xl transition-colors"
                 data-active="{% if receipt.is_repair_active %}1{% else %}0{% endif %}"
                 data-search="{{ receipt.box.box_code }} {{ receipt.patok_code }} {{ receipt.box.order.order_number }} {{ receipt.article_code }} {{ receipt.operator_name }}">
                 <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="font-black text-white text-sm">{{ receipt.box.box_code }}</span>
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-black">{{ receipt.cycle }}-ta'mir</span>
-                        <span class="text-[11px] text-slate-400 font-bold">· {{ receipt.patok_code }} · {{ receipt.box.razmer|default:"—" }}</span>
+                        <span class="font-black text-white text-sm font-mono">{{ receipt.box.box_code }}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-black font-mono">{{ receipt.cycle }}-ta'mir</span>
+                        <span class="text-[11px] text-slate-400 font-medium">· {{ receipt.patok_code }} · {{ receipt.box.razmer|default:"—" }}</span>
                         {% if receipt.is_repair_active %}
-                        <span class="px-1.5 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 text-[10px] font-black">Ta'mirda: {{ receipt.remaining_repair_qty }}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300 text-[10px] font-black font-mono">Ta'mirda: {{ receipt.remaining_repair_qty }}</span>
                         {% else %}
-                        <span class="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 text-[10px] font-bold">Yopilgan</span>
+                        <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 text-[10px] font-bold">Yopilgan</span>
                         {% endif %}
                     </div>
-                    <p class="text-[11px] text-slate-400 truncate mt-0.5">{{ receipt.created_at|date:"d.m H:i" }} · {{ receipt.box.order.order_number }} · {{ receipt.operator_name|default:receipt.inspector.username|default:"—" }}</p>
+                    <p class="text-[11px] text-slate-400 truncate mt-1">{{ receipt.created_at|date:"d.m H:i" }} · {{ receipt.box.order.order_number }} · {% if receipt.operator_name %}{{ receipt.operator_name }}{% elif receipt.inspector %}{{ receipt.inspector.get_full_name|default:receipt.inspector.username }}{% else %}—{% endif %}</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="font-black text-amber-300 text-sm">{{ receipt.quantity }}</span>
+                    <span class="font-black text-amber-300 text-sm font-mono tabular-nums">{{ receipt.quantity }}</span>
                     <button type="button" title="Chop etish" onclick="printReceipt('{% url 'packing:repair_receipt' receipt.id %}?print=1')"
-                        class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black"><i class="fa-solid fa-print"></i></button>
+                        class="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black shadow-sm transition-all flex items-center justify-center"><i class="fa-solid fa-print"></i></button>
                 </div>
             </div>
             {% empty %}
-            <p id="otk-receipts-empty" class="py-4 text-center text-sm text-slate-500">Hozircha chek yo'q.</p>
+            <p id="otk-receipts-empty" class="py-6 text-center text-sm text-slate-500">Hozircha chek yo'q.</p>
             {% endfor %}
         </div>
     </aside>
 </div>
 
-<div id="otk-piece" class="hidden fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4">
-        <div class="flex items-center justify-between gap-3">
-            <h3 id="otk-piece-title" class="text-lg font-black text-white"></h3>
-            <button type="button" onclick="closePiece()" class="text-slate-400 hover:text-white px-2 py-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+<!-- Modal for defect / repair piece selection -->
+<div id="otk-piece" class="hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl p-5 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between gap-3 pb-2 border-b border-slate-800">
+            <h3 id="otk-piece-title" class="text-lg font-black text-white tracking-tight"></h3>
+            <button type="button" onclick="closePiece()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
 
-        <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+        <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
             <div>
-                <p class="text-xs font-bold text-slate-300 uppercase">Bir xil nuqsonli dona soni</p>
-                <p id="otk-piece-max-hint" class="text-[11px] text-slate-500"></p>
+                <p class="text-xs font-bold text-slate-300 uppercase tracking-wider">Bir xil nuqsonli dona soni</p>
+                <p id="otk-piece-max-hint" class="text-[11px] text-slate-400 mt-0.5 font-mono"></p>
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" onclick="stepPieceQty(-1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg">-</button>
-                <input id="otk-piece-qty" type="number" min="1" value="1" class="w-16 px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-lg font-black text-center">
-                <button type="button" onclick="stepPieceQty(1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg">+</button>
+                <button type="button" onclick="stepPieceQty(-1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg border border-slate-700 transition-colors">-</button>
+                <input id="otk-piece-qty" type="number" min="1" value="1" class="w-16 px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-lg font-black font-mono text-center">
+                <button type="button" onclick="stepPieceQty(1)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg border border-slate-700 transition-colors">+</button>
             </div>
         </div>
 
         <div>
-            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Qaysi operatsiyada nuqson (tikuvchi avtomatik)</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Qaysi operatsiyada nuqson (tikuvchi avtomatik)</p>
             <div id="otk-piece-ops" class="flex flex-wrap gap-2"></div>
             <div id="otk-piece-ops-missing-wrap" class="hidden mt-3">
-                <p class="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Hali urilmagan operatsiyalar</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Hali urilmagan operatsiyalar</p>
                 <div id="otk-piece-ops-missing" class="flex flex-wrap gap-2"></div>
             </div>
         </div>
 
         <div id="otk-piece-reasons-wrap">
-            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Sabab</p>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sabab</p>
             <div id="otk-piece-reasons" class="flex flex-wrap gap-2"></div>
         </div>
 
-        <input id="otk-piece-note" placeholder="Izoh (ixtiyoriy)" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white">
+        <input id="otk-piece-note" placeholder="Izoh (ixtiyoriy)..." class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600">
 
-        <div class="flex justify-end gap-2">
-            <button type="button" onclick="closePiece()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">Bekor</button>
-            <button type="button" onclick="savePiece()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">Qo'shish</button>
+        <div class="flex justify-end gap-2.5 pt-2">
+            <button type="button" onclick="closePiece()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition-all">Bekor</button>
+            <button type="button" onclick="savePiece()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all">Qo'shish</button>
         </div>
     </div>
 </div>
@@ -205,8 +226,8 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
 
     function otkAlert(ok, text) {
         const el = document.getElementById('otk-alert');
-        el.className = `p-4 rounded-2xl border text-sm font-bold flex items-center justify-between gap-3 ${ok ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-rose-950 border-rose-700 text-rose-100'}`;
-        el.innerHTML = `<div class="flex items-center gap-2.5"><i class="fa-solid ${ok ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i><span></span></div>`
+        el.className = `p-4 rounded-2xl border text-sm font-bold flex items-center justify-between gap-3 shadow-lg ${ok ? 'bg-emerald-950/90 border-emerald-700/80 text-emerald-100 shadow-emerald-950/30' : 'bg-rose-950/90 border-rose-700/80 text-rose-100 shadow-rose-950/30'}`;
+        el.innerHTML = `<div class="flex items-center gap-2.5"><i class="fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-triangle-exclamation text-rose-400'}"></i><span></span></div>`
             + '<button type="button" onclick="document.getElementById(\'otk-alert\').className=\'hidden\'" class="opacity-70 hover:opacity-100 text-base">&times;</button>';
         el.querySelector('span').textContent = text;
     }
@@ -268,7 +289,7 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
 
         const mode = document.getElementById('otk-mode');
         mode.textContent = repair ? "TA'MIRDAN QAYTDI" : (done ? 'YOPILGAN' : 'BIRLAMCHI TEKSHIRUV');
-        mode.className = `inline-block px-3 py-1 rounded-lg text-xs font-black ${repair ? 'bg-amber-500 text-slate-950' : (done ? 'bg-slate-700 text-slate-200' : 'bg-emerald-600 text-white')}`;
+        mode.className = `inline-block px-3 py-1 rounded-xl text-xs font-black shadow-sm ${repair ? 'bg-amber-500 text-slate-950' : (done ? 'bg-slate-700 text-slate-200' : 'bg-emerald-600 text-white')}`;
         document.getElementById('otk-qty').textContent = repair ? b.controlled_repair_qty : b.quantity;
         document.getElementById('otk-qty-label').textContent = repair ? "ta'mirdagi dona" : 'qutidagi dona';
 
@@ -334,15 +355,15 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
         document.getElementById('otk-save').disabled = !!over;
 
         const firstCard = document.getElementById('otk-first-card');
-        firstCard.className = `rounded-2xl p-3.5 border ${over ? 'bg-rose-950/60 border-rose-700' : 'bg-emerald-950/60 border-emerald-800'}`;
+        firstCard.className = `rounded-2xl p-4 border transition-all ${over ? 'bg-rose-950/60 border-rose-700' : 'bg-emerald-950/60 border-emerald-800/80'}`;
 
         const list = document.getElementById('otk-pieces');
         list.innerHTML = '';
         [['defect', otkDefects], ['repair', otkRepairs]].forEach(([kind, items]) => items.forEach((p, i) => {
             const row = document.createElement('div');
-            row.className = `flex items-start justify-between gap-3 p-3 rounded-xl border ${kind === 'defect' ? 'border-rose-800 bg-rose-950/40' : 'border-amber-800 bg-amber-950/40'}`;
+            row.className = `flex items-start justify-between gap-3 p-3.5 rounded-2xl border shadow-sm ${kind === 'defect' ? 'border-rose-800/80 bg-rose-950/40' : 'border-amber-800/80 bg-amber-950/40'}`;
             row.innerHTML = '<div class="text-sm min-w-0"><p class="font-black text-white"></p><p class="text-slate-300 text-xs mt-0.5"></p></div>'
-                + '<button type="button" class="text-slate-400 hover:text-rose-400 px-2 py-1" title="O\'chirish"><i class="fa-solid fa-trash"></i></button>';
+                + '<button type="button" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-600 hover:text-white border border-slate-700 text-slate-400 text-xs transition-colors flex items-center justify-center" title="O\'chirish"><i class="fa-solid fa-trash-can"></i></button>';
             const parts = [];
             if (p.operation_names.length) parts.push(p.operation_names.join(', ') + (p.workers.length ? ` (${p.workers.join(', ')})` : ''));
             if (p.reason_names && p.reason_names.length) parts.push(p.reason_names.join(', '));
@@ -361,7 +382,7 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
     function chip(label, active, activeClass, baseClass, onClick) {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = `px-3 py-2 rounded-xl border-2 text-sm font-bold text-left transition-colors ${active ? activeClass : baseClass}`;
+        b.className = `px-3.5 py-2 rounded-xl border-2 text-xs sm:text-sm font-bold text-left transition-all ${active ? activeClass : baseClass}`;
         b.textContent = label;
         b.onclick = onClick;
         return b;
@@ -385,8 +406,8 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
         scanned.forEach(t => ops.append(chip(
             `${t.operation_name} — ${t.worker.full_name}`,
             pieceOps.has(t.id),
-            'border-orange-400 bg-orange-500/20 text-white',
-            'border-slate-700 bg-slate-950 text-slate-200 hover:border-slate-500',
+            'border-orange-400 bg-orange-500/20 text-white shadow-sm',
+            'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700',
             () => toggleIn(pieceOps, t.id)
         )));
         if (!scanned.length) ops.innerHTML = '<p class="text-sm text-slate-500">Tikilgan operatsiya topilmadi.</p>';
@@ -404,8 +425,8 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
         reasons.innerHTML = '';
         otkReasons.forEach(r => reasons.append(chip(
             r.name, pieceReasons.has(r.id),
-            'border-rose-400 bg-rose-500/20 text-white',
-            'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500',
+            'border-rose-400 bg-rose-500/20 text-white shadow-sm',
+            'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700',
             () => toggleIn(pieceReasons, r.id)
         )));
     }
@@ -491,20 +512,20 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
         const rem = meta?.remaining ?? qty;
 
         const row = document.createElement('div');
-        row.className = 'py-2.5 flex items-center justify-between gap-2 receipt-row';
+        row.className = 'py-3 flex items-center justify-between gap-3 receipt-row hover:bg-slate-800/30 px-2 rounded-xl transition-colors';
         row.dataset.active = rem > 0 ? '1' : '0';
         row.dataset.search = `${boxCode} ${patok} ${order} ${meta?.article_code || ''} ${operator}`;
         row.innerHTML = `<div class="min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-black text-white text-sm r-code"></span>
-                <span class="text-[11px] text-slate-400 font-bold r-sub"></span>
-                <span class="px-1.5 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 text-[10px] font-black r-badge"></span>
+                <span class="font-black text-white text-sm font-mono r-code"></span>
+                <span class="text-[11px] text-slate-400 font-medium r-sub"></span>
+                <span class="px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300 text-[10px] font-black font-mono r-badge"></span>
             </div>
-            <p class="text-[11px] text-slate-400 truncate mt-0.5 r-meta"></p>
+            <p class="text-[11px] text-slate-400 truncate mt-1 r-meta"></p>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
-            <span class="font-black text-amber-300 text-sm r-qty"></span>
-            <button type="button" title="Chop etish" class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black"><i class="fa-solid fa-print"></i></button>
+            <span class="font-black text-amber-300 text-sm font-mono tabular-nums r-qty"></span>
+            <button type="button" title="Chop etish" class="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black shadow-sm transition-all flex items-center justify-center"><i class="fa-solid fa-print"></i></button>
         </div>`;
         row.querySelector('.r-code').textContent = boxCode;
         row.querySelector('.r-sub').textContent = `· ${patok} · ${razmer}`;
@@ -518,8 +539,8 @@ Ta'mir bo'lsa chek (QR "TAMIR1:<quti kodi>", qayta ta'mirda TAMIR2:...) shu komp
 
     function setReceiptFilter(mode) {
         receiptFilter = mode;
-        document.getElementById('rf-all').className = `px-2 py-1 rounded-md ${mode === 'all' ? 'bg-orange-500 text-slate-950' : 'text-slate-300'}`;
-        document.getElementById('rf-active').className = `px-2 py-1 rounded-md ${mode === 'active' ? 'bg-orange-500 text-slate-950' : 'text-slate-300'}`;
+        document.getElementById('rf-all').className = `px-2.5 py-1 rounded-lg ${mode === 'all' ? 'bg-orange-500 text-slate-950 font-black' : 'text-slate-300 hover:text-white'}`;
+        document.getElementById('rf-active').className = `px-2.5 py-1 rounded-lg ${mode === 'active' ? 'bg-orange-500 text-slate-950 font-black' : 'text-slate-300 hover:text-white'}`;
         filterReceipts();
     }
 

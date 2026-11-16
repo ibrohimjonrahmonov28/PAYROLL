@@ -1,22 +1,27 @@
 {% comment %}Beta zakazlar tabi (superadmin): yangi tartib qaysi zakazlarda ishlashini belgilash.{% endcomment %}
-<div class="space-y-4 max-w-5xl">
-    <div>
-        <h1 class="text-xl font-black text-white">Yangi qadoqlash tartibi qaysi zakazlarda ishlaydi</h1>
-        <p class="text-sm text-slate-400 mt-0.5">Belgilangan zakazlarda: OTK tabida ta'mirga yuborilsa ta'mir cheki (A4) chiqadi, taxlovchi CONTROL / TAMIR qog'ozini uradi, sanoqchi 2-sortni qabul qiladi. Boshqa zakazlar hozirgidek ishlaydi.</p>
+<div class="space-y-5 max-w-6xl">
+    <div class="flex items-start gap-3.5 pb-2 border-b border-slate-800/80">
+        <span class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-900/30 text-lg flex-shrink-0">
+            <i class="fa-solid fa-sliders"></i>
+        </span>
+        <div>
+            <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">Yangi qadoqlash tartibi qaysi zakazlarda ishlaydi</h1>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Belgilangan zakazlarda: OTK tabida ta'mirga yuborilsa ta'mir cheki (A4) chiqadi, taxlovchi CONTROL / TAMIR qog'ozini uradi, sanoqchi 2-sortni qabul qiladi. Boshqa zakazlar odatiy rejimda ishlaydi.</p>
+        </div>
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-bold">
+        <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-1.5 text-xs font-bold shadow-sm">
             <a href="?tab=zakazlar&filter=all{% if search %}&q={{ search|urlencode }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg {% if filter_mode == 'all' %}bg-orange-500 text-slate-950 font-black{% else %}text-slate-300 hover:bg-slate-800{% endif %}">
+                class="px-3.5 py-2 rounded-xl transition-all {% if filter_mode == 'all' %}bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-800/80{% endif %}">
                 Barchasi ({{ total_count }})
             </a>
             <a href="?tab=zakazlar&filter=beta{% if search %}&q={{ search|urlencode }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg {% if filter_mode == 'beta' %}bg-orange-500 text-slate-950 font-black{% else %}text-slate-300 hover:bg-slate-800{% endif %}">
+                class="px-3.5 py-2 rounded-xl transition-all {% if filter_mode == 'beta' %}bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-800/80{% endif %}">
                 Beta yoqilgan ({{ beta_count }})
             </a>
             <a href="?tab=zakazlar&filter=off{% if search %}&q={{ search|urlencode }}{% endif %}"
-                class="px-3 py-1.5 rounded-lg {% if filter_mode == 'off' %}bg-orange-500 text-slate-950 font-black{% else %}text-slate-300 hover:bg-slate-800{% endif %}">
+                class="px-3.5 py-2 rounded-xl transition-all {% if filter_mode == 'off' %}bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-800/80{% endif %}">
                 Beta o'chirilgan
             </a>
         </div>
@@ -24,39 +29,50 @@
         <form method="GET" class="flex gap-2">
             <input type="hidden" name="tab" value="zakazlar">
             <input type="hidden" name="filter" value="{{ filter_mode }}">
-            <input name="q" value="{{ search }}" placeholder="Zakaz raqami yoki mijoz..."
-                class="w-64 sm:w-72 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-orange-500">
-            <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-white">Qidirish</button>
+            <div class="relative w-64 sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                <input name="q" value="{{ search }}" placeholder="Zakaz raqami yoki mijoz..."
+                    class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700/80 text-xs sm:text-sm text-white focus:outline-none focus:border-orange-500 transition-all placeholder:text-slate-600">
+            </div>
+            <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs sm:text-sm font-bold text-white transition-all shadow-sm">Qidirish</button>
         </form>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl divide-y divide-slate-800">
+    <div class="bg-slate-900/90 border border-slate-800/90 rounded-3xl divide-y divide-slate-800/80 shadow-sm overflow-hidden">
         {% for order in orders %}
-        <form method="POST" action="{% url 'packing:beta_toggle' %}" class="px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <form method="POST" action="{% url 'packing:beta_toggle' %}" class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-800/30 transition-colors">
             {% csrf_token %}
             <input type="hidden" name="order_id" value="{{ order.id }}">
             <input type="hidden" name="q" value="{{ search }}">
             <input type="hidden" name="filter" value="{{ filter_mode }}">
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <p class="font-black text-white">{{ order.order_number }}</p>
-                    <span class="px-2 py-0.5 rounded-md bg-slate-800 text-[11px] font-bold text-slate-300">{{ order.get_status_display }}</span>
-                    <span class="text-[11px] text-slate-400">{{ order.articles_count }} model · {{ order.boxes_count }} quti</span>
+                    <p class="font-black text-white text-base font-mono">{{ order.order_number }}</p>
+                    <span class="px-2 py-0.5 rounded-md bg-slate-800 text-[11px] font-bold text-slate-300 border border-slate-700/50">{{ order.get_status_display }}</span>
+                    <span class="text-xs text-slate-400 font-medium font-mono">{{ order.articles_count }} model · {{ order.boxes_count }} quti</span>
                 </div>
-                <p class="text-xs text-slate-400 mt-0.5">{{ order.client_name|default:"Mijoz ko'rsatilmagan" }}</p>
+                <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-building text-[11px] text-slate-500"></i>
+                    <span>{{ order.client_name|default:"Mijoz ko'rsatilmagan" }}</span>
+                </p>
             </div>
             {% if order.packing_beta %}
-            <button class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-sm font-black">
-                <i class="fa-solid fa-check mr-1"></i> Beta yoqilgan{% if order.packing_beta_since %} · {{ order.packing_beta_since|date:"d.m H:i" }} dan{% endif %}
+            <button type="submit" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs sm:text-sm font-black shadow-md shadow-orange-950/40 transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-check text-xs"></i>
+                <span>Beta yoqilgan{% if order.packing_beta_since %} · {{ order.packing_beta_since|date:"d.m H:i" }} dan{% endif %}</span>
             </button>
             {% else %}
-            <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold border border-slate-700">
-                Beta'ni yoqish
+            <button type="submit" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-bold border border-slate-700 transition-all shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-power-off text-xs text-slate-500"></i>
+                <span>Beta'ni yoqish</span>
             </button>
             {% endif %}
         </form>
         {% empty %}
-        <p class="px-4 py-8 text-center text-slate-500 text-sm">Zakaz topilmadi.</p>
+        <div class="px-4 py-10 text-center text-slate-500 text-sm">
+            <i class="fa-solid fa-sliders text-2xl text-slate-600 mb-2 block"></i>
+            Zakaz topilmadi.
+        </div>
         {% endfor %}
     </div>
 </div>
