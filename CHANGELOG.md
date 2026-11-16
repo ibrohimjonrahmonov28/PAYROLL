@@ -29,6 +29,16 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `3266dee`] — 16.11.2026
+* **Turi:** `feat(beta)` — sanoqchi taxlovchi badge'i va qog'ozlarini uradi; ta'mir tarixi va urilmagan qog'ozlar
+* **Mavzu:** Yangi qadoqlash tartibining 3-bosqichi. Taxlovchi tizimda hech narsa urmaydi. Sanoqchi tabida: taxlovchi badge'i → uning CONTROL stikerlari va TAMIRn cheklari (son bazadan; har qog'oz bir marta, tartib ahamiyatsiz) → ochiq ro'yxat → "Saqlash va yuborish" → upakovkaning 1-sort balansi. Har skanda qutining hamma qog'ozlari ko'rinadi (necha marta ta'mir, qaysi qog'oz urilmagan); "Hali urilmagan qog'ozlar" ro'yxati; pastal kartochkasida "Ta'mir cheklari". Beta quti endi shablon belgisi bilan ham aniqlanadi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `0044_packing_batches.py` (`PackingBatch`, `PackingScan.batch`)
+  - `production/packing_services.py` (`is_beta_box`, `beta_box_q`, `SENT_SCANS`, `take_paper`, `paper_status`)
+  - `production/packing_views.py`, `production/packing_urls.py` (sanoqchi API: taxlovchi, qog'oz, olib tashlash, yuborish; `_unscanned_papers`)
+  - `templates/packing/tabs/sanoqchi.html`, `production/pastal_info.py`, `templates/production/partials/pastal_info_card.html`
+  - `production/test_counter_packing.py` (5 ta test; jami 40 ta qadoqlash testi o'tgan), `CLAUDE.md`
+
 ### 🔹 [Commit: `04c5212`] — 14.11.2026
 * **Turi:** `feat(control)` — har ta'mir aylanmasiga alohida chek: `TAMIR1:`, `TAMIR2:`, ...
 * **Mavzu:** Yangi qadoqlash tartibining 2-bosqichi. OTK ta'mirga yuborsa 1-chek (`TAMIR1:<quti kodi>`) chiqadi; ta'mirdan qaytganda ochiq chek yopiladi (tuzalganlar — shu chekning 1-sorti), yana ta'mirga ketganlari uchun keyingi chek (`TAMIR2:`, ...). Quti necha marta ta'mirga ketgani bazada ko'rinadi; quti kodi va stikerlar o'zgarmaydi. Eski `TAMIR:` cheklari 1-chek sifatida ishlayveradi. OTK plansheti (`/control/`) `TAMIRn:` ni, skaner "+" xatosi bilan kelganini ham, taniydi.
