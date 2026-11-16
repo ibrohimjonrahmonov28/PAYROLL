@@ -29,6 +29,15 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `3b0b81e`] — 16.11.2026
+* **Turi:** `feat(beta)` — Beta qutilarda `CONTROL` stikeri `CONTROL / TAXLOV` ko'rinishida, qiyinlik va summa bilan chop etiladi
+* **Mavzu:** Faqat beta qutilar (`OperationGroup.is_beta` dan keyin yaratilgan quti yoki `Order.packing_beta` bo'yicha beta quti) 65×45 stiker chop etishda `CONTROL` stikerini `BOSQICH: OTK + TAXLOV` / `CONTROL / TAXLOV` (`BETA` belgisi) ko'rinishida chiqaradi; pastki kataklarida narxlar shablonidagi `Qiyinlik` va `Summa` (`taxlov_price`) ko'rsatiladi. QR kodi (`CONTROL:<quti_kodi>`) o'zgarishsiz qoladi; odatiy qutilarda eski `CONTROL` stikeri saqlangan.
+* **O'zgartirilgan fayllar:**
+  - `production/packing_services.py` (`control_sticker_meta`, qiyinlik va narx formatlash)
+  - `production/views.py` (`box_print_stickers_view`, `order_print_all_stickers_view` — N+1 so'rovlarsiz beta meta uzatish)
+  - `templates/production/box_stickers_print.html` (beta `CONTROL / TAXLOV`, `QIYINLIK` va `SUMMA` kartasi; odatiy quti o'zgarishsiz)
+  - `production/test_template_beta.py` (2 ta yangi test — jami 39 ta qadoqlash/ekran testi va 7 ta chop etish testi o'tgan)
+
 ### 🔹 [Commit: `a38aec9`] — 16.11.2026
 * **Turi:** `feat(screens)` — taxlovchilar uchun 3 ta TV, sex ekranlarida alohida bo'lim
 * **Mavzu:** Yangi qadoqlash tartibining 6-bosqichi (oxirgisi). `/screens/` sahifasida 40 ta chevar kartochkasi ostida alohida "Taxlovchilar ekranlari" bo'limi; chevarlar kartochkalari va TV'lari o'zgarmagan. TV sahifasi `/screens/taxlov/<n>/` chevarlar TV'si bilan bir xil, faqat headeri boshqacha (PATOKLAR, TAXLOVCHI, BUGUN TAXLANDI, NORMA 1000, O'RTACHA FOIZ). Superadmin `/screens/taxlov/sozlash/` da har patokni bitta ekranga bir marta biriktiradi. Faqat sanoqchi yuborgan taxlov hisoblanadi: taxlovchi bugungi oxirgi yuborilgan qutisi patogining ekranida, kunlik butun ishi bilan; ball = dona × shablondagi taxlov qiyinligi, foiz = ball / 1000; oylik maosh = oylik taxlov + stiker puli.
