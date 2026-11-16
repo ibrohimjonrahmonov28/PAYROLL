@@ -109,6 +109,7 @@
    "CHANGELOG.md",
    "CLAUDE.md",
    "Dockerfile",
+   "NEED.TXT",
    "README.md",
    "SYSTEM_ARCHITECTURE_GUIDE.md",
    "android_print/README.md",
@@ -132,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3380,
+  "lines": 3411,
   "depends_on": [
    "accounts.core"
   ]
@@ -322,7 +323,7 @@
    "production/static/brand/terryjar-logo.svg",
    "production/taxlov_pay.py"
   ],
-  "lines": 2000,
+  "lines": 1967,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -469,6 +470,8 @@
    "templates/norma/operations_catalog.html",
    "templates/norma/workers.html",
    "templates/packing/hub.html",
+   "templates/packing/partials/basket_rows.html",
+   "templates/packing/partials/basket_search.html",
    "templates/packing/partials/cards.html",
    "templates/packing/repair_receipt.html",
    "templates/packing/tabs/otk.html",
@@ -517,7 +520,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 45538,
+  "lines": 46064,
   "depends_on": []
  },
  "tests": {
@@ -545,7 +548,7 @@
    "production/tests.py",
    "screens/tests.py"
   ],
-  "lines": 12153,
+  "lines": 12164,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

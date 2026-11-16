@@ -18,8 +18,7 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, F, IntegerField, OuterRef, Q, Subquery, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -245,12 +244,9 @@ def _sanoqchi_context(request):
         if cycle:
             scans = scans.filter(repair_receipt__cycle=cycle)
         cancel_scans = list(scans.select_related(*SCAN_RELATED).order_by('-scanned_at'))
-    unscanned = _unscanned_papers()
     returned = SecondSortBatch.objects.filter(counter=request.user, status=SecondSortBatch.Status.RETURNED).select_related('returned_by')
     search_code = request.GET.get('sv', '').strip()
     return {
-        'unscanned': unscanned,
-        'unscanned_total': sum(row['waiting'] for row in unscanned),
         'basket': basket,
         'basket_view': _basket_view(basket) if basket else None,
         'returned_baskets': [_basket_view(b) for b in returned],
@@ -558,35 +554,6 @@ def api_counter_send(request):
     return JsonResponse({'status': 'OK', 'message': f"{worker.full_name}: {total} dona yozildi va upakovkaga yuborildi.",
                          'worker': _worker_payload(worker)})
 
-
-def _unscanned_papers(limit=150):
-    """Hali urilmagan qog'ozlar (beta qutilar): OTK 1-sorti bor, lekin CONTROL stikeri urilmagan; ta'mirdan qaytgan,
-    1-sorti bor, lekin TAMIRn cheki urilmagan. Ochiq ro'yxatdagi qog'oz urilgan hisoblanadi."""
-    control_portion = (BoxQualityInspectionLog.objects
-                       .filter(box=OuterRef('pk'), action_type=BoxQualityInspectionLog.ActionType.INITIAL)
-                       .values('box').annotate(s=Sum('first_sort_qty')).values('s')[:1])
-    control_taken = (PackingScan.objects.filter(box=OuterRef('pk'), source=PackingScan.Source.CONTROL, is_cancelled=False)
-                     .values('box').annotate(s=Sum('quantity')).values('s')[:1])
-    boxes = (Box.objects.filter(beta_box_q('')).exclude(status=Box.Status.CANCELLED)
-             .annotate(portion=Coalesce(Subquery(control_portion, output_field=IntegerField()), 0),
-                       taken=Coalesce(Subquery(control_taken, output_field=IntegerField()), 0))
-             .filter(portion__gt=F('taken')).select_related('order').order_by('controlled_at')[:limit])
-    receipt_taken = (PackingScan.objects.filter(repair_receipt=OuterRef('pk'), is_cancelled=False)
-                     .values('repair_receipt').annotate(s=Sum('quantity')).values('s')[:1])
-    receipts = (RepairReceipt.objects.filter(beta_box_q(), returned_at__isnull=False, first_sort_qty__gt=0)
-                .annotate(taken=Coalesce(Subquery(receipt_taken, output_field=IntegerField()), 0))
-                .filter(first_sort_qty__gt=F('taken')).select_related('box__order').order_by('returned_at')[:limit])
-    rows = [{'patok': _patok_label(b.assigned_screen), 'box_code': b.box_code, 'paper': "CONTROL",
-             'code': f"CONTROL:{b.box_code}", 'waiting': b.portion - b.taken, 'since': b.controlled_at,
-             'order': b.order.order_number if b.order_id else ''} for b in boxes]
-    rows += [{'patok': _patok_label(r.box.assigned_screen), 'box_code': r.box.box_code,
-              'paper': paper_label(PackingScan.Source.TAMIR, r), 'code': r.qr_text, 'waiting': r.first_sort_qty - r.taken,
-              'since': r.returned_at, 'order': r.box.order.order_number if r.box.order_id else ''} for r in receipts]
-    rows.sort(key=lambda row: row['since'] or timezone.now())
-    return rows[:limit]
-
-
-# ------------------------------------------------------------------ Sanoqchi tabi: 2-sort savati
 
 def _row_logs(logs, article_id, size=None):
     """Zakaz × model (× razmer) qatori: shu artikul va razmerdagi OTK 2-sort yozuvlari."""

@@ -1,7 +1,7 @@
 """
 Sanoqchi 1-sortni uradi (egasi talabi 2026-11-14): avval taxlovchi badge'i, keyin uning qog'ozlari — CONTROL stikeri
 (qog'ozda 50, bazada OTK 1-sorti 40) va TAMIRn cheklari, har biri bir marta, tartib ahamiyatsiz; "Saqlash va yuborish"
-bilan upakovkaning 1-sort balansiga. Hali urilmagan qog'ozlar ro'yxati va qutining ta'mir tarixi.
+bilan upakovkaning 1-sort balansiga. Qutining qog'ozlari va ta'mir tarixi.
 """
 import json
 from decimal import Decimal
@@ -81,25 +81,22 @@ class CounterPackingTest(TestCase):
         self.assertEqual(removed['batch']['total'], 0)
         self.assertEqual(self.paper(f"CONTROL:{self.code}", worker=self.packer2)['line']['quantity'], 40)
 
-    def test_paper_status_and_unscanned_list(self):
+    def test_paper_status(self):
         self.initial_and_return(re_repair=2)
         status = paper_status(self.box)
         self.assertEqual(status['repair_cycles'], 2)
         self.assertEqual([(p['label'], p['state'], p['waiting']) for p in status['papers']],
                          [('CONTROL', 'waiting', 40), ("1-ta'mir", 'waiting', 5), ("2-ta'mir", 'in_repair', 0)])
 
-        self.client.force_login(self.counter)
-        rows = self.client.get(reverse('packing:hub'), {'tab': 'sanoqchi'}).context['unscanned']
-        self.assertEqual({(r['code'], r['waiting'], r['patok']) for r in rows},
-                         {(f"CONTROL:{self.code}", 40, 'K3'), (f"TAMIR1:{self.code}", 5, 'K3')})
-
         error = self.paper(f"TAMIR2:{self.code}")                              # xato bo'lsa ham qutining qog'ozlari chiqadi
         self.assertEqual(error['box']['repair_cycles'], 2)
         self.paper(f"CONTROL:{self.code}")
-        rows = self.client.get(reverse('packing:hub'), {'tab': 'sanoqchi'}).context['unscanned']
-        self.assertEqual([r['code'] for r in rows], [f"TAMIR1:{self.code}"])   # ochiq ro'yxatdagi qog'oz urilgan hisoblanadi
         done = paper_status(self.box)['papers'][0]
-        self.assertEqual((done['state'], done['scans'][0]['sent']), ('done', False))
+        self.assertEqual((done['state'], done['scans'][0]['sent']), ('done', False))   # ochiq ro'yxatda — urilgan
+        self.client.force_login(self.counter)
+        page = self.client.get(reverse('packing:hub'), {'tab': 'sanoqchi'})
+        self.assertNotIn('unscanned', page.context)                             # "Hali urilmagan qog'ozlar" olib tashlangan
+        self.assertNotContains(page, "Hali urilmagan qog'ozlar")
 
     def test_template_beta_box_without_order_flag(self):
         group = OperationGroup.objects.create(name='BETA SHABLON', is_beta=True, taxlov_price=Decimal('1'),
@@ -163,7 +160,6 @@ class OrderBetaStartsTodayTest(TestCase):
         self.client.force_login(self.counter)
         page = self.client.get(reverse('packing:hub'), {'tab': 'sanoqchi'})
         self.assertEqual([(p['code'], p['qty']) for p in page.context['patoks']], [('K2', 2)])   # faqat yangi qutining 2-sorti
-        self.assertEqual([r['box_code'] for r in page.context['unscanned']], [self.new_box.box_code])
         old = self.client.post(reverse('packing:api_counter_paper'), json.dumps(
             {'code': f"CONTROL:{self.old_box.box_code}", 'worker_id': self.packer.id}), content_type='application/json')
         self.assertEqual(old.json()['status'], 'NOT_BETA')

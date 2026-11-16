@@ -1,7 +1,7 @@
 {% comment %}
 Sanoqchi tabi:
 1-sort — taxlovchi badge'i, keyin uning CONTROL / TAMIRn qog'ozlari → "Saqlash va yuborish" (upakovka 1-sort balansi);
-hali urilmagan qog'ozlar; patoklardagi 2-sort (brak ham) → kartochka bo'yicha sanab qabul → savat → upakovkaga jo'natish;
+patoklardagi 2-sort (brak ham) → kartochka bo'yicha sanab qabul → savat → upakovkaga jo'natish;
 xato skanni bekor qilish va savat qidirish.
 {% endcomment %}
 <div class="space-y-6">
@@ -12,9 +12,6 @@ xato skanni bekor qilish va savat qidirish.
                 class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-950/40">
                 <i class="fa-solid fa-barcode text-xs"></i>
                 <span>1-Sort: Taxlovchilar</span>
-                {% if unscanned_total %}
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">{{ unscanned_total }} kutilmoqda</span>
-                {% endif %}
             </button>
             <button type="button" onclick="switchSanoqchiSection('second_sort')" id="btn-sec-second_sort"
                 class="sanoqchi-nav-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all">
@@ -129,66 +126,6 @@ xato skanni bekor qilish va savat qidirish.
                     </div>
                 </div>
             </div>
-        </section>
-
-        <!-- Unscanned Papers Queue -->
-        <section class="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-4 sm:p-6 space-y-4 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div class="flex items-center gap-3">
-                    <span class="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-clock-rotate-left"></i>
-                    </span>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-sm sm:text-base font-black text-white uppercase tracking-wider">Hali urilmagan qog'ozlar</h2>
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 tabular-nums font-mono">{{ unscanned_total }} dona</span>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-0.5">OTK yoki ta'mirdan 1-sort chiqqan, lekin CONTROL stikeri yoki TAMIR cheki hali urilmagan. Eng eskisi tepada.</p>
-                    </div>
-                </div>
-                <a href="?tab=sanoqchi" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xs font-bold text-slate-300 transition-all flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-rotate text-xs"></i>
-                    <span>Yangilash</span>
-                </a>
-            </div>
-
-            {% if unscanned %}
-            <div class="overflow-x-auto rounded-2xl border border-slate-800/80">
-                <table class="w-full text-xs sm:text-sm text-left">
-                    <thead class="text-xs text-slate-400 bg-slate-950/80 border-b border-slate-800 uppercase tracking-wider font-semibold">
-                        <tr>
-                            <th class="px-3.5 py-2.5">Patok</th>
-                            <th class="px-3.5 py-2.5">Quti</th>
-                            <th class="px-3.5 py-2.5">Qog'oz turi</th>
-                            <th class="px-3.5 py-2.5">Zakaz</th>
-                            <th class="px-3.5 py-2.5 text-right">Kutilmoqda</th>
-                            <th class="px-3.5 py-2.5 text-right">Qachondan</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800/60">
-                        {% for row in unscanned %}
-                        <tr class="hover:bg-slate-800/40 transition-colors">
-                            <td class="px-3.5 py-2.5 font-black text-white font-mono">{{ row.patok }}</td>
-                            <td class="px-3.5 py-2.5 font-bold text-slate-200 font-mono">{{ row.box_code }}</td>
-                            <td class="px-3.5 py-2.5">
-                                <span class="px-2 py-0.5 rounded-md text-[11px] font-black font-mono {% if row.paper == 'CONTROL' %}bg-slate-800 text-slate-200 border border-slate-700{% else %}bg-amber-950/80 text-amber-300 border border-amber-700/60{% endif %}">
-                                    {{ row.paper }}
-                                </span>
-                            </td>
-                            <td class="px-3.5 py-2.5 text-slate-300 font-mono">{{ row.order }}</td>
-                            <td class="px-3.5 py-2.5 text-right font-black text-rose-400 tabular-nums font-mono text-sm sm:text-base">{{ row.waiting }} <span class="text-xs font-normal text-slate-400">dona</span></td>
-                            <td class="px-3.5 py-2.5 text-right text-xs text-slate-400 font-mono">{{ row.since|date:"d.m H:i"|default:"—" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="py-8 text-center text-slate-500 text-sm rounded-2xl border border-dashed border-slate-800">
-                <i class="fa-solid fa-circle-check text-2xl text-emerald-500/50 mb-1.5 block"></i>
-                Hamma 1-sort qog'ozlar to'liq urilgan!
-            </div>
-            {% endif %}
         </section>
     </div>
 

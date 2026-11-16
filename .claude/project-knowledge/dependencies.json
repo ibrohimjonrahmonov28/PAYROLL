@@ -1401,6 +1401,16 @@
     "superadmin_dashboard"
    ]
   },
+  "templates/packing/partials/basket_rows.html": {
+   "url_names": [
+    "packing:counter_remove"
+   ]
+  },
+  "templates/packing/partials/basket_search.html": {
+   "includes": [
+    "packing/partials/basket_rows.html"
+   ]
+  },
   "templates/packing/tabs/otk.html": {
    "url_names": [
     "packing:api_otk_lookup",
