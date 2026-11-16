@@ -29,6 +29,15 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `615d3e2`] — 16.11.2026
+* **Turi:** `feat(beta)` — Sanoqchida badge'dan oldin patok tanlash (TV ekranlar uchun) + Sanoqchi va Upakovka yangi dizayni
+* **Mavzu:** Sanoqchi taxlovchi badge'ini skanerlashdan avval patok (`K1–K13` / `U1–U27`) ni tanlaydi va shu patok `PackingBatch` / `PackingScan` (`screen_number`) ga saqlanib, taxlovchi TV ekranlari (`packer_screens.py`) qutining patogidan ustuvor ravishda aynan sanoqchi qo'ygan patok bo'yicha chiqaradi. Sanoqchi (`sanoqchi.html`), Upakovka (`upakovka.html`) va umumiy qismlar (`cards.html`, `basket_rows.html`, `basket_search.html`) barcha funksiyalari saqlangan holda split-workbench va KPI lentali yangi ko'rinishga o'tkazildi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `production/migrations/0050_packing_patok.py` (`PackingBatch.screen_number`, `PackingScan.screen_number`)
+  - `production/packing_services.py`, `production/packing_urls.py`, `production/packing_views.py` (`api_counter_patok`, `_apply_batch_patok`, patok uzatish va TV kesh tozalash), `production/packer_screens.py` (`Coalesce` ustuvorligi)
+  - `templates/packing/tabs/sanoqchi.html`, `templates/packing/tabs/upakovka.html`, `templates/packing/partials/{cards,basket_rows,basket_search}.html`
+  - `production/test_counter_packing.py`, `screens/test_packer_screens.py` (jami 41 ta test o'tgan), `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `3b0b81e`] — 16.11.2026
 * **Turi:** `feat(beta)` — Beta qutilarda `CONTROL` stikeri `CONTROL / TAXLOV` ko'rinishida, qiyinlik va summa bilan chop etiladi
 * **Mavzu:** Faqat beta qutilar (`OperationGroup.is_beta` dan keyin yaratilgan quti yoki `Order.packing_beta` bo'yicha beta quti) 65×45 stiker chop etishda `CONTROL` stikerini `BOSQICH: OTK + TAXLOV` / `CONTROL / TAXLOV` (`BETA` belgisi) ko'rinishida chiqaradi; pastki kataklarida narxlar shablonidagi `Qiyinlik` va `Summa` (`taxlov_price`) ko'rsatiladi. QR kodi (`CONTROL:<quti_kodi>`) o'zgarishsiz qoladi; odatiy qutilarda eski `CONTROL` stikeri saqlangan.
