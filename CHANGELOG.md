@@ -29,6 +29,15 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `707c0df`] — 18.11.2026
+* **Turi:** `feat(beta)` — Qadoqlash markazida 2-sort balansidan jo'natish, dinamik turlar va oylik hisobot
+* **Mavzu:** `Upakovka` (`2-Sort Balans`) bo'limida qabul qilingan 2-sortdan chiqim qilish tizimi qo'shildi: 1 razmerni tezkor jo'natish (`⚡`) hamda har xil zakaz va modellarni bitta `JS-XXXXXX` yig'ma jo'natmasiga to'plab jo'natish; boshlang'ich 3 ta tur (`Sotuvga`, `Zakaz uchun`, `Qayta omborga`) va keyinchalik interfeysdan yangi turlar qo'shish/tahrirlash/nofaol qilish imkoniyati; xato jo'natmani bekor qilish; oy boshiga + qabul − turlar kesimida chiqim = oy oxirigi qoldiq shaklidagi oylik hisobot va Excel (`CSV`) eksport.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `production/migrations/0051_second_sort_dispatch.py`, `0052_second_sort_dispatch_types_seed.py` (`SecondSortDispatchType`, `SecondSortDispatch`, `SecondSortDispatchItem`), `production/admin.py`
+  - `production/packing_services.py`, `production/packing_urls.py`, `production/packing_views.py` (`second_sort_balance_data`, `create_second_sort_dispatch`, `cancel_second_sort_dispatch`, `second_sort_monthly_report`, `api_second_sort_dispatch`, `second_sort_report_csv`)
+  - `templates/packing/tabs/upakovka.html`, `templates/packing/partials/second_sort_balance.html`, `templates/packing/partials/dispatch_type_badge.html`
+  - `production/test_second_sort_dispatch.py` (5 ta yangi test; jami 23 ta test o'tgan)
+
 ### 🔹 [Commit: `e672c55`] — 16.11.2026
 * **Turi:** `feat(screens)` — Taxlovchilar TV ekranida (`taxlov/<n>/`) tepa patoklar ro'yxati va pul ustunlari olib tashlandi
 * **Mavzu:** TV sarlavhasidan umumiy `PATOKLAR` ro'yxati olib tashlandi; har taxlovchining patogi alohida o'z qatorida (yonida) `Patok` va `Jami Taxladi` ustunlari bilan ko'rsatildi. `Bugungi Ish Haqi` va `Oylik Maosh` ustunlari TV ekranidan hozircha yashirildi.
