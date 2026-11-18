@@ -2195,3 +2195,102 @@ class PrintJob(models.Model):
         verbose_name = "Chek (navbat)"
         verbose_name_plural = "Cheklar navbati"
         ordering = ['-created_at']
+
+
+def generate_dispatch_code():
+    """2-sort jo'natma kodi "JS-123456" (6 xonali, takrorlanmas) — hisobot va tarixda qidirish uchun."""
+    import random
+    while True:
+        code = f"JS-{random.randint(100000, 999999)}"
+        if not SecondSortDispatch.objects.filter(code=code).exists():
+            return code
+
+
+class SecondSortDispatchType(models.Model):
+    """2-sort balansidan jo'natish turlari / sabablari (egasi talabi 2026-11-18):
+    Sotuvga, Zakaz uchun, Qayta omborga va keyinchalik qo'shiladigan boshqa turlar."""
+
+    class Color(models.TextChoices):
+        EMERALD = 'emerald', 'Yashil'
+        CYAN = 'cyan', 'Moviy'
+        AMBER = 'amber', 'Sariq'
+        ORANGE = 'orange', "Zarg'aldoq"
+        VIOLET = 'violet', 'Binafsha'
+        ROSE = 'rose', 'Qizil'
+        SLATE = 'slate', 'Kulrang'
+
+    name = models.CharField(max_length=100, unique=True, verbose_name="Tur nomi")
+    description = models.CharField(max_length=250, blank=True, verbose_name="Izoh")
+    color = models.CharField(max_length=20, choices=Color.choices, default=Color.AMBER, verbose_name="Rang")
+    sort_order = models.PositiveSmallIntegerField(default=10, verbose_name="Tartib")
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faol")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                                   verbose_name="Yaratgan")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "2-sort jo'natish turi"
+        verbose_name_plural = "2-sort jo'natish turlari"
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return self.name
+
+
+class SecondSortDispatch(models.Model):
+    """Upakovka 2-sort balansidan chiqim (jo'natma) hujjati: bitta razmer yoki har xil zakaz/modellarni yig'ib jo'natish."""
+
+    code = models.CharField(max_length=12, unique=True, null=True, blank=True,
+                            verbose_name="Jo'natma kodi (JS-123456)")
+    dispatch_type = models.ForeignKey(SecondSortDispatchType, on_delete=models.PROTECT,
+                                      related_name='dispatches', verbose_name="Jo'natish turi")
+    note = models.CharField(max_length=300, blank=True, verbose_name="Izoh")
+    dispatched_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='second_sort_dispatches',
+                                      verbose_name="Jo'natgan")
+    dispatched_at = models.DateTimeField(default=timezone.now, db_index=True, verbose_name="Jo'natilgan vaqt")
+    is_cancelled = models.BooleanField(default=False, db_index=True, verbose_name="Bekor qilingan")
+    cancelled_at = models.DateTimeField(null=True, blank=True, verbose_name="Bekor qilingan vaqt")
+    cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                                     verbose_name="Bekor qilgan")
+    cancel_reason = models.CharField(max_length=300, blank=True, verbose_name="Bekor qilish sababi")
+
+    class Meta:
+        verbose_name = "2-sort jo'natmasi"
+        verbose_name_plural = "2-sort jo'natmalari"
+        ordering = ['-dispatched_at', '-id']
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_dispatch_code()
+        super().save(*args, **kwargs)
+
+    @property
+    def total_qty(self):
+        return sum(item.quantity for item in self.items.all())
+
+    def __str__(self):
+        return f"{self.code or self.id} — {self.dispatch_type}"
+
+
+class SecondSortDispatchItem(models.Model):
+    """2-sort jo'natmasidagi zakaz × model × razmer qatori."""
+
+    dispatch = models.ForeignKey(SecondSortDispatch, on_delete=models.CASCADE, related_name='items',
+                                 verbose_name="Jo'natma")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='second_sort_dispatch_items',
+                              verbose_name="Zakaz")
+    article = models.ForeignKey(Article, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='second_sort_dispatch_items', verbose_name="Model (Artikul)")
+    razmer = models.CharField(max_length=50, blank=True, default='', verbose_name="Razmer")
+    quantity = models.PositiveIntegerField(verbose_name="Soni")
+
+    class Meta:
+        verbose_name = "2-sort jo'natma qatori"
+        verbose_name_plural = "2-sort jo'natma qatorlari"
+        ordering = ['id']
+        indexes = [models.Index(fields=['order', 'article', 'razmer'], name='ss_disp_ord_art_sz_idx')]
+
+    def __str__(self):
+        art_code = self.article.code if self.article else '—'
+        return f"{self.order.order_number} · {art_code} ({self.razmer or '—'}): {self.quantity}"
+

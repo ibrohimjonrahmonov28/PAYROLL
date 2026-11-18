@@ -1,0 +1,902 @@
+{% comment %}
+2-Sort Balans, Jo'natish (1 razmer tezkor / har xil zakaz-model yig'ma), Turlar boshqaruvi va Oylik Hisobot.
+{% endcomment %}
+<div class="space-y-5">
+    <!-- ==================== 1. AKTIV 2-SORT BALANS + YIG'MA JO'NATMA ==================== -->
+    <div class="grid grid-cols-1 {% if can_accept %}xl:grid-cols-12{% endif %} gap-4 items-start">
+        <!-- LEFT: BALANS KARTOCHKALARI -->
+        <section class="{% if can_accept %}xl:col-span-8{% endif %} bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-sm font-black text-white uppercase tracking-wide">2-Sort balansi · Qabul va Jo'natish</h2>
+                        <span class="px-2 py-0.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-black font-mono tabular-nums">
+                            {{ second_sort_total }} dona qoldiq
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                        Qabul qilingan 2-sort balansdan 1 razmerni darhol (⚡) yoki har xil zakaz/modellarni yig'ib (+ Ro'yxat) jo'nating.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-56">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                        <input id="second-sort-search" oninput="filterCardsList('second-sort-cards', this.value)"
+                            placeholder="Zakaz, artikul yoki quti..."
+                            class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-rose-500 placeholder:text-slate-600">
+                    </div>
+                    {% if can_accept %}
+                    <button type="button" onclick="openDispatchTypesModal()"
+                        class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-tags text-amber-400 text-[11px]"></i>
+                        <span>Turlar ({{ active_dispatch_types|length }})</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="p-3.5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="second-sort-cards">
+                    {% for card in second_sort %}
+                    <article class="bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors"
+                        data-card-search="{{ card.order.order_number }} {{ card.article.code|default:'' }} {{ card.article.name|default:'' }} {% for b in card.boxes %}{{ b.box_code }} {% endfor %}">
+                        <div>
+                            <div class="p-3.5 border-b border-slate-800/80 bg-slate-900/60 flex items-start justify-between gap-3">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    {% if card.image %}
+                                    <img src="{{ card.image }}" alt="" class="w-11 h-11 object-cover rounded-lg border border-slate-700 flex-shrink-0">
+                                    {% else %}
+                                    <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 flex-shrink-0">
+                                        <i class="fa-solid fa-shirt text-sm"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700/80 text-[11px] font-bold font-mono text-slate-200">{{ card.order.order_number }}</span>
+                                            {% if card.dispatched_total %}
+                                            <span class="text-[10px] font-mono text-slate-400" title="Qabul qilingan va jo'natilgan">
+                                                {{ card.accepted_total }} dan {{ card.dispatched_total }} ketgan
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="font-black text-white text-sm truncate mt-1 leading-tight">{{ card.article.code|default:"—" }}</p>
+                                        {% if card.article.name %}
+                                        <p class="text-[11px] text-slate-400 truncate">{{ card.article.name }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    <div class="text-right px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
+                                        <p class="text-lg font-black font-mono tabular-nums leading-none text-rose-400">{{ card.total }}</p>
+                                        <p class="text-[9px] font-bold text-slate-500 uppercase mt-0.5">qoldiq</p>
+                                    </div>
+                                    {% if can_accept %}
+                                    <button type="button" onclick="addCardToDispatchTray(this)"
+                                        class="px-2 py-1 rounded-md bg-slate-800 hover:bg-orange-500 hover:text-slate-950 border border-slate-700 text-[10px] font-black text-slate-300 transition-colors whitespace-nowrap"
+                                        title="Bu modeldagi hamma razmerlarni yig'ma ro'yxatga qo'shish">
+                                        + Hammasini
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="divide-y divide-slate-800/70 px-3.5 text-xs">
+                                {% for sr in card.size_rows %}
+                                <div class="py-2 flex items-center justify-between gap-2"
+                                    data-ss-row="1"
+                                    data-order-id="{{ card.order.id }}"
+                                    data-order-number="{{ card.order.order_number }}"
+                                    data-article-id="{{ card.article.id|default:0 }}"
+                                    data-article-code="{{ card.article.code|default:'—' }}"
+                                    data-size="{{ sr.size }}"
+                                    data-max="{{ sr.remaining }}">
+                                    <div class="min-w-0 flex items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 font-black font-mono text-white">{{ sr.size }}</span>
+                                        <span class="font-black font-mono tabular-nums text-rose-400">{{ sr.remaining }}</span>
+                                        <span class="text-[11px] text-slate-500">dona</span>
+                                    </div>
+
+                                    {% if can_accept %}
+                                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                                        <input type="number" min="1" max="{{ sr.remaining }}" value="{{ sr.remaining }}"
+                                            class="ss-row-qty w-14 px-1.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs text-center focus:outline-none focus:border-orange-500">
+                                        <button type="button" onclick="openQuickDispatch(this)"
+                                            class="px-2 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] font-black transition-colors"
+                                            title="Faqat shu razmerni darhol jo'natish">
+                                            <i class="fa-solid fa-bolt text-[10px]"></i>
+                                        </button>
+                                        <button type="button" onclick="addRowToDispatchTray(this)"
+                                            class="px-2.5 py-1 rounded-lg bg-orange-500/15 hover:bg-orange-500 text-orange-400 hover:text-slate-950 border border-orange-500/40 text-[11px] font-black transition-colors whitespace-nowrap"
+                                            title="Yig'ma jo'natma ro'yxatiga qo'shish">
+                                            + Ro'yxat
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        {% if card.boxes %}
+                        <details class="border-t border-slate-800 bg-slate-900/40 px-3.5 py-2 text-xs group">
+                            <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200 font-bold flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-boxes-stacked text-[11px] text-slate-500"></i>
+                                    <span>{% if card.dispatched_total %}Kelgan qutilar{% else %}Qutilar{% endif %} ({{ card.box_count }})</span>
+                                </span>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
+                            </summary>
+                            <div class="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
+                                {% for b in card.boxes %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono">
+                                    <b class="text-white">{{ b.box_code }}</b>
+                                    <span class="text-slate-500">({{ b.razmer }})</span>
+                                    <b class="text-rose-400">{{ b.qty }}</b>
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </article>
+                    {% empty %}
+                    <div class="col-span-full rounded-xl border border-dashed border-slate-800 bg-slate-950/40 py-10 text-center text-slate-500 text-sm">
+                        <i class="fa-solid fa-inbox text-2xl text-slate-600 mb-2 block"></i>
+                        Hozircha 2-sort balansida qoldiq yo'q.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT STICKY: YIG'MA JO'NATMA SAVATI -->
+        {% if can_accept %}
+        <aside class="xl:col-span-4 xl:sticky xl:top-20 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-sm font-black text-white uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-truck-fast text-orange-400"></i>
+                        <span>Yig'ma jo'natma</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Har xil zakaz va modellarni yig'ib jo'natish</p>
+                </div>
+                <span id="ss-tray-badge" class="px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 font-mono font-black text-xs">0 dona</span>
+            </div>
+
+            <div class="p-3.5 space-y-3">
+                <div id="ss-tray-alert" class="hidden p-2.5 rounded-xl bg-rose-950/80 border border-rose-700/80 text-rose-200 text-xs font-semibold"></div>
+
+                <div id="ss-tray-items" class="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                    <div class="rounded-xl border border-dashed border-slate-800 py-6 px-3 text-center text-xs text-slate-500">
+                        Chapdagi kartochkalardan <b>+ Ro'yxat</b> ni bosing — bir nechta zakaz/model bitta jo'natmaga yig'iladi.
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 space-y-2.5">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label for="ss-tray-type" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Jo'natish turi</label>
+                            <button type="button" onclick="openDispatchTypesModal()" class="text-[11px] font-bold text-amber-400 hover:underline">+ Yangi tur</button>
+                        </div>
+                        <select id="ss-tray-type" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs sm:text-sm text-white font-semibold focus:outline-none focus:border-orange-500">
+                            {% for t in active_dispatch_types %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="ss-tray-note" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Izoh (ixtiyoriy)</label>
+                        <input id="ss-tray-note" maxlength="300" placeholder="Xaridor, zakaz raqami, mashina..."
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-orange-500 placeholder:text-slate-600">
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1">
+                        <button type="button" id="ss-tray-clear" onclick="clearDispatchTray()" disabled
+                            class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-300 transition-colors">
+                            Tozalash
+                        </button>
+                        <button type="button" id="ss-tray-submit" onclick="submitDispatchTray()" disabled
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                            <span id="ss-tray-submit-label">Jo'natish</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        {% endif %}
+    </div>
+
+    <!-- ==================== 2. OYLIK HISOBOT VA TARIX ==================== -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="px-4 py-3.5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-black text-white uppercase tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-chart-column text-cyan-400"></i>
+                    <span>2-Sort Oylik Hisoboti · {{ ss_report.selected_month }}</span>
+                </h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">Oy boshidagi qoldiq, qabul (kirim), turlar kesimida chiqim va oy oxirigi qoldiq.</p>
+            </div>
+
+            <form method="GET" class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                <input type="hidden" name="tab" value="upakovka">
+                <input type="hidden" name="sec" value="balance2">
+                <input type="month" name="month" value="{{ ss_report.selected_month }}"
+                    class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                <select name="dtype" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white font-semibold focus:outline-none focus:border-cyan-500">
+                    <option value="">Barcha turlar</option>
+                    {% for t in ss_report.report_types %}
+                    <option value="{{ t.id }}" {% if ss_report.filter_type_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+                <input name="rq" value="{{ ss_report.query }}" placeholder="Zakaz, model, kod..."
+                    class="w-40 sm:w-48 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-500 placeholder:text-slate-600">
+                <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-black transition-colors">
+                    Ko'rsatish
+                </button>
+                <a href="{% url 'packing:second_sort_report_csv' %}?month={{ ss_report.selected_month }}&dtype={{ ss_report.filter_type_id|default:'' }}&rq={{ ss_report.query|urlencode }}"
+                    class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-black transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-file-excel text-xs"></i>
+                    <span>Excel (CSV)</span>
+                </a>
+            </form>
+        </div>
+
+        <!-- Turlar va umumiy aylanma KPI -->
+        <div class="p-4 border-b border-slate-800/80 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-slate-950/30">
+            <div class="px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                <p class="text-[10px] font-bold uppercase text-slate-400">Oy boshiga</p>
+                <p class="text-lg font-black font-mono tabular-nums text-slate-200 mt-0.5">{{ ss_report.totals.opening }} <span class="text-[11px] font-normal text-slate-500">dona</span></p>
+            </div>
+            <div class="px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                <p class="text-[10px] font-bold uppercase text-slate-400">Oyda qabul</p>
+                <p class="text-lg font-black font-mono tabular-nums text-emerald-400 mt-0.5">+{{ ss_report.totals.month_in }} <span class="text-[11px] font-normal text-slate-500">dona</span></p>
+            </div>
+            {% for ts in ss_report.type_summary %}
+            <div class="px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                <div class="truncate">{% include 'packing/partials/dispatch_type_badge.html' with dtype=ts.type %}</div>
+                <p class="text-lg font-black font-mono tabular-nums text-white mt-1">{{ ts.total }} <span class="text-[11px] font-normal text-slate-500">dona</span></p>
+            </div>
+            {% endfor %}
+            <div class="px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                <p class="text-[10px] font-bold uppercase text-slate-400">Jami chiqim</p>
+                <p class="text-lg font-black font-mono tabular-nums text-orange-400 mt-0.5">-{{ ss_report.totals.month_out }} <span class="text-[11px] font-normal text-slate-500">dona</span></p>
+            </div>
+            <div class="px-3 py-2.5 rounded-xl bg-slate-950 border border-rose-500/30">
+                <p class="text-[10px] font-bold uppercase text-rose-400">Oy oxiriga qoldiq</p>
+                <p class="text-lg font-black font-mono tabular-nums text-rose-400 mt-0.5">{{ ss_report.totals.closing }} <span class="text-[11px] font-normal text-slate-500">dona</span></p>
+            </div>
+        </div>
+
+        <!-- Oylik aylanma jadvali -->
+        <div class="overflow-x-auto border-b border-slate-800">
+            <table class="w-full text-xs sm:text-sm text-left">
+                <thead class="text-[11px] text-slate-400 bg-slate-950/70 border-b border-slate-800 uppercase tracking-wider font-bold">
+                    <tr>
+                        <th class="px-3.5 py-2.5">Zakaz</th>
+                        <th class="px-3.5 py-2.5">Model (Artikul)</th>
+                        <th class="px-3.5 py-2.5 text-right">Oy boshiga</th>
+                        <th class="px-3.5 py-2.5 text-right text-emerald-400">Oyda qabul</th>
+                        {% for t in ss_report.report_types %}
+                        <th class="px-3.5 py-2.5 text-right">{{ t.name }}</th>
+                        {% endfor %}
+                        <th class="px-3.5 py-2.5 text-right text-orange-400">Jami chiqim</th>
+                        <th class="px-3.5 py-2.5 text-right text-rose-400">Oy oxiriga</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80">
+                    {% for r in ss_report.rows %}
+                    <tr class="hover:bg-slate-950/50 transition-colors">
+                        <td class="px-3.5 py-2.5 font-mono font-bold text-white whitespace-nowrap">
+                            {{ r.order.order_number }}
+                            {% if r.order.client_name %}<span class="block text-[10px] font-sans font-normal text-slate-500">{{ r.order.client_name }}</span>{% endif %}
+                        </td>
+                        <td class="px-3.5 py-2.5">
+                            <span class="font-bold text-slate-100">{{ r.article.code|default:"—" }}</span>
+                            {% if r.article.name %}<span class="block text-[11px] text-slate-400">{{ r.article.name }}</span>{% endif %}
+                            {% if r.closing_sizes %}
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                {% for sz in r.closing_sizes %}
+                                <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-300">{{ sz.size }}: <b class="text-rose-400">{{ sz.qty }}</b></span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums text-slate-300">{{ r.opening }}</td>
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums font-bold text-emerald-400">{% if r.month_in %}+{{ r.month_in }}{% else %}0{% endif %}</td>
+                        {% for val in r.by_type_list %}
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums {% if val %}text-white font-bold{% else %}text-slate-600{% endif %}">{{ val }}</td>
+                        {% endfor %}
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums font-bold text-orange-400">{{ r.month_out }}</td>
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums font-black text-rose-400">{{ r.closing }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{{ ss_report.report_types|length|add:6 }}" class="px-4 py-8 text-center text-slate-500 text-xs sm:text-sm">
+                            Tanlangan oy uchun 2-sort aylanmasi topilmadi.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if ss_report.rows %}
+                <tfoot class="bg-slate-950 border-t-2 border-slate-700 font-black text-xs sm:text-sm">
+                    <tr>
+                        <td colspan="2" class="px-3.5 py-2.5 text-white uppercase">Jami</td>
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums text-slate-200">{{ ss_report.totals.opening }}</td>
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums text-emerald-400">+{{ ss_report.totals.month_in }}</td>
+                        {% for val in ss_report.totals.by_type_list %}
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums text-white">{{ val }}</td>
+                        {% endfor %}
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums text-orange-400">{{ ss_report.totals.month_out }}</td>
+                        <td class="px-3.5 py-2.5 text-right font-mono tabular-nums text-rose-400">{{ ss_report.totals.closing }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Jo'natmalar tarixi (Tanlangan oy) -->
+        <div class="px-4 py-3 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-xs font-black text-white uppercase tracking-wider">
+                Jo'natmalar tarixi · {{ ss_report.selected_month }}
+            </h3>
+            <span class="text-[11px] font-mono text-slate-400">{{ ss_report.dispatches|length }} ta jo'natma</span>
+        </div>
+
+        <div class="divide-y divide-slate-800/80">
+            {% for entry in ss_report.dispatches %}
+            {% with d=entry.dispatch %}
+            <div class="px-4 py-3 flex flex-col gap-2 {% if d.is_cancelled %}opacity-60 bg-slate-950/40{% else %}hover:bg-slate-950/40{% endif %} transition-colors">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="font-mono font-black text-orange-400 text-sm">{{ d.code }}</span>
+                        {% include 'packing/partials/dispatch_type_badge.html' with dtype=d.dispatch_type %}
+                        {% if d.is_cancelled %}
+                        <span class="px-2 py-0.5 rounded bg-rose-950 border border-rose-700/70 text-rose-300 text-[10px] font-black uppercase">Bekor qilingan</span>
+                        {% endif %}
+                        <span class="font-mono text-slate-400">{{ d.dispatched_at|date:"d.m.Y H:i" }}</span>
+                        <span class="text-slate-400">· <b class="text-slate-200">{{ d.dispatched_by.get_full_name|default:d.dispatched_by.username }}</b></span>
+                        {% if d.note %}
+                        <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300">{{ d.note }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex items-center gap-2.5">
+                        <span class="font-mono font-black text-sm {% if d.is_cancelled %}line-through text-slate-500{% else %}text-white{% endif %}">{{ entry.total_qty }} dona</span>
+                        {% if can_accept and not d.is_cancelled %}
+                        <button type="button"
+                            data-dispatch-id="{{ d.id }}"
+                            data-dispatch-code="{{ d.code }}"
+                            data-dispatch-total="{{ entry.total_qty }}"
+                            onclick="openCancelDispatchModal(this)"
+                            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 hover:border-rose-500 text-[11px] font-bold transition-colors">
+                            Bekor qilish
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-1.5">
+                    {% for item in entry.items %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono">
+                        <b class="text-slate-200">{{ item.order.order_number }}</b>
+                        <span class="text-slate-500">·</span>
+                        <span class="text-slate-300">{{ item.article.code|default:"—" }}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-slate-900 text-white font-bold">{{ item.razmer|default:"—" }}</span>
+                        <b class="text-orange-400">{{ item.quantity }}</b>
+                    </span>
+                    {% endfor %}
+                </div>
+
+                {% if d.is_cancelled and d.cancel_reason %}
+                <p class="text-[11px] text-rose-300">
+                    Bekor qilish sababi: <b>{{ d.cancel_reason }}</b>
+                    {% if d.cancelled_by %}({{ d.cancelled_by.get_full_name|default:d.cancelled_by.username }} · {{ d.cancelled_at|date:"d.m H:i" }}){% endif %}
+                </p>
+                {% endif %}
+            </div>
+            {% endwith %}
+            {% empty %}
+            <div class="px-4 py-8 text-center text-slate-500 text-xs sm:text-sm">
+                Tanlangan oy va filtr bo'yicha jo'natma topilmadi.
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+{% if can_accept %}
+<!-- ==================== MODAL: TEZKOR 1 RAZMER JO'NATISH ==================== -->
+<div id="ss-quick-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+        <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-emerald-400"></i>
+                <span>Tez jo'natish (1 razmer)</span>
+            </h3>
+            <button type="button" onclick="closeQuickDispatch()" class="text-slate-400 hover:text-white text-lg leading-none px-1">&times;</button>
+        </div>
+
+        <div class="p-4 space-y-3">
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                <p id="ss-quick-title" class="font-black text-white text-sm font-mono"></p>
+                <p id="ss-quick-sub" class="text-xs text-slate-400 mt-0.5"></p>
+            </div>
+
+            <div id="ss-quick-alert" class="hidden p-2.5 rounded-xl bg-rose-950/80 border border-rose-700/80 text-rose-200 text-xs font-semibold"></div>
+
+            <div>
+                <label for="ss-quick-qty" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Jo'natiladigan soni</label>
+                <input id="ss-quick-qty" type="number" min="1"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-black text-base focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div>
+                <label for="ss-quick-type" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Jo'natish turi</label>
+                <select id="ss-quick-type" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white font-semibold focus:outline-none focus:border-emerald-500">
+                    {% for t in active_dispatch_types %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="ss-quick-note" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Izoh (ixtiyoriy)</label>
+                <input id="ss-quick-note" maxlength="300" placeholder="Xaridor, zakaz yoki izoh..."
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-600">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeQuickDispatch()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Bekor</button>
+                <button type="button" id="ss-quick-submit" onclick="submitQuickDispatch()"
+                    class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-black transition-colors inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <span>Jo'natish</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL: JO'NATISH TURLARI (SABABLARI) ==================== -->
+<div id="ss-types-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-amber-400"></i>
+                    <span>2-Sort jo'natish turlari (sabablari)</span>
+                </h3>
+                <p class="text-[11px] text-slate-400">Keyinchalik yangi sabab yoki tur qo'shish, nomini tahrirlash yoki nofaol qilish</p>
+            </div>
+            <button type="button" onclick="closeDispatchTypesModal()" class="text-slate-400 hover:text-white text-lg leading-none px-1">&times;</button>
+        </div>
+
+        <div class="p-4 space-y-4 overflow-y-auto">
+            <!-- Mavjud turlar -->
+            <div class="space-y-2">
+                {% for t in dispatch_types %}
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 {% if not t.is_active %}opacity-60{% endif %}">
+                    <form method="POST" action="{% url 'packing:second_sort_type_update' %}" class="flex flex-wrap items-center gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="type_id" value="{{ t.id }}">
+                        <input type="hidden" name="action" value="edit">
+                        <input name="name" value="{{ t.name }}" required maxlength="100"
+                            class="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-amber-500">
+                        <select name="color" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-semibold">
+                            {% for val, label in dispatch_color_choices %}
+                            <option value="{{ val }}" {% if t.color == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <input name="description" value="{{ t.description }}" maxlength="250" placeholder="Qisqa izoh..."
+                            class="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-amber-500">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white">Saqlash</button>
+                    </form>
+                    <div class="flex items-center justify-between text-[11px]">
+                        <div class="flex items-center gap-2">
+                            {% include 'packing/partials/dispatch_type_badge.html' with dtype=t %}
+                            <span class="text-slate-500">{% if t.is_active %}Faol{% else %}Nofaol (faqat eski tarixda ko'rinadi){% endif %}</span>
+                        </div>
+                        <form method="POST" action="{% url 'packing:second_sort_type_update' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="type_id" value="{{ t.id }}">
+                            <input type="hidden" name="action" value="toggle">
+                            <button type="submit" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors {% if t.is_active %}border-rose-700/60 text-rose-300 hover:bg-rose-950/60{% else %}border-emerald-700/60 text-emerald-300 hover:bg-emerald-950/60{% endif %}">
+                                {% if t.is_active %}Nofaol qilish{% else %}Faollashtirish{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Yangi tur qo'shish -->
+            <form method="POST" action="{% url 'packing:second_sort_type_create' %}" class="p-3.5 rounded-xl bg-slate-950 border border-amber-500/40 space-y-2.5">
+                {% csrf_token %}
+                <p class="text-xs font-black text-amber-400 uppercase tracking-wider">+ Yangi jo'natish turi qo'shish</p>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <input name="name" required maxlength="100" placeholder="Masalan: Xayriyaga / Brak omboriga..."
+                        class="sm:col-span-5 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-amber-500 placeholder:text-slate-600">
+                    <select name="color" class="sm:col-span-3 px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white font-semibold">
+                        {% for val, label in dispatch_color_choices %}
+                        <option value="{{ val }}" {% if val == 'violet' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <input name="description" maxlength="250" placeholder="Izoh (ixtiyoriy)"
+                        class="sm:col-span-4 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-amber-500 placeholder:text-slate-600">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm transition-colors">
+                        + Tur qo'shish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL: JO'NATMANI BEKOR QILISH ==================== -->
+<div id="ss-cancel-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <form method="POST" action="{% url 'packing:second_sort_dispatch_cancel' %}" class="bg-slate-900 border border-rose-700/70 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+        {% csrf_token %}
+        <input type="hidden" name="dispatch_id" id="ss-cancel-id">
+        <input type="hidden" name="month" value="{{ ss_report.selected_month }}">
+        <input type="hidden" name="dtype" value="{{ ss_report.filter_type_id|default:'' }}">
+        <input type="hidden" name="rq" value="{{ ss_report.query }}">
+        <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-black text-rose-400">Jo'natmani bekor qilish</h3>
+            <button type="button" onclick="closeCancelDispatchModal()" class="text-slate-400 hover:text-white text-lg leading-none px-1">&times;</button>
+        </div>
+        <div class="p-4 space-y-3">
+            <p id="ss-cancel-text" class="text-xs sm:text-sm text-slate-200"></p>
+            <div>
+                <label for="ss-cancel-reason" class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Sabab (ixtiyoriy)</label>
+                <input id="ss-cancel-reason" name="reason" maxlength="300" placeholder="Xato son yoki noto'g'ri tur..."
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-rose-500">
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-1">
+                <button type="button" onclick="closeCancelDispatchModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Yopish</button>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-black">Ha, bekor qilish</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<script>
+    (function () {
+        const TRAY_KEY = 'packing_ss_dispatch_tray_v1';
+        const DISPATCH_URL = "{% url 'packing:api_second_sort_dispatch' %}";
+
+        function rowKey(item) {
+            return `${item.order_id}|${item.article_id}|${item.size}`;
+        }
+
+        function collectLiveBalances() {
+            const map = {};
+            document.querySelectorAll('#second-sort-cards [data-ss-row]').forEach(el => {
+                const item = {
+                    order_id: Number(el.dataset.orderId),
+                    order_number: el.dataset.orderNumber || '',
+                    article_id: Number(el.dataset.articleId || 0),
+                    article_code: el.dataset.articleCode || '—',
+                    size: el.dataset.size || '—',
+                    max: Number(el.dataset.max || 0),
+                };
+                map[rowKey(item)] = item;
+            });
+            return map;
+        }
+
+        function loadTray() {
+            try {
+                const raw = JSON.parse(sessionStorage.getItem(TRAY_KEY) || '[]');
+                return Array.isArray(raw) ? raw : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveTray(items) {
+            try {
+                sessionStorage.setItem(TRAY_KEY, JSON.stringify(items));
+            } catch (e) { }
+        }
+
+        let liveMap = collectLiveBalances();
+        let trayItems = [];
+        let quickTarget = null;
+
+        function syncTrayWithLiveBalances() {
+            liveMap = collectLiveBalances();
+            const cleaned = [];
+            for (const item of loadTray()) {
+                const live = liveMap[rowKey(item)];
+                if (!live || live.max <= 0) continue;
+                const qty = Math.min(Math.max(1, Number(item.quantity) || 1), live.max);
+                cleaned.push({ ...live, quantity: qty });
+            }
+            trayItems = cleaned;
+            saveTray(trayItems);
+        }
+
+        function renderTray() {
+            const container = document.getElementById('ss-tray-items');
+            const badge = document.getElementById('ss-tray-badge');
+            const submitBtn = document.getElementById('ss-tray-submit');
+            const submitLabel = document.getElementById('ss-tray-submit-label');
+            const clearBtn = document.getElementById('ss-tray-clear');
+            if (!container) return;
+
+            container.innerHTML = '';
+            const totalQty = trayItems.reduce((sum, it) => sum + it.quantity, 0);
+            if (badge) badge.textContent = `${totalQty} dona`;
+            if (submitLabel) submitLabel.textContent = totalQty > 0 ? `Jo'natish (${totalQty} dona)` : "Jo'natish";
+
+            const typeEl = document.getElementById('ss-tray-type');
+            const hasTypes = typeEl && typeEl.options.length > 0;
+            if (submitBtn) submitBtn.disabled = trayItems.length === 0 || !hasTypes;
+            if (clearBtn) clearBtn.disabled = trayItems.length === 0;
+
+            if (trayItems.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'rounded-xl border border-dashed border-slate-800 py-6 px-3 text-center text-xs text-slate-500';
+                empty.textContent = "Chapdagi kartochkalardan «+ Ro'yxat» ni bosing — bir nechta zakaz/model bitta jo'natmaga yig'iladi.";
+                container.appendChild(empty);
+                return;
+            }
+
+            trayItems.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = 'p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2';
+
+                const info = document.createElement('div');
+                info.className = 'min-w-0 flex-1';
+
+                const top = document.createElement('div');
+                top.className = 'flex items-center gap-1.5 flex-wrap text-xs';
+                const ordSpan = document.createElement('span');
+                ordSpan.className = 'px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono font-bold text-slate-200';
+                ordSpan.textContent = item.order_number;
+                const artSpan = document.createElement('span');
+                artSpan.className = 'font-black text-white truncate';
+                artSpan.textContent = item.article_code;
+                const szSpan = document.createElement('span');
+                szSpan.className = 'px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 font-mono font-black';
+                szSpan.textContent = item.size;
+                top.append(ordSpan, artSpan, szSpan);
+
+                const sub = document.createElement('p');
+                sub.className = 'text-[10px] text-slate-500 font-mono mt-0.5';
+                sub.textContent = `Qoldiq: ${item.max} dona`;
+
+                info.append(top, sub);
+
+                const controls = document.createElement('div');
+                controls.className = 'flex items-center gap-1.5 flex-shrink-0';
+
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.min = '1';
+                inp.max = String(item.max);
+                inp.value = String(item.quantity);
+                inp.className = 'w-14 px-1.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono font-black text-xs text-center focus:outline-none focus:border-orange-500';
+                inp.addEventListener('change', () => {
+                    let v = parseInt(inp.value, 10);
+                    if (!Number.isFinite(v) || v < 1) v = 1;
+                    if (v > item.max) v = item.max;
+                    trayItems[idx].quantity = v;
+                    saveTray(trayItems);
+                    renderTray();
+                });
+
+                const rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'w-7 h-7 rounded-lg bg-slate-900 hover:bg-rose-600 text-slate-400 hover:text-white border border-slate-800 flex items-center justify-center text-xs transition-colors';
+                rm.textContent = '×';
+                rm.title = "Ro'yxatdan olib tashlash";
+                rm.addEventListener('click', () => {
+                    trayItems.splice(idx, 1);
+                    saveTray(trayItems);
+                    renderTray();
+                });
+
+                controls.append(inp, rm);
+                row.append(info, controls);
+                container.appendChild(row);
+            });
+        }
+
+        function upsertTrayItem(item, qty) {
+            const key = rowKey(item);
+            const live = liveMap[key];
+            if (!live) return;
+            let q = parseInt(qty, 10);
+            if (!Number.isFinite(q) || q < 1) q = live.max;
+            q = Math.min(q, live.max);
+            const existing = trayItems.find(it => rowKey(it) === key);
+            if (existing) {
+                existing.quantity = q;
+            } else {
+                trayItems.push({ ...live, quantity: q });
+            }
+            saveTray(trayItems);
+            renderTray();
+        }
+
+        window.addRowToDispatchTray = function (btn) {
+            const row = btn.closest('[data-ss-row]');
+            if (!row) return;
+            const qtyInput = row.querySelector('.ss-row-qty');
+            upsertTrayItem({
+                order_id: Number(row.dataset.orderId),
+                article_id: Number(row.dataset.articleId || 0),
+                size: row.dataset.size || '—',
+            }, qtyInput ? qtyInput.value : row.dataset.max);
+            const alertBox = document.getElementById('ss-tray-alert');
+            if (alertBox) alertBox.classList.add('hidden');
+        };
+
+        window.addCardToDispatchTray = function (btn) {
+            const card = btn.closest('article');
+            if (!card) return;
+            card.querySelectorAll('[data-ss-row]').forEach(row => {
+                upsertTrayItem({
+                    order_id: Number(row.dataset.orderId),
+                    article_id: Number(row.dataset.articleId || 0),
+                    size: row.dataset.size || '—',
+                }, row.dataset.max);
+            });
+            const alertBox = document.getElementById('ss-tray-alert');
+            if (alertBox) alertBox.classList.add('hidden');
+        };
+
+        window.clearDispatchTray = function () {
+            trayItems = [];
+            saveTray(trayItems);
+            renderTray();
+        };
+
+        window.submitDispatchTray = async function () {
+            const alertBox = document.getElementById('ss-tray-alert');
+            const submitBtn = document.getElementById('ss-tray-submit');
+            const typeEl = document.getElementById('ss-tray-type');
+            const noteEl = document.getElementById('ss-tray-note');
+            if (!trayItems.length || !typeEl || !typeEl.value) return;
+
+            if (alertBox) alertBox.classList.add('hidden');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const payload = {
+                dispatch_type_id: Number(typeEl.value),
+                note: noteEl ? noteEl.value.trim() : '',
+                items: trayItems.map(it => ({
+                    order_id: it.order_id,
+                    article_id: it.article_id,
+                    size: it.size,
+                    quantity: it.quantity,
+                })),
+            };
+            const res = await postJSON(DISPATCH_URL, payload);
+            if (res.ok) {
+                try { sessionStorage.removeItem(TRAY_KEY); } catch (e) { }
+                window.location.href = res.data.redirect_url || '?tab=upakovka&sec=balance2';
+                return;
+            }
+            if (alertBox) {
+                alertBox.textContent = (res.data && res.data.message) || "Jo'natishda xatolik yuz berdi.";
+                alertBox.classList.remove('hidden');
+            }
+            if (submitBtn) submitBtn.disabled = false;
+        };
+
+        window.openQuickDispatch = function (btn) {
+            const row = btn.closest('[data-ss-row]');
+            if (!row) return;
+            const modal = document.getElementById('ss-quick-modal');
+            const qtyInput = document.getElementById('ss-quick-qty');
+            const alertBox = document.getElementById('ss-quick-alert');
+            const noteEl = document.getElementById('ss-quick-note');
+            if (!modal || !qtyInput) return;
+
+            const max = Number(row.dataset.max || 1);
+            const rowQty = Number((row.querySelector('.ss-row-qty') || {}).value || max);
+            const initialQty = Math.min(Math.max(1, rowQty || max), max);
+
+            quickTarget = {
+                order_id: Number(row.dataset.orderId),
+                article_id: Number(row.dataset.articleId || 0),
+                size: row.dataset.size || '—',
+                max: max,
+            };
+
+            document.getElementById('ss-quick-title').textContent = `${row.dataset.orderNumber} · ${row.dataset.articleCode}`;
+            document.getElementById('ss-quick-sub').textContent = `Razmer: ${quickTarget.size} · Balansda qoldiq: ${max} dona`;
+            qtyInput.max = String(max);
+            qtyInput.value = String(initialQty);
+            if (noteEl) noteEl.value = '';
+            if (alertBox) alertBox.classList.add('hidden');
+            modal.classList.remove('hidden');
+            qtyInput.focus();
+            qtyInput.select();
+        };
+
+        window.closeQuickDispatch = function () {
+            const modal = document.getElementById('ss-quick-modal');
+            if (modal) modal.classList.add('hidden');
+            quickTarget = null;
+        };
+
+        window.submitQuickDispatch = async function () {
+            if (!quickTarget) return;
+            const qtyInput = document.getElementById('ss-quick-qty');
+            const typeEl = document.getElementById('ss-quick-type');
+            const noteEl = document.getElementById('ss-quick-note');
+            const alertBox = document.getElementById('ss-quick-alert');
+            const submitBtn = document.getElementById('ss-quick-submit');
+
+            const qty = parseInt(qtyInput ? qtyInput.value : '0', 10);
+            if (!Number.isFinite(qty) || qty < 1 || qty > quickTarget.max) {
+                if (alertBox) {
+                    alertBox.textContent = `Soni 1 dan ${quickTarget.max} gacha bo'lishi kerak.`;
+                    alertBox.classList.remove('hidden');
+                }
+                return;
+            }
+            if (!typeEl || !typeEl.value) {
+                if (alertBox) {
+                    alertBox.textContent = "Jo'natish turini tanlang.";
+                    alertBox.classList.remove('hidden');
+                }
+                return;
+            }
+            if (alertBox) alertBox.classList.add('hidden');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const res = await postJSON(DISPATCH_URL, {
+                dispatch_type_id: Number(typeEl.value),
+                note: noteEl ? noteEl.value.trim() : '',
+                items: [{
+                    order_id: quickTarget.order_id,
+                    article_id: quickTarget.article_id,
+                    size: quickTarget.size,
+                    quantity: qty,
+                }],
+            });
+            if (res.ok) {
+                window.location.href = res.data.redirect_url || '?tab=upakovka&sec=balance2';
+                return;
+            }
+            if (alertBox) {
+                alertBox.textContent = (res.data && res.data.message) || "Xatolik yuz berdi.";
+                alertBox.classList.remove('hidden');
+            }
+            if (submitBtn) submitBtn.disabled = false;
+        };
+
+        window.openDispatchTypesModal = function () {
+            document.getElementById('ss-types-modal')?.classList.remove('hidden');
+        };
+        window.closeDispatchTypesModal = function () {
+            document.getElementById('ss-types-modal')?.classList.add('hidden');
+        };
+
+        window.openCancelDispatchModal = function (btn) {
+            const modal = document.getElementById('ss-cancel-modal');
+            if (!modal) return;
+            document.getElementById('ss-cancel-id').value = btn.dataset.dispatchId || '';
+            document.getElementById('ss-cancel-text').textContent =
+                `${btn.dataset.dispatchCode} (${btn.dataset.dispatchTotal} dona) jo'natmasi bekor qilinsinmi? Barcha donalar 2-sort balansiga qaytadi.`;
+            const reason = document.getElementById('ss-cancel-reason');
+            if (reason) reason.value = '';
+            modal.classList.remove('hidden');
+        };
+        window.closeCancelDispatchModal = function () {
+            document.getElementById('ss-cancel-modal')?.classList.add('hidden');
+        };
+
+        syncTrayWithLiveBalances();
+        renderTray();
+    })();
+</script>

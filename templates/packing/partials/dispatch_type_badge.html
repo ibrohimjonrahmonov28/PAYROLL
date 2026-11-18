@@ -1,0 +1,11 @@
+{% comment %}2-sort jo'natish turi uchun rangli nishon (theme_head bilan kun/tun rejimida ham aniq).{% endcomment %}
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-black whitespace-nowrap
+    {% if dtype.color == 'emerald' %}bg-emerald-500/15 text-emerald-400 border-emerald-500/40
+    {% elif dtype.color == 'cyan' %}bg-cyan-500/15 text-cyan-400 border-cyan-500/40
+    {% elif dtype.color == 'amber' %}bg-amber-500/15 text-amber-400 border-amber-500/40
+    {% elif dtype.color == 'orange' %}bg-orange-500/15 text-orange-400 border-orange-500/40
+    {% elif dtype.color == 'violet' %}bg-violet-500/15 text-violet-400 border-violet-500/40
+    {% elif dtype.color == 'rose' %}bg-rose-500/15 text-rose-400 border-rose-500/40
+    {% else %}bg-slate-800 text-slate-300 border-slate-700{% endif %}">
+    {{ dtype.name }}
+</span>

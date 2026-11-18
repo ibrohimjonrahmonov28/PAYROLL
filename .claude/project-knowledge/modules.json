@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3435,
+  "lines": 3451,
   "depends_on": [
    "accounts.core"
   ]
@@ -254,7 +254,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2198,
+  "lines": 2297,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -324,7 +324,7 @@
    "production/static/brand/terryjar-logo.svg",
    "production/taxlov_pay.py"
   ],
-  "lines": 2241,
+  "lines": 2937,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -475,6 +475,8 @@
    "templates/packing/partials/basket_rows.html",
    "templates/packing/partials/basket_search.html",
    "templates/packing/partials/cards.html",
+   "templates/packing/partials/dispatch_type_badge.html",
+   "templates/packing/partials/second_sort_balance.html",
    "templates/packing/repair_receipt.html",
    "templates/packing/tabs/otk.html",
    "templates/packing/tabs/sanoqchi.html",
@@ -525,7 +527,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 47179,
+  "lines": 48054,
   "depends_on": []
  },
  "tests": {
@@ -545,6 +547,7 @@
    "production/test_pipeline_summary.py",
    "production/test_receipt_printing.py",
    "production/test_salary_freeze.py",
+   "production/test_second_sort_dispatch.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_taxlov_pay.py",
    "production/test_telegram_reports.py",
@@ -554,7 +557,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 12376,
+  "lines": 12608,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

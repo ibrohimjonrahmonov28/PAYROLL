@@ -127,6 +127,7 @@
    "production/test_pipeline_summary.py",
    "production/test_receipt_printing.py",
    "production/test_salary_freeze.py",
+   "production/test_second_sort_dispatch.py",
    "production/test_sewing_statistics_order_models.py",
    "production/test_taxlov_pay.py",
    "production/test_telegram_reports.py",
@@ -525,7 +526,8 @@
   },
   "production.packing_services": {
    "imports": [
-    "production.models"
+    "production.models",
+    "production.sewing_statistics_views"
    ]
   },
   "production.packing_urls": {
@@ -772,6 +774,13 @@
     "accounts.models",
     "production.management.commands.run_scheduler",
     "production.models"
+   ]
+  },
+  "production.test_second_sort_dispatch": {
+   "imports": [
+    "accounts.models",
+    "production.models",
+    "production.packing_services"
    ]
   },
   "production.test_sewing_statistics_order_models": {
@@ -1431,6 +1440,20 @@
     "packing/partials/basket_rows.html"
    ]
   },
+  "templates/packing/partials/second_sort_balance.html": {
+   "includes": [
+    "packing/partials/dispatch_type_badge.html",
+    "packing/partials/dispatch_type_badge.html",
+    "packing/partials/dispatch_type_badge.html"
+   ],
+   "url_names": [
+    "packing:api_second_sort_dispatch",
+    "packing:second_sort_dispatch_cancel",
+    "packing:second_sort_report_csv",
+    "packing:second_sort_type_create",
+    "packing:second_sort_type_update"
+   ]
+  },
   "templates/packing/tabs/otk.html": {
    "url_names": [
     "packing:api_otk_lookup",
@@ -1459,7 +1482,7 @@
    "includes": [
     "packing/partials/basket_rows.html",
     "packing/partials/cards.html",
-    "packing/partials/cards.html",
+    "packing/partials/second_sort_balance.html",
     "packing/partials/basket_search.html"
    ],
    "url_names": [

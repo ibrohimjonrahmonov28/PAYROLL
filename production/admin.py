@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order, OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog, DefectReason, CancelledBatchLog, ControlSetting
+from .models import (Customer, ProductModel, ProductModelOperation, Article, Operation, ArticleOperation, Order,
+                     OrderItem, Box, Ticket, OrderItemSize, CuttingBatch, CuttingBatchItem, BoxQualityInspectionLog,
+                     DefectReason, CancelledBatchLog, ControlSetting, SecondSortDispatchType, SecondSortDispatch,
+                     SecondSortDispatchItem)
 
 
 @admin.register(Customer)
@@ -150,4 +153,27 @@ class CancelledBatchLogAdmin(admin.ModelAdmin):
 class ControlSettingAdmin(admin.ModelAdmin):
     list_display = ['id', 'require_all_operations_scanned', 'updated_at', 'updated_by']
     list_editable = ['require_all_operations_scanned']
+
+
+@admin.register(SecondSortDispatchType)
+class SecondSortDispatchTypeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'color', 'sort_order', 'is_active', 'created_at']
+    list_filter = ['is_active', 'color']
+    search_fields = ['name', 'description']
+    list_editable = ['sort_order', 'is_active']
+
+
+class SecondSortDispatchItemInline(admin.TabularInline):
+    model = SecondSortDispatchItem
+    extra = 0
+    raw_id_fields = ['order', 'article']
+
+
+@admin.register(SecondSortDispatch)
+class SecondSortDispatchAdmin(admin.ModelAdmin):
+    list_display = ['code', 'dispatch_type', 'dispatched_by', 'dispatched_at', 'is_cancelled', 'note']
+    list_filter = ['dispatch_type', 'is_cancelled', 'dispatched_at']
+    search_fields = ['code', 'note', 'dispatched_by__username']
+    inlines = [SecondSortDispatchItemInline]
+
 

@@ -6,8 +6,8 @@
    "latest": "0023_basket_master"
   },
   "production": {
-   "count": 50,
-   "latest": "0050_packing_patok"
+   "count": 52,
+   "latest": "0052_second_sort_dispatch_types_seed"
   },
   "screens": {
    "count": 0,
@@ -1267,6 +1267,96 @@
      "to": "production.BoxQualityInspectionLog",
      "on_delete": "SET_NULL",
      "related_name": "print_jobs"
+    }
+   ]
+  },
+  "production.SecondSortDispatchType": {
+   "table": "production_secondsortdispatchtype",
+   "file": "production/models.py:2209",
+   "fields": {
+    "id": "BigAutoField",
+    "name": "CharField[unique]",
+    "description": "CharField",
+    "color": "CharField[choices]",
+    "sort_order": "PositiveSmallIntegerField",
+    "is_active": "BooleanField[idx]",
+    "created_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "created_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ]
+  },
+  "production.SecondSortDispatch": {
+   "table": "production_secondsortdispatch",
+   "file": "production/models.py:2240",
+   "fields": {
+    "id": "BigAutoField",
+    "code": "CharField[unique]",
+    "note": "CharField",
+    "dispatched_at": "DateTimeField[idx]",
+    "is_cancelled": "BooleanField[idx]",
+    "cancelled_at": "DateTimeField",
+    "cancel_reason": "CharField"
+   },
+   "relations": [
+    {
+     "field": "dispatch_type",
+     "type": "ForeignKey",
+     "to": "production.SecondSortDispatchType",
+     "on_delete": "PROTECT",
+     "related_name": "dispatches"
+    },
+    {
+     "field": "dispatched_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "PROTECT",
+     "related_name": "second_sort_dispatches"
+    },
+    {
+     "field": "cancelled_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ]
+  },
+  "production.SecondSortDispatchItem": {
+   "table": "production_secondsortdispatchitem",
+   "file": "production/models.py:2275",
+   "fields": {
+    "id": "BigAutoField",
+    "razmer": "CharField",
+    "quantity": "PositiveIntegerField"
+   },
+   "relations": [
+    {
+     "field": "dispatch",
+     "type": "ForeignKey",
+     "to": "production.SecondSortDispatch",
+     "on_delete": "CASCADE",
+     "related_name": "items"
+    },
+    {
+     "field": "order",
+     "type": "ForeignKey",
+     "to": "production.Order",
+     "on_delete": "CASCADE",
+     "related_name": "second_sort_dispatch_items"
+    },
+    {
+     "field": "article",
+     "type": "ForeignKey",
+     "to": "production.Article",
+     "on_delete": "SET_NULL",
+     "related_name": "second_sort_dispatch_items"
     }
    ]
   }

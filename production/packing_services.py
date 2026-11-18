@@ -8,6 +8,8 @@ OTK ta'mirga yuborsa TAMIR1 cheki chiqadi; ta'mirdan qaytganda ochiq chek yopila
 1-sorti), yana ta'mirga ketganlari uchun keyingi chek (TAMIR2, ...) chiqadi. Qog'ozdagi son emas, bazadagi son olinadi;
 bitta qog'ozni qayta urish hech narsa qo'shmaydi. Eski "TAMIR:<box_code>" cheki = 1-chek.
 """
+from collections import OrderedDict, defaultdict
+from datetime import datetime
 from decimal import Decimal
 import re
 
@@ -15,7 +17,10 @@ from django.db import transaction
 from django.db.models import Exists, F, Max, OuterRef, Q, Sum
 from django.utils import timezone
 
-from production.models import Box, BoxQualityInspectionLog, PackingBatch, PackingScan, RepairReceipt
+from production.models import (Article, Box, BoxQualityInspectionLog, Order, OrderItem, PackingBatch, PackingScan,
+                               RepairReceipt, SecondSortBatch, SecondSortDispatch, SecondSortDispatchItem,
+                               SecondSortDispatchType)
+from production.sewing_statistics_views import natural_size_sort_key
 
 CODE_RE = re.compile(r'^(CONTROL|TAMIR(\d*)|BOX|QUTI)\s*:\s*(.+)$', re.IGNORECASE)
 
@@ -267,4 +272,459 @@ def control_sticker_meta(box, initial_before_beta_ids=None):
         'difficulty_display': _format_taxlov_difficulty(difficulty),
         'price_display': _format_taxlov_price(price),
     }
+
+
+# ------------------------------------------------------------------ 2-Sort balans, jo'natish va oylik hisobot
+
+SECOND_SORT_LOG_RELATED = (
+    'box__order',
+    'box__order__article',
+    'box__article',
+    'box__cutting_batch_item__batch__order_item__article',
+    'second_sort_batch',
+)
+
+
+def normalize_second_sort_size(razmer) -> str:
+    """Razmer nomini bir xil formatga keltirish (bo'sh/None -> '—')."""
+    return (razmer or '').strip() or '—'
+
+
+def _article_image_url(article) -> str:
+    if article and article.image:
+        try:
+            return article.image.url
+        except ValueError:
+            return ''
+    return ''
+
+
+def _order_first_articles(order_ids):
+    """box.article va order.article bo'sh bo'lganda OrderItem dan birinchi artikulni bitta so'rovda olish."""
+    if not order_ids:
+        return {}
+    mapping = {}
+    for oi in (OrderItem.objects.filter(order_id__in=order_ids, article__isnull=False)
+               .select_related('article').order_by('order_id', 'id')):
+        if oi.order_id not in mapping:
+            mapping[oi.order_id] = oi.article
+    return mapping
+
+
+def _resolve_box_article(box, fallback_articles=None):
+    """Box.target_article bilan bir xil ustuvorlik, N+1 so'rovlarsiz."""
+    if box.article_id:
+        return box.article
+    if box.cutting_batch_item_id and box.cutting_batch_item.batch_id and box.cutting_batch_item.batch.order_item_id:
+        art = box.cutting_batch_item.batch.order_item.article
+        if art:
+            return art
+    if box.order_id and box.order.article_id:
+        return box.order.article
+    if fallback_articles is not None:
+        return fallback_articles.get(box.order_id)
+    return box.target_article
+
+
+def _second_sort_in_timestamp(log):
+    """2-sort kirim vaqti: master qabul qilgan vaqt (yoki avvalgi savat jo'natilgan/yaratilgan vaqt)."""
+    batch = log.second_sort_batch
+    if batch is not None:
+        return batch.accepted_at or batch.sent_at or batch.created_at or log.created_at
+    return log.created_at
+
+
+def _accepted_second_sort_logs(order_ids=None, before=None):
+    qs = BoxQualityInspectionLog.objects.filter(
+        beta_box_q(),
+        second_sort_qty__gt=0,
+        second_sort_batch__status=SecondSortBatch.Status.ACCEPTED,
+    ).select_related(*SECOND_SORT_LOG_RELATED)
+    if order_ids is not None:
+        qs = qs.filter(box__order_id__in=order_ids)
+    logs = list(qs)
+    missing_order_ids = {
+        log.box.order_id for log in logs
+        if log.box.article_id is None and log.box.order.article_id is None
+    }
+    fallback_articles = _order_first_articles(missing_order_ids)
+    result = []
+    for log in logs:
+        ts = _second_sort_in_timestamp(log)
+        if before is not None and ts >= before:
+            continue
+        article = _resolve_box_article(log.box, fallback_articles)
+        result.append((log, article, ts))
+    return result
+
+
+def second_sort_balance_data(order_ids=None):
+    """Upakovkadagi amaldagi 2-sort balansi: qabul qilingan (ACCEPTED) minus bekor qilinmagan jo'natmalar."""
+    logs_meta = _accepted_second_sort_logs(order_ids=order_ids)
+    dispatch_qs = SecondSortDispatchItem.objects.filter(dispatch__is_cancelled=False)
+    if order_ids is not None:
+        dispatch_qs = dispatch_qs.filter(order_id__in=order_ids)
+    dispatch_items = list(dispatch_qs.values('order_id', 'article_id', 'razmer', 'quantity'))
+
+    in_by_key = defaultdict(int)
+    out_by_key = defaultdict(int)
+    cards_meta = OrderedDict()
+
+    for log, article, _ts in logs_meta:
+        box = log.box
+        aid = article.id if article else 0
+        size = normalize_second_sort_size(box.razmer)
+        key = (box.order_id, aid, size)
+        in_by_key[key] += log.second_sort_qty
+
+        card_key = (box.order_id, aid)
+        meta = cards_meta.setdefault(card_key, {
+            'order': box.order,
+            'article': article,
+            'image': _article_image_url(article),
+            'sizes': OrderedDict(),
+            'boxes_map': OrderedDict(),
+            'accepted_total': 0,
+        })
+        meta['sizes'][size] = meta['sizes'].get(size, 0) + log.second_sort_qty
+        meta['accepted_total'] += log.second_sort_qty
+        b_entry = meta['boxes_map'].setdefault(box.id, {
+            'box_code': box.box_code, 'razmer': size, 'qty': 0, 'notes': [],
+        })
+        b_entry['qty'] += log.second_sort_qty
+
+    for item in dispatch_items:
+        aid = item['article_id'] or 0
+        size = normalize_second_sort_size(item['razmer'])
+        out_by_key[(item['order_id'], aid, size)] += item['quantity']
+
+    balance_map = {}
+    cards = []
+    for (order_id, aid), meta in cards_meta.items():
+        sizes_rem = OrderedDict()
+        size_rows = []
+        dispatched_total = 0
+        ordered_sizes = sorted(meta['sizes'].keys(), key=natural_size_sort_key)
+        for size in ordered_sizes:
+            acc = meta['sizes'][size]
+            disp = out_by_key.get((order_id, aid, size), 0)
+            rem = max(0, acc - disp)
+            dispatched_total += disp
+            if rem > 0:
+                sizes_rem[size] = rem
+                balance_map[(order_id, aid, size)] = rem
+                size_rows.append({
+                    'size': size,
+                    'remaining': rem,
+                    'accepted': acc,
+                    'dispatched': disp,
+                })
+        total_rem = sum(sizes_rem.values())
+        if total_rem <= 0:
+            continue
+        boxes = sorted(meta['boxes_map'].values(), key=lambda b: (natural_size_sort_key(b['razmer']), b['box_code']))
+        cards.append({
+            'order': meta['order'],
+            'article': meta['article'],
+            'image': meta['image'],
+            'sizes': sizes_rem,
+            'size_rows': size_rows,
+            'total': total_rem,
+            'accepted_total': meta['accepted_total'],
+            'dispatched_total': dispatched_total,
+            'boxes': boxes,
+            'box_count': len(boxes),
+        })
+
+    cards.sort(key=lambda c: (c['order'].order_number, c['article'].code if c['article'] else ''))
+    return {
+        'cards': cards,
+        'total': sum(card['total'] for card in cards),
+        'balance_map': balance_map,
+    }
+
+
+def create_second_sort_dispatch(user, dispatch_type_id, raw_items, note='', dispatched_at=None):
+    """2-sort balansidan chiqim (1 ta razmer yoki bir nechta zakaz/model yig'masi) yaratadi."""
+    try:
+        dtype_id = int(dispatch_type_id)
+    except (TypeError, ValueError):
+        return None, "Jo'natish turini tanlang."
+    dispatch_type = SecondSortDispatchType.objects.filter(id=dtype_id).first()
+    if not dispatch_type:
+        return None, "Tanlangan jo'natish turi topilmadi."
+    if not dispatch_type.is_active:
+        return None, f"«{dispatch_type.name}» turi nofaol — faol turni tanlang."
+
+    if not isinstance(raw_items, list) or not raw_items:
+        return None, "Jo'natish uchun kamida bitta qator tanlang."
+
+    merged = OrderedDict()
+    for idx, item in enumerate(raw_items, start=1):
+        if not isinstance(item, dict):
+            return None, f"{idx}-qator formati noto'g'ri."
+        try:
+            order_id = int(item.get('order_id'))
+            article_id = int(item.get('article_id') or 0)
+            qty = int(item.get('quantity') or 0)
+        except (TypeError, ValueError):
+            return None, f"{idx}-qator soni noto'g'ri."
+        if qty < 0:
+            return None, "Soni manfiy bo'lishi mumkin emas."
+        if qty == 0:
+            continue
+        size = normalize_second_sort_size(item.get('size'))[:50]
+        key = (order_id, article_id, size)
+        merged[key] = merged.get(key, 0) + qty
+
+    if not merged:
+        return None, "Jo'natish uchun kamida 1 dona miqdor kiriting."
+
+    order_ids = sorted({k[0] for k in merged})
+    article_ids = sorted({k[1] for k in merged if k[1] > 0})
+
+    with transaction.atomic():
+        orders = {o.id: o for o in Order.objects.select_for_update().filter(id__in=order_ids).order_by('id')}
+        for oid in order_ids:
+            if oid not in orders:
+                return None, "Buyurtma topilmadi."
+        articles = {a.id: a for a in Article.objects.filter(id__in=article_ids)}
+        for aid in article_ids:
+            if aid not in articles:
+                return None, "Model (artikul) topilmadi."
+
+        balance_map = second_sort_balance_data(order_ids=order_ids)['balance_map']
+        for (oid, aid, size), qty in merged.items():
+            available = balance_map.get((oid, aid, size), 0)
+            if qty > available:
+                ord_num = orders[oid].order_number
+                art_code = articles[aid].code if aid in articles else '—'
+                return None, (
+                    f"«{ord_num} · {art_code} ({size})» balansda {available} dona qolgan "
+                    f"(jo'natishga {qty} dona so'raldi)."
+                )
+
+        dispatch = SecondSortDispatch.objects.create(
+            dispatch_type=dispatch_type,
+            note=(note or '').strip()[:300],
+            dispatched_by=user,
+            dispatched_at=dispatched_at or timezone.now(),
+        )
+        SecondSortDispatchItem.objects.bulk_create([
+            SecondSortDispatchItem(
+                dispatch=dispatch,
+                order_id=oid,
+                article_id=(aid if aid > 0 else None),
+                razmer=size,
+                quantity=qty,
+            )
+            for (oid, aid, size), qty in merged.items()
+        ])
+    return dispatch, None
+
+
+def cancel_second_sort_dispatch(dispatch_id, user, reason=''):
+    """Xato qilingan 2-sort jo'natmasini bekor qiladi — donalar balansga qaytadi."""
+    try:
+        pk = int(dispatch_id)
+    except (TypeError, ValueError):
+        return None, "Jo'natma topilmadi."
+    with transaction.atomic():
+        dispatch = SecondSortDispatch.objects.select_for_update().filter(id=pk).first()
+        if not dispatch:
+            return None, "Jo'natma topilmadi."
+        if dispatch.is_cancelled:
+            return None, f"{dispatch.code} allaqachon bekor qilingan."
+        dispatch.is_cancelled = True
+        dispatch.cancelled_at = timezone.now()
+        dispatch.cancelled_by = user
+        dispatch.cancel_reason = (reason or '').strip()[:300]
+        dispatch.save(update_fields=['is_cancelled', 'cancelled_at', 'cancelled_by', 'cancel_reason'])
+    return dispatch, None
+
+
+def _month_window(month_str=None):
+    """'YYYY-MM' oy chegaralari (mahalliy vaqt mintaqasida)."""
+    tz = timezone.get_current_timezone()
+    local_now = timezone.localtime()
+    year, month = local_now.year, local_now.month
+    if month_str:
+        match = re.match(r'^(\d{4})-(\d{2})$', month_str.strip())
+        if match:
+            y, m = int(match.group(1)), int(match.group(2))
+            if 2000 <= y <= 2100 and 1 <= m <= 12:
+                year, month = y, m
+    start_naive = datetime(year, month, 1, 0, 0, 0)
+    if month == 12:
+        end_naive = datetime(year + 1, 1, 1, 0, 0, 0)
+    else:
+        end_naive = datetime(year, month + 1, 1, 0, 0, 0)
+    return f"{year:04d}-{month:02d}", timezone.make_aware(start_naive, tz), timezone.make_aware(end_naive, tz)
+
+
+def second_sort_monthly_report(month_str=None, dispatch_type_id=None, query=''):
+    """Tanlangan oy uchun 2-sort aylanma hisoboti: oy boshiga + qabul - chiqim (turlar kesimida) = oy oxiriga."""
+    selected_month, month_start, month_end = _month_window(month_str)
+    q_norm = (query or '').strip().lower()
+    try:
+        filter_type_id = int(dispatch_type_id) if dispatch_type_id else None
+    except (TypeError, ValueError):
+        filter_type_id = None
+
+    logs_meta = _accepted_second_sort_logs(before=month_end)
+    dispatch_items = list(
+        SecondSortDispatchItem.objects
+        .filter(dispatch__is_cancelled=False, dispatch__dispatched_at__lt=month_end)
+        .select_related('dispatch', 'dispatch__dispatch_type', 'order', 'article')
+    )
+
+    groups = {}
+    used_type_ids = set()
+
+    def ensure_group(order, article):
+        aid = article.id if article else 0
+        key = (order.id, aid)
+        entry = groups.get(key)
+        if entry is None:
+            entry = {
+                'order': order,
+                'article': article,
+                'opening_in': 0,
+                'opening_out': 0,
+                'month_in': 0,
+                'month_out': 0,
+                'by_type': defaultdict(int),
+                'sizes_closing': defaultdict(int),
+            }
+            groups[key] = entry
+        return entry
+
+    for log, article, ts in logs_meta:
+        g = ensure_group(log.box.order, article)
+        qty = log.second_sort_qty
+        size = normalize_second_sort_size(log.box.razmer)
+        g['sizes_closing'][size] += qty
+        if ts < month_start:
+            g['opening_in'] += qty
+        else:
+            g['month_in'] += qty
+
+    for item in dispatch_items:
+        g = ensure_group(item.order, item.article)
+        qty = item.quantity
+        size = normalize_second_sort_size(item.razmer)
+        g['sizes_closing'][size] -= qty
+        dt = item.dispatch.dispatched_at
+        if dt < month_start:
+            g['opening_out'] += qty
+        else:
+            tid = item.dispatch.dispatch_type_id
+            g['month_out'] += qty
+            g['by_type'][tid] += qty
+            used_type_ids.add(tid)
+
+    report_types = list(
+        SecondSortDispatchType.objects.filter(Q(is_active=True) | Q(id__in=used_type_ids))
+        .order_by('sort_order', 'id')
+    )
+
+    rows = []
+    type_totals = defaultdict(int)
+    grand = {'opening': 0, 'month_in': 0, 'month_out': 0, 'closing': 0}
+
+    for g in groups.values():
+        opening = g['opening_in'] - g['opening_out']
+        month_in = g['month_in']
+        month_out = g['month_out']
+        closing = opening + month_in - month_out
+        if opening == 0 and month_in == 0 and month_out == 0 and closing == 0:
+            continue
+        if q_norm:
+            haystack = ' '.join(filter(None, [
+                g['order'].order_number,
+                g['order'].client_name,
+                g['article'].code if g['article'] else '',
+                g['article'].name if g['article'] else '',
+            ])).lower()
+            if q_norm not in haystack:
+                continue
+
+        by_type_list = []
+        for t in report_types:
+            val = g['by_type'].get(t.id, 0)
+            by_type_list.append(val)
+            type_totals[t.id] += val
+
+        grand['opening'] += opening
+        grand['month_in'] += month_in
+        grand['month_out'] += month_out
+        grand['closing'] += closing
+
+        closing_sizes = [
+            {'size': sz, 'qty': qty}
+            for sz, qty in sorted(g['sizes_closing'].items(), key=lambda kv: natural_size_sort_key(kv[0]))
+            if qty > 0
+        ]
+        rows.append({
+            'order': g['order'],
+            'article': g['article'],
+            'opening': opening,
+            'month_in': month_in,
+            'by_type_list': by_type_list,
+            'month_out': month_out,
+            'closing': closing,
+            'closing_sizes': closing_sizes,
+        })
+
+    rows.sort(key=lambda r: (r['order'].order_number, r['article'].code if r['article'] else ''))
+
+    dispatches_qs = (
+        SecondSortDispatch.objects
+        .filter(dispatched_at__gte=month_start, dispatched_at__lt=month_end)
+        .select_related('dispatch_type', 'dispatched_by', 'cancelled_by')
+        .prefetch_related('items__order', 'items__article')
+        .order_by('-dispatched_at', '-id')
+    )
+    if filter_type_id:
+        dispatches_qs = dispatches_qs.filter(dispatch_type_id=filter_type_id)
+
+    dispatches = []
+    for d in dispatches_qs:
+        items = list(d.items.all())
+        if q_norm:
+            haystack = ' '.join(filter(None, [
+                d.code,
+                d.note,
+                d.dispatch_type.name,
+                *(it.order.order_number for it in items),
+                *(it.article.code for it in items if it.article),
+                *(it.article.name for it in items if it.article),
+            ])).lower()
+            if q_norm not in haystack:
+                continue
+        dispatches.append({
+            'dispatch': d,
+            'items': items,
+            'total_qty': sum(it.quantity for it in items),
+        })
+
+    type_summary = [{'type': t, 'total': type_totals.get(t.id, 0)} for t in report_types]
+    totals = {
+        'opening': grand['opening'],
+        'month_in': grand['month_in'],
+        'by_type_list': [type_totals.get(t.id, 0) for t in report_types],
+        'month_out': grand['month_out'],
+        'closing': grand['closing'],
+    }
+    return {
+        'selected_month': selected_month,
+        'filter_type_id': filter_type_id,
+        'query': (query or '').strip(),
+        'report_types': report_types,
+        'type_summary': type_summary,
+        'rows': rows,
+        'totals': totals,
+        'dispatches': dispatches,
+    }
+
 

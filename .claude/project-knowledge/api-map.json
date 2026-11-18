@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 222,
+ "route_count": 227,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1908,6 +1908,55 @@
    "decorators": [
     "_role_required",
     "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/api/upakovka/2-sort/jonatish/",
+   "name": "packing:api_second_sort_dispatch",
+   "view": "production.packing_views.api_second_sort_dispatch",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/upakovka/2-sort/bekor/",
+   "name": "packing:second_sort_dispatch_cancel",
+   "view": "production.packing_views.second_sort_dispatch_cancel",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/upakovka/2-sort/turlar/qoshish/",
+   "name": "packing:second_sort_type_create",
+   "view": "production.packing_views.second_sort_type_create",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/upakovka/2-sort/turlar/tahrir/",
+   "name": "packing:second_sort_type_update",
+   "view": "production.packing_views.second_sort_type_update",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/beta/upakovka/2-sort/hisobot-csv/",
+   "name": "packing:second_sort_report_csv",
+   "view": "production.packing_views.second_sort_report_csv",
+   "urlconf": "production.packing_urls",
+   "decorators": [
+    "_role_required"
    ]
   },
   {

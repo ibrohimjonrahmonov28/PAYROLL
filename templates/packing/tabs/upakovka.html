@@ -262,22 +262,7 @@ Upakovka tabi: KPI lentasi, master qabul navbati, 1-sort balansi va bugungi reyt
 
     <!-- ==================== PANE 3: 2-SORT BALANS ==================== -->
     <div id="up-sec-balance2" class="upakovka-section">
-        <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h2 class="text-sm font-black text-white uppercase tracking-wide">2-Sort balansi · Qabul qilingan savatlar</h2>
-                    <p class="text-[11px] text-slate-400">Upakovka masteri tasdiqlagan 2-sort inventari ({{ second_sort_total }} dona)</p>
-                </div>
-                <div class="relative w-full sm:w-64">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
-                    <input id="second-sort-search" oninput="filterCardsList('second-sort-cards', this.value)" placeholder="Zakaz, artikul yoki quti..."
-                        class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:outline-none focus:border-rose-500 placeholder:text-slate-600">
-                </div>
-            </div>
-            <div class="p-3.5">
-                {% include 'packing/partials/cards.html' with cards=second_sort list_id='second-sort-cards' tone='rose' %}
-            </div>
-        </section>
+        {% include 'packing/partials/second_sort_balance.html' %}
     </div>
 
     <!-- ==================== PANE 4: BASKET SEARCH ==================== -->
@@ -329,7 +314,12 @@ Upakovka tabi: KPI lentasi, master qabul navbati, 1-sort balansi va bugungi reyt
 
     (function initUpakovkaTab() {
         const params = new URLSearchParams(window.location.search);
-        if (params.has('sv') || {% if search_code %}true{% else %}false{% endif %}) {
+        const sec = params.get('sec');
+        if (sec && ['approve', 'balance1', 'balance2', 'search'].includes(sec)) {
+            switchUpakovkaSection(sec);
+        } else if (params.has('month') || params.has('dtype') || params.has('rq')) {
+            switchUpakovkaSection('balance2');
+        } else if (params.has('sv') || {% if search_code %}true{% else %}false{% endif %}) {
             switchUpakovkaSection('search');
         } else if ({% if waiting_baskets %}true{% else %}false{% endif %}) {
             switchUpakovkaSection('approve');

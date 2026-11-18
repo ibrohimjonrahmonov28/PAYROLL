@@ -11,6 +11,7 @@ beta qutilar (eski zakaz belgisi yoki beta narx shabloni). Superadmin bitta akka
 - Beta zakazlar (superadmin): qaysi zakazlar beta tartibda ishlashini belgilaydi (keyinchalik faqat shablon belgisi).
 Taxlovchi tizimda hech narsa urmaydi (chevar kabi). Muzlatilgan /control/ sahifasi o'zgarmaydi.
 """
+import csv
 import functools
 import json
 from collections import OrderedDict, defaultdict
@@ -19,8 +20,8 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count, Q, Sum
-from django.http import JsonResponse
+from django.db.models import Count, Max, Q, Sum
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -29,9 +30,11 @@ from django.views.decorators.http import require_POST
 from accounts.models import User, Worker
 from production.control_views import control_box_lookup_api, control_submit_inspection_api
 from production.models import (Box, BoxQualityInspectionLog, Order, PackerScreen, PackingBatch, PackingScan,
-                               RepairReceipt, SecondSortBatch, _generate_qr_data_uri)
-from production.packing_services import (SENT_SCANS, beta_box_q, is_beta_box, paper_label, paper_status,
-                                         parse_packing_code, take_paper)
+                               RepairReceipt, SecondSortBatch, SecondSortDispatchType, _generate_qr_data_uri)
+from production.packing_services import (SENT_SCANS, beta_box_q, cancel_second_sort_dispatch,
+                                         create_second_sort_dispatch, is_beta_box, paper_label, paper_status,
+                                         parse_packing_code, second_sort_balance_data, second_sort_monthly_report,
+                                         take_paper)
 from production.services import get_patok_code, parse_patok_number
 from production.taxlov_pay import credit_batch
 from production.sewing_statistics_views import natural_size_sort_key
@@ -287,11 +290,15 @@ def _upakovka_context(request):
                          .annotate(pieces=Sum('quantity'), scans=Count('id')).order_by('-pieces'))
     today_scans, today_total = _today_beta_scans(limit=15)
 
-    # 2-sort balansi — upakovka masteri qabul qilgan savatlar; kutilayotgan savatlar master tekshiruvida
-    accepted_logs = BoxQualityInspectionLog.objects.filter(
-        beta_box_q(), second_sort_batch__status=SecondSortBatch.Status.ACCEPTED
-    ).select_related(*BOX_RELATED)
-    second_sort = _group_by_order_article((log.box, log.second_sort_qty) for log in accepted_logs)
+    # 2-sort balansi — upakovka masteri qabul qilgan savatlar minus bekor qilinmagan jo'natmalar
+    balance2 = second_sort_balance_data()
+    dispatch_types = list(SecondSortDispatchType.objects.all().order_by('sort_order', 'id'))
+    active_dispatch_types = [t for t in dispatch_types if t.is_active]
+    ss_report = second_sort_monthly_report(
+        month_str=request.GET.get('month'),
+        dispatch_type_id=request.GET.get('dtype'),
+        query=request.GET.get('rq', ''),
+    )
     waiting_baskets = [_basket_view(b) for b in SecondSortBatch.objects.filter(status=SecondSortBatch.Status.SENT)
                        .select_related('counter').order_by('sent_at')]
     recent_baskets = list(SecondSortBatch.objects.filter(status__in=[SecondSortBatch.Status.ACCEPTED,
@@ -310,8 +317,13 @@ def _upakovka_context(request):
         'today_packers': today_packers,
         'today_scans': today_scans,
         'today_total': today_total,
-        'second_sort': second_sort,
-        'second_sort_total': sum(card['total'] for card in second_sort),
+        'second_sort': balance2['cards'],
+        'second_sort_total': balance2['total'],
+        'dispatch_types': dispatch_types,
+        'active_dispatch_types': active_dispatch_types,
+        'dispatch_color_choices': SecondSortDispatchType.Color.choices,
+        'ss_report': ss_report,
+        'upakovka_sec': request.GET.get('sec', '').strip(),
     }
 
 
@@ -792,3 +804,196 @@ def beta_toggle(request):
     state = "yoqildi" if order.packing_beta else "o'chirildi"
     messages.success(request, f"«{order.order_number}»: yangi qadoqlash tartibi {state}.")
     return redirect(_hub_url(tab='zakazlar', q=request.POST.get('q', ''), filter=request.POST.get('filter', '')))
+
+
+# ------------------------------------------------------------------ 2-Sort jo'natish, turlar va oylik hisobot
+
+def _csv_cell(value):
+    """Excel formulali in'yektsiyadan himoya qilish."""
+    text = '' if value is None else str(value)
+    if text and text[0] in ('=', '+', '-', '@'):
+        return "'" + text
+    return text
+
+
+@_role_required(User.Role.PACKING_MASTER)
+@require_POST
+def api_second_sort_dispatch(request):
+    """2-sort balansidan 1 ta razmer yoki bir nechta zakaz/modellarni yig'ib jo'natish."""
+    data = _json_body(request)
+    dispatch, error = create_second_sort_dispatch(
+        user=request.user,
+        dispatch_type_id=data.get('dispatch_type_id'),
+        raw_items=data.get('items'),
+        note=data.get('note', ''),
+    )
+    if error:
+        return JsonResponse({'status': 'ERROR', 'message': error}, status=400)
+    total_qty = dispatch.items.aggregate(s=Sum('quantity'))['s'] or 0
+    messages.success(
+        request,
+        f"{dispatch.code}: {total_qty} dona 2-sort ({dispatch.dispatch_type.name}) jo'natildi.",
+    )
+    return JsonResponse({
+        'status': 'OK',
+        'code': dispatch.code,
+        'total': total_qty,
+        'redirect_url': _hub_url(tab='upakovka', sec='balance2'),
+    })
+
+
+@_role_required(User.Role.PACKING_MASTER)
+@require_POST
+def second_sort_dispatch_cancel(request):
+    """Xato qilingan 2-sort jo'natmasini bekor qilish — donalar balansga qaytadi."""
+    dispatch, error = cancel_second_sort_dispatch(
+        dispatch_id=request.POST.get('dispatch_id'),
+        user=request.user,
+        reason=request.POST.get('reason', ''),
+    )
+    if error:
+        messages.error(request, error)
+    else:
+        total_qty = dispatch.items.aggregate(s=Sum('quantity'))['s'] or 0
+        messages.success(request, f"{dispatch.code} ({total_qty} dona) bekor qilindi — balansga qaytdi.")
+    return redirect(_hub_url(
+        tab='upakovka',
+        sec='balance2',
+        month=request.POST.get('month', ''),
+        dtype=request.POST.get('dtype', ''),
+        rq=request.POST.get('rq', ''),
+    ))
+
+
+@_role_required(User.Role.PACKING_MASTER)
+@require_POST
+def second_sort_type_create(request):
+    """2-sort jo'natish uchun yangi tur/sabab qo'shish (masalan, keyinchalik boshqa turlar chiqqanda)."""
+    name = (request.POST.get('name') or '').strip()
+    description = (request.POST.get('description') or '').strip()[:250]
+    color = (request.POST.get('color') or SecondSortDispatchType.Color.AMBER).strip()
+    if color not in SecondSortDispatchType.Color.values:
+        color = SecondSortDispatchType.Color.AMBER
+    back = redirect(_hub_url(tab='upakovka', sec='balance2'))
+    if not name:
+        messages.error(request, "Jo'natish turi nomini kiriting.")
+        return back
+    if len(name) > 100:
+        messages.error(request, "Tur nomi 100 belgidan oshmasligi kerak.")
+        return back
+    if SecondSortDispatchType.objects.filter(name__iexact=name).exists():
+        messages.error(request, f"«{name}» nomli tur allaqachon mavjud.")
+        return back
+    next_order = (SecondSortDispatchType.objects.aggregate(m=Max('sort_order'))['m'] or 0) + 1
+    dtype = SecondSortDispatchType.objects.create(
+        name=name,
+        description=description,
+        color=color,
+        sort_order=next_order,
+        created_by=request.user,
+    )
+    messages.success(request, f"Yangi tur qo'shildi: «{dtype.name}».")
+    return back
+
+
+@_role_required(User.Role.PACKING_MASTER)
+@require_POST
+def second_sort_type_update(request):
+    """2-sort jo'natish turini tahrirlash yoki faolligini o'zgartirish."""
+    dtype = get_object_or_404(SecondSortDispatchType, id=_int_or_none(request.POST.get('type_id')))
+    action = (request.POST.get('action') or 'edit').strip()
+    back = redirect(_hub_url(tab='upakovka', sec='balance2'))
+
+    if action == 'toggle':
+        if dtype.is_active and SecondSortDispatchType.objects.filter(is_active=True).exclude(pk=dtype.pk).count() == 0:
+            messages.error(request, "Kamida bitta faol jo'natish turi qolishi shart.")
+            return back
+        dtype.is_active = not dtype.is_active
+        dtype.save(update_fields=['is_active'])
+        messages.success(request, f"«{dtype.name}»: {'faollashtirildi' if dtype.is_active else 'nofaol qilindi'}.")
+        return back
+
+    name = (request.POST.get('name') or '').strip()
+    description = (request.POST.get('description') or '').strip()[:250]
+    color = (request.POST.get('color') or dtype.color).strip()
+    if not name:
+        messages.error(request, "Tur nomi bo'sh bo'lishi mumkin emas.")
+        return back
+    if SecondSortDispatchType.objects.filter(name__iexact=name).exclude(pk=dtype.pk).exists():
+        messages.error(request, f"«{name}» nomli boshqa tur allaqachon mavjud.")
+        return back
+    dtype.name = name[:100]
+    dtype.description = description
+    if color in SecondSortDispatchType.Color.values:
+        dtype.color = color
+    dtype.save(update_fields=['name', 'description', 'color'])
+    messages.success(request, f"«{dtype.name}» turi yangilandi.")
+    return back
+
+
+@_role_required(User.Role.PACKING, User.Role.PACKING_MASTER)
+def second_sort_report_csv(request):
+    """Tanlangan oy uchun 2-sort aylanma hisobotini Excel (UTF-8 BOM CSV) ga yuklab olish."""
+    report = second_sort_monthly_report(
+        month_str=request.GET.get('month'),
+        dispatch_type_id=request.GET.get('dtype'),
+        query=request.GET.get('rq', ''),
+    )
+    month = report['selected_month']
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="2_sort_hisobot_{month}.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+
+    type_headers = [t.name for t in report['report_types']]
+    writer.writerow([
+        "Zakaz", "Mijoz", "Model (Artikul)", "Model nomi",
+        "Oy boshiga", "Oyda qabul", *type_headers, "Jami chiqim", "Oy oxiriga (Qoldiq)", "Qoldiq razmerlari",
+    ])
+    for r in report['rows']:
+        sizes_text = ", ".join(f"{sz['size']}:{sz['qty']}" for sz in r['closing_sizes'])
+        writer.writerow([
+            _csv_cell(r['order'].order_number),
+            _csv_cell(r['order'].client_name),
+            _csv_cell(r['article'].code if r['article'] else '—'),
+            _csv_cell(r['article'].name if r['article'] else ''),
+            r['opening'],
+            r['month_in'],
+            *r['by_type_list'],
+            r['month_out'],
+            r['closing'],
+            _csv_cell(sizes_text),
+        ])
+    writer.writerow([
+        "JAMI", "", "", "",
+        report['totals']['opening'],
+        report['totals']['month_in'],
+        *report['totals']['by_type_list'],
+        report['totals']['month_out'],
+        report['totals']['closing'],
+        "",
+    ])
+
+    writer.writerow([])
+    writer.writerow(["JO'NATMALAR RO'YXATI", month])
+    writer.writerow(["Kod", "Vaqt", "Turi", "Holat", "Zakaz", "Model", "Razmer", "Soni", "Izoh", "Jo'natgan"])
+    for entry in report['dispatches']:
+        d = entry['dispatch']
+        dt_str = timezone.localtime(d.dispatched_at).strftime('%d.%m.%Y %H:%M')
+        status_str = "Bekor qilingan" if d.is_cancelled else "Jo'natilgan"
+        who = d.dispatched_by.get_full_name() or d.dispatched_by.username
+        for item in entry['items']:
+            writer.writerow([
+                _csv_cell(d.code),
+                dt_str,
+                _csv_cell(d.dispatch_type.name),
+                status_str,
+                _csv_cell(item.order.order_number),
+                _csv_cell(item.article.code if item.article else '—'),
+                _csv_cell(item.razmer or '—'),
+                item.quantity,
+                _csv_cell(d.note),
+                _csv_cell(who),
+            ])
+    return response
+
