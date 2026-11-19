@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 19.11.2026
+### 🔹 [Commit: `8ef9fb2`] — 19.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/` yo'nalishi va Meto bo'limini minglab pastal uchun qayta ishlash
 * **Mavzu:** Tayyorlov bo'limi (`/meto-hub/yangi/` va konteynerlar) asosiy `/tayyorlov/` manziliga ko'chirildi; Meto bosqichi minglab pastallar uchun qidiruv/filtr/sahifalash, qabulni bekor qilish, jonli farq va izohlar bilan kengaytirildi.
 * **O'zgartirilgan fayllar:**
@@ -42,7 +42,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (`accounts.0025` va `production.0054` migratsiyalari qo'llanadi).
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout 8ef9fb2
   ```
 
 ---
