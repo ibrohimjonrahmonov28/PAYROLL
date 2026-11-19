@@ -1,0 +1,74 @@
+{% extends 'meto_hub/base_meto_hub.html' %}
+
+{% block title %}{{ container.code }} — Konteynerlar{% endblock %}
+
+{% block content %}
+{% comment %}Konteyner kartochkasi va tarixi (production/meto_container_views.py::container_detail_view).{% endcomment %}
+<div class="max-w-4xl space-y-6">
+    <a href="{% url 'meto_hub_containers' %}" class="inline-flex items-center gap-1.5 text-sm font-bold text-slate-400 hover:text-white">
+        <i class="fa-solid fa-arrow-left text-xs"></i> Konteynerlar
+    </a>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-start justify-between gap-4">
+        <div class="space-y-2">
+            <p class="font-mono text-3xl font-black text-white">{{ container.code }}</p>
+            <div class="flex flex-wrap gap-2 text-xs font-bold">
+                <span class="px-2.5 py-1 rounded-lg {% if container.kind == 'SMALL' %}bg-purple-500/15 text-purple-300{% else %}bg-cyan-500/15 text-cyan-300{% endif %}">{{ container.get_kind_display }}</span>
+                <span class="px-2.5 py-1 rounded-lg {% if container.status == 'EMPTY' %}bg-emerald-500/15 text-emerald-300{% else %}bg-amber-500/15 text-amber-300{% endif %}">{{ state }}</span>
+                <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300">{{ container.get_branch_display }}</span>
+            </div>
+        </div>
+        <a href="{% url 'meto_hub_container_labels' %}?dan={{ container.number }}&gacha={{ container.number }}" target="_blank" rel="noopener"
+            class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-black">
+            <i class="fa-solid fa-print mr-1"></i>Yorliqni qayta chop etish
+        </a>
+    </div>
+
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <dt class="text-[11px] font-bold uppercase text-slate-400">Yaratilgan</dt>
+            <dd class="text-sm text-white mt-1">{{ container.created_at|date:"d.m.Y H:i" }}{% if container.created_by %}<br><span class="text-slate-400">{{ container.created_by.get_full_name|default:container.created_by.username }}</span>{% endif %}</dd>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <dt class="text-[11px] font-bold uppercase text-slate-400">Yorliq</dt>
+            <dd class="text-sm text-white mt-1">{% if container.print_count %}{{ container.print_count }} marta, oxirgisi {{ container.last_printed_at|date:"d.m.Y H:i" }}{% else %}<span class="text-rose-300 font-bold">Hali chiqmagan</span>{% endif %}</dd>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <dt class="text-[11px] font-bold uppercase text-slate-400">Quti</dt>
+            {% if container.box %}{% with box=container.box %}
+            <dd class="text-sm text-white mt-1"><span class="font-mono font-black">{{ box.box_code }}</span>{% if box.status == 'CANCELLED' %} <span class="text-rose-300 font-bold">(bekor qilingan)</span>{% endif %}<br>
+                <span class="text-slate-400">{% if box.cutting_batch_item %}Pastal {{ box.cutting_batch_item.batch.pastal_code|default:box.cutting_batch_item.batch.name }} · {% endif %}{{ box.order.order_number|default:"" }} · {{ box.razmer|default:"—" }} · {{ box.quantity }} dona</span><br>
+                <span class="text-slate-500 text-xs">biriktirilgan {{ container.linked_at|date:"d.m.Y H:i" }}</span></dd>
+            {% endwith %}{% elif container.repair_receipt %}
+            <dd class="text-sm text-white mt-1">Ta'mir: <span class="font-mono font-black">{{ container.repair_receipt.box.box_code }}</span> · {{ container.repair_receipt.cycle }}-ta'mir cheki</dd>
+            {% else %}
+            <dd class="text-sm text-slate-400 mt-1">Biriktirilmagan</dd>
+            {% endif %}
+        </div>
+    </dl>
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <h2 class="text-sm font-black uppercase text-white">Tarix</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400 border-b border-slate-800">
+                    <tr><th class="text-left py-2 pr-3">Vaqt</th><th class="text-left py-2 pr-3">Harakat</th><th class="text-left py-2 pr-3">Filial</th><th class="text-left py-2 pr-3">Kim</th><th class="text-left py-2">Izoh</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for e in events %}
+                    <tr>
+                        <td class="py-2 pr-3 text-slate-300 whitespace-nowrap">{{ e.created_at|date:"d.m.Y H:i" }}</td>
+                        <td class="py-2 pr-3 font-bold text-white">{{ e.get_action_display }}</td>
+                        <td class="py-2 pr-3 text-slate-300">{% if e.branch == 'UYCHI' %}Uychi{% elif e.branch == 'HQ' %}Kosonsoy{% else %}—{% endif %}</td>
+                        <td class="py-2 pr-3 text-slate-300">{% if e.user %}{{ e.user.get_full_name|default:e.user.username }}{% else %}—{% endif %}</td>
+                        <td class="py-2 text-slate-400">{% if e.box %}<span class="font-mono text-slate-300">{{ e.box.box_code }}</span> {% endif %}{{ e.note|default:"" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="py-6 text-center text-slate-500">Tarix bo'sh.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

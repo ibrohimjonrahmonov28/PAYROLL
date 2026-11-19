@@ -194,6 +194,7 @@ class MasterTerminalAccessRestrictionMiddleware:
                     '/screens/',
                     '/screens',
                     '/gifts/',
+                    '/meto-hub/yangi/',   # yangi meto oqimi: Uychi tabi (2026-11-19)
                     '/terminal/',
                     '/terminal',
                     '/master-tablet/',
@@ -298,6 +299,27 @@ class MasterTerminalAccessRestrictionMiddleware:
                     if '/api/' in path or request.content_type == 'application/json':
                         return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
                     return redirect('packing:hub')
+
+            # Yangi meto oqimi (2026-11-19): tasnif masteri, meto sklad va Uychi sklad faqat /meto-hub/yangi/ ga
+            # (skladlar konteynerlar sahifasiga ham; qaysi tab — view'da tekshiriladi)
+            elif getattr(request.user, 'role', None) in (User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD):
+                path = request.path_info
+                allowed_prefixes = (
+                    '/meto-hub/yangi/',
+                    '/login/',
+                    '/logout/',
+                    '/accounts/login/',
+                    '/accounts/logout/',
+                    '/admin/logout/',
+                    '/static/',
+                    '/media/',
+                )
+                if request.user.role != User.Role.TASNIF:
+                    allowed_prefixes += ('/meto-hub/konteynerlar/',)
+                if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+                    if '/api/' in path or request.content_type == 'application/json':
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
+                    return redirect('meto_hub_flow')
 
             elif getattr(request.user, 'role', None) == User.Role.CUTTER:
                 path = request.path_info

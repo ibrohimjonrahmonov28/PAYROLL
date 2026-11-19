@@ -1,0 +1,161 @@
+{% extends 'meto_hub/base_meto_hub.html' %}
+
+{% block title %}Konteynerlar — Meto Markazi{% endblock %}
+
+{% block content %}
+{% comment %}
+Meto Markazi → Konteynerlar (production/meto_container_views.py::containers_view): yangi yaratish, yorliq chop etish,
+kuzatish. Yangi meto oqimining 1-bosqichi (egasi talabi 2026-11-19); mavjud Meto Markazi oqimiga tegmaydi.
+{% endcomment %}
+<div class="space-y-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2.5">
+                <i class="fa-solid fa-box text-amber-400"></i> Konteynerlar
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">Har konteynerga doimiy QR yorliq (KONT-000123). Keyingi bosqichda stikerli quti bilan bog'lanadi.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-3 sm:grid-cols-5 xl:grid-cols-9 gap-3">
+        {% for label, value, color in kpis %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <p class="text-[11px] font-bold uppercase text-slate-400">{{ label }}</p>
+            <p class="text-3xl font-black {{ color }} mt-1">{{ value }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if created_from %}
+    <div class="bg-amber-950/50 border border-amber-700/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <p class="font-black text-amber-200"><i class="fa-solid fa-circle-check mr-1.5"></i>Yangi konteynerlar: KONT-{{ created_from|stringformat:"06d" }} — KONT-{{ created_to|stringformat:"06d" }}</p>
+            <p class="text-xs text-amber-100/80 mt-0.5">Yorliqlarni chop etib, konteynerlarga yopishtiring (100×80 mm, Citizen CL-S703).</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% for chunk_from, chunk_to in print_chunks %}
+            <a href="{% url 'meto_hub_container_labels' %}?dan={{ chunk_from }}&gacha={{ chunk_to }}" target="_blank" rel="noopener"
+                class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-black">
+                <i class="fa-solid fa-print mr-1"></i>Yorliq {{ chunk_from }}–{{ chunk_to }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6 items-start">
+        <div class="space-y-6">
+            {% if can_create %}
+            <form method="POST" action="{% url 'meto_hub_container_create' %}" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                {% csrf_token %}
+                <h2 class="text-sm font-black uppercase text-white"><i class="fa-solid fa-plus text-amber-400 mr-1.5"></i>Yangi yaratish</h2>
+                <label class="block space-y-1.5">
+                    <span class="text-xs font-bold text-slate-400">Soni (1–{{ max_create }})</span>
+                    <input type="number" name="soni" id="container-count" min="1" max="{{ max_create }}" value="50" required
+                        class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-lg font-black focus:outline-none focus:border-amber-500">
+                </label>
+                <fieldset class="space-y-1.5">
+                    <legend class="text-xs font-bold text-slate-400">Turi</legend>
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for value, label in kinds %}
+                        <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-950 cursor-pointer text-sm font-bold text-slate-200 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/10">
+                            <input type="radio" name="tur" value="{{ value }}" {% if forloop.first %}checked{% endif %} class="accent-amber-500">
+                            {{ label }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+                <button class="w-full px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">Yaratish</button>
+                <p class="text-[11px] text-slate-500">ID lar oxirgi raqamdan davom etadi va hech qachon o'zgarmaydi.</p>
+            </form>
+            {% endif %}
+
+            <form method="GET" action="{% url 'meto_hub_container_labels' %}" target="_blank" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <h2 class="text-sm font-black uppercase text-white"><i class="fa-solid fa-print text-cyan-400 mr-1.5"></i>Yorliq chop etish</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="space-y-1.5">
+                        <span class="text-xs font-bold text-slate-400">Dan</span>
+                        <input name="dan" id="label-from" required placeholder="1 yoki KONT-000001"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    </label>
+                    <label class="space-y-1.5">
+                        <span class="text-xs font-bold text-slate-400">Gacha</span>
+                        <input name="gacha" id="label-to" placeholder="50"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    </label>
+                </div>
+                <button class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold">Chop etish (100×80 mm)</button>
+                <p class="text-[11px] text-slate-500">Bir martada ko'pi bilan {{ max_print }} ta. Yo'qolgan yorliqni o'sha ID bilan qayta chop eting.</p>
+            </form>
+        </div>
+
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 min-w-0">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-sm font-black uppercase text-white"><i class="fa-solid fa-magnifying-glass-location text-emerald-400 mr-1.5"></i>Kuzatish</h2>
+                <span class="text-xs text-slate-400">{{ page.paginator.count }} ta</span>
+            </div>
+            <form method="GET" class="flex flex-wrap gap-2">
+                <input name="q" id="container-search" value="{{ q }}" autofocus autocomplete="off" placeholder="KONT-000123 ni skaner qiling yoki raqam yozing"
+                    class="flex-1 min-w-[220px] px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500">
+                <select name="holat" id="filter-status" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
+                    <option value="">Holat: hammasi</option>
+                    {% for value, label in statuses %}<option value="{{ value }}" {% if filters.holat == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <select name="tur" id="filter-kind" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
+                    <option value="">Tur: hammasi</option>
+                    {% for value, label in kinds %}<option value="{{ value }}" {% if filters.tur == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <select name="filial" id="filter-branch" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
+                    <option value="">Filial: hammasi</option>
+                    <option value="HQ" {% if filters.filial == 'HQ' %}selected{% endif %}>Kosonsoy</option>
+                    <option value="UYCHI" {% if filters.filial == 'UYCHI' %}selected{% endif %}>Uychi</option>
+                </select>
+                <button class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold">Ko'rsatish</button>
+            </form>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="text-left py-2 pr-3">ID</th>
+                            <th class="text-left py-2 pr-3">Turi</th>
+                            <th class="text-left py-2 pr-3">Holati</th>
+                            <th class="text-left py-2 pr-3">Filial</th>
+                            <th class="text-left py-2 pr-3">Quti</th>
+                            <th class="text-left py-2 pr-3">Yorliq</th>
+                            <th class="text-left py-2">Yaratilgan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for c in page %}
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="py-2 pr-3"><a href="{% url 'meto_hub_container_detail' c.number %}" class="font-mono font-black text-white hover:text-amber-300">{{ c.code }}</a></td>
+                            <td class="py-2 pr-3"><span class="px-2 py-0.5 rounded-md text-[11px] font-bold {% if c.kind == 'SMALL' %}bg-purple-500/15 text-purple-300{% else %}bg-cyan-500/15 text-cyan-300{% endif %}">{{ c.get_kind_display }}</span></td>
+                            <td class="py-2 pr-3"><span class="px-2 py-0.5 rounded-md text-[11px] font-bold {% if c.status == 'EMPTY' %}bg-emerald-500/15 text-emerald-300{% elif c.status == 'IN_REPAIR' %}bg-purple-500/15 text-purple-300{% elif c.status == 'IN_TRANSIT' %}bg-sky-500/15 text-sky-300{% else %}bg-amber-500/15 text-amber-300{% endif %}">{{ c.get_status_display }}</span></td>
+                            <td class="py-2 pr-3 text-slate-300">{{ c.get_branch_display }}</td>
+                            <td class="py-2 pr-3 font-mono text-slate-300">{% if c.box %}{{ c.box.box_code }}{% elif c.repair_receipt %}{{ c.repair_receipt.box.box_code }} <span class="text-purple-300">· {{ c.repair_receipt.cycle }}-ta'mir</span>{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
+                            <td class="py-2 pr-3">{% if c.print_count %}<span class="text-slate-300">{{ c.print_count }} marta</span>{% else %}<span class="text-rose-300 font-bold">chiqmagan</span>{% endif %}</td>
+                            <td class="py-2 text-xs text-slate-400 whitespace-nowrap">{{ c.created_at|date:"d.m.Y H:i" }}{% if c.created_by %} · {{ c.created_by.get_full_name|default:c.created_by.username }}{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="py-8 text-center text-slate-500">Konteyner topilmadi. Yangi konteynerlarni chap tomondagi "Yangi yaratish" orqali yarating.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if page.has_other_pages %}
+            <div class="flex items-center justify-between gap-3 text-sm">
+                {% if page.has_previous %}
+                <a href="?page={{ page.previous_page_number }}&holat={{ filters.holat }}&tur={{ filters.tur }}&filial={{ filters.filial }}" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
+                {% else %}<span></span>{% endif %}
+                <span class="text-slate-400">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+                {% if page.has_next %}
+                <a href="?page={{ page.next_page_number }}&holat={{ filters.holat }}&tur={{ filters.tur }}&filial={{ filters.filial }}" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
+                {% else %}<span></span>{% endif %}
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% comment %}Stiker tabi: tasnif sonini qutilarga bo'lish (qutilar va stikerlar yaratiladi), chop etish (stiker bo'limi sahifasi),
+chop etilguncha tasnif sonini o'zgartirish.{% endcomment %}
+<div class="space-y-6">
+    <section class="space-y-3">
+        <h2 class="text-sm font-black uppercase text-white">Qutilarga bo'lish <span class="text-slate-400">({{ to_split|length }})</span></h2>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {% for c in to_split %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            {% include 'meto_hub/flow/_card_head.html' %}
+            <form method="POST" action="{% url 'meto_hub_flow_split' c.batch.id %}" class="space-y-2">{% csrf_token %}
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-slate-400"><tr><th class="text-left py-1">Razmer</th><th class="text-right">Tasnif soni</th><th class="text-right">Quti soni</th><th class="text-right">yoki sig'im</th></tr></thead>
+                    <tbody class="divide-y divide-slate-800">
+                    {% for s in c.sizes %}
+                    <tr><td class="py-1.5 font-bold text-white">{{ s.name }}</td><td class="text-right text-slate-200">{{ s.tasnif }}</td>
+                        <td class="text-right"><input name="boxes_{{ s.id }}" value="1" inputmode="numeric" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center"></td>
+                        <td class="text-right"><input name="cap_{{ s.id }}" placeholder="50" inputmode="numeric" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-center"></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Qutilarga bo'lish va stiker yaratish</button></div>
+            </form>
+            {% include 'meto_hub/flow/_tasnif_edit.html' %}
+        </div>
+        {% empty %}<p class="text-sm text-slate-500">Bo'linishi kerak bo'lgan pastal yo'q.</p>{% endfor %}
+        </div>
+    </section>
+    <section class="space-y-3">
+        <h2 class="text-sm font-black uppercase text-white">Chop etilishi kerak <span class="text-slate-400">({{ to_print|length }})</span></h2>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {% for c in to_print %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            {% include 'meto_hub/flow/_card_head.html' %}
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-sm text-slate-300">Qutilar: <b class="text-white">{{ c.boxes_count }}</b> · chop etilgan: <b class="{% if c.printed_count %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ c.printed_count }}</b></span>
+                <a href="{% url 'sticker_order_boxes' c.order.id %}?open_batch={{ c.batch.id }}" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm"><i class="fa-solid fa-print mr-1"></i>Stiker bo'limida chop etish</a>
+            </div>
+            {% if not c.printed_count %}{% include 'meto_hub/flow/_tasnif_edit.html' %}{% endif %}
+        </div>
+        {% empty %}<p class="text-sm text-slate-500">Chop etilmagan stiker yo'q.</p>{% endfor %}
+        </div>
+    </section>
+</div>

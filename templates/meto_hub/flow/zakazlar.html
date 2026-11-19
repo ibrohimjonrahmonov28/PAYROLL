@@ -1,0 +1,33 @@
+{% comment %}Beta zakazlar: zakazga yangi meto oqimini yoqish (shundan keyin kesilgan pastallar yangi oqimda) yoki o'chirish.{% endcomment %}
+<section class="space-y-3">
+    <form method="GET" class="flex gap-2">
+        <input type="hidden" name="tab" value="zakazlar">
+        <input name="q" value="{{ search }}" placeholder="Zakaz raqami yoki buyurtmachi" class="flex-1 max-w-md px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+        <button class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm font-bold text-slate-200">Qidirish</button>
+    </form>
+    <p class="text-xs text-slate-400">Belgi yoqilgandan keyin kesilgan pastallargina yangi oqimga tushadi; avval kesilganlari eski tartibda qoladi.</p>
+    <div class="overflow-x-auto rounded-2xl border border-slate-800">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-900 text-xs text-slate-400 uppercase"><tr>
+                <th class="text-left px-3 py-2">Zakaz</th><th class="text-left px-3 py-2">Buyurtmachi</th><th class="text-left px-3 py-2">Holati</th>
+                <th class="text-left px-3 py-2">Yangi meto oqimi</th><th class="px-3 py-2"></th></tr></thead>
+            <tbody class="divide-y divide-slate-800">
+            {% for o in orders %}
+            <tr class="bg-slate-950">
+                <td class="px-3 py-2 font-black text-white">{{ o.order_number }}</td>
+                <td class="px-3 py-2 text-slate-300">{{ o.client_name|default:o.customer|default:"—" }}</td>
+                <td class="px-3 py-2 text-slate-400">{{ o.get_status_display }}</td>
+                <td class="px-3 py-2">{% if o.meto_beta %}<span class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-xs font-black">BETA</span>
+                    <span class="text-xs text-slate-400">{{ o.meto_beta_since|date:"d.m.Y H:i" }} dan</span>{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
+                <td class="px-3 py-2 text-right">
+                    <form method="POST" action="{% url 'meto_hub_flow_beta_toggle' o.id %}">{% csrf_token %}
+                        <button onclick="return confirm('{% if o.meto_beta %}Yangi meto oqimi o\'chirilsinmi?{% else %}Yangi meto oqimi yoqilsinmi? Shundan keyin kesilgan pastallar yangi oqimga tushadi.{% endif %}');"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold {% if o.meto_beta %}bg-slate-800 border border-slate-700 text-rose-300{% else %}bg-amber-500 text-slate-950{% endif %}">{% if o.meto_beta %}O'chirish{% else %}Yoqish{% endif %}</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}<tr><td colspan="5" class="px-3 py-4 text-center text-slate-500">Zakaz topilmadi.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

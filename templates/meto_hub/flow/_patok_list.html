@@ -1,0 +1,24 @@
+{% comment %}Patokdagi pastallar (patok_rows): konteynerlar holati — "Patok oldida" / "Patok ichida" / "Ta'mirda" / "Bo'sh".{% endcomment %}
+<section class="space-y-3">
+    <h2 class="text-sm font-black uppercase text-white">Patokda <span class="text-slate-400">({{ patok_rows|length }})</span></h2>
+    {% if patok_rows %}
+    <div class="overflow-x-auto rounded-2xl border border-slate-800">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-900 text-xs text-slate-400 uppercase"><tr>
+                <th class="text-left px-3 py-2">Pastal</th><th class="text-left px-3 py-2">Zakaz / artikul</th><th class="text-left px-3 py-2">Patok</th>
+                <th class="text-left px-3 py-2">Berilgan</th><th class="text-left px-3 py-2">Konteynerlar</th></tr></thead>
+            <tbody class="divide-y divide-slate-800">
+            {% for c in patok_rows %}
+            <tr class="bg-slate-950">
+                <td class="px-3 py-2 font-black text-white">{{ c.batch.pastal_code|default:c.batch.name }}</td>
+                <td class="px-3 py-2 text-slate-300">{{ c.order.order_number }} · {{ c.article.code|default:"—" }}</td>
+                <td class="px-3 py-2 font-bold text-amber-300">{{ c.patok_code }}{% if c.batch.dispatch_status == 'DISPATCHED' %} <span class="text-[11px] text-slate-400">(planshetda qabul kutilmoqda)</span>{% endif %}</td>
+                <td class="px-3 py-2 text-slate-400">{{ c.flow.patok_given_at|date:"d.m H:i" }}</td>
+                <td class="px-3 py-2">{% for state, n in c.container_states %}<span class="inline-block mr-1 mb-1 px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ n }}</b> {{ state }}</span>{% empty %}<span class="text-slate-500">—</span>{% endfor %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<p class="text-sm text-slate-500">Patokda pastal yo'q.</p>{% endif %}
+</section>

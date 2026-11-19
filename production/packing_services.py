@@ -179,6 +179,8 @@ def take_paper(raw_code, worker, terminal_user, batch=None, screen_number=None):
         scan = PackingScan.objects.create(box=box, source=source, repair_receipt=receipt, worker=worker,
                                           quantity=available, terminal_user=terminal_user, batch=batch,
                                           screen_number=scan_screen)
+        from production.meto_flow import release_for_scan   # yangi meto oqimi: qog'oz urilsa konteyner bo'shaydi
+        release_for_scan(box, source, receipt, terminal_user)
     return scan, None
 
 

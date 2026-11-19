@@ -21,6 +21,8 @@ def login_view(request):
             return redirect('managers_new:order_list')
         if getattr(request.user, 'role', None) in (User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER):
             return redirect('packing:hub')
+        if getattr(request.user, 'role', None) in (User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD):
+            return redirect('meto_hub_flow')
         if getattr(request.user, 'role', None) == User.Role.BRANCH_ADMIN:
             return redirect('superadmin_payroll')
         if getattr(request.user, 'role', None) == User.Role.PLAN:
@@ -107,6 +109,10 @@ def login_view(request):
                     return redirect('managers_new:order_list')
                 if user.role in (User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER):
                     return redirect('packing:hub')
+                if user.role in (User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD):
+                    if next_url and next_url.startswith('/meto-hub/'):
+                        return redirect(next_url)
+                    return redirect('meto_hub_flow')
 
                 if next_url and next_url.startswith('/'):
                     return redirect(next_url)

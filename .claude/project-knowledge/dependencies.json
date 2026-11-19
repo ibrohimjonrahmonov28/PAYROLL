@@ -64,7 +64,9 @@
    "manage.py",
    "production/admin.py",
    "production/apps.py",
+   "production/container_services.py",
    "production/control_urls.py",
+   "production/control_v2_views.py",
    "production/control_views.py",
    "production/cutting_urls.py",
    "production/cutting_views.py",
@@ -88,6 +90,9 @@
    "production/manager_urls.py",
    "production/manager_views.py",
    "production/master_views.py",
+   "production/meto_container_views.py",
+   "production/meto_flow.py",
+   "production/meto_flow_views.py",
    "production/meto_hub_urls.py",
    "production/meto_hub_views.py",
    "production/meto_urls.py",
@@ -119,6 +124,8 @@
    "production/test_gifts.py",
    "production/test_managers_new.py",
    "production/test_master_statistics.py",
+   "production/test_meto_containers.py",
+   "production/test_meto_flow.py",
    "production/test_norma_canvas.py",
    "production/test_packing_beta.py",
    "production/test_passport_bot.py",
@@ -302,9 +309,22 @@
     "production.models"
    ]
   },
+  "production.container_services": {
+   "imports": [
+    "production.models"
+   ]
+  },
   "production.control_urls": {
    "imports": [
+    "production.control_v2_views",
     "production.control_views"
+   ]
+  },
+  "production.control_v2_views": {
+   "imports": [
+    "production",
+    "production.meto_flow",
+    "production.models"
    ]
   },
   "production.control_views": {
@@ -469,8 +489,38 @@
     "production.passport_bot_service"
    ]
   },
+  "production.meto_container_views": {
+   "imports": [
+    "accounts.models",
+    "production.container_services",
+    "production.meto_flow",
+    "production.meto_hub_views",
+    "production.models"
+   ]
+  },
+  "production.meto_flow": {
+   "imports": [
+    "accounts.models",
+    "production.container_services",
+    "production.models",
+    "production.services"
+   ],
+   "lazy": [
+    "production.models"
+   ]
+  },
+  "production.meto_flow_views": {
+   "imports": [
+    "production",
+    "production.meto_flow",
+    "production.models",
+    "production.services"
+   ]
+  },
   "production.meto_hub_urls": {
    "imports": [
+    "production.meto_container_views",
+    "production.meto_flow_views",
     "production.meto_hub_views"
    ]
   },
@@ -528,6 +578,9 @@
    "imports": [
     "production.models",
     "production.sewing_statistics_views"
+   ],
+   "lazy": [
+    "production.meto_flow"
    ]
   },
   "production.packing_urls": {
@@ -696,6 +749,25 @@
    "imports": [
     "accounts.models",
     "production.models"
+   ]
+  },
+  "production.test_meto_containers": {
+   "imports": [
+    "accounts.models",
+    "production.container_services",
+    "production.models"
+   ]
+  },
+  "production.test_meto_flow": {
+   "imports": [
+    "accounts.models",
+    "production",
+    "production.container_services",
+    "production.meto_flow",
+    "production.models"
+   ],
+   "lazy": [
+    "production.packing_services"
    ]
   },
   "production.test_norma_canvas": {
@@ -929,6 +1001,9 @@
    "accounts/worker_badges_print.html",
    "accounts/worker_list.html"
   ],
+  "production/control_v2_views.py": [
+   "control_v2/control_home.html"
+  ],
   "production/control_views.py": [
    "production/control_home.html"
   ],
@@ -955,6 +1030,15 @@
   "production/master_views.py": [
    "production/master_statistics.html",
    "production/master_tablet.html"
+  ],
+  "production/meto_container_views.py": [
+   "meto_hub/container_detail.html",
+   "meto_hub/container_labels_print.html",
+   "meto_hub/containers.html"
+  ],
+  "production/meto_flow_views.py": [
+   "meto_hub/flow.html",
+   "meto_hub/shipment_print.html"
   ],
   "production/meto_hub_views.py": [
    "meto_hub/dashboard.html",
@@ -1076,6 +1160,20 @@
     "screens:overview",
     "sticker_dashboard",
     "superadmin_dashboard"
+   ]
+  },
+  "templates/control_v2/control_home.html": {
+   "includes": [
+    "includes/theme_head_legacy.html"
+   ],
+   "url_names": [
+    "control:api_identify_operator",
+    "control:api_logout_operator",
+    "control:api_recent",
+    "control:v2_api_container",
+    "control:v2_api_lookup",
+    "control:v2_api_submit",
+    "root_logout"
    ]
   },
   "templates/cutting/base_cutting.html": {
@@ -1296,9 +1394,30 @@
    ],
    "url_names": [
     "meto_dashboard",
+    "meto_hub_containers",
     "meto_hub_dashboard",
+    "meto_hub_flow",
     "meto_hub_uychi",
     "root_logout"
+   ]
+  },
+  "templates/meto_hub/container_detail.html": {
+   "extends": [
+    "meto_hub/base_meto_hub.html"
+   ],
+   "url_names": [
+    "meto_hub_container_labels",
+    "meto_hub_containers"
+   ]
+  },
+  "templates/meto_hub/containers.html": {
+   "extends": [
+    "meto_hub/base_meto_hub.html"
+   ],
+   "url_names": [
+    "meto_hub_container_create",
+    "meto_hub_container_detail",
+    "meto_hub_container_labels"
    ]
   },
   "templates/meto_hub/dashboard.html": {
@@ -1315,6 +1434,113 @@
     "meto_order_detail",
     "production:pastal_passport",
     "sticker_order_boxes"
+   ]
+  },
+  "templates/meto_hub/flow.html": {
+   "extends": [
+    "meto_hub/base_meto_hub.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_api_check"
+   ]
+  },
+  "templates/meto_hub/flow/_branch_js.html": {
+   "url_names": [
+    "meto_hub_flow_api_give"
+   ]
+  },
+  "templates/meto_hub/flow/_incoming.html": {
+   "url_names": [
+    "meto_hub_flow_api_receive",
+    "meto_hub_flow_api_return"
+   ]
+  },
+  "templates/meto_hub/flow/_link_panel.html": {
+   "url_names": [
+    "meto_hub_flow_api_link",
+    "meto_hub_flow_api_resolve",
+    "meto_hub_flow_api_unlink"
+   ]
+  },
+  "templates/meto_hub/flow/_sklad_card.html": {
+   "includes": [
+    "meto_hub/flow/_card_head.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_sklad_receive"
+   ]
+  },
+  "templates/meto_hub/flow/_tasnif_edit.html": {
+   "url_names": [
+    "meto_hub_flow_tasnif_update"
+   ]
+  },
+  "templates/meto_hub/flow/meto.html": {
+   "includes": [
+    "meto_hub/flow/_card_head.html",
+    "meto_hub/flow/_card_head.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_meto_finish",
+    "meto_hub_flow_meto_take"
+   ]
+  },
+  "templates/meto_hub/flow/sklad.html": {
+   "includes": [
+    "meto_hub/flow/_link_panel.html",
+    "meto_hub/flow/_sklad_card.html",
+    "meto_hub/flow/_incoming.html",
+    "meto_hub/flow/_patok_list.html",
+    "meto_hub/flow/_branch_js.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_api_ship"
+   ]
+  },
+  "templates/meto_hub/flow/stiker.html": {
+   "includes": [
+    "meto_hub/flow/_card_head.html",
+    "meto_hub/flow/_tasnif_edit.html",
+    "meto_hub/flow/_card_head.html",
+    "meto_hub/flow/_tasnif_edit.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_split",
+    "sticker_order_boxes"
+   ]
+  },
+  "templates/meto_hub/flow/tasnif.html": {
+   "includes": [
+    "meto_hub/flow/_card_head.html",
+    "meto_hub/flow/_card_head.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_tasnif_finish",
+    "meto_hub_flow_tasnif_take"
+   ]
+  },
+  "templates/meto_hub/flow/uychi.html": {
+   "includes": [
+    "meto_hub/flow/_incoming.html",
+    "meto_hub/flow/_sklad_card.html",
+    "meto_hub/flow/_link_panel.html",
+    "meto_hub/flow/_patok_list.html",
+    "meto_hub/flow/_branch_js.html"
+   ]
+  },
+  "templates/meto_hub/flow/yukxat.html": {
+   "url_names": [
+    "meto_hub_shipment_print"
+   ]
+  },
+  "templates/meto_hub/flow/zakazlar.html": {
+   "url_names": [
+    "meto_hub_flow_beta_toggle"
+   ]
+  },
+  "templates/meto_hub/shipment_print.html": {
+   "url_names": [
+    "meto_hub_flow"
    ]
   },
   "templates/meto_hub/uychi_dashboard.html": {

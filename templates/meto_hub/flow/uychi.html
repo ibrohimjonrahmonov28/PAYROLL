@@ -1,0 +1,17 @@
+{% comment %}Uychi sklad: kelgan yukni konteynerlar bo'yicha tekshirib qabul (to'liq bo'lmasa — qaytarish), saqlash, o'z patoklariga
+berish (berish = qabul), patokdagi pastallar.{% endcomment %}
+<div class="space-y-6">
+    {% include 'meto_hub/flow/_incoming.html' with incoming_title="Kelayotgan yuk (Koson → Uychi)" %}
+
+    <section class="space-y-3">
+        <h2 class="text-sm font-black uppercase text-white">Uychi skladidagi pastallar <span class="text-slate-400">({{ cards|length }})</span></h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            {% for c in cards %}{% include 'meto_hub/flow/_sklad_card.html' with branch='UYCHI' %}
+            {% empty %}<p class="text-sm text-slate-500">Skladda pastal yo'q.</p>{% endfor %}
+        </div>
+    </section>
+
+    {% include 'meto_hub/flow/_link_panel.html' %}
+    {% include 'meto_hub/flow/_patok_list.html' %}
+</div>
+{% include 'meto_hub/flow/_branch_js.html' %}

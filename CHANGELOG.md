@@ -29,6 +29,41 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 19.11.2026
+* **Turi:** `feat(meto-hub)` — Yangi meto oqimi (beta): konteynerlar, meto → tasnif → stiker → sklad, patokka berish, Uychi yuk xati va qaytarish, OTK v2
+* **Mavzu:** Egasining 19.11.2026 dagi qarorlari. Fabrikadagi ~10 000 konteynerga doimiy QR yorliq (`KONT-000123`) beriladi. Har stikerli quti bitta konteynerga bog'lanadi: patokka berish, Uychiga yuklash va qabul qilishda pastalning hamma konteyneri skaner qilinadi (yashil / qizil). Bittasi yo'q bo'lsa pastal to'xtaydi. Oqim faqat beta zakazning belgi yoqilgandan keyin kesilgan pastallarida ishlaydi. Eski `/meto/`, eski Meto Markazi tablari, Telegram bot va muzlatilgan `/control/` sahifasi o'zgarmadi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py` + `0053_meto_flow.py`: `Container`, `ContainerEvent`, `PastalFlow`, `PastalFlowSize`, `Shipment`, `ShipmentPastal`, `Order.meto_beta` / `meto_beta_since`
+  - `accounts/models.py` + `0024_meto_flow_roles.py`: yangi rollar `TASNIF`, `METO_SKLAD`, `UYCHI_SKLAD`
+  - `production/meto_flow.py` (yangi): oqim mantiqi
+  - `production/meto_flow_views.py` (yangi), `production/meto_hub_urls.py`: `/meto-hub/yangi/`
+  - `templates/meto_hub/flow.html`, `templates/meto_hub/flow/*`, `templates/meto_hub/shipment_print.html` (yangi)
+  - `production/container_services.py`, `production/meto_container_views.py`, `templates/meto_hub/containers.html`, `container_detail.html`, `container_labels_print.html` (yangi): `/meto-hub/konteynerlar/`
+  - `production/control_v2_views.py`, `templates/control_v2/control_home.html` (yangi), `production/control_urls.py`: `/control/v2/`
+  - `production/packing_services.py`: sanoqchi qog'ozni urganda konteyner bo'shaydi
+  - `accounts/middleware.py`, `accounts/views.py`, `accounts/superadmin_views.py`, `templates/superadmin/users.html`, `templates/meto_hub/base_meto_hub.html`: rollar, kirish va menyu
+  - `production/test_meto_flow.py` (33 ta test), `production/test_meto_containers.py` (8 ta test), `CLAUDE.md`
+* **Kiritilgan funksiyalar va o'zgarishlar:**
+  1. **Beta zakazlar:** superadmin zakazga "yangi meto oqimi"ni yoqadi. Shundan keyin kesilgan pastallar yangi oqimga tushadi; avval kesilganlari eski tartibda qoladi.
+  2. **Meto:** meto masteri pastalni qabul qiladi ("meto bo'lmoqda") va razmer bo'yicha meto sonini yozadi. "Tugatish"dan keyin son qulflanadi.
+  3. **Tasnif** (yangi rol): real sonni beradi, pastal avtomatik Koson meto skladiga o'tadi.
+  4. **Stiker:** tasnif sonini qutilarga bo'ladi (quti soni yoki sig'im) va odatdagi stiker sahifasida chop etadi. Stiker chop etilguncha tasnif sonini o'zgartirish mumkin: bo'lingan qutilar bekor qilinadi, o'chirilmaydi, kodi o'zgarmaydi.
+  5. **Meto sklad** (yangi rol): real kg ni yozadi. Planshetda qutining istalgan stikerini, keyin bo'sh katta konteynerni uradi; bitta konteynerga bitta quti. Biriktirishni sababsiz bekor qilish mumkin (yo'qolgan QR — stiker uriladi).
+  6. **Konteyner tekshiruvi:** patokka berish, yuk xati va qabul oynasida har konteyner skaner qilinadi. Hammasi yashil bo'lmaguncha tasdiqlanmaydi; konteynersiz quti qizil turadi.
+  7. **Koson patogi:** pastal master planshetida qabul qilinadi (qabul o'zgarmadi). Master rad etsa pastal skladga qaytadi.
+  8. **Uychi:** yuk xati (`YX-000001`, mashina, haydovchi, A4 chop etish). Uychi skladi faqat to'liq pastalni qabul qiladi, aks holda "Qaytarish" orqali Kosonga qaytaradi. Kosondagi qabuldan keyin o'z patoklariga beradi (berish = qabul, eski Uychi tartibi kabi).
+  9. **Konteyner holatlari:** Bo'sh, Skladda, Yo'lda, Patokda ("Patok oldida" / "Patok ichida" — qutining birinchi stikeri urilganda), Ta'mirda. Har harakat tarixda (kim, qachon, qayerda) saqlanadi.
+  10. **OTK v2** (`/control/v2/`, `/control/` nusxasi): yangi oqim qutisi ta'mirga ketsa bo'sh kichik konteyner skaner qilinadi (chek odatdagidek chiqadi). Qayta ta'mirda o'sha konteyner qoladi. 1-sort bo'lmasa katta konteyner darhol bo'shaydi. Boshqa qutilar `/control/` bilan aynan bir xil ishlaydi.
+  11. **Bo'shash:** sanoqchi qog'ozni urganda (faqat qadoqlash beta zakazida): CONTROL — katta konteyner, TAMIRn — o'sha chekning kichik konteyneri.
+  12. **Rollar:** tasnif masteri, meto sklad va Uychi sklad faqat `/meto-hub/yangi/` ga kiradi (skladlar konteynerlar sahifasiga ham). Filial admini Uychi tabiga kiradi; superadmin hammasini ko'radi.
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiyalar `0053` va `accounts 0024` avtomatik qo'llanadi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `707c0df`] — 18.11.2026
 * **Turi:** `feat(beta)` — Qadoqlash markazida 2-sort balansidan jo'natish, dinamik turlar va oylik hisobot
 * **Mavzu:** `Upakovka` (`2-Sort Balans`) bo'limida qabul qilingan 2-sortdan chiqim qilish tizimi qo'shildi: 1 razmerni tezkor jo'natish (`⚡`) hamda har xil zakaz va modellarni bitta `JS-XXXXXX` yig'ma jo'natmasiga to'plab jo'natish; boshlang'ich 3 ta tur (`Sotuvga`, `Zakaz uchun`, `Qayta omborga`) va keyinchalik interfeysdan yangi turlar qo'shish/tahrirlash/nofaol qilish imkoniyati; xato jo'natmani bekor qilish; oy boshiga + qabul − turlar kesimida chiqim = oy oxirigi qoldiq shaklidagi oylik hisobot va Excel (`CSV`) eksport.

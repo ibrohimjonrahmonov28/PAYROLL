@@ -1,0 +1,35 @@
+{% comment %}Sklad va Uychi tablari uchun: patokka berish, yuklash, qabul va qaytarish (openCheck — flow.html).{% endcomment %}
+<template id="patok-select-tpl">
+    <label class="block space-y-1"><span class="text-xs font-bold text-slate-400">Qaysi patokka</span>
+        <select name="screen" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold">
+            <option value="">— patokni tanlang —</option>
+            {% for n, code in screens %}<option value="{{ n }}">{{ code }}</option>{% endfor %}
+        </select></label>
+</template>
+<script>
+    function givePatok(batchId, pastal) {
+        openCheck({
+            title: `Patokka berish · ${pastal}`, batchIds: [batchId],
+            formHtml: document.getElementById('patok-select-tpl').innerHTML,
+            submit: (scanned, form) => {
+                if (!form.screen) return Promise.resolve({ok: false, data: {message: 'Patokni tanlang.'}});
+                return postJSON(`{% url 'meto_hub_flow_api_give' %}`, {batch_id: batchId, screen: form.screen, scanned});
+            },
+        });
+    }
+
+    function receiveLine(url, batchId, title, partial) {
+        openCheck({
+            title: `Qabul · ${title}`, batchIds: [batchId], allowPartial: partial,
+            submit: (scanned) => postJSON(url, {scanned}),
+        });
+    }
+
+    async function returnLine(url, pastal) {
+        const note = prompt(`${pastal} Koson skladiga qaytarilsinmi? Sababi (ixtiyoriy):`, '');
+        if (note === null) return;
+        const r = await postJSON(url, {note});
+        alert(r.data.message || (r.ok ? 'Qaytarildi' : 'Xatolik'));
+        if (r.ok) window.location.reload();
+    }
+</script>

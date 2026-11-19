@@ -19,6 +19,7 @@ Customer → Order → OrderItem(Article) → OrderItemSize
                          │
 Cutting  (/cutting/)  CuttingBatch "pastal" (code P{MM}-{N}) → CuttingBatchItem ──auto──► Box(es)
 Meto     (/meto/, /meto-hub/)  numbering ranges on boxes; Waybill groups batches for transfer (DRAFT→IN_TRANSIT→RECEIVED/REJECTED)
+Meto v2  (/meto-hub/yangi/, beta orders)  PastalFlow meto→tasnif→sklad; Box 1:1 Container (KONT QR); Shipment Koson→Uychi with returns; OTK v2 /control/v2/ (meto_flow.py)
 Stickers (/stickers/)  print Ticket stickers (100x60 PDF, sticker_generator.py)
 Master tablet (/master-tablet/)  patok accepts/rejects pastals (CuttingBatch.dispatch_status, Box.is_received_by_patok)  (unverified: exact state machine)
 Terminal (/terminal/)  master scans worker QR, then ticket QRs → session list → finalize: atomic + select_for_update → Ticket SCANNED(worker, scanned_at, screen_number)

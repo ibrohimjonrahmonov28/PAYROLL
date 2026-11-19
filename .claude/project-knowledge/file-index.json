@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 914,
-   "sha256_16": "6330e39a0f36cfcd"
+   "lines": 958,
+   "sha256_16": "09c4541dcc4069d0"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 140,
-   "sha256_16": "d651f67d1bdda91e"
+   "lines": 175,
+   "sha256_16": "8173b2a64e0a4454"
   },
   "Dockerfile": {
    "module": "ops",
@@ -147,25 +147,25 @@
   },
   "accounts/middleware.py": {
    "module": "accounts.core",
-   "lines": 333,
-   "sha256_16": "63131e76857c6ec3",
+   "lines": 355,
+   "sha256_16": "e0ac6aefc7a77376",
    "symbols": [
     "MasterTerminalAccessRestrictionMiddleware:6"
    ]
   },
   "accounts/models.py": {
    "module": "accounts.core",
-   "lines": 534,
-   "sha256_16": "3dc5e5e47ef874f9",
+   "lines": 542,
+   "sha256_16": "ffe53317c14a12d0",
    "symbols": [
     "generate_unique_user_uid:11",
     "User:20",
-    "Worker:205",
-    "WorkerPayout:348",
-    "DailyWorkerClosing:375",
-    "MonthlyClosing:413",
-    "MasterPatokHistory:479",
-    "MasterAbsentDay:503"
+    "Worker:213",
+    "WorkerPayout:356",
+    "DailyWorkerClosing:383",
+    "MonthlyClosing:421",
+    "MasterPatokHistory:487",
+    "MasterAbsentDay:511"
    ]
   },
   "accounts/superadmin_urls.py": {
@@ -175,54 +175,54 @@
   },
   "accounts/superadmin_views.py": {
    "module": "accounts.superadmin",
-   "lines": 4397,
-   "sha256_16": "1055f6f47d7363ae",
+   "lines": 4399,
+   "sha256_16": "efe544d501e61f7e",
    "symbols": [
     "superadmin_required:28",
     "payroll_admin_required:43",
     "superadmin_dashboard:58",
     "superadmin_users:310",
-    "superadmin_user_badge:783",
-    "superadmin_users_print_badges:821",
-    "superadmin_users_download_badges_pdf:983",
-    "superadmin_payroll:1185",
-    "superadmin_worker_daily_breakdown:1431",
-    "superadmin_close_daily_now:1560",
-    "superadmin_payout_create:1586",
-    "superadmin_payroll_export_csv:1647",
-    "superadmin_send_telegram_report:1788",
-    "superadmin_download_daily_excel:1858",
-    "superadmin_download_monthly_excel:1888",
-    "get_or_create_operation_safely:1933",
-    "superadmin_pricing:1983",
-    "superadmin_orders_list:2585",
-    "superadmin_order_detail:2735",
-    "superadmin_order_edit:2784",
-    "superadmin_order_add_model:2814",
-    "superadmin_order_model_edit:2879",
-    "superadmin_order_model_delete:2908",
-    "superadmin_order_delete:2941",
-    "superadmin_order_model_update_operation:2959",
-    "superadmin_order_model_add_operation:2985",
-    "superadmin_order_model_delete_operation:3012",
-    "superadmin_worker_history:3025",
-    "api_worker_tickets_by_date:3226",
-    "superadmin_payroll_bulk_pay:3302",
-    "superadmin_start_month_freeze_timer:3390",
-    "superadmin_month_freeze_toggle:3426",
-    "superadmin_ticket_freeze_toggle:3480",
-    "superadmin_recalculate_unfrozen_tickets:3527",
-    "superadmin_update_worker_branch:3560",
-    "superadmin_defect_reasons:3595",
-    "superadmin_toggle_require_all_operations_scanned:3649",
-    "superadmin_defect_reason_create:3681",
-    "superadmin_defect_reason_edit:3723",
-    "superadmin_defect_reason_toggle:3767",
-    "superadmin_defect_reason_delete:3792",
-    "superadmin_defect_reason_seed_defaults:3808",
-    "_build_orders_balance_data:3921",
-    "superadmin_orders_balance:4193",
-    "superadmin_orders_balance_export_excel:4231"
+    "superadmin_user_badge:785",
+    "superadmin_users_print_badges:823",
+    "superadmin_users_download_badges_pdf:985",
+    "superadmin_payroll:1187",
+    "superadmin_worker_daily_breakdown:1433",
+    "superadmin_close_daily_now:1562",
+    "superadmin_payout_create:1588",
+    "superadmin_payroll_export_csv:1649",
+    "superadmin_send_telegram_report:1790",
+    "superadmin_download_daily_excel:1860",
+    "superadmin_download_monthly_excel:1890",
+    "get_or_create_operation_safely:1935",
+    "superadmin_pricing:1985",
+    "superadmin_orders_list:2587",
+    "superadmin_order_detail:2737",
+    "superadmin_order_edit:2786",
+    "superadmin_order_add_model:2816",
+    "superadmin_order_model_edit:2881",
+    "superadmin_order_model_delete:2910",
+    "superadmin_order_delete:2943",
+    "superadmin_order_model_update_operation:2961",
+    "superadmin_order_model_add_operation:2987",
+    "superadmin_order_model_delete_operation:3014",
+    "superadmin_worker_history:3027",
+    "api_worker_tickets_by_date:3228",
+    "superadmin_payroll_bulk_pay:3304",
+    "superadmin_start_month_freeze_timer:3392",
+    "superadmin_month_freeze_toggle:3428",
+    "superadmin_ticket_freeze_toggle:3482",
+    "superadmin_recalculate_unfrozen_tickets:3529",
+    "superadmin_update_worker_branch:3562",
+    "superadmin_defect_reasons:3597",
+    "superadmin_toggle_require_all_operations_scanned:3651",
+    "superadmin_defect_reason_create:3683",
+    "superadmin_defect_reason_edit:3725",
+    "superadmin_defect_reason_toggle:3769",
+    "superadmin_defect_reason_delete:3794",
+    "superadmin_defect_reason_seed_defaults:3810",
+    "_build_orders_balance_data:3923",
+    "superadmin_orders_balance:4195",
+    "superadmin_orders_balance_export_excel:4233"
    ]
   },
   "accounts/tests.py": {
@@ -255,13 +255,13 @@
   },
   "accounts/views.py": {
    "module": "accounts.core",
-   "lines": 170,
-   "sha256_16": "57724e58d8d8de75",
+   "lines": 176,
+   "sha256_16": "e7f28f4c97956df3",
    "symbols": [
     "login_view:7",
-    "logout_view:127",
-    "worker_list_view:136",
-    "worker_badges_print_view:167"
+    "logout_view:133",
+    "worker_list_view:142",
+    "worker_badges_print_view:173"
    ]
   },
   "android_control/app/build.gradle": {
@@ -503,10 +503,33 @@
     "ProductionConfig:5"
    ]
   },
+  "production/container_services.py": {
+   "module": "production.platform",
+   "lines": 68,
+   "sha256_16": "aa7a4a29b373a0e2",
+   "symbols": [
+    "parse_container_code:22",
+    "create_containers:28",
+    "mark_printed:46",
+    "container_summary:55"
+   ]
+  },
   "production/control_urls.py": {
    "module": "production.control",
-   "lines": 16,
-   "sha256_16": "61e9a52111faab57"
+   "lines": 21,
+   "sha256_16": "8c33ce06c4251a46"
+  },
+  "production/control_v2_views.py": {
+   "module": "production.control",
+   "lines": 123,
+   "sha256_16": "3965362627ef111e",
+   "symbols": [
+    "_open_receipt:24",
+    "control_v2_home_view:30",
+    "control_v2_lookup_api:52",
+    "control_v2_container_check_api:72",
+    "control_v2_submit_api:84"
+   ]
   },
   "production/control_views.py": {
    "module": "production.control",
@@ -834,10 +857,124 @@
     "api_toggle_master_absent_day:1491"
    ]
   },
+  "production/meto_container_views.py": {
+   "module": "production.meto",
+   "lines": 157,
+   "sha256_16": "70ee08cfe05649c9",
+   "symbols": [
+    "container_access_required:26",
+    "_number:43",
+    "_containers_url:51",
+    "containers_view:57",
+    "container_create_view:110",
+    "container_labels_view:126",
+    "container_detail_view:149"
+   ]
+  },
+  "production/meto_flow.py": {
+   "module": "production.meto",
+   "lines": 607,
+   "sha256_16": "532c7b174d439d68",
+   "symbols": [
+    "FlowError:45",
+    "can:49",
+    "user_name:54",
+    "v2_batches:60",
+    "is_v2_batch:66",
+    "is_v2_box:71",
+    "get_flow:76",
+    "ensure_flows:81",
+    "sync_rejected_flows:87",
+    "_items:100",
+    "_size:104",
+    "_counts:109",
+    "_require:122",
+    "take_meto:129",
+    "finish_meto:138",
+    "take_tasnif:153",
+    "finish_tasnif:162",
+    "_active_boxes:179",
+    "update_tasnif_counts:183",
+    "split_boxes:211",
+    "_positive:242",
+    "sklad_receive:247",
+    "resolve_box:272",
+    "find_container:294",
+    "_set_status:299",
+    "link_container:310",
+    "unlink:342",
+    "check_list:367",
+    "_unscanned:378",
+    "_verify:383",
+    "_require_ready:401",
+    "give_to_patok:412",
+    "_new_shipment:445",
+    "create_shipment:456",
+    "_close_if_done:481",
+    "receive_line:487",
+    "return_line:514",
+    "release:538",
+    "check_repair_container:544",
+    "link_repair_container:555",
+    "after_initial_inspection:563",
+    "after_repair_return:570",
+    "release_for_scan:588",
+    "container_state:601"
+   ]
+  },
+  "production/meto_flow_views.py": {
+   "module": "production.meto",
+   "lines": 444,
+   "sha256_16": "ed97a6896dad7abc",
+   "symbols": [
+    "_allowed_tabs:35",
+    "flow_access_required:47",
+    "_flow_url:62",
+    "_deny:67",
+    "_json:72",
+    "_allowed:79",
+    "_api:85",
+    "_card:105",
+    "_flows:135",
+    "_incoming:144",
+    "_patok_rows:151",
+    "_ctx_meto:165",
+    "_ctx_tasnif:170",
+    "_ctx_stiker:175",
+    "_ctx_sklad:181",
+    "_ctx_uychi:187",
+    "_ctx_yukxat:192",
+    "_ctx_zakazlar:200",
+    "flow_view:213",
+    "_form_action:225",
+    "_batch:244",
+    "_posted_counts:248",
+    "_name:252",
+    "meto_take:257",
+    "meto_finish:264",
+    "tasnif_take:271",
+    "tasnif_finish:278",
+    "tasnif_update:285",
+    "split:292",
+    "sklad_receive:305",
+    "beta_toggle:312",
+    "_require_branch:324",
+    "api_resolve:330",
+    "api_link:350",
+    "api_unlink:361",
+    "api_check:374",
+    "api_give:384",
+    "api_ship:397",
+    "_line:407",
+    "api_receive:417",
+    "api_return:427",
+    "shipment_print:433"
+   ]
+  },
   "production/meto_hub_urls.py": {
    "module": "production.meto",
-   "lines": 31,
-   "sha256_16": "61958c1ca892b232"
+   "lines": 62,
+   "sha256_16": "a422b31bdd9ecfb1"
   },
   "production/meto_hub_views.py": {
    "module": "production.meto",
@@ -881,8 +1018,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2297,
-   "sha256_16": "3ad655a4167a5e57",
+   "lines": 2484,
+   "sha256_16": "2a4dc199e52e3e25",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -894,39 +1031,45 @@
     "OperationGroupItem:393",
     "ArticleOperation:433",
     "Order:502",
-    "OrderItem:624",
-    "OrderItemSize:726",
-    "OrderItemFabric:793",
-    "OrderChangeLog:829",
-    "generate_unique_waybill_number:845",
-    "Waybill:859",
-    "CuttingBatch:961",
-    "CuttingBatchItem:1059",
-    "index_to_letters:1127",
-    "letters_to_index:1137",
-    "generate_unique_box_code:1145",
-    "generate_unique_stiker_code:1195",
-    "Box:1204",
-    "BoxQualityInspectionLog:1403",
-    "DefectReason:1454",
-    "ControlSetting:1539",
-    "Ticket:1574",
-    "DailyModelProgress:1758",
-    "DailyPatokProgress:1811",
-    "CancelledBatchLog:1874",
-    "PatokAward:1907",
-    "RepairReceipt:1972",
-    "PackingBatch:2009",
-    "PackerScreen:2035",
-    "PackingScan:2061",
-    "generate_basket_code:2102",
-    "SecondSortBatch:2111",
-    "ReceiptPrinter:2150",
-    "PrintJob:2173",
-    "generate_dispatch_code:2200",
-    "SecondSortDispatchType:2209",
-    "SecondSortDispatch:2240",
-    "SecondSortDispatchItem:2275"
+    "OrderItem:628",
+    "OrderItemSize:730",
+    "OrderItemFabric:797",
+    "OrderChangeLog:833",
+    "generate_unique_waybill_number:849",
+    "Waybill:863",
+    "CuttingBatch:965",
+    "CuttingBatchItem:1063",
+    "index_to_letters:1131",
+    "letters_to_index:1141",
+    "generate_unique_box_code:1149",
+    "generate_unique_stiker_code:1199",
+    "Box:1208",
+    "BoxQualityInspectionLog:1407",
+    "DefectReason:1458",
+    "ControlSetting:1543",
+    "Ticket:1578",
+    "DailyModelProgress:1762",
+    "DailyPatokProgress:1815",
+    "CancelledBatchLog:1878",
+    "PatokAward:1911",
+    "RepairReceipt:1976",
+    "PackingBatch:2013",
+    "PackerScreen:2039",
+    "PackingScan:2065",
+    "generate_basket_code:2106",
+    "SecondSortBatch:2115",
+    "ReceiptPrinter:2154",
+    "PrintJob:2177",
+    "generate_dispatch_code:2204",
+    "SecondSortDispatchType:2213",
+    "SecondSortDispatch:2244",
+    "SecondSortDispatchItem:2279",
+    "Container:2313",
+    "ContainerEvent:2354",
+    "PastalFlow:2387",
+    "PastalFlowSize:2426",
+    "Shipment:2438",
+    "ShipmentPastal:2465"
    ]
   },
   "production/norma_services.py": {
@@ -984,8 +1127,8 @@
   },
   "production/packing_services.py": {
    "module": "production.platform",
-   "lines": 731,
-   "sha256_16": "bd900eb50805ae03",
+   "lines": 733,
+   "sha256_16": "cf5b4cd5225a3ed1",
    "symbols": [
     "beta_group:28",
     "is_beta_box:38",
@@ -1001,21 +1144,21 @@
     "find_box:141",
     "paper_label:145",
     "take_paper:149",
-    "paper_status:185",
-    "_format_taxlov_difficulty:224",
-    "_format_taxlov_price:234",
-    "control_sticker_meta:250",
-    "normalize_second_sort_size:288",
-    "_article_image_url:293",
-    "_order_first_articles:302",
-    "_resolve_box_article:314",
-    "_second_sort_in_timestamp:329",
-    "_accepted_second_sort_logs:337",
-    "second_sort_balance_data:361",
-    "create_second_sort_dispatch:447",
-    "cancel_second_sort_dispatch:526",
-    "_month_window:546",
-    "second_sort_monthly_report:565"
+    "paper_status:187",
+    "_format_taxlov_difficulty:226",
+    "_format_taxlov_price:236",
+    "control_sticker_meta:252",
+    "normalize_second_sort_size:290",
+    "_article_image_url:295",
+    "_order_first_articles:304",
+    "_resolve_box_article:316",
+    "_second_sort_in_timestamp:331",
+    "_accepted_second_sort_logs:339",
+    "second_sort_balance_data:363",
+    "create_second_sort_dispatch:449",
+    "cancel_second_sort_dispatch:528",
+    "_month_window:548",
+    "second_sort_monthly_report:567"
    ]
   },
   "production/packing_urls.py": {
@@ -1361,6 +1504,28 @@
     "MasterStatisticsComprehensiveTest:14"
    ]
   },
+  "production/test_meto_containers.py": {
+   "module": "tests",
+   "lines": 95,
+   "sha256_16": "33561433e19fdd6c",
+   "symbols": [
+    "MetoContainerTest:13"
+   ]
+  },
+  "production/test_meto_flow.py": {
+   "module": "tests",
+   "lines": 550,
+   "sha256_16": "c06cb7b905bcf4ba",
+   "symbols": [
+    "MetoFlowBase:22",
+    "MetoFlowStepsTest:96",
+    "ContainerLinkTest:207",
+    "DispatchTest:269",
+    "UychiShipmentTest:334",
+    "OtkV2Test:394",
+    "FlowAccessTest:486"
+   ]
+  },
   "production/test_norma_canvas.py": {
    "module": "tests",
    "lines": 57,
@@ -1649,6 +1814,11 @@
    "lines": 281,
    "sha256_16": "317033daf6a3271e"
   },
+  "templates/control_v2/control_home.html": {
+   "module": "templates",
+   "lines": 2965,
+   "sha256_16": "762e11636669a69d"
+  },
   "templates/cutting/base_cutting.html": {
    "module": "templates",
    "lines": 163,
@@ -1776,13 +1946,108 @@
   },
   "templates/meto_hub/base_meto_hub.html": {
    "module": "templates",
-   "lines": 137,
-   "sha256_16": "81309e10b722590e"
+   "lines": 155,
+   "sha256_16": "b8d54ab320366ceb"
+  },
+  "templates/meto_hub/container_detail.html": {
+   "module": "templates",
+   "lines": 75,
+   "sha256_16": "b653fccd9a6ff46d"
+  },
+  "templates/meto_hub/container_labels_print.html": {
+   "module": "templates",
+   "lines": 64,
+   "sha256_16": "02266ea1c485f9bb"
+  },
+  "templates/meto_hub/containers.html": {
+   "module": "templates",
+   "lines": 162,
+   "sha256_16": "fce54cf37405bfcd"
   },
   "templates/meto_hub/dashboard.html": {
    "module": "templates",
    "lines": 672,
    "sha256_16": "cdc551ee70333281"
+  },
+  "templates/meto_hub/flow.html": {
+   "module": "templates",
+   "lines": 180,
+   "sha256_16": "20f7d43ba7985a0c"
+  },
+  "templates/meto_hub/flow/_branch_js.html": {
+   "module": "templates",
+   "lines": 36,
+   "sha256_16": "7ad8e25cf44d5970"
+  },
+  "templates/meto_hub/flow/_card_head.html": {
+   "module": "templates",
+   "lines": 11,
+   "sha256_16": "c020199e4d3453c0"
+  },
+  "templates/meto_hub/flow/_incoming.html": {
+   "module": "templates",
+   "lines": 22,
+   "sha256_16": "d9745351847be36d"
+  },
+  "templates/meto_hub/flow/_link_panel.html": {
+   "module": "templates",
+   "lines": 69,
+   "sha256_16": "0f41b80bd93f5a58"
+  },
+  "templates/meto_hub/flow/_patok_list.html": {
+   "module": "templates",
+   "lines": 25,
+   "sha256_16": "32b1bf9c731c9e6d"
+  },
+  "templates/meto_hub/flow/_sklad_card.html": {
+   "module": "templates",
+   "lines": 45,
+   "sha256_16": "42c190dc2323fe45"
+  },
+  "templates/meto_hub/flow/_tasnif_edit.html": {
+   "module": "templates",
+   "lines": 14,
+   "sha256_16": "91316eb30ae0c02a"
+  },
+  "templates/meto_hub/flow/meto.html": {
+   "module": "templates",
+   "lines": 35,
+   "sha256_16": "81ee5d459e371e4a"
+  },
+  "templates/meto_hub/flow/sklad.html": {
+   "module": "templates",
+   "lines": 46,
+   "sha256_16": "55a80acaa0e129d0"
+  },
+  "templates/meto_hub/flow/stiker.html": {
+   "module": "templates",
+   "lines": 44,
+   "sha256_16": "87eb1e050cec4023"
+  },
+  "templates/meto_hub/flow/tasnif.html": {
+   "module": "templates",
+   "lines": 34,
+   "sha256_16": "87c60714049144ea"
+  },
+  "templates/meto_hub/flow/uychi.html": {
+   "module": "templates",
+   "lines": 18,
+   "sha256_16": "b06b13bf4432a53d"
+  },
+  "templates/meto_hub/flow/yukxat.html": {
+   "module": "templates",
+   "lines": 24,
+   "sha256_16": "242070e69e0c890e"
+  },
+  "templates/meto_hub/flow/zakazlar.html": {
+   "module": "templates",
+   "lines": 34,
+   "sha256_16": "139061877f18f152"
+  },
+  "templates/meto_hub/shipment_print.html": {
+   "module": "templates",
+   "lines": 58,
+   "sha256_16": "89627635d34b2753"
   },
   "templates/meto_hub/uychi_dashboard.html": {
    "module": "templates",
@@ -2101,8 +2366,8 @@
   },
   "templates/superadmin/users.html": {
    "module": "templates",
-   "lines": 1673,
-   "sha256_16": "df927b38b2727ae6"
+   "lines": 1679,
+   "sha256_16": "a5292e9aa6968ea4"
   },
   "templates/superadmin/users_badges_batch_print.html": {
    "module": "templates",

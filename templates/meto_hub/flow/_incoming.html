@@ -1,0 +1,21 @@
+{% comment %}Kelayotgan yuk xati qatorlari (incoming): Uychi — tekshirib qabul / qaytarish; Koson — qaytarilgan pastalni qabul.{% endcomment %}
+<section class="space-y-3">
+    <h2 class="text-sm font-black uppercase text-white">{{ incoming_title }} <span class="text-slate-400">({{ incoming|length }})</span></h2>
+    {% for line in incoming %}
+    <div class="bg-slate-900 border border-sky-800/60 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+            <p class="text-[11px] text-slate-400">{{ line.shipment.number }} · {{ line.shipment.created_at|date:"d.m H:i" }}{% if line.shipment.vehicle_number %} · {{ line.shipment.vehicle_number }}{% endif %}{% if line.shipment.driver_name %} · {{ line.shipment.driver_name }}{% endif %}</p>
+            <p class="font-black text-white">Pastal {{ line.batch.pastal_code|default:line.batch.name }} <span class="text-xs font-normal text-slate-400">{{ line.batch.order_item.order.order_number }} · {{ line.batch.order_item.article.code|default:"" }}</span></p>
+            {% if line.note %}<p class="text-xs text-amber-300">{{ line.note }}</p>{% endif %}
+        </div>
+        <div class="flex gap-2">
+            {% if line.shipment.destination_branch == 'UYCHI' %}
+            <button type="button" onclick="returnLine('{% url 'meto_hub_flow_api_return' line.id %}', '{{ line.batch.pastal_code|default:line.batch.name|escapejs }}')"
+                class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-rose-300 font-bold text-sm">Qaytarish</button>
+            {% endif %}
+            <button type="button" onclick="receiveLine('{% url 'meto_hub_flow_api_receive' line.id %}', {{ line.batch_id }}, '{{ line.shipment.number|escapejs }} · {{ line.batch.pastal_code|default:line.batch.name|escapejs }}', {% if line.shipment.destination_branch == 'HQ' %}true{% else %}false{% endif %})"
+                class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-black text-sm">Tekshirib qabul qilish</button>
+        </div>
+    </div>
+    {% empty %}<p class="text-sm text-slate-500">Kelayotgan yuk yo'q.</p>{% endfor %}
+</section>

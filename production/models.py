@@ -545,6 +545,10 @@ class Order(models.Model):
     packing_beta = models.BooleanField(default=False, db_index=True, verbose_name="Yangi qadoqlash tartibi (beta)")
     # Beta faqat yoqilgan vaqtdan (egasi talabi 2026-11-16): bundan oldin OTK dan o'tgan qutilar eski tartibda qoladi
     packing_beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Beta yoqilgan vaqt")
+    # Yangi meto oqimi (beta, egasi talabi 2026-11-19): konteynerli meto → tasnif → sklad → patok / Uychi, belgi
+    # yoqilgandan keyin kesilgan pastallar uchun (production/meto_flow.py). Eski /meto/ va bot o'zgarmaydi.
+    meto_beta = models.BooleanField(default=False, db_index=True, verbose_name="Yangi meto oqimi (beta)")
+    meto_beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Meto beta yoqilgan vaqt")
 
     class Meta:
         verbose_name = "Buyurtma"
@@ -2294,3 +2298,186 @@ class SecondSortDispatchItem(models.Model):
         art_code = self.article.code if self.article else '—'
         return f"{self.order.order_number} · {art_code} ({self.razmer or '—'}): {self.quantity}"
 
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Yangi meto oqimi (egasi talabi 2026-11-19, production/meto_flow.py): konteynerlar — ko'p marta ishlatiladigan idishlar,
+# har biriga doimiy QR yorliq (KONT-000123, hech qachon o'zgarmaydi; yorliq yo'qolsa o'sha ID qayta chop etiladi).
+# Katta konteyner stikerli qutiga (Box), kichik (ta'mir) konteyner ta'mir chekiga 1:1 bog'lanadi. Pastal: meto → tasnif →
+# meto sklad (kg, biriktirish) → Koson patogi yoki Uychi yuk xati; har jo'natish/qabulda hamma konteyner skaner qilinadi.
+# ---------------------------------------------------------------------------------------------------------------------
+
+BRANCH_CHOICES = [('HQ', 'Kosonsoy (Bosh bino)'), ('UYCHI', 'Uychi')]
+
+
+class Container(models.Model):
+    class Kind(models.TextChoices):
+        BIG = 'BIG', 'Katta'
+        SMALL = 'SMALL', "Kichik (ta'mir)"
+
+    class Status(models.TextChoices):
+        EMPTY = 'EMPTY', "Bo'sh"
+        FILLED = 'FILLED', 'Skladda'
+        IN_TRANSIT = 'IN_TRANSIT', "Yo'lda"
+        AT_PATOK = 'AT_PATOK', 'Patokda'
+        IN_REPAIR = 'IN_REPAIR', "Ta'mirda"
+
+    number = models.PositiveIntegerField(unique=True, verbose_name="Raqami")
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.BIG, db_index=True, verbose_name="Turi")
+    branch = models.CharField(max_length=20, choices=BRANCH_CHOICES, default='HQ', db_index=True, verbose_name="Filial")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.EMPTY, db_index=True,
+                              verbose_name="Holati")
+    box = models.OneToOneField('Box', on_delete=models.SET_NULL, null=True, blank=True, related_name='container',
+                               verbose_name="Quti (katta konteyner)")
+    repair_receipt = models.OneToOneField('RepairReceipt', on_delete=models.SET_NULL, null=True, blank=True,
+                                          related_name='container', verbose_name="Ta'mir cheki (kichik konteyner)")
+    linked_at = models.DateTimeField(null=True, blank=True, verbose_name="Biriktirilgan")
+    print_count = models.PositiveIntegerField(default=0, verbose_name="Yorliq chiqarilgan")
+    last_printed_at = models.DateTimeField(null=True, blank=True, verbose_name="Oxirgi yorliq")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                                   verbose_name="Yaratgan")
+
+    class Meta:
+        verbose_name = "Konteyner"
+        verbose_name_plural = "Konteynerlar"
+        ordering = ['number']
+
+    @property
+    def code(self):
+        return f"KONT-{self.number:06d}"
+
+    def __str__(self):
+        return f"{self.code} ({self.get_kind_display()})"
+
+
+class ContainerEvent(models.Model):
+    """Konteyner tarixi — kim, qachon, qayerda (qaysi quti bilan)."""
+    class Action(models.TextChoices):
+        CREATED = 'CREATED', 'Yaratildi'
+        PRINTED = 'PRINTED', 'Yorliq chiqarildi'
+        LINKED = 'LINKED', 'Qutiga biriktirildi'
+        UNLINKED = 'UNLINKED', 'Biriktirish bekor qilindi'
+        DISPATCHED = 'DISPATCHED', 'Patokka berildi'
+        LOADED = 'LOADED', 'Yuk xatiga yuklandi'
+        RECEIVED = 'RECEIVED', 'Qabul qilindi'
+        RETURNED = 'RETURNED', 'Qaytarildi'
+        REPAIR = 'REPAIR', "Ta'mirga olindi"
+        RELEASED = 'RELEASED', "Bo'shadi"
+
+    container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name='events', verbose_name="Konteyner")
+    action = models.CharField(max_length=20, choices=Action.choices, verbose_name="Harakat")
+    branch = models.CharField(max_length=20, blank=True, verbose_name="Filial")
+    box = models.ForeignKey('Box', on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                            verbose_name="Quti")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                             verbose_name="Kim")
+    note = models.CharField(max_length=200, blank=True, verbose_name="Izoh")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Vaqt")
+
+    class Meta:
+        verbose_name = "Konteyner harakati"
+        verbose_name_plural = "Konteyner harakatlari"
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f"{self.container.code} · {self.get_action_display()}"
+
+
+class PastalFlow(models.Model):
+    """Yangi meto oqimidagi pastal (beta zakaz, belgi yoqilgandan keyin kesilgan): bosqich, kim/qachon, qaysi filialda."""
+    class Stage(models.TextChoices):
+        METO_WAIT = 'METO_WAIT', "Meto kutmoqda"
+        METO_WORK = 'METO_WORK', "Meto bo'lmoqda"
+        TASNIF_WAIT = 'TASNIF_WAIT', "Tasnif kutmoqda"
+        TASNIF_WORK = 'TASNIF_WORK', "Tasnif bo'lmoqda"
+        SKLAD = 'SKLAD', 'Skladda'
+        IN_TRANSIT = 'IN_TRANSIT', "Yo'lda (yuk xati)"
+        AT_PATOK = 'AT_PATOK', 'Patokka berildi'
+
+    batch = models.OneToOneField(CuttingBatch, on_delete=models.CASCADE, related_name='flow', verbose_name="Pastal")
+    stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.METO_WAIT, db_index=True,
+                             verbose_name="Bosqich")
+    branch = models.CharField(max_length=20, choices=BRANCH_CHOICES, default='HQ', db_index=True, verbose_name="Qayerda")
+    meto_taken_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    meto_taken_at = models.DateTimeField(null=True, blank=True)
+    meto_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    meto_done_at = models.DateTimeField(null=True, blank=True)
+    tasnif_taken_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    tasnif_taken_at = models.DateTimeField(null=True, blank=True)
+    tasnif_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    tasnif_done_at = models.DateTimeField(null=True, blank=True)
+    boxes_split_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    boxes_split_at = models.DateTimeField(null=True, blank=True)
+    sklad_received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    sklad_received_at = models.DateTimeField(null=True, blank=True)
+    patok_given_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    patok_given_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Pastal (yangi meto oqimi)"
+        verbose_name_plural = "Pastallar (yangi meto oqimi)"
+
+    def __str__(self):
+        return f"{self.batch.pastal_code or self.batch.name} · {self.get_stage_display()}"
+
+
+class PastalFlowSize(models.Model):
+    """Razmer bo'yicha sonlar: meto soni (tugatilgach qulflanadi) va tasnif soni (stiker chop etilguncha o'zgaradi)."""
+    item = models.OneToOneField(CuttingBatchItem, on_delete=models.CASCADE, related_name='flow_size',
+                                verbose_name="Razmer")
+    meto_qty = models.PositiveIntegerField(null=True, blank=True, verbose_name="Meto soni")
+    tasnif_qty = models.PositiveIntegerField(null=True, blank=True, verbose_name="Tasnif soni")
+
+    class Meta:
+        verbose_name = "Pastal razmeri (yangi meto oqimi)"
+        verbose_name_plural = "Pastal razmerlari (yangi meto oqimi)"
+
+
+class Shipment(models.Model):
+    """Yangi oqim yuk xati: Koson → Uychi yoki qaytarish (Uychi → Koson); har pastal alohida qabul / qaytariladi."""
+    class Status(models.TextChoices):
+        IN_TRANSIT = 'IN_TRANSIT', "Yo'lda"
+        CLOSED = 'CLOSED', 'Yopildi'
+
+    number = models.CharField(max_length=20, unique=True, verbose_name="Yuk xati raqami")
+    source_branch = models.CharField(max_length=20, choices=BRANCH_CHOICES, verbose_name="Jo'natuvchi")
+    destination_branch = models.CharField(max_length=20, choices=BRANCH_CHOICES, verbose_name="Qabul qiluvchi")
+    vehicle_number = models.CharField(max_length=50, blank=True, verbose_name="Mashina raqami")
+    driver_name = models.CharField(max_length=150, blank=True, verbose_name="Haydovchi")
+    driver_phone = models.CharField(max_length=50, blank=True, verbose_name="Haydovchi telefoni")
+    notes = models.TextField(blank=True, verbose_name="Izoh")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.IN_TRANSIT, db_index=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Yuk xati (yangi oqim)"
+        verbose_name_plural = "Yuk xatlari (yangi oqim)"
+        ordering = ['-id']
+
+    def __str__(self):
+        return f"{self.number} ({self.source_branch} → {self.destination_branch})"
+
+
+class ShipmentPastal(models.Model):
+    class Status(models.TextChoices):
+        IN_TRANSIT = 'IN_TRANSIT', "Yo'lda"
+        ACCEPTED = 'ACCEPTED', 'Qabul qilindi'
+        RETURNED = 'RETURNED', 'Qaytarildi'
+
+    shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='lines', verbose_name="Yuk xati")
+    batch = models.ForeignKey(CuttingBatch, on_delete=models.CASCADE, related_name='shipment_lines',
+                              verbose_name="Pastal")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.IN_TRANSIT, db_index=True)
+    resolved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=300, blank=True, verbose_name="Izoh")
+
+    class Meta:
+        verbose_name = "Yuk xatidagi pastal"
+        verbose_name_plural = "Yuk xatidagi pastallar"
+        unique_together = ('shipment', 'batch')
+        ordering = ['id']

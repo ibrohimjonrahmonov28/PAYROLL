@@ -1,0 +1,549 @@
+"""
+Yangi meto oqimi (beta, egasi talabi 2026-11-19): production/meto_flow.py, /meto-hub/yangi/ va OTK v2 (/control/v2/).
+meto → tasnif → stiker → sklad (kg, konteyner) → Koson patogi yoki Uychi yuk xati (qaytarish bilan) → OTK v2 → sanoqchi.
+"""
+import datetime
+import json
+from decimal import Decimal
+
+from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from accounts.models import User, Worker
+from production import meto_flow
+from production.container_services import create_containers
+from production.meto_flow import FlowError
+from production.models import (Article, ArticleOperation, Box, Container, ContainerEvent, CuttingBatch,
+                               CuttingBatchItem, Operation, Order, OrderItem, OrderItemSize, PastalFlow, RepairReceipt,
+                               Shipment, ShipmentPastal, Ticket)
+
+
+class MetoFlowBase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='mf_admin', password='x', role=User.Role.SUPER_ADMIN)
+        self.meto = User.objects.create_user(username='mf_meto', password='x', role=User.Role.METO)
+        self.tasnif = User.objects.create_user(username='mf_tasnif', password='x', role=User.Role.TASNIF)
+        self.sticker = User.objects.create_user(username='mf_stiker', password='x', role=User.Role.STICKER)
+        self.sklad = User.objects.create_user(username='mf_sklad', password='x', role=User.Role.METO_SKLAD)
+        self.uychi = User.objects.create_user(username='mf_uychi', password='x', role=User.Role.UYCHI_SKLAD,
+                                              branch=User.Branch.UYCHI)
+        self.otk = User.objects.create_user(username='patokk3', password='x', role=User.Role.CONTROL, assigned_screen=3)
+        self.article = Article.objects.create(code='ART-MF', name='Pijama')
+        for seq, name in enumerate(('YON CHOK', 'DAZMOL'), start=1):
+            operation = Operation.objects.create(name=name, code=name)
+            ArticleOperation.objects.create(article=self.article, operation=operation,
+                                            price_per_unit=Decimal('400'), sequence=seq)
+        self.order = Order.objects.create(order_number='ZAK-MF', article=self.article, total_quantity=200,
+                                          meto_beta=True, meto_beta_since=timezone.now() - datetime.timedelta(hours=1))
+        self.order_item = OrderItem.objects.create(order=self.order, article=self.article, quantity=200)
+        self.size_m = OrderItemSize.objects.create(order_item=self.order_item, size_name='M', planned_quantity=100)
+        self.size_l = OrderItemSize.objects.create(order_item=self.order_item, size_name='L', planned_quantity=100)
+        self.batch = self.cut('11-1')
+
+    # ------------------------------------------------------------------ yordamchilar
+
+    def cut(self, code, m=50, l=40, order_item=None):
+        order_item = order_item or self.order_item
+        batch = CuttingBatch.objects.create(order_item=order_item, pastal_code=code,
+                                            batch_number=CuttingBatch.objects.filter(order_item=order_item).count() + 1)
+        CuttingBatchItem.objects.create(batch=batch, order_item_size=self.size_m, quantity=m)
+        CuttingBatchItem.objects.create(batch=batch, order_item_size=self.size_l, quantity=l)
+        return batch
+
+    def items(self, batch=None):
+        return list((batch or self.batch).items.order_by('order_item_size__id', 'id'))
+
+    def counts(self, m, l, batch=None):
+        first, second = self.items(batch)
+        return {first.id: m, second.id: l}
+
+    def to_sklad(self, batch=None, meto=(49, 40), tasnif=(48, 40)):
+        batch = batch or self.batch
+        meto_flow.take_meto(batch, self.meto)
+        meto_flow.finish_meto(batch, self.counts(*meto, batch=batch), self.meto)
+        meto_flow.take_tasnif(batch, self.tasnif)
+        meto_flow.finish_tasnif(batch, self.counts(*tasnif, batch=batch), self.tasnif)
+        return meto_flow.get_flow(batch)
+
+    def boxes(self, batch=None):
+        return list(Box.objects.filter(cutting_batch_item__batch=batch or self.batch)
+                    .exclude(status=Box.Status.CANCELLED).order_by('box_number'))
+
+    def new_containers(self, count, kind='BIG'):
+        first, last = create_containers(count, kind, self.sklad)
+        return [Container.objects.get(number=n) for n in range(first, last + 1)]
+
+    def ready(self, batch=None, kg='12.5'):
+        """Skladda, bo'lingan, chop etilgan, kg yozilgan, hamma quti konteynerda -> konteyner kodlari."""
+        batch = batch or self.batch
+        self.to_sklad(batch)
+        meto_flow.split_boxes(batch, {}, self.sticker)
+        Box.objects.filter(cutting_batch_item__batch=batch).update(is_printed=True)
+        meto_flow.sklad_receive(batch, kg, self.sklad)
+        codes = []
+        boxes = self.boxes(batch)
+        for box, container in zip(boxes, self.new_containers(len(boxes))):
+            meto_flow.link_container(f"CONTROL:{box.box_code}", container.code, self.sklad)
+            codes.append(container.code)
+        return codes
+
+    def post_json(self, user, url, payload):
+        self.client.force_login(user)
+        return self.client.post(url, json.dumps(payload), content_type='application/json')
+
+
+class MetoFlowStepsTest(MetoFlowBase):
+    def test_only_pastals_cut_after_beta_flag_are_in_new_flow(self):
+        before = self.cut('11-0')
+        CuttingBatch.objects.filter(id=before.id).update(created_at=self.order.meto_beta_since - datetime.timedelta(minutes=5))
+        other_order = Order.objects.create(order_number='ZAK-OLD', article=self.article)
+        other_item = OrderItem.objects.create(order=other_order, article=self.article, quantity=10)
+        old_flow = CuttingBatch.objects.create(order_item=other_item, batch_number=1, pastal_code='11-9')
+
+        self.assertEqual(list(meto_flow.v2_batches()), [self.batch])
+        meto_flow.ensure_flows()
+        self.assertEqual(list(PastalFlow.objects.values_list('batch_id', flat=True)), [self.batch.id])
+        self.assertFalse(PastalFlow.objects.filter(batch__in=[before, old_flow]).exists())
+
+    def test_beta_toggle_sets_since_once(self):
+        order = Order.objects.create(order_number='ZAK-T', article=self.article)
+        self.client.force_login(self.admin)
+        url = reverse('meto_hub_flow_beta_toggle', args=[order.id])
+        self.client.post(url)
+        order.refresh_from_db()
+        since = order.meto_beta_since
+        self.assertTrue(order.meto_beta and since)
+        self.client.post(url)
+        self.client.post(url)
+        order.refresh_from_db()
+        self.assertEqual((order.meto_beta, order.meto_beta_since), (True, since))
+        self.client.force_login(self.meto)   # faqat superadmin / admin
+        self.client.post(url)
+        order.refresh_from_db()
+        self.assertTrue(order.meto_beta)
+
+    def test_meto_then_tasnif_through_pages(self):
+        flow_url = reverse('meto_hub_flow')
+        self.client.force_login(self.meto)
+        page = self.client.get(flow_url)
+        self.assertEqual(page.context['tab'], 'meto')
+        self.assertEqual([c['batch'].id for c in page.context['waiting']], [self.batch.id])
+        self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
+        first, second = self.items()
+        res = self.client.post(reverse('meto_hub_flow_meto_finish', args=[self.batch.id]), {f'qty_{first.id}': '49'},
+                               follow=True)
+        self.assertContains(res, 'L razmeri uchun sonni kiriting')   # bitta razmer bo'sh — saqlanmaydi
+        self.client.post(reverse('meto_hub_flow_meto_finish', args=[self.batch.id]),
+                         {f'qty_{first.id}': '49', f'qty_{second.id}': '40'})
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual((flow.stage, flow.meto_done_by), (PastalFlow.Stage.TASNIF_WAIT, self.meto))
+        self.assertEqual([i.flow_size.meto_qty for i in self.items()], [49, 40])
+
+        # meto soni qulflangan: qayta tugatib bo'lmaydi; tasnifni metochi qila olmaydi
+        with self.assertRaises(FlowError):
+            meto_flow.finish_meto(self.batch, self.counts(10, 10), self.meto)
+        self.client.post(reverse('meto_hub_flow_tasnif_take', args=[self.batch.id]))
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.TASNIF_WAIT)
+
+        self.client.force_login(self.tasnif)
+        self.assertEqual([key for key, _ in self.client.get(flow_url).context['tabs']], ['tasnif'])
+        self.client.post(reverse('meto_hub_flow_tasnif_take', args=[self.batch.id]))
+        self.client.post(reverse('meto_hub_flow_tasnif_finish', args=[self.batch.id]),
+                         {f'qty_{first.id}': '48', f'qty_{second.id}': '40'})
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual((flow.stage, flow.branch, flow.tasnif_done_by), (PastalFlow.Stage.SKLAD, 'HQ', self.tasnif))
+        self.assertEqual([(i.flow_size.meto_qty, i.flow_size.tasnif_qty) for i in self.items()], [(49, 48), (40, 40)])
+
+    def test_split_uses_tasnif_count(self):
+        self.to_sklad()
+        self.client.force_login(self.sticker)
+        first, second = self.items()
+        self.client.post(reverse('meto_hub_flow_split', args=[self.batch.id]),
+                         {f'boxes_{first.id}': '2', f'boxes_{second.id}': '1'})
+        self.assertEqual([(b.razmer, b.quantity) for b in self.boxes()], [('M', 24), ('M', 24), ('L', 40)])
+        first.refresh_from_db()
+        self.assertEqual((first.real_quantity, first.status), (48, CuttingBatchItem.Status.METO_CONFIRMED))
+        self.assertTrue(Ticket.objects.filter(box__in=self.boxes()).exists())
+        with self.assertRaises(FlowError):   # ikkinchi marta bo'linmaydi
+            meto_flow.split_boxes(self.batch, {}, self.sticker)
+
+    def test_split_needs_article_operations(self):
+        self.to_sklad()
+        ArticleOperation.objects.filter(article=self.article).delete()
+        with self.assertRaises(FlowError):
+            meto_flow.split_boxes(self.batch, {}, self.sticker)
+        self.assertFalse(self.boxes())
+
+    def test_tasnif_count_editable_until_stickers_printed(self):
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {}, self.sticker)
+        old = self.boxes()
+        meto_flow.update_tasnif_counts(self.batch, self.counts(45, 41), self.sticker)
+        for box in old:   # chop etilmagan qutilar bekor — kodi o'zgarmaydi, o'chirilmaydi
+            box.refresh_from_db()
+            self.assertEqual(box.status, Box.Status.CANCELLED)
+            self.assertFalse(box.tickets.exclude(status=Ticket.Status.CANCELLED).exists())
+        meto_flow.split_boxes(self.batch, {}, self.sticker)
+        self.assertEqual([b.quantity for b in self.boxes()], [45, 41])
+        self.assertTrue(set(b.box_code for b in self.boxes()).isdisjoint(b.box_code for b in old))
+
+        Box.objects.filter(id=self.boxes()[0].id).update(is_printed=True)
+        with self.assertRaises(FlowError):
+            meto_flow.update_tasnif_counts(self.batch, self.counts(40, 40), self.sticker)
+        self.assertEqual([i.flow_size.tasnif_qty for i in self.items()], [45, 41])
+
+    def test_sklad_receive_needs_valid_kg(self):
+        self.to_sklad()
+        for bad in ('', 'abc', '0', '-2'):
+            with self.assertRaises(FlowError):
+                meto_flow.sklad_receive(self.batch, bad, self.sklad)
+        meto_flow.sklad_receive(self.batch, '12,5', self.sklad)
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.actual_weight_kg, Decimal('12.5'))
+        self.assertEqual(meto_flow.get_flow(self.batch).sklad_received_by, self.sklad)
+
+
+class ContainerLinkTest(MetoFlowBase):
+    def setUp(self):
+        super().setUp()
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {}, self.sticker)
+        self.box_m, self.box_l = self.boxes()
+        self.c1, self.c2, self.c3 = self.new_containers(3)
+
+    def test_link_by_any_sticker_one_box_per_container(self):
+        ticket = self.box_l.tickets.first()
+        meto_flow.link_container(f"CONTROL:{self.box_m.box_code}", self.c1.code, self.sklad)
+        meto_flow.link_container(ticket.stiker_code, f"kont-{self.c2.number}", self.sklad)
+        self.c1.refresh_from_db()
+        self.assertEqual((self.c1.box, self.c1.status), (self.box_m, Container.Status.FILLED))
+        self.assertEqual(Container.objects.get(box=self.box_l), self.c2)
+        self.assertTrue(ContainerEvent.objects.filter(container=self.c1, action=ContainerEvent.Action.LINKED,
+                                                      box=self.box_m, user=self.sklad).exists())
+        with self.assertRaises(FlowError):   # quti allaqachon konteynerda
+            meto_flow.link_container(self.box_m.box_code, self.c3.code, self.sklad)
+        with self.assertRaises(FlowError):   # konteyner bo'sh emas
+            meto_flow.link_container(self.box_m.box_code, self.c2.code, self.sklad)
+
+    def test_link_refuses_wrong_container_or_box(self):
+        small = self.new_containers(1, 'SMALL')[0]
+        uychi = self.new_containers(1)[0]
+        Container.objects.filter(id=uychi.id).update(branch='UYCHI')
+        old_order = Order.objects.create(order_number='ZAK-OLD', article=self.article)
+        old_box = Box.objects.create(order=old_order, article=self.article, box_number=1, quantity=10, razmer='M')
+        for box_code, container_code in ((self.box_m.box_code, small.code), (self.box_m.box_code, uychi.code),
+                                         (self.box_m.box_code, 'KONT-999999'), (old_box.box_code, self.c1.code),
+                                         ('YOQ-123', self.c1.code)):
+            with self.assertRaises(FlowError, msg=(box_code, container_code)):
+                meto_flow.link_container(box_code, container_code, self.sklad)
+        self.assertFalse(Container.objects.filter(box__isnull=False).exists())
+
+    def test_lost_label_unlink_by_sticker_then_relink(self):
+        meto_flow.link_container(self.box_m.box_code, self.c1.code, self.sklad)
+        meto_flow.unlink(f"CONTROL:{self.box_m.box_code}", self.sklad)   # konteyner QR yo'qolgan — stiker uriladi
+        self.c1.refresh_from_db()
+        self.assertEqual((self.c1.box, self.c1.status), (None, Container.Status.EMPTY))
+        self.assertTrue(ContainerEvent.objects.filter(container=self.c1, action=ContainerEvent.Action.UNLINKED).exists())
+        meto_flow.link_container(self.box_m.box_code, self.c2.code, self.sklad)
+        self.assertEqual(Container.objects.get(box=self.box_m), self.c2)
+
+    def test_scanner_api_two_steps(self):
+        self.client.force_login(self.sklad)
+        resolved = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': f"CONTROL:{self.box_m.box_code}"}).json()
+        self.assertEqual((resolved['kind'], resolved['box'], resolved['container']), ('box', self.box_m.box_code, None))
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {'box': self.box_m.box_code, 'container': self.c1.code})
+        self.assertEqual(res.json()['status'], 'OK')
+        resolved = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': self.c1.code}).json()
+        self.assertEqual((resolved['kind'], resolved['box'], resolved['state']), ('container', self.box_m.box_code, 'Skladda'))
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {'box': self.box_l.box_code, 'container': self.c1.code})
+        self.assertEqual(res.status_code, 400)
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_unlink'), {'code': self.c1.code})
+        self.assertEqual(res.json()['status'], 'OK')
+        # Uychi skladi Koson pastalini biriktira olmaydi
+        res = self.post_json(self.uychi, reverse('meto_hub_flow_api_link'), {'box': self.box_m.box_code, 'container': self.c1.code})
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(Container.objects.filter(box__isnull=False).exists())
+
+
+class DispatchTest(MetoFlowBase):
+    def test_give_to_koson_patok_needs_every_container(self):
+        codes = self.ready()
+        with self.assertRaises(FlowError):
+            meto_flow.give_to_patok(self.batch, 3, codes[:1], self.sklad)
+        with self.assertRaises(FlowError):   # Uychi patogi Koson skladidan berilmaydi
+            meto_flow.give_to_patok(self.batch, 16, codes, self.sklad)
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.SKLAD)
+
+        meto_flow.give_to_patok(self.batch, 3, [c.lower() for c in codes], self.sklad)
+        self.batch.refresh_from_db()
+        self.assertEqual((self.batch.dispatch_status, self.batch.assigned_branch, self.batch.assigned_screen),
+                         (CuttingBatch.DispatchStatus.DISPATCHED, 'HQ', 3))   # master planshetida qabul qiladi
+        self.assertEqual({b.assigned_screen for b in self.boxes()}, {3})
+        self.assertEqual(set(Container.objects.values_list('status', flat=True)), {Container.Status.AT_PATOK})
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.AT_PATOK)
+
+    def test_unlinked_box_or_missing_kg_stops_pastal(self):
+        codes = self.ready()
+        meto_flow.unlink(codes[0], self.sklad)
+        with self.assertRaises(FlowError):
+            meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        other = self.cut('11-2')
+        self.to_sklad(other)
+        meto_flow.split_boxes(other, {}, self.sticker)
+        Box.objects.filter(cutting_batch_item__batch=other).update(is_printed=True)
+        with self.assertRaises(FlowError) as error:
+            meto_flow.give_to_patok(other, 3, [], self.sklad)
+        self.assertIn('kg', str(error.exception))
+
+    def test_give_api_and_check_list(self):
+        codes = self.ready()
+        self.client.force_login(self.sklad)
+        check = self.client.get(reverse('meto_hub_flow_api_check'), {'batches': str(self.batch.id)}).json()
+        self.assertEqual([r['container'] for r in check['batches'][0]['rows']], codes)
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_give'),
+                             {'batch_id': self.batch.id, 'screen': 3, 'scanned': codes[:1]})
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('skaner qilinmagan', res.json()['message'])
+        res = self.post_json(self.uychi, reverse('meto_hub_flow_api_give'),
+                             {'batch_id': self.batch.id, 'screen': 3, 'scanned': codes})
+        self.assertEqual(res.status_code, 400)   # Uychi skladi Koson patogiga bermaydi
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_give'),
+                             {'batch_id': self.batch.id, 'screen': 3, 'scanned': codes})
+        self.assertEqual(res.json()['status'], 'OK')
+
+    def test_master_reject_returns_pastal_to_sklad(self):
+        codes = self.ready()
+        meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        CuttingBatch.objects.filter(id=self.batch.id).update(
+            dispatch_status=CuttingBatch.DispatchStatus.WAITING, assigned_screen=None, rejection_reason='Noto\'g\'ri model')
+        meto_flow.sync_rejected_flows()
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.SKLAD)
+        self.assertEqual(set(Container.objects.values_list('status', flat=True)), {Container.Status.FILLED})
+        self.assertEqual(ContainerEvent.objects.filter(action=ContainerEvent.Action.RETURNED).count(), len(codes))
+
+    def test_container_state_patok_ichida_after_first_sticker_scan(self):
+        codes = self.ready()
+        meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        container = Container.objects.get(box=self.boxes()[0])
+        self.assertEqual(meto_flow.container_state(container), 'Patok oldida')
+        Ticket.objects.filter(id=self.boxes()[0].tickets.first().id).update(status=Ticket.Status.SCANNED)
+        self.assertEqual(meto_flow.container_state(container), 'Patok ichida')
+
+
+class UychiShipmentTest(MetoFlowBase):
+    def setUp(self):
+        super().setUp()
+        self.codes = self.ready()
+        self.shipment = meto_flow.create_shipment([self.batch], self.codes, self.sklad, vehicle='01a123bc', driver='Ali')
+        self.line = self.shipment.lines.get()
+
+    def test_shipment_moves_containers(self):
+        self.assertEqual((self.shipment.number, self.shipment.vehicle_number), ('YX-000001', '01A123BC'))
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.IN_TRANSIT)
+        self.assertEqual(set(Container.objects.values_list('status', flat=True)), {Container.Status.IN_TRANSIT})
+        with self.assertRaises(FlowError):   # yo'ldagi pastal patokka berilmaydi
+            meto_flow.give_to_patok(self.batch, 3, self.codes, self.sklad)
+
+    def test_uychi_accepts_only_complete_then_gives_to_its_patok(self):
+        with self.assertRaises(FlowError):
+            meto_flow.receive_line(self.line, self.codes[:1], self.uychi)
+        line, missing = meto_flow.receive_line(self.line, self.codes, self.uychi)
+        self.assertEqual((line.status, missing), (ShipmentPastal.Status.ACCEPTED, []))
+        self.shipment.refresh_from_db()
+        self.assertEqual(self.shipment.status, Shipment.Status.CLOSED)
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual((flow.stage, flow.branch), (PastalFlow.Stage.SKLAD, 'UYCHI'))
+        self.assertEqual(set(Container.objects.values_list('status', 'branch')), {(Container.Status.FILLED, 'UYCHI')})
+
+        with self.assertRaises(FlowError):   # Koson patogi emas
+            meto_flow.give_to_patok(self.batch, 3, self.codes, self.uychi)
+        meto_flow.give_to_patok(self.batch, 16, self.codes, self.uychi)   # U3
+        self.batch.refresh_from_db()
+        self.assertEqual((self.batch.dispatch_status, self.batch.assigned_branch, self.batch.accepted_by),
+                         (CuttingBatch.DispatchStatus.ACCEPTED, 'UYCHI', self.uychi))   # berish = qabul
+        self.assertEqual({b.assigned_screen for b in self.boxes()}, {16})
+
+    def test_uychi_returns_incomplete_and_koson_takes_it_back(self):
+        back = meto_flow.return_line(self.line, self.uychi, 'Bitta konteyner yo\'q')
+        self.line.refresh_from_db()
+        self.assertEqual(self.line.status, ShipmentPastal.Status.RETURNED)
+        self.assertEqual((back.source_branch, back.destination_branch, back.status), ('UYCHI', 'HQ', Shipment.Status.IN_TRANSIT))
+        back_line = back.lines.get()
+        self.assertEqual(back_line.batch, self.batch)
+        with self.assertRaises(FlowError):   # qaytarishni qaytarib bo'lmaydi
+            meto_flow.return_line(back_line, self.uychi)
+
+        line, missing = meto_flow.receive_line(back_line, self.codes[1:], self.sklad)   # Koson har holda qabul qiladi
+        self.assertEqual(missing, self.codes[:1])
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual((flow.stage, flow.branch), (PastalFlow.Stage.SKLAD, 'HQ'))
+        self.assertEqual(set(Container.objects.values_list('status', 'branch')), {(Container.Status.FILLED, 'HQ')})
+        self.assertTrue(ContainerEvent.objects.filter(container__number=Container.objects.get(box=self.boxes()[0]).number,
+                                                      note__contains='skaner qilinmadi').exists())
+
+    def test_receive_and_return_api_permissions(self):
+        url = reverse('meto_hub_flow_api_receive', args=[self.line.id])
+        self.assertEqual(self.post_json(self.sklad, url, {'scanned': self.codes}).status_code, 400)   # Uychi qabul qiladi
+        self.assertEqual(self.post_json(self.uychi, url, {'scanned': self.codes}).json()['status'], 'OK')
+        printed = self.client.get(reverse('meto_hub_shipment_print', args=[self.shipment.id]))
+        self.assertContains(printed, 'YX-000001')
+        self.assertContains(printed, '11-1')
+
+
+class OtkV2Test(MetoFlowBase):
+    def setUp(self):
+        super().setUp()
+        codes = self.ready()
+        meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        self.box = self.boxes()[0]                                  # M, 48 dona
+        self.big = Container.objects.get(box=self.box)
+        self.small, self.small2 = self.new_containers(2, 'SMALL')
+        self.client.force_login(self.otk)
+
+    def submit(self, **payload):
+        return self.client.post(reverse('control:v2_api_submit'), json.dumps(dict(box_id=self.box.id, **payload)),
+                                content_type='application/json')
+
+    def test_page_and_lookup_show_containers(self):
+        self.assertContains(self.client.get(reverse('control:v2_home')), 'OTK v2')
+        data = self.client.get(reverse('control:v2_api_lookup'), {'code': f"CONTROL:{self.box.box_code}"}).json()
+        self.assertEqual((data['box']['container_flow'], data['box']['big_container']), (True, self.big.code))
+
+    def test_repair_needs_an_empty_small_container(self):
+        for code in ('', self.big.code, 'KONT-999999'):
+            res = self.submit(mode='INITIAL', total_qty=48, repair_qty=3, repair_container=code)
+            self.assertEqual((res.status_code, res.json()['status']), (400, 'CONTAINER'), code)
+        self.assertFalse(RepairReceipt.objects.exists())
+        self.box.refresh_from_db()
+        self.assertFalse(self.box.is_controlled or self.box.controlled_repair_qty)
+
+        res = self.submit(mode='INITIAL', total_qty=48, repair_qty=3, repair_container=self.small.code)
+        self.assertEqual(res.json()['status'], 'OK', res.content)
+        receipt = RepairReceipt.objects.get(box=self.box)
+        self.small.refresh_from_db()
+        self.assertEqual((self.small.status, self.small.repair_receipt), (Container.Status.IN_REPAIR, receipt))
+        self.big.refresh_from_db()
+        self.assertEqual((self.big.status, self.big.box), (Container.Status.AT_PATOK, self.box))   # 1-sort bor
+
+    def test_no_first_sort_releases_big_container_at_once(self):
+        res = self.submit(mode='INITIAL', total_qty=48, second_sort_qty=48)
+        self.assertEqual(res.json()['status'], 'OK', res.content)
+        self.big.refresh_from_db()
+        self.assertEqual((self.big.status, self.big.box), (Container.Status.EMPTY, None))
+        self.assertTrue(ContainerEvent.objects.filter(container=self.big, action=ContainerEvent.Action.RELEASED).exists())
+
+    def test_re_repair_keeps_the_same_small_container(self):
+        self.submit(mode='INITIAL', total_qty=48, repair_qty=3, repair_container=self.small.code)
+        res = self.submit(mode='REPAIR_RETURN', defect_qty=0, re_repair_qty=1)
+        self.assertEqual(res.json()['status'], 'OK', res.content)
+        second = RepairReceipt.objects.get(box=self.box, cycle=2)
+        self.small.refresh_from_db()
+        self.assertEqual((self.small.status, self.small.repair_receipt), (Container.Status.IN_REPAIR, second))
+        self.submit(mode='REPAIR_RETURN', defect_qty=0, re_repair_qty=0)   # oxirgisi tuzaldi — sanoqchini kutadi
+        self.small.refresh_from_db()
+        self.assertEqual((self.small.status, self.small.repair_receipt), (Container.Status.AT_PATOK, second))
+        self.small2.refresh_from_db()
+        self.assertEqual(self.small2.status, Container.Status.EMPTY)
+
+    def test_repair_without_fixed_items_releases_small_container(self):
+        self.submit(mode='INITIAL', total_qty=48, repair_qty=2, repair_container=self.small.code)
+        self.submit(mode='REPAIR_RETURN', defect_qty=2, re_repair_qty=0)
+        self.small.refresh_from_db()
+        self.assertEqual((self.small.status, self.small.repair_receipt), (Container.Status.EMPTY, None))
+
+    def test_old_box_works_like_control(self):
+        old_order = Order.objects.create(order_number='ZAK-OLD', article=self.article)
+        old_box = Box.objects.create(order=old_order, article=self.article, box_number=1, quantity=20, razmer='M',
+                                     assigned_screen=3)
+        res = self.client.post(reverse('control:v2_api_submit'),
+                               json.dumps({'box_id': old_box.id, 'mode': 'INITIAL', 'total_qty': 20, 'repair_qty': 2}),
+                               content_type='application/json')
+        self.assertEqual(res.json()['status'], 'OK', res.content)
+        self.assertTrue(RepairReceipt.objects.filter(box=old_box).exists())
+        self.assertEqual(Container.objects.filter(status=Container.Status.IN_REPAIR).count(), 0)
+
+    def test_counter_scan_releases_containers(self):
+        from production.packing_services import take_paper
+        Order.objects.filter(id=self.order.id).update(packing_beta=True)
+        counter = User.objects.create_user(username='mf_sanoqchi', password='x', role=User.Role.COUNTER)
+        packer = Worker.objects.create(worker_id='W-950', first_name='Taxlovchi', last_name='Bir')
+        self.submit(mode='INITIAL', total_qty=48, repair_qty=3, repair_container=self.small.code)
+        scan, error = take_paper(f"CONTROL:{self.box.box_code}", packer, counter)
+        self.assertIsNone(error)
+        self.big.refresh_from_db()
+        self.assertEqual((self.big.status, self.big.box), (Container.Status.EMPTY, None))
+        self.small.refresh_from_db()
+        self.assertEqual(self.small.status, Container.Status.IN_REPAIR)   # ta'mir cheki hali qaytmagan
+
+        self.submit(mode='REPAIR_RETURN', defect_qty=0, re_repair_qty=0)
+        scan, error = take_paper(f"TAMIR1:{self.box.box_code}", packer, counter)
+        self.assertIsNone(error)
+        self.small.refresh_from_db()
+        self.assertEqual((self.small.status, self.small.repair_receipt), (Container.Status.EMPTY, None))
+
+
+class FlowAccessTest(MetoFlowBase):
+    def test_role_tabs(self):
+        expected = {
+            self.meto: ['meto', 'sklad', 'yukxat'], self.tasnif: ['tasnif'], self.sticker: ['stiker'],
+            self.sklad: ['sklad', 'yukxat'], self.uychi: ['uychi', 'yukxat'],
+            self.admin: ['meto', 'tasnif', 'stiker', 'sklad', 'uychi', 'yukxat', 'zakazlar'],
+        }
+        for user, tabs in expected.items():
+            self.client.force_login(user)
+            self.assertEqual([key for key, _ in self.client.get(reverse('meto_hub_flow')).context['tabs']], tabs, user)
+        self.client.force_login(self.tasnif)
+        self.assertEqual(self.client.get(reverse('meto_hub_flow'), {'tab': 'sklad'}).context['tab'], 'tasnif')
+
+    def test_new_roles_stay_inside_new_flow(self):
+        for user in (self.tasnif, self.sklad, self.uychi):
+            self.client.force_login(user)
+            for path in ('/meto-hub/', reverse('production:order_list'), '/meto/'):
+                self.assertRedirects(self.client.get(path), reverse('meto_hub_flow'), fetch_redirect_response=False)
+        self.client.force_login(self.sklad)
+        self.assertEqual(self.client.get(reverse('meto_hub_containers')).status_code, 200)
+        self.client.force_login(self.uychi)
+        self.assertNotContains(self.client.get(reverse('meto_hub_containers')), reverse('meto_hub_container_create'))
+        self.client.force_login(self.tasnif)
+        self.assertRedirects(self.client.get(reverse('meto_hub_containers')), reverse('meto_hub_flow'),
+                             fetch_redirect_response=False)
+
+    def test_branch_admin_reaches_uychi_tab(self):
+        branch_admin = User.objects.create_user(username='mf_filial', password='x', role=User.Role.BRANCH_ADMIN,
+                                                branch=User.Branch.UYCHI)
+        self.client.force_login(branch_admin)
+        res = self.client.get(reverse('meto_hub_flow'))
+        self.assertEqual(res.context['tab'], 'uychi')
+        self.assertRedirects(self.client.get('/meto-hub/'), reverse('superadmin_payroll'), fetch_redirect_response=False)
+
+    def test_login_redirects_new_roles(self):
+        self.client.logout()
+        res = self.client.post(reverse('root_login'), {'username': 'mf_tasnif', 'password': 'x'})
+        self.assertRedirects(res, reverse('meto_hub_flow'), fetch_redirect_response=False)
+
+    def test_other_roles_cannot_open_flow(self):
+        master = User.objects.create_user(username='mf_master', password='x', role=User.Role.MASTER)
+        self.client.force_login(master)
+        self.assertNotEqual(self.client.get(reverse('meto_hub_flow')).status_code, 200)
+        self.assertEqual(self.post_json(master, reverse('meto_hub_flow_api_link'), {}).status_code, 403)
+
+    def test_every_tab_renders_with_data(self):
+        self.ready()
+        second = self.cut('11-2')
+        third = self.cut('11-3')
+        meto_flow.take_meto(third, self.meto)
+        codes = [c.code for c in Container.objects.filter(box__cutting_batch_item__batch=self.batch)]
+        meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        self.client.force_login(self.admin)
+        for tab in ('meto', 'tasnif', 'stiker', 'sklad', 'uychi', 'yukxat', 'zakazlar'):
+            res = self.client.get(reverse('meto_hub_flow'), {'tab': tab})
+            self.assertEqual((res.status_code, res.context['tab']), (200, tab))
+        res = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto'})
+        self.assertEqual([c['batch'].id for c in res.context['waiting']], [second.id])
+        self.assertEqual([c['batch'].id for c in res.context['working']], [third.id])
+        res = self.client.get(reverse('meto_hub_flow'), {'tab': 'sklad'})
+        self.assertEqual([c['patok_code'] for c in res.context['patok_rows']], ['K3'])
+        self.assertContains(res, 'Patok oldida')
+        detail = self.client.get(reverse('meto_hub_container_detail', args=[Container.objects.get(box=self.boxes()[0]).number]))
+        self.assertContains(detail, self.boxes()[0].box_code)

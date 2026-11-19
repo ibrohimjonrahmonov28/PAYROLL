@@ -1,0 +1,34 @@
+{% comment %}Meto tabi: meto kutmoqda → qabul (meto bo'lmoqda) → razmer bo'yicha meto soni → tugatish (son qulflanadi, tasnifga).{% endcomment %}
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <section class="space-y-3">
+        <h2 class="text-sm font-black uppercase text-white">Meto kutmoqda <span class="text-slate-400">({{ waiting|length }})</span></h2>
+        {% for c in waiting %}
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            {% include 'meto_hub/flow/_card_head.html' %}
+            <div class="flex flex-wrap gap-1.5">{% for s in c.sizes %}<span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ s.name }}</b>: {{ s.cut }}</span>{% endfor %}</div>
+            <form method="POST" action="{% url 'meto_hub_flow_meto_take' c.batch.id %}" class="flex justify-end">{% csrf_token %}
+                <button class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Qabul qilish</button>
+            </form>
+        </div>
+        {% empty %}<p class="text-sm text-slate-500">Meto kutayotgan pastal yo'q.</p>{% endfor %}
+    </section>
+    <section class="space-y-3">
+        <h2 class="text-sm font-black uppercase text-white">Meto bo'lmoqda <span class="text-slate-400">({{ working|length }})</span></h2>
+        {% for c in working %}
+        <form method="POST" action="{% url 'meto_hub_flow_meto_finish' c.batch.id %}" class="bg-slate-900 border border-amber-800/60 rounded-2xl p-4 space-y-3">{% csrf_token %}
+            {% include 'meto_hub/flow/_card_head.html' %}
+            <p class="text-xs text-slate-400">Qabul qildi: {{ c.flow.meto_taken_by.get_full_name|default:c.flow.meto_taken_by.username|default:"—" }} · {{ c.flow.meto_taken_at|date:"d.m H:i" }}</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {% for s in c.sizes %}
+                <label class="space-y-1"><span class="text-xs font-bold text-slate-400">{{ s.name }} <span class="text-slate-500">(kesim {{ s.cut }})</span></span>
+                    <input name="qty_{{ s.id }}" value="{{ s.cut }}" inputmode="numeric" required class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-center"></label>
+                {% endfor %}
+            </div>
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-[11px] text-slate-500">Tugatgandan keyin meto soni o'zgarmaydi.</p>
+                <button onclick="return confirm('Meto tugatilsinmi? Son keyin o\'zgarmaydi.');" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm">Tugatish → tasnif</button>
+            </div>
+        </form>
+        {% empty %}<p class="text-sm text-slate-500">Hozir meto qilinayotgan pastal yo'q.</p>{% endfor %}
+    </section>
+</div>

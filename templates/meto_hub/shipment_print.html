@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="uz">
+{% comment %}Yangi meto oqimi yuk xati (A4): Koson → Uychi yoki qaytarish; pastal, quti, dona, konteyner soni, imzolar.{% endcomment %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yuk xati {{ shipment.number }}</title>
+    <link rel="icon" href="/favicon.ico">
+    <style>
+        @page { size: A4 portrait; margin: 12mm 15mm; }
+        body { font-family: 'Times New Roman', Times, serif; color: #000; background: #fff; margin: 0; padding: 20px; font-size: 13px; line-height: 1.3; }
+        .title { text-align: center; font-size: 18px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .subtitle { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+        .meta { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .meta td { padding: 4px 6px; font-size: 12px; vertical-align: top; }
+        .items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .items th, .items td { border: 1px solid #000; padding: 6px 8px; font-size: 12px; }
+        .items th { background: #f2f2f2; text-align: center; }
+        .items td.c { text-align: center; }
+        .items tfoot td { font-weight: bold; background: #fafafa; }
+        .signs { margin-top: 40px; display: flex; justify-content: space-between; gap: 30px; }
+        .signs div { flex: 1; border-top: 1px solid #000; padding-top: 4px; font-size: 12px; text-align: center; }
+        .toolbar { margin-bottom: 16px; display: flex; gap: 8px; }
+        .toolbar a, .toolbar button { font: inherit; padding: 6px 14px; border: 1px solid #000; background: #fff; color: #000; text-decoration: none; cursor: pointer; }
+        @media print { .toolbar { display: none; } body { padding: 0; } }
+    </style>
+</head>
+
+<body>
+    <div class="toolbar">
+        <a href="{% url 'meto_hub_flow' %}?tab={% if shipment.destination_branch == 'UYCHI' %}sklad{% else %}uychi{% endif %}">← Orqaga</a>
+        <button type="button" onclick="window.print()">Chop etish</button>
+    </div>
+    <div class="title">TERRY JAR — Yuk xati № {{ shipment.number }}</div>
+    <div class="subtitle">{% if shipment.destination_branch == 'UYCHI' %}Kosonsoy (Bosh bino) → Uychi filiali{% else %}Qaytarish: Uychi filiali → Kosonsoy (Bosh bino){% endif %}</div>
+    <table class="meta">
+        <tr><td><b>Sana:</b> {{ shipment.created_at|date:"d.m.Y H:i" }}</td>
+            <td><b>Tuzdi:</b> {{ shipment.created_by.get_full_name|default:shipment.created_by.username|default:"—" }}</td></tr>
+        <tr><td><b>Mashina:</b> {{ shipment.vehicle_number|default:"—" }}</td>
+            <td><b>Haydovchi:</b> {{ shipment.driver_name|default:"—" }}{% if shipment.driver_phone %}, {{ shipment.driver_phone }}{% endif %}</td></tr>
+        {% if shipment.notes %}<tr><td colspan="2"><b>Izoh:</b> {{ shipment.notes }}</td></tr>{% endif %}
+    </table>
+    <table class="items">
+        <thead><tr><th>№</th><th>Pastal</th><th>Zakaz</th><th>Artikul</th><th>Qutilar</th><th>Dona</th><th>Konteynerlar</th><th>Holati</th></tr></thead>
+        <tbody>
+        {% for row in lines %}
+        <tr><td class="c">{{ forloop.counter }}</td><td><b>{{ row.batch.pastal_code|default:row.batch.name }}</b></td>
+            <td>{{ row.batch.order_item.order.order_number }}</td><td>{{ row.batch.order_item.article.code|default:"—" }}</td>
+            <td class="c">{{ row.boxes }}</td><td class="c">{{ row.qty }}</td><td class="c">{{ row.containers }}</td>
+            <td class="c">{{ row.line.get_status_display }}</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr><td colspan="4">Jami: {{ lines|length }} pastal</td><td class="c">{{ total_boxes }}</td><td class="c">{{ total_qty }}</td><td class="c">{{ total_containers }}</td><td></td></tr></tfoot>
+    </table>
+    <div class="signs"><div>Topshirdi (sklad)</div><div>Haydovchi</div><div>Qabul qildi</div></div>
+</body>
+</html>

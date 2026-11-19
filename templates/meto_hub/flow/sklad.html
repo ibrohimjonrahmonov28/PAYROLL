@@ -1,0 +1,45 @@
+{% comment %}Koson (meto) sklad: kg bilan qabul, konteynerga biriktirish, patokka berish (konteyner tekshiruvi), Uychiga yuk xati,
+Uychidan qaytgan pastalni qabul, patokdagi pastallar.{% endcomment %}
+<div class="space-y-6">
+    {% include 'meto_hub/flow/_link_panel.html' %}
+
+    <section class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-sm font-black uppercase text-white">Skladdagi pastallar <span class="text-slate-400">({{ cards|length }})</span></h2>
+            <button type="button" onclick="shipSelected()" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-sm">
+                <i class="fa-solid fa-truck mr-1"></i>Tanlanganlarni Uychiga yuklash</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            {% for c in cards %}{% include 'meto_hub/flow/_sklad_card.html' with branch='HQ' %}
+            {% empty %}<p class="text-sm text-slate-500">Skladda pastal yo'q.</p>{% endfor %}
+        </div>
+    </section>
+
+    {% include 'meto_hub/flow/_incoming.html' with incoming_title="Uychidan qaytgan pastallar" %}
+    {% include 'meto_hub/flow/_patok_list.html' %}
+</div>
+
+<template id="ship-form-tpl">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="space-y-1"><span class="text-xs font-bold text-slate-400">Mashina raqami</span>
+            <input name="vehicle" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white uppercase"></label>
+        <label class="space-y-1"><span class="text-xs font-bold text-slate-400">Haydovchi</span>
+            <input name="driver" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"></label>
+        <label class="space-y-1"><span class="text-xs font-bold text-slate-400">Telefon</span>
+            <input name="phone" inputmode="tel" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"></label>
+        <label class="space-y-1"><span class="text-xs font-bold text-slate-400">Izoh</span>
+            <input name="notes" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"></label>
+    </div>
+</template>
+{% include 'meto_hub/flow/_branch_js.html' %}
+<script>
+    function shipSelected() {
+        const ids = Array.from(document.querySelectorAll('.ship-pick:checked')).map(el => parseInt(el.value, 10));
+        if (!ids.length) { alert("Uychiga yuklash uchun tayyor pastallarni belgilang."); return; }
+        openCheck({
+            title: `Uychiga yuklash · ${ids.length} pastal`, batchIds: ids,
+            formHtml: document.getElementById('ship-form-tpl').innerHTML,
+            submit: (scanned, form) => postJSON(`{% url 'meto_hub_flow_api_ship' %}`, {batch_ids: ids, scanned, ...form}),
+        });
+    }
+</script>

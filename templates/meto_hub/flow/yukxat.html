@@ -1,0 +1,23 @@
+{% comment %}Yuk xatlari: Koson → Uychi va qaytarishlar (Uychi → Koson), qatorlar holati, chop etish.{% endcomment %}
+<section class="space-y-3">
+    {% for s in shipments %}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <p class="font-black text-white">{{ s.number }}
+                    <span class="ml-1 px-2 py-0.5 rounded-lg text-[11px] {% if s.destination_branch == 'UYCHI' %}bg-violet-500/20 text-violet-300{% else %}bg-amber-500/20 text-amber-300{% endif %}">{% if s.destination_branch == 'UYCHI' %}Koson → Uychi{% else %}Qaytarish: Uychi → Koson{% endif %}</span>
+                    <span class="ml-1 px-2 py-0.5 rounded-lg text-[11px] {% if s.status == 'CLOSED' %}bg-emerald-500/20 text-emerald-300{% else %}bg-sky-500/20 text-sky-300{% endif %}">{{ s.get_status_display }}</span></p>
+                <p class="text-xs text-slate-400">{{ s.created_at|date:"d.m.Y H:i" }} · {{ s.created_by.get_full_name|default:s.created_by.username|default:"—" }}{% if s.vehicle_number %} · {{ s.vehicle_number }}{% endif %}{% if s.driver_name %} · {{ s.driver_name }}{% endif %}{% if s.driver_phone %} · {{ s.driver_phone }}{% endif %}</p>
+                {% if s.notes %}<p class="text-xs text-slate-300">{{ s.notes }}</p>{% endif %}
+            </div>
+            <a href="{% url 'meto_hub_shipment_print' s.id %}" target="_blank" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm font-bold text-slate-200"><i class="fa-solid fa-print mr-1"></i>Chop etish</a>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+            {% for line in s.lines.all %}
+            <span class="px-2 py-1 rounded-lg text-xs border {% if line.status == 'ACCEPTED' %}border-emerald-800 text-emerald-300{% elif line.status == 'RETURNED' %}border-rose-800 text-rose-300{% else %}border-sky-800 text-sky-300{% endif %}"
+                title="{{ line.note }}">{{ line.batch.pastal_code|default:line.batch.name }} · {{ line.get_status_display }}{% if line.resolved_by %} · {{ line.resolved_by.get_full_name|default:line.resolved_by.username }}{% endif %}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}<p class="text-sm text-slate-500">Yuk xatlari yo'q.</p>{% endfor %}
+</section>

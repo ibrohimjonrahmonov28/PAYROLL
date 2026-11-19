@@ -1,0 +1,10 @@
+{% comment %}Pastal kartochkasi boshi (c — meto_flow_views._card).{% endcomment %}
+<div class="flex gap-3">
+    {% if c.image %}<img src="{{ c.image }}" alt="" class="w-16 h-16 object-cover rounded-xl border border-slate-700 flex-shrink-0">
+    {% else %}<div class="w-16 h-16 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0"><i class="fa-solid fa-shirt text-xl"></i></div>{% endif %}
+    <div class="min-w-0 flex-1">
+        <p class="text-[11px] text-slate-400">{{ c.order.order_number }} · kesilgan {{ c.batch.created_at|date:"d.m H:i" }}</p>
+        <p class="font-black text-white">Pastal {{ c.batch.pastal_code|default:c.batch.name }}</p>
+        <p class="text-xs text-slate-400 truncate">{{ c.article.code|default:"—" }} — {{ c.article.name|default:"" }}</p>
+    </div>
+</div>

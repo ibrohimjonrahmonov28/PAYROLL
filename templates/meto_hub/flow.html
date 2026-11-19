@@ -1,0 +1,179 @@
+{% extends 'meto_hub/base_meto_hub.html' %}
+
+{% block title %}{{ tab_label }} — Yangi meto oqimi{% endblock %}
+
+{% block content %}
+{% comment %}
+Yangi meto oqimi (beta; production/meto_flow_views.py::flow_view, mantiq — production/meto_flow.py). Tablar rol bo'yicha;
+konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qilishda umumiy.
+{% endcomment %}
+<div class="space-y-5">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2.5">
+                <i class="fa-solid fa-diagram-project text-amber-400"></i> Yangi meto oqimi
+                <span class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-black">BETA</span>
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">Meto → Tasnif → Stiker → Sklad → Patok yoki Uychi. Faqat beta zakazlar; eski Meto bo'limi o'zgarmaydi.</p>
+        </div>
+    </div>
+
+    <nav class="flex flex-wrap gap-2">
+        {% for key, label in tabs %}
+        <a href="?tab={{ key }}" class="px-3.5 py-2 rounded-xl text-sm font-bold border transition {% if key == tab %}bg-amber-500 text-slate-950 border-amber-400{% else %}bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </nav>
+
+    {% include tab_template %}
+</div>
+
+<div id="check-modal" class="hidden fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between gap-3">
+            <div>
+                <h3 id="check-title" class="text-lg font-black text-white"></h3>
+                <p class="text-xs text-slate-400">Har konteyner QR kodini skaner qiling — yashil bo'lsa joyida. Hammasi yashil bo'lmaguncha tasdiqlanmaydi.</p>
+            </div>
+            <button type="button" onclick="closeCheck()" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div class="p-5 space-y-4 overflow-y-auto">
+            <input id="check-input" autocomplete="off" placeholder="Konteyner QR kodini skaner qiling (KONT-000123)"
+                class="w-full px-4 py-3 rounded-2xl bg-slate-950 border-2 border-emerald-500/60 text-white text-lg focus:outline-none focus:border-emerald-400">
+            <p id="check-msg" class="text-sm font-bold min-h-[1.25rem]"></p>
+            <div id="check-rows" class="space-y-3"></div>
+            <div id="check-form"></div>
+        </div>
+        <div class="p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <span id="check-progress" class="text-sm font-bold text-slate-300"></span>
+            <div class="flex gap-2">
+                <button type="button" onclick="closeCheck()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold">Bekor</button>
+                <button type="button" id="check-confirm" disabled onclick="confirmCheck()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black">Tasdiqlash</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const CSRF_TOKEN = '{{ csrf_token }}';
+
+    async function postJSON(url, body) {
+        const res = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN}, body: JSON.stringify(body || {})});
+        const data = await res.json().catch(() => ({status: 'ERROR', message: 'Server javob bermadi'}));
+        return {ok: res.ok && data.status === 'OK', data};
+    }
+
+    async function getJSON(url) {
+        const res = await fetch(url);
+        const data = await res.json().catch(() => ({status: 'ERROR', message: 'Server javob bermadi'}));
+        return {ok: res.ok && data.status === 'OK', data};
+    }
+
+    function containerKey(raw) {
+        const m = String(raw || '').trim().match(/^KONT\s*[-:+]?\s*(\d{1,9})$/i);
+        return m ? 'KONT-' + String(parseInt(m[1], 10)).padStart(6, '0') : null;
+    }
+
+    let check = null;   // {expected: Map(code -> row el), unlinked: n, scanned: Set, submit}
+
+    async function openCheck(options) {
+        const res = await getJSON(`{% url 'meto_hub_flow_api_check' %}?batches=${options.batchIds.join(',')}`);
+        if (!res.ok) { alert(res.data.message || 'Xatolik'); return; }
+        check = {expected: new Map(), unlinked: 0, scanned: new Set(), submit: options.submit, partial: !!options.allowPartial};
+        document.getElementById('check-title').textContent = options.title;
+        const box = document.getElementById('check-rows');
+        box.innerHTML = '';
+        res.data.batches.forEach(b => {
+            const wrap = document.createElement('div');
+            wrap.className = 'rounded-xl border border-slate-800 overflow-hidden';
+            const head = document.createElement('div');
+            head.className = 'px-3 py-2 bg-slate-950 text-sm font-black text-white';
+            head.textContent = `Pastal ${b.pastal} · ${b.rows.length} quti`;
+            wrap.append(head);
+            if (!b.rows.length) {
+                const empty = document.createElement('div');
+                empty.className = 'px-3 py-2 text-sm font-bold text-rose-300';
+                empty.textContent = "Qutilar yo'q — stiker hali bo'linmagan.";
+                wrap.append(empty);
+                check.unlinked += 1;
+            }
+            b.rows.forEach(r => {
+                const row = document.createElement('div');
+                row.className = 'px-3 py-2 flex items-center justify-between gap-3 text-sm border-t border-slate-800';
+                const left = document.createElement('span');
+                left.textContent = `${r.box_code} · ${r.razmer} · ${r.qty} dona`;
+                const right = document.createElement('span');
+                right.className = 'font-black px-2 py-0.5 rounded-lg';
+                if (r.container) {
+                    right.textContent = r.container;
+                    right.classList.add('bg-rose-500/20', 'text-rose-300');
+                    check.expected.set(r.container, right);
+                } else {
+                    right.textContent = 'konteynersiz';
+                    right.classList.add('bg-rose-600', 'text-white');
+                    check.unlinked += 1;
+                }
+                row.append(left, right);
+                wrap.append(row);
+            });
+            box.append(wrap);
+        });
+        document.getElementById('check-form').innerHTML = options.formHtml || '';
+        document.getElementById('check-msg').textContent = check.partial ? "Qaytgan pastal: skaner qilinmagan konteynerlar qabulda belgilanadi."
+            : (check.unlinked ? "Konteynersiz quti bor — avval biriktiring." : '');
+        document.getElementById('check-msg').className = 'text-sm font-bold min-h-[1.25rem] text-rose-300';
+        updateCheck();
+        document.getElementById('check-modal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('check-input').focus(), 50);
+    }
+
+    function updateCheck() {
+        const total = check.expected.size;
+        const green = check.scanned.size;
+        document.getElementById('check-progress').textContent = `${green} / ${total} konteyner yashil`;
+        // qaytgan pastalni Koson har holda qabul qiladi (skaner qilinmagan konteynerlar belgilanadi)
+        document.getElementById('check-confirm').disabled = !(check.partial || (total > 0 && green === total && check.unlinked === 0));
+    }
+
+    function closeCheck() {
+        document.getElementById('check-modal').classList.add('hidden');
+        check = null;
+    }
+
+    document.getElementById('check-input').addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || !check) return;
+        const key = containerKey(event.target.value);
+        event.target.value = '';
+        const msg = document.getElementById('check-msg');
+        if (!key) { msg.textContent = 'Bu konteyner QR kodi emas.'; msg.className = 'text-sm font-bold min-h-[1.25rem] text-rose-300'; return; }
+        const el = check.expected.get(key);
+        if (!el) { msg.textContent = `${key} bu ro'yxatga tegishli emas.`; msg.className = 'text-sm font-bold min-h-[1.25rem] text-rose-300'; return; }
+        check.scanned.add(key);
+        el.classList.remove('bg-rose-500/20', 'text-rose-300');
+        el.classList.add('bg-emerald-500/20', 'text-emerald-300');
+        msg.textContent = `${key} — joyida.`;
+        msg.className = 'text-sm font-bold min-h-[1.25rem] text-emerald-300';
+        updateCheck();
+    });
+
+    async function confirmCheck() {
+        if (!check) return;
+        const button = document.getElementById('check-confirm');
+        button.disabled = true;
+        const form = {};
+        document.querySelectorAll('#check-form [name]').forEach(el => { form[el.name] = el.value; });
+        const r = await check.submit(Array.from(check.scanned), form);
+        if (r.ok) {
+            if (r.data.message) alert(r.data.message);
+            if (r.data.print_url) window.location.href = r.data.print_url;   // yuk xati — chop etish sahifasi
+            else window.location.reload();
+        } else {
+            const msg = document.getElementById('check-msg');
+            msg.textContent = r.data.message || 'Xatolik';
+            msg.className = 'text-sm font-bold min-h-[1.25rem] text-rose-300';
+            updateCheck();
+        }
+    }
+</script>
+{% endblock %}

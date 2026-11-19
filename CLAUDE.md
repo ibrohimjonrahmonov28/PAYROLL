@@ -99,6 +99,41 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
 
 `production/test_packing_beta.py` covers the flow.
 
+**New meto flow with containers (beta, owner's decisions 2026-11-19, inside `/meto-hub/`).** The old `/meto/`, the old hub tabs and the Telegram bot keep working unchanged, with no guards. About 10 000 reusable physical containers get a permanent QR label (`KONT-000123`). Each production box is linked 1:1 to a container, so hand-outs, Uychi receipts and empty containers can be checked.
+
+- **Which pastals:** only those of an order with `Order.meto_beta` that were cut after `meto_beta_since` (`meto_flow.v2_batches` / `is_v2_box`). The superadmin toggles this on the "Beta zakazlar" tab. `ensure_flows()` lazily creates a `PastalFlow` per batch and a `PastalFlowSize` per `CuttingBatchItem`, so the cutting portal is untouched.
+  - `PastalFlow` holds the stage (METO_WAIT → METO_WORK → TASNIF_WAIT → TASNIF_WORK → SKLAD → IN_TRANSIT / AT_PATOK), the branch, and who/when for each step.
+  - `PastalFlowSize` holds `meto_qty` and `tasnif_qty`.
+- **Steps:** logic is in `production/meto_flow.py`; the page `/meto-hub/yangi/` is `meto_flow_views.py` + `templates/meto_hub/flow/`, with one tab per role (`meto_flow.STEP_ROLES`).
+  1. METO enters the meto count per size; "tugatish" locks it.
+  2. TASNIF gives the real count, and the pastal moves to the Koson meto sklad.
+  3. STICKER splits the **tasnif** count into boxes (`split_boxes` → `auto_generate_boxes_for_batch_item`, `real_quantity` = tasnif count) and prints them on the usual sticker page. Until a sticker is printed the tasnif count can change: `update_tasnif_counts` cancels the unprinted boxes and never deletes or re-codes them.
+  4. METO_SKLAD writes the real kg and links each box to an empty BIG container. Any sticker of the box works (CONTROL, ticket or box code). Unlinking needs no reason: scan the box sticker or the container.
+- **Check before anything moves:** giving to a patok, loading a waybill and receiving at Uychi all open the shared scan modal (`flow.html::openCheck`). Every container of the pastal must be scanned green and every active box must have a container; otherwise `_verify` raises and nothing moves.
+  - Koson hand-out sets `DISPATCHED`, and master tablet acceptance stays.
+  - Uychi hand-out (UYCHI_SKLAD / BRANCH_ADMIN, U-patoks) sets `ACCEPTED`, like the old Uychi warehouse.
+  - Both set `Box.assigned_screen`.
+  - If the master rejects on the tablet, the pastal returns to the sklad (`sync_rejected_flows`, run on the sklad tab).
+- **Waybills:** `Shipment` (`YX-000001`) with one `ShipmentPastal` per pastal, Koson → Uychi. Uychi accepts only complete pastals; otherwise "Qaytarish" creates a return waybill Uychi → Koson. Koson accepts a return even with missing scans, and the missing containers are flagged in their history. A4 print: `meto_hub/shipment_print.html`.
+- **Containers** (`/meto-hub/konteynerlar/`, `container_services.py`):
+  - Created in batches of up to 1000 with sequential codes that never change. Only Koson creates them.
+  - Labels are 100×80 mm for the Citizen CL-S703, up to 500 per page; a lost label is reprinted with the same ID.
+  - Statuses: EMPTY / FILLED ("Skladda") / IN_TRANSIT / AT_PATOK / IN_REPAIR.
+  - "Patok oldida" / "Patok ichida" is derived from whether any ticket of the box is scanned (`container_state`). It is never stored and changes nothing else.
+  - Every change writes a `ContainerEvent`.
+- **OTK v2** (`/control/v2/`, `control_v2_views.py`). Its template `templates/control_v2/control_home.html` is a patched copy of the frozen `/control/` page. For new-flow boxes:
+  - sending items to repair requires scanning an empty SMALL container, which is linked to the `RepairReceipt`;
+  - a re-repair moves the same container to the next receipt;
+  - no 1st sort releases the big container at once;
+  - a repair return with nothing fixed releases the small container.
+
+  Other boxes behave exactly as on `/control/`, through the same server functions. Otherwise a container is released only when the counter scans the paper in the packing beta (`packing_services.take_paper` → `release_for_scan`): CONTROL releases the big container, TAMIRn releases that receipt's small one.
+- **Roles:**
+  - TASNIF, METO_SKLAD and UYCHI_SKLAD are confined to `/meto-hub/yangi/` by the role middleware; the two sklad roles also get `/meto-hub/konteynerlar/`.
+  - BRANCH_ADMIN gets `/meto-hub/yangi/` (the Uychi tab).
+  - The superadmin and admin see everything.
+- **Tests:** `production/test_meto_flow.py`, `production/test_meto_containers.py`.
+
 **Final ironing = only the catalog operation named exactly "DAZMOL"** (owner's rule 2026-10-30; it is the model's last operation). PLANKA / TASMA / CHO'NTAK and any other "… DAZMOL" are intermediate, not finished work. Use `daily_dazmol.is_main_dazmol_operation` / `main_dazmol_operation_ids()` everywhere (daily page, 18:00 report, order/model statistics, TV screens, master tablet, superadmin) — never re-implement name matching.
 
 **Daily dazmol has one source: `production/daily_dazmol.py::compute_daily_dazmol`.** *Asosiy dazmol* = final dazmol of boxes really accepted by a patok, credited to that patok wherever it was ironed. Main path (both branches): the Telegram passport bot (`run_passport_bot`) dispatches a pastal to a patok (`DISPATCHED`, K1–K13 / U1–U27), it appears on that patok's master tablet, and acceptance sets `Box.is_received_by_patok=True`. Extra Uychi path (owner's decision 2026-10-29): the Uychi warehouse in `meto_hub_views` (waybill receipt → batch `ACCEPTED`, `assigned_branch='UYCHI'`) hands the pastal to a U-patok (`Box.assigned_screen` ≥ 14) with no tablet step — that hand-out counts as acceptance. The batch must not be WAITING/DISPATCHED/REJECTED (`get_box_owner_screen` / `owned_box_q`); *patok dazmoli* = dazmol scanned at that patok's terminal; *egasiz* = dazmol of pastals nobody accepted (credited to no one, not in the 18:00 report). `/sewing-statistics/daily/` (asosiy per patok) and `/sewing-statistics/daily-report/` + the 18:00 image (`daily_image_reports.get_branch_daily_report_data`, per price template) must both read it so a patok's asosiy dazmol always equals the sum of its template lines — `production/test_daily_dazmol.py` enforces this. Both pages write `DailyPatokProgress.dazmol_qty` (monthly Excel) with the same asosiy value. The 18:00 report (page + image) has 7 columns — Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз: one line per price template × article norm (`DailyDazmol.template_lines`, norm = `get_article_norm`: article → model → 1200); **Фоиз = Σ иш сони / mean(norms of the lines)** (owner's formula, e.g. (100 + 900) / ((800 + 1000) / 2) = 111%, `daily_image_reports.patok_foiz`); branch % = mean of active patoks, factory % = mean of the two branch means.

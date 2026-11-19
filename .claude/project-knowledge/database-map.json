@@ -2,12 +2,12 @@
  "_note": "Generated from Django model registry. Field flags: unique, idx (db_index), choices. Relations list concrete FK/O2O/M2M only.",
  "migrations": {
   "accounts": {
-   "count": 23,
-   "latest": "0023_basket_master"
+   "count": 24,
+   "latest": "0024_meto_flow_roles"
   },
   "production": {
-   "count": 52,
-   "latest": "0052_second_sort_dispatch_types_seed"
+   "count": 53,
+   "latest": "0053_meto_flow"
   },
   "screens": {
    "count": 0,
@@ -56,7 +56,7 @@
   },
   "accounts.Worker": {
    "table": "accounts_worker",
-   "file": "accounts/models.py:205",
+   "file": "accounts/models.py:213",
    "fields": {
     "id": "BigAutoField",
     "worker_id": "CharField[unique,idx]",
@@ -80,7 +80,7 @@
   },
   "accounts.WorkerPayout": {
    "table": "accounts_workerpayout",
-   "file": "accounts/models.py:348",
+   "file": "accounts/models.py:356",
    "fields": {
     "id": "BigAutoField",
     "amount": "DecimalField",
@@ -107,7 +107,7 @@
   },
   "accounts.DailyWorkerClosing": {
    "table": "accounts_dailyworkerclosing",
-   "file": "accounts/models.py:375",
+   "file": "accounts/models.py:383",
    "fields": {
     "id": "BigAutoField",
     "date": "DateField[idx]",
@@ -136,7 +136,7 @@
   },
   "accounts.MonthlyClosing": {
    "table": "accounts_monthlyclosing",
-   "file": "accounts/models.py:413",
+   "file": "accounts/models.py:421",
    "fields": {
     "id": "BigAutoField",
     "year": "PositiveIntegerField",
@@ -171,7 +171,7 @@
   },
   "accounts.MasterPatokHistory": {
    "table": "accounts_masterpatokhistory",
-   "file": "accounts/models.py:479",
+   "file": "accounts/models.py:487",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField",
@@ -193,7 +193,7 @@
   },
   "accounts.MasterAbsentDay": {
    "table": "accounts_masterabsentday",
-   "file": "accounts/models.py:503",
+   "file": "accounts/models.py:511",
    "fields": {
     "id": "BigAutoField",
     "date": "DateField[idx]",
@@ -422,7 +422,9 @@
     "export_dates": "CharField",
     "size_labels": "CharField",
     "packing_beta": "BooleanField[idx]",
-    "packing_beta_since": "DateTimeField"
+    "packing_beta_since": "DateTimeField",
+    "meto_beta": "BooleanField[idx]",
+    "meto_beta_since": "DateTimeField"
    },
    "relations": [
     {
@@ -450,7 +452,7 @@
   },
   "production.OrderItem": {
    "table": "production_orderitem",
-   "file": "production/models.py:624",
+   "file": "production/models.py:628",
    "fields": {
     "id": "BigAutoField",
     "quantity": "PositiveIntegerField",
@@ -487,7 +489,7 @@
   },
   "production.OrderItemSize": {
    "table": "production_orderitemsize",
-   "file": "production/models.py:726",
+   "file": "production/models.py:730",
    "fields": {
     "id": "BigAutoField",
     "size_name": "CharField",
@@ -513,7 +515,7 @@
   },
   "production.OrderItemFabric": {
    "table": "production_orderitemfabric",
-   "file": "production/models.py:793",
+   "file": "production/models.py:797",
    "fields": {
     "id": "BigAutoField",
     "name": "CharField",
@@ -541,7 +543,7 @@
   },
   "production.OrderChangeLog": {
    "table": "production_orderchangelog",
-   "file": "production/models.py:829",
+   "file": "production/models.py:833",
    "fields": {
     "id": "BigAutoField",
     "message": "CharField",
@@ -566,7 +568,7 @@
   },
   "production.Waybill": {
    "table": "production_waybill",
-   "file": "production/models.py:859",
+   "file": "production/models.py:863",
    "fields": {
     "id": "BigAutoField",
     "waybill_number": "CharField[unique,idx]",
@@ -609,7 +611,7 @@
   },
   "production.CuttingBatch": {
    "table": "production_cuttingbatch",
-   "file": "production/models.py:961",
+   "file": "production/models.py:965",
    "fields": {
     "id": "BigAutoField",
     "batch_number": "PositiveIntegerField",
@@ -670,7 +672,7 @@
   },
   "production.CuttingBatchItem": {
    "table": "production_cuttingbatchitem",
-   "file": "production/models.py:1059",
+   "file": "production/models.py:1063",
    "fields": {
     "id": "BigAutoField",
     "quantity": "PositiveIntegerField",
@@ -715,7 +717,7 @@
   },
   "production.Box": {
    "table": "production_box",
-   "file": "production/models.py:1204",
+   "file": "production/models.py:1208",
    "fields": {
     "id": "BigAutoField",
     "box_code": "CharField[unique,idx]",
@@ -776,7 +778,7 @@
   },
   "production.BoxQualityInspectionLog": {
    "table": "production_boxqualityinspectionlog",
-   "file": "production/models.py:1403",
+   "file": "production/models.py:1407",
    "fields": {
     "id": "BigAutoField",
     "action_type": "CharField[choices]",
@@ -814,7 +816,7 @@
   },
   "production.DefectReason": {
    "table": "production_defectreason",
-   "file": "production/models.py:1454",
+   "file": "production/models.py:1458",
    "fields": {
     "id": "BigAutoField",
     "code": "CharField[unique]",
@@ -839,7 +841,7 @@
   },
   "production.ControlSetting": {
    "table": "production_controlsetting",
-   "file": "production/models.py:1539",
+   "file": "production/models.py:1543",
    "fields": {
     "id": "BigAutoField",
     "require_all_operations_scanned": "BooleanField",
@@ -857,7 +859,7 @@
   },
   "production.Ticket": {
    "table": "production_ticket",
-   "file": "production/models.py:1574",
+   "file": "production/models.py:1578",
    "fields": {
     "id": "BigAutoField",
     "ticket_code": "CharField[unique,idx]",
@@ -914,7 +916,7 @@
   },
   "production.DailyModelProgress": {
    "table": "production_dailymodelprogress",
-   "file": "production/models.py:1758",
+   "file": "production/models.py:1762",
    "fields": {
     "id": "BigAutoField",
     "date": "DateField[idx]",
@@ -946,7 +948,7 @@
   },
   "production.DailyPatokProgress": {
    "table": "production_dailypatokprogress",
-   "file": "production/models.py:1811",
+   "file": "production/models.py:1815",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveIntegerField[idx]",
@@ -980,7 +982,7 @@
   },
   "production.CancelledBatchLog": {
    "table": "production_cancelledbatchlog",
-   "file": "production/models.py:1874",
+   "file": "production/models.py:1878",
    "fields": {
     "id": "BigAutoField",
     "batch_id": "PositiveIntegerField[idx]",
@@ -1005,7 +1007,7 @@
   },
   "production.PatokAward": {
    "table": "production_patokaward",
-   "file": "production/models.py:1907",
+   "file": "production/models.py:1911",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField[idx]",
@@ -1037,7 +1039,7 @@
   },
   "production.RepairReceipt": {
    "table": "production_repairreceipt",
-   "file": "production/models.py:1972",
+   "file": "production/models.py:1976",
    "fields": {
     "id": "BigAutoField",
     "cycle": "PositiveSmallIntegerField",
@@ -1081,7 +1083,7 @@
   },
   "production.PackingBatch": {
    "table": "production_packingbatch",
-   "file": "production/models.py:2009",
+   "file": "production/models.py:2013",
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",
@@ -1108,7 +1110,7 @@
   },
   "production.PackerScreen": {
    "table": "production_packerscreen",
-   "file": "production/models.py:2035",
+   "file": "production/models.py:2039",
    "fields": {
     "id": "BigAutoField",
     "number": "PositiveSmallIntegerField[unique]",
@@ -1120,7 +1122,7 @@
   },
   "production.PackingScan": {
    "table": "production_packingscan",
-   "file": "production/models.py:2061",
+   "file": "production/models.py:2065",
    "fields": {
     "id": "BigAutoField",
     "source": "CharField[choices]",
@@ -1182,7 +1184,7 @@
   },
   "production.SecondSortBatch": {
    "table": "production_secondsortbatch",
-   "file": "production/models.py:2111",
+   "file": "production/models.py:2115",
    "fields": {
     "id": "BigAutoField",
     "code": "CharField[unique]",
@@ -1219,7 +1221,7 @@
   },
   "production.ReceiptPrinter": {
    "table": "production_receiptprinter",
-   "file": "production/models.py:2150",
+   "file": "production/models.py:2154",
    "fields": {
     "id": "BigAutoField",
     "screen_number": "PositiveSmallIntegerField[unique]",
@@ -1234,7 +1236,7 @@
   },
   "production.PrintJob": {
    "table": "production_printjob",
-   "file": "production/models.py:2173",
+   "file": "production/models.py:2177",
    "fields": {
     "id": "BigAutoField",
     "title": "CharField",
@@ -1272,7 +1274,7 @@
   },
   "production.SecondSortDispatchType": {
    "table": "production_secondsortdispatchtype",
-   "file": "production/models.py:2209",
+   "file": "production/models.py:2213",
    "fields": {
     "id": "BigAutoField",
     "name": "CharField[unique]",
@@ -1294,7 +1296,7 @@
   },
   "production.SecondSortDispatch": {
    "table": "production_secondsortdispatch",
-   "file": "production/models.py:2240",
+   "file": "production/models.py:2244",
    "fields": {
     "id": "BigAutoField",
     "code": "CharField[unique]",
@@ -1330,7 +1332,7 @@
   },
   "production.SecondSortDispatchItem": {
    "table": "production_secondsortdispatchitem",
-   "file": "production/models.py:2275",
+   "file": "production/models.py:2279",
    "fields": {
     "id": "BigAutoField",
     "razmer": "CharField",
@@ -1358,6 +1360,236 @@
      "on_delete": "SET_NULL",
      "related_name": "second_sort_dispatch_items"
     }
+   ]
+  },
+  "production.Container": {
+   "table": "production_container",
+   "file": "production/models.py:2313",
+   "fields": {
+    "id": "BigAutoField",
+    "number": "PositiveIntegerField[unique]",
+    "kind": "CharField[idx,choices]",
+    "branch": "CharField[idx,choices]",
+    "status": "CharField[idx,choices]",
+    "linked_at": "DateTimeField",
+    "print_count": "PositiveIntegerField",
+    "last_printed_at": "DateTimeField",
+    "created_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "box",
+     "type": "OneToOneField",
+     "to": "production.Box",
+     "on_delete": "SET_NULL",
+     "related_name": "container"
+    },
+    {
+     "field": "repair_receipt",
+     "type": "OneToOneField",
+     "to": "production.RepairReceipt",
+     "on_delete": "SET_NULL",
+     "related_name": "container"
+    },
+    {
+     "field": "created_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ]
+  },
+  "production.ContainerEvent": {
+   "table": "production_containerevent",
+   "file": "production/models.py:2354",
+   "fields": {
+    "id": "BigAutoField",
+    "action": "CharField[choices]",
+    "branch": "CharField",
+    "note": "CharField",
+    "created_at": "DateTimeField[idx]"
+   },
+   "relations": [
+    {
+     "field": "container",
+     "type": "ForeignKey",
+     "to": "production.Container",
+     "on_delete": "CASCADE",
+     "related_name": "events"
+    },
+    {
+     "field": "box",
+     "type": "ForeignKey",
+     "to": "production.Box",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "user",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ]
+  },
+  "production.PastalFlow": {
+   "table": "production_pastalflow",
+   "file": "production/models.py:2387",
+   "fields": {
+    "id": "BigAutoField",
+    "stage": "CharField[idx,choices]",
+    "branch": "CharField[idx,choices]",
+    "meto_taken_at": "DateTimeField",
+    "meto_done_at": "DateTimeField",
+    "tasnif_taken_at": "DateTimeField",
+    "tasnif_done_at": "DateTimeField",
+    "boxes_split_at": "DateTimeField",
+    "sklad_received_at": "DateTimeField",
+    "patok_given_at": "DateTimeField",
+    "updated_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "batch",
+     "type": "OneToOneField",
+     "to": "production.CuttingBatch",
+     "on_delete": "CASCADE",
+     "related_name": "flow"
+    },
+    {
+     "field": "meto_taken_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "meto_done_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "tasnif_taken_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "tasnif_done_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "boxes_split_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "sklad_received_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
+     "field": "patok_given_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ]
+  },
+  "production.PastalFlowSize": {
+   "table": "production_pastalflowsize",
+   "file": "production/models.py:2426",
+   "fields": {
+    "id": "BigAutoField",
+    "meto_qty": "PositiveIntegerField",
+    "tasnif_qty": "PositiveIntegerField"
+   },
+   "relations": [
+    {
+     "field": "item",
+     "type": "OneToOneField",
+     "to": "production.CuttingBatchItem",
+     "on_delete": "CASCADE",
+     "related_name": "flow_size"
+    }
+   ]
+  },
+  "production.Shipment": {
+   "table": "production_shipment",
+   "file": "production/models.py:2438",
+   "fields": {
+    "id": "BigAutoField",
+    "number": "CharField[unique]",
+    "source_branch": "CharField[choices]",
+    "destination_branch": "CharField[choices]",
+    "vehicle_number": "CharField",
+    "driver_name": "CharField",
+    "driver_phone": "CharField",
+    "notes": "TextField",
+    "status": "CharField[idx,choices]",
+    "created_at": "DateTimeField",
+    "closed_at": "DateTimeField"
+   },
+   "relations": [
+    {
+     "field": "created_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ]
+  },
+  "production.ShipmentPastal": {
+   "table": "production_shipmentpastal",
+   "file": "production/models.py:2465",
+   "fields": {
+    "id": "BigAutoField",
+    "status": "CharField[idx,choices]",
+    "resolved_at": "DateTimeField",
+    "note": "CharField"
+   },
+   "relations": [
+    {
+     "field": "shipment",
+     "type": "ForeignKey",
+     "to": "production.Shipment",
+     "on_delete": "CASCADE",
+     "related_name": "lines"
+    },
+    {
+     "field": "batch",
+     "type": "ForeignKey",
+     "to": "production.CuttingBatch",
+     "on_delete": "CASCADE",
+     "related_name": "shipment_lines"
+    },
+    {
+     "field": "resolved_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    }
+   ],
+   "unique_together": [
+    [
+     "shipment",
+     "batch"
+    ]
    ]
   }
  }

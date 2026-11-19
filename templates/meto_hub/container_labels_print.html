@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Konteyner yorliqlari {{ first_code }} — {{ last_code }}</title>
+    {% comment %}
+    Konteyner yorliqlari 100×80 mm (Citizen CL-S703), har sahifada bitta yorliq
+    (production/meto_container_views.py::container_labels_view). QR matni = konteyner ID (KONT-000123).
+    Chop etish sahifasi: Kun/Tun mavzusi ulanmagan.
+    {% endcomment %}
+    <style>
+        @page { size: 100mm 80mm; margin: 0; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #e5e7eb; color: #000; font-family: Arial, Helvetica, sans-serif; }
+        .toolbar { padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 14px; }
+        .toolbar button { font-size: 15px; font-weight: 700; padding: 8px 18px; cursor: pointer; }
+        .sheet { display: flex; flex-wrap: wrap; gap: 6mm; padding: 6mm; }
+        .label { width: 100mm; height: 80mm; background: #fff; padding: 4mm; display: flex; align-items: center; gap: 4mm;
+            border: 0.4mm solid #000; overflow: hidden; page-break-after: always; break-after: page; }
+        .qr { width: 56mm; height: 56mm; flex-shrink: 0; }
+        .qr img { width: 56mm; height: 56mm; image-rendering: pixelated; display: block; }
+        .side { flex: 1; min-width: 0; height: 66mm; display: flex; flex-direction: column; justify-content: space-between; }
+        .brand { font-size: 4.2mm; font-weight: 900; letter-spacing: 0.4mm; }
+        .title { font-size: 3.4mm; font-weight: 700; letter-spacing: 0.3mm; margin-top: 1mm; }
+        .kind { display: inline-block; margin-top: 2.5mm; padding: 1mm 2mm; background: #000; color: #fff; font-size: 3.6mm; font-weight: 900; }
+        .prefix { font-family: "Courier New", monospace; font-size: 5mm; font-weight: 900; letter-spacing: 0.5mm; }
+        .digits { font-family: "Courier New", monospace; font-size: 8mm; font-weight: 900; line-height: 1; letter-spacing: -0.2mm; }
+        @media print {
+            body { background: #fff; }
+            .toolbar { display: none; }
+            .sheet { display: block; padding: 0; }
+            .label { border: none; margin: 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toolbar">
+        <button type="button" onclick="window.print()">Chop etish</button>
+        <span>{{ labels|length }} ta yorliq: {{ first_code }} — {{ last_code }} · 100×80 mm (Citizen CL-S703), har sahifada bitta yorliq</span>
+    </div>
+    <div class="sheet">
+        {% for l in labels %}
+        <div class="label">
+            <div class="qr"><img src="{{ l.qr }}" alt="{{ l.container.code }}"></div>
+            <div class="side">
+                <div>
+                    <div class="brand">TERRY JAR</div>
+                    <div class="title">KONTEYNER</div>
+                    <div class="kind">{% if l.container.kind == 'SMALL' %}TA'MIR{% else %}KATTA{% endif %}</div>
+                </div>
+                <div>
+                    <div class="prefix">KONT</div>
+                    <div class="digits">{{ l.container.number|stringformat:"06d" }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+
+</html>

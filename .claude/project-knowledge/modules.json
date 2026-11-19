@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1079,
+  "lines": 1115,
   "depends_on": [
    "production.models",
    "production.platform",
@@ -53,7 +53,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4447,
+  "lines": 4449,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3451,
+  "lines": 3530,
   "depends_on": [
    "accounts.core"
   ]
@@ -168,11 +168,13 @@
   "description": "OTK quality control portal (/control/) and Android control APK download.",
   "files": [
    "production/control_urls.py",
+   "production/control_v2_views.py",
    "production/control_views.py"
   ],
-  "lines": 938,
+  "lines": 1066,
   "depends_on": [
    "accounts.core",
+   "production.meto",
    "production.models",
    "production.platform",
    "production.terminal"
@@ -237,15 +239,19 @@
  "production.meto": {
   "description": "Meto (numbering) portal (/meto/) and meto hub with waybills (/meto-hub/).",
   "files": [
+   "production/meto_container_views.py",
+   "production/meto_flow.py",
+   "production/meto_flow_views.py",
    "production/meto_hub_urls.py",
    "production/meto_hub_views.py",
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 1057,
+  "lines": 2296,
   "depends_on": [
    "accounts.core",
    "production.models",
+   "production.platform",
    "production.services"
   ]
  },
@@ -254,7 +260,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2297,
+  "lines": 2484,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -311,6 +317,7 @@
    "production/__init__.py",
    "production/admin.py",
    "production/apps.py",
+   "production/container_services.py",
    "production/packer_screens.py",
    "production/packing_services.py",
    "production/packing_urls.py",
@@ -324,11 +331,12 @@
    "production/static/brand/terryjar-logo.svg",
    "production/taxlov_pay.py"
   ],
-  "lines": 2937,
+  "lines": 3007,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
    "production.control",
+   "production.meto",
    "production.models",
    "production.passport",
    "production.reports",
@@ -432,6 +440,7 @@
    "templates/accounts/worker_badges_print.html",
    "templates/accounts/worker_list.html",
    "templates/base.html",
+   "templates/control_v2/control_home.html",
    "templates/cutting/base_cutting.html",
    "templates/cutting/dashboard.html",
    "templates/cutting/order_detail.html",
@@ -458,7 +467,26 @@
    "templates/meto/order_detail.html",
    "templates/meto/partials/batch_items.html",
    "templates/meto_hub/base_meto_hub.html",
+   "templates/meto_hub/container_detail.html",
+   "templates/meto_hub/container_labels_print.html",
+   "templates/meto_hub/containers.html",
    "templates/meto_hub/dashboard.html",
+   "templates/meto_hub/flow.html",
+   "templates/meto_hub/flow/_branch_js.html",
+   "templates/meto_hub/flow/_card_head.html",
+   "templates/meto_hub/flow/_incoming.html",
+   "templates/meto_hub/flow/_link_panel.html",
+   "templates/meto_hub/flow/_patok_list.html",
+   "templates/meto_hub/flow/_sklad_card.html",
+   "templates/meto_hub/flow/_tasnif_edit.html",
+   "templates/meto_hub/flow/meto.html",
+   "templates/meto_hub/flow/sklad.html",
+   "templates/meto_hub/flow/stiker.html",
+   "templates/meto_hub/flow/tasnif.html",
+   "templates/meto_hub/flow/uychi.html",
+   "templates/meto_hub/flow/yukxat.html",
+   "templates/meto_hub/flow/zakazlar.html",
+   "templates/meto_hub/shipment_print.html",
    "templates/meto_hub/uychi_dashboard.html",
    "templates/meto_hub/waybill_detail.html",
    "templates/meto_hub/waybill_print_a4.html",
@@ -527,7 +555,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 48054,
+  "lines": 52039,
   "depends_on": []
  },
  "tests": {
@@ -539,6 +567,8 @@
    "production/test_gifts.py",
    "production/test_managers_new.py",
    "production/test_master_statistics.py",
+   "production/test_meto_containers.py",
+   "production/test_meto_flow.py",
    "production/test_norma_canvas.py",
    "production/test_packing_beta.py",
    "production/test_passport_bot.py",
@@ -557,7 +587,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 12608,
+  "lines": 13253,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

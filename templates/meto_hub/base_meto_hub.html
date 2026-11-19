@@ -43,8 +43,9 @@
         <div class="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <!-- Brand -->
+                {% with limited=request.user.is_meto_flow_role|default:request.user.is_branch_admin %}
                 <div class="flex items-center gap-3">
-                    <a href="{% url 'meto_hub_dashboard' %}" class="flex items-center gap-2.5">
+                    <a href="{% if limited %}{% url 'meto_hub_flow' %}{% else %}{% url 'meto_hub_dashboard' %}{% endif %}" class="flex items-center gap-2.5">
                         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-cyan-500/20">
                             <i class="fa-solid fa-boxes-stacked"></i>
                         </div>
@@ -61,6 +62,7 @@
 
                 <!-- Navigation Tabs / Links -->
                 <nav class="hidden md:flex items-center gap-2">
+                    {% if not limited %}
                     <a href="{% url 'meto_hub_dashboard' %}?tab=sklad"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if request.resolver_match.url_name == 'meto_hub_dashboard' %}bg-cyan-500/20 text-cyan-300 border border-cyan-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
                         <i class="fa-solid fa-warehouse text-xs"></i>
@@ -71,12 +73,27 @@
                         <i class="fa-solid fa-truck-ramp-box text-xs"></i>
                         <span>Uychi Filiali</span>
                     </a>
+                    {% endif %}
+                    <a href="{% url 'meto_hub_flow' %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if 'meto_hub_flow' in request.resolver_match.url_name %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                        <i class="fa-solid fa-diagram-project text-xs"></i>
+                        <span>Yangi oqim (beta)</span>
+                    </a>
+                    {% if not limited or request.user.role == 'METO_SKLAD' or request.user.role == 'UYCHI_SKLAD' %}
+                    <a href="{% url 'meto_hub_containers' %}"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if 'meto_hub_container' in request.resolver_match.url_name %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                        <i class="fa-solid fa-box text-xs"></i>
+                        <span>Konteynerlar</span>
+                    </a>
+                    {% endif %}
+                    {% if not limited %}
                     <a href="{% url 'meto_dashboard' %}"
                         class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-300 hover:bg-slate-800/80 transition flex items-center gap-1.5 border border-slate-800"
                         title="Eski Meto bo'limiga o'tish">
                         <i class="fa-solid fa-arrow-left text-[10px]"></i>
                         <span>Eski Meto</span>
                     </a>
+                    {% endif %}
                 </nav>
 
                 <!-- User profile & Logout -->
@@ -96,6 +113,7 @@
                         <span class="hidden sm:inline">Chiqish</span>
                     </a>
                 </div>
+                {% endwith %}
             </div>
         </div>
     </header>

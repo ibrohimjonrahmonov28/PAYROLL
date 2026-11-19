@@ -1,0 +1,13 @@
+{% comment %}Tasnif sonini o'zgartirish (stiker chop etilguncha; bo'lingan qutilar bekor qilinib, qaytadan bo'linadi).{% endcomment %}
+<details class="text-sm">
+    <summary class="cursor-pointer text-xs font-bold text-slate-400 hover:text-slate-200">Tasnif sonini o'zgartirish</summary>
+    <form method="POST" action="{% url 'meto_hub_flow_tasnif_update' c.batch.id %}" class="mt-2 space-y-2">{% csrf_token %}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {% for s in c.sizes %}
+            <label class="space-y-1"><span class="text-[11px] font-bold text-slate-400">{{ s.name }}</span>
+                <input name="qty_{{ s.id }}" value="{{ s.tasnif }}" inputmode="numeric" class="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-center"></label>
+            {% endfor %}
+        </div>
+        <button onclick="return confirm('Tasnif soni o\'zgartirilsinmi? Bo\'lingan (chop etilmagan) qutilar bekor qilinadi.');" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold text-amber-300">Saqlash</button>
+    </form>
+</details>

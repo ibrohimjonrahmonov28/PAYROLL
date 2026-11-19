@@ -38,6 +38,10 @@ class User(AbstractUser):
         PACKING = 'PACKING', 'Upakovka'
         COUNTER = 'COUNTER', 'Sanoqchi (2-sort)'
         PACKING_MASTER = 'PACKING_MASTER', 'Upakovka masteri'
+        # Yangi meto oqimi (2026-11-19): meto masteri — METO, stikerchi — STICKER
+        TASNIF = 'TASNIF', 'Tasnif masteri'
+        METO_SKLAD = 'METO_SKLAD', 'Meto sklad'
+        UYCHI_SKLAD = 'UYCHI_SKLAD', 'Uychi sklad'
         USER = 'USER', 'Oddiy User'
 
     username = models.CharField(
@@ -149,6 +153,10 @@ class User(AbstractUser):
 
     def is_planner(self):
         return self.role == self.Role.PLAN or self.is_superadmin()
+
+    def is_meto_flow_role(self):
+        """Faqat yangi meto oqimida ishlaydigan rollar (/meto-hub/yangi/)."""
+        return self.role in (self.Role.TASNIF, self.Role.METO_SKLAD, self.Role.UYCHI_SKLAD)
 
     def can_access_payroll(self):
         return self.is_superadmin() or self.role == self.Role.BRANCH_ADMIN
