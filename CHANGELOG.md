@@ -29,7 +29,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `PENDING_COMMIT_ID`] — 19.11.2026
+### 🔹 [Commit: `a629ed7`] — 19.11.2026
 * **Turi:** `feat(meto-hub)` — Yangi meto oqimi (beta): konteynerlar, meto → tasnif → stiker → sklad, patokka berish, Uychi yuk xati va qaytarish, OTK v2
 * **Mavzu:** Egasining 19.11.2026 dagi qarorlari. Fabrikadagi ~10 000 konteynerga doimiy QR yorliq (`KONT-000123`) beriladi. Har stikerli quti bitta konteynerga bog'lanadi: patokka berish, Uychiga yuklash va qabul qilishda pastalning hamma konteyneri skaner qilinadi (yashil / qizil). Bittasi yo'q bo'lsa pastal to'xtaydi. Oqim faqat beta zakazning belgi yoqilgandan keyin kesilgan pastallarida ishlaydi. Eski `/meto/`, eski Meto Markazi tablari, Telegram bot va muzlatilgan `/control/` sahifasi o'zgarmadi.
 * **O'zgartirilgan fayllar:**
@@ -59,7 +59,7 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 * **Serverda:** `git pull origin main && docker compose restart web` (migratsiyalar `0053` va `accounts 0024` avtomatik qo'llanadi).
 * **Qaytish buyrug'i:**
   ```bash
-  git checkout PENDING_COMMIT_ID
+  git checkout a629ed7
   ```
 
 ---
