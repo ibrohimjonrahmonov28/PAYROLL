@@ -264,7 +264,7 @@ def _block_v2_in_legacy_meto(request, batch):
         request,
         "Bu pastal Tayyorlov bo'limi (/tayyorlov/) oqimida — eski /meto/ sahifasidan o'zgartirib bo'lmaydi."
     )
-    return redirect(f"{reverse('meto_hub_flow')}?tab=meto")
+    return redirect('meto_hub_flow_meto')
 
 
 @meto_required

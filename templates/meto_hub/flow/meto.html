@@ -34,7 +34,6 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
     <!-- Qidiruv va filtr (minglab pastal uchun) -->
     <form method="GET"
         class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center gap-2.5">
-        <input type="hidden" name="tab" value="meto">
         <div class="flex-1 min-w-[220px] relative">
             <i
                 class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
@@ -58,7 +57,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         <button
             class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Ko'rsatish</button>
         {% if q or zakaz or holat != 'faol' %}
-        <a href="?tab=meto" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
+        <a href="{% url 'meto_hub_flow_meto' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
         {% endif %}
     </form>
 
@@ -96,12 +95,12 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
             {% if wait_page.has_other_pages %}
             <div class="flex items-center justify-between gap-2 pt-2 text-sm">
                 {% if wait_page.has_previous %}
-                <a href="?tab=meto&holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.previous_page_number }}&pd={{ done_page.number }}"
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.previous_page_number }}&pd={{ done_page.number }}"
                     class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
                 {% else %}<span></span>{% endif %}
                 <span class="text-xs text-slate-400">{{ wait_page.number }} / {{ wait_page.paginator.num_pages }}</span>
                 {% if wait_page.has_next %}
-                <a href="?tab=meto&holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.next_page_number }}&pd={{ done_page.number }}"
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.next_page_number }}&pd={{ done_page.number }}"
                     class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
                 {% else %}<span></span>{% endif %}
             </div>
@@ -233,12 +232,12 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         {% if done_page.has_other_pages %}
         <div class="flex items-center justify-between gap-2 pt-2 text-sm">
             {% if done_page.has_previous %}
-            <a href="?tab=meto&holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.number }}&pd={{ done_page.previous_page_number }}"
+            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.number }}&pd={{ done_page.previous_page_number }}"
                 class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
             {% else %}<span></span>{% endif %}
             <span class="text-xs text-slate-400">{{ done_page.number }} / {{ done_page.paginator.num_pages }}</span>
             {% if done_page.has_next %}
-            <a href="?tab=meto&holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.number }}&pd={{ done_page.next_page_number }}"
+            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.number }}&pd={{ done_page.next_page_number }}"
                 class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
             {% else %}<span></span>{% endif %}
         </div>

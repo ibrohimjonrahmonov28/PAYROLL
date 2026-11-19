@@ -28,7 +28,7 @@
 
 <body>
     <div class="toolbar">
-        <a href="{% url 'meto_hub_flow' %}?tab={% if shipment.destination_branch == 'UYCHI' %}sklad{% else %}uychi{% endif %}">← Orqaga</a>
+        <a href="{% if shipment.destination_branch == 'UYCHI' %}{% url 'meto_hub_flow_sklad' %}{% else %}{% url 'meto_hub_flow_uychi' %}{% endif %}">← Orqaga</a>
         <button type="button" onclick="window.print()">Chop etish</button>
     </div>
     <div class="title">TERRY JAR — Yuk xati № {{ shipment.number }}</div>

@@ -126,7 +126,7 @@ class MetoFlowStepsTest(MetoFlowBase):
     def test_meto_then_tasnif_through_pages(self):
         flow_url = reverse('meto_hub_flow')
         self.client.force_login(self.meto)
-        page = self.client.get(flow_url)
+        page = self.client.get(reverse('meto_hub_flow_meto'))
         self.assertEqual(page.context['tab'], 'meto')
         self.assertEqual([c['batch'].id for c in page.context['waiting']], [self.batch.id])
         self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
@@ -492,9 +492,21 @@ class FlowAccessTest(MetoFlowBase):
         }
         for user, tabs in expected.items():
             self.client.force_login(user)
-            self.assertEqual([key for key, _ in self.client.get(reverse('meto_hub_flow')).context['tabs']], tabs, user)
+            hub = self.client.get(reverse('meto_hub_flow'))
+            self.assertEqual([key for key, _ in hub.context['tabs']], tabs, user)
+            for t in tabs:
+                self.assertContains(hub, reverse(f'meto_hub_flow_{t}'))
         self.client.force_login(self.tasnif)
-        self.assertEqual(self.client.get(reverse('meto_hub_flow'), {'tab': 'sklad'}).context['tab'], 'tasnif')
+        self.assertRedirects(
+            self.client.get(reverse('meto_hub_flow_sklad')),
+            reverse('meto_hub_flow'),
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            self.client.get(reverse('meto_hub_flow'), {'tab': 'sklad'}),
+            reverse('meto_hub_flow'),
+            fetch_redirect_response=False,
+        )
 
     def test_new_roles_stay_inside_new_flow(self):
         for user in (self.tasnif, self.sklad, self.uychi):
@@ -513,7 +525,9 @@ class FlowAccessTest(MetoFlowBase):
         branch_admin = User.objects.create_user(username='mf_filial', password='x', role=User.Role.BRANCH_ADMIN,
                                                 branch=User.Branch.UYCHI)
         self.client.force_login(branch_admin)
-        res = self.client.get(reverse('meto_hub_flow'))
+        hub = self.client.get(reverse('meto_hub_flow'))
+        self.assertEqual([key for key, _ in hub.context['tabs']], ['uychi', 'yukxat'])
+        res = self.client.get(reverse('meto_hub_flow_uychi'))
         self.assertEqual(res.context['tab'], 'uychi')
         self.assertRedirects(self.client.get('/meto-hub/'), reverse('superadmin_payroll'), fetch_redirect_response=False)
 
@@ -526,6 +540,7 @@ class FlowAccessTest(MetoFlowBase):
         master = User.objects.create_user(username='mf_master', password='x', role=User.Role.MASTER)
         self.client.force_login(master)
         self.assertNotEqual(self.client.get(reverse('meto_hub_flow')).status_code, 200)
+        self.assertNotEqual(self.client.get(reverse('meto_hub_flow_meto')).status_code, 200)
         self.assertEqual(self.post_json(master, reverse('meto_hub_flow_api_link'), {}).status_code, 403)
 
     def test_every_tab_renders_with_data(self):
@@ -537,12 +552,12 @@ class FlowAccessTest(MetoFlowBase):
         meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
         self.client.force_login(self.admin)
         for tab in ('meto', 'tasnif', 'stiker', 'sklad', 'uychi', 'yukxat', 'zakazlar'):
-            res = self.client.get(reverse('meto_hub_flow'), {'tab': tab})
+            res = self.client.get(reverse(f'meto_hub_flow_{tab}'))
             self.assertEqual((res.status_code, res.context['tab']), (200, tab))
-        res = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto'})
+        res = self.client.get(reverse('meto_hub_flow_meto'))
         self.assertEqual([c['batch'].id for c in res.context['waiting']], [second.id])
         self.assertEqual([c['batch'].id for c in res.context['working']], [third.id])
-        res = self.client.get(reverse('meto_hub_flow'), {'tab': 'sklad'})
+        res = self.client.get(reverse('meto_hub_flow_sklad'))
         self.assertEqual([c['patok_code'] for c in res.context['patok_rows']], ['K3'])
         self.assertContains(res, 'Patok oldida')
         detail = self.client.get(reverse('meto_hub_container_detail', args=[Container.objects.get(box=self.boxes()[0]).number]))
@@ -552,8 +567,25 @@ class FlowAccessTest(MetoFlowBase):
 class TayyorlovMetoUpgradeTest(MetoFlowBase):
     def test_tayyorlov_url_and_legacy_redirects(self):
         self.assertEqual(reverse('meto_hub_flow'), '/tayyorlov/')
+        self.assertEqual(reverse('meto_hub_flow_meto'), '/tayyorlov/meto/')
+        self.assertEqual(reverse('meto_hub_flow_tasnif'), '/tayyorlov/tasnif/')
         self.assertEqual(reverse('meto_hub_containers'), '/tayyorlov/konteynerlar/')
         self.client.force_login(self.admin)
+        hub = self.client.get('/tayyorlov/')
+        self.assertContains(hub, 'href="/tayyorlov/meto/" target="_blank"')
+        self.assertContains(hub, 'href="/tayyorlov/tasnif/" target="_blank"')
+        self.assertContains(hub, 'href="/tayyorlov/konteynerlar/" target="_blank"')
+        self.assertRedirects(
+            self.client.get('/tayyorlov/meto'),
+            '/tayyorlov/meto/',
+            status_code=301,
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            self.client.get('/tayyorlov/?tab=meto&q=11-1'),
+            '/tayyorlov/meto/?q=11-1',
+            fetch_redirect_response=False,
+        )
         self.assertRedirects(
             self.client.get('/meto-hub/yangi/?tab=meto&q=11-1'),
             '/tayyorlov/?tab=meto&q=11-1',
@@ -565,11 +597,7 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
             fetch_redirect_response=False,
         )
         self.client.force_login(self.tasnif)
-        self.assertRedirects(
-            self.client.get('/meto-hub/yangi/?tab=meto'),
-            '/tayyorlov/?tab=meto',
-            fetch_redirect_response=False,
-        )
+        self.assertNotContains(self.client.get('/tayyorlov/'), '/tayyorlov/konteynerlar/')
         self.assertRedirects(
             self.client.get('/tayyorlov/konteynerlar/'),
             '/tayyorlov/',
@@ -578,7 +606,8 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
 
     def test_meto_cancel_note_and_typo_guard(self):
         self.client.force_login(self.meto)
-        self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
+        take_res = self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
+        self.assertRedirects(take_res, '/tayyorlov/meto/', fetch_redirect_response=False)
         self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.METO_WORK)
         with self.assertRaises(FlowError):   # allaqachon qabul qilingan
             meto_flow.take_meto(self.batch, self.admin)
@@ -603,12 +632,12 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
         for idx in range(2, 36):
             self.cut(f'P-{idx:03d}')
         self.client.force_login(self.meto)
-        page1 = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto'})
+        page1 = self.client.get(reverse('meto_hub_flow_meto'))
         self.assertEqual(page1.context['kpi']['wait_count'], 35)
         self.assertEqual(len(page1.context['waiting']), 30)
-        page2 = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto', 'pw': 2})
+        page2 = self.client.get(reverse('meto_hub_flow_meto'), {'pw': 2})
         self.assertEqual(len(page2.context['waiting']), 5)
-        filtered = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto', 'q': 'P-015'})
+        filtered = self.client.get(reverse('meto_hub_flow_meto'), {'q': 'P-015'})
         self.assertEqual([c['batch'].pastal_code for c in filtered.context['waiting']], ['P-015'])
 
     def test_old_meto_blocks_tayyorlov_batches_and_split_handles_zero_and_recount(self):

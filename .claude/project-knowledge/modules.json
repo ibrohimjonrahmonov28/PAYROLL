@@ -29,7 +29,7 @@
    "accounts/urls.py",
    "accounts/views.py"
   ],
-  "lines": 1115,
+  "lines": 1127,
   "depends_on": [
    "production.models",
    "production.platform",
@@ -93,7 +93,7 @@
    "config/urls.py",
    "config/wsgi.py"
   ],
-  "lines": 359,
+  "lines": 360,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3530,
+  "lines": 3551,
   "depends_on": [
    "accounts.core"
   ]
@@ -247,7 +247,7 @@
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 2296,
+  "lines": 2599,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -260,7 +260,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2484,
+  "lines": 2489,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -329,9 +329,10 @@
    "production/static/brand/favicon.ico",
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg",
-   "production/taxlov_pay.py"
+   "production/taxlov_pay.py",
+   "production/tayyorlov_urls.py"
   ],
-  "lines": 3007,
+  "lines": 3053,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -555,7 +556,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 52039,
+  "lines": 52439,
   "depends_on": []
  },
  "tests": {
@@ -587,7 +588,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 13253,
+  "lines": 13365,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

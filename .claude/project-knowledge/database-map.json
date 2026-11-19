@@ -2,12 +2,12 @@
  "_note": "Generated from Django model registry. Field flags: unique, idx (db_index), choices. Relations list concrete FK/O2O/M2M only.",
  "migrations": {
   "accounts": {
-   "count": 24,
-   "latest": "0024_meto_flow_roles"
+   "count": 25,
+   "latest": "0025_alter_user_role"
   },
   "production": {
-   "count": 53,
-   "latest": "0053_meto_flow"
+   "count": 54,
+   "latest": "0054_pastalflow_meto_note_alter_pastalflow_meto_done_at_and_more"
   },
   "screens": {
    "count": 0,
@@ -1442,9 +1442,10 @@
     "stage": "CharField[idx,choices]",
     "branch": "CharField[idx,choices]",
     "meto_taken_at": "DateTimeField",
-    "meto_done_at": "DateTimeField",
+    "meto_done_at": "DateTimeField[idx]",
+    "meto_note": "CharField",
     "tasnif_taken_at": "DateTimeField",
-    "tasnif_done_at": "DateTimeField",
+    "tasnif_done_at": "DateTimeField[idx]",
     "boxes_split_at": "DateTimeField",
     "sklad_received_at": "DateTimeField",
     "patok_given_at": "DateTimeField",
@@ -1511,7 +1512,7 @@
   },
   "production.PastalFlowSize": {
    "table": "production_pastalflowsize",
-   "file": "production/models.py:2426",
+   "file": "production/models.py:2431",
    "fields": {
     "id": "BigAutoField",
     "meto_qty": "PositiveIntegerField",
@@ -1529,7 +1530,7 @@
   },
   "production.Shipment": {
    "table": "production_shipment",
-   "file": "production/models.py:2438",
+   "file": "production/models.py:2443",
    "fields": {
     "id": "BigAutoField",
     "number": "CharField[unique]",
@@ -1555,7 +1556,7 @@
   },
   "production.ShipmentPastal": {
    "table": "production_shipmentpastal",
-   "file": "production/models.py:2465",
+   "file": "production/models.py:2470",
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",

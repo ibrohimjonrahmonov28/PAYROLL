@@ -11,6 +11,13 @@ from .meto_container_views import (
 # Tayyorlov bo'limi (/tayyorlov/): Bosh bino (Meto → Tasnif → Stiker → Tayyorlov skladi), Filial (Uychi) va Konteynerlar
 urlpatterns = [
     path('', flow.flow_view, name='meto_hub_flow'),
+    path('meto/', flow.section_view, {'tab': 'meto'}, name='meto_hub_flow_meto'),
+    path('tasnif/', flow.section_view, {'tab': 'tasnif'}, name='meto_hub_flow_tasnif'),
+    path('stiker/', flow.section_view, {'tab': 'stiker'}, name='meto_hub_flow_stiker'),
+    path('sklad/', flow.section_view, {'tab': 'sklad'}, name='meto_hub_flow_sklad'),
+    path('uychi/', flow.section_view, {'tab': 'uychi'}, name='meto_hub_flow_uychi'),
+    path('yukxat/', flow.section_view, {'tab': 'yukxat'}, name='meto_hub_flow_yukxat'),
+    path('zakazlar/', flow.section_view, {'tab': 'zakazlar'}, name='meto_hub_flow_zakazlar'),
     path('<int:batch_id>/meto/qabul/', flow.meto_take, name='meto_hub_flow_meto_take'),
     path('<int:batch_id>/meto/bekor/', flow.meto_cancel, name='meto_hub_flow_meto_cancel'),
     path('<int:batch_id>/meto/tugatish/', flow.meto_finish, name='meto_hub_flow_meto_finish'),

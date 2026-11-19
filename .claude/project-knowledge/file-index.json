@@ -3,8 +3,8 @@
  "files": {
   ".claude/project-knowledge/architecture.md": {
    "module": "ops",
-   "lines": 46,
-   "sha256_16": "0eea83a5d5469ce4"
+   "lines": 47,
+   "sha256_16": "69d033c01dcecbb4"
   },
   ".claude/project-knowledge/build_graph.py": {
    "module": "ops",
@@ -23,17 +23,17 @@
   ".claude/project-knowledge/overview.md": {
    "module": "ops",
    "lines": 35,
-   "sha256_16": "e976085df9e7cdbe"
+   "sha256_16": "545bb0a0367941a9"
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 958,
-   "sha256_16": "09c4541dcc4069d0"
+   "lines": 976,
+   "sha256_16": "a70043d16d47e7a3"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 175,
-   "sha256_16": "8173b2a64e0a4454"
+   "lines": 177,
+   "sha256_16": "f4b485db9a02c200"
   },
   "Dockerfile": {
    "module": "ops",
@@ -147,8 +147,8 @@
   },
   "accounts/middleware.py": {
    "module": "accounts.core",
-   "lines": 355,
-   "sha256_16": "e0ac6aefc7a77376",
+   "lines": 367,
+   "sha256_16": "a666466872dfa7bc",
    "symbols": [
     "MasterTerminalAccessRestrictionMiddleware:6"
    ]
@@ -156,7 +156,7 @@
   "accounts/models.py": {
    "module": "accounts.core",
    "lines": 542,
-   "sha256_16": "ffe53317c14a12d0",
+   "sha256_16": "a65c03c7978e275f",
    "symbols": [
     "generate_unique_user_uid:11",
     "User:20",
@@ -256,7 +256,7 @@
   "accounts/views.py": {
    "module": "accounts.core",
    "lines": 176,
-   "sha256_16": "e7f28f4c97956df3",
+   "sha256_16": "2b0658261e9b2d08",
    "symbols": [
     "login_view:7",
     "logout_view:133",
@@ -399,8 +399,8 @@
   },
   "config/urls.py": {
    "module": "config",
-   "lines": 60,
-   "sha256_16": "a8bfe38392136b44"
+   "lines": 61,
+   "sha256_16": "d6db2d7105cb0b34"
   },
   "config/wsgi.py": {
    "module": "config",
@@ -873,8 +873,8 @@
   },
   "production/meto_flow.py": {
    "module": "production.meto",
-   "lines": 607,
-   "sha256_16": "532c7b174d439d68",
+   "lines": 643,
+   "sha256_16": "8cb41e934fd31395",
    "symbols": [
     "FlowError:45",
     "can:49",
@@ -884,97 +884,106 @@
     "is_v2_box:71",
     "get_flow:76",
     "ensure_flows:81",
-    "sync_rejected_flows:87",
-    "_items:100",
-    "_size:104",
-    "_counts:109",
-    "_require:122",
-    "take_meto:129",
-    "finish_meto:138",
-    "take_tasnif:153",
-    "finish_tasnif:162",
-    "_active_boxes:179",
-    "update_tasnif_counts:183",
-    "split_boxes:211",
-    "_positive:242",
-    "sklad_receive:247",
-    "resolve_box:272",
-    "find_container:294",
-    "_set_status:299",
-    "link_container:310",
-    "unlink:342",
-    "check_list:367",
-    "_unscanned:378",
-    "_verify:383",
-    "_require_ready:401",
-    "give_to_patok:412",
-    "_new_shipment:445",
-    "create_shipment:456",
-    "_close_if_done:481",
-    "receive_line:487",
-    "return_line:514",
-    "release:538",
-    "check_repair_container:544",
-    "link_repair_container:555",
-    "after_initial_inspection:563",
-    "after_repair_return:570",
-    "release_for_scan:588",
-    "container_state:601"
+    "sync_rejected_flows:90",
+    "_items:103",
+    "_size:107",
+    "_counts:112",
+    "_require:125",
+    "take_meto:132",
+    "cancel_meto:145",
+    "finish_meto:157",
+    "take_tasnif:184",
+    "finish_tasnif:193",
+    "_active_boxes:210",
+    "update_tasnif_counts:214",
+    "split_boxes:242",
+    "_positive:277",
+    "sklad_receive:282",
+    "resolve_box:307",
+    "find_container:329",
+    "_set_status:334",
+    "link_container:345",
+    "unlink:378",
+    "check_list:403",
+    "_unscanned:414",
+    "_verify:419",
+    "_require_ready:437",
+    "give_to_patok:448",
+    "_new_shipment:481",
+    "create_shipment:492",
+    "_close_if_done:517",
+    "receive_line:523",
+    "return_line:550",
+    "release:574",
+    "check_repair_container:580",
+    "link_repair_container:591",
+    "after_initial_inspection:599",
+    "after_repair_return:606",
+    "release_for_scan:624",
+    "container_state:637"
    ]
   },
   "production/meto_flow_views.py": {
    "module": "production.meto",
-   "lines": 444,
-   "sha256_16": "ed97a6896dad7abc",
+   "lines": 705,
+   "sha256_16": "d9edf081815f8c94",
    "symbols": [
-    "_allowed_tabs:35",
-    "flow_access_required:47",
-    "_flow_url:62",
-    "_deny:67",
-    "_json:72",
-    "_allowed:79",
-    "_api:85",
-    "_card:105",
-    "_flows:135",
-    "_incoming:144",
-    "_patok_rows:151",
-    "_ctx_meto:165",
-    "_ctx_tasnif:170",
-    "_ctx_stiker:175",
-    "_ctx_sklad:181",
-    "_ctx_uychi:187",
-    "_ctx_yukxat:192",
-    "_ctx_zakazlar:200",
-    "flow_view:213",
-    "_form_action:225",
-    "_batch:244",
-    "_posted_counts:248",
-    "_name:252",
-    "meto_take:257",
-    "meto_finish:264",
-    "tasnif_take:271",
-    "tasnif_finish:278",
-    "tasnif_update:285",
-    "split:292",
-    "sklad_receive:305",
-    "beta_toggle:312",
-    "_require_branch:324",
-    "api_resolve:330",
-    "api_link:350",
-    "api_unlink:361",
-    "api_check:374",
-    "api_give:384",
-    "api_ship:397",
-    "_line:407",
-    "api_receive:417",
-    "api_return:427",
-    "shipment_print:433"
+    "_can_view_section:104",
+    "_allowed_sections:111",
+    "_allowed_tabs:115",
+    "flow_access_required:119",
+    "_flow_url:134",
+    "_deny:141",
+    "_json:146",
+    "_allowed:153",
+    "_api:159",
+    "_card:183",
+    "_flows_qs:219",
+    "_flows:228",
+    "_search_flows_qs:232",
+    "_incoming:250",
+    "_patok_rows:257",
+    "_ctx_meto:271",
+    "_ctx_tasnif:316",
+    "_ctx_stiker:321",
+    "_ctx_sklad:327",
+    "_ctx_uychi:333",
+    "_ctx_yukxat:338",
+    "_ctx_zakazlar:346",
+    "_can_open_containers:368",
+    "_hub_stats:373",
+    "flow_view:428",
+    "section_view:454",
+    "_form_action:476",
+    "_batch:498",
+    "_posted_counts:502",
+    "_name:506",
+    "meto_take:511",
+    "meto_cancel:518",
+    "meto_finish:525",
+    "tasnif_take:532",
+    "tasnif_finish:539",
+    "tasnif_update:546",
+    "split:553",
+    "sklad_receive:566",
+    "beta_toggle:573",
+    "_require_branch:585",
+    "api_resolve:591",
+    "api_link:611",
+    "api_unlink:622",
+    "api_check:635",
+    "api_give:645",
+    "api_ship:658",
+    "_line:668",
+    "api_receive:678",
+    "api_return:688",
+    "shipment_print:694"
    ]
   },
   "production/meto_hub_urls.py": {
    "module": "production.meto",
-   "lines": 62,
-   "sha256_16": "a422b31bdd9ecfb1"
+   "lines": 37,
+   "sha256_16": "5e6e0d23250e9846"
   },
   "production/meto_hub_views.py": {
    "module": "production.meto",
@@ -1004,22 +1013,23 @@
   },
   "production/meto_views.py": {
    "module": "production.meto",
-   "lines": 490,
-   "sha256_16": "cf84c934448bff70",
+   "lines": 521,
+   "sha256_16": "bab0f461b3ffe4ac",
    "symbols": [
-    "meto_required:11",
-    "meto_dashboard:30",
-    "meto_order_detail:95",
-    "meto_batch_items_view:177",
-    "meto_reset_item:249",
-    "meto_confirm_item:304",
-    "meto_generate_missing_boxes:436"
+    "meto_required:12",
+    "meto_dashboard:31",
+    "meto_order_detail:104",
+    "meto_batch_items_view:188",
+    "_block_v2_in_legacy_meto:259",
+    "meto_reset_item:271",
+    "meto_confirm_item:329",
+    "meto_generate_missing_boxes:464"
    ]
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2484,
-   "sha256_16": "2a4dc199e52e3e25",
+   "lines": 2489,
+   "sha256_16": "fe9a604c3df410f8",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -1067,9 +1077,9 @@
     "Container:2313",
     "ContainerEvent:2354",
     "PastalFlow:2387",
-    "PastalFlowSize:2426",
-    "Shipment:2438",
-    "ShipmentPastal:2465"
+    "PastalFlowSize:2431",
+    "Shipment:2443",
+    "ShipmentPastal:2470"
    ]
   },
   "production/norma_services.py": {
@@ -1303,7 +1313,7 @@
   "production/services.py": {
    "module": "production.services",
    "lines": 611,
-   "sha256_16": "b0ee3302466ce058",
+   "sha256_16": "fef7c11ec8ecf9fe",
    "symbols": [
     "allocate_ticket_quantities:12",
     "generate_box_tickets:40",
@@ -1427,6 +1437,11 @@
     "worker_taxlov_total:82"
    ]
   },
+  "production/tayyorlov_urls.py": {
+   "module": "production.platform",
+   "lines": 46,
+   "sha256_16": "ebf0c72fe052d945"
+  },
   "production/telegram_reports.py": {
    "module": "production.reports",
    "lines": 381,
@@ -1514,8 +1529,8 @@
   },
   "production/test_meto_flow.py": {
    "module": "tests",
-   "lines": 550,
-   "sha256_16": "c06cb7b905bcf4ba",
+   "lines": 661,
+   "sha256_16": "f805d4fa230d874a",
    "symbols": [
     "MetoFlowBase:22",
     "MetoFlowStepsTest:96",
@@ -1523,7 +1538,8 @@
     "DispatchTest:269",
     "UychiShipmentTest:334",
     "OtkV2Test:394",
-    "FlowAccessTest:486"
+    "FlowAccessTest:486",
+    "TayyorlovMetoUpgradeTest:567"
    ]
   },
   "production/test_norma_canvas.py": {
@@ -1597,8 +1613,8 @@
   },
   "production/test_second_sort_dispatch.py": {
    "module": "tests",
-   "lines": 228,
-   "sha256_16": "88adda5df329b4d9",
+   "lines": 229,
+   "sha256_16": "18c989c606275f57",
    "symbols": [
     "SecondSortDispatchTest:18"
    ]
@@ -1811,8 +1827,8 @@
   },
   "templates/base.html": {
    "module": "templates",
-   "lines": 281,
-   "sha256_16": "317033daf6a3271e"
+   "lines": 287,
+   "sha256_16": "72ec779da61440d3"
   },
   "templates/control_v2/control_home.html": {
    "module": "templates",
@@ -1926,18 +1942,18 @@
   },
   "templates/meto/base_meto.html": {
    "module": "templates",
-   "lines": 161,
-   "sha256_16": "573dc3447b12a40f"
+   "lines": 166,
+   "sha256_16": "b6c1bdd5211c21c6"
   },
   "templates/meto/dashboard.html": {
    "module": "templates",
-   "lines": 182,
-   "sha256_16": "964198a6f678fa90"
+   "lines": 187,
+   "sha256_16": "a734ace3bd7c26cb"
   },
   "templates/meto/order_detail.html": {
    "module": "templates",
-   "lines": 308,
-   "sha256_16": "433286ba73399be6"
+   "lines": 317,
+   "sha256_16": "3e9eb973c0d706e6"
   },
   "templates/meto/partials/batch_items.html": {
    "module": "templates",
@@ -1946,8 +1962,8 @@
   },
   "templates/meto_hub/base_meto_hub.html": {
    "module": "templates",
-   "lines": 155,
-   "sha256_16": "b8d54ab320366ceb"
+   "lines": 172,
+   "sha256_16": "61c5cd2a223dad07"
   },
   "templates/meto_hub/container_detail.html": {
    "module": "templates",
@@ -1971,8 +1987,8 @@
   },
   "templates/meto_hub/flow.html": {
    "module": "templates",
-   "lines": 180,
-   "sha256_16": "20f7d43ba7985a0c"
+   "lines": 196,
+   "sha256_16": "a454711e3073fb50"
   },
   "templates/meto_hub/flow/_branch_js.html": {
    "module": "templates",
@@ -1981,8 +1997,8 @@
   },
   "templates/meto_hub/flow/_card_head.html": {
    "module": "templates",
-   "lines": 11,
-   "sha256_16": "c020199e4d3453c0"
+   "lines": 39,
+   "sha256_16": "4d7382db5fdd9ca6"
   },
   "templates/meto_hub/flow/_incoming.html": {
    "module": "templates",
@@ -2011,8 +2027,8 @@
   },
   "templates/meto_hub/flow/meto.html": {
    "module": "templates",
-   "lines": 35,
-   "sha256_16": "81ee5d459e371e4a"
+   "lines": 306,
+   "sha256_16": "abbaca81028c25ce"
   },
   "templates/meto_hub/flow/sklad.html": {
    "module": "templates",
@@ -2026,8 +2042,8 @@
   },
   "templates/meto_hub/flow/tasnif.html": {
    "module": "templates",
-   "lines": 34,
-   "sha256_16": "87c60714049144ea"
+   "lines": 46,
+   "sha256_16": "88feea544d93389e"
   },
   "templates/meto_hub/flow/uychi.html": {
    "module": "templates",
@@ -2041,13 +2057,13 @@
   },
   "templates/meto_hub/flow/zakazlar.html": {
    "module": "templates",
-   "lines": 34,
-   "sha256_16": "139061877f18f152"
+   "lines": 33,
+   "sha256_16": "72985739ed95c82c"
   },
   "templates/meto_hub/shipment_print.html": {
    "module": "templates",
    "lines": 58,
-   "sha256_16": "89627635d34b2753"
+   "sha256_16": "a46e58ae656c2b36"
   },
   "templates/meto_hub/uychi_dashboard.html": {
    "module": "templates",
@@ -2131,8 +2147,8 @@
   },
   "templates/packing/partials/dispatch_type_badge.html": {
    "module": "templates",
-   "lines": 12,
-   "sha256_16": "98ed284311985b9c"
+   "lines": 11,
+   "sha256_16": "a43027c745e486b7"
   },
   "templates/packing/partials/second_sort_balance.html": {
    "module": "templates",
@@ -2296,8 +2312,8 @@
   },
   "templates/stickers/base_stickers.html": {
    "module": "templates",
-   "lines": 142,
-   "sha256_16": "7b8ee5f74ceec9bf"
+   "lines": 151,
+   "sha256_16": "c64d4949821716a3"
   },
   "templates/stickers/dashboard.html": {
    "module": "templates",
@@ -2316,8 +2332,8 @@
   },
   "templates/superadmin/base_superadmin.html": {
    "module": "templates",
-   "lines": 386,
-   "sha256_16": "712cb5dd045abdad"
+   "lines": 392,
+   "sha256_16": "29f1d3615f4a4500"
   },
   "templates/superadmin/dashboard.html": {
    "module": "templates",
@@ -2366,8 +2382,8 @@
   },
   "templates/superadmin/users.html": {
    "module": "templates",
-   "lines": 1679,
-   "sha256_16": "a5292e9aa6968ea4"
+   "lines": 1697,
+   "sha256_16": "09c0b862b6af3eab"
   },
   "templates/superadmin/users_badges_batch_print.html": {
    "module": "templates",

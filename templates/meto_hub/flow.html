@@ -4,27 +4,36 @@
 
 {% block content %}
 {% comment %}
-Tayyorlov bo'limi (/tayyorlov/, production/meto_flow_views.py::flow_view, mantiq — production/meto_flow.py). Tablar rol
-bo'yicha;
-konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qilishda umumiy.
+Tayyorlov bo'limining alohida sahifasi (/tayyorlov/<bolim>/, meto_flow_views.py::section_view, mantiq — meto_flow.py).
+Konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qilishda umumiy.
 {% endcomment %}
 <div class="space-y-5">
-    <div class="flex flex-wrap items-end justify-between gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-400 mb-1">
+                <a href="{% url 'meto_hub_flow' %}" class="hover:text-amber-300 transition flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> Tayyorlov menyusi
+                </a>
+                <span>/</span>
+                <span class="text-slate-300">{{ section.group }}</span>
+            </div>
             <h1 class="text-2xl font-black text-white flex items-center gap-2.5">
-                <i class="fa-solid fa-diagram-project text-amber-400"></i> Tayyorlov bo'limi
-                <span class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-black">BETA</span>
+                <i class="fa-solid {{ section.icon }} text-amber-400"></i> {{ tab_label }}
+                <span class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-black">TAYYORLOV</span>
             </h1>
-            <p class="text-sm text-slate-400 mt-1">Bosh bino: Meto → Tasnif → Stiker → Tayyorlov skladi · Filial
-                (Uychi): Qabul → Sklad → Patok.</p>
+            <p class="text-sm text-slate-400 mt-1">{{ section.desc }}</p>
         </div>
     </div>
 
     <nav class="flex flex-wrap gap-2">
-        {% for key, label in tabs %}
-        <a href="?tab={{ key }}"
-            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition {% if key == tab %}bg-amber-500 text-slate-950 border-amber-400{% else %}bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600{% endif %}">{{
-            label }}</a>
+        {% for s in nav_sections %}
+        {% if s.active %}
+        <a href="{{ s.url }}"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition bg-amber-500 text-slate-950 border-amber-400">{{ s.label }}</a>
+        {% else %}
+        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600 inline-flex items-center gap-1.5">{{ s.label }}<i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60"></i></a>
+        {% endif %}
         {% endfor %}
     </nav>
 

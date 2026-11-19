@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 252,
+ "route_count": 265,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1421,207 +1421,303 @@
   },
   {
    "path": "/meto-hub/konteynerlar/",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "production.meto_hub_urls"
+  },
+  {
+   "path": "/meto-hub/konteynerlar/<path:subpath>",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "production.meto_hub_urls"
+  },
+  {
+   "path": "/meto-hub/yangi/",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "production.meto_hub_urls"
+  },
+  {
+   "path": "/meto-hub/yangi/<path:subpath>",
+   "name": null,
+   "view": "django.views.generic.base.RedirectView",
+   "urlconf": "production.meto_hub_urls"
+  },
+  {
+   "path": "/tayyorlov/",
+   "name": "meto_hub_flow",
+   "view": "production.meto_flow_views.flow_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/meto/",
+   "name": "meto_hub_flow_meto",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/tasnif/",
+   "name": "meto_hub_flow_tasnif",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/",
+   "name": "meto_hub_flow_stiker",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/sklad/",
+   "name": "meto_hub_flow_sklad",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/uychi/",
+   "name": "meto_hub_flow_uychi",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/yukxat/",
+   "name": "meto_hub_flow_yukxat",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/zakazlar/",
+   "name": "meto_hub_flow_zakazlar",
+   "view": "production.meto_flow_views.section_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/meto/qabul/",
+   "name": "meto_hub_flow_meto_take",
+   "view": "production.meto_flow_views.meto_take",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/meto/bekor/",
+   "name": "meto_hub_flow_meto_cancel",
+   "view": "production.meto_flow_views.meto_cancel",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/meto/tugatish/",
+   "name": "meto_hub_flow_meto_finish",
+   "view": "production.meto_flow_views.meto_finish",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/tasnif/qabul/",
+   "name": "meto_hub_flow_tasnif_take",
+   "view": "production.meto_flow_views.tasnif_take",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/tasnif/tugatish/",
+   "name": "meto_hub_flow_tasnif_finish",
+   "view": "production.meto_flow_views.tasnif_finish",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/tasnif/ozgartirish/",
+   "name": "meto_hub_flow_tasnif_update",
+   "view": "production.meto_flow_views.tasnif_update",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/qutilar/",
+   "name": "meto_hub_flow_split",
+   "view": "production.meto_flow_views.split",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/sklad/qabul/",
+   "name": "meto_hub_flow_sklad_receive",
+   "view": "production.meto_flow_views.sklad_receive",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/zakaz/<int:order_id>/beta/",
+   "name": "meto_hub_flow_beta_toggle",
+   "view": "production.meto_flow_views.beta_toggle",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/resolve/",
+   "name": "meto_hub_flow_api_resolve",
+   "view": "production.meto_flow_views.api_resolve",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/link/",
+   "name": "meto_hub_flow_api_link",
+   "view": "production.meto_flow_views.api_link",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/unlink/",
+   "name": "meto_hub_flow_api_unlink",
+   "view": "production.meto_flow_views.api_unlink",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/check/",
+   "name": "meto_hub_flow_api_check",
+   "view": "production.meto_flow_views.api_check",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/give/",
+   "name": "meto_hub_flow_api_give",
+   "view": "production.meto_flow_views.api_give",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/ship/",
+   "name": "meto_hub_flow_api_ship",
+   "view": "production.meto_flow_views.api_ship",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/receive/<int:line_id>/",
+   "name": "meto_hub_flow_api_receive",
+   "view": "production.meto_flow_views.api_receive",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/return/<int:line_id>/",
+   "name": "meto_hub_flow_api_return",
+   "view": "production.meto_flow_views.api_return",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/yukxat/<int:shipment_id>/chop-etish/",
+   "name": "meto_hub_shipment_print",
+   "view": "production.meto_flow_views.shipment_print",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/konteynerlar/",
    "name": "meto_hub_containers",
    "view": "production.meto_container_views.containers_view",
-   "urlconf": "production.meto_hub_urls",
+   "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "container_access_required"
    ]
   },
   {
-   "path": "/meto-hub/konteynerlar/yaratish/",
+   "path": "/tayyorlov/konteynerlar/yaratish/",
    "name": "meto_hub_container_create",
    "view": "production.meto_container_views.container_create_view",
-   "urlconf": "production.meto_hub_urls",
+   "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "container_access_required",
     "require_POST"
    ]
   },
   {
-   "path": "/meto-hub/konteynerlar/yorliq/",
+   "path": "/tayyorlov/konteynerlar/yorliq/",
    "name": "meto_hub_container_labels",
    "view": "production.meto_container_views.container_labels_view",
-   "urlconf": "production.meto_hub_urls",
+   "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "container_access_required"
    ]
   },
   {
-   "path": "/meto-hub/konteynerlar/<int:number>/",
+   "path": "/tayyorlov/konteynerlar/<int:number>/",
    "name": "meto_hub_container_detail",
    "view": "production.meto_container_views.container_detail_view",
-   "urlconf": "production.meto_hub_urls",
+   "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "container_access_required"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/",
-   "name": "meto_hub_flow",
-   "view": "production.meto_flow_views.flow_view",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "flow_access_required"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/meto/qabul/",
-   "name": "meto_hub_flow_meto_take",
-   "view": "production.meto_flow_views.meto_take",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/meto/tugatish/",
-   "name": "meto_hub_flow_meto_finish",
-   "view": "production.meto_flow_views.meto_finish",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/tasnif/qabul/",
-   "name": "meto_hub_flow_tasnif_take",
-   "view": "production.meto_flow_views.tasnif_take",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/tasnif/tugatish/",
-   "name": "meto_hub_flow_tasnif_finish",
-   "view": "production.meto_flow_views.tasnif_finish",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/tasnif/ozgartirish/",
-   "name": "meto_hub_flow_tasnif_update",
-   "view": "production.meto_flow_views.tasnif_update",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/qutilar/",
-   "name": "meto_hub_flow_split",
-   "view": "production.meto_flow_views.split",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/<int:batch_id>/sklad/qabul/",
-   "name": "meto_hub_flow_sklad_receive",
-   "view": "production.meto_flow_views.sklad_receive",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/zakaz/<int:order_id>/beta/",
-   "name": "meto_hub_flow_beta_toggle",
-   "view": "production.meto_flow_views.beta_toggle",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_form_action"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/resolve/",
-   "name": "meto_hub_flow_api_resolve",
-   "view": "production.meto_flow_views.api_resolve",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/link/",
-   "name": "meto_hub_flow_api_link",
-   "view": "production.meto_flow_views.api_link",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/unlink/",
-   "name": "meto_hub_flow_api_unlink",
-   "view": "production.meto_flow_views.api_unlink",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/check/",
-   "name": "meto_hub_flow_api_check",
-   "view": "production.meto_flow_views.api_check",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/give/",
-   "name": "meto_hub_flow_api_give",
-   "view": "production.meto_flow_views.api_give",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/ship/",
-   "name": "meto_hub_flow_api_ship",
-   "view": "production.meto_flow_views.api_ship",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/receive/<int:line_id>/",
-   "name": "meto_hub_flow_api_receive",
-   "view": "production.meto_flow_views.api_receive",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/api/return/<int:line_id>/",
-   "name": "meto_hub_flow_api_return",
-   "view": "production.meto_flow_views.api_return",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "_api",
-    "require_POST"
-   ]
-  },
-  {
-   "path": "/meto-hub/yangi/yukxat/<int:shipment_id>/chop-etish/",
-   "name": "meto_hub_shipment_print",
-   "view": "production.meto_flow_views.shipment_print",
-   "urlconf": "production.meto_hub_urls",
-   "decorators": [
-    "flow_access_required"
    ]
   },
   {
@@ -2211,6 +2307,13 @@
     "_role_required",
     "require_POST"
    ]
+  },
+  {
+   "path": "/^media/(?P<path>.*)$",
+   "name": null,
+   "view": "django.views.static.serve",
+   "urlconf": "config.urls",
+   "regex_pattern": true
   }
  ],
  "middleware_allowlist_prefixes": [
@@ -2253,6 +2356,8 @@
   "/superadmin/users",
   "/superadmin/users/",
   "/superadmin/workers/",
+  "/tayyorlov/",
+  "/tayyorlov/konteynerlar/",
   "/terminal",
   "/terminal/"
  ],

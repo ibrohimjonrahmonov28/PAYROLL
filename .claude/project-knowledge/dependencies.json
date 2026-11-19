@@ -117,6 +117,7 @@
    "production/sticker_urls.py",
    "production/sticker_views.py",
    "production/taxlov_pay.py",
+   "production/tayyorlov_urls.py",
    "production/telegram_reports.py",
    "production/terminal_views.py",
    "production/test_counter_packing.py",
@@ -511,6 +512,7 @@
   },
   "production.meto_flow_views": {
    "imports": [
+    "accounts.models",
     "production",
     "production.meto_flow",
     "production.models",
@@ -519,8 +521,6 @@
   },
   "production.meto_hub_urls": {
    "imports": [
-    "production.meto_container_views",
-    "production.meto_flow_views",
     "production.meto_hub_views"
    ]
   },
@@ -540,6 +540,9 @@
    "imports": [
     "production.models",
     "production.services"
+   ],
+   "lazy": [
+    "production.meto_flow"
    ]
   },
   "production.models": {
@@ -689,6 +692,12 @@
   "production.taxlov_pay": {
    "imports": [
     "production.models"
+   ]
+  },
+  "production.tayyorlov_urls": {
+   "imports": [
+    "production.meto_container_views",
+    "production.meto_flow_views"
    ]
   },
   "production.telegram_reports": {
@@ -1038,6 +1047,7 @@
   ],
   "production/meto_flow_views.py": [
    "meto_hub/flow.html",
+   "meto_hub/hub.html",
    "meto_hub/shipment_print.html"
   ],
   "production/meto_hub_views.py": [
@@ -1146,6 +1156,7 @@
     "cutting_dashboard",
     "manager_dashboard",
     "meto_dashboard",
+    "meto_hub_flow",
     "norma_canvas",
     "production:master_statistics",
     "production:master_tablet",
@@ -1351,6 +1362,7 @@
    "url_names": [
     "cutting_dashboard",
     "meto_dashboard",
+    "meto_hub_flow",
     "norma_canvas",
     "root_logout",
     "sticker_dashboard",
@@ -1363,6 +1375,7 @@
    ],
    "url_names": [
     "meto_dashboard",
+    "meto_hub_flow_meto",
     "meto_order_detail"
    ]
   },
@@ -1373,6 +1386,7 @@
    "url_names": [
     "meto_dashboard",
     "meto_generate_missing_boxes",
+    "meto_hub_flow_meto",
     "norma_canvas",
     "production:pastal_passport"
    ],
@@ -1441,6 +1455,7 @@
     "meto_hub/base_meto_hub.html"
    ],
    "url_names": [
+    "meto_hub_flow",
     "meto_hub_flow_api_check"
    ]
   },
@@ -1481,6 +1496,8 @@
     "meto_hub/flow/_card_head.html"
    ],
    "url_names": [
+    "meto_hub_flow_meto",
+    "meto_hub_flow_meto_cancel",
     "meto_hub_flow_meto_finish",
     "meto_hub_flow_meto_take"
    ]
@@ -1540,7 +1557,8 @@
   },
   "templates/meto_hub/shipment_print.html": {
    "url_names": [
-    "meto_hub_flow"
+    "meto_hub_flow_sklad",
+    "meto_hub_flow_uychi"
    ]
   },
   "templates/meto_hub/uychi_dashboard.html": {
@@ -1961,6 +1979,7 @@
    "url_names": [
     "cutting_dashboard",
     "meto_dashboard",
+    "meto_hub_flow",
     "norma_canvas",
     "root_logout",
     "sticker_dashboard",
@@ -2015,6 +2034,7 @@
     "manager_dashboard",
     "managers_new:order_list",
     "meto_dashboard",
+    "meto_hub_flow",
     "norma_canvas",
     "packing:hub",
     "printers:page",
