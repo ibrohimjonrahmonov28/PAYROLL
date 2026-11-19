@@ -29,6 +29,22 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `ee7c32a`] — 19.11.2026
+* **Turi:** `feat(tayyorlov)` — `/tayyorlov/` bosh menyusi (Hub) va har bir bo'lim uchun alohida `/tayyorlov/<bolim>/` sahifalar
+* **Mavzu:** Tayyorlov bo'limi bitta `?tab=` sahifasidan bosh menyu (Hub) va mustaqil URL manzillarga ajratildi; bo'lim kartochkalari yangi brauzer tabida ochiladi.
+* **O'zgartirilgan fayllar:**
+  - `production/tayyorlov_urls.py`, `production/meto_flow_views.py`: `/tayyorlov/` Hub (`flow_view`), `/tayyorlov/meto/`, `/tasnif/`, `/stiker/`, `/sklad/`, `/uychi/`, `/yukxat/`, `/zakazlar/` (`section_view`) va `?tab=` redirect
+  - `templates/meto_hub/hub.html` (yangi), `flow.html`, `flow/meto.html`, `flow/zakazlar.html`, `shipment_print.html`: yangi tabda ochiluvchi Hub kartochkalari va alohida sahifa navigatsiyasi
+  - `production/meto_views.py`, `templates/meto/dashboard.html`, `templates/meto/order_detail.html`: eski `/meto/` dan `/tayyorlov/meto/` ga o'tkazish
+  - `CLAUDE.md`, `.claude/project-knowledge/*.json`, `production/test_meto_flow.py`: hujjat (2 smenali hisobot rejasi bilan) va yangilangan testlar
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya talab qilinmaydi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout ee7c32a
+  ```
+
+---
+
 ### 🔹 [Commit: `8ef9fb2`] — 19.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/` yo'nalishi va Meto bo'limini minglab pastal uchun qayta ishlash
 * **Mavzu:** Tayyorlov bo'limi (`/meto-hub/yangi/` va konteynerlar) asosiy `/tayyorlov/` manziliga ko'chirildi; Meto bosqichi minglab pastallar uchun qidiruv/filtr/sahifalash, qabulni bekor qilish, jonli farq va izohlar bilan kengaytirildi.
