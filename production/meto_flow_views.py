@@ -9,7 +9,8 @@ from collections import OrderedDict
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.db.models import Prefetch, Q
+from django.core.paginator import Paginator
+from django.db.models import Prefetch, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -18,18 +19,20 @@ from django.views.decorators.http import require_POST
 
 from production import meto_flow as flow_logic
 from production.meto_flow import FlowError, can
-from production.models import Box, Container, Order, PastalFlow, Shipment, ShipmentPastal
+from production.models import Box, Container, CuttingBatchItem, Order, PastalFlow, PastalFlowSize, Shipment, ShipmentPastal
 from production.services import get_patok_code
 
 TABS = (
     ('meto', "Meto", 'meto'),
     ('tasnif', "Tasnif", 'tasnif'),
     ('stiker', "Stiker", 'stiker'),
-    ('sklad', "Koson sklad", 'sklad'),
+    ('sklad', "Tayyorlov skladi", 'sklad'),
     ('uychi', "Uychi", 'uychi'),
     ('yukxat', "Yuk xatlari", None),
     ('zakazlar', "Beta zakazlar", 'zakazlar'),
 )
+
+METO_PAGE_SIZE = 30
 
 
 def _allowed_tabs(user):
@@ -77,7 +80,7 @@ def _json(request):
 
 
 def _allowed(user, step):
-    if step == 'ship_any':   # Koson sklad yoki Uychi sklad (qaysi biri — amalning o'zida tekshiriladi)
+    if step == 'ship_any':   # Tayyorlov skladi yoki Uychi sklad (qaysi biri — amalning o'zida tekshiriladi)
         return can(user, 'sklad') or can(user, 'uychi')
     return can(user, step)
 
@@ -99,12 +102,17 @@ def _api(step):
 
 # ------------------------------------------------------------------ ko'rinish ma'lumotlari
 
-FLOW_RELATED = ('batch__order_item__order', 'batch__order_item__article')
+FLOW_RELATED = (
+    'batch__order_item__order',
+    'batch__order_item__order__customer',
+    'batch__order_item__article',
+)
 
 
 def _card(flow):
     """Pastal kartochkasi: zakaz, artikul (rasm), razmerlar (kesim / meto / tasnif soni), qutilar va konteynerlar."""
     batch = flow.batch
+    order = batch.order_item.order
     article = batch.order_item.article
     image = ''
     if article and article.image:
@@ -121,10 +129,15 @@ def _card(flow):
         })
     boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
     linked = {c.box_id for c in Container.objects.filter(box__in=boxes)} if boxes else set()
+    customer = order.customer.name if order.customer_id else (order.client_name or '')
+    has_ops = bool(article and len(article.article_operations.all()) > 0)
+    total_cut = sum(s['cut'] for s in sizes)
+    total_meto = sum(s['meto'] or 0 for s in sizes)
     return {
-        'flow': flow, 'batch': batch, 'order': batch.order_item.order, 'article': article, 'image': image,
-        'sizes': sizes, 'total_cut': sum(s['cut'] for s in sizes),
-        'total_meto': sum(s['meto'] or 0 for s in sizes), 'total_tasnif': sum(s['tasnif'] or 0 for s in sizes),
+        'flow': flow, 'batch': batch, 'order': order, 'article': article, 'image': image, 'customer': customer,
+        'has_ops': has_ops, 'sizes': sizes, 'total_cut': total_cut,
+        'total_meto': total_meto, 'meto_diff': total_meto - total_cut,
+        'total_tasnif': sum(s['tasnif'] or 0 for s in sizes),
         'boxes_count': len(boxes), 'printed_count': sum(1 for b in boxes if b.is_printed),
         'linked_count': len(linked),
         'ready': (len(boxes) > 0 and all(b.is_printed for b in boxes) and len(linked) == len(boxes)
@@ -132,13 +145,35 @@ def _card(flow):
     }
 
 
+def _flows_qs(**filters):
+    return (PastalFlow.objects.filter(**filters)
+            .select_related(*FLOW_RELATED, 'meto_taken_by', 'meto_done_by', 'tasnif_taken_by', 'tasnif_done_by',
+                            'sklad_received_by')
+            .prefetch_related('batch__items__order_item_size', 'batch__items__flow_size', 'batch__items__boxes',
+                              'batch__order_item__article__article_operations')
+            .order_by('-batch__created_at', '-id'))
+
+
 def _flows(**filters):
-    qs = (PastalFlow.objects.filter(**filters)
-          .select_related(*FLOW_RELATED, 'meto_taken_by', 'meto_done_by', 'tasnif_taken_by', 'tasnif_done_by',
-                          'sklad_received_by')
-          .prefetch_related('batch__items__order_item_size', 'batch__items__flow_size', 'batch__items__boxes')
-          .order_by('-batch__created_at'))
-    return [_card(f) for f in qs[:200]]
+    return [_card(f) for f in _flows_qs(**filters)[:200]]
+
+
+def _search_flows_qs(qs, q='', zakaz=''):
+    if q:
+        qs = qs.filter(
+            Q(batch__pastal_code__icontains=q)
+            | Q(batch__name__icontains=q)
+            | Q(batch__partiya_number__icontains=q)
+            | Q(batch__cutter_name__icontains=q)
+            | Q(batch__order_item__order__order_number__icontains=q)
+            | Q(batch__order_item__order__client_name__icontains=q)
+            | Q(batch__order_item__order__customer__name__icontains=q)
+            | Q(batch__order_item__article__code__icontains=q)
+            | Q(batch__order_item__article__name__icontains=q)
+        )
+    if zakaz and zakaz.isdigit():
+        qs = qs.filter(batch__order_item__order_id=int(zakaz))
+    return qs
 
 
 def _incoming(destination):
@@ -164,7 +199,47 @@ def _patok_rows(branch):
 
 def _ctx_meto(request):
     flow_logic.ensure_flows()
-    return {'waiting': _flows(stage=PastalFlow.Stage.METO_WAIT), 'working': _flows(stage=PastalFlow.Stage.METO_WORK)}
+    q = request.GET.get('q', '').strip()
+    holat = request.GET.get('holat', 'faol')
+    if holat not in ('faol', 'wait', 'work', 'done'):
+        holat = 'faol'
+    zakaz = request.GET.get('zakaz', '').strip()
+
+    today = timezone.localdate()
+    wait_base = _search_flows_qs(_flows_qs(stage=PastalFlow.Stage.METO_WAIT), q, zakaz)
+    work_base = _search_flows_qs(_flows_qs(stage=PastalFlow.Stage.METO_WORK).order_by('-meto_taken_at', '-id'), q, zakaz)
+    done_base = _search_flows_qs(
+        _flows_qs(meto_done_at__isnull=False).order_by('-meto_done_at', '-id'), q, zakaz
+    )
+
+    wait_page = Paginator(wait_base, METO_PAGE_SIZE).get_page(request.GET.get('pw'))
+    done_page = Paginator(done_base, 25).get_page(request.GET.get('pd'))
+
+    kpi = {
+        'wait_count': PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WAIT).count(),
+        'wait_qty': (CuttingBatchItem.objects.filter(batch__flow__stage=PastalFlow.Stage.METO_WAIT)
+                     .aggregate(t=Sum('quantity'))['t'] or 0),
+        'work_count': PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WORK).count(),
+        'work_qty': (CuttingBatchItem.objects.filter(batch__flow__stage=PastalFlow.Stage.METO_WORK)
+                     .aggregate(t=Sum('quantity'))['t'] or 0),
+        'today_done_count': PastalFlow.objects.filter(meto_done_at__date=today).count(),
+        'today_done_qty': (PastalFlowSize.objects.filter(item__batch__flow__meto_done_at__date=today)
+                           .aggregate(t=Sum('meto_qty'))['t'] or 0),
+    }
+    orders_filter = Order.objects.filter(meto_beta=True).order_by('-created_at')[:100]
+
+    return {
+        'waiting': [_card(f) for f in wait_page],
+        'wait_page': wait_page,
+        'working': [_card(f) for f in work_base[:100]],
+        'done_cards': [_card(f) for f in done_page],
+        'done_page': done_page,
+        'kpi': kpi,
+        'q': q,
+        'holat': holat,
+        'zakaz': zakaz,
+        'orders_filter': orders_filter,
+    }
 
 
 def _ctx_tasnif(request):
@@ -236,6 +311,9 @@ def _form_action(step, tab):
                     messages.success(request, message)
             except FlowError as exc:
                 messages.error(request, str(exc))
+            next_url = (request.POST.get('next') or '').strip()
+            if next_url.startswith('/tayyorlov/'):
+                return redirect(next_url)
             return redirect(_flow_url(tab))
         return flow_access_required(wrapper)
     return decorator
@@ -261,9 +339,16 @@ def meto_take(request, batch_id):
 
 
 @_form_action('meto', 'meto')
+def meto_cancel(request, batch_id):
+    batch = _batch(batch_id)
+    flow_logic.cancel_meto(batch, request.user)
+    return f"{_name(batch)}: qabul bekor qilindi, «Meto kutmoqda» ga qaytdi."
+
+
+@_form_action('meto', 'meto')
 def meto_finish(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.finish_meto(batch, _posted_counts(request), request.user)
+    flow_logic.finish_meto(batch, _posted_counts(request), request.user, note=request.POST.get('meto_note', ''))
     return f"{_name(batch)}: meto tugadi, tasnifga uzatildi."
 
 
@@ -278,7 +363,7 @@ def tasnif_take(request, batch_id):
 def tasnif_finish(request, batch_id):
     batch = _batch(batch_id)
     flow_logic.finish_tasnif(batch, _posted_counts(request), request.user)
-    return f"{_name(batch)}: tasnif tugadi, pastal meto skladga o'tdi."
+    return f"{_name(batch)}: tasnif tugadi, pastal tayyorlov skladiga o'tdi."
 
 
 @_form_action('stiker', 'stiker')

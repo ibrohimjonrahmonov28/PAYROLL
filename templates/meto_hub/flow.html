@@ -1,26 +1,30 @@
 {% extends 'meto_hub/base_meto_hub.html' %}
 
-{% block title %}{{ tab_label }} — Yangi meto oqimi{% endblock %}
+{% block title %}{{ tab_label }} — Tayyorlov bo'limi{% endblock %}
 
 {% block content %}
 {% comment %}
-Yangi meto oqimi (beta; production/meto_flow_views.py::flow_view, mantiq — production/meto_flow.py). Tablar rol bo'yicha;
+Tayyorlov bo'limi (/tayyorlov/, production/meto_flow_views.py::flow_view, mantiq — production/meto_flow.py). Tablar rol
+bo'yicha;
 konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qilishda umumiy.
 {% endcomment %}
 <div class="space-y-5">
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-2xl font-black text-white flex items-center gap-2.5">
-                <i class="fa-solid fa-diagram-project text-amber-400"></i> Yangi meto oqimi
+                <i class="fa-solid fa-diagram-project text-amber-400"></i> Tayyorlov bo'limi
                 <span class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-black">BETA</span>
             </h1>
-            <p class="text-sm text-slate-400 mt-1">Meto → Tasnif → Stiker → Sklad → Patok yoki Uychi. Faqat beta zakazlar; eski Meto bo'limi o'zgarmaydi.</p>
+            <p class="text-sm text-slate-400 mt-1">Bosh bino: Meto → Tasnif → Stiker → Tayyorlov skladi · Filial
+                (Uychi): Qabul → Sklad → Patok.</p>
         </div>
     </div>
 
     <nav class="flex flex-wrap gap-2">
         {% for key, label in tabs %}
-        <a href="?tab={{ key }}" class="px-3.5 py-2 rounded-xl text-sm font-bold border transition {% if key == tab %}bg-amber-500 text-slate-950 border-amber-400{% else %}bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600{% endif %}">{{ label }}</a>
+        <a href="?tab={{ key }}"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition {% if key == tab %}bg-amber-500 text-slate-950 border-amber-400{% else %}bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600{% endif %}">{{
+            label }}</a>
         {% endfor %}
     </nav>
 
@@ -32,9 +36,11 @@ konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qi
         <div class="p-5 border-b border-slate-800 flex items-center justify-between gap-3">
             <div>
                 <h3 id="check-title" class="text-lg font-black text-white"></h3>
-                <p class="text-xs text-slate-400">Har konteyner QR kodini skaner qiling — yashil bo'lsa joyida. Hammasi yashil bo'lmaguncha tasdiqlanmaydi.</p>
+                <p class="text-xs text-slate-400">Har konteyner QR kodini skaner qiling — yashil bo'lsa joyida. Hammasi
+                    yashil bo'lmaguncha tasdiqlanmaydi.</p>
             </div>
-            <button type="button" onclick="closeCheck()" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <button type="button" onclick="closeCheck()" class="text-slate-400 hover:text-white px-2"><i
+                    class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <div class="p-5 space-y-4 overflow-y-auto">
             <input id="check-input" autocomplete="off" placeholder="Konteyner QR kodini skaner qiling (KONT-000123)"
@@ -46,8 +52,10 @@ konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qi
         <div class="p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <span id="check-progress" class="text-sm font-bold text-slate-300"></span>
             <div class="flex gap-2">
-                <button type="button" onclick="closeCheck()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold">Bekor</button>
-                <button type="button" id="check-confirm" disabled onclick="confirmCheck()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black">Tasdiqlash</button>
+                <button type="button" onclick="closeCheck()"
+                    class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold">Bekor</button>
+                <button type="button" id="check-confirm" disabled onclick="confirmCheck()"
+                    class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black">Tasdiqlash</button>
             </div>
         </div>
     </div>
@@ -59,15 +67,15 @@ konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qi
     const CSRF_TOKEN = '{{ csrf_token }}';
 
     async function postJSON(url, body) {
-        const res = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN}, body: JSON.stringify(body || {})});
-        const data = await res.json().catch(() => ({status: 'ERROR', message: 'Server javob bermadi'}));
-        return {ok: res.ok && data.status === 'OK', data};
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN }, body: JSON.stringify(body || {}) });
+        const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server javob bermadi' }));
+        return { ok: res.ok && data.status === 'OK', data };
     }
 
     async function getJSON(url) {
         const res = await fetch(url);
-        const data = await res.json().catch(() => ({status: 'ERROR', message: 'Server javob bermadi'}));
-        return {ok: res.ok && data.status === 'OK', data};
+        const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server javob bermadi' }));
+        return { ok: res.ok && data.status === 'OK', data };
     }
 
     function containerKey(raw) {
@@ -80,7 +88,7 @@ konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qi
     async function openCheck(options) {
         const res = await getJSON(`{% url 'meto_hub_flow_api_check' %}?batches=${options.batchIds.join(',')}`);
         if (!res.ok) { alert(res.data.message || 'Xatolik'); return; }
-        check = {expected: new Map(), unlinked: 0, scanned: new Set(), submit: options.submit, partial: !!options.allowPartial};
+        check = { expected: new Map(), unlinked: 0, scanned: new Set(), submit: options.submit, partial: !!options.allowPartial };
         document.getElementById('check-title').textContent = options.title;
         const box = document.getElementById('check-rows');
         box.innerHTML = '';

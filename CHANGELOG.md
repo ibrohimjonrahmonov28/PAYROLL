@@ -29,6 +29,24 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `PENDING_COMMIT_ID`] — 19.11.2026
+* **Turi:** `feat(tayyorlov)` — `/tayyorlov/` yo'nalishi va Meto bo'limini minglab pastal uchun qayta ishlash
+* **Mavzu:** Tayyorlov bo'limi (`/meto-hub/yangi/` va konteynerlar) asosiy `/tayyorlov/` manziliga ko'chirildi; Meto bosqichi minglab pastallar uchun qidiruv/filtr/sahifalash, qabulni bekor qilish, jonli farq va izohlar bilan kengaytirildi.
+* **O'zgartirilgan fayllar:**
+  - `production/tayyorlov_urls.py` (yangi), `config/urls.py`, `production/meto_hub_urls.py`: `/tayyorlov/` va `/tayyorlov/konteynerlar/`, eski `/meto-hub/yangi/` va `/meto-hub/konteynerlar/` dan redirect
+  - `production/models.py` + `production/migrations/0054_pastalflow_meto_note_alter_pastalflow_meto_done_at_and_more.py`: `PastalFlow.meto_note`, `meto_done_at`/`tasnif_done_at` hamda bosqich bo'yicha indekslar
+  - `accounts/models.py` + `accounts/migrations/0025_alter_user_role.py`, `accounts/middleware.py`, `accounts/views.py`: `Tayyorlov skladi` nomi va `/tayyorlov/` ruxsatlari
+  - `production/meto_flow.py`, `production/meto_flow_views.py`, `production/meto_views.py`, `production/services.py`: `cancel_meto`, `finish_meto` ortiqcha son himoyasi va `meto_note`, `ensure_flows()` tezlashtirilishi, `_ctx_meto` KPI/qidiruv/sahifalash/tarix, `tasnif_qty=0` va `boxes_created_qty` (`CANCELLED` chegirish), eski `/meto/` da `meto_beta` bloklovi
+  - `templates/meto_hub/flow/meto.html`, `_card_head.html`, `flow.html`, `base_meto_hub.html`, `tasnif.html`, `templates/meto/*`, `templates/stickers/base_stickers.html`, `templates/superadmin/*`, `templates/base.html`: Tayyorlov menyulari va Meto UI
+  - `production/test_meto_flow.py`: 4 ta yangi test (`TayyorlovMetoUpgradeTest`)
+* **Serverda:** `git pull origin main && docker compose restart web` (`accounts.0025` va `production.0054` migratsiyalari qo'llanadi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout PENDING_COMMIT_ID
+  ```
+
+---
+
 ### 🔹 [Commit: `a629ed7`] — 19.11.2026
 * **Turi:** `feat(meto-hub)` — Yangi meto oqimi (beta): konteynerlar, meto → tasnif → stiker → sklad, patokka berish, Uychi yuk xati va qaytarish, OTK v2
 * **Mavzu:** Egasining 19.11.2026 dagi qarorlari. Fabrikadagi ~10 000 konteynerga doimiy QR yorliq (`KONT-000123`) beriladi. Har stikerli quti bitta konteynerga bog'lanadi: patokka berish, Uychiga yuklash va qabul qilishda pastalning hamma konteyneri skaner qilinadi (yashil / qizil). Bittasi yo'q bo'lsa pastal to'xtaydi. Oqim faqat beta zakazning belgi yoqilgandan keyin kesilgan pastallarida ishlaydi. Eski `/meto/`, eski Meto Markazi tablari, Telegram bot va muzlatilgan `/control/` sahifasi o'zgarmadi.

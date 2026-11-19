@@ -110,7 +110,7 @@ def login_view(request):
                 if user.role in (User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER):
                     return redirect('packing:hub')
                 if user.role in (User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD):
-                    if next_url and next_url.startswith('/meto-hub/'):
+                    if next_url and (next_url.startswith('/tayyorlov/') or next_url.startswith('/meto-hub/')):
                         return redirect(next_url)
                     return redirect('meto_hub_flow')
 

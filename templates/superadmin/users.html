@@ -69,7 +69,8 @@
             class="bg-slate-900 border {% if role_filter == 'CONTROL' %}border-indigo-500/60 shadow-indigo-500/10{% else %}border-slate-800{% endif %} rounded-2xl p-4 shadow-lg hover:border-slate-700 transition">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Kontrolchilar</span>
-                <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+                <div
+                    class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
                     <i class="fa-solid fa-clipboard-check"></i>
                 </div>
             </div>
@@ -423,7 +424,9 @@
                                     <i class="fa-brands fa-telegram text-[11px]"></i> Master
                                 </span>
                                 {% if u.assigned_screen %}
-                                <span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black px-2 py-0.5 rounded-md inline-flex items-center gap-1" title="Biriktirilgan Patok">
+                                <span
+                                    class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black px-2 py-0.5 rounded-md inline-flex items-center gap-1"
+                                    title="Biriktirilgan Patok">
                                     <i class="fa-solid fa-desktop text-[10px]"></i> {{ u.assigned_patok_name }}
                                 </span>
                                 {% endif %}
@@ -609,10 +612,12 @@
                     <span>Oldingi</span>
                 </a>
                 {% else %}
-                <span class="px-2.5 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed">
+                <span
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed">
                     <i class="fa-solid fa-angles-left"></i>
                 </span>
-                <span class="px-3 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed flex items-center gap-1.5">
+                <span
+                    class="px-3 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed flex items-center gap-1.5">
                     <i class="fa-solid fa-chevron-left text-[10px]"></i>
                     <span>Oldingi</span>
                 </span>
@@ -621,18 +626,19 @@
                 <!-- Page Numbers -->
                 <div class="flex items-center gap-1 mx-1">
                     {% for p_num in page_range %}
-                        {% if p_num == users.paginator.ELLIPSIS or p_num == '…' %}
-                        <span class="px-2.5 py-1.5 text-slate-600 text-xs font-bold">…</span>
-                        {% elif p_num == users.number %}
-                        <span class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black text-xs shadow-md border border-amber-400 font-mono">
-                            {{ p_num }}
-                        </span>
-                        {% else %}
-                        <a href="?page={{ p_num }}{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
-                            class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold font-mono transition">
-                            {{ p_num }}
-                        </a>
-                        {% endif %}
+                    {% if p_num == users.paginator.ELLIPSIS or p_num == '…' %}
+                    <span class="px-2.5 py-1.5 text-slate-600 text-xs font-bold">…</span>
+                    {% elif p_num == users.number %}
+                    <span
+                        class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black text-xs shadow-md border border-amber-400 font-mono">
+                        {{ p_num }}
+                    </span>
+                    {% else %}
+                    <a href="?page={{ p_num }}{% if search_q %}&q={{ search_q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if badge_filter %}&badge={{ badge_filter }}{% endif %}"
+                        class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold font-mono transition">
+                        {{ p_num }}
+                    </a>
+                    {% endif %}
                     {% endfor %}
                 </div>
 
@@ -651,11 +657,13 @@
                     <i class="fa-solid fa-angles-right"></i>
                 </a>
                 {% else %}
-                <span class="px-3 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed flex items-center gap-1.5">
+                <span
+                    class="px-3 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed flex items-center gap-1.5">
                     <span>Keyingi</span>
                     <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 </span>
-                <span class="px-2.5 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed">
+                <span
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-950 text-slate-700 border border-slate-900 text-xs cursor-not-allowed">
                     <i class="fa-solid fa-angles-right"></i>
                 </span>
                 {% endif %}
@@ -794,9 +802,11 @@
                         <option value="MANAGER">💼 Menejer (Managerlar NEW — zakaz va mato zakazi)</option>
                         <option value="PACKING">📦 Upakovka (beta)</option>
                         <option value="COUNTER">🧮 Sanoqchi (2-sort, beta)</option>
-                        <option value="PACKING_MASTER">🧾 Upakovka masteri (2-sort savatlarini qabul qiladi, beta)</option>
-                        <option value="TASNIF">🗂️ Tasnif masteri (yangi meto oqimi, beta)</option>
-                        <option value="METO_SKLAD">🏬 Meto sklad (Koson: kg, konteyner, patok va yuk xati, beta)</option>
+                        <option value="PACKING_MASTER">🧾 Upakovka masteri (2-sort savatlarini qabul qiladi, beta)
+                        </option>
+                        <option value="TASNIF">🗂️ Tasnif masteri (Tayyorlov, beta)</option>
+                        <option value="METO_SKLAD">🏬 Tayyorlov skladi (Bosh bino: kg, konteyner, patok va yuk xati,
+                            beta)</option>
                         <option value="UYCHI_SKLAD">🚚 Uychi sklad (yukni qabul qilish va patokka berish, beta)</option>
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
@@ -805,10 +815,12 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish Joyi *</label>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish
+                        Joyi *</label>
                     {% if is_branch_admin %}
                     <input type="hidden" name="branch" value="{{ user_branch }}">
-                    <div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 font-bold flex items-center gap-2">
+                    <div
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 font-bold flex items-center gap-2">
                         <span>📍 {{ request.user.get_branch_display }} filiali</span>
                     </div>
                     {% else %}
@@ -878,7 +890,8 @@
                     </optgroup>
                     {% endif %}
                 </select>
-                <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok ichiga kiradi.</p>
+                <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok
+                    ichiga kiradi.</p>
             </div>
 
             <!-- Telefon & Email -->
@@ -968,9 +981,11 @@
                         <option value="MANAGER">💼 Menejer (Managerlar NEW — zakaz va mato zakazi)</option>
                         <option value="PACKING">📦 Upakovka (beta)</option>
                         <option value="COUNTER">🧮 Sanoqchi (2-sort, beta)</option>
-                        <option value="PACKING_MASTER">🧾 Upakovka masteri (2-sort savatlarini qabul qiladi, beta)</option>
-                        <option value="TASNIF">🗂️ Tasnif masteri (yangi meto oqimi, beta)</option>
-                        <option value="METO_SKLAD">🏬 Meto sklad (Koson: kg, konteyner, patok va yuk xati, beta)</option>
+                        <option value="PACKING_MASTER">🧾 Upakovka masteri (2-sort savatlarini qabul qiladi, beta)
+                        </option>
+                        <option value="TASNIF">🗂️ Tasnif masteri (Tayyorlov, beta)</option>
+                        <option value="METO_SKLAD">🏬 Tayyorlov skladi (Bosh bino: kg, konteyner, patok va yuk xati,
+                            beta)</option>
                         <option value="UYCHI_SKLAD">🚚 Uychi sklad (yukni qabul qilish va patokka berish, beta)</option>
                         <option value="ADMIN">🛡️ Admin (Zakazlar & Qutilar)</option>
                         <option value="BRANCH_ADMIN">🏢 Filial Admini (Oylik & Statistika & Terminal)</option>
@@ -979,10 +994,12 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish Joyi</label>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Filial / Ish
+                        Joyi</label>
                     {% if is_branch_admin %}
                     <input type="hidden" name="branch" id="edit-branch" value="{{ user_branch }}">
-                    <div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 font-bold flex items-center gap-2">
+                    <div
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-amber-400 font-bold flex items-center gap-2">
                         <span>📍 {{ request.user.get_branch_display }} filiali</span>
                     </div>
                     {% else %}
@@ -1052,7 +1069,8 @@
                     </optgroup>
                     {% endif %}
                 </select>
-                <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok ichiga kiradi.</p>
+                <p class="text-[11px] text-slate-400 mt-1">Master planshetda birkasini skanerlaganda avtomatik shu patok
+                    ichiga kiradi.</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -1173,10 +1191,10 @@
                     <input type="radio" name="role" value="TECHNOLOGIST" id="role-radio-technologist"
                         class="text-violet-500 focus:ring-0">
                     <div>
-                        <strong class="text-sm font-bold text-violet-400 block"><i
-                                class="fa-solid fa-gears mr-1"></i>
+                        <strong class="text-sm font-bold text-violet-400 block"><i class="fa-solid fa-gears mr-1"></i>
                             Katta Texnolog</strong>
-                        <span class="text-[11px] text-slate-400">Barcha patoklar pastallarini nazorat qilish va qabul qilish</span>
+                        <span class="text-[11px] text-slate-400">Barcha patoklar pastallarini nazorat qilish va qabul
+                            qilish</span>
                     </div>
                 </label>
 

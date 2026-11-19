@@ -51,7 +51,7 @@
                         </div>
                         <div>
                             <span class="text-sm font-black tracking-wider text-white uppercase block leading-none">
-                                Meto Markazi
+                                {% if 'meto_hub_flow' in request.resolver_match.url_name or 'meto_hub_container' in request.resolver_match.url_name or 'meto_hub_shipment' in request.resolver_match.url_name %}Tayyorlov Bo'limi{% else %}Meto Markazi{% endif %}
                             </span>
                             <span class="text-[10px] text-cyan-400 font-bold tracking-widest uppercase block mt-0.5">
                                 Sklad & Logistika
@@ -75,9 +75,9 @@
                     </a>
                     {% endif %}
                     <a href="{% url 'meto_hub_flow' %}"
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if 'meto_hub_flow' in request.resolver_match.url_name %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if 'meto_hub_flow' in request.resolver_match.url_name or 'meto_hub_shipment' in request.resolver_match.url_name %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
                         <i class="fa-solid fa-diagram-project text-xs"></i>
-                        <span>Yangi oqim (beta)</span>
+                        <span>Tayyorlov</span>
                     </a>
                     {% if not limited or request.user.role == 'METO_SKLAD' or request.user.role == 'UYCHI_SKLAD' %}
                     <a href="{% url 'meto_hub_containers' %}"
@@ -113,8 +113,25 @@
                         <span class="hidden sm:inline">Chiqish</span>
                     </a>
                 </div>
-                {% endwith %}
             </div>
+            <!-- Mobile / portrait tablet nav strip -->
+            <div class="flex md:hidden items-center gap-2 pb-2.5 overflow-x-auto">
+                <a href="{% url 'meto_hub_flow' %}"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {% if 'meto_hub_flow' in request.resolver_match.url_name or 'meto_hub_shipment' in request.resolver_match.url_name %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-slate-800 text-slate-300{% endif %}">
+                    <i class="fa-solid fa-diagram-project mr-1"></i>Tayyorlov
+                </a>
+                {% if not limited or request.user.role == 'METO_SKLAD' or request.user.role == 'UYCHI_SKLAD' %}
+                <a href="{% url 'meto_hub_containers' %}"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap {% if 'meto_hub_container' in request.resolver_match.url_name %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-slate-800 text-slate-300{% endif %}">
+                    <i class="fa-solid fa-box mr-1"></i>Konteynerlar
+                </a>
+                {% endif %}
+                {% if not limited %}
+                <a href="{% url 'meto_hub_dashboard' %}?tab=sklad" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-800 text-slate-300">Koson (eski)</a>
+                <a href="{% url 'meto_hub_uychi' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-800 text-slate-300">Uychi (eski)</a>
+                {% endif %}
+            </div>
+            {% endwith %}
         </div>
     </header>
 

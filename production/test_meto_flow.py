@@ -195,7 +195,7 @@ class MetoFlowStepsTest(MetoFlowBase):
 
     def test_sklad_receive_needs_valid_kg(self):
         self.to_sklad()
-        for bad in ('', 'abc', '0', '-2'):
+        for bad in ('', 'abc', '0', '-2', 'NaN', 'Infinity', '1e9'):
             with self.assertRaises(FlowError):
                 meto_flow.sklad_receive(self.batch, bad, self.sklad)
         meto_flow.sklad_receive(self.batch, '12,5', self.sklad)
@@ -547,3 +547,85 @@ class FlowAccessTest(MetoFlowBase):
         self.assertContains(res, 'Patok oldida')
         detail = self.client.get(reverse('meto_hub_container_detail', args=[Container.objects.get(box=self.boxes()[0]).number]))
         self.assertContains(detail, self.boxes()[0].box_code)
+
+
+class TayyorlovMetoUpgradeTest(MetoFlowBase):
+    def test_tayyorlov_url_and_legacy_redirects(self):
+        self.assertEqual(reverse('meto_hub_flow'), '/tayyorlov/')
+        self.assertEqual(reverse('meto_hub_containers'), '/tayyorlov/konteynerlar/')
+        self.client.force_login(self.admin)
+        self.assertRedirects(
+            self.client.get('/meto-hub/yangi/?tab=meto&q=11-1'),
+            '/tayyorlov/?tab=meto&q=11-1',
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            self.client.get('/meto-hub/konteynerlar/?tur=BIG'),
+            '/tayyorlov/konteynerlar/?tur=BIG',
+            fetch_redirect_response=False,
+        )
+        self.client.force_login(self.tasnif)
+        self.assertRedirects(
+            self.client.get('/meto-hub/yangi/?tab=meto'),
+            '/tayyorlov/?tab=meto',
+            fetch_redirect_response=False,
+        )
+        self.assertRedirects(
+            self.client.get('/tayyorlov/konteynerlar/'),
+            '/tayyorlov/',
+            fetch_redirect_response=False,
+        )
+
+    def test_meto_cancel_note_and_typo_guard(self):
+        self.client.force_login(self.meto)
+        self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.METO_WORK)
+        with self.assertRaises(FlowError):   # allaqachon qabul qilingan
+            meto_flow.take_meto(self.batch, self.admin)
+
+        self.client.post(reverse('meto_hub_flow_meto_cancel', args=[self.batch.id]))
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual((flow.stage, flow.meto_taken_by), (PastalFlow.Stage.METO_WAIT, None))
+
+        self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
+        first, second = self.items()
+        with self.assertRaises(FlowError):   # 50 o'rniga 5000 yozishdan himoya
+            meto_flow.finish_meto(self.batch, {first.id: 5000, second.id: 40}, self.meto)
+
+        self.client.post(
+            reverse('meto_hub_flow_meto_finish', args=[self.batch.id]),
+            {f'qty_{first.id}': '48', f'qty_{second.id}': '40', 'meto_note': '2 qavat yetmadi'},
+        )
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual((flow.stage, flow.meto_note), (PastalFlow.Stage.TASNIF_WAIT, '2 qavat yetmadi'))
+
+    def test_meto_search_and_pagination_for_thousands(self):
+        for idx in range(2, 36):
+            self.cut(f'P-{idx:03d}')
+        self.client.force_login(self.meto)
+        page1 = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto'})
+        self.assertEqual(page1.context['kpi']['wait_count'], 35)
+        self.assertEqual(len(page1.context['waiting']), 30)
+        page2 = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto', 'pw': 2})
+        self.assertEqual(len(page2.context['waiting']), 5)
+        filtered = self.client.get(reverse('meto_hub_flow'), {'tab': 'meto', 'q': 'P-015'})
+        self.assertEqual([c['batch'].pastal_code for c in filtered.context['waiting']], ['P-015'])
+
+    def test_old_meto_blocks_tayyorlov_batches_and_split_handles_zero_and_recount(self):
+        self.client.force_login(self.meto)
+        first, second = self.items()
+        self.client.post(reverse('meto_confirm_item', args=[first.id]), {'real_quantity': '50'})
+        first.refresh_from_db()
+        self.assertEqual(first.status, CuttingBatchItem.Status.CUT_ENTERED)
+        self.assertFalse(Box.objects.filter(cutting_batch_item=first).exists())
+
+        self.to_sklad(tasnif=(45, 0))
+        meto_flow.split_boxes(self.batch, {}, self.sticker)
+        second.refresh_from_db()
+        self.assertEqual((second.real_quantity, second.status), (0, CuttingBatchItem.Status.STICKERS_PRINTED))
+
+        meto_flow.update_tasnif_counts(self.batch, self.counts(30, 10), self.sticker)
+        meto_flow.split_boxes(self.batch, {}, self.sticker)
+        first.refresh_from_db()
+        self.assertEqual(first.boxes_created_qty, 30)
+

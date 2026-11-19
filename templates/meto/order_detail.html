@@ -147,6 +147,12 @@
 
                     <!-- O'ng Tomon: Holati va Pastal Pasporti Tugmalari -->
                     <div class="flex items-center gap-2 flex-wrap" onclick="event.stopPropagation()">
+                        {% if b.is_v2 %}
+                        <a href="{% url 'meto_hub_flow' %}?tab=meto&q={{ b.pastal_code|default:b.name|urlencode }}"
+                            class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-diagram-project"></i> Tayyorlov bo'limida (/tayyorlov/)
+                        </a>
+                        {% else %}
                         {% if b.has_boxes %}
                         <a href="{% url 'production:pastal_passport' b.id %}" target="_blank"
                             class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
@@ -192,9 +198,11 @@
                             <span>Razmerlar</span>
                             <i class="fa-solid fa-chevron-down text-[10px] ml-1"></i>
                         </button>
+                        {% endif %}
                     </div>
                 </div>
 
+                {% if not b.is_v2 %}
                 <!-- Pastal Kontenti (Lazy Loaded from DB) -->
                 <div id="batch-content-{{ b.id }}" class="batch-content hidden p-4 pt-0 border-t border-slate-800/60"
                     data-batch-id="{{ b.id }}" data-loaded="false">
@@ -203,6 +211,7 @@
                         <span>Razmerlar bazadan yuklanmoqda...</span>
                     </div>
                 </div>
+                {% endif %}
             </div>
             {% empty %}
             <div class="py-8 text-center text-slate-500 text-xs bg-slate-950/50 rounded-2xl border border-slate-800/80">

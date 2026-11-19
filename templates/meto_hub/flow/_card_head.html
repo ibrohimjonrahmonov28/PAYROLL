@@ -1,10 +1,39 @@
-{% comment %}Pastal kartochkasi boshi (c — meto_flow_views._card).{% endcomment %}
+{% comment %}Pastal kartochkasi boshi (c — meto_flow_views._card): zakaz, buyurtmachi, artikul, partiya, bichuvchi, mato
+va kesim izohi.{% endcomment %}
 <div class="flex gap-3">
-    {% if c.image %}<img src="{{ c.image }}" alt="" class="w-16 h-16 object-cover rounded-xl border border-slate-700 flex-shrink-0">
-    {% else %}<div class="w-16 h-16 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0"><i class="fa-solid fa-shirt text-xl"></i></div>{% endif %}
-    <div class="min-w-0 flex-1">
-        <p class="text-[11px] text-slate-400">{{ c.order.order_number }} · kesilgan {{ c.batch.created_at|date:"d.m H:i" }}</p>
-        <p class="font-black text-white">Pastal {{ c.batch.pastal_code|default:c.batch.name }}</p>
-        <p class="text-xs text-slate-400 truncate">{{ c.article.code|default:"—" }} — {{ c.article.name|default:"" }}</p>
+    {% if c.image %}<img src="{{ c.image }}" alt=""
+        class="w-16 h-16 object-cover rounded-xl border border-slate-700 flex-shrink-0">
+    {% else %}<div
+        class="w-16 h-16 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0"><i
+            class="fa-solid fa-shirt text-xl"></i></div>{% endif %}
+    <div class="min-w-0 flex-1 space-y-1">
+        <p class="text-[11px] text-slate-400 truncate">
+            <b class="text-slate-200">{{ c.order.order_number }}</b>{% if c.customer %} · {{ c.customer }}{% endif %} ·
+            kesilgan {{ c.batch.created_at|date:"d.m H:i" }}
+        </p>
+        <div class="flex flex-wrap items-center gap-1.5">
+            <span class="font-black text-white">Pastal {{ c.batch.pastal_code|default:c.batch.name }}</span>
+            <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[11px] font-bold text-slate-200">{{ c.total_cut }}
+                dona</span>
+            {% if c.batch.partiya_number %}<span
+                class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[11px] font-bold">Partiya: {{
+                c.batch.partiya_number }}</span>{% endif %}
+            {% if not c.has_ops %}<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[11px] font-bold"
+                title="Narxlar matritsasida operatsiyalar yo'q">Operatsiya yo'q!</span>{% endif %}
+        </div>
+        <p class="text-xs text-slate-400 truncate">{{ c.article.code|default:"—" }} — {{ c.article.name|default:"" }}
+        </p>
+        {% if c.batch.cutter_name or c.batch.fabric_batch_code or c.batch.fabric_weight_kg %}
+        <p class="text-[11px] text-slate-400 truncate">
+            {% if c.batch.cutter_name %}Bichuvchi: <span class="text-slate-200">{{ c.batch.cutter_name }}</span>{% endif
+            %}
+            {% if c.batch.cutter_name and c.batch.fabric_batch_code %} · {% endif %}
+            {% if c.batch.fabric_batch_code %}Mato: <span class="text-slate-200">{{ c.batch.fabric_batch_code
+                }}</span>{% endif %}
+            {% if c.batch.fabric_weight_kg %} ({{ c.batch.fabric_weight_kg }} kg){% endif %}
+        </p>
+        {% endif %}
+        {% if c.batch.notes %}<p class="text-[11px] text-amber-300/90 truncate" title="{{ c.batch.notes }}"><i
+                class="fa-solid fa-note-sticky mr-1"></i>{{ c.batch.notes }}</p>{% endif %}
     </div>
 </div>

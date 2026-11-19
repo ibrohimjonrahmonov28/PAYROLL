@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from .meto_hub_views import (
     meto_hub_dashboard_view,
     meto_hub_cart_add_view,
@@ -13,13 +14,6 @@ from .meto_hub_views import (
     meto_hub_uychi_view,
     meto_hub_dispatch_uychi_view,
 )
-from .meto_container_views import (
-    containers_view,
-    container_create_view,
-    container_labels_view,
-    container_detail_view,
-)
-from . import meto_flow_views as flow
 
 urlpatterns = [
     path('', meto_hub_dashboard_view, name='meto_hub_dashboard'),
@@ -34,28 +28,9 @@ urlpatterns = [
     path('waybill/<int:waybill_id>/reject/', meto_hub_waybill_reject_view, name='meto_hub_waybill_reject'),
     path('uychi/', meto_hub_uychi_view, name='meto_hub_uychi'),
     path('uychi/dispatch/<int:batch_id>/', meto_hub_dispatch_uychi_view, name='meto_hub_dispatch_uychi'),
-    # Konteynerlar (egasi talabi 2026-11-19, yangi meto oqimining 1-bosqichi)
-    path('konteynerlar/', containers_view, name='meto_hub_containers'),
-    path('konteynerlar/yaratish/', container_create_view, name='meto_hub_container_create'),
-    path('konteynerlar/yorliq/', container_labels_view, name='meto_hub_container_labels'),
-    path('konteynerlar/<int:number>/', container_detail_view, name='meto_hub_container_detail'),
-    # Yangi meto oqimi (beta, 2026-11-19): meto → tasnif → stiker → sklad → patok / Uychi (production/meto_flow.py)
-    path('yangi/', flow.flow_view, name='meto_hub_flow'),
-    path('yangi/<int:batch_id>/meto/qabul/', flow.meto_take, name='meto_hub_flow_meto_take'),
-    path('yangi/<int:batch_id>/meto/tugatish/', flow.meto_finish, name='meto_hub_flow_meto_finish'),
-    path('yangi/<int:batch_id>/tasnif/qabul/', flow.tasnif_take, name='meto_hub_flow_tasnif_take'),
-    path('yangi/<int:batch_id>/tasnif/tugatish/', flow.tasnif_finish, name='meto_hub_flow_tasnif_finish'),
-    path('yangi/<int:batch_id>/tasnif/ozgartirish/', flow.tasnif_update, name='meto_hub_flow_tasnif_update'),
-    path('yangi/<int:batch_id>/qutilar/', flow.split, name='meto_hub_flow_split'),
-    path('yangi/<int:batch_id>/sklad/qabul/', flow.sklad_receive, name='meto_hub_flow_sklad_receive'),
-    path('yangi/zakaz/<int:order_id>/beta/', flow.beta_toggle, name='meto_hub_flow_beta_toggle'),
-    path('yangi/api/resolve/', flow.api_resolve, name='meto_hub_flow_api_resolve'),
-    path('yangi/api/link/', flow.api_link, name='meto_hub_flow_api_link'),
-    path('yangi/api/unlink/', flow.api_unlink, name='meto_hub_flow_api_unlink'),
-    path('yangi/api/check/', flow.api_check, name='meto_hub_flow_api_check'),
-    path('yangi/api/give/', flow.api_give, name='meto_hub_flow_api_give'),
-    path('yangi/api/ship/', flow.api_ship, name='meto_hub_flow_api_ship'),
-    path('yangi/api/receive/<int:line_id>/', flow.api_receive, name='meto_hub_flow_api_receive'),
-    path('yangi/api/return/<int:line_id>/', flow.api_return, name='meto_hub_flow_api_return'),
-    path('yangi/yukxat/<int:shipment_id>/chop-etish/', flow.shipment_print, name='meto_hub_shipment_print'),
+    # Eski /meto-hub/yangi/ va /meto-hub/konteynerlar/ manzillari /tayyorlov/ ga yo'naltiriladi
+    path('konteynerlar/', RedirectView.as_view(url='/tayyorlov/konteynerlar/', permanent=False, query_string=True)),
+    path('konteynerlar/<path:subpath>', RedirectView.as_view(url='/tayyorlov/konteynerlar/%(subpath)s', permanent=False, query_string=True)),
+    path('yangi/', RedirectView.as_view(url='/tayyorlov/', permanent=False, query_string=True)),
+    path('yangi/<path:subpath>', RedirectView.as_view(url='/tayyorlov/%(subpath)s', permanent=False, query_string=True)),
 ]

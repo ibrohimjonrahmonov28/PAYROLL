@@ -80,8 +80,11 @@ def get_flow(batch):
 
 def ensure_flows():
     """Beta zakazning yangi kesilgan pastallari uchun oqim yozuvi (kesim portaliga tegmaslik uchun — shu yerda)."""
-    missing = v2_batches().filter(flow__isnull=True)
-    PastalFlow.objects.bulk_create([PastalFlow(batch=b) for b in missing], ignore_conflicts=True)
+    missing_ids = list(
+        v2_batches().filter(order_item__isnull=False, flow__isnull=True).values_list('id', flat=True)
+    )
+    if missing_ids:
+        PastalFlow.objects.bulk_create([PastalFlow(batch_id=bid) for bid in missing_ids], ignore_conflicts=True)
 
 
 def sync_rejected_flows():
@@ -127,25 +130,53 @@ def _require(flow, stage, message):
 # ------------------------------------------------------------------ meto va tasnif
 
 def take_meto(batch, user):
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
     with transaction.atomic():
         flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
+        if flow.stage == PastalFlow.Stage.METO_WORK and flow.meto_taken_by_id:
+            raise FlowError(f"Bu pastal allaqachon qabul qilingan ({user_name(flow.meto_taken_by)}).")
         _require(flow, PastalFlow.Stage.METO_WAIT, "Bu pastal meto kutmoqda holatida emas.")
         flow.stage, flow.meto_taken_by, flow.meto_taken_at = PastalFlow.Stage.METO_WORK, user, timezone.now()
         flow.save()
     return flow
 
 
-def finish_meto(batch, counts, user):
+def cancel_meto(batch, user):
+    """Adashib qabul qilingan pastalni 'Meto kutmoqda' holatiga qaytarish."""
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
+    with transaction.atomic():
+        flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
+        _require(flow, PastalFlow.Stage.METO_WORK, "Faqat meto bo'layotgan pastalni bekor qilish mumkin.")
+        flow.stage, flow.meto_taken_by, flow.meto_taken_at = PastalFlow.Stage.METO_WAIT, None, None
+        flow.save(update_fields=['stage', 'meto_taken_by', 'meto_taken_at', 'updated_at'])
+    return flow
+
+
+def finish_meto(batch, counts, user, note=''):
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
+    clean_note = (note or '').strip()[:300]
     with transaction.atomic():
         flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
         _require(flow, PastalFlow.Stage.METO_WORK, "Bu pastal meto bo'lmoqda holatida emas.")
         items = _items(batch)
         values = _counts(items, counts)
         for item in items:
+            val = values[item.id]
+            max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)
+            if val > max_reasonable:
+                raise FlowError(
+                    f"{item.order_item_size.size_name} razmerida meto soni ({val}) "
+                    f"kesimdan ({item.quantity}) haddan tashqari katta — raqamni tekshiring."
+                )
+        for item in items:
             size = _size(item)
             size.meto_qty = values[item.id]
             size.save(update_fields=['meto_qty'])
         flow.stage, flow.meto_done_by, flow.meto_done_at = PastalFlow.Stage.TASNIF_WAIT, user, timezone.now()
+        flow.meto_note = clean_note
         flow.save()
     return flow
 
@@ -222,6 +253,10 @@ def split_boxes(batch, plan, user):
         for item in _items(batch):
             qty = _size(item).tasnif_qty or 0
             if qty <= 0:
+                item.real_quantity = 0
+                item.boxes_created_qty = 0
+                item.status = CuttingBatchItem.Status.STICKERS_PRINTED
+                item.save(update_fields=['real_quantity', 'boxes_created_qty', 'status'])
                 continue
             rule = plan.get(item.id) or plan.get(str(item.id)) or {}
             box_count = _positive(rule.get('boxes')) or 1
@@ -250,7 +285,7 @@ def sklad_receive(batch, kg, user):
         weight = Decimal(str(kg).replace(',', '.').strip())
     except (InvalidOperation, AttributeError):
         raise FlowError("Og'irlikni (kg) to'g'ri kiriting.")
-    if weight <= 0:
+    if not weight.is_finite() or weight <= 0 or weight >= 100000:
         raise FlowError("Og'irlik 0 dan katta bo'lishi kerak.")
     with transaction.atomic():
         batch = CuttingBatch.objects.select_for_update().get(id=batch.id)
@@ -313,7 +348,8 @@ def link_container(raw_box, raw_container, user):
         box = resolve_box(raw_box)
         if box is None:
             raise FlowError("Stiker bo'yicha quti topilmadi.")
-        box = Box.objects.select_for_update().select_related('cutting_batch_item__batch').get(id=box.id)
+        # PostgreSQL: bo'sh bo'lishi mumkin bog'lanish (LEFT JOIN) bilan FOR UPDATE — faqat o'z qatorini qulflash
+        box = Box.objects.select_for_update(of=('self',)).select_related('cutting_batch_item__batch').get(id=box.id)
         if box.status == Box.Status.CANCELLED:
             raise FlowError(f"{box.box_code} qutisi bekor qilingan — yangi stikerni uring.")
         if not is_v2_box(box):
@@ -349,7 +385,7 @@ def unlink(raw, user):
             container = Container.objects.filter(box=box).first() if box else None
         if container is None:
             raise FlowError("Biriktirilgan konteyner topilmadi.")
-        container = Container.objects.select_for_update().select_related('box').get(id=container.id)
+        container = Container.objects.select_for_update(of=('self',)).select_related('box').get(id=container.id)
         if container.box is None:
             raise FlowError(f"{container.code} hech qaysi qutiga biriktirilmagan.")
         box_cancelled = container.box.status == Box.Status.CANCELLED
@@ -489,7 +525,7 @@ def receive_line(line, scanned, user):
     Qaytgan pastalni Koson har holda qabul qiladi (kamchilikni skladda hal qiladi): skaner qilinmagan konteynerlar
     voqeada belgilanadi va qaytariladi. -> (line, skaner qilinmagan konteyner kodlari)"""
     with transaction.atomic():
-        line = ShipmentPastal.objects.select_for_update().select_related('shipment', 'batch').get(id=line.id)
+        line = ShipmentPastal.objects.select_for_update(of=('self',)).select_related('shipment', 'batch').get(id=line.id)
         if line.status != ShipmentPastal.Status.IN_TRANSIT:
             raise FlowError("Bu pastal allaqachon ko'rib chiqilgan.")
         destination = line.shipment.destination_branch
@@ -514,7 +550,7 @@ def receive_line(line, scanned, user):
 def return_line(line, user, note=''):
     """Uychi to'liq bo'lmagan pastalni qabul qilmaydi — qaytarish yuk xati (Uychi → Koson) bilan orqaga yuboradi."""
     with transaction.atomic():
-        line = ShipmentPastal.objects.select_for_update().select_related('shipment', 'batch').get(id=line.id)
+        line = ShipmentPastal.objects.select_for_update(of=('self',)).select_related('shipment', 'batch').get(id=line.id)
         if line.status != ShipmentPastal.Status.IN_TRANSIT:
             raise FlowError("Bu pastal allaqachon ko'rib chiqilgan.")
         if line.shipment.destination_branch != 'UYCHI':

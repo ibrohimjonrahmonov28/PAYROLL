@@ -2402,11 +2402,12 @@ class PastalFlow(models.Model):
     meto_taken_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     meto_taken_at = models.DateTimeField(null=True, blank=True)
     meto_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
-    meto_done_at = models.DateTimeField(null=True, blank=True)
+    meto_done_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    meto_note = models.CharField(max_length=300, blank=True, verbose_name="Meto izohi")
     tasnif_taken_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     tasnif_taken_at = models.DateTimeField(null=True, blank=True)
     tasnif_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
-    tasnif_done_at = models.DateTimeField(null=True, blank=True)
+    tasnif_done_at = models.DateTimeField(null=True, blank=True, db_index=True)
     boxes_split_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     boxes_split_at = models.DateTimeField(null=True, blank=True)
     sklad_received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
@@ -2418,6 +2419,10 @@ class PastalFlow(models.Model):
     class Meta:
         verbose_name = "Pastal (yangi meto oqimi)"
         verbose_name_plural = "Pastallar (yangi meto oqimi)"
+        indexes = [
+            models.Index(fields=['stage', 'branch'], name='pflow_stage_branch_idx'),
+            models.Index(fields=['stage', '-meto_done_at'], name='pflow_stage_meto_done_idx'),
+        ]
 
     def __str__(self):
         return f"{self.batch.pastal_code or self.batch.name} · {self.get_stage_display()}"

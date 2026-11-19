@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max, Sum, Count
@@ -51,6 +52,9 @@ def meto_dashboard(request):
             Q(items__article__code__icontains=search_q)
         ).distinct()
 
+    from .meto_flow import v2_batches
+    v2_batch_ids = set(v2_batches().values_list('id', flat=True))
+
     orders_data = []
     total_pending_meto_count = 0
     total_confirmed_meto_count = 0
@@ -58,11 +62,15 @@ def meto_dashboard(request):
     for ord_obj in orders_qs:
         pending_items_count = 0
         confirmed_items_count = 0
+        v2_batches_count = 0
         total_cut_qty = 0
         total_real_qty = 0
 
         for item in ord_obj.items.all():
             for batch in item.cutting_batches.all():
+                if batch.id in v2_batch_ids:
+                    v2_batches_count += 1
+                    continue
                 for b_it in batch.items.all():
                     if b_it.status == CuttingBatchItem.Status.CUT_ENTERED:
                         pending_items_count += 1
@@ -78,6 +86,7 @@ def meto_dashboard(request):
             'order': ord_obj,
             'pending_items_count': pending_items_count,
             'confirmed_items_count': confirmed_items_count,
+            'v2_batches_count': v2_batches_count,
             'total_cut_qty': total_cut_qty,
             'total_real_qty': total_real_qty,
             'has_pending': pending_items_count > 0,
@@ -115,6 +124,7 @@ def meto_order_detail(request, order_id: int):
         'cutting_batches__items__boxes'
     )
 
+    from .meto_flow import is_v2_batch
     items_data = []
     for item in order_items:
         operations_count = item.article.article_operations.count() if item.article else 0
@@ -158,6 +168,7 @@ def meto_order_detail(request, order_id: int):
                 'has_boxes': has_boxes,
                 'needs_boxes_generation': needs_boxes_generation,
                 'total_boxes_count': total_boxes_count,
+                'is_v2': is_v2_batch(batch),
             })
 
         items_data.append({
@@ -245,6 +256,17 @@ def meto_batch_items_view(request, batch_id: int):
     })
 
 
+def _block_v2_in_legacy_meto(request, batch):
+    from .meto_flow import is_v2_batch
+    if not is_v2_batch(batch):
+        return None
+    messages.error(
+        request,
+        "Bu pastal Tayyorlov bo'limi (/tayyorlov/) oqimida — eski /meto/ sahifasidan o'zgartirib bo'lmaydi."
+    )
+    return redirect(f"{reverse('meto_hub_flow')}?tab=meto")
+
+
 @meto_required
 def meto_reset_item(request, item_id: int):
     """
@@ -263,6 +285,9 @@ def meto_reset_item(request, item_id: int):
         ),
         id=item_id
     )
+    blocked = _block_v2_in_legacy_meto(request, batch_item.batch)
+    if blocked is not None:
+        return blocked
     order = batch_item.batch.order_item.order
 
     # Skanerlangan biletlar bor-yo'qligini tekshirish
@@ -321,6 +346,9 @@ def meto_confirm_item(request, item_id: int):
         ),
         id=item_id
     )
+    blocked = _block_v2_in_legacy_meto(request, batch_item.batch)
+    if blocked is not None:
+        return blocked
     order = batch_item.batch.order_item.order
     article = batch_item.batch.order_item.article
     size_name = batch_item.order_item_size.size_name
@@ -441,6 +469,9 @@ def meto_generate_missing_boxes(request, batch_id: int):
         CuttingBatch.objects.select_related('order_item__order', 'order_item__article'),
         id=batch_id
     )
+    blocked = _block_v2_in_legacy_meto(request, batch)
+    if blocked is not None:
+        return blocked
     order = batch.order_item.order
     article = batch.order_item.article if batch.order_item else None
     if article and ArticleOperation.objects.filter(article=article).count() == 0:

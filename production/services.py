@@ -322,7 +322,7 @@ def auto_generate_boxes_for_batch_item(
         meto_range=meto_range,
         pastal_number=pastal_number or ''
     )
-    batch_item.boxes_created_qty = sum(b.quantity for b in batch_item.boxes.all())
+    batch_item.boxes_created_qty = sum(b.quantity for b in batch_item.boxes.exclude(status=Box.Status.CANCELLED))
     batch_item.status = batch_item.Status.METO_CONFIRMED
     batch_item.save(update_fields=['boxes_created_qty', 'status'])
     return boxes

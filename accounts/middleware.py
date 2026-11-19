@@ -194,7 +194,8 @@ class MasterTerminalAccessRestrictionMiddleware:
                     '/screens/',
                     '/screens',
                     '/gifts/',
-                    '/meto-hub/yangi/',   # yangi meto oqimi: Uychi tabi (2026-11-19)
+                    '/tayyorlov/',         # Tayyorlov bo'limi: Uychi tabi (2026-11-19)
+                    '/meto-hub/yangi/',    # eski manzil → /tayyorlov/ ga yo'naltiriladi
                     '/terminal/',
                     '/terminal',
                     '/master-tablet/',
@@ -209,7 +210,10 @@ class MasterTerminalAccessRestrictionMiddleware:
                     '/static/',
                     '/media/',
                 )
-                is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes)
+                is_allowed = (
+                    any(path.startswith(prefix) for prefix in allowed_prefixes)
+                    and not path.startswith('/tayyorlov/konteynerlar/')
+                )
                 if not is_allowed:
                     is_ajax = (
                         request.headers.get('x-requested-with') == 'XMLHttpRequest' or
@@ -300,11 +304,12 @@ class MasterTerminalAccessRestrictionMiddleware:
                         return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
                     return redirect('packing:hub')
 
-            # Yangi meto oqimi (2026-11-19): tasnif masteri, meto sklad va Uychi sklad faqat /meto-hub/yangi/ ga
+            # Tayyorlov bo'limi (2026-11-19): tasnif masteri, tayyorlov skladi va Uychi sklad faqat /tayyorlov/ ga
             # (skladlar konteynerlar sahifasiga ham; qaysi tab — view'da tekshiriladi)
             elif getattr(request.user, 'role', None) in (User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD):
                 path = request.path_info
                 allowed_prefixes = (
+                    '/tayyorlov/',
                     '/meto-hub/yangi/',
                     '/login/',
                     '/logout/',
@@ -314,9 +319,16 @@ class MasterTerminalAccessRestrictionMiddleware:
                     '/static/',
                     '/media/',
                 )
-                if request.user.role != User.Role.TASNIF:
+                is_container_path = (
+                    path.startswith('/tayyorlov/konteynerlar/')
+                    or path.startswith('/meto-hub/konteynerlar/')
+                )
+                if request.user.role == User.Role.TASNIF:
+                    is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes) and not is_container_path
+                else:
                     allowed_prefixes += ('/meto-hub/konteynerlar/',)
-                if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+                    is_allowed = any(path.startswith(prefix) for prefix in allowed_prefixes)
+                if not is_allowed:
                     if '/api/' in path or request.content_type == 'application/json':
                         return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat etilmagan!"}, status=403)
                     return redirect('meto_hub_flow')

@@ -99,23 +99,23 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
 
 `production/test_packing_beta.py` covers the flow.
 
-**New meto flow with containers (beta, owner's decisions 2026-11-19, inside `/meto-hub/`).** The old `/meto/`, the old hub tabs and the Telegram bot keep working unchanged, with no guards. About 10 000 reusable physical containers get a permanent QR label (`KONT-000123`). Each production box is linked 1:1 to a container, so hand-outs, Uychi receipts and empty containers can be checked.
+**Tayyorlov flow with containers (beta, owner's decisions 2026-11-19, `/tayyorlov/`).** Moved from `/meto-hub/yangi/` (legacy `/meto-hub/yangi/...` and `/meto-hub/konteynerlar/...` redirect to `/tayyorlov/...`). Old `/meto/`, legacy `/meto-hub/` tabs and Telegram bot stay for non-beta orders, while `meto_views` blocks confirmations/resets on `v2_batches()` so beta pastals stay inside `/tayyorlov/`. About 10 000 reusable physical containers get a permanent QR label (`KONT-000123`). Each production box is linked 1:1 to a container, so hand-outs, Uychi receipts and empty containers can be checked.
 
 - **Which pastals:** only those of an order with `Order.meto_beta` that were cut after `meto_beta_since` (`meto_flow.v2_batches` / `is_v2_box`). The superadmin toggles this on the "Beta zakazlar" tab. `ensure_flows()` lazily creates a `PastalFlow` per batch and a `PastalFlowSize` per `CuttingBatchItem`, so the cutting portal is untouched.
-  - `PastalFlow` holds the stage (METO_WAIT → METO_WORK → TASNIF_WAIT → TASNIF_WORK → SKLAD → IN_TRANSIT / AT_PATOK), the branch, and who/when for each step.
+  - `PastalFlow` holds the stage (METO_WAIT → METO_WORK → TASNIF_WAIT → TASNIF_WORK → SKLAD → IN_TRANSIT / AT_PATOK), the branch, `meto_note`, and who/when for each step (indexed for thousands of pastals).
   - `PastalFlowSize` holds `meto_qty` and `tasnif_qty`.
-- **Steps:** logic is in `production/meto_flow.py`; the page `/meto-hub/yangi/` is `meto_flow_views.py` + `templates/meto_hub/flow/`, with one tab per role (`meto_flow.STEP_ROLES`).
-  1. METO enters the meto count per size; "tugatish" locks it.
-  2. TASNIF gives the real count, and the pastal moves to the Koson meto sklad.
-  3. STICKER splits the **tasnif** count into boxes (`split_boxes` → `auto_generate_boxes_for_batch_item`, `real_quantity` = tasnif count) and prints them on the usual sticker page. Until a sticker is printed the tasnif count can change: `update_tasnif_counts` cancels the unprinted boxes and never deletes or re-codes them.
-  4. METO_SKLAD writes the real kg and links each box to an empty BIG container. Any sticker of the box works (CONTROL, ticket or box code). Unlinking needs no reason: scan the box sticker or the container.
+- **Steps:** logic is in `production/meto_flow.py`; the page `/tayyorlov/` (`production/tayyorlov_urls.py`) is `meto_flow_views.py` + `templates/meto_hub/flow/`, with one tab per role (`meto_flow.STEP_ROLES`).
+  1. METO searches/paginates thousands of batches, takes (`take_meto`) or cancels accidental take (`cancel_meto`), enters the meto count per size with live diff & typo protection + optional `meto_note`, and finishes (`finish_meto` locks `meto_qty`).
+  2. TASNIF gives the real count, and the pastal moves to **Tayyorlov skladi** (Koson).
+  3. STICKER splits the **tasnif** count into boxes (`split_boxes` → `auto_generate_boxes_for_batch_item`, `real_quantity` = tasnif count; `0`-qty sizes mark `STICKERS_PRINTED`) and prints them on the usual sticker page. Until a sticker is printed the tasnif count can change: `update_tasnif_counts` cancels the unprinted boxes and never deletes or re-codes them.
+  4. METO_SKLAD ("Tayyorlov skladi") writes the real kg and links each box to an empty BIG container. Any sticker of the box works (CONTROL, ticket or box code). Unlinking needs no reason: scan the box sticker or the container.
 - **Check before anything moves:** giving to a patok, loading a waybill and receiving at Uychi all open the shared scan modal (`flow.html::openCheck`). Every container of the pastal must be scanned green and every active box must have a container; otherwise `_verify` raises and nothing moves.
   - Koson hand-out sets `DISPATCHED`, and master tablet acceptance stays.
   - Uychi hand-out (UYCHI_SKLAD / BRANCH_ADMIN, U-patoks) sets `ACCEPTED`, like the old Uychi warehouse.
   - Both set `Box.assigned_screen`.
   - If the master rejects on the tablet, the pastal returns to the sklad (`sync_rejected_flows`, run on the sklad tab).
 - **Waybills:** `Shipment` (`YX-000001`) with one `ShipmentPastal` per pastal, Koson → Uychi. Uychi accepts only complete pastals; otherwise "Qaytarish" creates a return waybill Uychi → Koson. Koson accepts a return even with missing scans, and the missing containers are flagged in their history. A4 print: `meto_hub/shipment_print.html`.
-- **Containers** (`/meto-hub/konteynerlar/`, `container_services.py`):
+- **Containers** (`/tayyorlov/konteynerlar/`, `container_services.py`):
   - Created in batches of up to 1000 with sequential codes that never change. Only Koson creates them.
   - Labels are 100×80 mm for the Citizen CL-S703, up to 500 per page; a lost label is reprinted with the same ID.
   - Statuses: EMPTY / FILLED ("Skladda") / IN_TRANSIT / AT_PATOK / IN_REPAIR.
@@ -129,8 +129,8 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
 
   Other boxes behave exactly as on `/control/`, through the same server functions. Otherwise a container is released only when the counter scans the paper in the packing beta (`packing_services.take_paper` → `release_for_scan`): CONTROL releases the big container, TAMIRn releases that receipt's small one.
 - **Roles:**
-  - TASNIF, METO_SKLAD and UYCHI_SKLAD are confined to `/meto-hub/yangi/` by the role middleware; the two sklad roles also get `/meto-hub/konteynerlar/`.
-  - BRANCH_ADMIN gets `/meto-hub/yangi/` (the Uychi tab).
+  - TASNIF, METO_SKLAD and UYCHI_SKLAD are confined to `/tayyorlov/` by the role middleware; the two sklad roles also get `/tayyorlov/konteynerlar/`.
+  - BRANCH_ADMIN gets `/tayyorlov/` (the Uychi tab).
   - The superadmin and admin see everything.
 - **Tests:** `production/test_meto_flow.py`, `production/test_meto_containers.py`.
 
@@ -170,5 +170,6 @@ A SCREEN user may open only its own patok's pages (exact paths in the role middl
 - `production/apps.py` monkey-patches `django.template.base.Template.__init__` to normalize whitespace inside `{{ }}` and `{% %}` (so multi-line tags and `|default: x` work). Templates may rely on this.
 - Large monthly Excel exports (`excel_reports.py`) have previously OOM-crashed the 2-worker gunicorn container — stream/iterate querysets rather than materializing everything.
 - Barcode scanner input: do not add Cyrillic→Latin keyboard transliteration (it was intentionally removed).
+- `USE_SQLITE=1` tests ignore `select_for_update`, so PostgreSQL-only errors slip through — e.g. `select_for_update()` with `select_related` of a nullable FK fails on Postgres ("FOR UPDATE cannot be applied to the nullable side of an outer join"; use `select_for_update(of=('self',))`). The new meto flow shipped with this bug on 2026-11-19. Test row-locking code on Postgres too: `.venv/bin/python manage.py test <module> --noinput` without `USE_SQLITE` creates and drops `test_<DB_NAME>` on the local server and never touches the real data.
 - `CHANGELOG.md` is a hand-maintained Uzbek log of significant commits (ID, files changed, features); it is updated alongside notable feature work.
 - The repo root contains large DB/media backups (`*.sql.gz`, `*.dump`, `data_backup.json`); `restore_data.sh` loads them into the Docker stack. Don't read or modify them unless asked.
