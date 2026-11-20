@@ -29,6 +29,22 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `a9b5a5d`] — 20.11.2026
+* **Turi:** `feat(tayyorlov)` — `/tayyorlov/` bosh menyusi 3 zonali dizayni va alohida bo'lim sahifalarini izolyatsiya qilish
+* **Mavzu:** Tayyorlov menyusi `Inter` shriftli zamonaviy 3 zonali ko'rinishga o'tkazildi (Bosh bino `01–04`, Uychi va logistika, Inventar va sozlamalar); alohida bo'lim sahifalaridan (`/tayyorlov/meto/`, `/tasnif/`, `/konteynerlar/` va b.) boshqa bo'limlarga barcha havolalar olib tashlandi.
+* **O'zgartirilgan fayllar:**
+  - `templates/tayyorlov/base_tayyorlov.html` (yangi): Tayyorlov uchun alohida zamonaviy asos (boshqa bo'lim navigatsiyasisiz, Kun/Tun qo'llab-quvvatlovi bilan)
+  - `templates/meto_hub/hub.html`, `production/meto_flow_views.py`: 3 zonali Hub, tezkor ko'rsatkichlar va jonli pilllar
+  - `templates/meto_hub/flow.html`, `containers.html`, `container_detail.html`: faqat joriy bo'limga xos mustaqil sahifalar
+  - `production/test_meto_flow.py`, `.claude/project-knowledge/*.json`: 3 zona va boshqa bo'lim havolalari yo'qligi testlari
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya talab qilinmaydi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout a9b5a5d
+  ```
+
+---
+
 ### 🔹 [Commit: `ee7c32a`] — 19.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/` bosh menyusi (Hub) va har bir bo'lim uchun alohida `/tayyorlov/<bolim>/` sahifalar
 * **Mavzu:** Tayyorlov bo'limi bitta `?tab=` sahifasidan bosh menyu (Hub) va mustaqil URL manzillarga ajratildi; bo'lim kartochkalari yangi brauzer tabida ochiladi.
