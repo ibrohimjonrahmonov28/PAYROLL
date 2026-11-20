@@ -29,6 +29,36 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `159c5bb`] — 20.11.2026
+* **Turi:** `feat(meto)` — Tayyorlov Meto bo'limi uchun 2 smenali ish tartibi va hisob-kitobi
+* **Mavzu:** Meto bo'limida 2 smena hisobi yo'lga qo'yildi (`08:00–18:00` 1-smena, `18:00–08:00` 2-smena / tungi; tungi soat `00:00–07:59` kechagi ish kuniga tegishli). Tugatilgan pastallar avtomatik joriy smenaga yoziladi; sahifada jonli smena ko'rsatkichi, joriy smena va 24 soatlik ish kuni KPI ko'rsatkichlari, smena filtri (`current`, `day`, `s1`, `s2`) va tarix jadvalida smena badji qo'shildi.
+* **O'zgartirilgan fayllar:**
+  - `production/shifts.py` (yangi): `Asia/Tashkent` vaqt mintaqasida 2 smenali ish kuni sikli va intervallar hisobi (`get_shift_info`, `get_shift_for_timestamp`, `get_work_day_shifts`)
+  - `production/meto_flow_views.py`: `_ctx_meto` da joriy smena, 24 soatlik kun va 1/2-smena ajratmasi, `_card` da `meto_shift` biriktirilishi
+  - `templates/meto_hub/flow/meto.html`: jonli smena paneli, joriy smena KPI kartasi, smena filtri va tarix jadvalida smena badji
+  - `production/test_meto_flow.py`: `MetoTwoShiftsTest` (barcha 39 ta test muvaffaqiyatli)
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya talab qilinmaydi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout 159c5bb
+  ```
+
+---
+
+### 🔹 [Commit: `f242eb5`] — 20.11.2026
+* **Turi:** `feat(backup)` — Har kecha Telegramga media fayllar (rasmlar va QR kodlar) zaxirasini yuborish
+* **Mavzu:** Dushanba kechalari to'liq media arxivi, boshqa kechalari esa haftalik o'zgarishlar (incremental) Telegram backup chatiga yuboriladi (50 MB chegarasi uchun avtomatik bo'laklash bilan).
+* **O'zgartirilgan fayllar:**
+  - `production/media_backup.py`, `production/management/commands/send_media_backup.py`, `production/test_media_backup.py`
+  - `production/management/commands/run_scheduler.py`
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya talab qilinmaydi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout f242eb5
+  ```
+
+---
+
 ### 🔹 [Commit: `a9b5a5d`] — 20.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/` bosh menyusi 3 zonali dizayni va alohida bo'lim sahifalarini izolyatsiya qilish
 * **Mavzu:** Tayyorlov menyusi `Inter` shriftli zamonaviy 3 zonali ko'rinishga o'tkazildi (Bosh bino `01–04`, Uychi va logistika, Inventar va sozlamalar); alohida bo'lim sahifalaridan (`/tayyorlov/meto/`, `/tasnif/`, `/konteynerlar/` va b.) boshqa bo'limlarga barcha havolalar olib tashlandi.
