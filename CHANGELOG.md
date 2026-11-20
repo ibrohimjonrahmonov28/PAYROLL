@@ -29,7 +29,21 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `8a348d4`] — 20.11.2026
+### 🔹 [Commit: `11ab3b4`] — 20.11.2026
+* **Turi:** `refactor(tasnif)` — Tasnif sahifasidan tugatilgan pastallar tarixi olib tashlandi
+* **Mavzu:** Egasi talabi («Tugatilgan pastallar tarixi (1) kerak emas»): Tasnif bo'limi faqat oqimdagi faol pastallarga qaratildi:
+  - Pastdagi «Tugatilgan pastallar tarixi» jadvali va sahifalash bloki butunlay olib tashlandi.
+  - Filtrlash panelidan ortiqcha holat va faqat tarix jadvaliga xizmat qilgan smena tanlagichi olib tashlandi.
+  - Smena statistikasi yuqoridagi ixcham banner va joriy smena KPI kartasida to'liq saqlab qolindi.
+  - Sahifa sof 2 ustunli («Tasnif kutmoqda» va «Tasnif bo'lmoqda») qulay sensorli interfeysga keltirildi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/flow/tasnif.html`: tarix jadvali va ortiqcha filtrlar olib tashlandi
+  - `production/test_meto_flow.py`: tarix jadvali chiqmasligi bo'yicha regressiya testi
+* **Serverda:** `git pull origin main && docker compose restart web`
+
+---
+
+### 🔹 [Commit: `d776b58`] — 20.11.2026
 * **Turi:** `feat(tasnif)` — Tayyorlov Tasnif bo'limi: 2 smena tizimi, 2 tomonli ekran (kutmoqda / bo'lmoqda), qabulni bekor qilish va «Meto omboriga jo'natish»
 * **Mavzu:** https://terryjar.uz/tayyorlov/tasnif/ bo'limi egasi talabi bo'yicha to'liq yangilandi:
   - Ekran 2 tomonga bo'lindi: chap tomonda «Tasnif kutmoqda», o'ng tomonda «Tasnif bo'lmoqda».

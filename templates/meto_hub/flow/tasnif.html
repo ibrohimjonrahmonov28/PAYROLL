@@ -78,21 +78,13 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
             {% endfor %}
         </select>
         <select name="holat" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
-            <option value="faol" {% if holat == 'faol' %}selected{% endif %}>Faol (kutmoqda + ishda)</option>
+            <option value="faol" {% if holat == 'faol' %}selected{% endif %}>Barchasi (kutmoqda + ishda)</option>
             <option value="wait" {% if holat == 'wait' %}selected{% endif %}>Faqat kutmoqda</option>
             <option value="work" {% if holat == 'work' %}selected{% endif %}>Faqat tasnif bo'lmoqda</option>
-            <option value="done" {% if holat == 'done' %}selected{% endif %}>Tugatilganlar tarixi</option>
-        </select>
-        <select name="smena" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
-            <option value="">Smena: barchasi</option>
-            <option value="current" {% if smena == 'current' %}selected{% endif %}>Joriy smena ({{ current_shift.shift_label }})</option>
-            <option value="day" {% if smena == 'day' %}selected{% endif %}>Bugungi ish kuni (24s)</option>
-            <option value="s1" {% if smena == 's1' %}selected{% endif %}>Bugungi 1-smena</option>
-            <option value="s2" {% if smena == 's2' %}selected{% endif %}>Bugungi 2-smena</option>
         </select>
         <button
             class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Ko'rsatish</button>
-        {% if q or zakaz or holat != 'faol' or smena %}
+        {% if q or zakaz or holat != 'faol' %}
         <a href="{% url 'meto_hub_flow_tasnif' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
         {% endif %}
         <div class="flex items-center gap-1.5 ml-auto">
@@ -163,12 +155,12 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
             {% if wait_page.has_other_pages %}
             <div class="flex items-center justify-between gap-2 pt-2 text-sm">
                 {% if wait_page.has_previous %}
-                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.previous_page_number }}&pd={{ done_page.number }}"
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.previous_page_number }}"
                     class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
                 {% else %}<span></span>{% endif %}
                 <span class="text-xs text-slate-400">{{ wait_page.number }} / {{ wait_page.paginator.num_pages }}</span>
                 {% if wait_page.has_next %}
-                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.next_page_number }}&pd={{ done_page.number }}"
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.next_page_number }}"
                     class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
                 {% else %}<span></span>{% endif %}
             </div>
@@ -255,85 +247,7 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
     </div>
     {% endif %}
 
-    <!-- Tugatilganlar tarixi -->
-    {% if holat == 'faol' or holat == 'done' %}
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-sm font-black uppercase text-white">Tugatilgan pastallar tarixi <span
-                    class="text-slate-400">({{ done_page.paginator.count }})</span></h2>
-            {% if done_page.has_other_pages %}
-            <span class="text-xs text-slate-400">Sahifa {{ done_page.number }} / {{ done_page.paginator.num_pages }}</span>
-            {% endif %}
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="text-xs text-slate-400 border-b border-slate-800">
-                    <tr>
-                        <th class="text-left py-2 pr-3">Pastal</th>
-                        <th class="text-left py-2 pr-3">Zakaz / Artikul</th>
-                        <th class="text-left py-2 pr-3">Meto → Tasnif</th>
-                        <th class="text-left py-2 pr-3">Smena</th>
-                        <th class="text-left py-2 pr-3">Tasnifchi</th>
-                        <th class="text-left py-2 pr-3">Vaqt</th>
-                        <th class="text-left py-2">Hozirgi bosqich</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800">
-                    {% for c in done_cards %}
-                    <tr class="hover:bg-slate-800/40">
-                        <td class="py-2 pr-3 font-black text-white whitespace-nowrap">{{ c.batch.pastal_code|default:c.batch.name }}</td>
-                        <td class="py-2 pr-3 text-slate-300">{{ c.order.order_number }} · {{ c.article.code|default:"—" }}</td>
-                        <td class="py-2 pr-3 whitespace-nowrap">
-                            <span class="text-slate-400">{{ c.total_meto }}</span> → <b class="text-white">{{ c.total_tasnif }}</b>
-                            {% if c.tasnif_diff > 0 %}
-                            <span class="ml-1 text-xs font-bold text-rose-300">(+{{ c.tasnif_diff }})</span>
-                            {% elif c.tasnif_diff < 0 %}
-                            <span class="ml-1 text-xs font-bold text-amber-300">({{ c.tasnif_diff }})</span>
-                            {% else %}
-                            <span class="ml-1 text-xs text-emerald-400">(=)</span>
-                            {% endif %}
-                        </td>
-                        <td class="py-2 pr-3 whitespace-nowrap">
-                            {% if c.tasnif_shift %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold {% if c.tasnif_shift.shift_num == 1 %}bg-amber-950/80 text-amber-300 border border-amber-800/60{% else %}bg-indigo-950/80 text-indigo-300 border border-indigo-800/60{% endif %}" title="Ish kuni: {{ c.tasnif_shift.work_date_str }} ({{ c.tasnif_shift.time_window_str }})">
-                                <i class="fa-solid {% if c.tasnif_shift.shift_num == 1 %}fa-sun{% else %}fa-moon{% endif %} text-[10px]"></i>
-                                {{ c.tasnif_shift.shift_label }}
-                            </span>
-                            {% else %}
-                            <span class="text-slate-500">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="py-2 pr-3 text-slate-300">{{ c.flow.tasnif_done_by.get_full_name|default:c.flow.tasnif_done_by.username|default:"—" }}</td>
-                        <td class="py-2 pr-3 text-xs text-slate-400 whitespace-nowrap" title="{% if c.tasnif_shift %}Ish kuni: {{ c.tasnif_shift.work_date_str }}{% endif %}">
-                            {{ c.flow.tasnif_done_at|date:"d.m.Y H:i" }}
-                        </td>
-                        <td class="py-2">
-                            <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs font-bold text-cyan-300">{{ c.flow.get_stage_display }}</span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="py-6 text-center text-slate-500">Hali tasnif tugatilgan pastal yo'q.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% if done_page.has_other_pages %}
-        <div class="flex items-center justify-between gap-2 pt-2 text-sm">
-            {% if done_page.has_previous %}
-            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.number }}&pd={{ done_page.previous_page_number }}"
-                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
-            {% else %}<span></span>{% endif %}
-            <span class="text-xs text-slate-400">{{ done_page.number }} / {{ done_page.paginator.num_pages }}</span>
-            {% if done_page.has_next %}
-            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.number }}&pd={{ done_page.next_page_number }}"
-                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
-            {% else %}<span></span>{% endif %}
-        </div>
-        {% endif %}
-    </section>
-    {% endif %}
+
 </div>
 
 <script>

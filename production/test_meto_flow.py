@@ -966,6 +966,8 @@ class MetoTwoShiftsTest(MetoFlowBase):
         self.assertIn('btn-step-plus', html)
         self.assertIn('onfocus="this.select()"', html)
         self.assertIn('id="tasnif-search-input"', html)
+        # Egasi talabi: Tasnifda tugatilganlar tarixi kerak emas
+        self.assertNotIn('Tugatilgan pastallar tarixi', html)
 
         # POST orqali bekor qilish (qabul qilingan pastal kutmoqda ga qaytadi)
         cancel_url = reverse('meto_hub_flow_tasnif_cancel', args=[b_work.id])
