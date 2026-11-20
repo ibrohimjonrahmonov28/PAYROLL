@@ -572,9 +572,22 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
         self.assertEqual(reverse('meto_hub_containers'), '/tayyorlov/konteynerlar/')
         self.client.force_login(self.admin)
         hub = self.client.get('/tayyorlov/')
+        self.assertEqual([c['key'] for c in hub.context['bosh_cards']], ['meto', 'tasnif', 'stiker', 'sklad'])
+        self.assertEqual([c['key'] for c in hub.context['filial_cards']], ['uychi', 'yukxat'])
+        self.assertEqual([c['key'] for c in hub.context['utility_cards']], ['konteynerlar', 'zakazlar'])
         self.assertContains(hub, 'href="/tayyorlov/meto/" target="_blank"')
         self.assertContains(hub, 'href="/tayyorlov/tasnif/" target="_blank"')
         self.assertContains(hub, 'href="/tayyorlov/konteynerlar/" target="_blank"')
+
+        # Alohida bo'lim sahifasida qolgan bo'limlarga havola bo'lmasligi shart
+        meto_page = self.client.get('/tayyorlov/meto/')
+        for forbidden in ('/tayyorlov/tasnif/', '/tayyorlov/stiker/', '/tayyorlov/sklad/', '/tayyorlov/uychi/',
+                          '/tayyorlov/yukxat/', '/tayyorlov/zakazlar/', '/tayyorlov/konteynerlar/', '/meto-hub/'):
+            self.assertNotContains(meto_page, f'href="{forbidden}"')
+        cont_page = self.client.get('/tayyorlov/konteynerlar/')
+        for forbidden in ('/tayyorlov/meto/', '/tayyorlov/tasnif/', '/meto-hub/'):
+            self.assertNotContains(cont_page, f'href="{forbidden}"')
+
         self.assertRedirects(
             self.client.get('/tayyorlov/meto'),
             '/tayyorlov/meto/',

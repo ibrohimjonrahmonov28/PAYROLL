@@ -1,42 +1,33 @@
-{% extends 'meto_hub/base_meto_hub.html' %}
+{% extends 'tayyorlov/base_tayyorlov.html' %}
 
-{% block title %}{{ tab_label }} — Tayyorlov bo'limi{% endblock %}
+{% block title %}{{ tab_label }} — Tayyorlov Bo'limi{% endblock %}
+
+{% block header_brand %}
+<div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg border flex-shrink-0
+    {% if section.accent == 'amber' %}bg-amber-500/15 border-amber-500/35 text-amber-400
+    {% elif section.accent == 'cyan' %}bg-cyan-500/15 border-cyan-500/35 text-cyan-400
+    {% elif section.accent == 'sky' %}bg-sky-500/15 border-sky-500/35 text-sky-400
+    {% elif section.accent == 'emerald' %}bg-emerald-500/15 border-emerald-500/35 text-emerald-400
+    {% elif section.accent == 'violet' %}bg-violet-500/15 border-violet-500/35 text-violet-400
+    {% elif section.accent == 'indigo' %}bg-indigo-500/15 border-indigo-500/35 text-indigo-400
+    {% else %}bg-rose-500/15 border-rose-500/35 text-rose-400{% endif %}">
+    <i class="fa-solid {{ section.icon }}"></i>
+</div>
+<div class="min-w-0">
+    <div class="flex items-center gap-2">
+        <span class="text-base font-black tracking-tight text-white truncate">{{ tab_label }}</span>
+        <span class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 uppercase tracking-wider">{{ section.group }}</span>
+    </div>
+    <span class="text-[11px] text-slate-400 font-medium block truncate">{{ section.desc }}</span>
+</div>
+{% endblock %}
 
 {% block content %}
 {% comment %}
-Tayyorlov bo'limining alohida sahifasi (/tayyorlov/<bolim>/, meto_flow_views.py::section_view, mantiq — meto_flow.py).
-Konteyner tekshiruvi oynasi (yashil / qizil) patokka berish, yuklash va qabul qilishda umumiy.
+Tayyorlov bo'limining mustaqil sahifasi (/tayyorlov/<bolim>/, meto_flow_views.py::section_view, mantiq — meto_flow.py).
+Boshqa bo'limlarga havolalar yo'q — faqat joriy bo'lim ish maydoni va umumiy konteyner tekshiruvi oynasi.
 {% endcomment %}
 <div class="space-y-5">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-400 mb-1">
-                <a href="{% url 'meto_hub_flow' %}" class="hover:text-amber-300 transition flex items-center gap-1">
-                    <i class="fa-solid fa-arrow-left"></i> Tayyorlov menyusi
-                </a>
-                <span>/</span>
-                <span class="text-slate-300">{{ section.group }}</span>
-            </div>
-            <h1 class="text-2xl font-black text-white flex items-center gap-2.5">
-                <i class="fa-solid {{ section.icon }} text-amber-400"></i> {{ tab_label }}
-                <span class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-black">TAYYORLOV</span>
-            </h1>
-            <p class="text-sm text-slate-400 mt-1">{{ section.desc }}</p>
-        </div>
-    </div>
-
-    <nav class="flex flex-wrap gap-2">
-        {% for s in nav_sections %}
-        {% if s.active %}
-        <a href="{{ s.url }}"
-            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition bg-amber-500 text-slate-950 border-amber-400">{{ s.label }}</a>
-        {% else %}
-        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer"
-            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600 inline-flex items-center gap-1.5">{{ s.label }}<i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60"></i></a>
-        {% endif %}
-        {% endfor %}
-    </nav>
-
     {% include tab_template %}
 </div>
 

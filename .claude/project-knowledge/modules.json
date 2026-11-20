@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3551,
+  "lines": 3567,
   "depends_on": [
    "accounts.core"
   ]
@@ -247,7 +247,7 @@
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 2599,
+  "lines": 2654,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -487,6 +487,7 @@
    "templates/meto_hub/flow/uychi.html",
    "templates/meto_hub/flow/yukxat.html",
    "templates/meto_hub/flow/zakazlar.html",
+   "templates/meto_hub/hub.html",
    "templates/meto_hub/shipment_print.html",
    "templates/meto_hub/uychi_dashboard.html",
    "templates/meto_hub/waybill_detail.html",
@@ -556,7 +557,7 @@
    "templates/superadmin/worker_history.html",
    "templates/terminal/index.html"
   ],
-  "lines": 52439,
+  "lines": 52722,
   "depends_on": []
  },
  "tests": {
@@ -588,7 +589,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 13365,
+  "lines": 13378,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

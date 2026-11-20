@@ -1,6 +1,19 @@
-{% extends 'meto_hub/base_meto_hub.html' %}
+{% extends 'tayyorlov/base_tayyorlov.html' %}
 
 {% block title %}{{ container.code }} — Konteynerlar{% endblock %}
+
+{% block header_brand %}
+<div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+    <i class="fa-solid fa-box"></i>
+</div>
+<div class="min-w-0">
+    <div class="flex items-center gap-2">
+        <span class="text-base font-black tracking-tight text-white font-mono truncate">{{ container.code }}</span>
+        <span class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 uppercase tracking-wider">Konteyner kartochkasi</span>
+    </div>
+    <span class="text-[11px] text-slate-400 font-medium block truncate">{{ container.get_kind_display }} · {{ container.get_branch_display }}</span>
+</div>
+{% endblock %}
 
 {% block content %}
 {% comment %}Konteyner kartochkasi va tarixi (production/meto_container_views.py::container_detail_view).{% endcomment %}

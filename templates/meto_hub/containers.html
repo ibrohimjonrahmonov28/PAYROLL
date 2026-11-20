@@ -1,21 +1,26 @@
-{% extends 'meto_hub/base_meto_hub.html' %}
+{% extends 'tayyorlov/base_tayyorlov.html' %}
 
-{% block title %}Konteynerlar — Meto Markazi{% endblock %}
+{% block title %}Konteynerlar — Tayyorlov Bo'limi{% endblock %}
+
+{% block header_brand %}
+<div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+    <i class="fa-solid fa-box"></i>
+</div>
+<div class="min-w-0">
+    <div class="flex items-center gap-2">
+        <span class="text-base font-black tracking-tight text-white truncate">Konteynerlar</span>
+        <span class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 uppercase tracking-wider">Inventar · 10 000 quti</span>
+    </div>
+    <span class="text-[11px] text-slate-400 font-medium block truncate">Har konteynerga doimiy QR yorliq (KONT-000123) va harakat nazorati</span>
+</div>
+{% endblock %}
 
 {% block content %}
 {% comment %}
-Meto Markazi → Konteynerlar (production/meto_container_views.py::containers_view): yangi yaratish, yorliq chop etish,
-kuzatish. Yangi meto oqimining 1-bosqichi (egasi talabi 2026-11-19); mavjud Meto Markazi oqimiga tegmaydi.
+Tayyorlov → Konteynerlar (production/meto_container_views.py::containers_view): yangi yaratish, yorliq chop etish,
+kuzatish. Boshqa bo'limlarga havolasiz mustaqil sahifa.
 {% endcomment %}
 <div class="space-y-6">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-black text-white flex items-center gap-2.5">
-                <i class="fa-solid fa-box text-amber-400"></i> Konteynerlar
-            </h1>
-            <p class="text-sm text-slate-400 mt-1">Har konteynerga doimiy QR yorliq (KONT-000123). Keyingi bosqichda stikerli quti bilan bog'lanadi.</p>
-        </div>
-    </div>
 
     <div class="grid grid-cols-3 sm:grid-cols-5 xl:grid-cols-9 gap-3">
         {% for label, value, color in kpis %}

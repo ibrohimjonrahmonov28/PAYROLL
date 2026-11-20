@@ -1417,7 +1417,7 @@
   },
   "templates/meto_hub/container_detail.html": {
    "extends": [
-    "meto_hub/base_meto_hub.html"
+    "tayyorlov/base_tayyorlov.html"
    ],
    "url_names": [
     "meto_hub_container_labels",
@@ -1426,7 +1426,7 @@
   },
   "templates/meto_hub/containers.html": {
    "extends": [
-    "meto_hub/base_meto_hub.html"
+    "tayyorlov/base_tayyorlov.html"
    ],
    "url_names": [
     "meto_hub_container_create",
@@ -1452,10 +1452,9 @@
   },
   "templates/meto_hub/flow.html": {
    "extends": [
-    "meto_hub/base_meto_hub.html"
+    "tayyorlov/base_tayyorlov.html"
    ],
    "url_names": [
-    "meto_hub_flow",
     "meto_hub_flow_api_check"
    ]
   },
@@ -1553,6 +1552,14 @@
   "templates/meto_hub/flow/zakazlar.html": {
    "url_names": [
     "meto_hub_flow_beta_toggle"
+   ]
+  },
+  "templates/meto_hub/hub.html": {
+   "extends": [
+    "tayyorlov/base_tayyorlov.html"
+   ],
+   "url_names": [
+    "superadmin_dashboard"
    ]
   },
   "templates/meto_hub/shipment_print.html": {

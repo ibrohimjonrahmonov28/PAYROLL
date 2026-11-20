@@ -27,8 +27,8 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 976,
-   "sha256_16": "a70043d16d47e7a3"
+   "lines": 992,
+   "sha256_16": "e47d12ca7c769247"
   },
   "CLAUDE.md": {
    "module": "ops",
@@ -925,59 +925,59 @@
   },
   "production/meto_flow_views.py": {
    "module": "production.meto",
-   "lines": 705,
-   "sha256_16": "d9edf081815f8c94",
+   "lines": 760,
+   "sha256_16": "fe1f4278cec13084",
    "symbols": [
-    "_can_view_section:104",
-    "_allowed_sections:111",
-    "_allowed_tabs:115",
-    "flow_access_required:119",
-    "_flow_url:134",
-    "_deny:141",
-    "_json:146",
-    "_allowed:153",
-    "_api:159",
-    "_card:183",
-    "_flows_qs:219",
-    "_flows:228",
-    "_search_flows_qs:232",
-    "_incoming:250",
-    "_patok_rows:257",
-    "_ctx_meto:271",
-    "_ctx_tasnif:316",
-    "_ctx_stiker:321",
-    "_ctx_sklad:327",
-    "_ctx_uychi:333",
-    "_ctx_yukxat:338",
-    "_ctx_zakazlar:346",
-    "_can_open_containers:368",
-    "_hub_stats:373",
-    "flow_view:428",
-    "section_view:454",
-    "_form_action:476",
-    "_batch:498",
-    "_posted_counts:502",
-    "_name:506",
-    "meto_take:511",
-    "meto_cancel:518",
-    "meto_finish:525",
-    "tasnif_take:532",
-    "tasnif_finish:539",
-    "tasnif_update:546",
-    "split:553",
-    "sklad_receive:566",
-    "beta_toggle:573",
-    "_require_branch:585",
-    "api_resolve:591",
-    "api_link:611",
-    "api_unlink:622",
-    "api_check:635",
-    "api_give:645",
-    "api_ship:658",
-    "_line:668",
-    "api_receive:678",
-    "api_return:688",
-    "shipment_print:694"
+    "_can_view_section:118",
+    "_allowed_sections:125",
+    "_allowed_tabs:129",
+    "flow_access_required:133",
+    "_flow_url:148",
+    "_deny:155",
+    "_json:160",
+    "_allowed:167",
+    "_api:173",
+    "_card:197",
+    "_flows_qs:233",
+    "_flows:242",
+    "_search_flows_qs:246",
+    "_incoming:264",
+    "_patok_rows:271",
+    "_ctx_meto:285",
+    "_ctx_tasnif:330",
+    "_ctx_stiker:335",
+    "_ctx_sklad:341",
+    "_ctx_uychi:347",
+    "_ctx_yukxat:352",
+    "_ctx_zakazlar:360",
+    "_can_open_containers:384",
+    "_hub_stats:389",
+    "flow_view:446",
+    "section_view:511",
+    "_form_action:531",
+    "_batch:553",
+    "_posted_counts:557",
+    "_name:561",
+    "meto_take:566",
+    "meto_cancel:573",
+    "meto_finish:580",
+    "tasnif_take:587",
+    "tasnif_finish:594",
+    "tasnif_update:601",
+    "split:608",
+    "sklad_receive:621",
+    "beta_toggle:628",
+    "_require_branch:640",
+    "api_resolve:646",
+    "api_link:666",
+    "api_unlink:677",
+    "api_check:690",
+    "api_give:700",
+    "api_ship:713",
+    "_line:723",
+    "api_receive:733",
+    "api_return:743",
+    "shipment_print:749"
    ]
   },
   "production/meto_hub_urls.py": {
@@ -1529,8 +1529,8 @@
   },
   "production/test_meto_flow.py": {
    "module": "tests",
-   "lines": 661,
-   "sha256_16": "f805d4fa230d874a",
+   "lines": 674,
+   "sha256_16": "14f3d96a25ca2731",
    "symbols": [
     "MetoFlowBase:22",
     "MetoFlowStepsTest:96",
@@ -1962,13 +1962,13 @@
   },
   "templates/meto_hub/base_meto_hub.html": {
    "module": "templates",
-   "lines": 172,
-   "sha256_16": "61c5cd2a223dad07"
+   "lines": 182,
+   "sha256_16": "158d7a28e3fbcf9e"
   },
   "templates/meto_hub/container_detail.html": {
    "module": "templates",
-   "lines": 75,
-   "sha256_16": "b653fccd9a6ff46d"
+   "lines": 88,
+   "sha256_16": "1d99f0df748f73f3"
   },
   "templates/meto_hub/container_labels_print.html": {
    "module": "templates",
@@ -1977,8 +1977,8 @@
   },
   "templates/meto_hub/containers.html": {
    "module": "templates",
-   "lines": 162,
-   "sha256_16": "fce54cf37405bfcd"
+   "lines": 167,
+   "sha256_16": "786029ffb9e2ab45"
   },
   "templates/meto_hub/dashboard.html": {
    "module": "templates",
@@ -1987,8 +1987,8 @@
   },
   "templates/meto_hub/flow.html": {
    "module": "templates",
-   "lines": 196,
-   "sha256_16": "a454711e3073fb50"
+   "lines": 187,
+   "sha256_16": "bbd21887b7e60324"
   },
   "templates/meto_hub/flow/_branch_js.html": {
    "module": "templates",
@@ -2059,6 +2059,11 @@
    "module": "templates",
    "lines": 33,
    "sha256_16": "72985739ed95c82c"
+  },
+  "templates/meto_hub/hub.html": {
+   "module": "templates",
+   "lines": 264,
+   "sha256_16": "fcfdf2b425224ab4"
   },
   "templates/meto_hub/shipment_print.html": {
    "module": "templates",

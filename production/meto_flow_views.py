@@ -29,47 +29,57 @@ SECTIONS = (
         'label': "Meto",
         'step': 'meto',
         'url_name': 'meto_hub_flow_meto',
-        'group': "Bosh bino (Koson)",
+        'zone': 'bosh',
+        'step_num': '01',
+        'group': "Bosh bino · 1-bosqich",
         'icon': 'fa-tags',
         'accent': 'amber',
-        'desc': "Kesimdan kelgan pastallarni qabul qilish, sanash va izoh bilan tasnifga uzatish.",
+        'desc': "Kesimdan kelgan pastallarni qabul qilish, sanash va tasnifga uzatish.",
     },
     {
         'key': 'tasnif',
         'label': "Tasnif",
         'step': 'tasnif',
         'url_name': 'meto_hub_flow_tasnif',
-        'group': "Bosh bino (Koson)",
+        'zone': 'bosh',
+        'step_num': '02',
+        'group': "Bosh bino · 2-bosqich",
         'icon': 'fa-layer-group',
         'accent': 'cyan',
-        'desc': "Meto sonini tekshirib real tasnif sonini yozish va tayyorlov skladiga o'tkazish.",
+        'desc': "Meto sonini tekshirib real son kiritish va tayyorlov skladiga berish.",
     },
     {
         'key': 'stiker',
         'label': "Stiker",
         'step': 'stiker',
         'url_name': 'meto_hub_flow_stiker',
-        'group': "Bosh bino (Koson)",
+        'zone': 'bosh',
+        'step_num': '03',
+        'group': "Bosh bino · 3-bosqich",
         'icon': 'fa-qrcode',
         'accent': 'sky',
-        'desc': "Tasnif sonini qutilarga bo'lish, stiker chiqarish va chop etilguncha sonni tuzatish.",
+        'desc': "Tasnif sonini qutilarga bo'lish va stikerlarni chop etish.",
     },
     {
         'key': 'sklad',
         'label': "Tayyorlov skladi",
         'step': 'sklad',
         'url_name': 'meto_hub_flow_sklad',
-        'group': "Bosh bino (Koson)",
+        'zone': 'bosh',
+        'step_num': '04',
+        'group': "Bosh bino · 4-bosqich",
         'icon': 'fa-warehouse',
         'accent': 'emerald',
-        'desc': "Kg bilan qabul, konteynerga biriktirish, patokka berish va Uychiga yuk xati tuzish.",
+        'desc': "Kg bilan qabul, konteynerga biriktirish, patokka berish va Uychiga yuklash.",
     },
     {
         'key': 'uychi',
-        'label': "Uychi",
+        'label': "Uychi filiali",
         'step': 'uychi',
         'url_name': 'meto_hub_flow_uychi',
-        'group': "Filial (Uychi)",
+        'zone': 'filial',
+        'step_num': '',
+        'group': "Uychi filiali",
         'icon': 'fa-truck-ramp-box',
         'accent': 'violet',
         'desc': "Kosondan kelgan yukni konteynerlar bo'yicha qabul qilish va U-patoklarga berish.",
@@ -79,6 +89,8 @@ SECTIONS = (
         'label': "Yuk xatlari",
         'step': None,
         'url_name': 'meto_hub_flow_yukxat',
+        'zone': 'filial',
+        'step_num': '',
         'group': "Logistika",
         'icon': 'fa-file-invoice',
         'accent': 'indigo',
@@ -89,10 +101,12 @@ SECTIONS = (
         'label': "Beta zakazlar",
         'step': 'zakazlar',
         'url_name': 'meto_hub_flow_zakazlar',
+        'zone': 'utility',
+        'step_num': '',
         'group': "Sozlama",
         'icon': 'fa-sliders',
         'accent': 'rose',
-        'desc': "Qaysi zakazlarning yangi pastallari Tayyorlov oqimiga tushishini yoqish/o'chirish.",
+        'desc': "Tayyorlov oqimiga tushadigan zakazlarni yoqish yoki o'chirish.",
     },
 )
 SECTION_BY_KEY = {s['key']: s for s in SECTIONS}
@@ -358,10 +372,12 @@ CONTAINER_SECTION = {
     'key': 'konteynerlar',
     'label': "Konteynerlar",
     'url_name': 'meto_hub_containers',
-    'group': "Inventar (10 000 quti)",
+    'zone': 'utility',
+    'step_num': '',
+    'group': "Inventar · 10 000 quti",
     'icon': 'fa-box',
     'accent': 'amber',
-    'desc': "Konteyner QR kodlarini yaratish, yorliq chop etish va qayerdaligini kuzatish.",
+    'desc': "QR kod yaratish, yorliq chop etish va konteynerlar qayerdaligini kuzatish.",
 }
 
 
@@ -371,16 +387,17 @@ def _can_open_containers(user):
 
 
 def _hub_stats(allowed_keys, can_containers):
+    """Har bir bo'lim uchun jonli ko'rsatkichlar: (asosiy son, birlik, pill lar ro'yxati)."""
     stats = {}
     if 'meto' in allowed_keys:
         flow_logic.ensure_flows()
         wait = PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WAIT).count()
         work = PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WORK).count()
-        stats['meto'] = (wait + work, f"{wait} kutmoqda · {work} ishda")
+        stats['meto'] = (wait + work, 'pastal', [('Kutmoqda', wait, 'amber'), ('Ishda', work, 'cyan')])
     if 'tasnif' in allowed_keys:
         wait = PastalFlow.objects.filter(stage=PastalFlow.Stage.TASNIF_WAIT).count()
         work = PastalFlow.objects.filter(stage=PastalFlow.Stage.TASNIF_WORK).count()
-        stats['tasnif'] = (wait + work, f"{wait} kutmoqda · {work} ishda")
+        stats['tasnif'] = (wait + work, 'pastal', [('Kutmoqda', wait, 'amber'), ('Ishda', work, 'cyan')])
     hq_ids = set()
     if 'stiker' in allowed_keys or 'sklad' in allowed_keys:
         hq_ids = set(
@@ -396,37 +413,38 @@ def _hub_stats(allowed_keys, can_containers):
         )
         need_split = len(hq_ids - with_boxes)
         need_print = len(unprinted)
-        stats['stiker'] = (need_split + need_print, f"{need_split} bo'lish · {need_print} chop etish")
+        stats['stiker'] = (need_split + need_print, 'pastal', [("Bo'lish", need_split, 'sky'), ('Chop etish', need_print, 'amber')])
     if 'sklad' in allowed_keys:
         ret = ShipmentPastal.objects.filter(
             status=ShipmentPastal.Status.IN_TRANSIT, shipment__destination_branch='HQ'
         ).count()
-        stats['sklad'] = (len(hq_ids), f"{len(hq_ids)} skladda · {ret} qaytayotgan")
+        stats['sklad'] = (len(hq_ids), 'skladda', [('Skladda', len(hq_ids), 'emerald'), ('Qaytayotgan', ret, 'rose')])
     if 'uychi' in allowed_keys:
         inc = ShipmentPastal.objects.filter(
             status=ShipmentPastal.Status.IN_TRANSIT, shipment__destination_branch='UYCHI'
         ).count()
         sk = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch='UYCHI').count()
-        stats['uychi'] = (inc + sk, f"{inc} kelmoqda · {sk} skladda")
+        stats['uychi'] = (inc + sk, 'pastal', [('Kelayotgan', inc, 'amber'), ('Skladda', sk, 'violet')])
     if 'yukxat' in allowed_keys:
         open_ship = Shipment.objects.filter(status=Shipment.Status.IN_TRANSIT).count()
         total_ship = Shipment.objects.count()
-        stats['yukxat'] = (open_ship, f"{open_ship} yo'lda · {total_ship} jami")
+        stats['yukxat'] = (open_ship, "yo'lda", [("Yo'lda", open_ship, 'sky'), ('Jami', total_ship, 'slate')])
     if 'zakazlar' in allowed_keys:
         beta_cnt = Order.objects.filter(meto_beta=True).exclude(
             status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED]
         ).count()
-        stats['zakazlar'] = (beta_cnt, f"{beta_cnt} ta beta zakaz")
+        stats['zakazlar'] = (beta_cnt, 'faol zakaz', [('Faol', beta_cnt, 'rose')])
     if can_containers:
         empty_c = Container.objects.filter(status=Container.Status.EMPTY).count()
         tot_c = Container.objects.count()
-        stats['konteynerlar'] = (empty_c, f"{empty_c} bo'sh · {tot_c} jami")
+        used_c = max(tot_c - empty_c, 0)
+        stats['konteynerlar'] = (empty_c, "bo'sh", [("Bo'sh", empty_c, 'emerald'), ('Band', used_c, 'amber'), ('Jami', tot_c, 'slate')])
     return stats
 
 
 @flow_access_required
 def flow_view(request):
-    """Tayyorlov bo'limi menyusi (/tayyorlov/): ruxsatli bo'limlarni alohida yangi sahifada ochish uchun."""
+    """Tayyorlov bo'limi bosh menyusi (/tayyorlov/): ruxsatli bo'limlar guruhlangan holda yangi tabda ochiladi."""
     tabs = _allowed_tabs(request.user)
     requested_tab = (request.GET.get('tab') or '').strip()
     if requested_tab:
@@ -443,25 +461,62 @@ def flow_view(request):
     allowed_keys = {s['key'] for s in allowed}
     can_containers = _can_open_containers(request.user)
     stats = _hub_stats(allowed_keys, can_containers)
+
+    all_sections = list(allowed)
+    if can_containers:
+        # Inventar kartochkasi sozlamadan oldin tursin
+        insert_at = next((i for i, item in enumerate(all_sections) if item['zone'] == 'utility'), len(all_sections))
+        all_sections.insert(insert_at, CONTAINER_SECTION)
+
     hub_cards = []
-    for s in allowed + ([CONTAINER_SECTION] if can_containers else []):
-        count, stat_line = stats.get(s['key'], (0, ''))
-        hub_cards.append({**s, 'url': reverse(s['url_name']), 'count': count, 'stat_line': stat_line})
-    return render(request, 'meto_hub/hub.html', {'tabs': tabs, 'hub_cards': hub_cards})
+    for s in all_sections:
+        count, unit, pills = stats.get(s['key'], (0, '', []))
+        hub_cards.append({**s, 'url': reverse(s['url_name']), 'count': count, 'unit': unit, 'pills': pills})
+
+    bosh_cards = [c for c in hub_cards if c['zone'] == 'bosh']
+    filial_cards = [c for c in hub_cards if c['zone'] == 'filial']
+    utility_cards = [c for c in hub_cards if c['zone'] == 'utility']
+
+    summary_pills = []
+    if bosh_cards:
+        bosh_active = PastalFlow.objects.filter(
+            Q(stage__in=[
+                PastalFlow.Stage.METO_WAIT, PastalFlow.Stage.METO_WORK,
+                PastalFlow.Stage.TASNIF_WAIT, PastalFlow.Stage.TASNIF_WORK,
+            ])
+            | Q(stage=PastalFlow.Stage.SKLAD, branch='HQ')
+        ).count()
+        summary_pills.append(("Bosh bino faol", f"{bosh_active} pastal", 'amber'))
+    if filial_cards:
+        in_transit_cnt = ShipmentPastal.objects.filter(
+            status=ShipmentPastal.Status.IN_TRANSIT, shipment__destination_branch='UYCHI'
+        ).count()
+        summary_pills.append(("Uychiga yo'lda", f"{in_transit_cnt} pastal", 'violet'))
+    if can_containers and 'konteynerlar' in stats:
+        empty_c, _, pills = stats['konteynerlar']
+        tot_c = pills[-1][1]
+        summary_pills.append(("Bo'sh konteyner", f"{empty_c} / {tot_c}", 'emerald'))
+
+    return render(request, 'meto_hub/hub.html', {
+        'tabs': tabs,
+        'hub_cards': hub_cards,
+        'bosh_cards': bosh_cards,
+        'filial_cards': filial_cards,
+        'utility_cards': utility_cards,
+        'summary_pills': summary_pills,
+    })
 
 
 @flow_access_required
 def section_view(request, tab):
-    """Tayyorlov bo'limining alohida sahifasi (/tayyorlov/meto/, /tasnif/, ...)."""
+    """Tayyorlov bo'limining mustaqil sahifasi (/tayyorlov/meto/, /tasnif/, ...): boshqa bo'limlarga link yo'q."""
     section = SECTION_BY_KEY.get(tab)
     if not section or not _can_view_section(request.user, section):
         messages.error(request, "Bu bo'limga ruxsatingiz yo'q.")
         return redirect('meto_hub_flow')
     allowed = _allowed_sections(request.user)
-    nav_sections = [{**s, 'url': reverse(s['url_name']), 'active': s['key'] == tab} for s in allowed]
     context = {
         'tabs': [(s['key'], s['label']) for s in allowed],
-        'nav_sections': nav_sections,
         'section': section,
         'tab': tab,
         'tab_label': section['label'],
