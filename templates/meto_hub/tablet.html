@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="uz" class="h-full bg-[#080d1a] text-slate-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>METO PLANSHET — TERRY JAR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        html,
+        body {
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            background-color: #080d1a;
+            color: #f8fafc;
+            font-family: var(--font-sans);
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .touch-btn:active {
+            transform: scale(0.97);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(14, 165, 233, 0.4);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(14, 165, 233, 0.7);
+        }
+
+        @keyframes scan-glow {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(6, 182, 212, 0.7);
+            }
+        }
+
+        .scanner-glow {
+            animation: scan-glow 2.5s infinite ease-in-out;
+        }
+
+        .success-flash {
+            animation: flashGreen 0.6s ease-out;
+        }
+
+        @keyframes flashGreen {
+            0% { background-color: rgba(16, 185, 129, 0.4); }
+            100% { background-color: transparent; }
+        }
+    </style>
+    {% include 'includes/theme_head.html' with keep_font=True %}
+</head>
+
+<body class="h-screen flex flex-col bg-[#080d1a] relative overflow-hidden selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="bg-slate-900/95 border-b border-slate-800/90 h-16 flex-shrink-0 z-30 px-3 sm:px-5 flex items-center justify-between gap-2 shadow-md">
+        <!-- Logo & Branch -->
+        <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+            <a href="{% url 'meto_hub_flow' %}" class="flex items-center gap-2.5 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white text-lg shadow-lg shadow-cyan-500/20 flex-shrink-0">
+                    <i class="fa-solid fa-tablet-screen-button"></i>
+                </div>
+                <div class="hidden sm:block text-left leading-tight">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-sm font-black text-white tracking-wide uppercase">METO PLANSHET</span>
+                        <span class="px-1.5 py-0.2 rounded bg-cyan-500/15 border border-cyan-500/30 text-[9px] font-black text-cyan-400">TOUCH</span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-semibold">{{ branch_label }}</span>
+                </div>
+            </a>
+
+            <!-- Branch switcher if allowed -->
+            {% if can_switch_branch %}
+            <div class="hidden md:flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-[11px] font-bold">
+                <a href="?branch=HQ" class="px-2.5 py-1 rounded-lg transition {% if branch == 'HQ' %}bg-cyan-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                    Koson (HQ)
+                </a>
+                <a href="?branch=UYCHI" class="px-2.5 py-1 rounded-lg transition {% if branch == 'UYCHI' %}bg-cyan-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                    Uychi
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 3 MAIN MODES TOUCH SWITCHER (CENTER TABS) -->
+        <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-950/90 p-1 rounded-2xl border border-slate-800 flex-1 max-w-xl mx-2 justify-center">
+            <!-- Mode 1: Biriktirish -->
+            <button type="button" onclick="switchMode('link')" id="nav-btn-link"
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20">
+                <i class="fa-solid fa-link"></i>
+                <span class="truncate">1. Biriktirish</span>
+            </button>
+
+            <!-- Mode 2: Yuk Xati -->
+            <button type="button" onclick="switchMode('shipment')" id="nav-btn-shipment"
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-900">
+                <i class="fa-solid fa-truck"></i>
+                <span class="truncate">2. Yuk Xati</span>
+                {% if incoming|length > 0 %}
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                {% endif %}
+            </button>
+
+            <!-- Mode 3: Patokka Berish -->
+            <button type="button" onclick="switchMode('patok')" id="nav-btn-patok"
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-900">
+                <i class="fa-solid fa-person-walking-arrow-right"></i>
+                <span class="truncate">3. Patokka Berish</span>
+            </button>
+        </div>
+
+        <!-- Top Right Actions & Live Stats -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <!-- Empty Containers Quick Pill -->
+            <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-slate-300"
+                title="Bo'sh konteynerlar / Jami konteynerlar">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Bo'sh: <b class="text-white" id="stat-empty-c">{{ empty_containers }}</b> / {{ total_containers }}</span>
+            </div>
+
+            <!-- Sound toggle button -->
+            <button type="button" onclick="toggleSound()" id="sound-btn"
+                class="touch-btn w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-cyan-400 flex items-center justify-center text-xs transition"
+                title="Ovozli signallarni yoqish/o'chirish">
+                <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+            </button>
+
+            <!-- Fullscreen toggle -->
+            <button type="button" onclick="toggleFullScreen()"
+                class="touch-btn w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs transition"
+                title="Butun ekran rejimiga o'tish">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+
+            <!-- Exit / Back to Hub -->
+            <a href="{% url 'meto_hub_flow' %}"
+                class="touch-btn px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 border border-slate-700 text-slate-300 hover:text-rose-300 text-xs font-bold transition flex items-center gap-1"
+                title="Tayyorlov Bosh Menyu">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span class="hidden md:inline">Chiqish</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN TOUCH WORKSPACE (FLEX-1) -->
+    <main class="flex-1 overflow-hidden relative p-3 sm:p-5 flex flex-col">
+
+        <!-- ============================================================== -->
+        <!-- MODE 1: BIRIKTIRISH (QUTI ↔ KONTEYNER)                          -->
+        <!-- ============================================================== -->
+        <div id="mode-link" class="mode-view flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden">
+            <!-- Left Panel: Scanner & Current Linking State (60% width) -->
+            <div class="flex-1 flex flex-col gap-4 overflow-y-auto">
+                <!-- Visual Step Banner & Mode Controls -->
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+                            <h2 class="text-base sm:text-lg font-black text-white" id="link-header-text">
+                                Qutini Katta Konteynerga Biriktirish
+                            </h2>
+                        </div>
+
+                        <!-- Unlink mode toggle button -->
+                        <button type="button" id="unlink-toggle-btn" onclick="toggleUnlinkMode()"
+                            class="touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60">
+                            <i class="fa-solid fa-link-slash"></i>
+                            <span id="unlink-toggle-text">Bekor Qilish Rejimi</span>
+                        </button>
+                    </div>
+
+                    <!-- Step Stepper Pills -->
+                    <div class="grid grid-cols-2 gap-3" id="link-stepper">
+                        <!-- Step 1 Pill -->
+                        <div id="step-pill-1" class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10">
+                            <div class="w-9 h-9 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-base flex-shrink-0">
+                                1
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[11px] uppercase font-bold text-slate-400 block">Birinchi qadam</span>
+                                <span class="text-xs sm:text-sm font-black text-white truncate block">Quti stikerini uring</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 Pill -->
+                        <div id="step-pill-2" class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60">
+                            <div class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 font-black flex items-center justify-center text-base flex-shrink-0">
+                                2
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[11px] uppercase font-bold text-slate-400 block">Ikkinchi qadam</span>
+                                <span class="text-xs sm:text-sm font-black text-slate-300 truncate block">Konteyner QR kodini uring</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Scanner Input Box (Always Focused) -->
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-cyan-400 text-lg">
+                            <i class="fa-solid fa-barcode"></i>
+                        </div>
+                        <input type="text" id="scanner-input" autocomplete="off" autofocus
+                            placeholder="Stiker yoki konteyner QR kodini skaner qiling..."
+                            class="w-full pl-12 pr-28 py-4 bg-slate-950 border-2 border-cyan-500/60 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-cyan-400 scanner-glow shadow-inner">
+                        <div class="absolute inset-y-0 right-2 flex items-center gap-1.5">
+                            <button type="button" onclick="clearActiveScan()"
+                                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-bold touch-btn" title="Tozalash">
+                                Tozalash
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Status Message Banner -->
+                    <div id="scan-status-banner" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300">
+                        <i class="fa-solid fa-info-circle text-base text-cyan-400"></i>
+                        <span id="scan-status-text">Tayyor. Avval quti stikerini (QR yoki shtrix-kod) uring.</span>
+                    </div>
+                </div>
+
+                <!-- Active Objects Preview Cards (Box Card & Container Card) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                    <!-- Current Box Card -->
+                    <div id="active-box-card" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-box text-cyan-400"></i> Tanlangan Quti
+                            </span>
+                            <span id="active-box-badge" class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
+                                Kutilmoqda
+                            </span>
+                        </div>
+
+                        <div id="active-box-body" class="py-6 text-center space-y-2">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                                <i class="fa-solid fa-qrcode"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-400">Hali quti skanerlanmadi</p>
+                            <p class="text-xs text-slate-500">Stikerni skaner qilsangiz, ma'lumotlari shu yerda chiqadi</p>
+                        </div>
+
+                        <div id="active-box-footer" class="border-t border-slate-800 pt-3 hidden">
+                            <button type="button" onclick="cancelBoxSelection()"
+                                class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl touch-btn">
+                                Ushbu qutini bekor qilish
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Current Container Card -->
+                    <div id="active-container-card" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-cubes text-amber-400"></i> Katta Konteyner
+                            </span>
+                            <span id="active-container-badge" class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
+                                2-qadam
+                            </span>
+                        </div>
+
+                        <div id="active-container-body" class="py-6 text-center space-y-2">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-400">Konteyner kutilmoqda</p>
+                            <p class="text-xs text-slate-500">Qutidan keyin bo'sh konteyner QR kodini uring</p>
+                        </div>
+
+                        <div id="active-container-footer" class="border-t border-slate-800 pt-3 text-center">
+                            <span class="text-[11px] text-slate-400 font-mono">Standart format: KONT-000123</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Live Journal / Recent Scans (40% width) -->
+            <div class="w-full lg:w-[420px] flex flex-col gap-4 overflow-hidden">
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex-1 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <h3 class="text-sm font-black text-white">Oxirgi Biriktirilganlar</h3>
+                        </div>
+                        <span class="text-xs text-slate-400 font-mono font-bold" id="session-count-pill">Jami: 0 ta</span>
+                    </div>
+
+                    <!-- Scrollable Log List -->
+                    <div id="recent-logs-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                        <!-- Empty placeholder -->
+                        <div id="empty-logs-placeholder" class="py-12 text-center text-slate-500 space-y-2">
+                            <i class="fa-solid fa-list-check text-3xl block text-slate-600"></i>
+                            <p class="text-xs font-bold text-slate-400">Bu seansda hali skaner qilinmadi</p>
+                            <p class="text-[11px] text-slate-500">Qutilar biriktirilishi bilan shu yerda paydo bo'ladi</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Help Footer -->
+                    <div class="border-t border-slate-800 pt-3 mt-3 flex items-center justify-between text-[11px] text-slate-400">
+                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato biriktirilsa: «Bekor qilish»</span>
+                        <a href="{% url 'meto_hub_containers' %}" target="_blank" class="text-cyan-400 hover:underline font-bold">
+                            Konteynerlar <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- MODE 2: YUK XATLARI (KOSON ↔ UYCHI LOGISTIKA)                   -->
+        <!-- ============================================================== -->
+        <div id="mode-shipment" class="mode-view flex-1 hidden flex flex-col gap-4 overflow-hidden">
+            <!-- Sub-tab switcher (Yuklash / Qabul Qilish) -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="switchShipmentSubTab('load')" id="sub-ship-load-btn"
+                        class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-violet-600 text-white shadow-lg shadow-violet-600/20">
+                        <i class="fa-solid fa-truck-loading"></i>
+                        <span>Uychiga Yuklash ({% if branch == 'HQ' %}{{ ready_cards|length }}{% else %}0{% endif %})</span>
+                    </button>
+                    <button type="button" onclick="switchShipmentSubTab('receive')" id="sub-ship-receive-btn"
+                        class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                        <span>Kelgan Yukni Qabul Qilish ({{ incoming|length }})</span>
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-violet-400"></i>
+                    <span>Konteynerlarni skanerlab yuklash yoki qabul qilish</span>
+                </div>
+            </div>
+
+            <!-- Sub-tab 1: UYCHIGA YUKLASH (KOSON HQ -> UYCHI) -->
+            <div id="sub-ship-load-view" class="flex-1 overflow-hidden flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-violet-400"></i>
+                            <span>Skladdagi To'liq Tayyor Pastallar</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Yuklamoqchi bo'lgan pastallarni tanlang va «Tekshirib yuklash» tugmasini bosing</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="selectAllShipPicks()"
+                            class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold touch-btn">
+                            Barchasini tanlash
+                        </button>
+                        <button type="button" onclick="startShipmentCheck()" id="ship-start-btn"
+                            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-600/20 touch-btn flex items-center gap-2">
+                            <i class="fa-solid fa-truck"></i>
+                            <span>Tekshirib Yuklash (<span id="ship-selected-count">0</span>)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pastals Grid for Shipment -->
+                <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
+                    {% for card in sklad_cards %}
+                    <div class="bg-slate-900 border {% if card.ready %}border-slate-800 hover:border-violet-500/50 cursor-pointer{% else %}border-slate-800/50 opacity-60{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all"
+                        onclick="toggleShipCardPick({{ card.batch_id }}, this)">
+                        <div class="space-y-3">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex items-center gap-3">
+                                    {% if card.ready and branch == 'HQ' %}
+                                    <input type="checkbox" value="{{ card.batch_id }}"
+                                        class="ship-card-checkbox w-5 h-5 rounded-lg accent-violet-500 cursor-pointer pointer-events-none">
+                                    {% else %}
+                                    <span class="w-5 h-5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </span>
+                                    {% endif %}
+                                    <div>
+                                        <span class="text-sm font-black font-mono text-white block">{{ card.pastal_code }}</span>
+                                        <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }}</span>
+                                    </div>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-cyan-400">
+                                    {{ card.total_tasnif }} dona
+                                </span>
+                            </div>
+
+                            <!-- Model info -->
+                            <div class="text-xs text-slate-300">
+                                <span class="font-mono text-cyan-300">{{ card.article_code }}</span> · {{ card.article_name }}
+                            </div>
+
+                            <!-- Boxes & Containers Info -->
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-500 block">Qutilar</span>
+                                    <span class="font-bold text-white font-mono">{{ card.boxes_count }}</span>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-500 block">Chop etilgan</span>
+                                    <span class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                        {{ card.printed_count }}/{{ card.boxes_count }}
+                                    </span>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-500 block">Konteynerda</span>
+                                    <span class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                        {{ card.linked_count }}/{{ card.boxes_count }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card status footer -->
+                        <div class="pt-3 border-t border-slate-800/80 mt-3 flex items-center justify-between text-[11px]">
+                            {% if card.ready %}
+                            <span class="text-emerald-400 font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-circle-check"></i> Yuklashga to'liq tayyor
+                            </span>
+                            {% else %}
+                            <span class="text-rose-400 font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Chala (hamma quti biriktirilmagan)
+                            </span>
+                            {% endif %}
+                            <span class="text-slate-500 font-mono">{{ card.weight_kg|default:"—" }} kg</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full py-16 text-center text-slate-500">
+                        <i class="fa-solid fa-inbox text-4xl mb-3 block text-slate-600"></i>
+                        <p class="text-sm font-bold text-slate-400">Skladda pastallar topilmadi.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Sub-tab 2: KELGAN YUKNI QABUL QILISH -->
+            <div id="sub-ship-receive-view" class="flex-1 overflow-hidden hidden flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-truck-ramp-box text-emerald-400"></i>
+                            <span>Yo'lda Kelayotgan Yuk Xatlari</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Yuk xatini tanlang va kelgan konteynerlarni skanerlab qabul qiling</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    {% for item in incoming %}
+                    <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-black text-sm">
+                                    {{ item.shipment_number }}
+                                </span>
+                                <span class="text-xs font-bold text-white">{{ item.pastal_code }}</span>
+                                <span class="text-xs text-amber-400 font-bold font-mono">({{ item.order_number }})</span>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <span>Haydovchi: <b class="text-slate-200">{{ item.driver|default:"—" }}</b></span>
+                                {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle }}</b></span>{% endif %}
+                                {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{% endif %}
+                            </div>
+                            <div class="text-[11px] text-slate-500">
+                                {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.boxes_count }} ta quti ({{ item.qty }} dona) · {{ item.created_at|date:"d.m H:i" }}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <button type="button" onclick="startReceiveCheck({{ item.line_id }}, {{ item.batch_id }}, '{{ item.pastal_code }}', '{{ item.shipment_number }}')"
+                                class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center gap-1.5 whitespace-nowrap">
+                                <i class="fa-solid fa-qrcode"></i> Qabulni Skanerlash
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-16 text-center text-slate-500">
+                        <i class="fa-solid fa-truck-fast text-4xl mb-3 block text-slate-600"></i>
+                        <p class="text-sm font-bold text-slate-400">Hozirda yo'lda kelayotgan yuk xatlari yo'q.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- MODE 3: PATOKKA BERISH (TIKUVGA CHIQARISH)                      -->
+        <!-- ============================================================== -->
+        <div id="mode-patok" class="mode-view flex-1 hidden flex flex-col gap-4 overflow-hidden">
+            <div class="flex items-center justify-between flex-shrink-0">
+                <div>
+                    <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-person-walking-arrow-right text-emerald-400"></i>
+                        <span>Skladdan Tikuv Patogiga Chiqarish</span>
+                    </h3>
+                    <p class="text-xs text-slate-400">Pastalni tanlang, qaysi patokka berilishini belgilang va konteynerlarni skanerlang</p>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
+                {% for card in sklad_cards %}
+                <div class="bg-slate-900 border {% if card.ready %}border-slate-800 hover:border-emerald-500/50{% else %}border-slate-800/50 opacity-60{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <span class="text-base font-black font-mono text-white block">{{ card.pastal_code }}</span>
+                                <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }} · {{ card.customer }}</span>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-black text-cyan-400">
+                                {{ card.total_tasnif }} dona
+                            </span>
+                        </div>
+
+                        <!-- Model info -->
+                        <div class="flex items-center gap-2.5">
+                            {% if card.image %}
+                            <img src="{{ card.image }}" alt="" class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950">
+                            {% endif %}
+                            <div class="min-w-0 text-xs">
+                                <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code }}</span>
+                                <span class="text-[11px] text-slate-400 block truncate">{{ card.article_name }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">Qutilar</span>
+                                <span class="font-bold text-white font-mono">{{ card.boxes_count }}</span>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">Chop etilgan</span>
+                                <span class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                    {{ card.printed_count }}/{{ card.boxes_count }}
+                                </span>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 block">Konteynerda</span>
+                                <span class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                    {{ card.linked_count }}/{{ card.boxes_count }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dispatch action -->
+                    <div class="pt-3 border-t border-slate-800 mt-3 flex items-center justify-between gap-2">
+                        {% if card.ready %}
+                        <button type="button" onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
+                            class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-person-walking-arrow-right"></i>
+                            <span>Patokka Tekshirib Berish</span>
+                        </button>
+                        {% else %}
+                        <button type="button" disabled
+                            class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs opacity-50 cursor-not-allowed">
+                            Hali tayyor emas (biriktiring)
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-full py-16 text-center text-slate-500">
+                    <i class="fa-solid fa-inbox text-4xl mb-3 block text-slate-600"></i>
+                    <p class="text-sm font-bold text-slate-400">Skladda patokka beriladigan pastal yo'q.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 1: CHECKLIST DIALOG (TEKSHIRUV / SKANERLASH OYNASI)       -->
+    <!-- Patokka berish va Uychiga yuklash/qabul qilish uchun umumiy    -->
+    <!-- ============================================================== -->
+    <div id="check-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-check-title" class="text-base sm:text-lg font-black text-white">Konteynerlarni Tekshirish</h3>
+                        <p class="text-xs text-slate-400">Har bir konteyner QR kodini skanerlang — barchasi yashil bo'lgach ruxsat beriladi</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCheckModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content (Scrollable) -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                <!-- Large Scanner Bar inside Modal -->
+                <div class="relative">
+                    <input type="text" id="modal-scan-input" autocomplete="off"
+                        placeholder="Konteyner QR kodini uring (KONT-000123)..."
+                        class="w-full px-4 py-3.5 bg-slate-950 border-2 border-emerald-500/60 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-emerald-400 scanner-glow">
+                </div>
+
+                <!-- Status Feedback Line -->
+                <div id="modal-scan-msg" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
+                    <i class="fa-solid fa-qrcode text-emerald-400"></i>
+                    <span id="modal-scan-msg-text">Konteynerlarni bittalab skanerlang.</span>
+                </div>
+
+                <!-- Extra Form Area (e.g. Patok selection buttons or Driver details) -->
+                <div id="modal-extra-form" class="space-y-3"></div>
+
+                <!-- Containers Checklist Grid -->
+                <div>
+                    <h4 class="text-xs uppercase font-bold text-slate-400 mb-2 flex items-center justify-between">
+                        <span>Tekshirilishi kerak bo'lgan konteynerlar:</span>
+                        <span id="modal-check-progress" class="font-mono text-emerald-400 font-black">0 / 0 ta yashil</span>
+                    </h4>
+                    <div id="modal-check-rows" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Modal Footer Controls -->
+            <div class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950/80">
+                <button type="button" onclick="closeCheckModal()"
+                    class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm touch-btn">
+                    Bekor Qilish
+                </button>
+
+                <button type="button" id="modal-confirm-btn" disabled onclick="confirmModalAction()"
+                    class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/20 touch-btn flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span id="modal-confirm-text">Tasdiqlash</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSRF Token -->
+    <script>
+        const CSRF_TOKEN = '{{ csrf_token }}';
+        const CURRENT_BRANCH = '{{ branch }}';
+        const SCREENS_DATA = [
+            {% for n, code in screens %}
+            { id: {{ n }}, code: '{{ code }}' },
+            {% endfor %}
+        ];
+    </script>
+
+    <!-- WEB AUDIO SYNTHESIZER (100% OFFLINE AUDIO FEEDBACK) -->
+    <script>
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                playSoundBeep();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+            }
+        }
+
+        function playSoundBeep() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 high
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.13);
+            } catch(e) {}
+        }
+
+        function playSoundSuccess() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.26);
+                });
+            } catch(e) {}
+        }
+
+        function playSoundError() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                [220, 185].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.18);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.12);
+                    osc.stop(now + idx * 0.12 + 0.19);
+                });
+            } catch(e) {}
+        }
+    </script>
+
+    <!-- FULLSCREEN TOGGLE -->
+    <script>
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+    </script>
+
+    <!-- NETWORK FETCH HELPERS -->
+    <script>
+        async function postJSON(url, body) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+                    body: JSON.stringify(body || {})
+                });
+                const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server noto\'g\'ri javob berdi' }));
+                return { ok: res.ok && data.status === 'OK', data };
+            } catch(e) {
+                return { ok: false, data: { message: 'Tarmoq xatosi: ' + e.message } };
+            }
+        }
+
+        async function getJSON(url) {
+            try {
+                const res = await fetch(url);
+                const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server noto\'g\'ri javob berdi' }));
+                return { ok: res.ok && data.status === 'OK', data };
+            } catch(e) {
+                return { ok: false, data: { message: 'Tarmoq xatosi: ' + e.message } };
+            }
+        }
+
+        function containerKey(raw) {
+            const m = String(raw || '').trim().match(/^KONT\s*[-:+]?\s*(\d{1,9})$/i);
+            return m ? 'KONT-' + String(parseInt(m[1], 10)).padStart(6, '0') : null;
+        }
+    </script>
+
+    <!-- MODE SWITCHER & GLOBAL NAVIGATION -->
+    <script>
+        let currentMode = 'link'; // 'link' | 'shipment' | 'patok'
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-view').forEach(el => el.classList.add('hidden'));
+
+            const targetView = document.getElementById('mode-' + mode);
+            if (targetView) targetView.classList.remove('hidden');
+
+            // Nav tabs active styling
+            ['link', 'shipment', 'patok'].forEach(m => {
+                const btn = document.getElementById('nav-btn-' + m);
+                if (m === mode) {
+                    btn.className = 'touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20';
+                } else {
+                    btn.className = 'touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-900';
+                }
+            });
+
+            // Focus on input if in link mode
+            if (mode === 'link') {
+                setTimeout(() => document.getElementById('scanner-input')?.focus(), 50);
+            }
+        }
+
+        function switchShipmentSubTab(tab) {
+            const loadView = document.getElementById('sub-ship-load-view');
+            const recView = document.getElementById('sub-ship-receive-view');
+            const loadBtn = document.getElementById('sub-ship-load-btn');
+            const recBtn = document.getElementById('sub-ship-receive-btn');
+
+            if (tab === 'load') {
+                loadView.classList.remove('hidden');
+                recView.classList.add('hidden');
+                loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-violet-600 text-white shadow-lg shadow-violet-600/20';
+                recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
+            } else {
+                loadView.classList.add('hidden');
+                recView.classList.remove('hidden');
+                loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
+                recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
+            }
+        }
+    </script>
+
+    <!-- ============================================================== -->
+    <!-- LOGIC 1: BIRIKTIRISH (QUTI ↔ KONTEYNER LINK / UNLINK)          -->
+    <!-- ============================================================== -->
+    <script>
+        let currentBoxCode = null;
+        let isUnlinkMode = false;
+        let sessionLogs = [];
+
+        const scanInput = document.getElementById('scanner-input');
+        const statusText = document.getElementById('scan-status-text');
+
+        function setStatus(text, type = 'info') {
+            statusText.textContent = text;
+            const banner = document.getElementById('scan-status-banner');
+            if (type === 'error') {
+                banner.className = 'p-3.5 rounded-2xl bg-rose-950/80 border border-rose-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-rose-200';
+            } else if (type === 'success') {
+                banner.className = 'p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-emerald-200';
+            } else {
+                banner.className = 'p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300';
+            }
+        }
+
+        function updateLinkStepper() {
+            const pill1 = document.getElementById('step-pill-1');
+            const pill2 = document.getElementById('step-pill-2');
+            if (isUnlinkMode) {
+                pill1.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-rose-950/40 border-rose-500 text-rose-300';
+                pill2.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-rose-950/40 border-rose-500 text-rose-300';
+            } else if (!currentBoxCode) {
+                pill1.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10';
+                pill2.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
+            } else {
+                pill1.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
+                pill2.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-amber-500/10 border-amber-500 text-amber-300 shadow-lg shadow-amber-500/10 animate-pulse';
+            }
+        }
+
+        function toggleUnlinkMode() {
+            isUnlinkMode = !isUnlinkMode;
+            currentBoxCode = null;
+            renderBoxCard(null);
+            renderContainerCard(null);
+
+            const btn = document.getElementById('unlink-toggle-btn');
+            const text = document.getElementById('unlink-toggle-text');
+            const header = document.getElementById('link-header-text');
+
+            if (isUnlinkMode) {
+                btn.className = 'touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-600/30';
+                text.textContent = 'Bekor Qilish Rejimi (FAOL)';
+                header.textContent = 'Konteynerni Qutidan Ajratish / Bo\'shatish';
+                setStatus("Bekor qilish rejimi yoqildi. Qutini yoki konteynerni uring — u bo'shatiladi.", "error");
+            } else {
+                btn.className = 'touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60';
+                text.textContent = 'Bekor Qilish Rejimi';
+                header.textContent = 'Qutini Katta Konteynerga Biriktirish';
+                setStatus("Tayyor. Avval quti stikerini (QR yoki shtrix-kod) uring.", "info");
+            }
+            updateLinkStepper();
+            scanInput.focus();
+        }
+
+        function renderBoxCard(boxData) {
+            const card = document.getElementById('active-box-card');
+            const body = document.getElementById('active-box-body');
+            const badge = document.getElementById('active-box-badge');
+            const footer = document.getElementById('active-box-footer');
+
+            if (!boxData) {
+                badge.className = 'px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400';
+                badge.textContent = 'Kutilmoqda';
+                body.innerHTML = `
+                    <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </div>
+                    <p class="text-sm font-bold text-slate-400">Hali quti skanerlanmadi</p>
+                    <p class="text-xs text-slate-500">Stikerni skaner qilsangiz, ma'lumotlari shu yerda chiqadi</p>
+                `;
+                footer.classList.add('hidden');
+                card.classList.remove('border-cyan-500', 'bg-cyan-950/20');
+                return;
+            }
+
+            badge.className = 'px-2 py-0.5 rounded-md bg-cyan-500 text-slate-950 font-black text-[10px] uppercase';
+            badge.textContent = 'Tanlandi';
+            body.innerHTML = `
+                <div class="space-y-1.5 text-left">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400 uppercase font-bold">Quti kodi:</span>
+                        <span class="text-lg font-black font-mono text-cyan-400">${boxData.box}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400 font-bold">Pastal:</span>
+                        <span class="text-sm font-black font-mono text-white">${boxData.pastal}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400 font-bold">Razmer / Soni:</span>
+                        <span class="text-sm font-bold text-white"><b class="text-cyan-300 font-mono">${boxData.razmer}</b> · <b class="text-emerald-400 font-mono">${boxData.qty} dona</b></span>
+                    </div>
+                    ${boxData.container ? `<div class="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mt-2">Hozirgi konteyner: ${boxData.container}</div>` : ''}
+                </div>
+            `;
+            footer.classList.remove('hidden');
+            card.classList.add('border-cyan-500', 'bg-cyan-950/20');
+        }
+
+        function renderContainerCard(cData) {
+            const card = document.getElementById('active-container-card');
+            const body = document.getElementById('active-container-body');
+            const badge = document.getElementById('active-container-badge');
+
+            if (!cData) {
+                badge.className = 'px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400';
+                badge.textContent = '2-qadam';
+                body.innerHTML = `
+                    <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                        <i class="fa-solid fa-box-archive"></i>
+                    </div>
+                    <p class="text-sm font-bold text-slate-400">Konteyner kutilmoqda</p>
+                    <p class="text-xs text-slate-500">Qutidan keyin bo'sh konteyner QR kodini uring</p>
+                `;
+                card.classList.remove('border-amber-500', 'bg-amber-950/20');
+                return;
+            }
+
+            badge.className = 'px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 font-black text-[10px] uppercase';
+            badge.textContent = cData.state || 'Konteyner';
+            body.innerHTML = `
+                <div class="space-y-1.5 text-left">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400 uppercase font-bold">Konteyner:</span>
+                        <span class="text-lg font-black font-mono text-amber-400">${cData.code}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400 font-bold">Holati:</span>
+                        <span class="text-sm font-bold text-white">${cData.state}</span>
+                    </div>
+                    ${cData.box ? `<div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300">Ichidagi quti: <b class="text-cyan-400 font-mono">${cData.box}</b></div>` : ''}
+                </div>
+            `;
+            card.classList.add('border-amber-500', 'bg-amber-950/20');
+        }
+
+        function cancelBoxSelection() {
+            currentBoxCode = null;
+            renderBoxCard(null);
+            renderContainerCard(null);
+            updateLinkStepper();
+            setStatus("Quti bekor qilindi. Boshqa quti stikerini uring.", "info");
+            scanInput.focus();
+        }
+
+        function clearActiveScan() {
+            scanInput.value = '';
+            cancelBoxSelection();
+        }
+
+        function addSessionLog(ok, text, undoCode = null) {
+            const list = document.getElementById('recent-logs-list');
+            const empty = document.getElementById('empty-logs-placeholder');
+            if (empty) empty.classList.add('hidden');
+
+            const now = new Date();
+            const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+            const row = document.createElement('div');
+            row.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 text-xs transition-all ${
+                ok ? 'bg-slate-950 border-emerald-800/80 text-emerald-200' : 'bg-rose-950/60 border-rose-800 text-rose-200'
+            }`;
+
+            row.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400'} text-sm flex-shrink-0"></i>
+                    <span class="truncate font-semibold">${text}</span>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                    ${undoCode ? `<button type="button" onclick="undoLink('${undoCode}')" class="px-2 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10px] font-bold touch-btn">Bekor</button>` : ''}
+                </div>
+            `;
+
+            list.prepend(row);
+            while (list.children.length > 20) list.lastChild.remove();
+
+            sessionLogs.push({ ok, text });
+            document.getElementById('session-count-pill').textContent = `Jami: ${sessionLogs.filter(l => l.ok).length} ta`;
+        }
+
+        async function undoLink(code) {
+            const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code });
+            if (r.ok) {
+                playSoundSuccess();
+                addSessionLog(true, `${code} bo'shatildi (Bekor qilindi)`);
+                setStatus(`${code} muvaffaqiyatli bo'shatildi.`, 'success');
+            } else {
+                playSoundError();
+                setStatus(r.data.message || 'Xatolik', 'error');
+            }
+        }
+
+        // Handle Scan input (Enter pressed)
+        scanInput.addEventListener('keydown', async (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            const raw = scanInput.value.trim();
+            scanInput.value = '';
+            if (!raw) return;
+
+            // UNLINK MODE
+            if (isUnlinkMode) {
+                const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code: raw });
+                if (r.ok) {
+                    playSoundSuccess();
+                    addSessionLog(true, r.data.message || `${raw} bo'shatildi`);
+                    setStatus(r.data.message || 'Bo\'shatildi.', 'success');
+                } else {
+                    playSoundError();
+                    addSessionLog(false, r.data.message || 'Xatolik');
+                    setStatus(r.data.message || 'Xatolik', 'error');
+                }
+                toggleUnlinkMode(); // Exit unlink mode back to normal
+                return;
+            }
+
+            // STEP 1: RESOLVE BOX
+            if (!currentBoxCode) {
+                const r = await getJSON(`{% url 'meto_hub_flow_api_resolve' %}?code=${encodeURIComponent(raw)}`);
+                if (!r.ok) {
+                    playSoundError();
+                    setStatus(r.data.message || "Stiker topilmadi.", "error");
+                    addSessionLog(false, r.data.message || `${raw} topilmadi`);
+                    return;
+                }
+
+                if (r.data.kind === 'container') {
+                    playSoundError();
+                    setStatus(`${r.data.code} — bu konteyner! Avval qutining stikerini uring.`, "error");
+                    return;
+                }
+
+                if (r.data.cancelled) {
+                    playSoundError();
+                    setStatus(`Quti ${r.data.box} bekor qilingan! Yangi stikerni uring.`, "error");
+                    return;
+                }
+
+                if (r.data.container) {
+                    playSoundError();
+                    setStatus(`Quti ${r.data.box} allaqachon ${r.data.container} konteynerida!`, "error");
+                    return;
+                }
+
+                // Success Box resolved
+                playSoundBeep();
+                currentBoxCode = r.data.box;
+                renderBoxCard(r.data);
+                updateLinkStepper();
+                setStatus(`Quti ${r.data.box} tanlandi! Endi bo'sh konteyner QR kodini uring.`, "info");
+                return;
+            }
+
+            // STEP 2: LINK TO CONTAINER
+            const r = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, {
+                box: currentBoxCode,
+                container: raw
+            });
+
+            if (r.ok) {
+                playSoundSuccess();
+                const successMsg = `${currentBoxCode} → ${raw} muvaffaqiyatli biriktirildi!`;
+                addSessionLog(true, successMsg, raw);
+                setStatus(successMsg, "success");
+
+                // Flash card animation
+                document.getElementById('active-box-card').classList.add('success-flash');
+                document.getElementById('active-container-card').classList.add('success-flash');
+                setTimeout(() => {
+                    document.getElementById('active-box-card').classList.remove('success-flash');
+                    document.getElementById('active-container-card').classList.remove('success-flash');
+                }, 600);
+
+                // Reset back to Step 1
+                currentBoxCode = null;
+                renderBoxCard(null);
+                renderContainerCard(null);
+                updateLinkStepper();
+            } else {
+                playSoundError();
+                setStatus(r.data.message || "Biriktirib bo'lmadi.", "error");
+                addSessionLog(false, r.data.message || 'Xatolik');
+            }
+        });
+
+        // Global key listener to auto-focus scanner
+        document.addEventListener('keydown', (e) => {
+            // Ignore if in modal or typing in normal text inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                return;
+            }
+            if (currentMode === 'link' && !document.getElementById('check-modal').classList.contains('hidden')) {
+                return;
+            }
+            if (currentMode === 'link') {
+                scanInput.focus();
+            }
+        });
+    </script>
+
+    <!-- ============================================================== -->
+    <!-- LOGIC 2: CHECKLIST MODAL (YUK XATI & PATOK DISPATCH)          -->
+    <!-- ============================================================== -->
+    <script>
+        let modalCheck = null; // { expected: Map(code -> el), scanned: Set(), submit: fn }
+
+        const modalScanInput = document.getElementById('modal-scan-input');
+        const modalMsgText = document.getElementById('modal-scan-msg-text');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalProgressText = document.getElementById('modal-check-progress');
+
+        function setModalMsg(text, type = 'info') {
+            modalMsgText.textContent = text;
+            const wrap = document.getElementById('modal-scan-msg');
+            if (type === 'error') {
+                wrap.className = 'p-3 rounded-xl bg-rose-950 border border-rose-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-rose-300';
+            } else if (type === 'success') {
+                wrap.className = 'p-3 rounded-xl bg-emerald-950 border border-emerald-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-emerald-300';
+            } else {
+                wrap.className = 'p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300';
+            }
+        }
+
+        async function openCheckModalDialog(options) {
+            // options: { title, batchIds, formHtml, confirmText, allowPartial, submit }
+            const res = await getJSON(`{% url 'meto_hub_flow_api_check' %}?batches=${options.batchIds.join(',')}`);
+            if (!res.ok) {
+                alert(res.data.message || 'Xatolik');
+                return;
+            }
+
+            modalCheck = {
+                expected: new Map(),
+                unlinked: 0,
+                scanned: new Set(),
+                allowPartial: !!options.allowPartial,
+                submit: options.submit
+            };
+
+            document.getElementById('modal-check-title').textContent = options.title;
+            document.getElementById('modal-confirm-text').textContent = options.confirmText || 'Tasdiqlash';
+            document.getElementById('modal-extra-form').innerHTML = options.formHtml || '';
+
+            const rowsBox = document.getElementById('modal-check-rows');
+            rowsBox.innerHTML = '';
+
+            res.data.batches.forEach(b => {
+                const bWrap = document.createElement('div');
+                bWrap.className = 'rounded-2xl border border-slate-800 overflow-hidden bg-slate-950';
+
+                const bHead = document.createElement('div');
+                bHead.className = 'px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs sm:text-sm font-black text-white';
+                bHead.innerHTML = `<span>Pastal: <b class="text-cyan-400 font-mono">${b.pastal}</b></span> <span class="text-slate-400 font-mono">${b.rows.length} ta quti</span>`;
+                bWrap.append(bHead);
+
+                if (!b.rows.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'p-4 text-xs font-bold text-rose-400 text-center';
+                    empty.textContent = 'Qutilar topilmadi — pastal hali qutilarga bo\'linmagan.';
+                    bWrap.append(empty);
+                    modalCheck.unlinked += 1;
+                }
+
+                b.rows.forEach(r => {
+                    const row = document.createElement('div');
+                    row.className = 'px-4 py-2.5 flex items-center justify-between gap-3 text-xs border-t border-slate-800/80';
+
+                    const left = document.createElement('div');
+                    left.innerHTML = `<span class="font-mono font-bold text-white">${r.box_code}</span> <span class="text-slate-400">· ${r.razmer} · ${r.qty} dona</span>`;
+
+                    const right = document.createElement('span');
+                    right.className = 'font-mono font-black px-2.5 py-1 rounded-lg text-xs';
+
+                    if (r.container) {
+                        right.textContent = r.container;
+                        right.classList.add('bg-slate-900', 'border', 'border-slate-700', 'text-slate-400');
+                        modalCheck.expected.set(r.container, right);
+                    } else {
+                        right.textContent = 'Konteynersiz';
+                        right.classList.add('bg-rose-950', 'text-rose-300', 'border', 'border-rose-800');
+                        modalCheck.unlinked += 1;
+                    }
+
+                    row.append(left, right);
+                    bWrap.append(row);
+                });
+
+                rowsBox.append(bWrap);
+            });
+
+            updateModalProgress();
+            document.getElementById('check-modal').classList.remove('hidden');
+            setTimeout(() => modalScanInput.focus(), 60);
+        }
+
+        function updateModalProgress() {
+            if (!modalCheck) return;
+            const total = modalCheck.expected.size;
+            const green = modalCheck.scanned.size;
+            modalProgressText.textContent = `${green} / ${total} ta yashil`;
+
+            // Validate requirements
+            const isAllGreen = (total > 0 && green === total && modalCheck.unlinked === 0);
+            const canConfirm = modalCheck.allowPartial ? true : isAllGreen;
+
+            modalConfirmBtn.disabled = !canConfirm;
+            if (canConfirm) {
+                setModalMsg("Barcha konteynerlar tekshirildi! Tasdiqlashingiz mumkin.", "success");
+            }
+        }
+
+        function closeCheckModal() {
+            document.getElementById('check-modal').classList.add('hidden');
+            modalCheck = null;
+            if (currentMode === 'link') scanInput.focus();
+        }
+
+        // Modal Scan Input Enter event
+        modalScanInput.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' || !modalCheck) return;
+            e.preventDefault();
+            const raw = modalScanInput.value.trim();
+            modalScanInput.value = '';
+            if (!raw) return;
+
+            const key = containerKey(raw);
+            if (!key) {
+                playSoundError();
+                setModalMsg("Noto'g'ri QR kod — bu konteyner formati emas (KONT-000123).", "error");
+                return;
+            }
+
+            const targetEl = modalCheck.expected.get(key);
+            if (!targetEl) {
+                playSoundError();
+                setModalMsg(`${key} — bu yukka yoki ushbu pastalga kirmaydi!`, "error");
+                return;
+            }
+
+            if (modalCheck.scanned.has(key)) {
+                playSoundBeep();
+                setModalMsg(`${key} allaqachon skanerlangan va yashil.`, "info");
+                return;
+            }
+
+            // Green success
+            playSoundBeep();
+            modalCheck.scanned.add(key);
+            targetEl.className = 'font-mono font-black px-2.5 py-1 rounded-lg text-xs bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30';
+            targetEl.innerHTML = `<i class="fa-solid fa-check mr-1"></i>${key}`;
+            setModalMsg(`${key} — joyida va tasdiqlandi.`, "success");
+
+            updateModalProgress();
+            if (modalCheck.scanned.size === modalCheck.expected.size) {
+                playSoundSuccess();
+            }
+        });
+
+        async function confirmModalAction() {
+            if (!modalCheck) return;
+            modalConfirmBtn.disabled = true;
+
+            const extraForm = {};
+            document.querySelectorAll('#modal-extra-form [name]').forEach(el => {
+                extraForm[el.name] = el.value;
+            });
+
+            const r = await modalCheck.submit(Array.from(modalCheck.scanned), extraForm);
+            if (r.ok) {
+                playSoundSuccess();
+                closeCheckModal();
+                if (r.data.print_url) {
+                    window.open(r.data.print_url, '_blank');
+                }
+                alert(r.data.message || 'Muvaffaqiyatli bajarildi!');
+                window.location.reload();
+            } else {
+                playSoundError();
+                setModalMsg(r.data.message || 'Xatolik yuz berdi', 'error');
+                modalConfirmBtn.disabled = false;
+            }
+        }
+    </script>
+
+    <!-- ============================================================== -->
+    <!-- LOGIC 3: SHIPMENT DISPATCH & RECEIPT ACTIONS                   -->
+    <!-- ============================================================== -->
+    <template id="shipment-form-template">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+            <label class="space-y-1 block">
+                <span class="text-xs font-bold text-slate-400">Mashina raqami</span>
+                <input name="vehicle" placeholder="01 A 777 AA" required
+                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono uppercase text-sm">
+            </label>
+            <label class="space-y-1 block">
+                <span class="text-xs font-bold text-slate-400">Haydovchi ismi</span>
+                <input name="driver" placeholder="Ali Valiyev" required
+                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm">
+            </label>
+            <label class="space-y-1 block">
+                <span class="text-xs font-bold text-slate-400">Telefon raqami</span>
+                <input name="phone" inputmode="tel" placeholder="+998 90 123 45 67"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-mono">
+            </label>
+            <label class="space-y-1 block">
+                <span class="text-xs font-bold text-slate-400">Izoh</span>
+                <input name="notes" placeholder="Ixtiyoriy izoh..."
+                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm">
+            </label>
+        </div>
+    </template>
+
+    <script>
+        function toggleShipCardPick(batchId, cardEl) {
+            const cb = cardEl.querySelector('.ship-card-checkbox');
+            if (!cb) return;
+            cb.checked = !cb.checked;
+            updateShipPicksCount();
+        }
+
+        function updateShipPicksCount() {
+            const checked = document.querySelectorAll('.ship-card-checkbox:checked');
+            document.getElementById('ship-selected-count').textContent = checked.length;
+            checked.forEach(cb => {
+                cb.closest('.bg-slate-900').classList.add('border-violet-500', 'bg-violet-950/20');
+            });
+            document.querySelectorAll('.ship-card-checkbox:not(:checked)').forEach(cb => {
+                cb.closest('.bg-slate-900').classList.remove('border-violet-500', 'bg-violet-950/20');
+            });
+        }
+
+        function selectAllShipPicks() {
+            const cbs = document.querySelectorAll('.ship-card-checkbox');
+            const allChecked = Array.from(cbs).every(cb => cb.checked);
+            cbs.forEach(cb => cb.checked = !allChecked);
+            updateShipPicksCount();
+        }
+
+        function startShipmentCheck() {
+            const ids = Array.from(document.querySelectorAll('.ship-card-checkbox:checked')).map(cb => parseInt(cb.value, 10));
+            if (!ids.length) {
+                alert("Uychiga yuklash uchun kamida bitta tayyor pastalni tanlang.");
+                return;
+            }
+
+            openCheckModalDialog({
+                title: `Uychiga Yuklash · ${ids.length} ta pastal`,
+                batchIds: ids,
+                formHtml: document.getElementById('shipment-form-template').innerHTML,
+                confirmText: "Yuk Xatini Tuzish va Chop Etish",
+                allowPartial: false,
+                submit: (scanned, form) => {
+                    return postJSON(`{% url 'meto_hub_flow_api_ship' %}`, {
+                        batch_ids: ids,
+                        scanned: scanned,
+                        ...form
+                    });
+                }
+            });
+        }
+
+        function startReceiveCheck(lineId, batchId, pastalCode, shipNum) {
+            openCheckModalDialog({
+                title: `Yuk Qabuli · ${shipNum} (${pastalCode})`,
+                batchIds: [batchId],
+                confirmText: "Qabul Qilishni Tasdiqlash",
+                allowPartial: false,
+                submit: (scanned) => {
+                    return postJSON(`/tayyorlov/api/receive/${lineId}/`, { scanned });
+                }
+            });
+        }
+    </script>
+
+    <!-- ============================================================== -->
+    <!-- LOGIC 4: PATOKKA BERISH ACTIONS (LINE DISPATCH)                -->
+    <!-- ============================================================== -->
+    <script>
+        function generatePatokSelectorHtml() {
+            let html = `
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                        Qaysi Patokka Beriladi (Tanlang):
+                    </span>
+                    <input type="hidden" name="screen" id="patok-screen-input" value="">
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            `;
+            SCREENS_DATA.forEach(s => {
+                html += `
+                    <button type="button" onclick="selectPatokScreen(${s.id}, this)"
+                        class="patok-screen-btn py-2.5 px-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-black text-sm hover:border-emerald-400 transition touch-btn text-center">
+                        ${s.code}
+                    </button>
+                `;
+            });
+            html += `
+                    </div>
+                </div>
+            `;
+            return html;
+        }
+
+        function selectPatokScreen(screenId, btnEl) {
+            document.getElementById('patok-screen-input').value = screenId;
+            document.querySelectorAll('.patok-screen-btn').forEach(btn => {
+                btn.className = 'patok-screen-btn py-2.5 px-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-black text-sm hover:border-emerald-400 transition touch-btn text-center';
+            });
+            btnEl.className = 'patok-screen-btn py-2.5 px-2 rounded-xl bg-emerald-500 border border-emerald-400 text-slate-950 font-mono font-black text-sm shadow-lg shadow-emerald-500/20 text-center';
+            playSoundBeep();
+        }
+
+        function startPatokDispatch(batchId, pastalCode, boxesCount) {
+            openCheckModalDialog({
+                title: `Patokka Berish · ${pastalCode} (${boxesCount} ta quti)`,
+                batchIds: [batchId],
+                formHtml: generatePatokSelectorHtml(),
+                confirmText: "Patokka Chiqarish",
+                allowPartial: false,
+                submit: (scanned, form) => {
+                    const screen = form.screen;
+                    if (!screen) {
+                        alert("Iltimos, pastal beriladigan patokni tanlang!");
+                        return Promise.resolve({ ok: false, data: { message: "Patok tanlanmadi" } });
+                    }
+                    return postJSON(`{% url 'meto_hub_flow_api_give' %}`, {
+                        batch_id: batchId,
+                        screen: parseInt(screen, 10),
+                        scanned: scanned
+                    });
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

@@ -29,6 +29,22 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `4a485fd`] — 20.11.2026
+* **Turi:** `feat(tayyorlov)` — Meto Planshet (Tablet) interfeysi: Quti ↔ Konteyner biriktirish, Yuk xati tekshiruvi va Patokka yuk berish
+* **Mavzu:** Meto ombori va tayyorlov xodimlari planshet/mobil qurilmalari orqali ishlashi uchun maxsus planshet UI (`/tayyorlov/tablet/` / `/tayyorlov/planshet/`):
+  - **1. Quti ↔ Konteyner biriktirish (Box ↔ Container Linking):** Sklad va filiallar bo'yicha konteynerlar holati, qutilarni konteynerga skaner orqali biriktirish (`api/link/`) yoki ajratish (`api/unlink/`), tezkor filtrlash va avtomatik yuklanish.
+  - **2. Yuk xati tekshiruvi (Shipment Verification & Receive):** Filialdan kelayotgan yoki yuborilayotgan yuk xatidagi konteynerlarni skanerlash orqali solishtirish, har bir konteynerni tekshirib qabul qilish (`api/receive/`) yoki jo'natish (`api/ship/`).
+  - **3. Patokka berish tekshiruvi (Patok Dispatch & Verification):** Tikuv patoklariga chiqarilayotgan konteynerlarni qat'iy nazorat bilan tekshirish (`api/give/`), patok tanlash va chiqarish holatini kuzatish.
+  - **Interfeys va UX:** Planshetlar uchun moslashtirilgan katta tugmalar (touch-first), shtrix-kod skanerini uzluksiz qabul qilish (auto-focus), Web Audio API orqali muvaffaqiyatli/xato skan tovushlari (audio chimes), va jonli statistika API (`/tayyorlov/api/tablet/state/`).
+  - **Navigatsiya:** Tayyorlov menyusiga va Meto Hub boshqaruv paneliga «Planshet» tezkor o'tish tugmalari qo'shildi.
+* **O'zgartirilgan va yangi fayllar:**
+  - `production/meto_tablet_views.py` (yangi)
+  - `templates/meto_hub/tablet.html` (yangi)
+  - `production/tayyorlov_urls.py`
+  - `templates/tayyorlov/base_tayyorlov.html`
+  - `templates/meto_hub/hub.html`
+  - `production/test_meto_flow.py`
+
 ### 🔹 [Commit: `ed9c4f5`] — 20.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/stiker/` sahifasini to'liq Desktop keng ekranli (widescreen) formatga o'tkazish
 * **Mavzu:** Egasi talabi («https://terryjar.uz/tayyorlov/stiker/ sahifa full desktop versiyada boladi»):

@@ -1137,4 +1137,109 @@ class MetoTwoShiftsTest(MetoFlowBase):
         self.assertEqual(old_stickers.status_code, 200)
 
 
+class MetoTabletTest(MetoFlowBase):
+    """Meto Planshet (Tablet) interfeysi va uning 3 ta asosiy funksiyasi testlari."""
+
+    def test_tablet_access_and_views(self):
+        # 1) Anonim foydalanuvchi loginga yo'naltiriladi
+        resp = self.client.get(reverse('meto_hub_tablet'))
+        self.assertEqual(resp.status_code, 302)
+
+        # 2) Sklad xodimi planshetga kiradi
+        self.client.force_login(self.sklad)
+        res = self.client.get(reverse('meto_hub_tablet'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "METO PLANSHET")
+        self.assertContains(res, "1. Biriktirish")
+        self.assertContains(res, "2. Yuk Xati")
+        self.assertContains(res, "3. Patokka Berish")
+
+        # 3) /tayyorlov/planshet/ alias ham 200 beradi
+        res_alias = self.client.get(reverse('meto_hub_planshet'))
+        self.assertEqual(res_alias.status_code, 200)
+
+        # 4) State API JSON qaytaradi
+        api_res = self.client.get(reverse('meto_hub_tablet_state'))
+        self.assertEqual(api_res.status_code, 200)
+        data = api_res.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertIn('empty_containers', data)
+        self.assertIn('sklad_cards', data)
+
+    def test_tablet_operations_link_and_unlink(self):
+        self.client.force_login(self.sklad)
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {self.items()[0].id: {'boxes': 1}, self.items()[1].id: {'boxes': 1}}, self.sticker)
+        box = self.boxes()[0]
+        c = Container.objects.create(number=901, branch='HQ')
+
+        # 1) Skaner orqali qutini aniqlash (resolve)
+        resolve_res = self.client.get(f"{reverse('meto_hub_flow_api_resolve')}?code={box.box_code}")
+        self.assertEqual(resolve_res.status_code, 200)
+        self.assertEqual(resolve_res.json()['kind'], 'box')
+        self.assertEqual(resolve_res.json()['box'], box.box_code)
+
+        # 2) Quti va konteynerni biriktirish (link)
+        link_res = self.client.post(
+            reverse('meto_hub_flow_api_link'),
+            data={'box': box.box_code, 'container': c.code},
+            content_type='application/json'
+        )
+        self.assertEqual(link_res.status_code, 200)
+        self.assertEqual(link_res.json()['status'], 'OK')
+        c.refresh_from_db()
+        self.assertEqual(c.box_id, box.id)
+        self.assertEqual(c.status, Container.Status.FILLED)
+
+        # 3) Bekor qilish (unlink)
+        unlink_res = self.client.post(
+            reverse('meto_hub_flow_api_unlink'),
+            data={'code': c.code},
+            content_type='application/json'
+        )
+        self.assertEqual(unlink_res.status_code, 200)
+        self.assertEqual(unlink_res.json()['status'], 'OK')
+        c.refresh_from_db()
+        self.assertIsNone(c.box_id)
+        self.assertEqual(c.status, Container.Status.EMPTY)
+
+    def test_tablet_operations_patok_dispatch(self):
+        self.client.force_login(self.sklad)
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {self.items()[0].id: {'boxes': 1}, self.items()[1].id: {'boxes': 1}}, self.sticker)
+        boxes = self.boxes()
+        for b in boxes:
+            b.is_printed = True
+            b.save(update_fields=['is_printed'])
+        c1 = Container.objects.create(number=902, branch='HQ', box=boxes[0], status=Container.Status.FILLED)
+        c2 = Container.objects.create(number=903, branch='HQ', box=boxes[1], status=Container.Status.FILLED)
+
+        # Sklad qabul (kg)
+        flow = meto_flow.get_flow(self.batch)
+        flow.sklad_received_at = timezone.now()
+        flow.sklad_received_by = self.sklad
+        flow.save()
+        self.batch.actual_weight_kg = Decimal('38.5')
+        self.batch.save(update_fields=['actual_weight_kg'])
+
+        # 1) api_check
+        check_res = self.client.get(f"{reverse('meto_hub_flow_api_check')}?batches={self.batch.id}")
+        self.assertEqual(check_res.status_code, 200)
+        self.assertEqual(len(check_res.json()['batches'][0]['rows']), 2)
+
+        # 2) Patokka berish (api_give)
+        give_res = self.client.post(
+            reverse('meto_hub_flow_api_give'),
+            data={'batch_id': self.batch.id, 'screen': 3, 'scanned': [c1.code, c2.code]},
+            content_type='application/json'
+        )
+        self.assertEqual(give_res.status_code, 200)
+        self.assertEqual(give_res.json()['status'], 'OK')
+        flow.refresh_from_db()
+        self.assertEqual(flow.stage, PastalFlow.Stage.AT_PATOK)
+        c1.refresh_from_db()
+        self.assertEqual(c1.status, Container.Status.AT_PATOK)
+
+
+
 

@@ -52,6 +52,12 @@
 
             <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
                 {% block header_actions %}{% endblock %}
+                <a href="{% url 'meto_hub_tablet' %}"
+                    class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-black transition flex items-center gap-1.5"
+                    title="Meto Planshet (Tablet) rejimi">
+                    <i class="fa-solid fa-tablet-screen-button text-cyan-400"></i>
+                    <span class="hidden sm:inline">Planshet</span>
+                </a>
                 <div class="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
                     <div class="w-7 h-7 rounded-lg bg-slate-800 text-amber-400 flex items-center justify-center text-xs font-black">
                         <i class="fa-solid fa-user"></i>

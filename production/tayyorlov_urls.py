@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import meto_flow_views as flow
+from . import meto_tablet_views as tablet
 from . import tayyorlov_stiker_views as tstiker
 from .meto_container_views import (
     container_create_view,
@@ -21,8 +22,12 @@ urlpatterns = [
     path('stiker/orders/<int:order_id>/batches/<int:batch_id>/mark-printed/', tstiker.tayyorlov_stiker_mark_batch_printed, name='tayyorlov_stiker_mark_batch_printed'),
     path('stiker/orders/<int:order_id>/regenerate-tickets/', tstiker.tayyorlov_stiker_regenerate_tickets, name='tayyorlov_stiker_regenerate_tickets'),
     path('stiker/orders/<int:order_id>/copy-operations/', tstiker.tayyorlov_stiker_copy_operations, name='tayyorlov_stiker_copy_operations'),
-    path('stiker/orders/<int:order_id>/mark-all-printed/', tstiker.tayyorlov_stiker_mark_all_printed, name='tayyorlov_stiker_mark_all_printed'),
     path('stiker/boxes/<int:box_id>/mark-printed/', tstiker.tayyorlov_stiker_mark_box_printed, name='tayyorlov_stiker_mark_box_printed'),
+    path('stiker/orders/<int:order_id>/mark-all-printed/', tstiker.tayyorlov_stiker_mark_all_printed, name='tayyorlov_stiker_mark_all_printed'),
+    # Meto Planshet (Tablet) — Quti ↔ Konteyner biriktirish, Yuk xati tekshirish, Patokka berish
+    path('tablet/', tablet.meto_tablet_view, name='meto_hub_tablet'),
+    path('planshet/', tablet.meto_tablet_view, name='meto_hub_planshet'),
+    path('api/tablet/state/', tablet.meto_tablet_state_api, name='meto_hub_tablet_state'),
     path('sklad/', flow.section_view, {'tab': 'sklad'}, name='meto_hub_flow_sklad'),
     path('uychi/', flow.section_view, {'tab': 'uychi'}, name='meto_hub_flow_uychi'),
     path('yukxat/', flow.section_view, {'tab': 'yukxat'}, name='meto_hub_flow_yukxat'),

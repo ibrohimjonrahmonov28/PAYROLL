@@ -3,6 +3,10 @@
 {% block title %}Tayyorlov Bo'limi — Bosh Menyu{% endblock %}
 
 {% block header_actions %}
+<a href="{% url 'meto_hub_tablet' %}" target="_blank"
+    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-black transition shadow-sm">
+    <i class="fa-solid fa-tablet-screen-button text-cyan-400"></i> Meto Planshet
+</a>
 {% if request.user.is_superadmin %}
 <a href="{% url 'superadmin_dashboard' %}"
     class="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 text-amber-400 hover:text-amber-300 text-xs font-bold transition">
