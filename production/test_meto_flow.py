@@ -956,15 +956,17 @@ class MetoTwoShiftsTest(MetoFlowBase):
         self.assertEqual(res.status_code, 200)
         html = res.content.decode('utf-8')
 
-        # 2 tomonli ekran
+        # 2 tomonli ekran: chapda Qabul qilish / Qaytarish, o'ngda Pastalni tugatish + butun ekran oynasi
         self.assertIn("Tasnif kutmoqda", html)
         self.assertIn("Tasnif bo'lmoqda", html)
         self.assertIn("Qabul qilish", html)
+        self.assertIn("Qaytarish", html)
         self.assertIn("Qabulni bekor qilish", html)
-        self.assertIn("Meto omboriga jo'natish", html)
-        self.assertIn('btn-step-minus', html)
-        self.assertIn('btn-step-plus', html)
-        self.assertIn('onfocus="this.select()"', html)
+        self.assertIn("Pastalni tugatish", html)
+        self.assertIn('id="tasnif-finish-modal"', html)
+        self.assertIn('id="tfm-btn-save"', html)
+        self.assertIn('id="tfm-btn-cancel"', html)
+        self.assertIn('id="tasnif-return-modal"', html)
         self.assertIn('id="tasnif-search-input"', html)
         # Egasi talabi: Tasnifda tugatilganlar tarixi kerak emas
         self.assertNotIn('Tugatilgan pastallar tarixi', html)
@@ -983,7 +985,7 @@ class MetoTwoShiftsTest(MetoFlowBase):
         flow_wait = meto_flow.get_flow(b_wait)
         self.assertEqual(flow_wait.stage, PastalFlow.Stage.TASNIF_WORK)
 
-        # POST orqali tugatish -> Meto omboriga jo'natish
+        # POST orqali tugatish -> tasnif soni pastal ma'lumotlariga yoziladi va SKLAD / Stikerga o'tadi
         item_m, item_l = self.items(b_wait)
         finish_url = reverse('meto_hub_flow_tasnif_finish', args=[b_wait.id])
         res_finish = self.client.post(finish_url, {
@@ -993,5 +995,146 @@ class MetoTwoShiftsTest(MetoFlowBase):
         self.assertEqual(res_finish.status_code, 302)
         flow_wait.refresh_from_db()
         self.assertEqual(flow_wait.stage, PastalFlow.Stage.SKLAD)
+        item_m.refresh_from_db()
+        item_l.refresh_from_db()
+        self.assertEqual((item_m.real_quantity, item_l.real_quantity), (49, 40))
+
+    def test_tasnif_return_to_meto_and_resubmit(self):
+        b = self.cut('T-RET-1', m=50, l=40)
+        meto_flow.take_meto(b, self.meto)
+        meto_flow.finish_meto(b, self.counts(48, 39, batch=b), self.meto)
+        self.assertEqual(meto_flow.get_flow(b).stage, PastalFlow.Stage.TASNIF_WAIT)
+
+        # Tasnif masteri pastalni sabab bilan Metoga qaytaradi
+        self.client.force_login(self.tasnif)
+        res = self.client.post(
+            reverse('meto_hub_flow_tasnif_return', args=[b.id]),
+            {'reason': 'Nomerovka xato'},
+        )
+        self.assertEqual(res.status_code, 302)
+        flow = meto_flow.get_flow(b)
+        self.assertEqual(flow.stage, PastalFlow.Stage.METO_WAIT)
+        self.assertIsNone(flow.meto_done_at)
+        self.assertEqual(flow.tasnif_return_reason, 'Nomerovka xato')
+        self.assertEqual(flow.tasnif_returned_by, self.tasnif)
+        self.assertIsNotNone(flow.tasnif_returned_at)
+
+        # Meto sahifasida «Tasnifdan qaytarildi» va sababi ko'rinadi
+        self.client.force_login(self.meto)
+        meto_page = self.client.get(reverse('meto_hub_flow_meto'))
+        self.assertContains(meto_page, 'Tasnifdan qaytarildi')
+        self.assertContains(meto_page, 'Nomerovka xato')
+
+        # Meto qayta qabul qilib tugatganda qaytarish belgilari tozalanib, yana Tasnifga boradi
+        meto_flow.take_meto(b, self.meto)
+        meto_flow.finish_meto(b, self.counts(50, 40, batch=b), self.meto)
+        flow.refresh_from_db()
+        self.assertEqual(flow.stage, PastalFlow.Stage.TASNIF_WAIT)
+        self.assertEqual(flow.tasnif_return_reason, '')
+        self.assertIsNone(flow.tasnif_returned_at)
+
+    def test_tayyorlov_stiker_1to1_flow_from_tasnif_split_edit_and_print(self):
+        from production.pastal_info import build_pastal_info
+
+        # 1) Meto → Tasnif: tasnif soni (48, 40) pastal ma'lumotlariga yoziladi
+        self.to_sklad(meto=(49, 40), tasnif=(48, 40))
+        first, second = self.items()
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual((first.real_quantity, second.real_quantity), (48, 40))
+
+        # Pastal ma'lumotlarida (pastal_info) ham tasnif soni ko'rinadi
+        pinfo = build_pastal_info(self.batch)
+        self.assertEqual(pinfo['totals']['tasnif'], 88)
+        self.assertEqual([s['tasnif_qty'] for s in pinfo['sizes']], [48, 40])
+        self.assertIn("Tasnif tugatildi", [e['title'] for e in pinfo['timeline']])
+
+        # 2) Stikerchi /tayyorlov/stiker/ ga kiradi (1 ga 1 nusxa — buyurtma avtomatik ro'yxatda!)
+        self.client.force_login(self.sticker)
+        dash = self.client.get(reverse('meto_hub_flow_stiker'))
+        self.assertEqual(dash.status_code, 200)
+        self.assertEqual(dash.context['total_unsplit_pastals'], 1)
+        self.assertEqual(dash.context['unprinted_orders_count'], 1)
+        self.assertEqual([row['order'].id for row in dash.context['orders_data']], [self.order.id])
+        self.assertContains(dash, self.order.order_number)
+        self.assertContains(dash, '88 dona')
+        # Boshqa Tayyorlov bo'limlariga link yo'q
+        for forbidden in ('/tayyorlov/meto/', '/tayyorlov/tasnif/', '/tayyorlov/sklad/', '/stickers/'):
+            self.assertNotContains(dash, f'href="{forbidden}"')
+
+        # 3) Buyurtma qutilari sahifasi (/tayyorlov/stiker/orders/<id>/)
+        order_url = reverse('tayyorlov_stiker_order_boxes', args=[self.order.id])
+        order_page = self.client.get(order_url)
+        self.assertEqual(order_page.status_code, 200)
+        self.assertEqual(order_page.context['unsplit_pastals_count'], 1)
+        self.assertContains(order_page, 'PC: 11-1')
+        self.assertContains(order_page, "Qutilarga bo'lish")
+        for forbidden in ('/tayyorlov/meto/', '/tayyorlov/tasnif/', '/tayyorlov/sklad/', '/stickers/'):
+            self.assertNotContains(order_page, f'href="{forbidden}"')
+
+        # 4) Lazy-loading partial: hali bo'linmagan -> Tasnif soni (48, 40) bilan bo'lish oynasi
+        partial_url = reverse('tayyorlov_stiker_batch_boxes', args=[self.order.id, self.batch.id])
+        partial_before = self.client.get(partial_url)
+        self.assertEqual(partial_before.status_code, 200)
+        self.assertTrue(partial_before.context['can_split'])
+        self.assertContains(partial_before, f'name="qty_{first.id}" value="48"')
+        self.assertContains(partial_before, f'name="qty_{second.id}" value="40"')
+        self.assertContains(partial_before, "Qutilarga bo'lish va stikerlarni yaratish")
+
+        # 5) Stikerchi xato tufayli M razmerni 48 -> 47 ga qo'lda o'zgartirib 2 ta qutiga bo'ladi
+        split_res = self.client.post(
+            reverse('meto_hub_flow_split', args=[self.batch.id]),
+            {
+                f'qty_{first.id}': '47',
+                f'qty_{second.id}': '40',
+                f'boxes_{first.id}': '2',
+                f'boxes_{second.id}': '1',
+                'next': f"{order_url}?open_batch={self.batch.id}",
+            },
+        )
+        self.assertRedirects(split_res, f"{order_url}?open_batch={self.batch.id}", fetch_redirect_response=False)
+        self.assertEqual([(b.razmer, b.quantity) for b in self.boxes()], [('M', 24), ('M', 23), ('L', 40)])
+        first.refresh_from_db()
+        self.assertEqual((first.flow_size.tasnif_qty, first.real_quantity), (47, 47))
+
+        # 6) Partial qayta yuklanganda qutilar jadvali va chop etilguncha o'zgartirish bloki ko'rinadi
+        partial_after = self.client.get(partial_url)
+        self.assertFalse(partial_after.context['can_split'])
+        self.assertTrue(partial_after.context['can_edit_tasnif'])
+        self.assertEqual(partial_after.context['total_boxes_count'], 3)
+        self.assertContains(partial_after, "Tasnif sonini o'zgartirish va qutilarni qayta bo'lish")
+
+        # 7) Bitta qutini AJAX orqali chop etildi belgilash -> endi tasnif sonini o'zgartirish qulflanadi
+        b0 = self.boxes()[0]
+        mark_box_res = self.client.post(
+            reverse('tayyorlov_stiker_mark_box_printed', args=[b0.id]),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(mark_box_res.status_code, 200)
+        self.assertEqual(mark_box_res.json()['status'], 'ok')
+        b0.refresh_from_db()
+        self.assertTrue(b0.is_printed)
+
+        partial_locked = self.client.get(partial_url)
+        self.assertFalse(partial_locked.context['can_edit_tasnif'])
+
+        # 8) Butun pastalni AJAX orqali chop etildi belgilash -> buyurtma Tikuvga Berilganlar ga o'tadi
+        mark_batch_res = self.client.post(
+            reverse('tayyorlov_stiker_mark_batch_printed', args=[self.order.id, self.batch.id]),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(mark_batch_res.status_code, 200)
+        self.assertEqual(mark_batch_res.json()['status'], 'ok')
+        self.assertEqual(mark_batch_res.json()['count'], 2)
+
+        dash_done = self.client.get(reverse('meto_hub_flow_stiker'), {'status': 'printed'})
+        self.assertEqual([row['order'].id for row in dash_done.context['orders_data']], [self.order.id])
+        dash_unprinted = self.client.get(reverse('meto_hub_flow_stiker'), {'status': 'unprinted'})
+        self.assertEqual(dash_unprinted.context['orders_data'], [])
+
+        # 9) Eski /stickers/ bo'limiga tegilmagan — o'z holicha ishlaydi
+        old_stickers = self.client.get(reverse('sticker_dashboard'))
+        self.assertEqual(old_stickers.status_code, 200)
+
 
 

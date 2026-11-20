@@ -29,7 +29,26 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `11ab3b4`] — 20.11.2026
+### 🔹 [Commit: `2b27f6f`] — 20.11.2026
+* **Turi:** `feat(tayyorlov)` — Tasnifda Qaytarish + Butun ekranli «Pastalni tugatish» oynasi va Tayyorlov Stiker (`/stickers/` ning 1 ga 1 nusxasi)
+* **Mavzu:** Egasi talabi bo'yicha Tasnif → Stiker zanjiri to'liq yo'lga qo'yildi (eski `/stickers/` bo'limiga tegilmasdan):
+  - **Tasnif kutmoqda (chap ustun):** «Qabul qilish» bilan birga **«Qaytarish»** tugmasi qo'shildi — sabab bilan Meto bo'limiga qaytarish (`PastalFlow.tasnif_return_reason/returned_by/returned_at`, `0055` migratsiya); Metoda «Tasnifdan qaytarildi» ogohlantirishi ko'rsatiladi.
+  - **Tasnif bo'lmoqda (o'ng ustun):** Pastal paralanib bo'lgach **«Pastalni tugatish»** tugmasi bosiladi va **butun ekran rejimida** razmerlar sonini kiritish oynasi ochiladi (Meto sonidan ko'paytirish/kamaytirish, jonli farq). Oyna faqat **«Saqlash»** yoki **«Bekor qilish»** bosilganda yopiladi (Escape va tashqariga bosish bloklangan).
+  - **Pastal ma'lumotlari:** Saqlanganda tasnif soni ham `PastalFlowSize.tasnif_qty`, ham `CuttingBatchItem.real_quantity` ga yoziladi; `/statistics/?pastal_info=...` kartochkasida ham Tasnif ustuni va vaqt chizig'i ko'rinadi.
+  - **Tayyorlov Stiker (`/tayyorlov/stiker/` va `/tayyorlov/stiker/orders/<id>/`):** Eski `https://terryjar.uz/stickers/` ning 1 ga 1 nusxasi yaratildi (eski `/stickers/` o'zgarishsiz qoldi). Farqi: Tasnifdan o'tgan pastallar avtomatik ro'yxatga tushadi, sonlar Tasnifdan keladi, stikerchi ularni qutilarga bo'ladi va xatolar hisobiga chop etilguncha qo'lda o'zgartira oladi (chop etilgach oltin qoida bo'yicha qulflanadi).
+* **O'zgartirilgan / yangi fayllar:**
+  - `production/models.py`, `production/migrations/0055_pastalflow_tasnif_return.py`
+  - `production/meto_flow.py`, `production/meto_flow_views.py`, `production/tayyorlov_urls.py`
+  - `production/tayyorlov_stiker_views.py` (yangi — `/stickers/` ning Tayyorlov 1 ga 1 nusxasi)
+  - `production/pastal_info.py`, `templates/production/partials/pastal_info_card.html`
+  - `templates/meto_hub/flow/tasnif.html`, `templates/meto_hub/flow/meto.html`, `templates/meto_hub/flow/stiker.html`
+  - `templates/tayyorlov/stiker_order_boxes.html`, `templates/tayyorlov/partials/stiker_batch_boxes.html` (yangi)
+  - `production/test_meto_flow.py` (`48` ta test — barchasi o'tdi)
+* **Serverda:** `git pull origin main && docker compose exec web python manage.py migrate && docker compose restart web`
+
+---
+
+### 🔹 [Commit: `f383853`] — 20.11.2026
 * **Turi:** `refactor(tasnif)` — Tasnif sahifasidan tugatilgan pastallar tarixi olib tashlandi
 * **Mavzu:** Egasi talabi («Tugatilgan pastallar tarixi (1) kerak emas»): Tasnif bo'limi faqat oqimdagi faol pastallarga qaratildi:
   - Pastdagi «Tugatilgan pastallar tarixi» jadvali va sahifalash bloki butunlay olib tashlandi.

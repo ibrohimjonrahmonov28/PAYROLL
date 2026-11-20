@@ -177,6 +177,9 @@ def finish_meto(batch, counts, user, note=''):
             size.save(update_fields=['meto_qty'])
         flow.stage, flow.meto_done_by, flow.meto_done_at = PastalFlow.Stage.TASNIF_WAIT, user, timezone.now()
         flow.meto_note = clean_note
+        flow.tasnif_return_reason = ''
+        flow.tasnif_returned_by = None
+        flow.tasnif_returned_at = None
         flow.save()
     return flow
 
@@ -204,8 +207,46 @@ def cancel_tasnif(batch, user):
     return flow
 
 
+def return_tasnif(batch, user, reason=''):
+    """Tasnif masteri kelgan pastalni Meto bo'limiga qaytaradi (TASNIF_WAIT / TASNIF_WORK -> METO_WAIT)."""
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
+    clean_reason = (reason or '').strip()[:300]
+    with transaction.atomic():
+        flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
+        if flow.stage not in (PastalFlow.Stage.TASNIF_WAIT, PastalFlow.Stage.TASNIF_WORK):
+            raise FlowError("Faqat tasnif kutayotgan yoki tasnif bo'layotgan pastalni Metoga qaytarish mumkin.")
+        flow.stage = PastalFlow.Stage.METO_WAIT
+        flow.meto_taken_by = None
+        flow.meto_taken_at = None
+        flow.meto_done_by = None
+        flow.meto_done_at = None
+        flow.tasnif_taken_by = None
+        flow.tasnif_taken_at = None
+        flow.tasnif_return_reason = clean_reason
+        flow.tasnif_returned_by = user
+        flow.tasnif_returned_at = timezone.now()
+        flow.save(update_fields=[
+            'stage', 'meto_taken_by', 'meto_taken_at', 'meto_done_by', 'meto_done_at',
+            'tasnif_taken_by', 'tasnif_taken_at',
+            'tasnif_return_reason', 'tasnif_returned_by', 'tasnif_returned_at', 'updated_at',
+        ])
+    return flow
+
+
+def _validate_tasnif_values(items, values):
+    for item in items:
+        val = values[item.id]
+        max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)
+        if val > max_reasonable:
+            raise FlowError(
+                f"{item.order_item_size.size_name} razmerida tasnif soni ({val}) "
+                f"kesimdan ({item.quantity}) haddan tashqari katta — raqamni tekshiring."
+            )
+
+
 def finish_tasnif(batch, counts, user):
-    """Tasnif real sonni beradi — pastal avtomatik meto omboriga (Koson) o'tadi."""
+    """Tasnif real sonni beradi — pastal ma'lumotlariga yozilib, stiker chiqarish ro'yxati va Meto omboriga o'tadi."""
     if not is_v2_batch(batch):
         raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
     with transaction.atomic():
@@ -213,18 +254,13 @@ def finish_tasnif(batch, counts, user):
         _require(flow, PastalFlow.Stage.TASNIF_WORK, "Bu pastal tasnif bo'lmoqda holatida emas.")
         items = _items(batch)
         values = _counts(items, counts)
-        for item in items:
-            val = values[item.id]
-            max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)
-            if val > max_reasonable:
-                raise FlowError(
-                    f"{item.order_item_size.size_name} razmerida tasnif soni ({val}) "
-                    f"kesimdan ({item.quantity}) haddan tashqari katta — raqamni tekshiring."
-                )
+        _validate_tasnif_values(items, values)
         for item in items:
             size = _size(item)
             size.tasnif_qty = values[item.id]
             size.save(update_fields=['tasnif_qty'])
+            item.real_quantity = values[item.id]
+            item.save(update_fields=['real_quantity'])
         flow.stage, flow.branch = PastalFlow.Stage.SKLAD, 'HQ'
         flow.tasnif_done_by, flow.tasnif_done_at = user, timezone.now()
         flow.save()
@@ -247,6 +283,7 @@ def update_tasnif_counts(batch, counts, user):
             raise FlowError("Qutilar konteynerga biriktirilgan — avval biriktirishni bekor qiling.")
         items = _items(batch)
         values = _counts(items, counts)
+        _validate_tasnif_values(items, values)
         for box in boxes:   # chop etilmagan qutilar — yangidan bo'linadi (stikerlari hali qog'ozda yo'q)
             box.status = Box.Status.CANCELLED
             box.save(update_fields=['status'])
@@ -255,16 +292,18 @@ def update_tasnif_counts(batch, counts, user):
             size = _size(item)
             size.tasnif_qty = values[item.id]
             size.save(update_fields=['tasnif_qty'])
+            item.real_quantity = values[item.id]
             item.boxes_created_qty = 0
             item.status = CuttingBatchItem.Status.CUT_ENTERED
-            item.save(update_fields=['boxes_created_qty', 'status'])
+            item.save(update_fields=['real_quantity', 'boxes_created_qty', 'status'])
         flow.boxes_split_by, flow.boxes_split_at = None, None
         flow.save()
     return flow
 
 
-def split_boxes(batch, plan, user):
-    """Stikerchi: har razmer tasnif sonini qutilarga bo'ladi (quti soni yoki sig'im) — qutilar va stikerlar yaratiladi."""
+def split_boxes(batch, plan, user, counts=None):
+    """Stikerchi: har razmer tasnif sonini qutilarga bo'ladi (quti soni yoki sig'im) — qutilar va stikerlar yaratiladi.
+    Xatolar hisobiga counts berilsa, tasnif sonini ham shu bosqichda yangilab bo'ladi."""
     with transaction.atomic():
         flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
         _require(flow, PastalFlow.Stage.SKLAD, "Qutilarga faqat skladdagi pastal bo'linadi.")
@@ -272,9 +311,17 @@ def split_boxes(batch, plan, user):
             raise FlowError("Bu pastal allaqachon qutilarga bo'lingan.")
         if not ArticleOperation.objects.filter(article=batch.order_item.article).exists():
             raise FlowError("Artikulda operatsiyalar (narxlar) yo'q — avval narxlar matritsasidan biriktiring.")
+        items = _items(batch)
+        if counts:
+            values = _counts(items, counts)
+            _validate_tasnif_values(items, values)
+            for item in items:
+                size = _size(item)
+                size.tasnif_qty = values[item.id]
+                size.save(update_fields=['tasnif_qty'])
         pastal_number = batch.pastal_code or str(batch.batch_number)
         created = 0
-        for item in _items(batch):
+        for item in items:
             qty = _size(item).tasnif_qty or 0
             if qty <= 0:
                 item.real_quantity = 0

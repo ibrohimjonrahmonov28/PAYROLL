@@ -239,7 +239,7 @@ def _card(flow):
 def _flows_qs(**filters):
     return (PastalFlow.objects.filter(**filters)
             .select_related(*FLOW_RELATED, 'meto_taken_by', 'meto_done_by', 'tasnif_taken_by', 'tasnif_done_by',
-                            'sklad_received_by')
+                            'tasnif_returned_by', 'sklad_received_by')
             .prefetch_related('batch__items__order_item_size', 'batch__items__flow_size', 'batch__items__boxes',
                               'batch__order_item__article__article_operations')
             .order_by('-batch__created_at', '-id'))
@@ -526,9 +526,8 @@ def _ctx_tasnif(request):
 
 
 def _ctx_stiker(request):
-    cards = _flows(stage=PastalFlow.Stage.SKLAD, branch='HQ')
-    return {'to_split': [c for c in cards if not c['boxes_count']],
-            'to_print': [c for c in cards if c['boxes_count'] and c['printed_count'] < c['boxes_count']]}
+    from production.tayyorlov_stiker_views import stiker_dashboard_context
+    return stiker_dashboard_context(request)
 
 
 def _ctx_sklad(request):
@@ -791,10 +790,18 @@ def tasnif_cancel(request, batch_id):
 
 
 @_form_action('tasnif', 'tasnif')
+def tasnif_return(request, batch_id):
+    batch = _batch(batch_id)
+    reason = request.POST.get('reason', '')
+    flow_logic.return_tasnif(batch, request.user, reason=reason)
+    return f"{_name(batch)}: Meto bo'limiga qaytarildi."
+
+
+@_form_action('tasnif', 'tasnif')
 def tasnif_finish(request, batch_id):
     batch = _batch(batch_id)
     flow_logic.finish_tasnif(batch, _posted_counts(request), request.user)
-    return f"{_name(batch)}: tasnif tugadi, pastal Meto omboriga jo'natildi."
+    return f"{_name(batch)}: tasnif soni saqlandi, stiker chiqarish ro'yxati va Meto omboriga o'tdi."
 
 
 @_form_action('stiker', 'stiker')
@@ -813,7 +820,8 @@ def split(request, batch_id):
             plan.setdefault(key[len('boxes_'):], {})['boxes'] = value
         elif key.startswith('cap_'):
             plan.setdefault(key[len('cap_'):], {})['capacity'] = value
-    created = flow_logic.split_boxes(batch, plan, request.user)
+    counts = _posted_counts(request) or None
+    created = flow_logic.split_boxes(batch, plan, request.user, counts=counts)
     return f"{_name(batch)}: {created} ta quti va stikerlar yaratildi — endi chop eting."
 
 

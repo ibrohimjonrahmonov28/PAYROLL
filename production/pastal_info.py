@@ -9,7 +9,7 @@ from collections import defaultdict
 from django.db.models import Count, Max, Min, Q, Sum
 
 from production.daily_dazmol import main_dazmol_operation_ids
-from production.models import Box, BoxQualityInspectionLog, CuttingBatch, CuttingBatchItem, RepairReceipt, Ticket
+from production.models import Box, BoxQualityInspectionLog, CuttingBatch, CuttingBatchItem, PastalFlow, RepairReceipt, Ticket
 from production.packing_services import paper_status
 from production.services import get_patok_code
 
@@ -84,23 +84,31 @@ def build_pastal_info(batch):
     order = batch.order_item.order if batch.order_item_id else None
     article = batch.order_item.article if batch.order_item_id else None
 
-    items = list(batch.items.select_related('order_item_size', 'meto_completed_by').order_by('order_item_size__id'))
+    items = list(batch.items.select_related('order_item_size', 'meto_completed_by', 'flow_size').order_by('order_item_size__id'))
+    flow = PastalFlow.objects.filter(batch=batch).select_related('meto_done_by', 'tasnif_done_by').first()
     boxes = list(Box.objects.filter(cutting_batch_item__batch=batch).order_by('box_number'))
     active = [b for b in boxes if b.status != Box.Status.CANCELLED]
     cancelled = [b for b in boxes if b.status == Box.Status.CANCELLED]
     active_ids = [b.id for b in active]
 
-    # 1. Razmerlar: kesimchi soni, meto soni, qutilar
+    # 1. Razmerlar: kesimchi soni, meto soni, tasnif soni (yangi oqimda), qutilar
     boxes_by_item = defaultdict(list)
     for b in active:
         boxes_by_item[b.cutting_batch_item_id].append(b)
     sizes = []
+    has_tasnif = False
     for it in items:
         it_boxes = boxes_by_item.get(it.id, [])
+        fs = getattr(it, 'flow_size', None)
+        t_qty = fs.tasnif_qty if fs else None
+        if t_qty is not None:
+            has_tasnif = True
         sizes.append({
             'name': it.order_item_size.size_name,
             'cut_qty': it.quantity,
             'meto_qty': it.real_quantity,
+            'flow_meto_qty': fs.meto_qty if fs else None,
+            'tasnif_qty': t_qty,
             'boxes_count': len(it_boxes),
             'boxes_qty': sum(b.quantity for b in it_boxes),
             'status': it.status,
@@ -113,6 +121,7 @@ def build_pastal_info(batch):
     totals = {
         'cut': sum(it.quantity for it in items),
         'meto': sum(it.effective_quantity for it in items),
+        'tasnif': sum(s['tasnif_qty'] or 0 for s in sizes) if has_tasnif else None,
         'boxed': sum(b.quantity for b in active),
         'boxes': len(active),
         'cancelled_boxes': len(cancelled),
@@ -223,6 +232,11 @@ def build_pastal_info(batch):
     meto_times = [s['meto_completed_at'] for s in sizes if s['meto_completed_at']]
     if meto_times:
         events.append((max(meto_times), "Meto tasdiqladi", f"{len(meto_times)} ta razmer"))
+    elif flow and flow.meto_done_at:
+        events.append((flow.meto_done_at, "Meto tugatildi", _user_name(flow.meto_done_by)))
+    if flow and flow.tasnif_done_at:
+        t_detail = f"{_user_name(flow.tasnif_done_by)} · {totals['tasnif']} dona".strip(' ·') if totals['tasnif'] is not None else _user_name(flow.tasnif_done_by)
+        events.append((flow.tasnif_done_at, "Tasnif tugatildi", t_detail))
     if totals['first_box_at']:
         events.append((totals['first_box_at'], "Qutilar yaratildi", f"{len(boxes)} ta quti"))
     if totals['first_printed_at']:

@@ -1,29 +1,40 @@
 {% comment %}
-Tayyorlov → Tasnif tabi: 2 smena tizimi, ekran 2 ga bo'linadi (Tasnif kutmoqda va Tasnif bo'lmoqda),
-razmerlar bo'yicha aniq son kiritish, stepplar [−]/[+], jonli meto→tasnif farqi,
-Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
+Tayyorlov → Tasnif bo'limi:
+- 2 smena tizimi (1-smena 08:00–18:00, 2-smena 18:00–08:00)
+- Ekran 2 ga bo'linadi: Chapda «Tasnif kutmoqda» (Qabul qilish / Qaytarish), O'ngda «Tasnif bo'lmoqda» (Pastalni
+tugatish)
+- «Pastalni tugatish» bosilganda BUTUN EKRAN rejimida razmerlar sonini kiritish oynasi ochiladi (Saqlash yoki Bekor
+qilish
+bosilmaguncha yopilmaydi). Saqlanganda tasnif soni pastal ma'lumotlariga yozilib, avtomatik Stiker chiqarish ro'yxatiga
+tushadi.
 {% endcomment %}
 <div class="space-y-5">
     <!-- Smena holati va ma'lumot paneli -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div
+        class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div class="flex flex-wrap items-center gap-2.5">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-black">
+            <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-black">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 Faol: {{ current_shift.shift_name }}
             </span>
             <span class="text-slate-400">
-                Ish kuni: <b class="text-white">{{ current_shift.work_date_str }}</b> · Oraliq: <b class="text-slate-200">{{ current_shift.time_window_str }}</b>
+                Ish kuni: <b class="text-white">{{ current_shift.work_date_str }}</b> · Oraliq: <b
+                    class="text-slate-200">{{ current_shift.time_window_str }}</b>
             </span>
         </div>
         <div class="flex flex-wrap items-center gap-2.5 text-slate-400">
             <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
-                <i class="fa-solid fa-sun text-amber-400 mr-1"></i>1-smena: <b class="text-slate-200">{{ kpi.s1_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s1_done_qty }}</b> dona
+                <i class="fa-solid fa-sun text-amber-400 mr-1"></i>1-smena: <b class="text-slate-200">{{
+                    kpi.s1_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s1_done_qty }}</b> dona
             </span>
             <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
-                <i class="fa-solid fa-moon text-indigo-400 mr-1"></i>2-smena: <b class="text-slate-200">{{ kpi.s2_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s2_done_qty }}</b> dona
+                <i class="fa-solid fa-moon text-indigo-400 mr-1"></i>2-smena: <b class="text-slate-200">{{
+                    kpi.s2_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s2_done_qty }}</b> dona
             </span>
             <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-900/60 text-emerald-300">
-                <i class="fa-solid fa-calendar-day mr-1"></i>Kun jami: <b class="text-white">{{ kpi.day_done_count }}</b> p · <b class="text-white">{{ kpi.day_done_qty }}</b> dona
+                <i class="fa-solid fa-calendar-day mr-1"></i>Kun jami: <b class="text-white">{{ kpi.day_done_count
+                    }}</b> p · <b class="text-white">{{ kpi.day_done_qty }}</b> dona
             </span>
         </div>
     </div>
@@ -53,7 +64,8 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
                 </p>
                 <p class="text-2xl font-black text-emerald-400 mt-1">{{ kpi.shift_done_count }} <span
                         class="text-xs font-bold text-slate-400">pastal · {{ kpi.shift_done_qty }} dona</span></p>
-                <p class="text-[11px] text-slate-400 mt-0.5">Kun jami: <b class="text-slate-200">{{ kpi.day_done_count }}</b> p · <b class="text-slate-200">{{ kpi.day_done_qty }}</b> dona</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Kun jami: <b class="text-slate-200">{{ kpi.day_done_count
+                        }}</b> p · <b class="text-slate-200">{{ kpi.day_done_qty }}</b> dona</p>
             </div>
             <i class="fa-solid fa-circle-check text-2xl text-emerald-500/40"></i>
         </div>
@@ -73,19 +85,20 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
             class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200 max-w-[200px]">
             <option value="">Zakaz: hammasi</option>
             {% for o in orders_filter %}
-            <option value="{{ o.id }}" {% if zakaz == o.id|stringformat:"d" %}selected{% endif %}>{{ o.order_number }}
+            <option value="{{ o.id }}" {% if zakaz==o.id|stringformat:"d" %}selected{% endif %}>{{ o.order_number }}
             </option>
             {% endfor %}
         </select>
         <select name="holat" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
-            <option value="faol" {% if holat == 'faol' %}selected{% endif %}>Barchasi (kutmoqda + ishda)</option>
-            <option value="wait" {% if holat == 'wait' %}selected{% endif %}>Faqat kutmoqda</option>
-            <option value="work" {% if holat == 'work' %}selected{% endif %}>Faqat tasnif bo'lmoqda</option>
+            <option value="faol" {% if holat=='faol' %}selected{% endif %}>Barchasi (kutmoqda + ishda)</option>
+            <option value="wait" {% if holat=='wait' %}selected{% endif %}>Faqat kutmoqda</option>
+            <option value="work" {% if holat=='work' %}selected{% endif %}>Faqat tasnif bo'lmoqda</option>
         </select>
         <button
             class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Ko'rsatish</button>
         {% if q or zakaz or holat != 'faol' %}
-        <a href="{% url 'meto_hub_flow_tasnif' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
+        <a href="{% url 'meto_hub_flow_tasnif' %}"
+            class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
         {% endif %}
         <div class="flex items-center gap-1.5 ml-auto">
             <button type="button" id="btn-auto-refresh"
@@ -111,44 +124,71 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
                     <span class="text-slate-400">({{ wait_page.paginator.count }})</span>
                 </h2>
                 {% if wait_page.has_other_pages %}
-                <span class="text-xs text-slate-400">Sahifa {{ wait_page.number }} / {{ wait_page.paginator.num_pages }}</span>
+                <span class="text-xs text-slate-400">Sahifa {{ wait_page.number }} / {{ wait_page.paginator.num_pages
+                    }}</span>
                 {% endif %}
             </div>
 
             <div class="space-y-3 {% if holat == 'wait' %}grid grid-cols-1 lg:grid-cols-2 gap-3 space-y-0{% endif %}">
                 {% for c in waiting %}
-                <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition">
+                <div
+                    class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition">
                     {% include 'meto_hub/flow/_card_head.html' %}
 
-                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2 text-xs px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800">
                         <span class="text-slate-400">Kesim: <b class="text-slate-300">{{ c.total_cut }}</b> dona</span>
                         <span class="text-amber-300 font-black">Meto soni: {{ c.total_meto }} dona</span>
                         {% if c.meto_diff != 0 %}
-                        <span class="text-[11px] font-bold {% if c.meto_diff > 0 %}text-rose-400{% else %}text-amber-400{% endif %}">
+                        <span
+                            class="text-[11px] font-bold {% if c.meto_diff > 0 %}text-rose-400{% else %}text-amber-400{% endif %}">
                             (farq {% if c.meto_diff > 0 %}+{{ c.meto_diff }}{% else %}{{ c.meto_diff }}{% endif %})
                         </span>
                         {% endif %}
                     </div>
 
+                    {% if c.flow.meto_note %}
+                    <div
+                        class="px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-800/50 text-xs text-amber-200 flex items-center gap-2">
+                        <i class="fa-solid fa-comment-dots text-amber-400"></i>
+                        <span><b>Meto izohi:</b> {{ c.flow.meto_note }}</span>
+                    </div>
+                    {% endif %}
+
                     <div class="flex flex-wrap gap-1.5">
                         {% for s in c.sizes %}
-                        <span class="px-2.5 py-1 rounded-lg bg-slate-800/90 text-xs text-slate-300 border border-slate-700/60">
-                            <b class="text-white font-bold">{{ s.name }}</b>: meto {{ s.meto|default:"0" }}
+                        <span
+                            class="px-2.5 py-1 rounded-lg bg-slate-800/90 text-xs text-slate-300 border border-slate-700/60">
+                            <b class="text-white font-bold">{{ s.name }}</b>: {{ s.meto|default:"0" }}
                         </span>
                         {% endfor %}
                     </div>
 
-                    <form method="POST" action="{% url 'meto_hub_flow_tasnif_take' c.batch.id %}" class="flex justify-end pt-1">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-sm flex items-center gap-2 shadow-lg shadow-amber-500/10 transition">
-                            <i class="fa-solid fa-hand-holding-hand"></i>
-                            <span>Qabul qilish</span>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/70">
+                        <button type="button"
+                            class="btn-open-return px-4 py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/70 border border-rose-800/70 text-rose-300 font-bold text-sm flex items-center gap-2 transition"
+                            data-action="{% url 'meto_hub_flow_tasnif_return' c.batch.id %}"
+                            data-pastal="Pastal {{ c.batch.pastal_code|default:c.batch.name }}"
+                            data-order="{{ c.order.order_number }} · {{ c.article.code|default:'—' }}">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>Qaytarish</span>
                         </button>
-                    </form>
+
+                        <form method="POST" action="{% url 'meto_hub_flow_tasnif_take' c.batch.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit"
+                                class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-sm flex items-center gap-2 shadow-lg shadow-amber-500/10 transition">
+                                <i class="fa-solid fa-hand-holding-hand"></i>
+                                <span>Qabul qilish</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 {% empty %}
-                <p class="text-sm text-slate-500 py-6 text-center">Tasnif kutayotgan pastal yo'q.</p>
+                <p
+                    class="text-sm text-slate-500 py-8 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+                    Tasnif kutayotgan pastal yo'q.</p>
                 {% endfor %}
             </div>
 
@@ -180,65 +220,75 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
             <div class="space-y-3 {% if holat == 'work' %}grid grid-cols-1 lg:grid-cols-2 gap-3 space-y-0{% endif %}">
                 {% for c in working %}
                 <div class="bg-slate-900 border border-cyan-800/60 rounded-2xl p-4 space-y-3 tasnif-work-card"
-                    data-total-meto="{{ c.total_meto }}">
+                    data-batch-id="{{ c.batch.id }}" data-action="{% url 'meto_hub_flow_tasnif_finish' c.batch.id %}"
+                    data-pastal="Pastal {{ c.batch.pastal_code|default:c.batch.name }}"
+                    data-order="{{ c.order.order_number }}" data-customer="{{ c.customer }}"
+                    data-article="{{ c.article.code|default:'—' }} — {{ c.article.name|default:'' }}"
+                    data-partiya="{{ c.batch.partiya_number|default:'' }}"
+                    data-cutter="{{ c.batch.cutter_name|default:'' }}" data-image="{{ c.image }}"
+                    data-total-cut="{{ c.total_cut }}" data-total-meto="{{ c.total_meto }}"
+                    data-meto-note="{{ c.flow.meto_note|default:'' }}">
                     {% include 'meto_hub/flow/_card_head.html' %}
 
                     <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-                        <span>Qabul qildi: <b class="text-slate-200">{{ c.flow.tasnif_taken_by.get_full_name|default:c.flow.tasnif_taken_by.username|default:"—" }}</b> · {{ c.flow.tasnif_taken_at|date:"d.m H:i" }}</span>
+                        <span>Qabul qildi: <b class="text-slate-200">{{
+                                c.flow.tasnif_taken_by.get_full_name|default:c.flow.tasnif_taken_by.username|default:"—"
+                                }}</b> · {{ c.flow.tasnif_taken_at|date:"d.m H:i" }}</span>
+                        <span
+                            class="px-2 py-0.5 rounded-lg bg-cyan-950/70 border border-cyan-800/60 text-cyan-300 font-bold text-[11px]">
+                            <i class="fa-solid fa-layer-group mr-1"></i>Paralanmoqda
+                        </span>
+                    </div>
+
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2 text-xs px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800">
+                        <span class="text-slate-400">Kesim: <b class="text-slate-300">{{ c.total_cut }}</b> dona</span>
+                        <span class="text-cyan-300 font-black">Meto soni: {{ c.total_meto }} dona</span>
+                    </div>
+
+                    {% if c.flow.meto_note %}
+                    <div
+                        class="px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-800/50 text-xs text-amber-200 flex items-center gap-2">
+                        <i class="fa-solid fa-comment-dots text-amber-400"></i>
+                        <span><b>Meto izohi:</b> {{ c.flow.meto_note }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Razmerlar (Meto sonlari ko'rinishi + butun ekran oynasi uchun ma'lumotlar) -->
+                    <div class="flex flex-wrap gap-1.5 tasnif-size-list">
+                        {% for s in c.sizes %}
+                        <span
+                            class="tasnif-size-item px-2.5 py-1 rounded-lg bg-slate-800/90 text-xs text-slate-300 border border-slate-700/60"
+                            data-id="{{ s.id }}" data-name="{{ s.name }}" data-cut="{{ s.cut }}"
+                            data-meto="{{ s.meto|default:s.cut }}">
+                            <b class="text-white font-bold">{{ s.name }}</b>: {{ s.meto|default:s.cut }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/70">
                         <form method="POST" action="{% url 'meto_hub_flow_tasnif_cancel' c.batch.id %}"
                             onsubmit="return confirm('Qabulni bekor qilib, «Tasnif kutmoqda» ga qaytarasizmi?');">
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <button type="submit"
-                                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-300 font-bold text-[11px] transition">
-                                <i class="fa-solid fa-rotate-left mr-1"></i>Qabulni bekor qilish
+                                class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-300 font-bold text-xs flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Qabulni bekor qilish</span>
                             </button>
                         </form>
+
+                        <button type="button"
+                            class="btn-open-finish px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Pastalni tugatish</span>
+                        </button>
                     </div>
-
-                    <form method="POST" action="{% url 'meto_hub_flow_tasnif_finish' c.batch.id %}"
-                        class="space-y-3 tasnif-finish-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-
-                        <!-- Razmerlar bo'yicha aniq son kiritish -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                            {% for s in c.sizes %}
-                            <div class="space-y-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-                                <div class="text-xs font-bold text-slate-400 flex items-center justify-between gap-1">
-                                    <span>{{ s.name }} <span class="text-slate-500 font-normal">(meto {{ s.meto|default:s.cut }})</span></span>
-                                    <span class="tasnif-diff-badge text-[11px] font-black text-emerald-400">=</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <button type="button" class="btn-step-minus w-8 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-black text-base flex items-center justify-center select-none transition" title="-1 dona">−</button>
-                                    <input name="qty_{{ s.id }}" value="{{ s.meto|default:s.cut }}" min="0" inputmode="numeric" required
-                                        data-meto="{{ s.meto|default:s.cut }}" data-size="{{ s.name }}" onfocus="this.select()"
-                                        class="tasnif-qty-input flex-1 min-w-0 h-9 px-1 rounded-lg bg-slate-900 border border-slate-700 text-white font-black text-center text-sm focus:outline-none focus:border-cyan-500">
-                                    <button type="button" class="btn-step-plus w-8 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-black text-base flex items-center justify-center select-none transition" title="+1 dona">+</button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Jami va farq satri -->
-                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs px-3 py-2 rounded-xl bg-slate-950 border border-slate-800">
-                            <span>Meto jami: <b class="text-white">{{ c.total_meto }}</b> dona</span>
-                            <span class="tasnif-total-line font-black text-emerald-300">Tasnif jami: {{ c.total_meto }} (farq 0)</span>
-                        </div>
-
-                        <!-- Tugatish tugmasi: METO OMBORIGA JO'NATISH -->
-                        <div class="flex items-center justify-between gap-3 pt-1">
-                            <p class="text-[11px] text-slate-500">Tugatilgach, stiker chop etish va omborga o'tadi.</p>
-                            <button type="submit"
-                                class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
-                                <i class="fa-solid fa-boxes-packing"></i>
-                                <span>Meto omboriga jo'natish</span>
-                            </button>
-                        </div>
-                    </form>
                 </div>
                 {% empty %}
-                <p class="text-sm text-slate-500 py-6 text-center">Hozir tasnif qilinayotgan pastal yo'q.</p>
+                <p
+                    class="text-sm text-slate-500 py-8 text-center bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+                    Hozir tasnif qilinayotgan pastal yo'q.</p>
                 {% endfor %}
             </div>
         </section>
@@ -246,25 +296,194 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
 
     </div>
     {% endif %}
+</div>
 
+<!-- =========================================================================
+     BUTUN EKRAN REJIMI: PASTALNI TUGATISH (Razmerlar bo'yicha aniq tasnif soni)
+     Saqlash yoki Bekor qilish bosilmaguncha yopilmaydi!
+========================================================================= -->
+<div id="tasnif-finish-modal" class="hidden fixed inset-0 z-[100] bg-slate-950 flex flex-col" role="dialog"
+    aria-modal="true" aria-labelledby="tfm-pastal-title">
+    <!-- Yuqori sarlavha -->
+    <div
+        class="bg-slate-900 border-b border-slate-800 px-4 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-4 flex-shrink-0 shadow-lg">
+        <div class="flex items-center gap-3.5 min-w-0">
+            <div id="tfm-image-wrap"
+                class="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 id="tfm-pastal-title" class="text-lg sm:text-xl font-black text-white truncate">Pastal</h2>
+                    <span id="tfm-order-badge"
+                        class="px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/35 text-amber-300 font-mono font-black text-xs"></span>
+                    <span id="tfm-partiya-badge"
+                        class="hidden px-2 py-0.5 rounded-lg bg-purple-500/15 border border-purple-500/35 text-purple-300 font-bold text-xs"></span>
+                </div>
+                <p id="tfm-article-line" class="text-xs sm:text-sm text-slate-400 truncate mt-0.5"></p>
+            </div>
+        </div>
 
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm">
+                <span class="text-slate-400">Meto bo'yicha:</span>
+                <b id="tfm-header-meto" class="text-white font-mono ml-1">0</b> <span class="text-slate-400">dona</span>
+            </div>
+            <div class="px-3.5 py-2 rounded-xl bg-slate-950 border border-cyan-800/70 text-xs sm:text-sm">
+                <span class="text-slate-400">Tasnif jami:</span>
+                <b id="tfm-header-tasnif" class="text-emerald-400 font-mono text-base ml-1">0</b> <span
+                    class="text-slate-400">dona</span>
+                <span id="tfm-header-diff" class="ml-1.5 font-black text-xs text-emerald-400">(farq 0)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forma va asosiy katta razmerlar maydoni -->
+    <form id="tasnif-finish-form" method="POST" action="" class="flex-1 flex flex-col min-h-0">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+        <div class="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-5">
+            <!-- Meto izohi bo'lsa ko'rsatish -->
+            <div id="tfm-meto-note-box"
+                class="hidden max-w-5xl mx-auto px-4 py-3 rounded-2xl bg-amber-950/50 border border-amber-800/70 text-sm text-amber-200 flex items-center gap-2.5">
+                <i class="fa-solid fa-comment-dots text-amber-400 text-base"></i>
+                <div><b class="text-amber-300">Meto izohi:</b> <span id="tfm-meto-note-text"></span></div>
+            </div>
+
+            <!-- Yo'riqnoma -->
+            <div
+                class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm text-slate-400">
+                <span><i class="fa-solid fa-circle-info text-cyan-400 mr-1.5"></i>Har bir razmerning haqiqiy tasnif
+                    sonini tekshiring: ko'p bo'lsa <b class="text-white">+</b> bilan ko'paytiring, kam bo'lsa <b
+                        class="text-white">−</b> bilan kamaytiring.</span>
+                <span class="text-slate-500 font-semibold">Oynani faqat «Saqlash» yoki «Bekor qilish» tugmasi
+                    yopadi.</span>
+            </div>
+
+            <!-- Razmerlar grid (JS tomonidan to'ldiriladi) -->
+            <div id="tfm-sizes-grid"
+                class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        </div>
+
+        <!-- Pastki qat'iy panel: faqat Bekor qilish va Saqlash -->
+        <div
+            class="bg-slate-900 border-t border-slate-800 px-4 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-4 flex-shrink-0 shadow-2xl">
+            <div class="text-xs sm:text-sm space-y-0.5">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-slate-400">Meto jami: <b id="tfm-footer-meto" class="text-white font-mono">0</b>
+                        dona</span>
+                    <span class="text-slate-600">→</span>
+                    <span id="tfm-footer-total-line" class="font-black text-emerald-300 font-mono text-base">Tasnif
+                        jami: 0 (farq 0)</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Saqlanganda tasnif soni pastal ma'lumotlariga yoziladi va
+                    avtomatik Stiker chiqarish ro'yxatiga tushadi.</p>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button type="button" id="tfm-btn-cancel"
+                    class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 text-slate-200 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Bekor qilish</span>
+                </button>
+                <button type="submit" id="tfm-btn-save"
+                    class="flex-1 sm:flex-initial px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/25 transition">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Saqlash</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- =========================================================================
+     QAYTARISH OYNASI (Pastalni Meto bo'limiga qaytarish)
+========================================================================= -->
+<div id="tasnif-return-modal"
+    class="hidden fixed inset-0 z-[95] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" role="dialog"
+    aria-modal="true">
+    <div class="bg-slate-900 border border-rose-800/70 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-3">
+            <div
+                class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/35 text-rose-400 flex items-center justify-center text-lg flex-shrink-0">
+                <i class="fa-solid fa-rotate-left"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-black text-white">Pastalni Metoga qaytarish</h3>
+                <p id="trm-subtitle" class="text-xs text-slate-400 mt-0.5"></p>
+            </div>
+        </div>
+        <form id="tasnif-return-form" method="POST" action="" class="p-5 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="space-y-2">
+                <label for="trm-reason" class="block text-xs font-bold text-slate-300">Qaytarish sababi
+                    (ixtiyoriy)</label>
+                <input id="trm-reason" name="reason" maxlength="300" autocomplete="off"
+                    placeholder="Masalan: nomerovka xato yoki son mos kelmadi..."
+                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500">
+                <div class="flex flex-wrap gap-1.5 pt-1" id="trm-chips">
+                    <button type="button" data-reason="Nomerovka xato"
+                        class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition">Nomerovka
+                        xato</button>
+                    <button type="button" data-reason="Son mos kelmadi"
+                        class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition">Son
+                        mos kelmadi</button>
+                    <button type="button" data-reason="Adashib yuborilgan"
+                        class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition">Adashib
+                        yuborilgan</button>
+                    <button type="button" data-reason="Mato / kesim nuqsoni"
+                        class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition">Mato
+                        / kesim nuqsoni</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
+                <button type="button" id="trm-btn-cancel"
+                    class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition">
+                    Bekor qilish
+                </button>
+                <button type="submit"
+                    class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-rose-600/20 transition">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Metoga qaytarish</span>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
     (function () {
-        function refreshCard(card) {
-            const inputs = card.querySelectorAll('.tasnif-qty-input');
-            let totalMeto = 0, totalTasnif = 0;
+        const finishModal = document.getElementById('tasnif-finish-modal');
+        const finishForm = document.getElementById('tasnif-finish-form');
+        const sizesGrid = document.getElementById('tfm-sizes-grid');
+        const btnCancelFinish = document.getElementById('tfm-btn-cancel');
+
+        const returnModal = document.getElementById('tasnif-return-modal');
+        const returnForm = document.getElementById('tasnif-return-form');
+        const returnReasonInput = document.getElementById('trm-reason');
+        const btnCancelReturn = document.getElementById('trm-btn-cancel');
+
+        let isFinishModalOpen = false;
+        let isReturnModalOpen = false;
+
+        function updateFullscreenTotals() {
+            const inputs = sizesGrid.querySelectorAll('.tasnif-qty-input');
+            let totalMeto = 0;
+            let totalTasnif = 0;
             inputs.forEach(inp => {
                 const meto = parseInt(inp.dataset.meto || '0', 10);
                 const val = parseInt((inp.value || '').trim(), 10);
                 totalMeto += meto;
-                const container = inp.closest('.space-y-1') || inp.parentElement;
-                const badge = container ? container.querySelector('.tasnif-diff-badge') : null;
+                const card = inp.closest('.tfm-size-card');
+                const badge = card ? card.querySelector('.tasnif-diff-badge') : null;
+                const resetBtn = card ? card.querySelector('.btn-reset-meto') : null;
+
                 if (isNaN(val) || val < 0) {
                     if (badge) {
                         badge.textContent = '?';
-                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-rose-400';
+                        badge.className = 'tasnif-diff-badge px-2.5 py-0.5 rounded-lg text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40';
                     }
                     return;
                 }
@@ -272,157 +491,368 @@ Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
                 const diff = val - meto;
                 if (badge) {
                     if (diff === 0) {
-                        badge.textContent = '✓';
-                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-emerald-400';
+                        badge.textContent = '✓ Mos';
+                        badge.className = 'tasnif-diff-badge px-2.5 py-0.5 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/35';
                     } else if (diff > 0) {
-                        badge.textContent = '+' + diff;
-                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-rose-400';
+                        badge.textContent = `+${diff} ortiqcha`;
+                        badge.className = 'tasnif-diff-badge px-2.5 py-0.5 rounded-lg text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40';
                     } else {
-                        badge.textContent = String(diff);
-                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-amber-300';
+                        badge.textContent = `${diff} kam`;
+                        badge.className = 'tasnif-diff-badge px-2.5 py-0.5 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40';
                     }
                 }
+                if (resetBtn) {
+                    resetBtn.classList.toggle('invisible', diff === 0);
+                }
             });
-            const totalEl = card.querySelector('.tasnif-total-line');
-            if (totalEl) {
-                const diff = totalTasnif - totalMeto;
-                const sign = diff > 0 ? '+' + diff : String(diff);
-                totalEl.textContent = `Tasnif jami: ${totalTasnif} (farq ${sign})`;
-                totalEl.className = 'tasnif-total-line font-black ' + (diff > 0 ? 'text-rose-300' : (diff < 0 ? 'text-amber-300' : 'text-emerald-300'));
-            }
+
+            const diff = totalTasnif - totalMeto;
+            const sign = diff > 0 ? `+${diff}` : String(diff);
+            const colorClass = diff > 0 ? 'text-rose-300' : (diff < 0 ? 'text-amber-300' : 'text-emerald-400');
+
+            document.getElementById('tfm-header-meto').textContent = totalMeto;
+            document.getElementById('tfm-header-tasnif').textContent = totalTasnif;
+            document.getElementById('tfm-header-tasnif').className = `font-mono text-base ml-1 ${colorClass}`;
+            const headerDiff = document.getElementById('tfm-header-diff');
+            headerDiff.textContent = `(farq ${sign})`;
+            headerDiff.className = `ml-1.5 font-black text-xs ${colorClass}`;
+
+            document.getElementById('tfm-footer-meto').textContent = totalMeto;
+            const footerTotal = document.getElementById('tfm-footer-total-line');
+            footerTotal.textContent = `Tasnif jami: ${totalTasnif} dona (farq ${sign})`;
+            footerTotal.className = `font-black font-mono text-base ${colorClass}`;
         }
 
-        document.querySelectorAll('.tasnif-work-card').forEach(card => {
-            // Son kiritilganda jonli qayta hisoblash
-            card.querySelectorAll('.tasnif-qty-input').forEach(inp => {
-                inp.addEventListener('input', () => refreshCard(card));
-            });
-
-            // [-] va [+] qadam tugmalari
-            card.querySelectorAll('.btn-step-minus').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const inp = btn.parentElement.querySelector('.tasnif-qty-input');
-                    if (!inp) return;
-                    let val = parseInt((inp.value || '').trim(), 10);
-                    if (isNaN(val)) val = parseInt(inp.dataset.meto || '0', 10);
-                    if (val > 0) {
-                        inp.value = val - 1;
-                        refreshCard(card);
-                    }
-                });
-            });
-
-            card.querySelectorAll('.btn-step-plus').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const inp = btn.parentElement.querySelector('.tasnif-qty-input');
-                    if (!inp) return;
-                    let val = parseInt((inp.value || '').trim(), 10);
-                    if (isNaN(val)) val = parseInt(inp.dataset.meto || '0', 10);
-                    inp.value = val + 1;
-                    refreshCard(card);
-                });
-            });
-
-            // Forma topshirishda ortiqcha va kamomadni chuqur tekshirish
-            const form = card.querySelector('.tasnif-finish-form');
-            if (form) {
-                form.addEventListener('submit', (e) => {
-                    const over = [];
-                    const under = [];
-                    card.querySelectorAll('.tasnif-qty-input').forEach(inp => {
-                        const meto = parseInt(inp.dataset.meto || '0', 10);
-                        const val = parseInt((inp.value || '').trim(), 10);
-                        if (!isNaN(val)) {
-                            if (val > meto) {
-                                over.push(`${inp.dataset.size}: ${val} (meto ${meto}, ortiqcha +${val - meto})`);
-                            } else if (meto > 0 && val < meto) {
-                                under.push(`${inp.dataset.size}: ${val} (meto ${meto}, kamomad -${meto - val})`);
-                            }
-                        }
-                    });
-
-                    let msg = "";
-                    if (over.length && under.length) {
-                        msg = `DIQQAT! Meto soniga nisbatan farq bor:\n\nORTIQCHA:\n${over.join('\n')}\n\nKAMOMAD:\n${under.join('\n')}\n\nMeto omboriga jo'natilsinmi?`;
-                    } else if (over.length) {
-                        msg = `DIQQAT! Metodan ko'p son kiritildi:\n${over.join('\n')}\n\nMeto omboriga jo'natilsinmi?`;
-                    } else if (under.length) {
-                        msg = `DIQQAT! Metodan kam son kiritildi (kamomad):\n${under.join('\n')}\n\nMeto omboriga jo'natilsinmi?`;
-                    } else {
-                        msg = "Tasnif tugatilib, Meto omboriga jo'natilsinmi?";
-                    }
-                    if (!confirm(msg)) e.preventDefault();
-                });
+        function hasFinishChanges() {
+            const inputs = sizesGrid.querySelectorAll('.tasnif-qty-input');
+            for (const inp of inputs) {
+                const meto = parseInt(inp.dataset.meto || '0', 10);
+                const val = parseInt((inp.value || '').trim(), 10);
+                if (isNaN(val) || val !== meto) return true;
             }
-            refreshCard(card);
-        });
+            return false;
+        }
 
-        // '/' tugmasi bilan tezkor qidiruvga o'tish
-        window.addEventListener('keydown', (e) => {
-            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                const searchInp = document.getElementById('tasnif-search-input');
-                if (searchInp) {
-                    e.preventDefault();
-                    searchInp.focus();
-                    searchInp.select();
-                }
-            }
-        });
+        function openFinishModal(workCard) {
+            finishForm.action = workCard.dataset.action || '';
+            document.getElementById('tfm-pastal-title').textContent = workCard.dataset.pastal || 'Pastal';
+            document.getElementById('tfm-order-badge').textContent = workCard.dataset.order || '';
 
-        // Avto-yangilanish boshqaruvi
-        const refreshBtn = document.getElementById('btn-auto-refresh');
-        const refreshLabel = document.getElementById('refresh-label');
-        const refreshIcon = document.getElementById('refresh-icon');
-        const INTERVALS = [0, 30, 60];
-        let curInterval = parseInt(localStorage.getItem('tasnif_auto_refresh') || '0', 10);
-        if (!INTERVALS.includes(curInterval)) curInterval = 0;
-        let timerId = null;
-        let secondsLeft = curInterval;
-
-        function updateRefreshUI() {
-            if (!refreshBtn || !refreshLabel || !refreshIcon) return;
-            if (curInterval === 0) {
-                refreshLabel.textContent = "Avto: O'chiq";
-                refreshBtn.className = "px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-500 text-slate-400 text-xs font-bold flex items-center gap-1.5 transition";
-                refreshIcon.classList.remove('fa-spin', 'text-amber-400');
+            const partiyaBadge = document.getElementById('tfm-partiya-badge');
+            if (workCard.dataset.partiya) {
+                partiyaBadge.textContent = `Partiya: ${workCard.dataset.partiya}`;
+                partiyaBadge.classList.remove('hidden');
             } else {
-                refreshLabel.textContent = `Avto: ${secondsLeft}s`;
-                refreshBtn.className = "px-3 py-2 rounded-xl bg-amber-950/60 border border-amber-600/60 text-amber-300 text-xs font-black flex items-center gap-1.5 transition";
-                refreshIcon.classList.add('text-amber-400');
+                partiyaBadge.classList.add('hidden');
             }
+
+            const parts = [workCard.dataset.article];
+            if (workCard.dataset.customer) parts.push(workCard.dataset.customer);
+            if (workCard.dataset.cutter) parts.push(`Bichuvchi: ${workCard.dataset.cutter}`);
+            document.getElementById('tfm-article-line').textContent = parts.filter(Boolean).join(' · ');
+
+            const imgWrap = document.getElementById('tfm-image-wrap');
+            if (workCard.dataset.image) {
+                imgWrap.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = workCard.dataset.image;
+                img.alt = '';
+                img.className = 'w-full h-full object-cover';
+                imgWrap.appendChild(img);
+            } else {
+                imgWrap.innerHTML = '<i class="fa-solid fa-layer-group"></i>';
+            }
+
+            const noteBox = document.getElementById('tfm-meto-note-box');
+            const noteText = document.getElementById('tfm-meto-note-text');
+            if (workCard.dataset.metoNote) {
+                noteText.textContent = workCard.dataset.metoNote;
+                noteBox.classList.remove('hidden');
+            } else {
+                noteBox.classList.add('hidden');
+            }
+
+            sizesGrid.innerHTML = '';
+            const sizeItems = workCard.querySelectorAll('.tasnif-size-item');
+            sizeItems.forEach(item => {
+                const sid = item.dataset.id;
+                const sname = item.dataset.name;
+                const scut = parseInt(item.dataset.cut || '0', 10);
+                const smeto = parseInt(item.dataset.meto || '0', 10);
+
+                const card = document.createElement('div');
+                card.className = 'tfm-size-card bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-lg';
+
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-start justify-between gap-2';
+
+                const leftInfo = document.createElement('div');
+                const titleEl = document.createElement('div');
+                titleEl.className = 'text-2xl font-black text-white font-mono leading-none';
+                titleEl.textContent = sname;
+                const subEl = document.createElement('div');
+                subEl.className = 'text-xs text-slate-400 mt-1.5';
+                subEl.innerHTML = `Meto: <b class="text-cyan-300 font-mono"></b> · Kesim: <b class="text-slate-300 font-mono"></b>`;
+                const bolds = subEl.querySelectorAll('b');
+                bolds[0].textContent = smeto;
+                bolds[1].textContent = scut;
+                leftInfo.append(titleEl, subEl);
+
+                const badge = document.createElement('span');
+                badge.className = 'tasnif-diff-badge px-2.5 py-0.5 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/35';
+                badge.textContent = '✓ Mos';
+
+                topRow.append(leftInfo, badge);
+
+                const controls = document.createElement('div');
+                controls.className = 'flex items-center gap-2.5';
+
+                const btnMinus = document.createElement('button');
+                btnMinus.type = 'button';
+                btnMinus.className = 'btn-step-minus w-14 h-14 rounded-2xl bg-slate-800 hover:bg-rose-950/80 hover:border-rose-700 hover:text-rose-300 active:scale-95 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center select-none transition flex-shrink-0';
+                btnMinus.title = '-1 dona';
+                btnMinus.textContent = '−';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = `qty_${sid}`;
+                input.value = String(smeto);
+                input.inputMode = 'numeric';
+                input.required = true;
+                input.dataset.meto = String(smeto);
+                input.dataset.size = sname;
+                input.className = 'tasnif-qty-input flex-1 min-w-0 h-14 px-2 rounded-2xl bg-slate-950 border-2 border-slate-700 focus:border-cyan-400 text-white font-black font-mono text-center text-2xl focus:outline-none transition';
+                input.addEventListener('focus', () => input.select());
+                input.addEventListener('input', updateFullscreenTotals);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter') {
+                        ev.preventDefault();
+                        const all = Array.from(sizesGrid.querySelectorAll('.tasnif-qty-input'));
+                        const idx = all.indexOf(input);
+                        if (idx >= 0 && idx + 1 < all.length) {
+                            all[idx + 1].focus();
+                        } else {
+                            document.getElementById('tfm-btn-save')?.focus();
+                        }
+                    }
+                });
+
+                const btnPlus = document.createElement('button');
+                btnPlus.type = 'button';
+                btnPlus.className = 'btn-step-plus w-14 h-14 rounded-2xl bg-slate-800 hover:bg-emerald-950/80 hover:border-emerald-700 hover:text-emerald-300 active:scale-95 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center select-none transition flex-shrink-0';
+                btnPlus.title = '+1 dona';
+                btnPlus.textContent = '+';
+
+                btnMinus.addEventListener('click', () => {
+                    let val = parseInt((input.value || '').trim(), 10);
+                    if (isNaN(val)) val = smeto;
+                    if (val > 0) {
+                        input.value = String(val - 1);
+                        updateFullscreenTotals();
+                    }
+                });
+                btnPlus.addEventListener('click', () => {
+                    let val = parseInt((input.value || '').trim(), 10);
+                    if (isNaN(val)) val = smeto;
+                    input.value = String(val + 1);
+                    updateFullscreenTotals();
+                });
+
+                controls.append(btnMinus, input, btnPlus);
+
+                const resetRow = document.createElement('div');
+                resetRow.className = 'flex justify-end';
+                const resetBtn = document.createElement('button');
+                resetBtn.type = 'button';
+                resetBtn.className = 'btn-reset-meto invisible text-[11px] font-bold text-slate-400 hover:text-cyan-300 transition';
+                resetBtn.textContent = `Meto soniga qaytarish (${smeto})`;
+                resetBtn.addEventListener('click', () => {
+                    input.value = String(smeto);
+                    updateFullscreenTotals();
+                });
+                resetRow.appendChild(resetBtn);
+
+                card.append(topRow, controls, resetRow);
+                sizesGrid.appendChild(card);
+            });
+
+            updateFullscreenTotals();
+            finishModal.classList.remove('hidden');
+            isFinishModalOpen = true;
+            document.body.style.overflow = 'hidden';
         }
 
-        function startTimer() {
-            if (timerId) clearInterval(timerId);
-            if (curInterval > 0) {
-                secondsLeft = curInterval;
-                timerId = setInterval(() => {
-                    const activeEl = document.activeElement;
-                    if (activeEl && (activeEl.classList.contains('tasnif-qty-input') || activeEl.id === 'tasnif-search-input')) {
-                        secondsLeft = curInterval;
-                        updateRefreshUI();
+        function closeFinishModal() {
+            if (hasFinishChanges()) {
+                if (!confirm("Kiritilgan o'zgarishlar saqlanmasdan yopilsinmi?")) {
+                    return;
+                }
+            }
+            finishModal.classList.add('hidden');
+            isFinishModalOpen = false;
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('.btn-open-finish').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.tasnif-work-card');
+                if (card) openFinishModal(card);
+            });
+        });
+
+        if (btnCancelFinish) {
+            btnCancelFinish.addEventListener('click', closeFinishModal);
+        }
+
+        // Saqlash vaqtida farq bo'lsa tasdiqlash
+        if (finishForm) {
+            finishForm.addEventListener('submit', (e) => {
+                const over = [];
+                const under = [];
+                let totalSum = 0;
+                let invalid = false;
+
+                sizesGrid.querySelectorAll('.tasnif-qty-input').forEach(inp => {
+                    const meto = parseInt(inp.dataset.meto || '0', 10);
+                    const raw = (inp.value || '').trim();
+                    if (!/^\d+$/.test(raw)) {
+                        invalid = true;
                         return;
                     }
-                    secondsLeft--;
-                    if (secondsLeft <= 0) {
-                        refreshIcon.classList.add('fa-spin');
-                        window.location.reload();
-                    } else {
-                        updateRefreshUI();
+                    const val = parseInt(raw, 10);
+                    totalSum += val;
+                    if (val > meto) {
+                        over.push(`${inp.dataset.size}: ${val} (meto ${meto}, +${val - meto})`);
+                    } else if (meto > 0 && val < meto) {
+                        under.push(`${inp.dataset.size}: ${val} (meto ${meto}, -${meto - val})`);
                     }
-                }, 1000);
-            }
-            updateRefreshUI();
+                });
+
+                if (invalid) {
+                    e.preventDefault();
+                    alert("Barcha razmerlar uchun faqat butun musbat son kiriting.");
+                    return;
+                }
+                if (totalSum <= 0) {
+                    e.preventDefault();
+                    alert("Kamida bitta razmerda son 0 dan katta bo'lishi kerak.");
+                    return;
+                }
+
+                let msg = '';
+                if (over.length && under.length) {
+                    msg = `DIQQAT! Meto soniga nisbatan farq bor:\n\nORTIQCHA:\n${over.join('\n')}\n\nKAM:\n${under.join('\n')}\n\nSaqlashni tasdiqlaysizmi?`;
+                } else if (over.length) {
+                    msg = `DIQQAT! Meto sonidan ORTIQCHA kiritildi:\n${over.join('\n')}\n\nSaqlashni tasdiqlaysizmi?`;
+                } else if (under.length) {
+                    msg = `DIQQAT! Meto sonidan KAM kiritildi:\n${under.join('\n')}\n\nSaqlashni tasdiqlaysizmi?`;
+                }
+                if (msg && !confirm(msg)) {
+                    e.preventDefault();
+                }
+            });
         }
 
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                const nextIdx = (INTERVALS.indexOf(curInterval) + 1) % INTERVALS.length;
-                curInterval = INTERVALS[nextIdx];
-                localStorage.setItem('tasnif_auto_refresh', String(curInterval));
-                startTimer();
+        // Qaytarish oynasi (Metoga qaytarish)
+        function openReturnModal(btn) {
+            returnForm.action = btn.dataset.action || '';
+            document.getElementById('trm-subtitle').textContent = `${btn.dataset.pastal || ''} · ${btn.dataset.order || ''}`;
+            returnReasonInput.value = '';
+            returnModal.classList.remove('hidden');
+            isReturnModalOpen = true;
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => returnReasonInput.focus(), 50);
+        }
+
+        function closeReturnModal() {
+            returnModal.classList.add('hidden');
+            isReturnModalOpen = false;
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('.btn-open-return').forEach(btn => {
+            btn.addEventListener('click', () => openReturnModal(btn));
+        });
+        if (btnCancelReturn) {
+            btnCancelReturn.addEventListener('click', closeReturnModal);
+        }
+        document.querySelectorAll('#trm-chips button').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const txt = chip.dataset.reason || '';
+                const cur = returnReasonInput.value.trim();
+                if (!cur) {
+                    returnReasonInput.value = txt;
+                } else if (!cur.includes(txt)) {
+                    returnReasonInput.value = cur + '; ' + txt;
+                }
+                returnReasonInput.focus();
             });
-            startTimer();
+        });
+
+        // Escape tugmasi butun ekran oynasini YOPMAYDI! '/' esa qidiruvga fokuslaydi
+        document.addEventListener('keydown', (e) => {
+            if (isFinishModalOpen) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                return;
+            }
+            if (isReturnModalOpen) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                }
+                return;
+            }
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'SELECT') {
+                const searchInput = document.getElementById('tasnif-search-input');
+                if (searchInput) {
+                    e.preventDefault();
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            }
+        });
+
+        // Aqlli avtomatik yangilanish (butun ekran yoki qaytarish oynasi ochiq bo'lsa yangilanmaydi!)
+        const REFRESH_KEY = 'tayyorlov_tasnif_auto_refresh';
+        const MODES = [0, 30, 60];
+        let refreshSec = parseInt(localStorage.getItem(REFRESH_KEY) || '0', 10);
+        if (!MODES.includes(refreshSec)) refreshSec = 0;
+
+        let refreshTimer = null;
+        const btnRefresh = document.getElementById('btn-auto-refresh');
+        const lblRefresh = document.getElementById('refresh-label');
+        const icoRefresh = document.getElementById('refresh-icon');
+
+        function applyRefreshMode() {
+            if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+            if (!btnRefresh || !lblRefresh) return;
+            if (refreshSec === 0) {
+                lblRefresh.textContent = "Avto: O'chiq";
+                btnRefresh.className = "px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-bold flex items-center gap-1.5 transition";
+                if (icoRefresh) icoRefresh.classList.remove('fa-spin', 'text-emerald-400');
+            } else {
+                lblRefresh.textContent = `Avto: ${refreshSec}s`;
+                btnRefresh.className = "px-3 py-2 rounded-xl bg-emerald-950/80 border border-emerald-700/70 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition";
+                if (icoRefresh) icoRefresh.classList.add('fa-spin', 'text-emerald-400');
+                refreshTimer = setInterval(() => {
+                    if (isFinishModalOpen || isReturnModalOpen) return;
+                    const active = document.activeElement;
+                    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+                    window.location.reload();
+                }, refreshSec * 1000);
+            }
+        }
+
+        if (btnRefresh) {
+            btnRefresh.addEventListener('click', () => {
+                const idx = MODES.indexOf(refreshSec);
+                refreshSec = MODES[(idx + 1) % MODES.length];
+                try { localStorage.setItem(REFRESH_KEY, String(refreshSec)); } catch (e) { }
+                applyRefreshMode();
+            });
+            applyRefreshMode();
         }
     })();
 </script>

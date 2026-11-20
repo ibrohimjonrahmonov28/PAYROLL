@@ -100,6 +100,9 @@ Kontekst: info — production/pastal_info.py::build_pastal_info natijasi.
                             <th class="py-1.5 text-left">Razmer</th>
                             <th class="py-1.5 text-right">Kesim</th>
                             <th class="py-1.5 text-right">Meto</th>
+                            {% if info.totals.tasnif is not None %}
+                            <th class="py-1.5 text-right text-cyan-400">Tasnif</th>
+                            {% endif %}
                             <th class="py-1.5 text-right">Qutilar</th>
                             <th class="py-1.5 text-left pl-3">Holati</th>
                         </tr>
@@ -109,7 +112,10 @@ Kontekst: info — production/pastal_info.py::build_pastal_info natijasi.
                         <tr>
                             <td class="py-1.5 font-bold text-white">{{ s.name }}</td>
                             <td class="py-1.5 text-right font-mono text-slate-200">{{ s.cut_qty }}</td>
-                            <td class="py-1.5 text-right font-mono {% if s.meto_qty is None %}text-slate-500{% else %}text-slate-200{% endif %}">{% if s.meto_qty is None %}—{% else %}{{ s.meto_qty }}{% endif %}</td>
+                            <td class="py-1.5 text-right font-mono {% if s.flow_meto_qty is None and s.meto_qty is None %}text-slate-500{% else %}text-slate-200{% endif %}">{% if s.flow_meto_qty is not None %}{{ s.flow_meto_qty }}{% elif s.meto_qty is not None %}{{ s.meto_qty }}{% else %}—{% endif %}</td>
+                            {% if info.totals.tasnif is not None %}
+                            <td class="py-1.5 text-right font-mono font-bold {% if s.tasnif_qty is None %}text-slate-500{% else %}text-cyan-300{% endif %}">{% if s.tasnif_qty is None %}—{% else %}{{ s.tasnif_qty }}{% endif %}</td>
+                            {% endif %}
                             <td class="py-1.5 text-right font-mono text-slate-200">{{ s.boxes_qty }} <span class="text-slate-500">({{ s.boxes_count }})</span></td>
                             <td class="py-1.5 pl-3 text-slate-400">
                                 {{ s.status_display }}
@@ -117,7 +123,7 @@ Kontekst: info — production/pastal_info.py::build_pastal_info natijasi.
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="5" class="py-2 text-slate-500 italic">Razmerlar kiritilmagan.</td></tr>
+                        <tr><td colspan="{% if info.totals.tasnif is not None %}6{% else %}5{% endif %}" class="py-2 text-slate-500 italic">Razmerlar kiritilmagan.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

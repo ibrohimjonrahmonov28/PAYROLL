@@ -118,8 +118,18 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
             </div>
             <div class="space-y-3 {% if holat == 'wait' %}grid grid-cols-1 lg:grid-cols-2 gap-3 space-y-0{% endif %}">
                 {% for c in waiting %}
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div class="bg-slate-900 border {% if c.flow.tasnif_returned_at %}border-rose-700/70{% else %}border-slate-800{% endif %} rounded-2xl p-4 space-y-3">
                     {% include 'meto_hub/flow/_card_head.html' %}
+                    {% if c.flow.tasnif_returned_at %}
+                    <div class="px-3 py-2 rounded-xl bg-rose-950/60 border border-rose-800/70 text-xs text-rose-200 flex items-start gap-2">
+                        <i class="fa-solid fa-rotate-left text-rose-400 mt-0.5"></i>
+                        <div>
+                            <b class="text-rose-300">Tasnifdan qaytarildi</b>
+                            <span class="text-rose-300/80">({{ c.flow.tasnif_returned_by.get_full_name|default:c.flow.tasnif_returned_by.username|default:"Tasnif" }} · {{ c.flow.tasnif_returned_at|date:"d.m H:i" }})</span>
+                            {% if c.flow.tasnif_return_reason %}<p class="text-rose-100 mt-0.5">{{ c.flow.tasnif_return_reason }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="flex flex-wrap gap-1.5">{% for s in c.sizes %}<span
                             class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ s.name }}</b>:
                             {{ s.cut }}</span>{% endfor %}</div>
@@ -160,6 +170,16 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                 <div class="bg-slate-900 border border-amber-800/60 rounded-2xl p-4 space-y-3 meto-work-card"
                     data-total-cut="{{ c.total_cut }}">
                     {% include 'meto_hub/flow/_card_head.html' %}
+                    {% if c.flow.tasnif_returned_at %}
+                    <div class="px-3 py-2 rounded-xl bg-rose-950/60 border border-rose-800/70 text-xs text-rose-200 flex items-start gap-2">
+                        <i class="fa-solid fa-rotate-left text-rose-400 mt-0.5"></i>
+                        <div>
+                            <b class="text-rose-300">Tasnifdan qaytarildi</b>
+                            <span class="text-rose-300/80">({{ c.flow.tasnif_returned_by.get_full_name|default:c.flow.tasnif_returned_by.username|default:"Tasnif" }} · {{ c.flow.tasnif_returned_at|date:"d.m H:i" }})</span>
+                            {% if c.flow.tasnif_return_reason %}<p class="text-rose-100 mt-0.5">{{ c.flow.tasnif_return_reason }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
                         <span>Qabul qildi: <b class="text-slate-200">{{
                                 c.flow.meto_taken_by.get_full_name|default:c.flow.meto_taken_by.username|default:"—"
