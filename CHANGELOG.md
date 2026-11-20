@@ -29,6 +29,16 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `b059688`] — 20.11.2026
+* **Turi:** `revert(backup)` — `f242eb5` dagi tungi rasmlar (media) zaxirasi olib tashlandi
+* **Mavzu:** Egasi qarori: rasmlar zaxirasi kerak emas. Faqat zaxira qismi qaytarildi; `f242eb5` ga tushib qolgan boshqa o'zgarishlar (0052 migratsiya, meto shabloni, dispatch belgisi) joyida. Tungi baza zaxirasi (.sql.gz) avvalgidek ishlaydi.
+* **O'zgartirilgan fayllar:**
+  - `production/media_backup.py`, `production/management/commands/send_media_backup.py`, `production/test_media_backup.py` (o'chirildi)
+  - `production/management/commands/run_scheduler.py` (`f242eb5` dan oldingi holat), `CLAUDE.md`
+* **Serverda:** `git pull origin main && docker compose restart scheduler`
+
+---
+
 ### 🔹 [Commit: `159c5bb`] — 20.11.2026
 * **Turi:** `feat(meto)` — Tayyorlov Meto bo'limi uchun 2 smenali ish tartibi va hisob-kitobi
 * **Mavzu:** Meto bo'limida 2 smena hisobi yo'lga qo'yildi (`08:00–18:00` 1-smena, `18:00–08:00` 2-smena / tungi; tungi soat `00:00–07:59` kechagi ish kuniga tegishli). Tugatilgan pastallar avtomatik joriy smenaga yoziladi; sahifada jonli smena ko'rsatkichi, joriy smena va 24 soatlik ish kuni KPI ko'rsatkichlari, smena filtri (`current`, `day`, `s1`, `s2`) va tarix jadvalida smena badji qo'shildi.
