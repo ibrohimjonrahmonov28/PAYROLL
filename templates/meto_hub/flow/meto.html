@@ -3,6 +3,30 @@ Tayyorlov → Meto tabi: minglab pastal uchun qidiruv/zakaz/holat filtri, sahifa
 jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganlar tarixi.
 {% endcomment %}
 <div class="space-y-5">
+    <!-- Smena holati va ma'lumot paneli -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2.5">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-black">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Faol: {{ current_shift.shift_name }}
+            </span>
+            <span class="text-slate-400">
+                Ish kuni: <b class="text-white">{{ current_shift.work_date_str }}</b> · Oraliq: <b class="text-slate-200">{{ current_shift.time_window_str }}</b>
+            </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5 text-slate-400">
+            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                <i class="fa-solid fa-sun text-amber-400 mr-1"></i>1-smena: <b class="text-slate-200">{{ kpi.s1_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s1_done_qty }}</b> dona
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                <i class="fa-solid fa-moon text-indigo-400 mr-1"></i>2-smena: <b class="text-slate-200">{{ kpi.s2_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s2_done_qty }}</b> dona
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-900/60 text-emerald-300">
+                <i class="fa-solid fa-calendar-day mr-1"></i>Kun jami: <b class="text-white">{{ kpi.day_done_count }}</b> p · <b class="text-white">{{ kpi.day_done_qty }}</b> dona
+            </span>
+        </div>
+    </div>
+
     <!-- KPI qator -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
@@ -21,11 +45,14 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
             </div>
             <i class="fa-solid fa-tags text-2xl text-cyan-500/40"></i>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div class="bg-slate-900 border border-emerald-900/50 rounded-2xl p-4 flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-bold uppercase text-slate-400">Bugun tugatilgan</p>
-                <p class="text-2xl font-black text-emerald-400 mt-1">{{ kpi.today_done_count }} <span
-                        class="text-xs font-bold text-slate-400">pastal · {{ kpi.today_done_qty }} dona</span></p>
+                <p class="text-[11px] font-bold uppercase text-emerald-400 flex items-center gap-1.5">
+                    <span>Joriy smena ({{ current_shift.shift_label }})</span>
+                </p>
+                <p class="text-2xl font-black text-emerald-400 mt-1">{{ kpi.shift_done_count }} <span
+                        class="text-xs font-bold text-slate-400">pastal · {{ kpi.shift_done_qty }} dona</span></p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Kun jami: <b class="text-slate-200">{{ kpi.day_done_count }}</b> p · <b class="text-slate-200">{{ kpi.day_done_qty }}</b> dona</p>
             </div>
             <i class="fa-solid fa-circle-check text-2xl text-emerald-500/40"></i>
         </div>
@@ -54,9 +81,16 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
             <option value="work" {% if holat == 'work' %}selected{% endif %}>Faqat meto bo'lmoqda</option>
             <option value="done" {% if holat == 'done' %}selected{% endif %}>Tugatilganlar tarixi</option>
         </select>
+        <select name="smena" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
+            <option value="">Smena: barchasi</option>
+            <option value="current" {% if smena == 'current' %}selected{% endif %}>Joriy smena ({{ current_shift.shift_label }})</option>
+            <option value="day" {% if smena == 'day' %}selected{% endif %}>Bugungi ish kuni (24s)</option>
+            <option value="s1" {% if smena == 's1' %}selected{% endif %}>Bugungi 1-smena</option>
+            <option value="s2" {% if smena == 's2' %}selected{% endif %}>Bugungi 2-smena</option>
+        </select>
         <button
             class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Ko'rsatish</button>
-        {% if q or zakaz or holat != 'faol' %}
+        {% if q or zakaz or holat != 'faol' or smena %}
         <a href="{% url 'meto_hub_flow_meto' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
         {% endif %}
     </form>
@@ -95,12 +129,12 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
             {% if wait_page.has_other_pages %}
             <div class="flex items-center justify-between gap-2 pt-2 text-sm">
                 {% if wait_page.has_previous %}
-                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.previous_page_number }}&pd={{ done_page.number }}"
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.previous_page_number }}&pd={{ done_page.number }}"
                     class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
                 {% else %}<span></span>{% endif %}
                 <span class="text-xs text-slate-400">{{ wait_page.number }} / {{ wait_page.paginator.num_pages }}</span>
                 {% if wait_page.has_next %}
-                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.next_page_number }}&pd={{ done_page.number }}"
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.next_page_number }}&pd={{ done_page.number }}"
                     class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
                 {% else %}<span></span>{% endif %}
             </div>
@@ -189,6 +223,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                         <th class="text-left py-2 pr-3">Pastal</th>
                         <th class="text-left py-2 pr-3">Zakaz / Artikul</th>
                         <th class="text-left py-2 pr-3">Kesim → Meto</th>
+                        <th class="text-left py-2 pr-3">Smena</th>
                         <th class="text-left py-2 pr-3">Tugatdi</th>
                         <th class="text-left py-2 pr-3">Vaqt</th>
                         <th class="text-left py-2 pr-3">Izoh</th>
@@ -211,9 +246,19 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                                 c.meto_diff }})</span>
                                 {% else %}<span class="ml-1 text-xs text-emerald-400">(=)</span>{% endif %}
                         </td>
+                        <td class="py-2 pr-3 whitespace-nowrap">
+                            {% if c.meto_shift %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold {% if c.meto_shift.shift_num == 1 %}bg-amber-950/80 text-amber-300 border border-amber-800/60{% else %}bg-indigo-950/80 text-indigo-300 border border-indigo-800/60{% endif %}" title="Ish kuni: {{ c.meto_shift.work_date_str }} ({{ c.meto_shift.time_window_str }})">
+                                <i class="fa-solid {% if c.meto_shift.shift_num == 1 %}fa-sun{% else %}fa-moon{% endif %} text-[10px]"></i>
+                                {{ c.meto_shift.shift_label }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-500">—</span>
+                            {% endif %}
+                        </td>
                         <td class="py-2 pr-3 text-slate-300">{{
                             c.flow.meto_done_by.get_full_name|default:c.flow.meto_done_by.username|default:"—" }}</td>
-                        <td class="py-2 pr-3 text-xs text-slate-400 whitespace-nowrap">{{
+                        <td class="py-2 pr-3 text-xs text-slate-400 whitespace-nowrap" title="{% if c.meto_shift %}Ish kuni: {{ c.meto_shift.work_date_str }}{% endif %}">{{
                             c.flow.meto_done_at|date:"d.m.Y H:i" }}</td>
                         <td class="py-2 pr-3 text-xs text-slate-300 max-w-[220px] truncate"
                             title="{{ c.flow.meto_note }}">{{ c.flow.meto_note|default:"—" }}</td>
@@ -223,7 +268,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="py-6 text-center text-slate-500">Hali tugatilgan pastal yo'q.</td>
+                        <td colspan="8" class="py-6 text-center text-slate-500">Hali tugatilgan pastal yo'q.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -232,12 +277,12 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         {% if done_page.has_other_pages %}
         <div class="flex items-center justify-between gap-2 pt-2 text-sm">
             {% if done_page.has_previous %}
-            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.number }}&pd={{ done_page.previous_page_number }}"
+            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.number }}&pd={{ done_page.previous_page_number }}"
                 class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
             {% else %}<span></span>{% endif %}
             <span class="text-xs text-slate-400">{{ done_page.number }} / {{ done_page.paginator.num_pages }}</span>
             {% if done_page.has_next %}
-            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&pw={{ wait_page.number }}&pd={{ done_page.next_page_number }}"
+            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.number }}&pd={{ done_page.next_page_number }}"
                 class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
             {% else %}<span></span>{% endif %}
         </div>

@@ -671,3 +671,138 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
         first.refresh_from_db()
         self.assertEqual(first.boxes_created_qty, 30)
 
+
+class MetoTwoShiftsTest(MetoFlowBase):
+    def test_shift_boundary_calculations(self):
+        from unittest.mock import patch
+        import zoneinfo
+        from production.shifts import get_shift_for_timestamp, get_shift_info, get_work_day_shifts, TASHKENT_TZ
+
+        # 1-smena: 08:00 - 18:00
+        s1_dt = datetime.datetime(2026, 11, 20, 10, 30, 0, tzinfo=TASHKENT_TZ)
+        s1_info = get_shift_info(s1_dt)
+        self.assertEqual(s1_info['shift_num'], 1)
+        self.assertEqual(s1_info['shift_label'], '1-smena')
+        self.assertEqual(s1_info['work_date'], datetime.date(2026, 11, 20))
+        self.assertEqual(s1_info['shift_start'], datetime.datetime(2026, 11, 20, 8, 0, tzinfo=TASHKENT_TZ))
+        self.assertEqual(s1_info['shift_end'], datetime.datetime(2026, 11, 20, 18, 0, tzinfo=TASHKENT_TZ))
+
+        # 2-smena (kechqurun): 18:00 - 23:59
+        s2_eve_dt = datetime.datetime(2026, 11, 20, 20, 0, 0, tzinfo=TASHKENT_TZ)
+        s2_eve_info = get_shift_info(s2_eve_dt)
+        self.assertEqual(s2_eve_info['shift_num'], 2)
+        self.assertEqual(s2_eve_info['shift_label'], '2-smena')
+        self.assertEqual(s2_eve_info['work_date'], datetime.date(2026, 11, 20))
+        self.assertEqual(s2_eve_info['shift_start'], datetime.datetime(2026, 11, 20, 18, 0, tzinfo=TASHKENT_TZ))
+        self.assertEqual(s2_eve_info['shift_end'], datetime.datetime(2026, 11, 21, 8, 0, tzinfo=TASHKENT_TZ))
+
+        # 2-smena (yarim tundan keyin, masalan 21-kuni 03:00): 19/20-kunning tungi smenasiga tegishli!
+        s2_morn_dt = datetime.datetime(2026, 11, 21, 3, 30, 0, tzinfo=TASHKENT_TZ)
+        s2_morn_info = get_shift_info(s2_morn_dt)
+        self.assertEqual(s2_morn_info['shift_num'], 2)
+        self.assertEqual(s2_morn_info['shift_label'], '2-smena')
+        self.assertEqual(s2_morn_info['work_date'], datetime.date(2026, 11, 20)) # 20-kunning ish kuni!
+        self.assertEqual(s2_morn_info['shift_start'], datetime.datetime(2026, 11, 20, 18, 0, tzinfo=TASHKENT_TZ))
+        self.assertEqual(s2_morn_info['shift_end'], datetime.datetime(2026, 11, 21, 8, 0, tzinfo=TASHKENT_TZ))
+
+        # 21-kuni ertalab 08:00 dan yangi 1-smena boshlanadi
+        s1_next_dt = datetime.datetime(2026, 11, 21, 8, 0, 0, tzinfo=TASHKENT_TZ)
+        s1_next_info = get_shift_info(s1_next_dt)
+        self.assertEqual(s1_next_info['shift_num'], 1)
+        self.assertEqual(s1_next_info['work_date'], datetime.date(2026, 11, 21))
+
+        # get_work_day_shifts
+        day_shifts = get_work_day_shifts(datetime.date(2026, 11, 20))
+        self.assertEqual(day_shifts['shift1']['start'], datetime.datetime(2026, 11, 20, 8, 0, tzinfo=TASHKENT_TZ))
+        self.assertEqual(day_shifts['shift1']['end'], datetime.datetime(2026, 11, 20, 18, 0, tzinfo=TASHKENT_TZ))
+        self.assertEqual(day_shifts['shift2']['start'], datetime.datetime(2026, 11, 20, 18, 0, tzinfo=TASHKENT_TZ))
+        self.assertEqual(day_shifts['shift2']['end'], datetime.datetime(2026, 11, 21, 8, 0, tzinfo=TASHKENT_TZ))
+
+    def test_meto_kpi_and_history_by_shifts(self):
+        from unittest.mock import patch
+        from production.shifts import TASHKENT_TZ
+        from production.models import PastalFlowSize
+
+        # 3 ta pastal tayyorlaymiz:
+        # P1: 2026-11-20 10:00 da (1-smena: 50 + 40 = 90 dona)
+        # P2: 2026-11-20 20:00 da (2-smena kechqurun: 48 + 40 = 88 dona)
+        # P3: 2026-11-21 04:00 da (2-smena yarim tundan keyin: 50 + 40 = 90 dona -> 20-kunning 2-smenasiga kiradi!)
+        b1 = self.cut('P-S1')
+        b2 = self.cut('P-S2-EVE')
+        b3 = self.cut('P-S2-NIGHT')
+
+        f1 = meto_flow.take_meto(b1, self.meto)
+        meto_flow.finish_meto(b1, self.counts(50, 40, batch=b1), self.meto)
+        f1.meto_done_at = datetime.datetime(2026, 11, 20, 10, 0, 0, tzinfo=TASHKENT_TZ)
+        f1.save(update_fields=['meto_done_at'])
+
+        f2 = meto_flow.take_meto(b2, self.meto)
+        meto_flow.finish_meto(b2, self.counts(48, 40, batch=b2), self.meto)
+        f2.meto_done_at = datetime.datetime(2026, 11, 20, 20, 0, 0, tzinfo=TASHKENT_TZ)
+        f2.save(update_fields=['meto_done_at'])
+
+        f3 = meto_flow.take_meto(b3, self.meto)
+        meto_flow.finish_meto(b3, self.counts(50, 40, batch=b3), self.meto)
+        f3.meto_done_at = datetime.datetime(2026, 11, 21, 4, 0, 0, tzinfo=TASHKENT_TZ)
+        f3.save(update_fields=['meto_done_at'])
+
+        self.client.force_login(self.meto)
+
+        # 1) Hozirgi vaqt 2026-11-20 14:00 (1-smena payti) bo'lsa:
+        with patch('django.utils.timezone.localtime', return_value=datetime.datetime(2026, 11, 20, 14, 0, 0, tzinfo=TASHKENT_TZ)):
+            res = self.client.get(reverse('meto_hub_flow_meto'))
+            self.assertEqual(res.status_code, 200)
+            kpi = res.context['kpi']
+            # Joriy smena = 1-smena: faqat P1 (1 ta pastal, 90 dona)
+            self.assertEqual(kpi['shift_done_count'], 1)
+            self.assertEqual(kpi['shift_done_qty'], 90)
+            self.assertEqual(kpi['today_done_count'], 1)
+            # Kun jami (P1 + P2 + P3 = 3 ta pastal, 90 + 88 + 90 = 268 dona)
+            self.assertEqual(kpi['day_done_count'], 3)
+            self.assertEqual(kpi['day_done_qty'], 268)
+            # Smena kesimida
+            self.assertEqual(kpi['s1_done_count'], 1)
+            self.assertEqual(kpi['s1_done_qty'], 90)
+            self.assertEqual(kpi['s2_done_count'], 2)
+            self.assertEqual(kpi['s2_done_qty'], 178)
+
+            # HTML tekshiruvi: faol smena, ko'rsatkichlar va smena tanlagich
+            content = res.content.decode('utf-8')
+            self.assertIn("Faol: 1-smena (kunduzgi)", content)
+            self.assertIn("1-smena: <b class=\"text-slate-200\">1</b> p", content)
+            self.assertIn("2-smena: <b class=\"text-slate-200\">2</b> p", content)
+            self.assertIn("Kun jami: <b class=\"text-white\">3</b> p", content)
+            self.assertIn('name="smena"', content)
+
+        # 2) Hozirgi vaqt 2026-11-21 02:00 (2-smena tungi vaqt) bo'lsa:
+        with patch('django.utils.timezone.localtime', return_value=datetime.datetime(2026, 11, 21, 2, 0, 0, tzinfo=TASHKENT_TZ)):
+            res = self.client.get(reverse('meto_hub_flow_meto'))
+            kpi = res.context['kpi']
+            # Joriy smena = 2-smena (20-kunning tungi smenasi): P2 va P3 (2 ta pastal, 178 dona)
+            self.assertEqual(kpi['shift_done_count'], 2)
+            self.assertEqual(kpi['shift_done_qty'], 178)
+            self.assertEqual(kpi['today_done_count'], 2)
+            self.assertIn("Faol: 2-smena (tungi)", res.content.decode('utf-8'))
+
+        # 3) Filtrlar tekshiruvi (smena=current, s1, s2, day)
+        with patch('django.utils.timezone.localtime', return_value=datetime.datetime(2026, 11, 20, 14, 0, 0, tzinfo=TASHKENT_TZ)):
+            # Faqat 1-smena
+            res_s1 = self.client.get(reverse('meto_hub_flow_meto'), {'smena': 's1'})
+            done_codes_s1 = [c['batch'].pastal_code for c in res_s1.context['done_cards']]
+            self.assertEqual(done_codes_s1, ['P-S1'])
+
+            # Faqat 2-smena
+            res_s2 = self.client.get(reverse('meto_hub_flow_meto'), {'smena': 's2'})
+            done_codes_s2 = [c['batch'].pastal_code for c in res_s2.context['done_cards']]
+            self.assertEqual(sorted(done_codes_s2), ['P-S2-EVE', 'P-S2-NIGHT'])
+
+            # Joriy smena (14:00 da joriy smena = 1-smena)
+            res_cur = self.client.get(reverse('meto_hub_flow_meto'), {'smena': 'current'})
+            done_codes_cur = [c['batch'].pastal_code for c in res_cur.context['done_cards']]
+            self.assertEqual(done_codes_cur, ['P-S1'])
+
+            # Bugungi 24 soatlik ish kuni (hammasi)
+            res_day = self.client.get(reverse('meto_hub_flow_meto'), {'smena': 'day'})
+            done_codes_day = [c['batch'].pastal_code for c in res_day.context['done_cards']]
+            self.assertEqual(sorted(done_codes_day), ['P-S1', 'P-S2-EVE', 'P-S2-NIGHT'])
+

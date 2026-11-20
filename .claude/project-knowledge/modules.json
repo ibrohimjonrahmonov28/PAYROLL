@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3567,
+  "lines": 3584,
   "depends_on": [
    "accounts.core"
   ]
@@ -152,7 +152,7 @@
    "production/management/commands/send_db_backup.py",
    "production/management/commands/sync_article_operations.py"
   ],
-  "lines": 1998,
+  "lines": 2010,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -555,9 +555,10 @@
    "templates/superadmin/users.html",
    "templates/superadmin/users_badges_batch_print.html",
    "templates/superadmin/worker_history.html",
+   "templates/tayyorlov/base_tayyorlov.html",
    "templates/terminal/index.html"
   ],
-  "lines": 52722,
+  "lines": 52824,
   "depends_on": []
  },
  "tests": {

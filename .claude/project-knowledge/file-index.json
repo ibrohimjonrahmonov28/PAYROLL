@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 992,
-   "sha256_16": "e47d12ca7c769247"
+   "lines": 1008,
+   "sha256_16": "2d181cd62f34512d"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 177,
-   "sha256_16": "f4b485db9a02c200"
+   "lines": 178,
+   "sha256_16": "467df862e8aa6cba"
   },
   "Dockerfile": {
    "module": "ops",
@@ -707,12 +707,12 @@
   },
   "production/management/commands/run_scheduler.py": {
    "module": "production.commands",
-   "lines": 178,
-   "sha256_16": "79e25c0f8f69a9f0",
+   "lines": 190,
+   "sha256_16": "73d2ca38d1ae65a4",
    "symbols": [
-    "run_freeze_check:26",
-    "execute_nightly_jobs:39",
-    "Command:71"
+    "run_freeze_check:27",
+    "execute_nightly_jobs:40",
+    "Command:81"
    ]
   },
   "production/management/commands/seed_demo_data.py": {
@@ -2399,6 +2399,11 @@
    "module": "templates",
    "lines": 547,
    "sha256_16": "4149e98a714e2e4d"
+  },
+  "templates/tayyorlov/base_tayyorlov.html": {
+   "module": "templates",
+   "lines": 102,
+   "sha256_16": "f9e174aece032bc1"
   },
   "templates/terminal/index.html": {
    "module": "templates",

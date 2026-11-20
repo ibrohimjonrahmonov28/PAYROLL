@@ -22,6 +22,7 @@ from production import meto_flow as flow_logic
 from production.meto_flow import FlowError, can
 from production.models import Box, Container, CuttingBatchItem, Order, PastalFlow, PastalFlowSize, Shipment, ShipmentPastal
 from production.services import get_patok_code
+from production.shifts import get_shift_for_timestamp, get_shift_info, get_work_day_shifts
 
 SECTIONS = (
     {
@@ -218,6 +219,7 @@ def _card(flow):
     has_ops = bool(article and len(article.article_operations.all()) > 0)
     total_cut = sum(s['cut'] for s in sizes)
     total_meto = sum(s['meto'] or 0 for s in sizes)
+    meto_shift = get_shift_for_timestamp(flow.meto_done_at) if flow.meto_done_at else None
     return {
         'flow': flow, 'batch': batch, 'order': order, 'article': article, 'image': image, 'customer': customer,
         'has_ops': has_ops, 'sizes': sizes, 'total_cut': total_cut,
@@ -225,6 +227,7 @@ def _card(flow):
         'total_tasnif': sum(s['tasnif'] or 0 for s in sizes),
         'boxes_count': len(boxes), 'printed_count': sum(1 for b in boxes if b.is_printed),
         'linked_count': len(linked),
+        'meto_shift': meto_shift,
         'ready': (len(boxes) > 0 and all(b.is_printed for b in boxes) and len(linked) == len(boxes)
                   and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))),
     }
@@ -289,16 +292,74 @@ def _ctx_meto(request):
     if holat not in ('faol', 'wait', 'work', 'done'):
         holat = 'faol'
     zakaz = request.GET.get('zakaz', '').strip()
+    smena = request.GET.get('smena', '').strip()
 
-    today = timezone.localdate()
+    current_shift = get_shift_info()
+    day_shifts = get_work_day_shifts(current_shift['work_date'])
+
     wait_base = _search_flows_qs(_flows_qs(stage=PastalFlow.Stage.METO_WAIT), q, zakaz)
     work_base = _search_flows_qs(_flows_qs(stage=PastalFlow.Stage.METO_WORK).order_by('-meto_taken_at', '-id'), q, zakaz)
     done_base = _search_flows_qs(
         _flows_qs(meto_done_at__isnull=False).order_by('-meto_done_at', '-id'), q, zakaz
     )
 
+    if smena == 'current':
+        done_base = done_base.filter(meto_done_at__gte=current_shift['shift_start'], meto_done_at__lt=current_shift['shift_end'])
+    elif smena == 'day':
+        done_base = done_base.filter(meto_done_at__gte=current_shift['day_start'], meto_done_at__lt=current_shift['day_end'])
+    elif smena == 's1':
+        done_base = done_base.filter(meto_done_at__gte=day_shifts['shift1']['start'], meto_done_at__lt=day_shifts['shift1']['end'])
+    elif smena == 's2':
+        done_base = done_base.filter(meto_done_at__gte=day_shifts['shift2']['start'], meto_done_at__lt=day_shifts['shift2']['end'])
+
     wait_page = Paginator(wait_base, METO_PAGE_SIZE).get_page(request.GET.get('pw'))
     done_page = Paginator(done_base, 25).get_page(request.GET.get('pd'))
+
+    # Joriy smena metrikalari (08:00–18:00 yoki 18:00–08:00)
+    shift_done_count = PastalFlow.objects.filter(
+        meto_done_at__gte=current_shift['shift_start'],
+        meto_done_at__lt=current_shift['shift_end'],
+    ).count()
+    shift_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__meto_done_at__gte=current_shift['shift_start'],
+            item__batch__flow__meto_done_at__lt=current_shift['shift_end'],
+        ).aggregate(t=Sum('meto_qty'))['t'] or 0
+    )
+
+    # 24 soatlik ish kuni (1-smena + 2-smena)
+    day_done_count = PastalFlow.objects.filter(
+        meto_done_at__gte=current_shift['day_start'],
+        meto_done_at__lt=current_shift['day_end'],
+    ).count()
+    day_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__meto_done_at__gte=current_shift['day_start'],
+            item__batch__flow__meto_done_at__lt=current_shift['day_end'],
+        ).aggregate(t=Sum('meto_qty'))['t'] or 0
+    )
+
+    # Bugungi ish kunining 1- va 2-smenalari alohida
+    s1_done_count = PastalFlow.objects.filter(
+        meto_done_at__gte=day_shifts['shift1']['start'],
+        meto_done_at__lt=day_shifts['shift1']['end'],
+    ).count()
+    s1_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__meto_done_at__gte=day_shifts['shift1']['start'],
+            item__batch__flow__meto_done_at__lt=day_shifts['shift1']['end'],
+        ).aggregate(t=Sum('meto_qty'))['t'] or 0
+    )
+    s2_done_count = PastalFlow.objects.filter(
+        meto_done_at__gte=day_shifts['shift2']['start'],
+        meto_done_at__lt=day_shifts['shift2']['end'],
+    ).count()
+    s2_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__meto_done_at__gte=day_shifts['shift2']['start'],
+            item__batch__flow__meto_done_at__lt=day_shifts['shift2']['end'],
+        ).aggregate(t=Sum('meto_qty'))['t'] or 0
+    )
 
     kpi = {
         'wait_count': PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WAIT).count(),
@@ -307,9 +368,18 @@ def _ctx_meto(request):
         'work_count': PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WORK).count(),
         'work_qty': (CuttingBatchItem.objects.filter(batch__flow__stage=PastalFlow.Stage.METO_WORK)
                      .aggregate(t=Sum('quantity'))['t'] or 0),
-        'today_done_count': PastalFlow.objects.filter(meto_done_at__date=today).count(),
-        'today_done_qty': (PastalFlowSize.objects.filter(item__batch__flow__meto_done_at__date=today)
-                           .aggregate(t=Sum('meto_qty'))['t'] or 0),
+        # Joriy smena ("bugun tugatilganda shu smenadagi hisoblanadi"):
+        'shift_done_count': shift_done_count,
+        'shift_done_qty': shift_done_qty,
+        'today_done_count': shift_done_count,
+        'today_done_qty': shift_done_qty,
+        # 24 soatlik ish kuni:
+        'day_done_count': day_done_count,
+        'day_done_qty': day_done_qty,
+        's1_done_count': s1_done_count,
+        's1_done_qty': s1_done_qty,
+        's2_done_count': s2_done_count,
+        's2_done_qty': s2_done_qty,
     }
     orders_filter = Order.objects.filter(meto_beta=True).order_by('-created_at')[:100]
 
@@ -320,8 +390,11 @@ def _ctx_meto(request):
         'done_cards': [_card(f) for f in done_page],
         'done_page': done_page,
         'kpi': kpi,
+        'current_shift': current_shift,
+        'day_shifts': day_shifts,
         'q': q,
         'holat': holat,
+        'smena': smena,
         'zakaz': zakaz,
         'orders_filter': orders_filter,
     }

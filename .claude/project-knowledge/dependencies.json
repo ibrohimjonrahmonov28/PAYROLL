@@ -420,6 +420,7 @@
     "accounts.freeze_services",
     "accounts.management.commands.close_daily_payroll",
     "production.daily_image_reports",
+    "production.media_backup",
     "production.telegram_reports"
    ]
   },
@@ -2202,6 +2203,15 @@
     "superadmin_payroll",
     "superadmin_users",
     "superadmin_worker_history"
+   ]
+  },
+  "templates/tayyorlov/base_tayyorlov.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "root_logout"
    ]
   },
   "templates/terminal/index.html": {
