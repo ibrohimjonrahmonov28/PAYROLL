@@ -22,3 +22,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(create_default_dispatch_types, migrations.RunPython.noop),
     ]
+

@@ -18,6 +18,7 @@ from django.utils import timezone
 from accounts.freeze_services import check_and_apply_freeze_timers
 from accounts.management.commands.close_daily_payroll import perform_daily_closing
 from production.telegram_reports import send_month_to_date_telegram_report
+from production.media_backup import send_media_backup
 from production.daily_image_reports import send_daily_1800_reports
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ def execute_nightly_jobs(target_date: datetime.date) -> dict:
     O'tgan kun uchun tungi operatsiyalarni ketma-ket bajarish:
     1. Ish haqini yopish va balansga muhrlash (perform_daily_closing)
     2. Oylik hisobot (Excel) va to'liq ma'lumotlar bazasi zaxira nusxasini (.sql.gz) Telegramga yuborish
+    3. Rasmlar (media) zaxirasi: dushanba to'liq, boshqa kunlar dushanbadan beri o'zgarganlar (production/media_backup.py)
     """
     results = {}
 
@@ -64,6 +66,14 @@ def execute_nightly_jobs(target_date: datetime.date) -> dict:
     except Exception as e:
         logger.error(f"Telegram oylik hisobot va baza zaxirasini yuborishda xatolik: {e}", exc_info=True)
         results['report'] = {'success': False, 'message': str(e)}
+
+    # 3. Rasmlar zaxirasi — faqat hisobot yuborilgandan keyin (hisobot qayta urinilganda takror yuborilmasin)
+    if results['report'].get('success'):
+        try:
+            results['media'] = send_media_backup()
+        except Exception as e:
+            logger.error(f"Rasmlar zaxirasini yuborishda xatolik: {e}", exc_info=True)
+            results['media'] = {'success': False, 'message': str(e)}
 
     return results
 
@@ -100,12 +110,13 @@ class Command(BaseCommand):
             res = execute_nightly_jobs(target_date)
             self.stdout.write(f"1. Ish haqini yopish natijasi: {res.get('closing')}")
             self.stdout.write(f"2. Telegram hisoboti natijasi: {res.get('report')}")
+            self.stdout.write(f"3. Rasmlar zaxirasi natijasi: {res.get('media')}")
             return
 
         # DOIMIY SCHEDULER REJIMI
         self.stdout.write(self.style.SUCCESS("⏰ TERRY JAR Avtomatik Scheduler ishga tushdi..."))
         self.stdout.write("📅 1. Har kuni 18:00 da (Toshkent vaqti): Filiallar kunlik rasm-hisobotlari")
-        self.stdout.write("📅 2. Har kuni 00:00 da (Toshkent vaqti): Kunlik ish haqi yopish, to'liq oylik hisobot va baza zaxira nusxasi (Full DB Backup)")
+        self.stdout.write("📅 2. Har kuni 00:00 da (Toshkent vaqti): Kunlik ish haqi yopish, to'liq oylik hisobot va baza zaxira nusxasi (Full DB Backup) + rasmlar zaxirasi")
         self.stdout.write("📅 3. Har soatda: o'tgan oylarni muzlatish va 7 kunlik taymerlar (5000 tadan bo'lib)")
 
         last_executed_date = None
@@ -160,6 +171,7 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.SUCCESS(
                             f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ✅ Tungi oylik hisobot va baza backup muvaffaqiyatli yuborildi: {report_status.get('message')}"
                         ))
+                        self.stdout.write(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] 🖼 Rasmlar zaxirasi: {res.get('media')}")
                     else:
                         self.stdout.write(self.style.WARNING(
                             f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Tungi hisobot yuborishda muammo bo'ldi: {report_status.get('message')}. "

@@ -225,3 +225,4 @@ class SecondSortDispatchTest(TestCase):
         text = csv_res.content.decode('utf-8-sig')
         self.assertIn("'=FORMULA_INJECT", text)
         self.assertIn('15,8,', text)
+
