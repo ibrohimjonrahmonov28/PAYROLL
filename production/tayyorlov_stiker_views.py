@@ -156,13 +156,29 @@ def stiker_dashboard_context(request):
         if not first_unsplit_batch_id and unprinted:
             first_unprinted_batch_id = unprinted[0].cutting_batch_item.batch_id if unprinted[0].cutting_batch_item_id else None
 
+        articles = []
+        for b in ord_batches:
+            art = b.order_item.article
+            if art and art.id not in [a['id'] for a in articles]:
+                img_url = ''
+                if art.image:
+                    try:
+                        img_url = art.image.url
+                    except Exception:
+                        img_url = ''
+                articles.append({'id': art.id, 'name': art.name, 'code': art.code, 'image': img_url})
+
+        printed_pct = int(round((len(printed) / len(all_boxes) * 100))) if all_boxes else 0
+
         orders_data.append({
             'order': ord_obj,
+            'articles': articles,
             'pastals_count': len(ord_batches),
             'unsplit_count': len(unsplit_batches),
             'total_boxes': len(all_boxes),
             'unprinted_count': len(unprinted),
             'printed_count': len(printed),
+            'printed_pct': printed_pct,
             'total_qty': total_tasnif_qty,
             'has_unprinted': needs_work,
             'first_open_batch_id': first_unsplit_batch_id or first_unprinted_batch_id,

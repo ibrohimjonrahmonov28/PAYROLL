@@ -29,7 +29,23 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `2b27f6f`] — 20.11.2026
+### 🔹 [Commit: `ed9c4f5`] — 20.11.2026
+* **Turi:** `feat(tayyorlov)` — `/tayyorlov/stiker/` sahifasini to'liq Desktop keng ekranli (widescreen) formatga o'tkazish
+* **Mavzu:** Egasi talabi («https://terryjar.uz/tayyorlov/stiker/ sahifa full desktop versiyada boladi»):
+  - **Keng ekranli konteyner:** Tor `max-w-7xl` (1280px) cheklovi olib tashlanib, `w-full` hamda `base_tayyorlov.html` da `max-w-[1920px]` ga kengaytirildi (katta monitorlarda chetlaridagi bo'sh qora joylar yo'qotildi).
+  - **Desktop 4-ustunli KPI qatori:** Chop etilmagan qutilar, Tikuvga berilganlar, Stikerli buyurtmalar va Stiker o'lchami (65x45 mm).
+  - **Desktop To'liq Jadvali:** Zakaz raqami va muddati, Model/Artikul (kodi, nomi va rasm thumbnaili), Buyurtmachi, Pastallar soni va bo'linmaganlik ko'rsatkichi, Tasnif soni (dona), Qutilar soni va vizual progress bar (chop etilgan/jami foizi bilan), hamda tezkor amallar («Qutilarga Bo'lish» / «Qutilarni Ochish» va «Chop Etish»).
+  - **Buyurtma qutilari sahifasi:** `/tayyorlov/stiker/orders/<id>/` ham to'liq desktop kenglikka (`w-full`) moslashtirildi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/flow/stiker.html`
+  - `templates/tayyorlov/stiker_order_boxes.html`
+  - `templates/tayyorlov/base_tayyorlov.html`
+  - `production/tayyorlov_stiker_views.py`
+  - `CHANGELOG.md`
+
+---
+
+### 🔹 [Commit: `454029f`] — 20.11.2026
 * **Turi:** `feat(tayyorlov)` — Tasnifda Qaytarish + Butun ekranli «Pastalni tugatish» oynasi va Tayyorlov Stiker (`/stickers/` ning 1 ga 1 nusxasi)
 * **Mavzu:** Egasi talabi bo'yicha Tasnif → Stiker zanjiri to'liq yo'lga qo'yildi (eski `/stickers/` bo'limiga tegilmasdan):
   - **Tasnif kutmoqda (chap ustun):** «Qabul qilish» bilan birga **«Qaytarish»** tugmasi qo'shildi — sabab bilan Meto bo'limiga qaytarish (`PastalFlow.tasnif_return_reason/returned_by/returned_at`, `0055` migratsiya); Metoda «Tasnifdan qaytarildi» ogohlantirishi ko'rsatiladi.
