@@ -29,6 +29,20 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `09c2b9f`] — 20.11.2026
+* **Turi:** `feat(meto)` — Tayyorlov Meto bo'limi uchun sensorli ekran qulayliklari (stepperlar, izoh shablonlari, kamomad ogohlantirishi, avto-yangilanish)
+* **Mavzu:** Meto bo'limida planshet/ekranda ishlash qulaylashtirildi: har bir razmer yoniga `[-]` va `[+]` qadam tugmalari qo'shildi, katakka bosilganda son to'liq tanlanadi (`onfocus="this.select()"`), `meto_note` maydoni ostida tezkor izoh shablonlari (`Qavat yetmadi`, `Mato nuqsoni`, va h.k.), kamomad va ortiqchalik bo'yicha batafsil ogohlantirish, `/` tugmasi bilan qidiruvga o'tish, aqlli avto-yangilanish (`30s`, `60s`), hamda `wait` yoki `work` filtrlarida tarix jadvalini yashirish kiritildi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/flow/meto.html`: stepper tugmalari, izoh chiplari, qidiruv avtofokusi, avto-yangilanish tugmasi va skripti
+  - `production/test_meto_flow.py`: `test_meto_ui_steppers_chips_and_holat_visibility`
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya talab qilinmaydi).
+* **Qaytish buyrug'i:**
+  ```bash
+  git checkout 09c2b9f
+  ```
+
+---
+
 ### 🔹 [Commit: `b059688`] — 20.11.2026
 * **Turi:** `revert(backup)` — `f242eb5` dagi tungi rasmlar (media) zaxirasi olib tashlandi
 * **Mavzu:** Egasi qarori: rasmlar zaxirasi kerak emas. Faqat zaxira qismi qaytarildi; `f242eb5` ga tushib qolgan boshqa o'zgarishlar (0052 migratsiya, meto shabloni, dispatch belgisi) joyida. Tungi baza zaxirasi (.sql.gz) avvalgidek ishlaydi.
