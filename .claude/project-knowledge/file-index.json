@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 1008,
-   "sha256_16": "2d181cd62f34512d"
+   "lines": 1038,
+   "sha256_16": "2bad0d679c51ab33"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 178,
-   "sha256_16": "467df862e8aa6cba"
+   "lines": 177,
+   "sha256_16": "b6b81270d146b75c"
   },
   "Dockerfile": {
    "module": "ops",
@@ -707,12 +707,12 @@
   },
   "production/management/commands/run_scheduler.py": {
    "module": "production.commands",
-   "lines": 190,
-   "sha256_16": "73d2ca38d1ae65a4",
+   "lines": 178,
+   "sha256_16": "79e25c0f8f69a9f0",
    "symbols": [
-    "run_freeze_check:27",
-    "execute_nightly_jobs:40",
-    "Command:81"
+    "run_freeze_check:26",
+    "execute_nightly_jobs:39",
+    "Command:71"
    ]
   },
   "production/management/commands/seed_demo_data.py": {
@@ -925,59 +925,59 @@
   },
   "production/meto_flow_views.py": {
    "module": "production.meto",
-   "lines": 760,
-   "sha256_16": "fe1f4278cec13084",
+   "lines": 833,
+   "sha256_16": "62bcb9a7dd9e84ae",
    "symbols": [
-    "_can_view_section:118",
-    "_allowed_sections:125",
-    "_allowed_tabs:129",
-    "flow_access_required:133",
-    "_flow_url:148",
-    "_deny:155",
-    "_json:160",
-    "_allowed:167",
-    "_api:173",
-    "_card:197",
-    "_flows_qs:233",
-    "_flows:242",
-    "_search_flows_qs:246",
-    "_incoming:264",
-    "_patok_rows:271",
-    "_ctx_meto:285",
-    "_ctx_tasnif:330",
-    "_ctx_stiker:335",
-    "_ctx_sklad:341",
-    "_ctx_uychi:347",
-    "_ctx_yukxat:352",
-    "_ctx_zakazlar:360",
-    "_can_open_containers:384",
-    "_hub_stats:389",
-    "flow_view:446",
-    "section_view:511",
-    "_form_action:531",
-    "_batch:553",
-    "_posted_counts:557",
-    "_name:561",
-    "meto_take:566",
-    "meto_cancel:573",
-    "meto_finish:580",
-    "tasnif_take:587",
-    "tasnif_finish:594",
-    "tasnif_update:601",
-    "split:608",
-    "sklad_receive:621",
-    "beta_toggle:628",
-    "_require_branch:640",
-    "api_resolve:646",
-    "api_link:666",
-    "api_unlink:677",
-    "api_check:690",
-    "api_give:700",
-    "api_ship:713",
-    "_line:723",
-    "api_receive:733",
-    "api_return:743",
-    "shipment_print:749"
+    "_can_view_section:119",
+    "_allowed_sections:126",
+    "_allowed_tabs:130",
+    "flow_access_required:134",
+    "_flow_url:149",
+    "_deny:156",
+    "_json:161",
+    "_allowed:168",
+    "_api:174",
+    "_card:198",
+    "_flows_qs:236",
+    "_flows:245",
+    "_search_flows_qs:249",
+    "_incoming:267",
+    "_patok_rows:274",
+    "_ctx_meto:288",
+    "_ctx_tasnif:403",
+    "_ctx_stiker:408",
+    "_ctx_sklad:414",
+    "_ctx_uychi:420",
+    "_ctx_yukxat:425",
+    "_ctx_zakazlar:433",
+    "_can_open_containers:457",
+    "_hub_stats:462",
+    "flow_view:519",
+    "section_view:584",
+    "_form_action:604",
+    "_batch:626",
+    "_posted_counts:630",
+    "_name:634",
+    "meto_take:639",
+    "meto_cancel:646",
+    "meto_finish:653",
+    "tasnif_take:660",
+    "tasnif_finish:667",
+    "tasnif_update:674",
+    "split:681",
+    "sklad_receive:694",
+    "beta_toggle:701",
+    "_require_branch:713",
+    "api_resolve:719",
+    "api_link:739",
+    "api_unlink:750",
+    "api_check:763",
+    "api_give:773",
+    "api_ship:786",
+    "_line:796",
+    "api_receive:806",
+    "api_return:816",
+    "shipment_print:822"
    ]
   },
   "production/meto_hub_urls.py": {
@@ -1375,6 +1375,17 @@
     "export_monthly_daily_report_excel:3519"
    ]
   },
+  "production/shifts.py": {
+   "module": "production.platform",
+   "lines": 127,
+   "sha256_16": "0bfd802614c25227",
+   "symbols": [
+    "_to_tashkent:22",
+    "get_shift_info:31",
+    "get_shift_for_timestamp:89",
+    "get_work_day_shifts:96"
+   ]
+  },
   "production/static/brand/favicon.ico": {
    "module": "production.platform",
    "lines": 68,
@@ -1529,8 +1540,8 @@
   },
   "production/test_meto_flow.py": {
    "module": "tests",
-   "lines": 674,
-   "sha256_16": "14f3d96a25ca2731",
+   "lines": 809,
+   "sha256_16": "7fb89301a0beae9b",
    "symbols": [
     "MetoFlowBase:22",
     "MetoFlowStepsTest:96",
@@ -1539,7 +1550,8 @@
     "UychiShipmentTest:334",
     "OtkV2Test:394",
     "FlowAccessTest:486",
-    "TayyorlovMetoUpgradeTest:567"
+    "TayyorlovMetoUpgradeTest:567",
+    "MetoTwoShiftsTest:675"
    ]
   },
   "production/test_norma_canvas.py": {
@@ -2027,8 +2039,8 @@
   },
   "templates/meto_hub/flow/meto.html": {
    "module": "templates",
-   "lines": 306,
-   "sha256_16": "abbaca81028c25ce"
+   "lines": 351,
+   "sha256_16": "e1958dde234b6221"
   },
   "templates/meto_hub/flow/sklad.html": {
    "module": "templates",

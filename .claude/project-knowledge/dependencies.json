@@ -114,6 +114,7 @@
    "production/services.py",
    "production/sewing_pipeline_summary.py",
    "production/sewing_statistics_views.py",
+   "production/shifts.py",
    "production/sticker_urls.py",
    "production/sticker_views.py",
    "production/taxlov_pay.py",
@@ -420,7 +421,6 @@
     "accounts.freeze_services",
     "accounts.management.commands.close_daily_payroll",
     "production.daily_image_reports",
-    "production.media_backup",
     "production.telegram_reports"
    ]
   },
@@ -517,7 +517,8 @@
     "production",
     "production.meto_flow",
     "production.models",
-    "production.services"
+    "production.services",
+    "production.shifts"
    ]
   },
   "production.meto_hub_urls": {
@@ -777,7 +778,9 @@
     "production.models"
    ],
    "lazy": [
-    "production.packing_services"
+    "production.models",
+    "production.packing_services",
+    "production.shifts"
    ]
   },
   "production.test_norma_canvas": {
