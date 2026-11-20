@@ -64,7 +64,8 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         <div class="flex-1 min-w-[220px] relative">
             <i
                 class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-            <input name="q" value="{{ q }}" placeholder="Pastal, zakaz, partiya, artikul, bichuvchi yoki buyurtmachi..."
+            <input name="q" id="meto-search-input" value="{{ q }}"
+                placeholder="Pastal, zakaz, partiya, artikul, bichuvchi yoki buyurtmachi... ('/' bosing)"
                 class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-500">
         </div>
         <select name="zakaz"
@@ -93,6 +94,14 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         {% if q or zakaz or holat != 'faol' or smena %}
         <a href="{% url 'meto_hub_flow_meto' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
         {% endif %}
+        <div class="flex items-center gap-1.5 ml-auto">
+            <button type="button" id="btn-auto-refresh"
+                class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-bold flex items-center gap-1.5 transition"
+                title="Sahifani avtomatik yangilash (bosib almashtiring)">
+                <i class="fa-solid fa-arrows-rotate text-[11px]" id="refresh-icon"></i>
+                <span id="refresh-label">Avto: O'chiq</span>
+            </button>
+        </div>
     </form>
 
     {% if holat == 'faol' or holat == 'wait' or holat == 'work' %}
@@ -169,17 +178,21 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                         class="space-y-3 meto-finish-form">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                             {% for s in c.sizes %}
-                            <label class="space-y-1">
-                                <span class="text-xs font-bold text-slate-400 flex items-center justify-between gap-1">
-                                    <span>{{ s.name }} <span class="text-slate-500">(kesim {{ s.cut }})</span></span>
+                            <div class="space-y-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                                <div class="text-xs font-bold text-slate-400 flex items-center justify-between gap-1">
+                                    <span>{{ s.name }} <span class="text-slate-500 font-normal">(kesim {{ s.cut }})</span></span>
                                     <span class="meto-diff-badge text-[11px] font-black text-emerald-400">=</span>
-                                </span>
-                                <input name="qty_{{ s.id }}" value="{{ s.cut }}" min="0" inputmode="numeric" required
-                                    data-cut="{{ s.cut }}" data-size="{{ s.name }}"
-                                    class="meto-qty-input w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-center focus:outline-none focus:border-amber-500">
-                            </label>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" class="btn-step-minus w-8 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-black text-base flex items-center justify-center select-none transition" title="-1 dona">−</button>
+                                    <input name="qty_{{ s.id }}" value="{{ s.cut }}" min="0" inputmode="numeric" required
+                                        data-cut="{{ s.cut }}" data-size="{{ s.name }}" onfocus="this.select()"
+                                        class="meto-qty-input flex-1 min-w-0 h-9 px-1 rounded-lg bg-slate-900 border border-slate-700 text-white font-black text-center text-sm focus:outline-none focus:border-amber-500">
+                                    <button type="button" class="btn-step-plus w-8 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-black text-base flex items-center justify-center select-none transition" title="+1 dona">+</button>
+                                </div>
+                            </div>
                             {% endfor %}
                         </div>
                         <div
@@ -188,9 +201,19 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                             <span class="meto-total-line font-black text-emerald-300">Meto jami: {{ c.total_cut }} (farq
                                 0)</span>
                         </div>
-                        <input name="meto_note" maxlength="300"
-                            placeholder="Meto izohi (ixtiyoriy — masalan, qavat yetmadi yoki nuqson)..."
-                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                        <div class="space-y-1.5">
+                            <input name="meto_note" maxlength="300"
+                                placeholder="Meto izohi (ixtiyoriy — masalan, qavat yetmadi yoki nuqson)..."
+                                class="meto-note-input w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                            <div class="flex flex-wrap items-center gap-1 text-[11px] meto-note-chips">
+                                <span class="text-slate-500 text-[10px] mr-0.5">Tezkor izoh:</span>
+                                <button type="button" data-note="Qavat yetmadi" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Qavat yetmadi</button>
+                                <button type="button" data-note="Mato nuqsoni" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Mato nuqsoni</button>
+                                <button type="button" data-note="Dog' bor" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Dog' bor</button>
+                                <button type="button" data-note="Qaychi tekkan" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Qaychi tekkan</button>
+                                <button type="button" data-note="Bichuvdan kam" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Bichuvdan kam</button>
+                            </div>
+                        </div>
                         <div class="flex items-center justify-between gap-3">
                             <p class="text-[11px] text-slate-500">Tugatgandan keyin meto soni qulflanadi.</p>
                             <button type="submit"
@@ -206,6 +229,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
     </div>
     {% endif %}
 
+    {% if holat == 'faol' or holat == 'done' %}
     <!-- Tugatilganlar tarixi -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -288,6 +312,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         </div>
         {% endif %}
     </section>
+    {% endif %}
 </div>
 <script>
     (function () {
@@ -298,23 +323,28 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                 const cut = parseInt(inp.dataset.cut || '0', 10);
                 const val = parseInt((inp.value || '').trim(), 10);
                 totalCut += cut;
-                const badge = inp.closest('label').querySelector('.meto-diff-badge');
+                const container = inp.closest('.space-y-1') || inp.parentElement;
+                const badge = container ? container.querySelector('.meto-diff-badge') : null;
                 if (isNaN(val) || val < 0) {
-                    badge.textContent = '?';
-                    badge.className = 'meto-diff-badge text-[11px] font-black text-rose-400';
+                    if (badge) {
+                        badge.textContent = '?';
+                        badge.className = 'meto-diff-badge text-[11px] font-black text-rose-400';
+                    }
                     return;
                 }
                 totalMeto += val;
                 const diff = val - cut;
-                if (diff === 0) {
-                    badge.textContent = '✓';
-                    badge.className = 'meto-diff-badge text-[11px] font-black text-emerald-400';
-                } else if (diff > 0) {
-                    badge.textContent = '+' + diff;
-                    badge.className = 'meto-diff-badge text-[11px] font-black text-rose-400';
-                } else {
-                    badge.textContent = String(diff);
-                    badge.className = 'meto-diff-badge text-[11px] font-black text-amber-300';
+                if (badge) {
+                    if (diff === 0) {
+                        badge.textContent = '✓';
+                        badge.className = 'meto-diff-badge text-[11px] font-black text-emerald-400';
+                    } else if (diff > 0) {
+                        badge.textContent = '+' + diff;
+                        badge.className = 'meto-diff-badge text-[11px] font-black text-rose-400';
+                    } else {
+                        badge.textContent = String(diff);
+                        badge.className = 'meto-diff-badge text-[11px] font-black text-amber-300';
+                    }
                 }
             });
             const totalEl = card.querySelector('.meto-total-line');
@@ -327,25 +357,152 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         }
 
         document.querySelectorAll('.meto-work-card').forEach(card => {
+            // Son kiritilganda jonli qayta hisoblash
             card.querySelectorAll('.meto-qty-input').forEach(inp => {
                 inp.addEventListener('input', () => refreshCard(card));
             });
+
+            // [-] va [+] qadam tugmalari
+            card.querySelectorAll('.btn-step-minus').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inp = btn.parentElement.querySelector('.meto-qty-input');
+                    if (!inp) return;
+                    let val = parseInt((inp.value || '').trim(), 10);
+                    if (isNaN(val)) val = parseInt(inp.dataset.cut || '0', 10);
+                    if (val > 0) {
+                        inp.value = val - 1;
+                        refreshCard(card);
+                    }
+                });
+            });
+
+            card.querySelectorAll('.btn-step-plus').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inp = btn.parentElement.querySelector('.meto-qty-input');
+                    if (!inp) return;
+                    let val = parseInt((inp.value || '').trim(), 10);
+                    if (isNaN(val)) val = parseInt(inp.dataset.cut || '0', 10);
+                    inp.value = val + 1;
+                    refreshCard(card);
+                });
+            });
+
+            // Tezkor izoh shablonlari
+            card.querySelectorAll('.meto-note-chips button').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const noteInp = card.querySelector('.meto-note-input');
+                    if (!noteInp) return;
+                    const text = chip.dataset.note;
+                    const cur = noteInp.value.trim();
+                    if (!cur) {
+                        noteInp.value = text;
+                    } else if (!cur.includes(text)) {
+                        noteInp.value = cur + ', ' + text;
+                    }
+                    noteInp.focus();
+                });
+            });
+
+            // Forma topshirishda ortiqcha va kamomadni chuqur tekshirish
             const form = card.querySelector('.meto-finish-form');
             if (form) {
                 form.addEventListener('submit', (e) => {
                     const over = [];
+                    const under = [];
                     card.querySelectorAll('.meto-qty-input').forEach(inp => {
                         const cut = parseInt(inp.dataset.cut || '0', 10);
                         const val = parseInt((inp.value || '').trim(), 10);
-                        if (!isNaN(val) && val > cut) over.push(`${inp.dataset.size}: ${val} (kesim ${cut})`);
+                        if (!isNaN(val)) {
+                            if (val > cut) {
+                                over.push(`${inp.dataset.size}: ${val} (kesim ${cut}, ortiqcha +${val - cut})`);
+                            } else if (cut > 0 && val < cut) {
+                                under.push(`${inp.dataset.size}: ${val} (kesim ${cut}, kamomad -${cut - val})`);
+                            }
+                        }
                     });
-                    const msg = over.length
-                        ? `DIQQAT! Kesimdan ko'p son kiritildi:\n${over.join('\n')}\n\nBaribir meto tugatilsinmi? Keyin son o'zgarmaydi.`
-                        : "Meto tugatilsinmi? Son keyin o'zgarmaydi.";
+
+                    let msg = "";
+                    if (over.length && under.length) {
+                        msg = `DIQQAT! Razmerlarda farq bor:\n\nORTIQCHA:\n${over.join('\n')}\n\nKAMOMAD:\n${under.join('\n')}\n\nBaribir meto tugatilsinmi? Keyin son o'zgarmaydi.`;
+                    } else if (over.length) {
+                        msg = `DIQQAT! Kesimdan ko'p son kiritildi:\n${over.join('\n')}\n\nBaribir meto tugatilsinmi? Keyin son o'zgarmaydi.`;
+                    } else if (under.length) {
+                        msg = `DIQQAT! Kesimdan kam son kiritildi (kamomad):\n${under.join('\n')}\n\nKamomad bilan meto tugatilsinmi? Keyin son o'zgarmaydi.`;
+                    } else {
+                        msg = "Meto tugatilsinmi? Keyin son o'zgarmaydi.";
+                    }
                     if (!confirm(msg)) e.preventDefault();
                 });
             }
             refreshCard(card);
         });
+
+        // '/' tugmasi bilan tezkor qidiruvga o'tish
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                const searchInp = document.getElementById('meto-search-input');
+                if (searchInp) {
+                    e.preventDefault();
+                    searchInp.focus();
+                    searchInp.select();
+                }
+            }
+        });
+
+        // Avto-yangilanish boshqaruvi
+        const refreshBtn = document.getElementById('btn-auto-refresh');
+        const refreshLabel = document.getElementById('refresh-label');
+        const refreshIcon = document.getElementById('refresh-icon');
+        const INTERVALS = [0, 30, 60];
+        let curInterval = parseInt(localStorage.getItem('meto_auto_refresh') || '0', 10);
+        if (!INTERVALS.includes(curInterval)) curInterval = 0;
+        let timerId = null;
+        let secondsLeft = curInterval;
+
+        function updateRefreshUI() {
+            if (!refreshBtn || !refreshLabel || !refreshIcon) return;
+            if (curInterval === 0) {
+                refreshLabel.textContent = "Avto: O'chiq";
+                refreshBtn.className = "px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-500 text-slate-400 text-xs font-bold flex items-center gap-1.5 transition";
+                refreshIcon.classList.remove('fa-spin', 'text-amber-400');
+            } else {
+                refreshLabel.textContent = `Avto: ${secondsLeft}s`;
+                refreshBtn.className = "px-3 py-2 rounded-xl bg-amber-950/60 border border-amber-600/60 text-amber-300 text-xs font-black flex items-center gap-1.5 transition";
+                refreshIcon.classList.add('text-amber-400');
+            }
+        }
+
+        function startTimer() {
+            if (timerId) clearInterval(timerId);
+            if (curInterval > 0) {
+                secondsLeft = curInterval;
+                timerId = setInterval(() => {
+                    const activeEl = document.activeElement;
+                    if (activeEl && (activeEl.classList.contains('meto-qty-input') || activeEl.classList.contains('meto-note-input') || activeEl.id === 'meto-search-input')) {
+                        secondsLeft = curInterval;
+                        updateRefreshUI();
+                        return;
+                    }
+                    secondsLeft--;
+                    if (secondsLeft <= 0) {
+                        refreshIcon.classList.add('fa-spin');
+                        window.location.reload();
+                    } else {
+                        updateRefreshUI();
+                    }
+                }, 1000);
+            }
+            updateRefreshUI();
+        }
+
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                const nextIdx = (INTERVALS.indexOf(curInterval) + 1) % INTERVALS.length;
+                curInterval = INTERVALS[nextIdx];
+                localStorage.setItem('meto_auto_refresh', String(curInterval));
+                startTimer();
+            });
+            startTimer();
+        }
     })();
 </script>

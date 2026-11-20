@@ -806,3 +806,34 @@ class MetoTwoShiftsTest(MetoFlowBase):
             done_codes_day = [c['batch'].pastal_code for c in res_day.context['done_cards']]
             self.assertEqual(sorted(done_codes_day), ['P-S1', 'P-S2-EVE', 'P-S2-NIGHT'])
 
+    def test_meto_ui_steppers_chips_and_holat_visibility(self):
+        b = self.cut('P-UI-1')
+        meto_flow.take_meto(b, self.meto)
+        self.client.force_login(self.meto)
+
+        # Faol holatda: qidiruv, avto-yangilash, stepperlar, tezkor izohlar va tarix jadvali mavjud
+        res_faol = self.client.get(reverse('meto_hub_flow_meto'))
+        html_faol = res_faol.content.decode('utf-8')
+        self.assertIn('id="meto-search-input"', html_faol)
+        self.assertIn('id="btn-auto-refresh"', html_faol)
+        self.assertIn('btn-step-minus', html_faol)
+        self.assertIn('btn-step-plus', html_faol)
+        self.assertIn('onfocus="this.select()"', html_faol)
+        self.assertIn('meto-note-chips', html_faol)
+        self.assertIn('Tugatilgan pastallar tarixi', html_faol)
+
+        # Faqat kutmoqda holatida: tugatilganlar tarixi yashiriladi
+        res_wait = self.client.get(reverse('meto_hub_flow_meto'), {'holat': 'wait'})
+        html_wait = res_wait.content.decode('utf-8')
+        self.assertNotIn('Tugatilgan pastallar tarixi', html_wait)
+
+        # Faqat meto bo'lmoqda holatida: tugatilganlar tarixi yashiriladi
+        res_work = self.client.get(reverse('meto_hub_flow_meto'), {'holat': 'work'})
+        html_work = res_work.content.decode('utf-8')
+        self.assertNotIn('Tugatilgan pastallar tarixi', html_work)
+
+        # Tugatilganlar tarixi tanlanganda: tarix jadvali ko'rinadi
+        res_done = self.client.get(reverse('meto_hub_flow_meto'), {'holat': 'done'})
+        html_done = res_done.content.decode('utf-8')
+        self.assertIn('Tugatilgan pastallar tarixi', html_done)
+
