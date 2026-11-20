@@ -837,3 +837,159 @@ class MetoTwoShiftsTest(MetoFlowBase):
         html_done = res_done.content.decode('utf-8')
         self.assertIn('Tugatilgan pastallar tarixi', html_done)
 
+    def test_tasnif_lifecycle_take_cancel_finish(self):
+        b = self.cut('T-LIFE-1', m=50, l=40)
+        # Metoni yakunlaymiz -> pastal TASNIF_WAIT holatiga o'tadi
+        meto_flow.take_meto(b, self.meto)
+        meto_flow.finish_meto(b, self.counts(49, 39, batch=b), self.meto)
+        flow = meto_flow.get_flow(b)
+        self.assertEqual(flow.stage, PastalFlow.Stage.TASNIF_WAIT)
+
+        # 1) Qabul qilish (take_tasnif)
+        flow = meto_flow.take_tasnif(b, self.tasnif)
+        self.assertEqual(flow.stage, PastalFlow.Stage.TASNIF_WORK)
+        self.assertEqual(flow.tasnif_taken_by, self.tasnif)
+        self.assertIsNotNone(flow.tasnif_taken_at)
+
+        # 2) Bekor qilish (cancel_tasnif) -> yana TASNIF_WAIT ga qaytadi
+        flow = meto_flow.cancel_tasnif(b, self.tasnif)
+        self.assertEqual(flow.stage, PastalFlow.Stage.TASNIF_WAIT)
+        self.assertIsNone(flow.tasnif_taken_by)
+        self.assertIsNone(flow.tasnif_taken_at)
+
+        # 3) Qayta qabul qilish va xato (haddan tashqari katta son kiritilganda)
+        meto_flow.take_tasnif(b, self.tasnif)
+        with self.assertRaises(FlowError):
+            meto_flow.finish_tasnif(b, self.counts(999999, 40, batch=b), self.tasnif)
+
+        # 4) Aniq sonlar bilan tugatish -> SKLAD bosqichiga o'tadi (Meto ombori)
+        flow = meto_flow.finish_tasnif(b, self.counts(48, 40, batch=b), self.tasnif)
+        self.assertEqual(flow.stage, PastalFlow.Stage.SKLAD)
+        self.assertEqual(flow.tasnif_done_by, self.tasnif)
+        self.assertIsNotNone(flow.tasnif_done_at)
+
+        # Razmerlar tekshiruvi: meto vs tasnif
+        from production.models import PastalFlowSize
+        sizes = {s.item.order_item_size.size_name: s for s in PastalFlowSize.objects.filter(item__batch=b)}
+        self.assertEqual(sizes['M'].meto_qty, 49)
+        self.assertEqual(sizes['M'].tasnif_qty, 48)
+        self.assertEqual(sizes['L'].meto_qty, 39)
+        self.assertEqual(sizes['L'].tasnif_qty, 40)
+
+    def test_tasnif_two_shifts(self):
+        from unittest.mock import patch
+        from production.shifts import TASHKENT_TZ
+
+        b1 = self.cut('T-S1', m=50, l=40)
+        b2 = self.cut('T-S2-EVE', m=50, l=40)
+        b3 = self.cut('T-S2-NIGHT', m=50, l=40)
+
+        for b in (b1, b2, b3):
+            meto_flow.take_meto(b, self.meto)
+            meto_flow.finish_meto(b, self.counts(50, 40, batch=b), self.meto)
+
+        f1 = meto_flow.take_tasnif(b1, self.tasnif)
+        meto_flow.finish_tasnif(b1, self.counts(50, 40, batch=b1), self.tasnif)
+        f1.tasnif_done_at = datetime.datetime(2026, 11, 20, 10, 0, 0, tzinfo=TASHKENT_TZ)
+        f1.save(update_fields=['tasnif_done_at'])
+
+        f2 = meto_flow.take_tasnif(b2, self.tasnif)
+        meto_flow.finish_tasnif(b2, self.counts(48, 40, batch=b2), self.tasnif)
+        f2.tasnif_done_at = datetime.datetime(2026, 11, 20, 20, 0, 0, tzinfo=TASHKENT_TZ)
+        f2.save(update_fields=['tasnif_done_at'])
+
+        f3 = meto_flow.take_tasnif(b3, self.tasnif)
+        meto_flow.finish_tasnif(b3, self.counts(50, 40, batch=b3), self.tasnif)
+        f3.tasnif_done_at = datetime.datetime(2026, 11, 21, 4, 0, 0, tzinfo=TASHKENT_TZ)
+        f3.save(update_fields=['tasnif_done_at'])
+
+        self.client.force_login(self.tasnif)
+
+        # 1) Hozirgi vaqt 2026-11-20 14:00 (1-smena payti) bo'lsa:
+        with patch('django.utils.timezone.localtime', return_value=datetime.datetime(2026, 11, 20, 14, 0, 0, tzinfo=TASHKENT_TZ)):
+            res = self.client.get(reverse('meto_hub_flow_tasnif'))
+            self.assertEqual(res.status_code, 200)
+            kpi = res.context['kpi']
+            # Joriy smena = 1-smena: b1 (1 ta pastal, 90 dona)
+            self.assertEqual(kpi['shift_done_count'], 1)
+            self.assertEqual(kpi['shift_done_qty'], 90)
+            # Kun jami (b1 + b2 + b3 = 3 ta pastal, 90 + 88 + 90 = 268 dona)
+            self.assertEqual(kpi['day_done_count'], 3)
+            self.assertEqual(kpi['day_done_qty'], 268)
+            # Smena kesimida
+            self.assertEqual(kpi['s1_done_count'], 1)
+            self.assertEqual(kpi['s1_done_qty'], 90)
+            self.assertEqual(kpi['s2_done_count'], 2)
+            self.assertEqual(kpi['s2_done_qty'], 178)
+
+            content = res.content.decode('utf-8')
+            self.assertIn("Faol: 1-smena (kunduzgi)", content)
+            self.assertIn("1-smena: <b class=\"text-slate-200\">1</b> p", content)
+            self.assertIn("2-smena: <b class=\"text-slate-200\">2</b> p", content)
+            self.assertIn("Kun jami: <b class=\"text-white\">3</b> p", content)
+
+        # 2) Smena filtrlari
+        with patch('django.utils.timezone.localtime', return_value=datetime.datetime(2026, 11, 20, 14, 0, 0, tzinfo=TASHKENT_TZ)):
+            # Faqat 1-smena
+            res_s1 = self.client.get(reverse('meto_hub_flow_tasnif'), {'smena': 's1'})
+            done_codes_s1 = [c['batch'].pastal_code for c in res_s1.context['done_cards']]
+            self.assertEqual(done_codes_s1, ['T-S1'])
+
+            # Faqat 2-smena
+            res_s2 = self.client.get(reverse('meto_hub_flow_tasnif'), {'smena': 's2'})
+            done_codes_s2 = [c['batch'].pastal_code for c in res_s2.context['done_cards']]
+            self.assertEqual(sorted(done_codes_s2), ['T-S2-EVE', 'T-S2-NIGHT'])
+
+    def test_tasnif_ui_elements_and_two_columns(self):
+        # 1 ta kutmoqda, 1 ta ishda
+        b_wait = self.cut('T-WAIT', m=50, l=40)
+        meto_flow.take_meto(b_wait, self.meto)
+        meto_flow.finish_meto(b_wait, self.counts(50, 40, batch=b_wait), self.meto)
+
+        b_work = self.cut('T-WORK', m=50, l=40)
+        meto_flow.take_meto(b_work, self.meto)
+        meto_flow.finish_meto(b_work, self.counts(49, 39, batch=b_work), self.meto)
+        meto_flow.take_tasnif(b_work, self.tasnif)
+
+        self.client.force_login(self.tasnif)
+        res = self.client.get(reverse('meto_hub_flow_tasnif'))
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+
+        # 2 tomonli ekran
+        self.assertIn("Tasnif kutmoqda", html)
+        self.assertIn("Tasnif bo'lmoqda", html)
+        self.assertIn("Qabul qilish", html)
+        self.assertIn("Qabulni bekor qilish", html)
+        self.assertIn("Meto omboriga jo'natish", html)
+        self.assertIn('btn-step-minus', html)
+        self.assertIn('btn-step-plus', html)
+        self.assertIn('onfocus="this.select()"', html)
+        self.assertIn('id="tasnif-search-input"', html)
+
+        # POST orqali bekor qilish (qabul qilingan pastal kutmoqda ga qaytadi)
+        cancel_url = reverse('meto_hub_flow_tasnif_cancel', args=[b_work.id])
+        res_cancel = self.client.post(cancel_url)
+        self.assertEqual(res_cancel.status_code, 302)
+        flow_work = meto_flow.get_flow(b_work)
+        self.assertEqual(flow_work.stage, PastalFlow.Stage.TASNIF_WAIT)
+
+        # POST orqali qabul qilish (kutmoqda -> ishda)
+        take_url = reverse('meto_hub_flow_tasnif_take', args=[b_wait.id])
+        res_take = self.client.post(take_url)
+        self.assertEqual(res_take.status_code, 302)
+        flow_wait = meto_flow.get_flow(b_wait)
+        self.assertEqual(flow_wait.stage, PastalFlow.Stage.TASNIF_WORK)
+
+        # POST orqali tugatish -> Meto omboriga jo'natish
+        item_m, item_l = self.items(b_wait)
+        finish_url = reverse('meto_hub_flow_tasnif_finish', args=[b_wait.id])
+        res_finish = self.client.post(finish_url, {
+            f'qty_{item_m.id}': 49,
+            f'qty_{item_l.id}': 40,
+        })
+        self.assertEqual(res_finish.status_code, 302)
+        flow_wait.refresh_from_db()
+        self.assertEqual(flow_wait.stage, PastalFlow.Stage.SKLAD)
+
+

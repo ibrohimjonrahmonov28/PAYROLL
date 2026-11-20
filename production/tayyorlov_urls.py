@@ -22,6 +22,7 @@ urlpatterns = [
     path('<int:batch_id>/meto/bekor/', flow.meto_cancel, name='meto_hub_flow_meto_cancel'),
     path('<int:batch_id>/meto/tugatish/', flow.meto_finish, name='meto_hub_flow_meto_finish'),
     path('<int:batch_id>/tasnif/qabul/', flow.tasnif_take, name='meto_hub_flow_tasnif_take'),
+    path('<int:batch_id>/tasnif/bekor/', flow.tasnif_cancel, name='meto_hub_flow_tasnif_cancel'),
     path('<int:batch_id>/tasnif/tugatish/', flow.tasnif_finish, name='meto_hub_flow_tasnif_finish'),
     path('<int:batch_id>/tasnif/ozgartirish/', flow.tasnif_update, name='meto_hub_flow_tasnif_update'),
     path('<int:batch_id>/qutilar/', flow.split, name='meto_hub_flow_split'),

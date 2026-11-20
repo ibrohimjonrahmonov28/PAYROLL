@@ -1,46 +1,514 @@
-{% comment %}Tasnif tabi: tasnif kutmoqda → qabul → real son (razmer bo'yicha) → tugatish → pastal avtomatik meto
-skladga.{% endcomment %}
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
-    <section class="space-y-3">
-        <h2 class="text-sm font-black uppercase text-white">Tasnif kutmoqda <span class="text-slate-400">({{
-                waiting|length }})</span></h2>
-        {% for c in waiting %}
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-            {% include 'meto_hub/flow/_card_head.html' %}
-            <div class="flex flex-wrap gap-1.5">{% for s in c.sizes %}<span
-                    class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ s.name }}</b>: meto {{
-                    s.meto }}</span>{% endfor %}</div>
-            <form method="POST" action="{% url 'meto_hub_flow_tasnif_take' c.batch.id %}" class="flex justify-end">{%
-                csrf_token %}
-                <button
-                    class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Qabul
-                    qilish</button>
-            </form>
+{% comment %}
+Tayyorlov → Tasnif tabi: 2 smena tizimi, ekran 2 ga bo'linadi (Tasnif kutmoqda va Tasnif bo'lmoqda),
+razmerlar bo'yicha aniq son kiritish, stepplar [−]/[+], jonli meto→tasnif farqi,
+Meto omboriga jo'natish tugmasi va tugatilganlar tarixi.
+{% endcomment %}
+<div class="space-y-5">
+    <!-- Smena holati va ma'lumot paneli -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2.5">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-black">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Faol: {{ current_shift.shift_name }}
+            </span>
+            <span class="text-slate-400">
+                Ish kuni: <b class="text-white">{{ current_shift.work_date_str }}</b> · Oraliq: <b class="text-slate-200">{{ current_shift.time_window_str }}</b>
+            </span>
         </div>
-        {% empty %}<p class="text-sm text-slate-500">Tasnif kutayotgan pastal yo'q.</p>{% endfor %}
-    </section>
-    <section class="space-y-3">
-        <h2 class="text-sm font-black uppercase text-white">Tasnif bo'lmoqda <span class="text-slate-400">({{
-                working|length }})</span></h2>
-        {% for c in working %}
-        <form method="POST" action="{% url 'meto_hub_flow_tasnif_finish' c.batch.id %}"
-            class="bg-slate-900 border border-amber-800/60 rounded-2xl p-4 space-y-3">{% csrf_token %}
-            {% include 'meto_hub/flow/_card_head.html' %}
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {% for s in c.sizes %}
-                <label class="space-y-1"><span class="text-xs font-bold text-slate-400">{{ s.name }} <span
-                            class="text-slate-500">(meto {{ s.meto }})</span></span>
-                    <input name="qty_{{ s.id }}" value="{{ s.meto }}" inputmode="numeric" required
-                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-center"></label>
+        <div class="flex flex-wrap items-center gap-2.5 text-slate-400">
+            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                <i class="fa-solid fa-sun text-amber-400 mr-1"></i>1-smena: <b class="text-slate-200">{{ kpi.s1_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s1_done_qty }}</b> dona
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+                <i class="fa-solid fa-moon text-indigo-400 mr-1"></i>2-smena: <b class="text-slate-200">{{ kpi.s2_done_count }}</b> p · <b class="text-slate-200">{{ kpi.s2_done_qty }}</b> dona
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-900/60 text-emerald-300">
+                <i class="fa-solid fa-calendar-day mr-1"></i>Kun jami: <b class="text-white">{{ kpi.day_done_count }}</b> p · <b class="text-white">{{ kpi.day_done_qty }}</b> dona
+            </span>
+        </div>
+    </div>
+
+    <!-- KPI qator -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold uppercase text-slate-400">Tasnif kutmoqda</p>
+                <p class="text-2xl font-black text-amber-400 mt-1">{{ kpi.wait_count }} <span
+                        class="text-xs font-bold text-slate-400">pastal · {{ kpi.wait_qty }} dona</span></p>
+            </div>
+            <i class="fa-solid fa-clock text-2xl text-amber-500/40"></i>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold uppercase text-slate-400">Tasnif bo'lmoqda</p>
+                <p class="text-2xl font-black text-cyan-400 mt-1">{{ kpi.work_count }} <span
+                        class="text-xs font-bold text-slate-400">pastal · {{ kpi.work_qty }} dona</span></p>
+            </div>
+            <i class="fa-solid fa-dolly text-2xl text-cyan-500/40"></i>
+        </div>
+        <div class="bg-slate-900 border border-emerald-900/50 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold uppercase text-emerald-400 flex items-center gap-1.5">
+                    <span>Joriy smena ({{ current_shift.shift_label }})</span>
+                </p>
+                <p class="text-2xl font-black text-emerald-400 mt-1">{{ kpi.shift_done_count }} <span
+                        class="text-xs font-bold text-slate-400">pastal · {{ kpi.shift_done_qty }} dona</span></p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Kun jami: <b class="text-slate-200">{{ kpi.day_done_count }}</b> p · <b class="text-slate-200">{{ kpi.day_done_qty }}</b> dona</p>
+            </div>
+            <i class="fa-solid fa-circle-check text-2xl text-emerald-500/40"></i>
+        </div>
+    </div>
+
+    <!-- Qidiruv va filtr -->
+    <form method="GET"
+        class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center gap-2.5">
+        <div class="flex-1 min-w-[220px] relative">
+            <i
+                class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            <input name="q" id="tasnif-search-input" value="{{ q }}"
+                placeholder="Pastal, zakaz, partiya, artikul, bichuvchi yoki buyurtmachi... ('/' bosing)"
+                class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-500">
+        </div>
+        <select name="zakaz"
+            class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200 max-w-[200px]">
+            <option value="">Zakaz: hammasi</option>
+            {% for o in orders_filter %}
+            <option value="{{ o.id }}" {% if zakaz == o.id|stringformat:"d" %}selected{% endif %}>{{ o.order_number }}
+            </option>
+            {% endfor %}
+        </select>
+        <select name="holat" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
+            <option value="faol" {% if holat == 'faol' %}selected{% endif %}>Faol (kutmoqda + ishda)</option>
+            <option value="wait" {% if holat == 'wait' %}selected{% endif %}>Faqat kutmoqda</option>
+            <option value="work" {% if holat == 'work' %}selected{% endif %}>Faqat tasnif bo'lmoqda</option>
+            <option value="done" {% if holat == 'done' %}selected{% endif %}>Tugatilganlar tarixi</option>
+        </select>
+        <select name="smena" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-slate-200">
+            <option value="">Smena: barchasi</option>
+            <option value="current" {% if smena == 'current' %}selected{% endif %}>Joriy smena ({{ current_shift.shift_label }})</option>
+            <option value="day" {% if smena == 'day' %}selected{% endif %}>Bugungi ish kuni (24s)</option>
+            <option value="s1" {% if smena == 's1' %}selected{% endif %}>Bugungi 1-smena</option>
+            <option value="s2" {% if smena == 's2' %}selected{% endif %}>Bugungi 2-smena</option>
+        </select>
+        <button
+            class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Ko'rsatish</button>
+        {% if q or zakaz or holat != 'faol' or smena %}
+        <a href="{% url 'meto_hub_flow_tasnif' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
+        {% endif %}
+        <div class="flex items-center gap-1.5 ml-auto">
+            <button type="button" id="btn-auto-refresh"
+                class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-bold flex items-center gap-1.5 transition"
+                title="Sahifani avtomatik yangilash (bosib almashtiring)">
+                <i class="fa-solid fa-arrows-rotate text-[11px]" id="refresh-icon"></i>
+                <span id="refresh-label">Avto: O'chiq</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- 2 TOMONLI EKRAN (Chap: Tasnif kutmoqda, O'ng: Tasnif bo'lmoqda) -->
+    {% if holat == 'faol' or holat == 'wait' or holat == 'work' %}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+
+        <!-- 1-TOMON: TASNIF KUTMOQDA -->
+        {% if holat == 'faol' or holat == 'wait' %}
+        <section class="space-y-3 {% if holat == 'wait' %}xl:col-span-2{% endif %}">
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="text-sm font-black uppercase text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <span>Tasnif kutmoqda</span>
+                    <span class="text-slate-400">({{ wait_page.paginator.count }})</span>
+                </h2>
+                {% if wait_page.has_other_pages %}
+                <span class="text-xs text-slate-400">Sahifa {{ wait_page.number }} / {{ wait_page.paginator.num_pages }}</span>
+                {% endif %}
+            </div>
+
+            <div class="space-y-3 {% if holat == 'wait' %}grid grid-cols-1 lg:grid-cols-2 gap-3 space-y-0{% endif %}">
+                {% for c in waiting %}
+                <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition">
+                    {% include 'meto_hub/flow/_card_head.html' %}
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800">
+                        <span class="text-slate-400">Kesim: <b class="text-slate-300">{{ c.total_cut }}</b> dona</span>
+                        <span class="text-amber-300 font-black">Meto soni: {{ c.total_meto }} dona</span>
+                        {% if c.meto_diff != 0 %}
+                        <span class="text-[11px] font-bold {% if c.meto_diff > 0 %}text-rose-400{% else %}text-amber-400{% endif %}">
+                            (farq {% if c.meto_diff > 0 %}+{{ c.meto_diff }}{% else %}{{ c.meto_diff }}{% endif %})
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap gap-1.5">
+                        {% for s in c.sizes %}
+                        <span class="px-2.5 py-1 rounded-lg bg-slate-800/90 text-xs text-slate-300 border border-slate-700/60">
+                            <b class="text-white font-bold">{{ s.name }}</b>: meto {{ s.meto|default:"0" }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <form method="POST" action="{% url 'meto_hub_flow_tasnif_take' c.batch.id %}" class="flex justify-end pt-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-sm flex items-center gap-2 shadow-lg shadow-amber-500/10 transition">
+                            <i class="fa-solid fa-hand-holding-hand"></i>
+                            <span>Qabul qilish</span>
+                        </button>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500 py-6 text-center">Tasnif kutayotgan pastal yo'q.</p>
                 {% endfor %}
             </div>
-            <div class="flex items-center justify-between gap-3">
-                <p class="text-[11px] text-slate-500">Real son — stiker shu sondan chiqadi.</p>
-                <button
-                    class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm">Tugatish
-                    → Tayyorlov skladi</button>
+
+            {% if wait_page.has_other_pages %}
+            <div class="flex items-center justify-between gap-2 pt-2 text-sm">
+                {% if wait_page.has_previous %}
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.previous_page_number }}&pd={{ done_page.number }}"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
+                {% else %}<span></span>{% endif %}
+                <span class="text-xs text-slate-400">{{ wait_page.number }} / {{ wait_page.paginator.num_pages }}</span>
+                {% if wait_page.has_next %}
+                <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.next_page_number }}&pd={{ done_page.number }}"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
+                {% else %}<span></span>{% endif %}
             </div>
-        </form>
-        {% empty %}<p class="text-sm text-slate-500">Hozir tasnif qilinayotgan pastal yo'q.</p>{% endfor %}
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <!-- 2-TOMON: TASNIF BO'LMOQDA -->
+        {% if holat == 'faol' or holat == 'work' %}
+        <section class="space-y-3 {% if holat == 'work' %}xl:col-span-2{% endif %}">
+            <h2 class="text-sm font-black uppercase text-white flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <span>Tasnif bo'lmoqda</span>
+                <span class="text-slate-400">({{ working|length }})</span>
+            </h2>
+
+            <div class="space-y-3 {% if holat == 'work' %}grid grid-cols-1 lg:grid-cols-2 gap-3 space-y-0{% endif %}">
+                {% for c in working %}
+                <div class="bg-slate-900 border border-cyan-800/60 rounded-2xl p-4 space-y-3 tasnif-work-card"
+                    data-total-meto="{{ c.total_meto }}">
+                    {% include 'meto_hub/flow/_card_head.html' %}
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                        <span>Qabul qildi: <b class="text-slate-200">{{ c.flow.tasnif_taken_by.get_full_name|default:c.flow.tasnif_taken_by.username|default:"—" }}</b> · {{ c.flow.tasnif_taken_at|date:"d.m H:i" }}</span>
+                        <form method="POST" action="{% url 'meto_hub_flow_tasnif_cancel' c.batch.id %}"
+                            onsubmit="return confirm('Qabulni bekor qilib, «Tasnif kutmoqda» ga qaytarasizmi?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit"
+                                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-300 font-bold text-[11px] transition">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>Qabulni bekor qilish
+                            </button>
+                        </form>
+                    </div>
+
+                    <form method="POST" action="{% url 'meto_hub_flow_tasnif_finish' c.batch.id %}"
+                        class="space-y-3 tasnif-finish-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                        <!-- Razmerlar bo'yicha aniq son kiritish -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                            {% for s in c.sizes %}
+                            <div class="space-y-1 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                                <div class="text-xs font-bold text-slate-400 flex items-center justify-between gap-1">
+                                    <span>{{ s.name }} <span class="text-slate-500 font-normal">(meto {{ s.meto|default:s.cut }})</span></span>
+                                    <span class="tasnif-diff-badge text-[11px] font-black text-emerald-400">=</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" class="btn-step-minus w-8 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-black text-base flex items-center justify-center select-none transition" title="-1 dona">−</button>
+                                    <input name="qty_{{ s.id }}" value="{{ s.meto|default:s.cut }}" min="0" inputmode="numeric" required
+                                        data-meto="{{ s.meto|default:s.cut }}" data-size="{{ s.name }}" onfocus="this.select()"
+                                        class="tasnif-qty-input flex-1 min-w-0 h-9 px-1 rounded-lg bg-slate-900 border border-slate-700 text-white font-black text-center text-sm focus:outline-none focus:border-cyan-500">
+                                    <button type="button" class="btn-step-plus w-8 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-black text-base flex items-center justify-center select-none transition" title="+1 dona">+</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Jami va farq satri -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs px-3 py-2 rounded-xl bg-slate-950 border border-slate-800">
+                            <span>Meto jami: <b class="text-white">{{ c.total_meto }}</b> dona</span>
+                            <span class="tasnif-total-line font-black text-emerald-300">Tasnif jami: {{ c.total_meto }} (farq 0)</span>
+                        </div>
+
+                        <!-- Tugatish tugmasi: METO OMBORIGA JO'NATISH -->
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <p class="text-[11px] text-slate-500">Tugatilgach, stiker chop etish va omborga o'tadi.</p>
+                            <button type="submit"
+                                class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+                                <i class="fa-solid fa-boxes-packing"></i>
+                                <span>Meto omboriga jo'natish</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500 py-6 text-center">Hozir tasnif qilinayotgan pastal yo'q.</p>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    <!-- Tugatilganlar tarixi -->
+    {% if holat == 'faol' or holat == 'done' %}
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-sm font-black uppercase text-white">Tugatilgan pastallar tarixi <span
+                    class="text-slate-400">({{ done_page.paginator.count }})</span></h2>
+            {% if done_page.has_other_pages %}
+            <span class="text-xs text-slate-400">Sahifa {{ done_page.number }} / {{ done_page.paginator.num_pages }}</span>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-xs text-slate-400 border-b border-slate-800">
+                    <tr>
+                        <th class="text-left py-2 pr-3">Pastal</th>
+                        <th class="text-left py-2 pr-3">Zakaz / Artikul</th>
+                        <th class="text-left py-2 pr-3">Meto → Tasnif</th>
+                        <th class="text-left py-2 pr-3">Smena</th>
+                        <th class="text-left py-2 pr-3">Tasnifchi</th>
+                        <th class="text-left py-2 pr-3">Vaqt</th>
+                        <th class="text-left py-2">Hozirgi bosqich</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for c in done_cards %}
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="py-2 pr-3 font-black text-white whitespace-nowrap">{{ c.batch.pastal_code|default:c.batch.name }}</td>
+                        <td class="py-2 pr-3 text-slate-300">{{ c.order.order_number }} · {{ c.article.code|default:"—" }}</td>
+                        <td class="py-2 pr-3 whitespace-nowrap">
+                            <span class="text-slate-400">{{ c.total_meto }}</span> → <b class="text-white">{{ c.total_tasnif }}</b>
+                            {% if c.tasnif_diff > 0 %}
+                            <span class="ml-1 text-xs font-bold text-rose-300">(+{{ c.tasnif_diff }})</span>
+                            {% elif c.tasnif_diff < 0 %}
+                            <span class="ml-1 text-xs font-bold text-amber-300">({{ c.tasnif_diff }})</span>
+                            {% else %}
+                            <span class="ml-1 text-xs text-emerald-400">(=)</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 pr-3 whitespace-nowrap">
+                            {% if c.tasnif_shift %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold {% if c.tasnif_shift.shift_num == 1 %}bg-amber-950/80 text-amber-300 border border-amber-800/60{% else %}bg-indigo-950/80 text-indigo-300 border border-indigo-800/60{% endif %}" title="Ish kuni: {{ c.tasnif_shift.work_date_str }} ({{ c.tasnif_shift.time_window_str }})">
+                                <i class="fa-solid {% if c.tasnif_shift.shift_num == 1 %}fa-sun{% else %}fa-moon{% endif %} text-[10px]"></i>
+                                {{ c.tasnif_shift.shift_label }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-500">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 pr-3 text-slate-300">{{ c.flow.tasnif_done_by.get_full_name|default:c.flow.tasnif_done_by.username|default:"—" }}</td>
+                        <td class="py-2 pr-3 text-xs text-slate-400 whitespace-nowrap" title="{% if c.tasnif_shift %}Ish kuni: {{ c.tasnif_shift.work_date_str }}{% endif %}">
+                            {{ c.flow.tasnif_done_at|date:"d.m.Y H:i" }}
+                        </td>
+                        <td class="py-2">
+                            <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs font-bold text-cyan-300">{{ c.flow.get_stage_display }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">Hali tasnif tugatilgan pastal yo'q.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if done_page.has_other_pages %}
+        <div class="flex items-center justify-between gap-2 pt-2 text-sm">
+            {% if done_page.has_previous %}
+            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.number }}&pd={{ done_page.previous_page_number }}"
+                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">← Oldingi</a>
+            {% else %}<span></span>{% endif %}
+            <span class="text-xs text-slate-400">{{ done_page.number }} / {{ done_page.paginator.num_pages }}</span>
+            {% if done_page.has_next %}
+            <a href="?holat={{ holat }}&q={{ q|urlencode }}&zakaz={{ zakaz }}&smena={{ smena }}&pw={{ wait_page.number }}&pd={{ done_page.next_page_number }}"
+                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 font-bold">Keyingi →</a>
+            {% else %}<span></span>{% endif %}
+        </div>
+        {% endif %}
     </section>
+    {% endif %}
 </div>
+
+<script>
+    (function () {
+        function refreshCard(card) {
+            const inputs = card.querySelectorAll('.tasnif-qty-input');
+            let totalMeto = 0, totalTasnif = 0;
+            inputs.forEach(inp => {
+                const meto = parseInt(inp.dataset.meto || '0', 10);
+                const val = parseInt((inp.value || '').trim(), 10);
+                totalMeto += meto;
+                const container = inp.closest('.space-y-1') || inp.parentElement;
+                const badge = container ? container.querySelector('.tasnif-diff-badge') : null;
+                if (isNaN(val) || val < 0) {
+                    if (badge) {
+                        badge.textContent = '?';
+                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-rose-400';
+                    }
+                    return;
+                }
+                totalTasnif += val;
+                const diff = val - meto;
+                if (badge) {
+                    if (diff === 0) {
+                        badge.textContent = '✓';
+                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-emerald-400';
+                    } else if (diff > 0) {
+                        badge.textContent = '+' + diff;
+                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-rose-400';
+                    } else {
+                        badge.textContent = String(diff);
+                        badge.className = 'tasnif-diff-badge text-[11px] font-black text-amber-300';
+                    }
+                }
+            });
+            const totalEl = card.querySelector('.tasnif-total-line');
+            if (totalEl) {
+                const diff = totalTasnif - totalMeto;
+                const sign = diff > 0 ? '+' + diff : String(diff);
+                totalEl.textContent = `Tasnif jami: ${totalTasnif} (farq ${sign})`;
+                totalEl.className = 'tasnif-total-line font-black ' + (diff > 0 ? 'text-rose-300' : (diff < 0 ? 'text-amber-300' : 'text-emerald-300'));
+            }
+        }
+
+        document.querySelectorAll('.tasnif-work-card').forEach(card => {
+            // Son kiritilganda jonli qayta hisoblash
+            card.querySelectorAll('.tasnif-qty-input').forEach(inp => {
+                inp.addEventListener('input', () => refreshCard(card));
+            });
+
+            // [-] va [+] qadam tugmalari
+            card.querySelectorAll('.btn-step-minus').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inp = btn.parentElement.querySelector('.tasnif-qty-input');
+                    if (!inp) return;
+                    let val = parseInt((inp.value || '').trim(), 10);
+                    if (isNaN(val)) val = parseInt(inp.dataset.meto || '0', 10);
+                    if (val > 0) {
+                        inp.value = val - 1;
+                        refreshCard(card);
+                    }
+                });
+            });
+
+            card.querySelectorAll('.btn-step-plus').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inp = btn.parentElement.querySelector('.tasnif-qty-input');
+                    if (!inp) return;
+                    let val = parseInt((inp.value || '').trim(), 10);
+                    if (isNaN(val)) val = parseInt(inp.dataset.meto || '0', 10);
+                    inp.value = val + 1;
+                    refreshCard(card);
+                });
+            });
+
+            // Forma topshirishda ortiqcha va kamomadni chuqur tekshirish
+            const form = card.querySelector('.tasnif-finish-form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    const over = [];
+                    const under = [];
+                    card.querySelectorAll('.tasnif-qty-input').forEach(inp => {
+                        const meto = parseInt(inp.dataset.meto || '0', 10);
+                        const val = parseInt((inp.value || '').trim(), 10);
+                        if (!isNaN(val)) {
+                            if (val > meto) {
+                                over.push(`${inp.dataset.size}: ${val} (meto ${meto}, ortiqcha +${val - meto})`);
+                            } else if (meto > 0 && val < meto) {
+                                under.push(`${inp.dataset.size}: ${val} (meto ${meto}, kamomad -${meto - val})`);
+                            }
+                        }
+                    });
+
+                    let msg = "";
+                    if (over.length && under.length) {
+                        msg = `DIQQAT! Meto soniga nisbatan farq bor:\n\nORTIQCHA:\n${over.join('\n')}\n\nKAMOMAD:\n${under.join('\n')}\n\nMeto omboriga jo'natilsinmi?`;
+                    } else if (over.length) {
+                        msg = `DIQQAT! Metodan ko'p son kiritildi:\n${over.join('\n')}\n\nMeto omboriga jo'natilsinmi?`;
+                    } else if (under.length) {
+                        msg = `DIQQAT! Metodan kam son kiritildi (kamomad):\n${under.join('\n')}\n\nMeto omboriga jo'natilsinmi?`;
+                    } else {
+                        msg = "Tasnif tugatilib, Meto omboriga jo'natilsinmi?";
+                    }
+                    if (!confirm(msg)) e.preventDefault();
+                });
+            }
+            refreshCard(card);
+        });
+
+        // '/' tugmasi bilan tezkor qidiruvga o'tish
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                const searchInp = document.getElementById('tasnif-search-input');
+                if (searchInp) {
+                    e.preventDefault();
+                    searchInp.focus();
+                    searchInp.select();
+                }
+            }
+        });
+
+        // Avto-yangilanish boshqaruvi
+        const refreshBtn = document.getElementById('btn-auto-refresh');
+        const refreshLabel = document.getElementById('refresh-label');
+        const refreshIcon = document.getElementById('refresh-icon');
+        const INTERVALS = [0, 30, 60];
+        let curInterval = parseInt(localStorage.getItem('tasnif_auto_refresh') || '0', 10);
+        if (!INTERVALS.includes(curInterval)) curInterval = 0;
+        let timerId = null;
+        let secondsLeft = curInterval;
+
+        function updateRefreshUI() {
+            if (!refreshBtn || !refreshLabel || !refreshIcon) return;
+            if (curInterval === 0) {
+                refreshLabel.textContent = "Avto: O'chiq";
+                refreshBtn.className = "px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-500 text-slate-400 text-xs font-bold flex items-center gap-1.5 transition";
+                refreshIcon.classList.remove('fa-spin', 'text-amber-400');
+            } else {
+                refreshLabel.textContent = `Avto: ${secondsLeft}s`;
+                refreshBtn.className = "px-3 py-2 rounded-xl bg-amber-950/60 border border-amber-600/60 text-amber-300 text-xs font-black flex items-center gap-1.5 transition";
+                refreshIcon.classList.add('text-amber-400');
+            }
+        }
+
+        function startTimer() {
+            if (timerId) clearInterval(timerId);
+            if (curInterval > 0) {
+                secondsLeft = curInterval;
+                timerId = setInterval(() => {
+                    const activeEl = document.activeElement;
+                    if (activeEl && (activeEl.classList.contains('tasnif-qty-input') || activeEl.id === 'tasnif-search-input')) {
+                        secondsLeft = curInterval;
+                        updateRefreshUI();
+                        return;
+                    }
+                    secondsLeft--;
+                    if (secondsLeft <= 0) {
+                        refreshIcon.classList.add('fa-spin');
+                        window.location.reload();
+                    } else {
+                        updateRefreshUI();
+                    }
+                }, 1000);
+            }
+            updateRefreshUI();
+        }
+
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                const nextIdx = (INTERVALS.indexOf(curInterval) + 1) % INTERVALS.length;
+                curInterval = INTERVALS[nextIdx];
+                localStorage.setItem('tasnif_auto_refresh', String(curInterval));
+                startTimer();
+            });
+            startTimer();
+        }
+    })();
+</script>

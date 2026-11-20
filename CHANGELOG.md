@@ -29,6 +29,29 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `8a348d4`] — 20.11.2026
+* **Turi:** `feat(tasnif)` — Tayyorlov Tasnif bo'limi: 2 smena tizimi, 2 tomonli ekran (kutmoqda / bo'lmoqda), qabulni bekor qilish va «Meto omboriga jo'natish»
+* **Mavzu:** https://terryjar.uz/tayyorlov/tasnif/ bo'limi egasi talabi bo'yicha to'liq yangilandi:
+  - Ekran 2 tomonga bo'lindi: chap tomonda «Tasnif kutmoqda», o'ng tomonda «Tasnif bo'lmoqda».
+  - «Qabul qilish» bosilganda pastal chap tomondan o'ng tomonga o'tadi.
+  - Yangi imkoniyat: «Qabulni bekor qilish» tugmasi orqali adashib qabul qilingan pastalni yana kutmoqda holatiga qaytarish mumkin.
+  - 2 smenali ish tartibi tatbiq etildi (`08:00–18:00` 1-smena, `18:00–08:00` 2-smena / tungi; `00:00–07:59` vaqtidagi ishlar kechagi ish kunining 2-smenasiga yoziladi).
+  - Jonli smena banneri, 1- va 2-smena, joriy smena va 24 soatlik kun jami KPI ko'rsatkichlari.
+  - Razmerlar bo'yicha aniq son kiritish: `[-]` va `[+]` qadam tugmalari, `onfocus="this.select()"`, har bir razmerda va pastal jami bo'yicha meto soniga nisbatan jonli farq indikatori (`✓`, `+`, `-`).
+  - Tugatish tugmasi nomi egasi aytgandek «Meto omboriga jo'natish» deb belgilandi.
+  - Formani topshirishda ortiqcha yoki kamomad bo'lsa, razmerlar kesimida tasdiqlash so'raladi.
+  - Qidiruv (`/` tezkor tugmasi bilan), zakaz, holat (`faol`, `wait`, `work`, `done`) va smena (`current`, `day`, `s1`, `s2`) filtrlari, avto-yangilanish (`30s`, `60s`).
+  - Tugatilgan pastallar tarixi jadvali: Meto → Tasnif sonlari, farqi, smena badji, tasnifchi, vaqt va joriy bosqich.
+* **O'zgartirilgan fayllar:**
+  - `production/meto_flow.py`: `cancel_tasnif(batch, user)` funksiyasi va son tekshiruvi
+  - `production/meto_flow_views.py`: `_card` (tasnif_shift, tasnif_diff), `_ctx_tasnif` (2 smena KPI, filtrlash, qidiruv), `tasnif_cancel` view
+  - `production/tayyorlov_urls.py`: `/<batch_id>/tasnif/bekor/` yo'nalishi
+  - `templates/meto_hub/flow/tasnif.html`: 2 tomonli ekran, smena paneli, stepplar, farq hisoblagich, «Meto omboriga jo'natish»
+  - `production/test_meto_flow.py`: `test_tasnif_lifecycle_take_cancel_finish`, `test_tasnif_two_shifts`, `test_tasnif_ui_elements_and_two_columns`
+* **Serverda:** `git pull origin main && docker compose restart web` (migratsiya talab qilinmaydi).
+
+---
+
 ### 🔹 [Commit: `09c2b9f`] — 20.11.2026
 * **Turi:** `feat(meto)` — Tayyorlov Meto bo'limi uchun sensorli ekran qulayliklari (stepperlar, izoh shablonlari, kamomad ogohlantirishi, avto-yangilanish)
 * **Mavzu:** Meto bo'limida planshet/ekranda ishlash qulaylashtirildi: har bir razmer yoniga `[-]` va `[+]` qadam tugmalari qo'shildi, katakka bosilganda son to'liq tanlanadi (`onfocus="this.select()"`), `meto_note` maydoni ostida tezkor izoh shablonlari (`Qavat yetmadi`, `Mato nuqsoni`, va h.k.), kamomad va ortiqchalik bo'yicha batafsil ogohlantirish, `/` tugmasi bilan qidiruvga o'tish, aqlli avto-yangilanish (`30s`, `60s`), hamda `wait` yoki `work` filtrlarida tarix jadvalini yashirish kiritildi.

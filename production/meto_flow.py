@@ -182,6 +182,8 @@ def finish_meto(batch, counts, user, note=''):
 
 
 def take_tasnif(batch, user):
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
     with transaction.atomic():
         flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
         _require(flow, PastalFlow.Stage.TASNIF_WAIT, "Bu pastal tasnif kutmoqda holatida emas.")
@@ -190,13 +192,35 @@ def take_tasnif(batch, user):
     return flow
 
 
+def cancel_tasnif(batch, user):
+    """Adashib qabul qilingan pastalni 'Tasnif kutmoqda' holatiga qaytarish."""
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
+    with transaction.atomic():
+        flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
+        _require(flow, PastalFlow.Stage.TASNIF_WORK, "Faqat tasnif bo'layotgan pastalni bekor qilish mumkin.")
+        flow.stage, flow.tasnif_taken_by, flow.tasnif_taken_at = PastalFlow.Stage.TASNIF_WAIT, None, None
+        flow.save(update_fields=['stage', 'tasnif_taken_by', 'tasnif_taken_at', 'updated_at'])
+    return flow
+
+
 def finish_tasnif(batch, counts, user):
-    """Tasnif real sonni beradi — pastal avtomatik meto skladga (Koson) o'tadi."""
+    """Tasnif real sonni beradi — pastal avtomatik meto omboriga (Koson) o'tadi."""
+    if not is_v2_batch(batch):
+        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
     with transaction.atomic():
         flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
         _require(flow, PastalFlow.Stage.TASNIF_WORK, "Bu pastal tasnif bo'lmoqda holatida emas.")
         items = _items(batch)
         values = _counts(items, counts)
+        for item in items:
+            val = values[item.id]
+            max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)
+            if val > max_reasonable:
+                raise FlowError(
+                    f"{item.order_item_size.size_name} razmerida tasnif soni ({val}) "
+                    f"kesimdan ({item.quantity}) haddan tashqari katta — raqamni tekshiring."
+                )
         for item in items:
             size = _size(item)
             size.tasnif_qty = values[item.id]

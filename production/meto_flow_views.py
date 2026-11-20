@@ -219,15 +219,18 @@ def _card(flow):
     has_ops = bool(article and len(article.article_operations.all()) > 0)
     total_cut = sum(s['cut'] for s in sizes)
     total_meto = sum(s['meto'] or 0 for s in sizes)
+    total_tasnif = sum(s['tasnif'] or 0 for s in sizes)
     meto_shift = get_shift_for_timestamp(flow.meto_done_at) if flow.meto_done_at else None
+    tasnif_shift = get_shift_for_timestamp(flow.tasnif_done_at) if flow.tasnif_done_at else None
     return {
         'flow': flow, 'batch': batch, 'order': order, 'article': article, 'image': image, 'customer': customer,
         'has_ops': has_ops, 'sizes': sizes, 'total_cut': total_cut,
         'total_meto': total_meto, 'meto_diff': total_meto - total_cut,
-        'total_tasnif': sum(s['tasnif'] or 0 for s in sizes),
+        'total_tasnif': total_tasnif, 'tasnif_diff': total_tasnif - total_meto if total_meto else 0,
         'boxes_count': len(boxes), 'printed_count': sum(1 for b in boxes if b.is_printed),
         'linked_count': len(linked),
         'meto_shift': meto_shift,
+        'tasnif_shift': tasnif_shift,
         'ready': (len(boxes) > 0 and all(b.is_printed for b in boxes) and len(linked) == len(boxes)
                   and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))),
     }
@@ -401,8 +404,125 @@ def _ctx_meto(request):
 
 
 def _ctx_tasnif(request):
-    return {'waiting': _flows(stage=PastalFlow.Stage.TASNIF_WAIT),
-            'working': _flows(stage=PastalFlow.Stage.TASNIF_WORK)}
+    flow_logic.ensure_flows()
+    q = request.GET.get('q', '').strip()
+    holat = request.GET.get('holat', 'faol')
+    if holat not in ('faol', 'wait', 'work', 'done'):
+        holat = 'faol'
+    zakaz = request.GET.get('zakaz', '').strip()
+    smena = request.GET.get('smena', '').strip()
+
+    current_shift = get_shift_info()
+    day_shifts = get_work_day_shifts(current_shift['work_date'])
+
+    wait_base = _search_flows_qs(_flows_qs(stage=PastalFlow.Stage.TASNIF_WAIT), q, zakaz)
+    work_base = _search_flows_qs(_flows_qs(stage=PastalFlow.Stage.TASNIF_WORK).order_by('-tasnif_taken_at', '-id'), q, zakaz)
+    done_base = _search_flows_qs(
+        _flows_qs(tasnif_done_at__isnull=False).order_by('-tasnif_done_at', '-id'), q, zakaz
+    )
+
+    if smena == 'current':
+        done_base = done_base.filter(tasnif_done_at__gte=current_shift['shift_start'], tasnif_done_at__lt=current_shift['shift_end'])
+    elif smena == 'day':
+        done_base = done_base.filter(tasnif_done_at__gte=current_shift['day_start'], tasnif_done_at__lt=current_shift['day_end'])
+    elif smena == 's1':
+        done_base = done_base.filter(tasnif_done_at__gte=day_shifts['shift1']['start'], tasnif_done_at__lt=day_shifts['shift1']['end'])
+    elif smena == 's2':
+        done_base = done_base.filter(tasnif_done_at__gte=day_shifts['shift2']['start'], tasnif_done_at__lt=day_shifts['shift2']['end'])
+
+    wait_page = Paginator(wait_base, METO_PAGE_SIZE).get_page(request.GET.get('pw'))
+    done_page = Paginator(done_base, 25).get_page(request.GET.get('pd'))
+
+    # Tasnif kutayotgan dona (meto soni bo'yicha)
+    wait_qty = (
+        PastalFlowSize.objects.filter(item__batch__flow__stage=PastalFlow.Stage.TASNIF_WAIT)
+        .aggregate(t=Sum('meto_qty'))['t'] or 0
+    )
+    # Tasnif bo'layotgan dona (meto soni bo'yicha)
+    work_qty = (
+        PastalFlowSize.objects.filter(item__batch__flow__stage=PastalFlow.Stage.TASNIF_WORK)
+        .aggregate(t=Sum('meto_qty'))['t'] or 0
+    )
+
+    # Joriy smena metrikalari (08:00–18:00 yoki 18:00–08:00)
+    shift_done_count = PastalFlow.objects.filter(
+        tasnif_done_at__gte=current_shift['shift_start'],
+        tasnif_done_at__lt=current_shift['shift_end'],
+    ).count()
+    shift_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__tasnif_done_at__gte=current_shift['shift_start'],
+            item__batch__flow__tasnif_done_at__lt=current_shift['shift_end'],
+        ).aggregate(t=Sum('tasnif_qty'))['t'] or 0
+    )
+
+    # 24 soatlik ish kuni (1-smena + 2-smena)
+    day_done_count = PastalFlow.objects.filter(
+        tasnif_done_at__gte=current_shift['day_start'],
+        tasnif_done_at__lt=current_shift['day_end'],
+    ).count()
+    day_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__tasnif_done_at__gte=current_shift['day_start'],
+            item__batch__flow__tasnif_done_at__lt=current_shift['day_end'],
+        ).aggregate(t=Sum('tasnif_qty'))['t'] or 0
+    )
+
+    # Bugungi ish kunining 1- va 2-smenalari alohida
+    s1_done_count = PastalFlow.objects.filter(
+        tasnif_done_at__gte=day_shifts['shift1']['start'],
+        tasnif_done_at__lt=day_shifts['shift1']['end'],
+    ).count()
+    s1_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__tasnif_done_at__gte=day_shifts['shift1']['start'],
+            item__batch__flow__tasnif_done_at__lt=day_shifts['shift1']['end'],
+        ).aggregate(t=Sum('tasnif_qty'))['t'] or 0
+    )
+    s2_done_count = PastalFlow.objects.filter(
+        tasnif_done_at__gte=day_shifts['shift2']['start'],
+        tasnif_done_at__lt=day_shifts['shift2']['end'],
+    ).count()
+    s2_done_qty = (
+        PastalFlowSize.objects.filter(
+            item__batch__flow__tasnif_done_at__gte=day_shifts['shift2']['start'],
+            item__batch__flow__tasnif_done_at__lt=day_shifts['shift2']['end'],
+        ).aggregate(t=Sum('tasnif_qty'))['t'] or 0
+    )
+
+    kpi = {
+        'wait_count': PastalFlow.objects.filter(stage=PastalFlow.Stage.TASNIF_WAIT).count(),
+        'wait_qty': wait_qty,
+        'work_count': PastalFlow.objects.filter(stage=PastalFlow.Stage.TASNIF_WORK).count(),
+        'work_qty': work_qty,
+        'shift_done_count': shift_done_count,
+        'shift_done_qty': shift_done_qty,
+        'today_done_count': shift_done_count,
+        'today_done_qty': shift_done_qty,
+        'day_done_count': day_done_count,
+        'day_done_qty': day_done_qty,
+        's1_done_count': s1_done_count,
+        's1_done_qty': s1_done_qty,
+        's2_done_count': s2_done_count,
+        's2_done_qty': s2_done_qty,
+    }
+    orders_filter = Order.objects.filter(meto_beta=True).order_by('-created_at')[:100]
+
+    return {
+        'waiting': [_card(f) for f in wait_page],
+        'wait_page': wait_page,
+        'working': [_card(f) for f in work_base[:100]],
+        'done_cards': [_card(f) for f in done_page],
+        'done_page': done_page,
+        'kpi': kpi,
+        'current_shift': current_shift,
+        'day_shifts': day_shifts,
+        'q': q,
+        'holat': holat,
+        'smena': smena,
+        'zakaz': zakaz,
+        'orders_filter': orders_filter,
+    }
 
 
 def _ctx_stiker(request):
@@ -664,10 +784,17 @@ def tasnif_take(request, batch_id):
 
 
 @_form_action('tasnif', 'tasnif')
+def tasnif_cancel(request, batch_id):
+    batch = _batch(batch_id)
+    flow_logic.cancel_tasnif(batch, request.user)
+    return f"{_name(batch)}: qabul bekor qilindi, «Tasnif kutmoqda» ga qaytdi."
+
+
+@_form_action('tasnif', 'tasnif')
 def tasnif_finish(request, batch_id):
     batch = _batch(batch_id)
     flow_logic.finish_tasnif(batch, _posted_counts(request), request.user)
-    return f"{_name(batch)}: tasnif tugadi, pastal tayyorlov skladiga o'tdi."
+    return f"{_name(batch)}: tasnif tugadi, pastal Meto omboriga jo'natildi."
 
 
 @_form_action('stiker', 'stiker')
