@@ -862,66 +862,72 @@
                 </div>
 
                 <!-- Kg Pending Cards List -->
-                <div id="kg-pending-list" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+                <div id="kg-pending-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {% for p in kg_pending_cards %}
                     <div id="kg-pending-card-{{ p.batch_id }}"
-                        class="p-4 rounded-2xl bg-slate-950 border-2 border-amber-500/50 hover:border-amber-400 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg transition-all">
+                        class="p-2.5 sm:p-3 rounded-2xl bg-slate-950/90 border border-amber-500/50 hover:border-amber-400 flex flex-wrap md:flex-nowrap items-center justify-between gap-3 shadow transition-all">
                         
-                        <div class="space-y-2 flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-base font-black font-mono text-white">{{ p.pastal_code }}</span>
-                                <span class="text-xs text-amber-400 font-bold font-mono">({{ p.order_number }} · {{ p.customer }})</span>
-                                
-                                {% if p.boxes_count == 0 %}
-                                <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-xs flex items-center gap-1">
-                                    <i class="fa-solid fa-box-open"></i> Paketda (Qutisiz)
-                                </span>
-                                {% else %}
-                                <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-mono text-xs">
-                                    {{ p.boxes_count }} ta quti
-                                </span>
-                                {% endif %}
+                        <div class="flex items-center gap-2.5 min-w-[170px]">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                <i class="fa-solid fa-scale-balanced"></i>
                             </div>
-
-                            <div class="flex items-center gap-3">
-                                {% if p.image %}
-                                <img src="{{ p.image }}" alt="" class="w-9 h-9 rounded-lg object-cover border border-slate-800 bg-slate-900 flex-shrink-0">
-                                {% endif %}
-                                <div class="min-w-0">
-                                    <span class="text-xs font-mono font-bold text-cyan-300 block truncate">{{ p.article_code }}</span>
-                                    <span class="text-[11px] text-slate-400 block truncate">{{ p.article_name }}</span>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-sm font-black font-mono text-white">{{ p.pastal_code }}</span>
+                                    {% if p.boxes_count == 0 %}
+                                    <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
+                                        📦 Paketda
+                                    </span>
+                                    {% else %}
+                                    <span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">
+                                        {{ p.boxes_count }} quti
+                                    </span>
+                                    {% endif %}
                                 </div>
-                            </div>
-
-                            <!-- Sizes pills -->
-                            <div class="flex flex-wrap gap-1.5 text-xs">
-                                {% for s in p.sizes %}
-                                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-                                    <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
-                                </span>
-                                {% endfor %}
-                                <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">
-                                    Jami: {{ p.total_tasnif }} dona
-                                </span>
+                                <span class="text-xs text-amber-400 font-bold block truncate max-w-[160px]">{{ p.order_number }} · {{ p.customer }}</span>
                             </div>
                         </div>
 
-                        <!-- Touch-friendly Kg Input Form -->
-                        <div class="flex items-center gap-2.5 w-full md:w-auto justify-end bg-slate-900 p-2 rounded-2xl border border-slate-800 flex-shrink-0">
-                            <div class="text-right">
-                                <label for="kg-input-{{ p.batch_id }}" class="block text-[11px] font-bold text-slate-400 mb-0.5">Real og'irlik (kg):</label>
-                                <input type="number" step="0.01" inputmode="decimal" id="kg-input-{{ p.batch_id }}" placeholder="0.0"
-                                    class="w-28 sm:w-32 px-3 py-2 bg-slate-950 border-2 border-amber-500/70 rounded-xl text-white font-mono font-black text-center text-lg focus:outline-none focus:border-amber-400">
+                        <div class="flex items-center gap-2 min-w-[150px]">
+                            {% if p.image %}
+                            <img src="{{ p.image }}" alt="" class="w-7 h-7 rounded-lg object-cover border border-slate-800 bg-slate-900 flex-shrink-0">
+                            {% endif %}
+                            <div class="min-w-0">
+                                <span class="text-xs font-mono font-bold text-cyan-300 block truncate">{{ p.article_code }}</span>
+                                <span class="text-[11px] text-slate-400 block truncate max-w-[130px]">{{ p.article_name }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Sizes pills & Total -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="flex flex-wrap gap-1 text-[11px]">
+                                {% for s in p.sizes %}
+                                <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                                    <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs whitespace-nowrap">
+                                Jami: {{ p.total_tasnif }} dona
+                            </span>
+                        </div>
+
+                        <!-- Inline Kg Input & Action -->
+                        <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
+                            <div class="relative">
+                                <input type="number" step="0.01" inputmode="decimal" id="kg-input-{{ p.batch_id }}" placeholder="0.00"
+                                    class="w-24 sm:w-28 px-2.5 py-1.5 bg-slate-900 border-2 border-amber-500/70 rounded-xl text-white font-mono font-black text-center text-sm focus:outline-none focus:border-amber-400">
+                                <span class="absolute right-2 top-1.5 text-xs text-slate-500 font-bold pointer-events-none">kg</span>
                             </div>
                             <button type="button" id="kg-btn-{{ p.batch_id }}" onclick="submitTabletKg({{ p.batch_id }})"
-                                class="touch-btn px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 flex items-center gap-2 whitespace-nowrap self-end">
-                                <i class="fa-solid fa-scale-balanced text-base"></i>
-                                <span>Skladga Qabul</span>
+                                class="touch-btn px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 whitespace-nowrap">
+                                <i class="fa-solid fa-scale-balanced text-sm"></i>
+                                <span>Qabul</span>
                             </button>
                         </div>
                     </div>
                     {% empty %}
-                    <div id="kg-pending-empty" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 text-center text-slate-400 text-xs sm:text-sm flex items-center justify-center gap-2">
+                    <div id="kg-pending-empty" class="p-3 rounded-2xl bg-slate-950 border border-slate-800/80 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
                         <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
                         <span>Tasnifdan chiqqan barcha pastallarning kg si kiritilgan va omborga o'tgan.</span>
                     </div>
@@ -972,160 +978,175 @@
                     </div>
                 </div>
 
-                <!-- Cards Grid in the exact style of https://terryjar.uz/meto-hub/?tab=sklad -->
-                <div id="stored-cards-grid" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
-                    {% for card in stored_cards %}
-                    <div id="stored-card-{{ card.batch_id }}"
-                        data-status="{{ card.packaging_status }}"
-                        data-search="{{ card.pastal_code|lower }} {{ card.order_number|lower }} {{ card.article_code|lower }} {{ card.article_name|lower }} {{ card.customer|lower }}"
-                        class="stored-card bg-slate-900 border-2 {% if card.packaging_status == 'packet' %}border-amber-500/60 bg-gradient-to-b from-amber-950/20 to-slate-900{% elif card.packaging_status == 'stiker_pending' %}border-purple-500/60 bg-gradient-to-b from-purple-950/20 to-slate-900{% elif card.packaging_status == 'container_pending' %}border-rose-500/60 bg-gradient-to-b from-rose-950/20 to-slate-900{% else %}border-emerald-500/60 bg-gradient-to-b from-emerald-950/20 to-slate-900{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3 transition-all">
-                        
-                        <div class="space-y-3">
-                            <!-- Card Head with Pastal Code & Status Badge -->
-                            <div class="flex items-start justify-between gap-2">
-                                <div>
-                                    <span class="text-base font-black font-mono text-white block">{{ card.pastal_code }}</span>
-                                    <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }} · {{ card.customer }}</span>
-                                </div>
+                <!-- Stored Pastals List Table (Replaces large cards with sleek list format) -->
+                <div id="stored-cards-grid" class="flex-1 overflow-auto rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl">
+                    <table class="w-full text-left border-collapse min-w-[960px] text-xs">
+                        <thead class="sticky top-0 bg-slate-950/95 backdrop-blur text-slate-400 font-bold uppercase text-[11px] border-b border-slate-800 z-10">
+                            <tr>
+                                <th class="py-3 px-3.5 whitespace-nowrap">Pastal / Buyurtma</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Artikul</th>
+                                <th class="py-3 px-3 whitespace-nowrap">O'lchamlar & Jami</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">Quti · Chop · Kont</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Og'irlik</th>
+                                <th class="py-3 px-3 whitespace-nowrap">Holati</th>
+                                <th class="py-3 px-3.5 text-right whitespace-nowrap">Amal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80">
+                            {% for card in stored_cards %}
+                            <tr id="stored-card-{{ card.batch_id }}"
+                                data-status="{{ card.packaging_status }}"
+                                data-search="{{ card.pastal_code|lower }} {{ card.order_number|lower }} {{ card.article_code|lower }} {{ card.article_name|lower }} {{ card.customer|lower }}"
+                                class="stored-card hover:bg-slate-800/50 transition-colors {% if card.packaging_status == 'packet' %}bg-amber-950/10{% elif card.packaging_status == 'stiker_pending' %}bg-purple-950/10{% elif card.packaging_status == 'container_pending' %}bg-rose-950/10{% else %}bg-emerald-950/10{% endif %}">
+                                
+                                <!-- Pastal / Buyurtma -->
+                                <td class="py-3 px-3.5 align-middle">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {% if card.packaging_status == 'packet' %}bg-amber-400 animate-pulse{% elif card.packaging_status == 'stiker_pending' %}bg-purple-400{% elif card.packaging_status == 'container_pending' %}bg-rose-400{% else %}bg-emerald-400{% endif %}"></span>
+                                        <div>
+                                            <span class="text-sm font-black font-mono text-white block">{{ card.pastal_code }}</span>
+                                            <span class="text-[11px] text-amber-400 font-bold block truncate max-w-[160px]">{{ card.order_number }} · {{ card.customer }}</span>
+                                            <span class="text-[10px] text-slate-500 font-mono">{{ card.sklad_received_at|default:"—" }}</span>
+                                        </div>
+                                    </div>
+                                </td>
 
-                                <!-- Distinct Automatic Badges -->
-                                {% if card.packaging_status == 'packet' %}
-                                <span class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0 animate-pulse">
-                                    <i class="fa-solid fa-box-open"></i> PAKETDA
-                                </span>
-                                {% elif card.packaging_status == 'stiker_pending' %}
-                                <span class="px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/50 text-purple-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0">
-                                    <i class="fa-solid fa-tags"></i> STIKER KUTILMOQDA
-                                </span>
-                                {% elif card.packaging_status == 'container_pending' %}
-                                <span class="px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/50 text-rose-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0">
-                                    <i class="fa-solid fa-cubes"></i> KONTEYNER KUTILMOQDA
-                                </span>
-                                {% elif card.ready %}
-                                <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0">
-                                    <i class="fa-solid fa-circle-check"></i> TO'LIQ TAYYOR
-                                </span>
-                                {% endif %}
-                            </div>
+                                <!-- Artikul -->
+                                <td class="py-3 px-3 align-middle">
+                                    <div class="flex items-center gap-2.5">
+                                        {% if card.image %}
+                                        <img src="{{ card.image }}" alt="" class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950 flex-shrink-0">
+                                        {% endif %}
+                                        <div class="min-w-0">
+                                            <span class="font-mono font-bold text-cyan-300 block truncate text-xs">{{ card.article_code }}</span>
+                                            <span class="text-[11px] text-slate-400 block truncate max-w-[150px]">{{ card.article_name }}</span>
+                                        </div>
+                                    </div>
+                                </td>
 
-                            <!-- Model Info -->
-                            <div class="flex items-center gap-2.5">
-                                {% if card.image %}
-                                <img src="{{ card.image }}" alt="" class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950 flex-shrink-0">
-                                {% endif %}
-                                <div class="min-w-0 text-xs">
-                                    <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code }}</span>
-                                    <span class="text-[11px] text-slate-400 block truncate">{{ card.article_name }}</span>
-                                </div>
-                            </div>
-
-                            <!-- Sizes Pills -->
-                            <div class="flex flex-wrap gap-1.5">
-                                {% for s in card.sizes %}
-                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-xs">
-                                    <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
-                                </span>
-                                {% endfor %}
-                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 font-bold">
-                                    jami <b class="text-white">{{ card.total_tasnif }}</b>
-                                </span>
-                            </div>
-
-                            <!-- 3 Mini Stats: Qutilar, Chop etilgan, Konteynerda -->
-                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                                <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
-                                    <p class="text-[10px] uppercase text-slate-500 font-bold">Qutilar</p>
-                                    <p class="font-black {% if card.boxes_count == 0 %}text-amber-400{% else %}text-white{% endif %}">
-                                        {% if card.boxes_count == 0 %}0 (Paketda){% else %}{{ card.boxes_count }}{% endif %}
-                                    </p>
-                                </div>
-                                <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
-                                    <p class="text-[10px] uppercase text-slate-500 font-bold">Chop etilgan</p>
-                                    <p class="font-black {% if card.boxes_count and card.printed_count == card.boxes_count %}text-emerald-300{% else %}text-purple-300{% endif %}">
-                                        {{ card.printed_count }}/{{ card.boxes_count }}
-                                    </p>
-                                </div>
-                                <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
-                                    <p class="text-[10px] uppercase text-slate-500 font-bold">Konteynerda</p>
-                                    <p class="font-black {% if card.boxes_count and card.linked_count == card.boxes_count %}text-emerald-300{% else %}text-rose-300{% endif %}">
-                                        {{ card.linked_count }}/{{ card.boxes_count }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Weight & Sklad Reception Line -->
-                            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
-                                    <span>Og'irlik: <b class="text-white font-mono text-sm">{{ card.weight_kg }} kg</b></span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[11px] text-slate-400 font-mono">{{ card.sklad_received_at|default:"—" }}</span>
-                                    <button type="button" onclick="editTabletKg({{ card.batch_id }}, '{{ card.weight_kg }}')"
-                                        class="text-slate-400 hover:text-cyan-300 p-1" title="Og'irlikni tahrirlash">
-                                        <i class="fa-solid fa-pencil text-[11px]"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Containers if linked -->
-                            {% if card.containers %}
-                            <div class="space-y-1">
-                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Konteynerlar:</span>
-                                <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
-                                    {% for c in card.containers %}
-                                    <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
-                                        {{ c }}
+                                <!-- O'lchamlar & Jami -->
+                                <td class="py-3 px-3 align-middle">
+                                    <div class="flex flex-wrap gap-1 max-w-[220px]">
+                                        {% for s in card.sizes %}
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px]">
+                                            <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    <span class="text-[11px] font-bold text-cyan-300 block mt-1">
+                                        Jami: <b class="text-white font-mono text-xs">{{ card.total_tasnif }}</b> dona
                                     </span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
+                                </td>
 
-                        <!-- Card Action / Notification Footer -->
-                        <div class="pt-3 border-t border-slate-800/80">
-                            {% if card.packaging_status == 'packet' %}
-                            <div class="text-[11px] text-amber-300/90 flex items-start gap-1.5">
-                                <i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i>
-                                <span>Quti yetmaganligi uchun paketlab qo'yilgan. Qutilar tayyor bo'lgach stiker chiqariladi.</span>
-                            </div>
-                            {% elif card.packaging_status == 'stiker_pending' %}
-                            <div class="text-[11px] text-purple-300/90 flex items-start gap-1.5">
-                                <i class="fa-solid fa-tags text-purple-400 mt-0.5"></i>
-                                <span>Stikerlar chop etilishi kutilmoqda ({{ card.printed_count }}/{{ card.boxes_count }} ta tayyor).</span>
-                            </div>
-                            {% elif card.packaging_status == 'container_pending' %}
-                            <div class="flex items-center justify-between text-[11px] text-rose-300/90">
-                                <span class="flex items-center gap-1.5">
-                                    <i class="fa-solid fa-cubes text-rose-400"></i>
-                                    <span>Konteynersiz qutilar bor.</span>
-                                </span>
-                                <button type="button" onclick="switchMode('link')" class="text-cyan-400 hover:underline font-bold text-xs">
-                                    Biriktirish →
-                                </button>
-                            </div>
-                            {% elif card.ready %}
-                            <div class="flex items-center justify-between">
-                                <span class="text-emerald-400 font-bold text-xs flex items-center gap-1">
-                                    <i class="fa-solid fa-circle-check"></i> To'liq tayyor
-                                </span>
-                                <button type="button"
-                                    onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code|escapejs }}', {{ card.boxes_count }})"
-                                    class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 touch-btn flex items-center gap-1.5">
-                                    <i class="fa-solid fa-person-walking-arrow-right"></i> Patokka berish
-                                </button>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-span-full py-16 text-center text-slate-500 space-y-2">
-                        <i class="fa-solid fa-boxes-stacked text-4xl block text-slate-600 mb-2"></i>
-                        <p class="text-sm font-bold text-slate-400">Meto omborida hali saqlanayotgan pastallar yo'q.</p>
-                        <p class="text-xs text-slate-500">Yuqoridagi ro'yxatdan tasnifdan chiqqan pastallarning kg sini kiritsangiz, shu yerga tushadi.</p>
-                    </div>
-                    {% endfor %}
+                                <!-- Quti · Chop · Kont -->
+                                <td class="py-3 px-3 align-middle text-center">
+                                    <div class="inline-flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 shadow-sm">
+                                        <div class="text-center px-1">
+                                            <span class="text-[9px] uppercase text-slate-500 block font-bold">Quti</span>
+                                            <span class="font-mono font-black text-xs {% if card.boxes_count == 0 %}text-amber-400{% else %}text-white{% endif %}">
+                                                {% if card.boxes_count == 0 %}0 (Paket){% else %}{{ card.boxes_count }}{% endif %}
+                                            </span>
+                                        </div>
+                                        <span class="text-slate-700">|</span>
+                                        <div class="text-center px-1">
+                                            <span class="text-[9px] uppercase text-slate-500 block font-bold">Chop</span>
+                                            <span class="font-mono font-black text-xs {% if card.boxes_count and card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-purple-300{% endif %}">
+                                                {{ card.printed_count }}/{{ card.boxes_count }}
+                                            </span>
+                                        </div>
+                                        <span class="text-slate-700">|</span>
+                                        <div class="text-center px-1">
+                                            <span class="text-[9px] uppercase text-slate-500 block font-bold">Kont</span>
+                                            <span class="font-mono font-black text-xs {% if card.boxes_count and card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                                {{ card.linked_count }}/{{ card.boxes_count }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {% if card.containers %}
+                                    <div class="flex flex-wrap justify-center gap-1 mt-1 max-w-[200px] mx-auto">
+                                        {% for c in card.containers %}
+                                        <span class="px-1.5 py-0.2 rounded bg-slate-950 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
+                                            {{ c }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Og'irlik (Kg) -->
+                                <td class="py-3 px-3 align-middle whitespace-nowrap">
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-scale-balanced text-amber-400 text-xs"></i>
+                                        <span class="text-white font-mono font-black text-sm">{{ card.weight_kg }} kg</span>
+                                        <button type="button" onclick="editTabletKg({{ card.batch_id }}, '{{ card.weight_kg }}')"
+                                            class="text-slate-400 hover:text-cyan-300 p-1 transition" title="Og'irlikni tahrirlash">
+                                            <i class="fa-solid fa-pencil text-[11px]"></i>
+                                        </button>
+                                    </div>
+                                </td>
+
+                                <!-- Holati -->
+                                <td class="py-3 px-3 align-middle whitespace-nowrap">
+                                    {% if card.packaging_status == 'packet' %}
+                                    <span class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-black text-[11px] inline-flex items-center gap-1.5 animate-pulse">
+                                        <i class="fa-solid fa-box-open"></i> PAKETDA
+                                    </span>
+                                    {% elif card.packaging_status == 'stiker_pending' %}
+                                    <span class="px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/50 text-purple-300 font-black text-[11px] inline-flex items-center gap-1.5">
+                                        <i class="fa-solid fa-tags"></i> STIKER KUTILMOQDA
+                                    </span>
+                                    {% elif card.packaging_status == 'container_pending' %}
+                                    <span class="px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/50 text-rose-300 font-black text-[11px] inline-flex items-center gap-1.5">
+                                        <i class="fa-solid fa-cubes"></i> KONTEYNER KUTILMOQDA
+                                    </span>
+                                    {% elif card.ready %}
+                                    <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-black text-[11px] inline-flex items-center gap-1.5">
+                                        <i class="fa-solid fa-circle-check"></i> TO'LIQ TAYYOR
+                                    </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Amal -->
+                                <td class="py-3 px-3.5 align-middle text-right whitespace-nowrap">
+                                    {% if card.ready %}
+                                    <button type="button"
+                                        onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code|escapejs }}', {{ card.boxes_count }})"
+                                        class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 touch-btn inline-flex items-center gap-1.5 transition">
+                                        <i class="fa-solid fa-person-walking-arrow-right"></i> Patokka berish
+                                    </button>
+                                    {% elif card.packaging_status == 'container_pending' %}
+                                    <button type="button" onclick="switchMode('link')"
+                                        class="px-3 py-1.5 rounded-xl bg-cyan-600/30 hover:bg-cyan-600 border border-cyan-500/50 text-cyan-200 font-bold text-xs inline-flex items-center gap-1 transition">
+                                        <i class="fa-solid fa-link"></i> Biriktirish →
+                                    </button>
+                                    {% elif card.packaging_status == 'packet' %}
+                                    <span class="text-[11px] text-amber-400/80 font-bold inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> Quti kutilmoqda
+                                    </span>
+                                    {% elif card.packaging_status == 'stiker_pending' %}
+                                    <span class="text-[11px] text-purple-400/80 font-bold inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-tags"></i> Chop kutilmoqda
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-16 text-center text-slate-500 space-y-2">
+                                    <i class="fa-solid fa-boxes-stacked text-4xl block text-slate-600 mb-2"></i>
+                                    <p class="text-sm font-bold text-slate-400">Meto omborida hali saqlanayotgan pastallar yo'q.</p>
+                                    <p class="text-xs text-slate-500">Yuqoridagi ro'yxatdan tasnifdan chiqqan pastallarning kg sini kiritsangiz, shu yerga tushadi.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr id="stored-filter-empty" class="hidden">
+                                <td colspan="7" class="py-12 text-center text-slate-500">
+                                    <i class="fa-solid fa-filter text-2xl block text-slate-600 mb-2"></i>
+                                    <p class="text-xs font-bold text-slate-400">Tanlangan filter yoki qidiruv bo'yicha hech qanday pastal topilmadi.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             {% endif %}
@@ -1798,6 +1819,7 @@
         function applyStoredCardFilters(searchQuery) {
             const searchVal = (searchQuery !== undefined ? searchQuery : (document.getElementById('stored-search-input')?.value || '')).trim().toLowerCase();
             const cards = document.querySelectorAll('.stored-card');
+            let visibleCount = 0;
             cards.forEach(card => {
                 const cardStatus = card.getAttribute('data-status');
                 const cardSearch = (card.getAttribute('data-search') || '').toLowerCase();
@@ -1815,10 +1837,20 @@
 
                 if (matchesFilter && matchesSearch) {
                     card.classList.remove('hidden');
+                    visibleCount++;
                 } else {
                     card.classList.add('hidden');
                 }
             });
+
+            const emptyRow = document.getElementById('stored-filter-empty');
+            if (emptyRow) {
+                if (visibleCount === 0 && cards.length > 0) {
+                    emptyRow.classList.remove('hidden');
+                } else {
+                    emptyRow.classList.add('hidden');
+                }
+            }
         }
     </script>
 
