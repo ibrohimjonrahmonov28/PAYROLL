@@ -29,6 +29,24 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `4b9d074`] — 21.11.2026
+* **Turi:** `fix(tayyorlov)` — /tayyorlov/ tekshiruvida topilgan xatolar tuzatildi
+* **Mavzu:** Foydalanuvchi talabi («https://terryjar.uz/tayyorlov/ ni qildim qanday xatolar bor organib chiq toliq», keyin «qolgan muamolarni hal qil»). Telegram bot va eski `/meto-hub/` egasi qarori bilan hozircha o'zgarmaydi («eski holat hozircha ishlasin»).
+  - **1. Yuk xati va patok to'qnashuvi:** tekshiruvga yuborilgan yoki yo'ldagi pastal patokka berilmaydi, planshetda «tayyor» ko'rinmaydi; yuk xati jo'natilishdan oldin pastallar qulflanib qayta tekshiriladi (avval bitta pastal ham patokka, ham mashinaga ketardi).
+  - **2. To'g'ridan-to'g'ri yuklash:** xato bo'lsa «tekshiruv kutmoqda» yuk xati qolib ketmaydi (bitta tranzaksiya).
+  - **3. Beta belgisi:** boshlangan pastallar belgi o'chirilsa ham yangi oqimda tugaydi; har yoqilganda hisob «hozirdan» boshlanadi.
+  - **4. Uychidan qaytgan bo'sh konteyner:** Kosonda biriktirilganda avtomatik Kosonga o'tadi («Uychi dan bo'sh qaytdi» voqeasi).
+  - **5. Ruxsatlar:** kg ni faqat Tayyorlov skladi kiritadi; Koson → Uychi yuk xatini faqat Koson jo'natadi; har filial faqat o'ziga kelgan yuk xatini qabul qiladi; Uychi sklad planshetida filial roldan olinadi.
+  - **6. Tezlik:** planshet va sklad sahifasidagi SQL so'rovlar patokdagi pastallar soniga qarab o'smaydi.
+  - **7. Mayda:** Meto avto-yangilanishi saqlanmagan sonni o'chirmaydi; noto'g'ri qiymatda 400; planshet JSON ekranlangan.
+* **O'zgartirilgan fayllar:**
+  - `production/meto_flow.py`
+  - `production/meto_flow_views.py`
+  - `production/meto_tablet_views.py`
+  - `templates/meto_hub/flow/meto.html`
+  - `production/test_meto_flow.py`
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `1536e26`] — 21.11.2026
 * **Turi:** `feat(tayyorlov)` — Meto Planshet: Tasnifdan chiqqan pastallarga kg kiritish, paketlangan (qutisiz) holat va Meto Sklad vizual farqlanishi
 * **Mavzu:** Foydalanuvchi talabi («tasnifdan chiqqan ishlar har doim kg olinadi va saqlash uchun qoyiladi farqi doim ham qutiga solinmaydi bazida quti yetmaganda paketlab qoyadi shuni ham hisobga ol yani tasnifdan chiqqandan keyin u meto planshetda kg kiritladigan pastallar royxati paydo boladi kg kirgandan keyin avtomatik metoskladga tushadi https://terryjar.uz/meto-hub/?tab=sklad dagu stilda boladi faqat farqi konteyner yoki stiker chiqmaganlari avotatik belgilangan ajralib turadi»):
