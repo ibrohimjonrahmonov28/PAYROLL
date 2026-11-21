@@ -29,7 +29,27 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `eafe567`] — 21.11.2026
+### 🔹 [Commit: `1536e26`] — 21.11.2026
+* **Turi:** `feat(tayyorlov)` — Meto Planshet: Tasnifdan chiqqan pastallarga kg kiritish, paketlangan (qutisiz) holat va Meto Sklad vizual farqlanishi
+* **Mavzu:** Foydalanuvchi talabi («tasnifdan chiqqan ishlar har doim kg olinadi va saqlash uchun qoyiladi farqi doim ham qutiga solinmaydi bazida quti yetmaganda paketlab qoyadi shuni ham hisobga ol yani tasnifdan chiqqandan keyin u meto planshetda kg kiritladigan pastallar royxati paydo boladi kg kirgandan keyin avtomatik metoskladga tushadi https://terryjar.uz/meto-hub/?tab=sklad dagu stilda boladi faqat farqi konteyner yoki stiker chiqmaganlari avotatik belgilangan ajralib turadi»):
+  - **1. Tasnifdan chiqqan pastallar (Kg kiritish ro'yxati):**
+    Tasnif tugagach (`finish_tasnif`), pastal bosh binoda skladda bo'ladi, lekin hali og'irligi (`actual_weight_kg`) kiritilmagan bo'ladi. Meto Planshetda (`/tayyorlov/tablet/` Koson) maxsus **«Tasnifdan Chiqqan Pastallar (Kg kiritish)»** bo'limi paydo bo'ladi. Planshetda sensorli qulay raqamli kiritish orqali real kg kiritiladi va «Skladga Qabul» tugmasi bosiladi (`/tayyorlov/api/tablet/kg-receive/`).
+  - **2. Paketlangan (Qutisiz) holatni to'liq qo'llab-quvvatlash:**
+    Qutilar yetmagan paytda pastallar paketlab qo'yiladi (`boxes_count == 0`). Tizim hech qachon quti yoki stiker talab qilmasdan kg ni kiritishga va omborga qabul qilishga to'liq ruxsat beradi.
+  - **3. Avtomatik Meto Skladga o'tish va Holatlar bo'yicha aniq ajralib turish:**
+    Kg kiritilgach, pastal darhol «Meto Sklad» (Saqlanayotgan pastallar) ro'yxatiga tushadi. `https://terryjar.uz/meto-hub/?tab=sklad` uslubida kartochkalar, o'lchamlar, jami tasnif, real og'irlik va qabul vaqti aks etadi. Kartochkalar holatiga ko'ra avtomatik ajralib turadi:
+    - **📦 PAKETDA (Qutiga solinmagan):** Zarg'aldoq (amber) ramka va miltillovchi yorliq.
+    - **🏷️ STIKER KUTILMOQDA:** Binafsharang (purple) ramka va stiker chop etilmagani haqida yorliq.
+    - **🔗 KONTEYNER KUTILMOQDA:** Qizil-pushti (rose) ramka va 1-bo'limga o'tib konteynerga biriktirish havolasi.
+    - **✅ TO'LIQ TAYYOR:** Yashil (emerald) ramka va to'g'ridan-to'g'ri patokka berish imkoniyati.
+  - **4. Tezkor filtrlar va qidiruv:** Meto Sklad ichida `Barchasi`, `📦 Paketda`, `🏷️ Stiker`, `🔗 Konteyner`, `✅ Tayyor` filtr tugmalari va qidiruv satri.
+* **O'zgartirilgan fayllar:**
+  - `production/meto_tablet_views.py`
+  - `production/meto_flow_views.py`
+  - `production/tayyorlov_urls.py`
+  - `templates/meto_hub/tablet.html`
+  - `templates/meto_hub/flow/_sklad_card.html`
+  - `production/test_meto_flow.py`
 * **Turi:** `feat(tayyorlov)` — Meto Planshet: Bosh bino tekshiruvi (20/20 qizil/yashil), yuk xati jo'natish, chop etish va Uychi filialida konteyner orqali qabul qilish
 * **Mavzu:** Foydalanuvchi talablari asosida to'liq zanjir joriy etildi:
   - **1. Quti ↔ Konteyner biriktirish va bekor qilish xavfsizligi:** Qutilar va konteynerlarni biriktirish huquqi faqat Koson bosh binosida bo'ladi. Konteynerni qutidan ajratish (bo'shatish) yoki bekor qilish rejimiga o'tishda ogohlantiruvchi tasdiqlash (`confirm()`) darchasi qo'shildi.

@@ -228,10 +228,22 @@ def _card(flow):
         shipment__status=Shipment.Status.PENDING,
     ).select_related('shipment').first()
 
+    boxes_count = len(boxes)
+    printed_count = sum(1 for b in boxes if b.is_printed)
+    linked_count = len(linked)
+    if boxes_count == 0:
+        packaging_status = 'packet'
+    elif printed_count < boxes_count:
+        packaging_status = 'stiker_pending'
+    elif linked_count < boxes_count:
+        packaging_status = 'container_pending'
+    else:
+        packaging_status = 'ready'
+
     ready = (
-        len(boxes) > 0
-        and all(b.is_printed for b in boxes)
-        and len(linked) == len(boxes)
+        boxes_count > 0
+        and printed_count == boxes_count
+        and linked_count == boxes_count
         and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))
         and not pending_sp
     )
@@ -241,8 +253,9 @@ def _card(flow):
         'has_ops': has_ops, 'sizes': sizes, 'total_cut': total_cut,
         'total_meto': total_meto, 'meto_diff': total_meto - total_cut,
         'total_tasnif': total_tasnif, 'tasnif_diff': total_tasnif - total_meto if total_meto else 0,
-        'boxes_count': len(boxes), 'printed_count': sum(1 for b in boxes if b.is_printed),
-        'linked_count': len(linked),
+        'boxes_count': boxes_count, 'printed_count': printed_count,
+        'linked_count': linked_count,
+        'packaging_status': packaging_status,
         'meto_shift': meto_shift,
         'tasnif_shift': tasnif_shift,
         'ready': ready,
@@ -762,15 +775,28 @@ def _form_action(step, tab):
     def decorator(view):
         @functools.wraps(view)
         def wrapper(request, *args, **kwargs):
+            is_ajax = (
+                request.headers.get('x-requested-with') == 'XMLHttpRequest'
+                or request.POST.get('ajax') == '1'
+                or request.GET.get('format') == 'json'
+            )
             if request.method != 'POST':
+                if is_ajax:
+                    return JsonResponse({'status': 'ERROR', 'message': "Faqat POST so'rovi qabul qilinadi."}, status=405)
                 return redirect(_flow_url(tab))
             if not can(request.user, step):
+                if is_ajax:
+                    return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu amalga ruxsatingiz yo'q."}, status=403)
                 return _deny(request, tab)
             try:
                 message = view(request, *args, **kwargs)
+                if is_ajax:
+                    return JsonResponse({'status': 'OK', 'message': message or 'Bajarildi'})
                 if message:
                     messages.success(request, message)
             except FlowError as exc:
+                if is_ajax:
+                    return JsonResponse({'status': 'ERROR', 'message': str(exc)}, status=400)
                 messages.error(request, str(exc))
             next_url = (request.POST.get('next') or '').strip()
             if next_url.startswith('/tayyorlov/'):

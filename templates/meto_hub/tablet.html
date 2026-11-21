@@ -49,9 +49,12 @@
         }
 
         @keyframes scan-glow {
-            0%, 100% {
+
+            0%,
+            100% {
                 box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
             }
+
             50% {
                 box-shadow: 0 0 35px rgba(6, 182, 212, 0.7);
             }
@@ -66,27 +69,36 @@
         }
 
         @keyframes flashGreen {
-            0% { background-color: rgba(16, 185, 129, 0.4); }
-            100% { background-color: transparent; }
+            0% {
+                background-color: rgba(16, 185, 129, 0.4);
+            }
+
+            100% {
+                background-color: transparent;
+            }
         }
     </style>
     {% include 'includes/theme_head.html' with keep_font=True %}
 </head>
 
-<body class="h-screen flex flex-col bg-[#080d1a] relative overflow-hidden selection:bg-cyan-500 selection:text-slate-950">
+<body
+    class="h-screen flex flex-col bg-[#080d1a] relative overflow-hidden selection:bg-cyan-500 selection:text-slate-950">
 
     <!-- TOP HEADER / NAV BAR -->
-    <header class="bg-slate-900/95 border-b border-slate-800/90 h-16 flex-shrink-0 z-30 px-3 sm:px-5 flex items-center justify-between gap-2 shadow-md">
+    <header
+        class="bg-slate-900/95 border-b border-slate-800/90 h-16 flex-shrink-0 z-30 px-3 sm:px-5 flex items-center justify-between gap-2 shadow-md">
         <!-- Logo & Branch -->
         <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
             <a href="{% url 'meto_hub_flow' %}" class="flex items-center gap-2.5 group">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white text-lg shadow-lg shadow-cyan-500/20 flex-shrink-0">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white text-lg shadow-lg shadow-cyan-500/20 flex-shrink-0">
                     <i class="fa-solid fa-tablet-screen-button"></i>
                 </div>
                 <div class="hidden sm:block text-left leading-tight">
                     <div class="flex items-center gap-1.5">
                         <span class="text-sm font-black text-white tracking-wide uppercase">METO PLANSHET</span>
-                        <span class="px-1.5 py-0.2 rounded bg-cyan-500/15 border border-cyan-500/30 text-[9px] font-black text-cyan-400">TOUCH</span>
+                        <span
+                            class="px-1.5 py-0.2 rounded bg-cyan-500/15 border border-cyan-500/30 text-[9px] font-black text-cyan-400">TOUCH</span>
                     </div>
                     <span class="text-[11px] text-slate-400 font-semibold">{{ branch_label }}</span>
                 </div>
@@ -94,11 +106,14 @@
 
             <!-- Branch switcher if allowed -->
             {% if can_switch_branch %}
-            <div class="hidden md:flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-[11px] font-bold">
-                <a href="?branch=HQ" class="px-2.5 py-1 rounded-lg transition {% if branch == 'HQ' %}bg-cyan-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+            <div
+                class="hidden md:flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-[11px] font-bold">
+                <a href="?branch=HQ"
+                    class="px-2.5 py-1 rounded-lg transition {% if branch == 'HQ' %}bg-cyan-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                     Koson (HQ)
                 </a>
-                <a href="?branch=UYCHI" class="px-2.5 py-1 rounded-lg transition {% if branch == 'UYCHI' %}bg-cyan-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+                <a href="?branch=UYCHI"
+                    class="px-2.5 py-1 rounded-lg transition {% if branch == 'UYCHI' %}bg-cyan-500 text-slate-950 font-black shadow{% else %}text-slate-400 hover:text-white{% endif %}">
                     Uychi
                 </a>
             </div>
@@ -106,7 +121,8 @@
         </div>
 
         <!-- 3 MAIN MODES TOUCH SWITCHER (CENTER TABS) -->
-        <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-950/90 p-1 rounded-2xl border border-slate-800 flex-1 max-w-xl mx-2 justify-center">
+        <div
+            class="flex items-center gap-1 sm:gap-1.5 bg-slate-950/90 p-1 rounded-2xl border border-slate-800 flex-1 max-w-xl mx-2 justify-center">
             {% if branch == 'UYCHI' %}
             <!-- Mode 1 (Uychi): Yuk Qabul Qilish -->
             <button type="button" onclick="switchMode('shipment')" id="nav-btn-shipment"
@@ -114,7 +130,9 @@
                 <i class="fa-solid fa-truck-ramp-box"></i>
                 <span class="truncate">1. Yuk Qabuli</span>
                 {% if incoming|length > 0 %}
-                <span class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse">{{ incoming|length }}</span>
+                <span
+                    class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse">{{
+                    incoming|length }}</span>
                 {% endif %}
             </button>
 
@@ -122,7 +140,7 @@
             <button type="button" onclick="switchMode('storage')" id="nav-btn-storage"
                 class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'storage' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-warehouse"></i>
-                <span class="truncate">2. Saqlash (Ombor)</span>
+                <span class="truncate">2. Saqlash</span>
                 <span class="text-[10px] text-slate-400 font-mono">({{ sklad_cards|length }})</span>
             </button>
 
@@ -135,26 +153,40 @@
             {% else %}
             <!-- Mode 1 (Koson): Biriktirish -->
             <button type="button" onclick="switchMode('link')" id="nav-btn-link"
-                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20">
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'link' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-link"></i>
                 <span class="truncate">1. Biriktirish</span>
             </button>
 
-            <!-- Mode 2 (Koson): Yuk Xati -->
+            <!-- Mode 2 (Koson): Meto Sklad (Saqlash & Kg) -->
+            <button type="button" onclick="switchMode('storage')" id="nav-btn-storage"
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'storage' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i class="fa-solid fa-warehouse"></i>
+                <span class="truncate">2. Meto Sklad</span>
+                {% if kg_pending_cards|length > 0 %}
+                <span id="nav-kg-badge" class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse" title="Kg kiritilishi kutilayotgan pastallar">Kg: {{ kg_pending_cards|length }}</span>
+                {% else %}
+                <span id="nav-stored-count" class="text-[10px] text-slate-400 font-mono">({{ stored_cards|length }})</span>
+                {% endif %}
+            </button>
+
+            <!-- Mode 3 (Koson): Yuk Xati -->
             <button type="button" onclick="switchMode('shipment')" id="nav-btn-shipment"
-                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-900">
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'shipment' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-truck"></i>
-                <span class="truncate">2. Yuk Xati</span>
-                {% if incoming|length > 0 %}
+                <span class="truncate">3. Yuk Xati</span>
+                {% if pending_shipments|length > 0 %}
+                <span class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse">{{ pending_shipments|length }}</span>
+                {% elif incoming|length > 0 %}
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                 {% endif %}
             </button>
 
-            <!-- Mode 3 (Koson): Patokka Berish -->
+            <!-- Mode 4 (Koson): Patokka Berish -->
             <button type="button" onclick="switchMode('patok')" id="nav-btn-patok"
-                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-900">
+                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'patok' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-person-walking-arrow-right"></i>
-                <span class="truncate">3. Patokka Berish</span>
+                <span class="truncate">4. Patokka Berish</span>
             </button>
             {% endif %}
         </div>
@@ -162,12 +194,15 @@
         <!-- Top Right Actions & Live Stats -->
         <div class="flex items-center gap-2 flex-shrink-0">
             <!-- Containers Quick Pill -->
-            <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-slate-300">
+            <div
+                class="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-slate-300">
                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
                 {% if branch == 'UYCHI' %}
-                <span>Uychi Omborda: <b class="text-white">{{ sklad_cards|length }}</b> pastal · <b class="text-cyan-400">{{ total_containers }}</b> konteyner</span>
+                <span>Uychi Omborda: <b class="text-white">{{ sklad_cards|length }}</b> pastal · <b
+                        class="text-cyan-400">{{ total_containers }}</b> konteyner</span>
                 {% else %}
-                <span>Bo'sh: <b class="text-white" id="stat-empty-c">{{ empty_containers }}</b> / {{ total_containers }}</span>
+                <span>Bo'sh: <b class="text-white" id="stat-empty-c">{{ empty_containers }}</b> / {{ total_containers
+                    }}</span>
                 {% endif %}
             </div>
 
@@ -202,7 +237,8 @@
         <!-- ============================================================== -->
         <!-- MODE 1: BIRIKTIRISH (QUTI ↔ KONTEYNER) — FAQAT KOSON (HQ)      -->
         <!-- ============================================================== -->
-        <div id="mode-link" class="mode-view flex-1 {% if default_mode != 'link' %}hidden{% endif %} flex flex-col lg:flex-row gap-4 overflow-hidden">
+        <div id="mode-link"
+            class="mode-view flex-1 {% if default_mode != 'link' %}hidden{% endif %} flex flex-col lg:flex-row gap-4 overflow-hidden">
             <!-- Left Panel: Scanner & Current Linking State (60% width) -->
             <div class="flex-1 flex flex-col gap-4 overflow-y-auto">
                 <!-- Visual Step Banner & Mode Controls -->
@@ -226,31 +262,38 @@
                     <!-- Step Stepper Pills -->
                     <div class="grid grid-cols-2 gap-3" id="link-stepper">
                         <!-- Step 1 Pill -->
-                        <div id="step-pill-1" class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10">
-                            <div class="w-9 h-9 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-base flex-shrink-0">
+                        <div id="step-pill-1"
+                            class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10">
+                            <div
+                                class="w-9 h-9 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-base flex-shrink-0">
                                 1
                             </div>
                             <div class="min-w-0">
                                 <span class="text-[11px] uppercase font-bold text-slate-400 block">Birinchi qadam</span>
-                                <span class="text-xs sm:text-sm font-black text-white truncate block">Quti stikerini uring</span>
+                                <span class="text-xs sm:text-sm font-black text-white truncate block">Quti stikerini
+                                    uring</span>
                             </div>
                         </div>
 
                         <!-- Step 2 Pill -->
-                        <div id="step-pill-2" class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60">
-                            <div class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 font-black flex items-center justify-center text-base flex-shrink-0">
+                        <div id="step-pill-2"
+                            class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60">
+                            <div
+                                class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 font-black flex items-center justify-center text-base flex-shrink-0">
                                 2
                             </div>
                             <div class="min-w-0">
                                 <span class="text-[11px] uppercase font-bold text-slate-400 block">Ikkinchi qadam</span>
-                                <span class="text-xs sm:text-sm font-black text-slate-300 truncate block">Konteyner QR kodini uring</span>
+                                <span class="text-xs sm:text-sm font-black text-slate-300 truncate block">Konteyner QR
+                                    kodini uring</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Direct Scanner Input Box (Always Focused) -->
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-cyan-400 text-lg">
+                        <div
+                            class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-cyan-400 text-lg">
                             <i class="fa-solid fa-barcode"></i>
                         </div>
                         <input type="text" id="scanner-input" autocomplete="off" autofocus
@@ -258,14 +301,16 @@
                             class="w-full pl-12 pr-28 py-4 bg-slate-950 border-2 border-cyan-500/60 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-cyan-400 scanner-glow shadow-inner">
                         <div class="absolute inset-y-0 right-2 flex items-center gap-1.5">
                             <button type="button" onclick="clearActiveScan()"
-                                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-bold touch-btn" title="Tozalash">
+                                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-bold touch-btn"
+                                title="Tozalash">
                                 Tozalash
                             </button>
                         </div>
                     </div>
 
                     <!-- Live Status Message Banner -->
-                    <div id="scan-status-banner" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300">
+                    <div id="scan-status-banner"
+                        class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300">
                         <i class="fa-solid fa-info-circle text-base text-cyan-400"></i>
                         <span id="scan-status-text">Tayyor. Avval quti stikerini (QR yoki shtrix-kod) uring.</span>
                     </div>
@@ -274,22 +319,27 @@
                 <!-- Active Objects Preview Cards (Box Card & Container Card) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
                     <!-- Current Box Card -->
-                    <div id="active-box-card" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
+                    <div id="active-box-card"
+                        class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
                         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <span
+                                class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                                 <i class="fa-solid fa-box text-cyan-400"></i> Tanlangan Quti
                             </span>
-                            <span id="active-box-badge" class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
+                            <span id="active-box-badge"
+                                class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
                                 Kutilmoqda
                             </span>
                         </div>
 
                         <div id="active-box-body" class="py-6 text-center space-y-2">
-                            <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
                                 <i class="fa-solid fa-qrcode"></i>
                             </div>
                             <p class="text-sm font-bold text-slate-400">Hali quti skanerlanmadi</p>
-                            <p class="text-xs text-slate-500">Stikerni skaner qilsangiz, ma'lumotlari shu yerda chiqadi</p>
+                            <p class="text-xs text-slate-500">Stikerni skaner qilsangiz, ma'lumotlari shu yerda chiqadi
+                            </p>
                         </div>
 
                         <div id="active-box-footer" class="border-t border-slate-800 pt-3 hidden">
@@ -301,18 +351,22 @@
                     </div>
 
                     <!-- Current Container Card -->
-                    <div id="active-container-card" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
+                    <div id="active-container-card"
+                        class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
                         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <span
+                                class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                                 <i class="fa-solid fa-cubes text-amber-400"></i> Katta Konteyner
                             </span>
-                            <span id="active-container-badge" class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
+                            <span id="active-container-badge"
+                                class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
                                 2-qadam
                             </span>
                         </div>
 
                         <div id="active-container-body" class="py-6 text-center space-y-2">
-                            <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
                                 <i class="fa-solid fa-box-archive"></i>
                             </div>
                             <p class="text-sm font-bold text-slate-400">Konteyner kutilmoqda</p>
@@ -328,15 +382,18 @@
 
             <!-- Right Panel: Live Journal / Recent Scans (40% width) -->
             <div class="w-full lg:w-[420px] flex flex-col gap-4 overflow-hidden">
-                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex-1 flex flex-col overflow-hidden">
+                <div
+                    class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex-1 flex flex-col overflow-hidden">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
                         <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs">
+                            <div
+                                class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
                             </div>
                             <h3 class="text-sm font-black text-white">Oxirgi Biriktirilganlar</h3>
                         </div>
-                        <span class="text-xs text-slate-400 font-mono font-bold" id="session-count-pill">Jami: 0 ta</span>
+                        <span class="text-xs text-slate-400 font-mono font-bold" id="session-count-pill">Jami: 0
+                            ta</span>
                     </div>
 
                     <!-- Scrollable Log List -->
@@ -345,14 +402,18 @@
                         <div id="empty-logs-placeholder" class="py-12 text-center text-slate-500 space-y-2">
                             <i class="fa-solid fa-list-check text-3xl block text-slate-600"></i>
                             <p class="text-xs font-bold text-slate-400">Bu seansda hali skaner qilinmadi</p>
-                            <p class="text-[11px] text-slate-500">Qutilar biriktirilishi bilan shu yerda paydo bo'ladi</p>
+                            <p class="text-[11px] text-slate-500">Qutilar biriktirilishi bilan shu yerda paydo bo'ladi
+                            </p>
                         </div>
                     </div>
 
                     <!-- Quick Help Footer -->
-                    <div class="border-t border-slate-800 pt-3 mt-3 flex items-center justify-between text-[11px] text-slate-400">
-                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato biriktirilsa: «Bekor qilish»</span>
-                        <a href="{% url 'meto_hub_containers' %}" target="_blank" class="text-cyan-400 hover:underline font-bold">
+                    <div
+                        class="border-t border-slate-800 pt-3 mt-3 flex items-center justify-between text-[11px] text-slate-400">
+                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato biriktirilsa: «Bekor
+                            qilish»</span>
+                        <a href="{% url 'meto_hub_containers' %}" target="_blank"
+                            class="text-cyan-400 hover:underline font-bold">
                             Konteynerlar <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
                         </a>
                     </div>
@@ -364,7 +425,8 @@
         <!-- ============================================================== -->
         <!-- MODE 2: YUK XATLARI (KOSON ↔ UYCHI LOGISTIKA / QABUL)           -->
         <!-- ============================================================== -->
-        <div id="mode-shipment" class="mode-view flex-1 {% if default_mode != 'shipment' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
+        <div id="mode-shipment"
+            class="mode-view flex-1 {% if default_mode != 'shipment' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
             {% if branch == 'UYCHI' %}
             <!-- Uychi: Kosondan kelayotgan yuk xatlarini tekshirib qabul qilish -->
             <div class="flex items-center justify-between flex-shrink-0">
@@ -373,9 +435,11 @@
                         <i class="fa-solid fa-truck-ramp-box text-emerald-400"></i>
                         <span>Kosondan Kelayotgan Yuk Xatlari</span>
                     </h3>
-                    <p class="text-xs text-slate-400">Yuk xati bo'yicha konteynerlarni skanerlang va filial balansiga qabul qiling</p>
+                    <p class="text-xs text-slate-400">Yuk xati bo'yicha konteynerlarni skanerlang va filial balansiga
+                        qabul qiling</p>
                 </div>
-                <div class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                <div
+                    class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
                     <i class="fa-solid fa-bell animate-pulse"></i>
                     <span>{{ incoming_shipments|length }} ta yuk xati kutilmoqda</span>
                 </div>
@@ -383,25 +447,31 @@
 
             <div class="flex-1 overflow-y-auto space-y-3 pr-1">
                 {% for item in incoming_shipments %}
-                <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+                <div
+                    class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
                     <div class="space-y-1.5">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-black text-sm">
+                            <span
+                                class="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-black text-sm">
                                 {{ item.shipment_number }}
                             </span>
                             <span class="text-xs font-bold text-white">{{ item.pastals_count }} ta pastal</span>
-                            <span class="text-xs text-amber-400 font-mono font-bold">({{ item.total_boxes }} ta quti · {{ item.total_qty }} dona)</span>
+                            <span class="text-xs text-amber-400 font-mono font-bold">({{ item.total_boxes }} ta quti ·
+                                {{ item.total_qty }} dona)</span>
                         </div>
                         <div class="text-xs text-slate-400">
                             <span>Haydovchi: <b class="text-slate-200">{{ item.driver|default:"—" }}</b></span>
-                            {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle }}</b></span>{% endif %}
-                            {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{% endif %}
+                            {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle
+                                    }}</b></span>{% endif %}
+                            {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{%
+                            endif %}
                         </div>
                         <div class="text-[11px] text-slate-500">
                             {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.created_at }} ·
                             Pastallar:
                             {% for p in item.pastals %}
-                            <span class="text-slate-300 font-semibold font-mono">{{ p.pastal_code }}</span>{% if not forloop.last %}, {% endif %}
+                            <span class="text-slate-300 font-semibold font-mono">{{ p.pastal_code }}</span>{% if not
+                            forloop.last %}, {% endif %}
                             {% endfor %}
                         </div>
                     </div>
@@ -417,13 +487,15 @@
                 <div class="py-20 text-center text-slate-500 space-y-2">
                     <i class="fa-solid fa-truck-fast text-4xl block text-slate-600 mb-2"></i>
                     <p class="text-sm font-bold text-slate-400">Hozirda Uychiga yo'lda kelayotgan yuk xatlari yo'q.</p>
-                    <p class="text-xs text-slate-500">Koson bosh binosidan yuk xati yuborilganda bu yerda avtomatik ko'rinadi.</p>
+                    <p class="text-xs text-slate-500">Koson bosh binosidan yuk xati yuborilganda bu yerda avtomatik
+                        ko'rinadi.</p>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
             <!-- Sub-tab switcher (Tekshirish / Yuklash / Qabul Qilish) -->
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="switchShipmentSubTab('pending')" id="sub-ship-pending-btn"
                         class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20">
@@ -456,28 +528,36 @@
                             <i class="fa-solid fa-clipboard-check text-amber-400"></i>
                             <span>Tayyorlov Bo'limidan Tekshirishga Yuborilgan Yuk Xatlari</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Yuk xatini tanlang va konteynerlarni skanerlang — 20/20 to'liq o'tgach jo'natish tugmasi ochiladi</p>
+                        <p class="text-xs text-slate-400">Yuk xatini tanlang va konteynerlarni skanerlang — 20/20 to'liq
+                            o'tgach jo'natish tugmasi ochiladi</p>
                     </div>
-                    <div class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+                    <div
+                        class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
                         <span>{{ pending_shipments|length }} ta kutilmoqda</span>
                     </div>
                 </div>
 
                 <div class="flex-1 overflow-y-auto space-y-3 pr-1">
                     {% for ship in pending_shipments %}
-                    <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+                    <div
+                        class="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
                         <div class="space-y-1.5">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-black text-sm">
+                                <span
+                                    class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-black text-sm">
                                     {{ ship.shipment_number }}
                                 </span>
                                 <span class="text-xs font-bold text-white">{{ ship.pastals_count }} ta pastal</span>
-                                <span class="text-xs text-cyan-400 font-mono font-bold">({{ ship.total_boxes }} ta quti)</span>
+                                <span class="text-xs text-cyan-400 font-mono font-bold">({{ ship.total_boxes }} ta
+                                    quti)</span>
                             </div>
                             <div class="text-xs text-slate-300">
                                 <span class="text-slate-400">Pastallar:</span>
                                 {% for p in ship.pastals %}
-                                    <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-white font-mono font-bold">{{ p.pastal_code }}</span> ({{ p.boxes_count }} quti){% if not forloop.last %}, {% endif %}
+                                <span
+                                    class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-white font-mono font-bold">{{
+                                    p.pastal_code }}</span> ({{ p.boxes_count }} quti){% if not forloop.last %}, {%
+                                endif %}
                                 {% endfor %}
                             </div>
                             <div class="text-[11px] text-slate-500 font-mono">
@@ -496,7 +576,8 @@
                     <div class="py-20 text-center text-slate-500 space-y-2">
                         <i class="fa-solid fa-inbox text-4xl block text-slate-600 mb-2"></i>
                         <p class="text-sm font-bold text-slate-400">Tekshirish kutayotgan yuk xatlari yo'q.</p>
-                        <p class="text-xs text-slate-500">Tayyorlov bo'limi (kompyuter) orqali pastallar tekshirishga yuborilganda bu yerda avtomatik chiqadi.</p>
+                        <p class="text-xs text-slate-500">Tayyorlov bo'limi (kompyuter) orqali pastallar tekshirishga
+                            yuborilganda bu yerda avtomatik chiqadi.</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -510,7 +591,8 @@
                             <i class="fa-solid fa-boxes-stacked text-violet-400"></i>
                             <span>Skladdagi To'liq Tayyor Pastallar</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Yuklamoqchi bo'lgan pastallarni tanlang va «Tekshirib yuklash» tugmasini bosing</p>
+                        <p class="text-xs text-slate-400">Yuklamoqchi bo'lgan pastallarni tanlang va «Tekshirib yuklash»
+                            tugmasini bosing</p>
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -538,23 +620,28 @@
                                     <input type="checkbox" value="{{ card.batch_id }}"
                                         class="ship-card-checkbox w-5 h-5 rounded-lg accent-violet-500 cursor-pointer pointer-events-none">
                                     {% else %}
-                                    <span class="w-5 h-5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]">
+                                    <span
+                                        class="w-5 h-5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]">
                                         <i class="fa-solid fa-lock"></i>
                                     </span>
                                     {% endif %}
                                     <div>
-                                        <span class="text-sm font-black font-mono text-white block">{{ card.pastal_code }}</span>
-                                        <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }}</span>
+                                        <span class="text-sm font-black font-mono text-white block">{{ card.pastal_code
+                                            }}</span>
+                                        <span class="text-xs text-amber-400 font-bold block">{{ card.order_number
+                                            }}</span>
                                     </div>
                                 </div>
-                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-cyan-400">
+                                <span
+                                    class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-cyan-400">
                                     {{ card.total_tasnif }} dona
                                 </span>
                             </div>
 
                             <!-- Model info -->
                             <div class="text-xs text-slate-300">
-                                <span class="font-mono text-cyan-300">{{ card.article_code }}</span> · {{ card.article_name }}
+                                <span class="font-mono text-cyan-300">{{ card.article_code }}</span> · {{
+                                card.article_name }}
                             </div>
 
                             <!-- Boxes & Containers Info -->
@@ -565,13 +652,15 @@
                                 </div>
                                 <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
                                     <span class="text-[10px] text-slate-500 block">Chop etilgan</span>
-                                    <span class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                    <span
+                                        class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
                                         {{ card.printed_count }}/{{ card.boxes_count }}
                                     </span>
                                 </div>
                                 <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
                                     <span class="text-[10px] text-slate-500 block">Konteynerda</span>
-                                    <span class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                    <span
+                                        class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
                                         {{ card.linked_count }}/{{ card.boxes_count }}
                                     </span>
                                 </div>
@@ -579,7 +668,8 @@
                         </div>
 
                         <!-- Card status footer -->
-                        <div class="pt-3 border-t border-slate-800/80 mt-3 flex items-center justify-between text-[11px]">
+                        <div
+                            class="pt-3 border-t border-slate-800/80 mt-3 flex items-center justify-between text-[11px]">
                             {% if card.ready %}
                             <span class="text-emerald-400 font-bold flex items-center gap-1">
                                 <i class="fa-solid fa-circle-check"></i> Yuklashga to'liq tayyor
@@ -609,33 +699,41 @@
                             <i class="fa-solid fa-truck-ramp-box text-emerald-400"></i>
                             <span>Yo'lda Kelayotgan Yuk Xatlari</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Yuk xatini tanlang va kelgan konteynerlarni skanerlab qabul qiling</p>
+                        <p class="text-xs text-slate-400">Yuk xatini tanlang va kelgan konteynerlarni skanerlab qabul
+                            qiling</p>
                     </div>
                 </div>
 
                 <div class="flex-1 overflow-y-auto space-y-3 pr-1">
                     {% for item in incoming %}
-                    <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+                    <div
+                        class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-black text-sm">
+                                <span
+                                    class="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-black text-sm">
                                     {{ item.shipment_number }}
                                 </span>
                                 <span class="text-xs font-bold text-white">{{ item.pastal_code }}</span>
-                                <span class="text-xs text-amber-400 font-bold font-mono">({{ item.order_number }})</span>
+                                <span class="text-xs text-amber-400 font-bold font-mono">({{ item.order_number
+                                    }})</span>
                             </div>
                             <div class="text-xs text-slate-400">
                                 <span>Haydovchi: <b class="text-slate-200">{{ item.driver|default:"—" }}</b></span>
-                                {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle }}</b></span>{% endif %}
-                                {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{% endif %}
+                                {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle
+                                        }}</b></span>{% endif %}
+                                {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{%
+                                endif %}
                             </div>
                             <div class="text-[11px] text-slate-500">
-                                {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.boxes_count }} ta quti ({{ item.qty }} dona) · {{ item.created_at|date:"d.m H:i" }}
+                                {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.boxes_count }} ta
+                                quti ({{ item.qty }} dona) · {{ item.created_at|date:"d.m H:i" }}
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                            <button type="button" onclick="startReceiveCheck({{ item.line_id }}, {{ item.batch_id }}, '{{ item.pastal_code }}', '{{ item.shipment_number }}')"
+                            <button type="button"
+                                onclick="startReceiveCheck({{ item.line_id }}, {{ item.batch_id }}, '{{ item.pastal_code }}', '{{ item.shipment_number }}')"
                                 class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center gap-1.5 whitespace-nowrap">
                                 <i class="fa-solid fa-qrcode"></i> Qabulni Skanerlash
                             </button>
@@ -652,11 +750,14 @@
             {% endif %}
         </div>
 
-        {% if branch == 'UYCHI' %}
         <!-- ============================================================== -->
-        <!-- MODE 2 (UYCHI): OMBORDA SAQLASH (MAVJUD KONTEYNERLAR VA PASTALLAR) -->
+        <!-- MODE: SAQLASH / METO SKLAD (HQ & UYCHI OMBORLARI)              -->
         <!-- ============================================================== -->
-        <div id="mode-storage" class="mode-view flex-1 {% if default_mode != 'storage' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
+        <div id="mode-storage"
+            class="mode-view flex-1 {% if default_mode != 'storage' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
+            
+            {% if branch == 'UYCHI' %}
+            <!-- ================= UYCHI OMBORI ================= -->
             <div class="flex items-center justify-between flex-shrink-0">
                 <div>
                     <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
@@ -670,7 +771,7 @@
                 </div>
             </div>
 
-            <!-- Stored Pastals Grid -->
+            <!-- Stored Pastals Grid (Uychi) -->
             <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
                 {% for card in sklad_cards %}
                 <div class="bg-slate-900 border border-slate-800 hover:border-cyan-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
@@ -723,7 +824,8 @@
                             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
                             <span>Omborda saqlanmoqda</span>
                         </span>
-                        <button type="button" onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
+                        <button type="button"
+                            onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
                             class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 touch-btn flex items-center gap-1.5 whitespace-nowrap">
                             <i class="fa-solid fa-person-walking-arrow-right"></i> Patokka Berish
                         </button>
@@ -737,33 +839,329 @@
                 </div>
                 {% endfor %}
             </div>
+
+            {% else %}
+            <!-- ================= KOSON METO SKLAD (HQ) ================= -->
+            <!-- 1-QISM: TASNIFDAN CHIQQAN ISHLAR — KG KIRITISH KUTILAYOTGANLAR -->
+            <div class="bg-slate-900/90 border border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-xl flex-shrink-0 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-base flex-shrink-0">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm sm:text-base font-black text-white">Tasnifdan Chiqqan Pastallar (Kg kiritish)</h3>
+                                <span id="kg-pending-badge" class="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs {% if kg_pending_cards|length > 0 %}animate-pulse{% endif %}">
+                                    {{ kg_pending_cards|length }} ta
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400">Tasnifdan chiqqach har doim kg olinadi va saqlashga qo'yiladi. Quti yetmaganda paketlangan bo'lsa ham kg olinadi.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kg Pending Cards List -->
+                <div id="kg-pending-list" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {% for p in kg_pending_cards %}
+                    <div id="kg-pending-card-{{ p.batch_id }}"
+                        class="p-4 rounded-2xl bg-slate-950 border-2 border-amber-500/50 hover:border-amber-400 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg transition-all">
+                        
+                        <div class="space-y-2 flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-base font-black font-mono text-white">{{ p.pastal_code }}</span>
+                                <span class="text-xs text-amber-400 font-bold font-mono">({{ p.order_number }} · {{ p.customer }})</span>
+                                
+                                {% if p.boxes_count == 0 %}
+                                <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-box-open"></i> Paketda (Qutisiz)
+                                </span>
+                                {% else %}
+                                <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 font-mono text-xs">
+                                    {{ p.boxes_count }} ta quti
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                {% if p.image %}
+                                <img src="{{ p.image }}" alt="" class="w-9 h-9 rounded-lg object-cover border border-slate-800 bg-slate-900 flex-shrink-0">
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <span class="text-xs font-mono font-bold text-cyan-300 block truncate">{{ p.article_code }}</span>
+                                    <span class="text-[11px] text-slate-400 block truncate">{{ p.article_name }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Sizes pills -->
+                            <div class="flex flex-wrap gap-1.5 text-xs">
+                                {% for s in p.sizes %}
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+                                    <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
+                                </span>
+                                {% endfor %}
+                                <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">
+                                    Jami: {{ p.total_tasnif }} dona
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Touch-friendly Kg Input Form -->
+                        <div class="flex items-center gap-2.5 w-full md:w-auto justify-end bg-slate-900 p-2 rounded-2xl border border-slate-800 flex-shrink-0">
+                            <div class="text-right">
+                                <label for="kg-input-{{ p.batch_id }}" class="block text-[11px] font-bold text-slate-400 mb-0.5">Real og'irlik (kg):</label>
+                                <input type="number" step="0.01" inputmode="decimal" id="kg-input-{{ p.batch_id }}" placeholder="0.0"
+                                    class="w-28 sm:w-32 px-3 py-2 bg-slate-950 border-2 border-amber-500/70 rounded-xl text-white font-mono font-black text-center text-lg focus:outline-none focus:border-amber-400">
+                            </div>
+                            <button type="button" id="kg-btn-{{ p.batch_id }}" onclick="submitTabletKg({{ p.batch_id }})"
+                                class="touch-btn px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 flex items-center gap-2 whitespace-nowrap self-end">
+                                <i class="fa-solid fa-scale-balanced text-base"></i>
+                                <span>Skladga Qabul</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div id="kg-pending-empty" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 text-center text-slate-400 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+                        <span>Tasnifdan chiqqan barcha pastallarning kg si kiritilgan va omborga o'tgan.</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 2-QISM: METO SKLAD — SAQLANAYOTGAN PASTALLAR -->
+            <div class="flex-1 overflow-hidden flex flex-col gap-3">
+                <!-- Header with Filters & Search -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-boxes-stacked text-cyan-400"></i>
+                            <span>Skladdagi Pastallar</span>
+                            <span id="stored-total-badge" class="text-slate-400 font-mono">({{ stored_cards|length }})</span>
+                        </span>
+                    </div>
+
+                    <!-- Filter pills (Barchasi, Paketda, Stiker, Konteyner, Tayyor) -->
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button" onclick="filterStoredCards('all', this)"
+                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-black transition bg-cyan-500 text-slate-950 shadow">
+                            Barchasi (<span id="filter-cnt-all">{{ stored_cards|length }}</span>)
+                        </button>
+                        <button type="button" onclick="filterStoredCards('packet', this)"
+                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-amber-300 hover:bg-slate-700">
+                            📦 Paketda (<span id="filter-cnt-packet">{{ packet_count }}</span>)
+                        </button>
+                        <button type="button" onclick="filterStoredCards('stiker_pending', this)"
+                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-purple-300 hover:bg-slate-700">
+                            🏷️ Stiker (<span id="filter-cnt-stiker">{{ stiker_pending_count }}</span>)
+                        </button>
+                        <button type="button" onclick="filterStoredCards('container_pending', this)"
+                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-rose-300 hover:bg-slate-700">
+                            🔗 Konteyner (<span id="filter-cnt-container">{{ container_pending_count }}</span>)
+                        </button>
+                        <button type="button" onclick="filterStoredCards('ready', this)"
+                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-emerald-300 hover:bg-slate-700">
+                            ✅ Tayyor (<span id="filter-cnt-ready">{{ ready_count }}</span>)
+                        </button>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="w-full sm:w-60">
+                        <input type="text" id="stored-search-input" oninput="searchStoredCards(this.value)" placeholder="Qidirish (pastal, artikul)..."
+                            class="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+                    </div>
+                </div>
+
+                <!-- Cards Grid in the exact style of https://terryjar.uz/meto-hub/?tab=sklad -->
+                <div id="stored-cards-grid" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
+                    {% for card in stored_cards %}
+                    <div id="stored-card-{{ card.batch_id }}"
+                        data-status="{{ card.packaging_status }}"
+                        data-search="{{ card.pastal_code|lower }} {{ card.order_number|lower }} {{ card.article_code|lower }} {{ card.article_name|lower }} {{ card.customer|lower }}"
+                        class="stored-card bg-slate-900 border-2 {% if card.packaging_status == 'packet' %}border-amber-500/60 bg-gradient-to-b from-amber-950/20 to-slate-900{% elif card.packaging_status == 'stiker_pending' %}border-purple-500/60 bg-gradient-to-b from-purple-950/20 to-slate-900{% elif card.packaging_status == 'container_pending' %}border-rose-500/60 bg-gradient-to-b from-rose-950/20 to-slate-900{% else %}border-emerald-500/60 bg-gradient-to-b from-emerald-950/20 to-slate-900{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3 transition-all">
+                        
+                        <div class="space-y-3">
+                            <!-- Card Head with Pastal Code & Status Badge -->
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <span class="text-base font-black font-mono text-white block">{{ card.pastal_code }}</span>
+                                    <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }} · {{ card.customer }}</span>
+                                </div>
+
+                                <!-- Distinct Automatic Badges -->
+                                {% if card.packaging_status == 'packet' %}
+                                <span class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0 animate-pulse">
+                                    <i class="fa-solid fa-box-open"></i> PAKETDA
+                                </span>
+                                {% elif card.packaging_status == 'stiker_pending' %}
+                                <span class="px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/50 text-purple-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0">
+                                    <i class="fa-solid fa-tags"></i> STIKER KUTILMOQDA
+                                </span>
+                                {% elif card.packaging_status == 'container_pending' %}
+                                <span class="px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/50 text-rose-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0">
+                                    <i class="fa-solid fa-cubes"></i> KONTEYNER KUTILMOQDA
+                                </span>
+                                {% elif card.ready %}
+                                <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-black text-xs flex items-center gap-1.5 flex-shrink-0">
+                                    <i class="fa-solid fa-circle-check"></i> TO'LIQ TAYYOR
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Model Info -->
+                            <div class="flex items-center gap-2.5">
+                                {% if card.image %}
+                                <img src="{{ card.image }}" alt="" class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950 flex-shrink-0">
+                                {% endif %}
+                                <div class="min-w-0 text-xs">
+                                    <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code }}</span>
+                                    <span class="text-[11px] text-slate-400 block truncate">{{ card.article_name }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Sizes Pills -->
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for s in card.sizes %}
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-xs">
+                                    <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
+                                </span>
+                                {% endfor %}
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 font-bold">
+                                    jami <b class="text-white">{{ card.total_tasnif }}</b>
+                                </span>
+                            </div>
+
+                            <!-- 3 Mini Stats: Qutilar, Chop etilgan, Konteynerda -->
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
+                                    <p class="text-[10px] uppercase text-slate-500 font-bold">Qutilar</p>
+                                    <p class="font-black {% if card.boxes_count == 0 %}text-amber-400{% else %}text-white{% endif %}">
+                                        {% if card.boxes_count == 0 %}0 (Paketda){% else %}{{ card.boxes_count }}{% endif %}
+                                    </p>
+                                </div>
+                                <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
+                                    <p class="text-[10px] uppercase text-slate-500 font-bold">Chop etilgan</p>
+                                    <p class="font-black {% if card.boxes_count and card.printed_count == card.boxes_count %}text-emerald-300{% else %}text-purple-300{% endif %}">
+                                        {{ card.printed_count }}/{{ card.boxes_count }}
+                                    </p>
+                                </div>
+                                <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
+                                    <p class="text-[10px] uppercase text-slate-500 font-bold">Konteynerda</p>
+                                    <p class="font-black {% if card.boxes_count and card.linked_count == card.boxes_count %}text-emerald-300{% else %}text-rose-300{% endif %}">
+                                        {{ card.linked_count }}/{{ card.boxes_count }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Weight & Sklad Reception Line -->
+                            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
+                                <div class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
+                                    <span>Og'irlik: <b class="text-white font-mono text-sm">{{ card.weight_kg }} kg</b></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] text-slate-400 font-mono">{{ card.sklad_received_at|default:"—" }}</span>
+                                    <button type="button" onclick="editTabletKg({{ card.batch_id }}, '{{ card.weight_kg }}')"
+                                        class="text-slate-400 hover:text-cyan-300 p-1" title="Og'irlikni tahrirlash">
+                                        <i class="fa-solid fa-pencil text-[11px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Containers if linked -->
+                            {% if card.containers %}
+                            <div class="space-y-1">
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Konteynerlar:</span>
+                                <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                                    {% for c in card.containers %}
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
+                                        {{ c }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Card Action / Notification Footer -->
+                        <div class="pt-3 border-t border-slate-800/80">
+                            {% if card.packaging_status == 'packet' %}
+                            <div class="text-[11px] text-amber-300/90 flex items-start gap-1.5">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i>
+                                <span>Quti yetmaganligi uchun paketlab qo'yilgan. Qutilar tayyor bo'lgach stiker chiqariladi.</span>
+                            </div>
+                            {% elif card.packaging_status == 'stiker_pending' %}
+                            <div class="text-[11px] text-purple-300/90 flex items-start gap-1.5">
+                                <i class="fa-solid fa-tags text-purple-400 mt-0.5"></i>
+                                <span>Stikerlar chop etilishi kutilmoqda ({{ card.printed_count }}/{{ card.boxes_count }} ta tayyor).</span>
+                            </div>
+                            {% elif card.packaging_status == 'container_pending' %}
+                            <div class="flex items-center justify-between text-[11px] text-rose-300/90">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cubes text-rose-400"></i>
+                                    <span>Konteynersiz qutilar bor.</span>
+                                </span>
+                                <button type="button" onclick="switchMode('link')" class="text-cyan-400 hover:underline font-bold text-xs">
+                                    Biriktirish →
+                                </button>
+                            </div>
+                            {% elif card.ready %}
+                            <div class="flex items-center justify-between">
+                                <span class="text-emerald-400 font-bold text-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check"></i> To'liq tayyor
+                                </span>
+                                <button type="button"
+                                    onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code|escapejs }}', {{ card.boxes_count }})"
+                                    class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 touch-btn flex items-center gap-1.5">
+                                    <i class="fa-solid fa-person-walking-arrow-right"></i> Patokka berish
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full py-16 text-center text-slate-500 space-y-2">
+                        <i class="fa-solid fa-boxes-stacked text-4xl block text-slate-600 mb-2"></i>
+                        <p class="text-sm font-bold text-slate-400">Meto omborida hali saqlanayotgan pastallar yo'q.</p>
+                        <p class="text-xs text-slate-500">Yuqoridagi ro'yxatdan tasnifdan chiqqan pastallarning kg sini kiritsangiz, shu yerga tushadi.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
 
         <!-- ============================================================== -->
         <!-- MODE 3: PATOKKA BERISH (TIKUVGA CHIQARISH)                      -->
         <!-- ============================================================== -->
-        <div id="mode-patok" class="mode-view flex-1 {% if default_mode != 'patok' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
+        <div id="mode-patok"
+            class="mode-view flex-1 {% if default_mode != 'patok' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
             <div class="flex items-center justify-between flex-shrink-0">
                 <div>
                     <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
                         <i class="fa-solid fa-person-walking-arrow-right text-emerald-400"></i>
-                        <span>{% if branch == 'UYCHI' %}Uychi Tikuv Patogiga Chiqarish{% else %}Skladdan Tikuv Patogiga Chiqarish{% endif %}</span>
+                        <span>{% if branch == 'UYCHI' %}Uychi Tikuv Patogiga Chiqarish{% else %}Skladdan Tikuv Patogiga
+                            Chiqarish{% endif %}</span>
                     </h3>
-                    <p class="text-xs text-slate-400">Pastalni tanlang, qaysi patokka berilishini belgilang va konteynerlarni skanerlang</p>
+                    <p class="text-xs text-slate-400">Pastalni tanlang, qaysi patokka berilishini belgilang va
+                        konteynerlarni skanerlang</p>
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
                 {% for card in sklad_cards %}
-                <div class="bg-slate-900 border {% if card.ready %}border-slate-800 hover:border-emerald-500/50{% else %}border-slate-800/50 opacity-60{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
+                <div
+                    class="bg-slate-900 border {% if card.ready %}border-slate-800 hover:border-emerald-500/50{% else %}border-slate-800/50 opacity-60{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
                     <div class="space-y-3">
                         <div class="flex items-start justify-between gap-3">
                             <div>
-                                <span class="text-base font-black font-mono text-white block">{{ card.pastal_code }}</span>
-                                <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }} · {{ card.customer }}</span>
+                                <span class="text-base font-black font-mono text-white block">{{ card.pastal_code
+                                    }}</span>
+                                <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }} · {{
+                                    card.customer }}</span>
                             </div>
-                            <span class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-black text-cyan-400">
+                            <span
+                                class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-black text-cyan-400">
                                 {{ card.total_tasnif }} dona
                             </span>
                         </div>
@@ -771,10 +1169,12 @@
                         <!-- Model info -->
                         <div class="flex items-center gap-2.5">
                             {% if card.image %}
-                            <img src="{{ card.image }}" alt="" class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950">
+                            <img src="{{ card.image }}" alt=""
+                                class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950">
                             {% endif %}
                             <div class="min-w-0 text-xs">
-                                <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code }}</span>
+                                <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code
+                                    }}</span>
                                 <span class="text-[11px] text-slate-400 block truncate">{{ card.article_name }}</span>
                             </div>
                         </div>
@@ -787,13 +1187,15 @@
                             </div>
                             <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
                                 <span class="text-[10px] text-slate-500 block">Chop etilgan</span>
-                                <span class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                                <span
+                                    class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
                                     {{ card.printed_count }}/{{ card.boxes_count }}
                                 </span>
                             </div>
                             <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
                                 <span class="text-[10px] text-slate-500 block">Konteynerda</span>
-                                <span class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                <span
+                                    class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
                                     {{ card.linked_count }}/{{ card.boxes_count }}
                                 </span>
                             </div>
@@ -803,7 +1205,8 @@
                     <!-- Dispatch action -->
                     <div class="pt-3 border-t border-slate-800 mt-3 flex items-center justify-between gap-2">
                         {% if card.ready %}
-                        <button type="button" onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
+                        <button type="button"
+                            onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
                             class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center justify-center gap-2">
                             <i class="fa-solid fa-person-walking-arrow-right"></i>
                             <span>Patokka Tekshirib Berish</span>
@@ -831,20 +1234,26 @@
     <!-- MODAL 1: CHECKLIST DIALOG (TEKSHIRUV / SKANERLASH OYNASI)       -->
     <!-- Patokka berish va Uychiga yuklash/qabul qilish uchun umumiy    -->
     <!-- ============================================================== -->
-    <div id="check-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+    <div id="check-modal"
+        class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+        <div
+            class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
             <!-- Modal Header -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/80">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
                     <div>
-                        <h3 id="modal-check-title" class="text-base sm:text-lg font-black text-white">Konteynerlarni Tekshirish</h3>
-                        <p class="text-xs text-slate-400">Har bir konteyner QR kodini skanerlang — barchasi yashil bo'lgach ruxsat beriladi</p>
+                        <h3 id="modal-check-title" class="text-base sm:text-lg font-black text-white">Konteynerlarni
+                            Tekshirish</h3>
+                        <p class="text-xs text-slate-400">Har bir konteyner QR kodini skanerlang — barchasi yashil
+                            bo'lgach ruxsat beriladi</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeCheckModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
+                <button type="button" onclick="closeCheckModal()"
+                    class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -859,7 +1268,8 @@
                 </div>
 
                 <!-- Status Feedback Line -->
-                <div id="modal-scan-msg" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
+                <div id="modal-scan-msg"
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
                     <i class="fa-solid fa-qrcode text-emerald-400"></i>
                     <span id="modal-scan-msg-text">Konteynerlarni bittalab skanerlang.</span>
                 </div>
@@ -871,14 +1281,16 @@
                 <div>
                     <h4 class="text-xs uppercase font-bold text-slate-400 mb-2 flex items-center justify-between">
                         <span>Tekshirilishi kerak bo'lgan konteynerlar:</span>
-                        <span id="modal-check-progress" class="font-mono text-emerald-400 font-black">0 / 0 ta yashil</span>
+                        <span id="modal-check-progress" class="font-mono text-emerald-400 font-black">0 / 0 ta
+                            yashil</span>
                     </h4>
                     <div id="modal-check-rows" class="space-y-3"></div>
                 </div>
             </div>
 
             <!-- Modal Footer Controls -->
-            <div class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950/80">
+            <div
+                class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950/80">
                 <button type="button" onclick="closeCheckModal()"
                     class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm touch-btn">
                     Bekor Qilish
@@ -897,45 +1309,56 @@
     <!-- MODAL 2: METO PLANSHET — YUK XATINI TEKSHIRISH VA JO'NATISH     -->
     <!-- 20/20 o'tdi bo'lmaguncha qizil turadi, hammasi o'tsa yashil   -->
     <!-- ============================================================== -->
-    <div id="verify-shipment-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+    <div id="verify-shipment-modal"
+        class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+        <div
+            class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
             <!-- Header -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950">
                 <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl flex-shrink-0">
+                    <div
+                        class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl flex-shrink-0">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 id="verify-modal-title" class="text-base sm:text-lg font-black text-white font-mono">YX-00000000-000</h3>
-                            <span class="px-2 py-0.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-bold">Uychi Filiali</span>
+                            <h3 id="verify-modal-title" class="text-base sm:text-lg font-black text-white font-mono">
+                                YX-00000000-000</h3>
+                            <span
+                                class="px-2 py-0.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-bold">Uychi
+                                Filiali</span>
                         </div>
                         <p class="text-xs text-slate-400">Har bir pastaldagi barcha qutilarni skanerlang</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span id="verify-total-progress-badge" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-xs font-bold">
+                    <span id="verify-total-progress-badge"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-xs font-bold">
                         0 / 0 o'tdi
                     </span>
-                    <button type="button" onclick="closeVerifyModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
+                    <button type="button" onclick="closeVerifyModal()"
+                        class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             </div>
 
             <!-- Pastal Tabs strip -->
-            <div id="verify-pastal-tabs" class="px-4 py-3 bg-slate-950/70 border-b border-slate-800 flex items-center gap-2 overflow-x-auto flex-shrink-0">
+            <div id="verify-pastal-tabs"
+                class="px-4 py-3 bg-slate-950/70 border-b border-slate-800 flex items-center gap-2 overflow-x-auto flex-shrink-0">
                 <!-- Dynamically filled tabs -->
             </div>
 
             <!-- Top Banner for Active Pastal (Red until 20/20 passed, then Green) -->
             <div class="px-4 sm:px-6 pt-4 flex-shrink-0">
-                <div id="verify-pastal-status-banner" class="p-4 rounded-2xl bg-rose-950/80 border border-rose-600 text-rose-200 text-sm sm:text-base font-black flex items-center justify-between shadow-lg transition-all">
+                <div id="verify-pastal-status-banner"
+                    class="p-4 rounded-2xl bg-rose-950/80 border border-rose-600 text-rose-200 text-sm sm:text-base font-black flex items-center justify-between shadow-lg transition-all">
                     <div class="flex items-center gap-2.5">
                         <span id="verify-banner-dot" class="w-3.5 h-3.5 rounded-full bg-rose-500 animate-pulse"></span>
                         <span id="verify-banner-text">0 / 0 o'tdi (Chala tekshirildi)</span>
                     </div>
-                    <span id="verify-banner-tag" class="px-2.5 py-1 rounded-lg bg-rose-900/60 border border-rose-700 text-rose-300 text-xs font-mono uppercase">
+                    <span id="verify-banner-tag"
+                        class="px-2.5 py-1 rounded-lg bg-rose-900/60 border border-rose-700 text-rose-300 text-xs font-mono uppercase">
                         Qizil holat
                     </span>
                 </div>
@@ -951,7 +1374,8 @@
                 </div>
 
                 <!-- Live feedback banner -->
-                <div id="verify-feedback-banner" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
+                <div id="verify-feedback-banner"
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
                     <i class="fa-solid fa-barcode text-amber-400"></i>
                     <span id="verify-feedback-text">Konteynerni skanerlang yoki ro'yxatdan tekshiring.</span>
                 </div>
@@ -964,14 +1388,16 @@
                         </h4>
                         <span id="verify-pastal-box-stats" class="text-xs font-mono font-bold text-slate-300"></span>
                     </div>
-                    <div id="verify-boxes-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div id="verify-boxes-grid"
+                        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                         <!-- Boxes rendered here -->
                     </div>
                 </div>
             </div>
 
             <!-- Footer Controls -->
-            <div class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950">
+            <div
+                class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950">
                 <button type="button" onclick="closeVerifyModal()"
                     class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm touch-btn">
                     Yopish
@@ -979,7 +1405,8 @@
 
                 <div class="flex items-center gap-3">
                     <span id="verify-dispatch-hint" class="text-xs text-rose-400 font-bold hidden sm:inline">
-                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha pastallar (20/20) to'liq o'tishi shart
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha pastallar (20/20) to'liq o'tishi
+                        shart
                     </span>
                     <button type="button" id="verify-dispatch-btn" disabled onclick="submitVerifyDispatch()"
                         class="px-6 py-3 rounded-2xl bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl transition-all">
@@ -995,27 +1422,35 @@
     <!-- MODAL 3: UYCHI FILIALI — YUK XATINI TEKSHIRUVGA OLISH VA SAQLASH -->
     <!-- Konteyner scan qilinadi, qutini avtomatik taniydi, saqlash     -->
     <!-- ============================================================== -->
-    <div id="uychi-receive-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+    <div id="uychi-receive-modal"
+        class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+        <div
+            class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
             <!-- Header -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950">
                 <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0">
+                    <div
+                        class="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0">
                         <i class="fa-solid fa-truck-ramp-box"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 id="uychi-modal-title" class="text-base sm:text-lg font-black text-white font-mono">YX-00000000-000</h3>
-                            <span class="px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">Tekshiruvga Olish</span>
+                            <h3 id="uychi-modal-title" class="text-base sm:text-lg font-black text-white font-mono">
+                                YX-00000000-000</h3>
+                            <span
+                                class="px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">Tekshiruvga
+                                Olish</span>
                         </div>
                         <p class="text-xs text-slate-400">Kosondan kelgan yuk xati konteynerlarini skanerlang</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span id="uychi-total-progress-badge" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-xs font-bold">
+                    <span id="uychi-total-progress-badge"
+                        class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-xs font-bold">
                         0 / 0 qabul qilindi
                     </span>
-                    <button type="button" onclick="closeUychiReceiveModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
+                    <button type="button" onclick="closeUychiReceiveModal()"
+                        class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
@@ -1031,9 +1466,11 @@
                 </div>
 
                 <!-- Live feedback banner -->
-                <div id="uychi-feedback-banner" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
+                <div id="uychi-feedback-banner"
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
                     <i class="fa-solid fa-qrcode text-emerald-400"></i>
-                    <span id="uychi-feedback-text">Kelgan konteyner QR kodini skanerlang — quti avtomatik aniqlanadi.</span>
+                    <span id="uychi-feedback-text">Kelgan konteyner QR kodini skanerlang — quti avtomatik
+                        aniqlanadi.</span>
                 </div>
 
                 <!-- Pastals & Boxes List -->
@@ -1043,7 +1480,8 @@
             </div>
 
             <!-- Footer Controls -->
-            <div class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950">
+            <div
+                class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950">
                 <button type="button" onclick="closeUychiReceiveModal()"
                     class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm touch-btn">
                     Bekor Qilish
@@ -1067,6 +1505,8 @@
         const CURRENT_BRANCH = '{{ branch }}';
         const PENDING_SHIPMENTS = {{ pending_shipments_json|default:'[]'|safe }};
         const INCOMING_SHIPMENTS = {{ incoming_shipments_json|default:'[]'|safe }};
+        const KG_PENDING_CARDS = {{ kg_pending_cards_json|default:'[]'|safe }};
+        const STORED_CARDS = {{ stored_cards_json|default:'[]'|safe }};
         const SCREENS_DATA = [
             {% for n, code in screens %}
             { id: {{ n }}, code: '{{ code }}' },
@@ -1112,7 +1552,7 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.13);
-            } catch(e) {}
+            } catch (e) { }
         }
 
         function playSoundSuccess() {
@@ -1133,7 +1573,7 @@
                     osc.start(now + idx * 0.08);
                     osc.stop(now + idx * 0.08 + 0.26);
                 });
-            } catch(e) {}
+            } catch (e) { }
         }
 
         function playSoundError() {
@@ -1154,7 +1594,7 @@
                     osc.start(now + idx * 0.12);
                     osc.stop(now + idx * 0.12 + 0.19);
                 });
-            } catch(e) {}
+            } catch (e) { }
         }
     </script>
 
@@ -1162,7 +1602,7 @@
     <script>
         function toggleFullScreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
+                document.documentElement.requestFullscreen().catch(() => { });
             } else {
                 if (document.exitFullscreen) document.exitFullscreen();
             }
@@ -1180,7 +1620,7 @@
                 });
                 const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server noto\'g\'ri javob berdi' }));
                 return { ok: res.ok && data.status === 'OK', data };
-            } catch(e) {
+            } catch (e) {
                 return { ok: false, data: { message: 'Tarmoq xatosi: ' + e.message } };
             }
         }
@@ -1190,7 +1630,7 @@
                 const res = await fetch(url);
                 const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server noto\'g\'ri javob berdi' }));
                 return { ok: res.ok && data.status === 'OK', data };
-            } catch(e) {
+            } catch (e) {
                 return { ok: false, data: { message: 'Tarmoq xatosi: ' + e.message } };
             }
         }
@@ -1203,7 +1643,7 @@
 
     <!-- MODE SWITCHER & GLOBAL NAVIGATION -->
     <script>
-        let currentMode = '{{ default_mode }}'; // 'link' | 'shipment' | 'storage' | 'patok'
+        let currentMode = '{{ default_mode }}'; // 'link' | 'storage' | 'shipment' | 'patok'
 
         function switchMode(mode) {
             if (CURRENT_BRANCH === 'UYCHI' && mode === 'link') {
@@ -1216,7 +1656,7 @@
             if (targetView) targetView.classList.remove('hidden');
 
             // Nav tabs active styling
-            const modes = CURRENT_BRANCH === 'UYCHI' ? ['shipment', 'storage', 'patok'] : ['link', 'shipment', 'patok'];
+            const modes = CURRENT_BRANCH === 'UYCHI' ? ['shipment', 'storage', 'patok'] : ['link', 'storage', 'shipment', 'patok'];
             modes.forEach(m => {
                 const btn = document.getElementById('nav-btn-' + m);
                 if (!btn) return;
@@ -1259,6 +1699,126 @@
                 if (recView) recView.classList.remove('hidden');
                 if (recBtn) recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
             }
+        }
+
+        // =============================================================
+        // METO SKLAD: SUBMIT REAL KG & STORE TO WAREHOUSE
+        // =============================================================
+        async function submitTabletKg(batchId) {
+            const inputEl = document.getElementById('kg-input-' + batchId);
+            if (!inputEl) return;
+            const kgVal = (inputEl.value || '').trim();
+            if (!kgVal || parseFloat(kgVal) <= 0) {
+                playSoundError();
+                alert("Iltimos, haqiqiy og'irlikni (kg) to'g'ri kiriting!");
+                inputEl.focus();
+                return;
+            }
+
+            const btn = document.getElementById('kg-btn-' + batchId);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...';
+            }
+
+            const r = await postJSON("{% url 'meto_hub_tablet_kg_receive' %}", {
+                batch_id: batchId,
+                kg: kgVal
+            });
+
+            if (r.ok) {
+                playSoundSuccess();
+                // Slide out the pending card
+                const cardEl = document.getElementById('kg-pending-card-' + batchId);
+                if (cardEl) {
+                    cardEl.classList.add('transition-all', 'duration-300', 'opacity-0', 'scale-95', 'pointer-events-none');
+                    setTimeout(() => {
+                        cardEl.remove();
+                        const list = document.getElementById('kg-pending-list');
+                        if (list && list.children.length === 0) {
+                            list.innerHTML = `
+                                <div id="kg-pending-empty" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 text-center text-slate-400 text-xs sm:text-sm flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+                                    <span>Tasnifdan chiqqan barcha pastallarning kg si kiritilgan va omborga o'tgan.</span>
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                }
+                setTimeout(() => location.reload(), 600);
+            } else {
+                playSoundError();
+                alert(r.data?.message || "Og'irlikni saqlashda xatolik yuz berdi");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-scale-balanced text-base"></i><span>Skladga Qabul</span>';
+                }
+            }
+        }
+
+        async function editTabletKg(batchId, currentKg) {
+            const newKg = prompt("Yangi og'irlikni kiriting (kg):", currentKg || "");
+            if (newKg === null) return;
+            const cleanKg = newKg.trim();
+            if (!cleanKg || parseFloat(cleanKg) <= 0) {
+                alert("Og'irlik 0 dan katta bo'lishi kerak.");
+                return;
+            }
+            const r = await postJSON("{% url 'meto_hub_tablet_kg_receive' %}", {
+                batch_id: batchId,
+                kg: cleanKg
+            });
+            if (r.ok) {
+                playSoundSuccess();
+                location.reload();
+            } else {
+                playSoundError();
+                alert(r.data?.message || "Xatolik yuz berdi");
+            }
+        }
+
+        // =============================================================
+        // METO SKLAD: FILTER & SEARCH STORED PASTALS
+        // =============================================================
+        let currentStoredFilter = 'all';
+
+        function filterStoredCards(status, btnEl) {
+            currentStoredFilter = status;
+            document.querySelectorAll('.stored-filter-btn').forEach(btn => {
+                btn.className = 'stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700';
+            });
+            btnEl.className = 'stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-black transition bg-cyan-500 text-slate-950 shadow';
+            applyStoredCardFilters();
+        }
+
+        function searchStoredCards(query) {
+            applyStoredCardFilters(query);
+        }
+
+        function applyStoredCardFilters(searchQuery) {
+            const searchVal = (searchQuery !== undefined ? searchQuery : (document.getElementById('stored-search-input')?.value || '')).trim().toLowerCase();
+            const cards = document.querySelectorAll('.stored-card');
+            cards.forEach(card => {
+                const cardStatus = card.getAttribute('data-status');
+                const cardSearch = (card.getAttribute('data-search') || '').toLowerCase();
+
+                let matchesFilter = true;
+                if (currentStoredFilter === 'packet') matchesFilter = (cardStatus === 'packet');
+                else if (currentStoredFilter === 'stiker_pending') matchesFilter = (cardStatus === 'stiker_pending');
+                else if (currentStoredFilter === 'container_pending') matchesFilter = (cardStatus === 'container_pending');
+                else if (currentStoredFilter === 'ready') matchesFilter = (cardStatus === 'ready');
+
+                let matchesSearch = true;
+                if (searchVal) {
+                    matchesSearch = cardSearch.includes(searchVal);
+                }
+
+                if (matchesFilter && matchesSearch) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
         }
     </script>
 
@@ -1434,9 +1994,8 @@
             const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
             const row = document.createElement('div');
-            row.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 text-xs transition-all ${
-                ok ? 'bg-slate-950 border-emerald-800/80 text-emerald-200' : 'bg-rose-950/60 border-rose-800 text-rose-200'
-            }`;
+            row.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 text-xs transition-all ${ok ? 'bg-slate-950 border-emerald-800/80 text-emerald-200' : 'bg-rose-950/60 border-rose-800 text-rose-200'
+                }`;
 
             row.innerHTML = `
                 <div class="flex items-center gap-2 min-w-0">
@@ -2011,22 +2570,20 @@
             activePastal.boxes.forEach(b => {
                 const isBoxScanned = b.container && scannedSet.has(b.container);
                 const card = document.createElement('div');
-                card.className = `p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
-                    isBoxScanned
-                        ? 'bg-emerald-950/60 border-emerald-500/80 shadow-md shadow-emerald-500/10'
-                        : 'bg-slate-950 border-slate-800'
-                }`;
+                card.className = `p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${isBoxScanned
+                    ? 'bg-emerald-950/60 border-emerald-500/80 shadow-md shadow-emerald-500/10'
+                    : 'bg-slate-950 border-slate-800'
+                    }`;
                 card.innerHTML = `
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-xs font-black font-mono text-white">Quti #${b.number}</span>
                         <span class="text-[11px] font-bold text-slate-400">${b.qty} dona</span>
                     </div>
                     <div class="my-2">
-                        <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs block truncate ${
-                            isBoxScanned
-                                ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'
-                                : 'bg-slate-900 text-slate-300 border border-slate-700'
-                        }">
+                        <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs block truncate ${isBoxScanned
+                        ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'
+                        : 'bg-slate-900 text-slate-300 border border-slate-700'
+                    }">
                             ${b.container || 'Konteynersiz'}
                         </span>
                     </div>
@@ -2226,20 +2783,18 @@
                     if (isScanned) { pScanned++; totalScanned++; }
 
                     const row = document.createElement('div');
-                    row.className = `p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
-                        isScanned
-                            ? 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
-                    }`;
+                    row.className = `p-2.5 rounded-xl border flex items-center justify-between gap-2 ${isScanned
+                        ? 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200'
+                        : 'bg-slate-900 border-slate-800 text-slate-400'
+                        }`;
                     row.innerHTML = `
                         <div class="min-w-0">
                             <span class="font-bold text-xs ${isScanned ? 'text-white' : 'text-slate-300'}">Quti #${b.number}</span>
                             <span class="text-[11px] block text-slate-400">${b.qty} dona</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-black text-xs px-2 py-0.5 rounded-lg ${
-                                isScanned ? 'bg-emerald-900 border border-emerald-600 text-emerald-300' : 'bg-slate-950 text-slate-400 border border-slate-700'
-                            }">${b.container || '—'}</span>
+                            <span class="font-mono font-black text-xs px-2 py-0.5 rounded-lg ${isScanned ? 'bg-emerald-900 border border-emerald-600 text-emerald-300' : 'bg-slate-950 text-slate-400 border border-slate-700'
+                        }">${b.container || '—'}</span>
                             <span class="block text-[10px] mt-0.5 font-bold ${isScanned ? 'text-emerald-400' : 'text-slate-500'}">
                                 ${isScanned ? '✅ Qabul qilindi' : '⏳ Kutilmoqda'}
                             </span>
@@ -2254,8 +2809,7 @@
                         <span class="font-mono font-black text-white text-sm">${p.pastal_code}</span>
                         <span class="text-xs text-slate-400 ml-2">${p.article_code} · ${p.article_name}</span>
                     </div>
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-black ${
-                        isPastalDone ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-black ${isPastalDone ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     }">
                         ${pScanned} / ${p.boxes_count} ta
                     </span>
@@ -2372,4 +2926,5 @@
     </script>
 
 </body>
+
 </html>

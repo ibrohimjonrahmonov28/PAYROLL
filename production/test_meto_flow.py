@@ -1151,8 +1151,9 @@ class MetoTabletTest(MetoFlowBase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "METO PLANSHET")
         self.assertContains(res, "1. Biriktirish")
-        self.assertContains(res, "2. Yuk Xati")
-        self.assertContains(res, "3. Patokka Berish")
+        self.assertContains(res, "2. Meto Sklad")
+        self.assertContains(res, "3. Yuk Xati")
+        self.assertContains(res, "4. Patokka Berish")
 
         # 3) /tayyorlov/planshet/ alias ham 200 beradi
         res_alias = self.client.get(reverse('meto_hub_planshet'))
@@ -1247,7 +1248,7 @@ class MetoTabletTest(MetoFlowBase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Uychi Filiali")
         self.assertContains(res, "1. Yuk Qabuli")
-        self.assertContains(res, "2. Saqlash (Ombor)")
+        self.assertContains(res, "2. Saqlash")
         self.assertContains(res, "3. Patokka Berish")
         self.assertNotContains(res, "1. Biriktirish")
         self.assertNotContains(res, 'id="mode-link"')
@@ -1375,6 +1376,77 @@ class MetoTabletTest(MetoFlowBase):
         self.assertEqual(cancel_res.status_code, 200)
         self.assertFalse(Shipment.objects.filter(id=shipment.id).exists())
         self.assertFalse(ShipmentPastal.objects.filter(batch=self.batch).exists())
+
+    def test_tablet_tasnif_kg_pending_and_packet_storage(self):
+        # 1. Pastal tasnifdan chiqadi
+        self.to_sklad()
+        flow = self.batch.flow
+        self.assertEqual(flow.stage, PastalFlow.Stage.SKLAD)
+        self.assertEqual(flow.branch, 'HQ')
+        self.assertIsNone(flow.sklad_received_at)
+        self.assertIsNone(self.batch.actual_weight_kg)
+
+        # 2. Meto Planshet sahifasi va state API da kg kiritiladiganlar ro'yxatida ko'rinadi
+        self.client.force_login(self.sklad)
+        state_res = self.client.get(reverse('meto_hub_tablet_state') + '?branch=HQ')
+        self.assertEqual(state_res.status_code, 200)
+        state_data = state_res.json()
+        kg_pending = state_data['kg_pending_cards']
+        self.assertTrue(any(c['batch_id'] == self.batch.id for c in kg_pending))
+
+        # Pastal hali qutiga solinmagan (paketda)
+        card = next(c for c in kg_pending if c['batch_id'] == self.batch.id)
+        self.assertEqual(card['boxes_count'], 0)
+        self.assertEqual(card['packaging_status'], 'packet')
+        self.assertEqual(card['packaging_label'], 'Paketda (Qutisiz)')
+
+        # 3. Planshet orqali kg kiritiladi va skladga qabul qilinadi
+        receive_res = self.client.post(
+            reverse('meto_hub_tablet_kg_receive'),
+            data=json.dumps({'batch_id': self.batch.id, 'kg': '24.8'}),
+            content_type='application/json'
+        )
+        self.assertEqual(receive_res.status_code, 200)
+        receive_data = receive_res.json()
+        self.assertEqual(receive_data['status'], 'OK')
+
+        # 4. Endi pastal kg kiritiladiganlardan chiqib, Meto Skladga o'tdi
+        self.batch.refresh_from_db()
+        flow.refresh_from_db()
+        self.assertEqual(self.batch.actual_weight_kg, Decimal('24.80'))
+        self.assertIsNotNone(flow.sklad_received_at)
+
+        state_res2 = self.client.get(reverse('meto_hub_tablet_state') + '?branch=HQ')
+        state_data2 = state_res2.json()
+        self.assertFalse(any(c['batch_id'] == self.batch.id for c in state_data2['kg_pending_cards']))
+        stored = state_data2['stored_cards']
+        self.assertTrue(any(c['batch_id'] == self.batch.id for c in stored))
+        stored_card = next(c for c in stored if c['batch_id'] == self.batch.id)
+        self.assertEqual(stored_card['packaging_status'], 'packet')
+
+        # 5. Qutilar bo'linganda stiker kutilmoqda holatiga o'tadi
+        meto_flow.split_boxes(self.batch, {self.items()[0].id: {'boxes': 1}, self.items()[1].id: {'boxes': 1}}, self.sticker)
+        state_res3 = self.client.get(reverse('meto_hub_tablet_state') + '?branch=HQ')
+        stored_card3 = next(c for c in state_res3.json()['stored_cards'] if c['batch_id'] == self.batch.id)
+        self.assertEqual(stored_card3['packaging_status'], 'stiker_pending')
+
+        # 6. Stiker chop etilgach, konteyner kutilmoqda holatiga o'tadi
+        boxes = self.boxes()
+        for b in boxes:
+            b.is_printed = True
+            b.save(update_fields=['is_printed'])
+        state_res4 = self.client.get(reverse('meto_hub_tablet_state') + '?branch=HQ')
+        stored_card4 = next(c for c in state_res4.json()['stored_cards'] if c['batch_id'] == self.batch.id)
+        self.assertEqual(stored_card4['packaging_status'], 'container_pending')
+
+        # 7. Konteyner biriktirilgach to'liq tayyor bo'ladi
+        Container.objects.create(number=930, branch='HQ', box=boxes[0], status=Container.Status.FILLED)
+        Container.objects.create(number=931, branch='HQ', box=boxes[1], status=Container.Status.FILLED)
+        state_res5 = self.client.get(reverse('meto_hub_tablet_state') + '?branch=HQ')
+        stored_card5 = next(c for c in state_res5.json()['stored_cards'] if c['batch_id'] == self.batch.id)
+        self.assertEqual(stored_card5['packaging_status'], 'ready')
+        self.assertTrue(stored_card5['ready'])
+
 
 
 

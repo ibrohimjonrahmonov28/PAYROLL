@@ -15,6 +15,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from production import meto_flow as flow_logic
@@ -111,13 +112,34 @@ def _tablet_card(flow):
     total_meto = sum(s['meto'] or 0 for s in sizes)
     total_tasnif = sum(s['tasnif'] or 0 for s in sizes)
 
+    boxes_count = len(boxes)
+    printed_count = sum(1 for b in boxes if b.is_printed)
+    linked_count = len(linked)
+    sklad_received = bool(flow.sklad_received_at and batch.actual_weight_kg)
+    kg_pending = bool(flow.branch == 'HQ' and not sklad_received)
+
+    if boxes_count == 0:
+        packaging_status = 'packet'
+        packaging_label = "Paketda (Qutisiz)"
+    elif printed_count < boxes_count:
+        packaging_status = 'stiker_pending'
+        packaging_label = "Stiker kutilmoqda"
+    elif linked_count < boxes_count:
+        packaging_status = 'container_pending'
+        packaging_label = "Konteyner kutilmoqda"
+    else:
+        packaging_status = 'ready'
+        packaging_label = "To'liq tayyor"
+
     # Tayyorlik sharti (patokka berish yoki yuk xatiga yuklash uchun)
     ready = (
-        len(boxes) > 0
-        and all(b.is_printed for b in boxes)
-        and len(linked) == len(boxes)
-        and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))
+        boxes_count > 0
+        and printed_count == boxes_count
+        and linked_count == boxes_count
+        and (flow.branch != 'HQ' or sklad_received)
     )
+
+    weight_str = f"{batch.actual_weight_kg:.2f}".rstrip('0').rstrip('.') if batch.actual_weight_kg is not None else None
 
     return {
         'id': batch.id,
@@ -133,22 +155,32 @@ def _tablet_card(flow):
         'total_cut': total_cut,
         'total_meto': total_meto,
         'total_tasnif': total_tasnif,
-        'boxes_count': len(boxes),
-        'printed_count': sum(1 for b in boxes if b.is_printed),
-        'linked_count': len(linked),
+        'boxes_count': boxes_count,
+        'printed_count': printed_count,
+        'linked_count': linked_count,
         'containers': container_codes,
-        'weight_kg': batch.actual_weight_kg,
-        'sklad_received': bool(flow.sklad_received_at and batch.actual_weight_kg),
+        'weight_kg': weight_str,
+        'sklad_received': sklad_received,
+        'sklad_received_at': flow.sklad_received_at.strftime('%d.%m.%Y %H:%M') if flow.sklad_received_at else None,
+        'sklad_received_by': (flow.sklad_received_by.get_full_name() or flow.sklad_received_by.username) if flow.sklad_received_by else '',
+        'kg_pending': kg_pending,
+        'packaging_status': packaging_status,
+        'packaging_label': packaging_label,
         'ready': ready,
         'branch': flow.branch,
         'stage': flow.stage,
     }
 
 
-def _tablet_sklad_cards(branch):
-    """Skladdagi pastallar ro'yxati (eng yangilari tepada)."""
+def _tablet_kg_pending_cards():
+    """Tasnifdan chiqqan, lekin hali kg kiritilmagan HQ pastallari ro'yxati."""
     qs = (
-        PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
+        PastalFlow.objects.filter(
+            stage=PastalFlow.Stage.SKLAD,
+            branch='HQ',
+        ).filter(
+            Q(sklad_received_at__isnull=True) | Q(batch__actual_weight_kg__isnull=True)
+        )
         .select_related(
             'batch__order_item__order__customer',
             'batch__order_item__article',
@@ -160,6 +192,27 @@ def _tablet_sklad_cards(branch):
             'batch__items__boxes',
         )
         .order_by('-batch__created_at', '-id')[:100]
+    )
+    return [_tablet_card(f) for f in qs]
+
+
+def _tablet_sklad_cards(branch):
+    """Skladda saqlanayotgan pastallar ro'yxati (HQ da kg si kiritilganlar, eng yangilari tepada)."""
+    qs = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
+    if branch == 'HQ':
+        qs = qs.filter(sklad_received_at__isnull=False, batch__actual_weight_kg__isnull=False)
+    qs = (
+        qs.select_related(
+            'batch__order_item__order__customer',
+            'batch__order_item__article',
+            'sklad_received_by',
+        )
+        .prefetch_related(
+            'batch__items__order_item_size',
+            'batch__items__flow_size',
+            'batch__items__boxes',
+        )
+        .order_by('-batch__created_at', '-id')[:150]
     )
     return [_tablet_card(f) for f in qs]
 
@@ -374,15 +427,24 @@ def meto_tablet_view(request):
     screen_range = flow_logic.KOSON_SCREENS if branch == 'HQ' else flow_logic.UYCHI_SCREENS
     screens = [(n, get_patok_code(n)) for n in screen_range]
 
-    # Skladdagi pastallar, kelayotgan yuklar, kutilayotgan yuk xatlari va patokdagi pastallar
+    # Skladdagi pastallar, kg kutilayotganlar, kelayotgan yuklar, kutilayotgan yuk xatlari va patokdagi pastallar
+    kg_pending_cards = _tablet_kg_pending_cards() if branch == 'HQ' else []
     sklad_cards = _tablet_sklad_cards(branch)
+    packet_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'packet')
+    stiker_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'stiker_pending')
+    container_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'container_pending')
+    ready_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'ready')
+
     incoming = _tablet_incoming(branch)
     incoming_shipments = _tablet_incoming_shipments(branch)
     pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
     patok_rows = _tablet_patok_rows(branch)
 
-    # Boshlang'ich rejim (default_mode): Uychida quti biriktirish yo'q, yuk qabuli yoki saqlash ochiladi
-    if branch == 'UYCHI':
+    # Boshlang'ich rejim (default_mode)
+    req_mode = request.GET.get('mode')
+    if req_mode in ('link', 'storage', 'shipment', 'patok'):
+        default_mode = req_mode
+    elif branch == 'UYCHI':
         default_mode = 'shipment' if incoming_shipments or incoming else 'storage'
     else:
         default_mode = 'link'
@@ -403,13 +465,21 @@ def meto_tablet_view(request):
         'filled_containers': filled_c,
         'patok_containers': patok_c,
         'total_containers': total_c,
+        'kg_pending_cards': kg_pending_cards,
+        'stored_cards': sklad_cards,
         'sklad_cards': sklad_cards,
+        'packet_count': packet_count,
+        'stiker_pending_count': stiker_pending_count,
+        'container_pending_count': container_pending_count,
+        'ready_count': ready_count,
         'ready_cards': [c for c in sklad_cards if c['ready']],
         'incoming': incoming,
         'incoming_shipments': incoming_shipments,
         'pending_shipments': pending_shipments,
         'pending_shipments_json': json.dumps(pending_shipments),
         'incoming_shipments_json': json.dumps(incoming_shipments),
+        'kg_pending_cards_json': json.dumps(kg_pending_cards),
+        'stored_cards_json': json.dumps(sklad_cards),
         'patok_rows': patok_rows,
         'screens': screens,
         'recent_events': recent_events,
@@ -428,7 +498,13 @@ def meto_tablet_state_api(request):
     patok_c = branch_c.filter(status=Container.Status.AT_PATOK).count()
     total_c = branch_c.count()
 
+    kg_pending_cards = _tablet_kg_pending_cards() if branch == 'HQ' else []
     sklad_cards = _tablet_sklad_cards(branch)
+    packet_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'packet')
+    stiker_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'stiker_pending')
+    container_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'container_pending')
+    ready_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'ready')
+
     incoming = _tablet_incoming(branch)
     incoming_shipments = _tablet_incoming_shipments(branch)
     pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
@@ -441,10 +517,41 @@ def meto_tablet_state_api(request):
         'filled_containers': filled_c,
         'patok_containers': patok_c,
         'total_containers': total_c,
+        'kg_pending_cards': kg_pending_cards,
+        'stored_cards': sklad_cards,
         'sklad_cards': sklad_cards,
+        'packet_count': packet_count,
+        'stiker_pending_count': stiker_pending_count,
+        'container_pending_count': container_pending_count,
+        'ready_count': ready_count,
         'ready_cards': [c for c in sklad_cards if c['ready']],
         'incoming': incoming,
         'incoming_shipments': incoming_shipments,
         'pending_shipments': pending_shipments,
         'patok_rows': patok_rows,
     })
+
+
+@tablet_access_required
+@require_POST
+def api_tablet_kg_receive(request):
+    """Meto Planshet orqali tasnifdan chiqqan pastalga kg kiritish va skladga qabul qilish."""
+    try:
+        data = json.loads(request.body) if request.body else request.POST
+    except Exception:
+        data = request.POST
+    batch_id = data.get('batch_id')
+    kg = data.get('kg')
+    if not batch_id:
+        return JsonResponse({'status': 'ERROR', 'message': "Pastal tanlanmadi."}, status=400)
+    batch = get_object_or_404(CuttingBatch, id=batch_id)
+    try:
+        flow = flow_logic.sklad_receive(batch, kg, request.user)
+        card = _tablet_card(flow)
+        return JsonResponse({
+            'status': 'OK',
+            'message': f"{card['pastal_code']} qabul qilindi ({card['weight_kg']} kg). Skladga tushdi.",
+            'card': card,
+        })
+    except flow_logic.FlowError as e:
+        return JsonResponse({'status': 'ERROR', 'message': str(e)}, status=400)

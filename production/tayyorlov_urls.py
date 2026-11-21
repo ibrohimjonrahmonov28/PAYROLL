@@ -28,6 +28,7 @@ urlpatterns = [
     path('tablet/', tablet.meto_tablet_view, name='meto_hub_tablet'),
     path('planshet/', tablet.meto_tablet_view, name='meto_hub_planshet'),
     path('api/tablet/state/', tablet.meto_tablet_state_api, name='meto_hub_tablet_state'),
+    path('api/tablet/kg-receive/', tablet.api_tablet_kg_receive, name='meto_hub_tablet_kg_receive'),
     path('sklad/', flow.section_view, {'tab': 'sklad'}, name='meto_hub_flow_sklad'),
     path('uychi/', flow.section_view, {'tab': 'uychi'}, name='meto_hub_flow_uychi'),
     path('yukxat/', flow.section_view, {'tab': 'yukxat'}, name='meto_hub_flow_yukxat'),

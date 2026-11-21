@@ -1,53 +1,93 @@
-{% comment %}Skladdagi pastal (c — _card; branch — 'HQ' / 'UYCHI'): kg qabuli (Koson), tayyorlik, patokka berish, Uychiga tanlash.{% endcomment %}
-<div class="bg-slate-900 border {% if c.pending_verification %}border-amber-500/50 bg-amber-950/10{% elif c.ready %}border-emerald-800/70{% else %}border-slate-800{% endif %} rounded-2xl p-4 space-y-3">
+{% comment %}Skladdagi pastal (c — _card; branch — 'HQ' / 'UYCHI'): kg qabuli (Koson), tayyorlik, patokka berish,
+Uychiga tanlash.{% endcomment %}
+<div
+    class="bg-slate-900 border {% if c.pending_verification %}border-amber-500/50 bg-amber-950/10{% elif c.ready %}border-emerald-800/70{% else %}border-slate-800{% endif %} rounded-2xl p-4 space-y-3">
     {% if c.pending_verification %}
-    <div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+    <div
+        class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
         <span class="font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-hourglass-half animate-spin"></i> Planshetda tekshirilmoqda ({{ c.pending_verification.number }})
+            <i class="fa-solid fa-hourglass-half animate-spin"></i> Planshetda tekshirilmoqda ({{
+            c.pending_verification.number }})
         </span>
-        <button type="button" onclick="cancelPendingShipment({{ c.pending_verification.id }})" class="text-rose-400 hover:text-rose-300 hover:underline font-bold text-[11px]">
+        <button type="button" onclick="cancelPendingShipment({{ c.pending_verification.id }})"
+            class="text-rose-400 hover:text-rose-300 hover:underline font-bold text-[11px]">
             Bekor qilish
         </button>
     </div>
     {% endif %}
     <div class="flex items-start gap-3">
         {% if branch == 'HQ' and c.ready and not c.pending_verification %}
-        <input type="checkbox" class="ship-pick mt-1 w-5 h-5 accent-violet-500 flex-shrink-0" value="{{ c.batch.id }}" title="Uychiga yuklash uchun tanlash">
+        <input type="checkbox" class="ship-pick mt-1 w-5 h-5 accent-violet-500 flex-shrink-0" value="{{ c.batch.id }}"
+            title="Uychiga yuklash uchun tanlash">
         {% endif %}
         <div class="flex-1 min-w-0">{% include 'meto_hub/flow/_card_head.html' %}</div>
     </div>
-    <div class="flex flex-wrap gap-1.5">{% for s in c.sizes %}<span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}</span>{% endfor %}
-        <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs text-slate-300">jami <b class="text-white">{{ c.total_tasnif }}</b></span></div>
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+        {% if c.packaging_status == 'packet' %}
+        <span class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-box-open"></i> PAKETDA (Qutiga solinmagan)</span>
+        {% elif c.packaging_status == 'stiker_pending' %}
+        <span class="px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-tags"></i> STIKER KUTILMOQDA</span>
+        {% elif c.packaging_status == 'container_pending' %}
+        <span class="px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-cubes"></i> KONTEYNER KUTILMOQDA</span>
+        {% elif c.ready %}
+        <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> TO'LIQ TAYYOR</span>
+        {% endif %}
+    </div>
+    <div class="flex flex-wrap gap-1.5">{% for s in c.sizes %}<span
+            class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs"><b class="text-white">{{ s.name }}</b>: {{
+            s.tasnif|default:"—" }}</span>{% endfor %}
+        <span class="px-2 py-0.5 rounded-lg bg-slate-800 text-xs text-slate-300">jami <b class="text-white">{{
+                c.total_tasnif }}</b></span>
+    </div>
     <div class="grid grid-cols-3 gap-2 text-center">
-        <div class="rounded-xl bg-slate-950 border border-slate-800 py-2"><p class="text-[10px] uppercase text-slate-500 font-bold">Qutilar</p><p class="font-black text-white">{{ c.boxes_count }}</p></div>
-        <div class="rounded-xl bg-slate-950 border border-slate-800 py-2"><p class="text-[10px] uppercase text-slate-500 font-bold">Chop etilgan</p>
-            <p class="font-black {% if c.boxes_count and c.printed_count == c.boxes_count %}text-emerald-300{% else %}text-amber-300{% endif %}">{{ c.printed_count }}/{{ c.boxes_count }}</p></div>
-        <div class="rounded-xl bg-slate-950 border border-slate-800 py-2"><p class="text-[10px] uppercase text-slate-500 font-bold">Konteynerda</p>
-            <p class="font-black {% if c.boxes_count and c.linked_count == c.boxes_count %}text-emerald-300{% else %}text-rose-300{% endif %}">{{ c.linked_count }}/{{ c.boxes_count }}</p></div>
+        <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
+            <p class="text-[10px] uppercase text-slate-500 font-bold">Qutilar</p>
+            <p class="font-black {% if not c.boxes_count %}text-amber-400{% else %}text-white{% endif %}">{% if not c.boxes_count %}0 (Paketda){% else %}{{ c.boxes_count }}{% endif %}</p>
+        </div>
+        <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
+            <p class="text-[10px] uppercase text-slate-500 font-bold">Chop etilgan</p>
+            <p
+                class="font-black {% if c.boxes_count and c.printed_count == c.boxes_count %}text-emerald-300{% else %}text-amber-300{% endif %}">
+                {{ c.printed_count }}/{{ c.boxes_count }}</p>
+        </div>
+        <div class="rounded-xl bg-slate-950 border border-slate-800 py-2">
+            <p class="text-[10px] uppercase text-slate-500 font-bold">Konteynerda</p>
+            <p
+                class="font-black {% if c.boxes_count and c.linked_count == c.boxes_count %}text-emerald-300{% else %}text-rose-300{% endif %}">
+                {{ c.linked_count }}/{{ c.boxes_count }}</p>
+        </div>
     </div>
     {% if branch == 'HQ' %}
-        {% if c.flow.sklad_received_at %}
-        <p class="text-xs text-slate-400"><i class="fa-solid fa-scale-balanced text-emerald-400 mr-1"></i>Qabul qilingan: <b class="text-white">{{ c.batch.actual_weight_kg }} kg</b> · {{ c.flow.sklad_received_by.get_full_name|default:c.flow.sklad_received_by.username|default:"—" }} · {{ c.flow.sklad_received_at|date:"d.m H:i" }}</p>
-        {% else %}
-        <form method="POST" action="{% url 'meto_hub_flow_sklad_receive' c.batch.id %}" class="flex flex-wrap items-end gap-2">{% csrf_token %}
-            <label class="space-y-1"><span class="text-xs font-bold text-slate-400">Real og'irlik (kg)</span>
-                <input name="kg" inputmode="decimal" required placeholder="0.0" class="w-28 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-center"></label>
-            <button class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Skladga qabul qilish</button>
-        </form>
-        {% endif %}
+    {% if c.flow.sklad_received_at %}
+    <p class="text-xs text-slate-400"><i class="fa-solid fa-scale-balanced text-emerald-400 mr-1"></i>Qabul qilingan: <b
+            class="text-white">{{ c.batch.actual_weight_kg }} kg</b> · {{
+        c.flow.sklad_received_by.get_full_name|default:c.flow.sklad_received_by.username|default:"—" }} · {{
+        c.flow.sklad_received_at|date:"d.m H:i" }}</p>
+    {% else %}
+    <form method="POST" action="{% url 'meto_hub_flow_sklad_receive' c.batch.id %}"
+        class="flex flex-wrap items-end gap-2">{% csrf_token %}
+        <label class="space-y-1"><span class="text-xs font-bold text-slate-400">Real og'irlik (kg)</span>
+            <input name="kg" inputmode="decimal" required placeholder="0.0"
+                class="w-28 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-center"></label>
+        <button class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Skladga
+            qabul qilish</button>
+    </form>
+    {% endif %}
     {% endif %}
     {% if not c.ready %}
     <ul class="text-xs text-rose-300 space-y-0.5">
         {% if not c.boxes_count %}<li>• Stikerchi hali qutilarga bo'lmagan.</li>
         {% else %}
-            {% if c.printed_count != c.boxes_count %}<li>• Hamma stiker chop etilmagan.</li>{% endif %}
-            {% if c.linked_count != c.boxes_count %}<li>• Konteynersiz qutilar bor — yuqoridagi panelda biriktiring.</li>{% endif %}
+        {% if c.printed_count != c.boxes_count %}<li>• Hamma stiker chop etilmagan.</li>{% endif %}
+        {% if c.linked_count != c.boxes_count %}<li>• Konteynersiz qutilar bor — yuqoridagi panelda biriktiring.</li>{%
+        endif %}
         {% endif %}
         {% if branch == 'HQ' and not c.flow.sklad_received_at %}<li>• Kg kiritilmagan.</li>{% endif %}
     </ul>
     {% endif %}
     <div class="flex justify-end">
-        <button type="button" {% if not c.ready %}disabled{% endif %} onclick="givePatok({{ c.batch.id }}, '{{ c.batch.pastal_code|default:c.batch.name|escapejs }}')"
+        <button type="button" {% if not c.ready %}disabled{% endif %}
+            onclick="givePatok({{ c.batch.id }}, '{{ c.batch.pastal_code|default:c.batch.name|escapejs }}')"
             class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm">
             <i class="fa-solid fa-person-walking-arrow-right mr-1"></i>Patokka berish</button>
     </div>
