@@ -1623,3 +1623,98 @@ class TayyorlovReviewFixesTest(MetoFlowBase):
         page = self.client.get(reverse('meto_hub_tablet')).content.decode()
         self.assertNotIn('Pijama </script>', page)
         self.assertIn('Pijama \\u003C/script\\u003E', page)
+
+
+class BoshSkladListTest(MetoFlowBase):
+    """/tayyorlov/sklad/ — "Bosh sklad" (egasi 2026-11-21): ixcham ro'yxat, holat filtrlari, qidiruv, jonli yangilanish."""
+
+    def setUp(self):
+        super().setUp()
+        self.tayyor = self.cut('SK-TAYYOR')
+        self.tayyor_codes = self.ready(self.tayyor)
+        self.stiker = self.cut('SK-STIKER')            # bo'lingan, chop etilmagan, kg yo'q, konteynersiz
+        self.to_sklad(self.stiker)
+        meto_flow.split_boxes(self.stiker, {}, self.sticker)
+        self.kont = self.cut('SK-KONT')                # chop etilgan, kg bor, konteynersiz
+        self.to_sklad(self.kont)
+        meto_flow.split_boxes(self.kont, {}, self.sticker)
+        Box.objects.filter(cutting_batch_item__batch=self.kont).update(is_printed=True)
+        meto_flow.sklad_receive(self.kont, '9.5', self.sklad)
+        self.paket = self.cut('SK-PAKET')              # tasnifdan chiqqan, hali qutilarga bo'linmagan
+        self.to_sklad(self.paket)
+        self.tekshir = self.cut('SK-TEKSHIR')          # tayyor va planshetga tekshiruvga yuborilgan
+        self.ready(self.tekshir)
+        meto_flow.request_verification([self.tekshir], self.sklad)
+        self.client.force_login(self.sklad)
+
+    def partial(self, url_name='meto_hub_flow_sklad', **params):
+        res = self.client.get(reverse(url_name), {'partial': '1', **params})
+        self.assertEqual(res.status_code, 200)
+        return res.json()
+
+    def shown(self, data):
+        html = data['sections']['list']
+        return {code for code in ('SK-TAYYOR', 'SK-STIKER', 'SK-KONT', 'SK-PAKET', 'SK-TEKSHIR') if code in html}
+
+    def test_page_is_bosh_sklad_list(self):
+        res = self.client.get(reverse('meto_hub_flow_sklad'))
+        self.assertContains(res, 'Bosh skladdagi pastallar')
+        self.assertContains(res, '<title>Bosh sklad')
+        self.assertContains(res, 'id="sklad-list"')
+        self.assertContains(res, f"givePatok({self.tayyor.id}")
+        self.assertContains(res, f"sendOneToUychi({self.tayyor.id}")
+        self.assertNotContains(res, f"givePatok({self.kont.id}")   # tayyor emas — tugma o'chiq
+        self.assertEqual(res.context['tab_label'], 'Bosh sklad')
+
+    def test_filter_counts_and_lists(self):
+        data = self.partial()
+        self.assertEqual(data['counts'], {'all': 5, 'kg': 2, 'stiker': 2, 'kont': 2, 'tayyor': 1, 'tekshiruv': 1})
+        expected = {'kg': {'SK-STIKER', 'SK-PAKET'}, 'stiker': {'SK-STIKER', 'SK-PAKET'},
+                    'kont': {'SK-STIKER', 'SK-KONT'}, 'tayyor': {'SK-TAYYOR'}, 'tekshiruv': {'SK-TEKSHIR'}}
+        for key, codes in expected.items():
+            self.assertEqual(self.shown(self.partial(f=key)), codes, key)
+        self.assertEqual(len(self.shown(self.partial(f='nomalum'))), 5)   # noma'lum filtr = hammasi
+
+    def test_search_by_pastal_container_or_box(self):
+        self.assertEqual(self.shown(self.partial(q='sk-kont')), {'SK-KONT'})
+        self.assertEqual(self.shown(self.partial(q=self.tayyor_codes[0])), {'SK-TAYYOR'})
+        box = self.boxes(self.stiker)[0]
+        self.assertEqual(self.shown(self.partial(q=box.box_code.lower())), {'SK-STIKER'})
+        self.assertEqual(self.shown(self.partial(q=f"CONTROL:{box.box_code}")), {'SK-STIKER'})
+        empty = self.partial(q='YOQ-PASTAL')
+        self.assertEqual((self.shown(empty), empty['counts']['all']), (set(), 0))
+        self.assertIn("pastal topilmadi", empty['sections']['list'])
+
+    def test_list_refreshes_after_linking(self):
+        # foydalanuvchi: "konteynerga qutini biriktirdim ammo sahifa o'zgarmasdan turibdi"
+        before = self.partial()
+        containers = self.new_containers(len(self.boxes(self.kont)))
+        for box, container in zip(self.boxes(self.kont), containers):
+            res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {'box': box.box_code, 'container': container.code})
+            self.assertEqual(res.json()['status'], 'OK')
+        after = self.partial()
+        self.assertEqual((before['counts']['kont'], after['counts']['kont']), (2, 1))
+        self.assertEqual((before['counts']['tayyor'], after['counts']['tayyor']), (1, 2))
+        self.assertIn(containers[0].code, after['sections']['list'])
+        self.assertIn(f"sendOneToUychi({self.kont.id}", after['sections']['list'])
+
+    def test_kg_receive_and_fix_by_ajax(self):
+        url = reverse('meto_hub_flow_sklad_receive', args=[self.paket.id])
+        res = self.client.post(url, {'kg': '7,25'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.json()['status'], 'OK')
+        self.assertEqual(self.partial()['counts']['kg'], 1)
+        res = self.client.post(url, {'kg': '7.5'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')   # tuzatish
+        self.paket.refresh_from_db()
+        self.assertEqual((res.json()['status'], self.paket.actual_weight_kg), ('OK', Decimal('7.5')))
+        self.assertEqual(self.client.post(url, {'kg': '0'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest').status_code, 400)
+
+    def test_uychi_list_has_no_kg_filter_and_access_is_checked(self):
+        self.client.force_login(self.uychi)
+        data = self.partial('meto_hub_flow_uychi')
+        self.assertNotIn('kg', data['counts'])
+        self.assertEqual(data['counts']['all'], 0)
+        page = self.client.get(reverse('meto_hub_flow_uychi'))
+        self.assertContains(page, 'Uychi skladidagi pastallar')
+        self.client.force_login(self.tasnif)
+        res = self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'})
+        self.assertEqual(res.status_code, 302)

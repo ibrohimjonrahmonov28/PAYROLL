@@ -1,0 +1,184 @@
+{% comment %}
+Bosh sklad / Uychi sahifasi: jonli yangilanish va ro'yxat amallari.
+- Yangilanish: konteyner biriktirilgach / bo'shatilgach darhol (_link_panel "tayyorlov:changed" hodisasi), aks holda har
+  20 soniyada (sahifa ko'rinib turganda) — ?partial=1 JSON: #sklad-top / #sklad-list / #sklad-bottom va filtr sanoqlari.
+  Yozilayotgan kg, belgilangan pastallar va kursor joyida qoladi; konteyner tekshiruvi oynasi ochiq bo'lsa kutadi.
+- Filtr va qidiruv bazada (?f= / ?q=), manzil satrida saqlanadi (sahifa yangilansa ham qoladi).
+- Kg qabul / tuzatish, Uychiga (planshetga tekshiruvga) yuborish, tekshiruvni bekor qilish — sahifa qayta yuklanmaydi.
+{% endcomment %}
+<script>
+    (function () {
+        const LIVE_URL = window.location.pathname;
+        const REFRESH_MS = 20000;
+        const KG_URL = "{% url 'meto_hub_flow_sklad_receive' 0 %}";
+        const VERIFY_URL = "{% url 'meto_hub_flow_api_shipment_request_verification' %}";
+        const CANCEL_URL = "{% url 'meto_hub_flow_api_shipment_cancel_verification' 0 %}";
+        const state = { f: "{{ sklad_filter|escapejs }}", q: "{{ sklad_q|escapejs }}" };
+        let inflight = false, queued = false, changedTimer = null, searchTimer = null;
+
+        function toast(message, ok = true) {
+            let el = document.getElementById('sklad-toast');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'sklad-toast';
+                document.body.append(el);
+            }
+            el.className = 'fixed bottom-5 right-5 z-[60] max-w-md px-4 py-3 rounded-2xl border text-sm font-bold shadow-2xl '
+                + (ok ? 'bg-emerald-950 border-emerald-700 text-emerald-200' : 'bg-rose-950 border-rose-700 text-rose-200');
+            el.textContent = message;
+            clearTimeout(el.hideTimer);
+            el.hideTimer = setTimeout(() => el.remove(), ok ? 4000 : 8000);
+        }
+
+        function query(partial) {
+            const p = new URLSearchParams();
+            if (partial) p.set('partial', '1');
+            if (state.f && state.f !== 'all') p.set('f', state.f);
+            if (state.q) p.set('q', state.q);
+            return p.toString();
+        }
+
+        function syncUrl() {
+            const q = query(false);
+            history.replaceState(null, '', q ? `${LIVE_URL}?${q}` : LIVE_URL);
+        }
+
+        function liveText(text) {
+            const el = document.getElementById('sklad-live-text');
+            if (el) el.textContent = text;
+        }
+
+        async function refresh() {
+            if (inflight) { queued = true; return; }
+            const modal = document.getElementById('check-modal');
+            if (modal && !modal.classList.contains('hidden')) return;   // tekshiruv oynasi ochiq — keyingi safar
+            inflight = true;
+            try {
+                const res = await fetch(`${LIVE_URL}?${query(true)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const data = await res.json();
+                if (!res.ok || data.status !== 'OK') throw new Error(data.message || res.status);
+                const picked = new Set(Array.from(document.querySelectorAll('.ship-pick:checked'), el => el.value));
+                const typed = {};
+                document.querySelectorAll('.sklad-kg').forEach(el => { if (el.value.trim()) typed[el.dataset.batch] = el.value; });
+                const active = document.activeElement;
+                const focused = active && active.classList.contains('sklad-kg') ? active.dataset.batch : null;
+                Object.entries(data.sections).forEach(([name, html]) => {
+                    const el = document.getElementById(`sklad-${name}`);
+                    if (el) el.innerHTML = html;
+                });
+                document.querySelectorAll('.ship-pick').forEach(el => { el.checked = picked.has(el.value); });
+                document.querySelectorAll('.sklad-kg').forEach(el => {
+                    if (typed[el.dataset.batch]) el.value = typed[el.dataset.batch];
+                    if (focused && el.dataset.batch === focused) el.focus();
+                });
+                Object.entries(data.counts).forEach(([key, n]) => {
+                    document.querySelectorAll(`[data-count="${key}"]`).forEach(el => { el.textContent = n; });
+                });
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                liveText(`jonli · ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`);
+            } catch (e) {
+                liveText("aloqa yo'q — qayta urinadi");
+            } finally {
+                inflight = false;
+                if (queued) { queued = false; refresh(); }
+            }
+        }
+        window.refreshSklad = refresh;
+
+        window.setSkladFilter = function (key) {
+            state.f = key;
+            document.querySelectorAll('.sklad-filter').forEach(btn => {
+                const on = btn.dataset.filter === key;
+                btn.classList.toggle('ring-2', on);
+                btn.classList.toggle('ring-cyan-400', on);
+            });
+            syncUrl();
+            refresh();
+        };
+
+        const search = document.getElementById('sklad-search');
+        if (search) {
+            const apply = () => { state.q = search.value.trim(); syncUrl(); refresh(); };
+            search.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(apply, 350); });
+            search.addEventListener('keydown', (e) => {   // skaner (konteyner / quti QR) Enter bilan — darhol
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                clearTimeout(searchTimer);
+                apply();
+            });
+        }
+
+        document.addEventListener('tayyorlov:changed', () => {
+            clearTimeout(changedTimer);
+            changedTimer = setTimeout(refresh, 300);
+        });
+        setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, REFRESH_MS);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+
+        // ---------------------------------------------------------------- kg qabul / tuzatish (Koson)
+        async function saveKg(batchId, kg) {
+            const body = new FormData();
+            body.append('kg', kg);
+            try {
+                const res = await fetch(KG_URL.replace('/0/', `/${batchId}/`), {
+                    method: 'POST', body,
+                    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await res.json().catch(() => ({ message: 'Server javob bermadi' }));
+                const ok = res.ok && data.status === 'OK';
+                toast(data.message || (ok ? 'Saqlandi' : 'Xatolik'), ok);
+                if (ok) refresh();
+                return ok;
+            } catch (e) {
+                toast('Tarmoq xatosi — qayta urinib ko\'ring.', false);
+                return false;
+            }
+        }
+
+        window.receiveKg = function (event, batchId) {
+            event.preventDefault();
+            const input = event.target.querySelector('[name=kg]');
+            const kg = (input.value || '').trim();
+            if (!kg) { input.focus(); return false; }
+            saveKg(batchId, kg).then(ok => { if (ok) input.value = ''; });
+            return false;
+        };
+
+        window.editKg = function (batchId, current, pastal) {
+            const kg = prompt(`${pastal}: to'g'ri og'irlik (kg)`, current);
+            if (kg === null || !kg.trim()) return;
+            saveKg(batchId, kg.trim());
+        };
+
+        // ---------------------------------------------------------------- Uychiga (planshetda tekshirib jo'natiladi)
+        async function requestUychi(ids) {
+            const r = await postJSON(VERIFY_URL, { batch_ids: ids });
+            toast(r.data.message || (r.ok ? 'Yuborildi' : 'Xatolik'), r.ok);
+            if (r.ok) refresh();
+        }
+
+        window.sendOneToUychi = function (batchId, pastal) {
+            if (!confirm(`${pastal} Uychiga jo'natilsinmi?\nMeto planshetida konteynerlar tekshiriladi, keyin yuk xati jo'natiladi.`)) return;
+            requestUychi([batchId]);
+        };
+
+        window.sendToVerification = function () {
+            const ids = Array.from(document.querySelectorAll('.ship-pick:checked'), el => parseInt(el.value, 10));
+            if (!ids.length) { toast("Uychiga jo'natish uchun kamida bitta tayyor pastalni belgilang.", false); return; }
+            if (!confirm(`${ids.length} ta pastal Uychiga jo'natilsinmi?\nMeto planshetida konteynerlar tekshiriladi, keyin yuk xati jo'natiladi.`)) return;
+            requestUychi(ids);
+        };
+
+        window.cancelVerification = async function (shipmentId) {
+            if (!confirm("Tekshiruvni bekor qilishni tasdiqlaysizmi? Pastallar qayta skladdagi ro'yxatga qaytadi.")) return;
+            const r = await postJSON(CANCEL_URL.replace('/0/', `/${shipmentId}/`), {});
+            toast(r.data.message || (r.ok ? 'Bekor qilindi' : 'Xatolik'), r.ok);
+            if (r.ok) refresh();
+        };
+
+        window.toggleAllShip = function (box) {
+            document.querySelectorAll('.ship-pick').forEach(el => { el.checked = box.checked; });
+        };
+    })();
+</script>

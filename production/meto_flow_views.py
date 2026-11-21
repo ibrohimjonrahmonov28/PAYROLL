@@ -10,9 +10,10 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Prefetch, Q, Sum
+from django.db.models import Count, F, Prefetch, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -48,7 +49,7 @@ SECTIONS = (
         'group': "Bosh bino · 2-bosqich",
         'icon': 'fa-layer-group',
         'accent': 'cyan',
-        'desc': "Meto sonini tekshirib real son kiritish va tayyorlov skladiga berish.",
+        'desc': "Meto sonini tekshirib real son kiritish va bosh skladga berish.",
     },
     {
         'key': 'stiker',
@@ -64,7 +65,7 @@ SECTIONS = (
     },
     {
         'key': 'sklad',
-        'label': "Tayyorlov skladi",
+        'label': "Bosh sklad",
         'step': 'sklad',
         'url_name': 'meto_hub_flow_sklad',
         'zone': 'bosh',
@@ -72,7 +73,7 @@ SECTIONS = (
         'group': "Bosh bino · 4-bosqich",
         'icon': 'fa-warehouse',
         'accent': 'emerald',
-        'desc': "Kg bilan qabul, konteynerga biriktirish, patokka berish va Uychiga yuklash.",
+        'desc': "Tasnifdan kelgan pastallar: kg, konteynerga biriktirish, Koson patoklariga berish va Uychiga jo'natish.",
     },
     {
         'key': 'uychi',
@@ -215,7 +216,8 @@ def _card(flow):
             'meto': size.meto_qty if size else None, 'tasnif': size.tasnif_qty if size else None,
         })
     boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
-    linked = {c.box_id for c in flow_logic.box_containers(boxes)}
+    containers = flow_logic.box_containers(boxes)
+    linked = {c.box_id for c in containers}
     customer = order.customer.name if order.customer_id else (order.client_name or '')
     has_ops = bool(article and len(article.article_operations.all()) > 0)
     total_cut = sum(s['cut'] for s in sizes)
@@ -237,13 +239,26 @@ def _card(flow):
     else:
         packaging_status = 'ready'
 
+    kg_ok = flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg)
     ready = (
         boxes_count > 0
         and printed_count == boxes_count
         and linked_count == boxes_count
-        and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))
+        and kg_ok
         and not pending_shipment
     )
+    reasons = []   # nega hali jo'natib bo'lmaydi (ro'yxatda tugma ustida ko'rinadi)
+    if boxes_count == 0:
+        reasons.append("Stikerchi hali qutilarga bo'lmagan (paketda).")
+    else:
+        if printed_count < boxes_count:
+            reasons.append(f"{boxes_count - printed_count} ta stiker chop etilmagan.")
+        if linked_count < boxes_count:
+            reasons.append(f"{boxes_count - linked_count} ta quti konteynersiz.")
+    if not kg_ok:
+        reasons.append("Kg kiritilmagan.")
+    if pending_shipment:
+        reasons.append(f"{pending_shipment.number} — planshetda tekshirilmoqda.")
 
     return {
         'flow': flow, 'batch': batch, 'order': order, 'article': article, 'image': image, 'customer': customer,
@@ -252,6 +267,9 @@ def _card(flow):
         'total_tasnif': total_tasnif, 'tasnif_diff': total_tasnif - total_meto if total_meto else 0,
         'boxes_count': boxes_count, 'printed_count': printed_count,
         'linked_count': linked_count,
+        'containers': [c.code for c in containers],
+        'kg_ok': kg_ok,
+        'reasons': reasons,
         'packaging_status': packaging_status,
         'meto_shift': meto_shift,
         'tasnif_shift': tasnif_shift,
@@ -550,39 +568,131 @@ def _ctx_stiker(request):
     return stiker_dashboard_context(request)
 
 
-def _ctx_sklad(request):
-    flow_logic.sync_rejected_flows()
-    pending_shipments = (
-        Shipment.objects.filter(
-            source_branch='HQ',
-            destination_branch='UYCHI',
-            status=Shipment.Status.PENDING,
-        )
-        .prefetch_related('lines__batch__order_item__article', 'lines__batch__items__boxes')
-        .order_by('-id')
-    )
-    recent_dispatched = (
-        Shipment.objects.filter(
-            source_branch='HQ',
-            destination_branch='UYCHI',
-            status=Shipment.Status.IN_TRANSIT,
-        )
-        .prefetch_related('lines__batch')
-        .order_by('-id')[:5]
-    )
+# ------------------------------------------------------------------ Bosh sklad / Uychi skladi ro'yxati
+
+SKLAD_FILTERS = (
+    ('all', "Barchasi"),
+    ('kg', "Kg kiritilmagan"),            # faqat Koson (bosh sklad)
+    ('stiker', "Stiker chiqmagan"),
+    ('kont', "Konteyner birikmagan"),
+    ('tayyor', "Tayyor"),
+    ('tekshiruv', "Planshetda tekshiruvda"),
+)
+SKLAD_LIST_LIMIT = 150
+SKLAD_LIVE = {'sklad': 'HQ', 'uychi': 'UYCHI'}   # jonli yangilanadigan bo'limlar (?partial=1)
+_BOX_CODE_RE = re.compile(r'^[A-Z]{1,3}\d{1,2}-\d{1,5}$')
+_BOX_PREFIX_RE = re.compile(r'^(CONTROL|BOX|QUTI)\s*[:+]\s*', re.IGNORECASE)
+
+
+def _sklad_search(qs, q):
+    """Pastal / zakaz / artikul bo'yicha; konteyner QR yoki quti stikeri urilsa — o'sha qutining pastali."""
+    if not q:
+        return qs
+    batch_ids = set()
+    container = flow_logic.find_container(q)
+    if container is not None:
+        if container.box_id and container.box.cutting_batch_item_id:
+            batch_ids.add(container.box.cutting_batch_item.batch_id)
+    else:
+        code = _BOX_PREFIX_RE.sub('', q).replace('+', '-').upper()
+        if _BOX_CODE_RE.match(code):   # aniq quti kodi (indeks bo'yicha, katta jadvalni aylanib chiqmaydi)
+            batch_ids.update(Box.objects.filter(box_code=code, cutting_batch_item__isnull=False)
+                             .values_list('cutting_batch_item__batch_id', flat=True))
+    found = _search_flows_qs(qs, q)
+    return (found | qs.filter(batch_id__in=batch_ids)) if batch_ids else found
+
+
+def _sklad_flags(boxes, printed, linked, kg_ok, pending):
+    """Filtrlar (_card dagi tayyorlik qoidasi bilan bir xil)."""
     return {
-        'cards': _flows(stage=PastalFlow.Stage.SKLAD, branch='HQ'),
-        'incoming': list(_incoming('HQ')),
-        'pending_shipments': pending_shipments,
-        'recent_dispatched': recent_dispatched,
-        'patok_rows': _patok_rows('HQ'),
-        'screens': [(n, get_patok_code(n)) for n in flow_logic.KOSON_SCREENS],
+        'all': True,
+        'kg': not kg_ok,
+        'stiker': boxes == 0 or printed < boxes,
+        'kont': boxes > 0 and linked < boxes,
+        'tayyor': boxes > 0 and printed == boxes and linked == boxes and kg_ok and not pending,
+        'tekshiruv': pending,
     }
 
 
+def _sklad_list_ctx(request, branch):
+    """Skladdagi pastallar ro'yxati: holat filtrlari va sanoq bazada (3 ta yengil so'rov), kartochka — faqat
+    ko'rsatiladigan qatorlar uchun (pastallar ko'payib ketsa ham sahifa og'irlashmaydi)."""
+    filters = [(key, label) for key, label in SKLAD_FILTERS if branch == 'HQ' or key != 'kg']
+    current = request.GET.get('f', 'all')
+    if current not in dict(filters):
+        current = 'all'
+    q = request.GET.get('q', '').strip()[:60]
+    base = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
+    flows = list(_sklad_search(base, q).order_by('-batch__created_at', '-id')
+                 .values('id', 'batch_id', 'sklad_received_at', 'batch__actual_weight_kg'))
+    batch_ids = [flow['batch_id'] for flow in flows]
+    box_stats = {row['batch_ref']: row for row in (
+        Box.objects.filter(cutting_batch_item__batch_id__in=batch_ids).exclude(status=Box.Status.CANCELLED)
+        .values(batch_ref=F('cutting_batch_item__batch_id'))
+        .annotate(n=Count('id'), printed=Count('id', filter=Q(is_printed=True)),
+                  linked=Count('id', filter=Q(container__isnull=False))))}
+    pending = set(ShipmentPastal.objects.filter(
+        batch_id__in=batch_ids, status=ShipmentPastal.Status.PENDING, shipment__status=Shipment.Status.PENDING,
+    ).values_list('batch_id', flat=True))
+    counts = {key: 0 for key, _ in filters}
+    shown = []
+    for flow in flows:
+        stats = box_stats.get(flow['batch_id'], {})
+        kg_ok = branch != 'HQ' or bool(flow['sklad_received_at'] and flow['batch__actual_weight_kg'])
+        flags = _sklad_flags(stats.get('n', 0), stats.get('printed', 0), stats.get('linked', 0), kg_ok,
+                             flow['batch_id'] in pending)
+        for key in counts:
+            counts[key] += flags[key]
+        if flags[current]:
+            shown.append(flow['id'])
+    return {
+        'branch': branch,
+        'cards': [_card(f) for f in _flows_qs(id__in=shown[:SKLAD_LIST_LIMIT])],
+        'sklad_filters': [(key, label, counts[key]) for key, label in filters],
+        'sklad_filter': current,
+        'sklad_q': q,
+        'sklad_total': len(shown),
+        'sklad_hidden': max(0, len(shown) - SKLAD_LIST_LIMIT),
+    }
+
+
+def _sklad_sections(request, branch):
+    """Bosh sklad / Uychi sahifasining jonli qismlari — sahifa ochilganda ham, ?partial=1 yangilanishida ham."""
+    if branch == 'HQ':
+        flow_logic.sync_rejected_flows()
+    ctx = _sklad_list_ctx(request, branch)
+    ctx.update({'incoming': list(_incoming(branch)), 'patok_rows': _patok_rows(branch)})
+    if branch == 'HQ':
+        ctx['pending_shipments'] = (
+            Shipment.objects.filter(source_branch='HQ', destination_branch='UYCHI', status=Shipment.Status.PENDING)
+            .prefetch_related('lines__batch__order_item__article', 'lines__batch__items__boxes')
+            .order_by('-id'))
+        ctx['recent_dispatched'] = (
+            Shipment.objects.filter(source_branch='HQ', destination_branch='UYCHI', status=Shipment.Status.IN_TRANSIT)
+            .prefetch_related('lines__batch')
+            .order_by('-id')[:5])
+    return ctx
+
+
+def _sklad_partial(request, tab):
+    """Jonli yangilanish (biriktirilgach darhol, aks holda har 20 soniyada): bo'laklar HTML + filtr sanoqlari."""
+    ctx = _sklad_sections(request, SKLAD_LIVE[tab])
+    sections = {name: render_to_string(f'meto_hub/flow/_sklad_{name}.html', ctx, request=request)
+                for name in ('top', 'list', 'bottom')}
+    return JsonResponse({'status': 'OK', 'sections': sections, 'total': ctx['sklad_total'],
+                         'counts': {key: n for key, _, n in ctx['sklad_filters']}})
+
+
+def _ctx_sklad(request):
+    ctx = _sklad_sections(request, 'HQ')
+    ctx['screens'] = [(n, get_patok_code(n)) for n in flow_logic.KOSON_SCREENS]
+    return ctx
+
+
 def _ctx_uychi(request):
-    return {'cards': _flows(stage=PastalFlow.Stage.SKLAD, branch='UYCHI'), 'incoming': list(_incoming('UYCHI')),
-            'patok_rows': _patok_rows('UYCHI'), 'screens': [(n, get_patok_code(n)) for n in flow_logic.UYCHI_SCREENS]}
+    ctx = _sklad_sections(request, 'UYCHI')
+    ctx['screens'] = [(n, get_patok_code(n)) for n in flow_logic.UYCHI_SCREENS]
+    return ctx
 
 
 def _ctx_yukxat(request):
@@ -750,6 +860,8 @@ def section_view(request, tab):
     if not section or not _can_view_section(request.user, section):
         messages.error(request, "Bu bo'limga ruxsatingiz yo'q.")
         return redirect('meto_hub_flow')
+    if tab in SKLAD_LIVE and request.GET.get('partial') == '1':
+        return _sklad_partial(request, tab)
     allowed = _allowed_sections(request.user)
     context = {
         'tabs': [(s['key'], s['label']) for s in allowed],

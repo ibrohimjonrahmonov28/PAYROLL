@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 1220,
-   "sha256_16": "9027aaeec10c87a8"
+   "lines": 1235,
+   "sha256_16": "83dbeea742dfa420"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 184,
-   "sha256_16": "47a9c46371c64f4a"
+   "lines": 190,
+   "sha256_16": "843242724660dc30"
   },
   "Dockerfile": {
    "module": "ops",
@@ -937,68 +937,73 @@
   },
   "production/meto_flow_views.py": {
    "module": "production.meto",
-   "lines": 1148,
-   "sha256_16": "323828222f2de43b",
+   "lines": 1260,
+   "sha256_16": "20c040b8a359e974",
    "symbols": [
-    "_can_view_section:120",
-    "_allowed_sections:127",
-    "_allowed_tabs:131",
-    "flow_access_required:135",
-    "_flow_url:150",
-    "_deny:157",
-    "_json:162",
-    "_allowed:169",
-    "_api:175",
-    "_card:199",
-    "_flows_qs:263",
-    "_flows:272",
-    "_search_flows_qs:276",
-    "_incoming:294",
-    "_patok_rows:301",
-    "_ctx_meto:311",
-    "_ctx_tasnif:426",
-    "_ctx_stiker:548",
-    "_ctx_sklad:553",
-    "_ctx_uychi:583",
-    "_ctx_yukxat:588",
-    "_ctx_zakazlar:596",
-    "_can_open_containers:620",
-    "_hub_stats:625",
-    "flow_view:682",
-    "section_view:747",
-    "_form_action:767",
-    "_batch:802",
-    "_posted_counts:806",
-    "_name:810",
-    "meto_take:815",
-    "meto_cancel:822",
-    "meto_finish:829",
-    "tasnif_take:836",
-    "tasnif_cancel:843",
-    "tasnif_return:850",
-    "tasnif_finish:858",
-    "tasnif_update:865",
-    "split:872",
-    "sklad_receive:886",
-    "beta_toggle:893",
-    "_require_branch:909",
-    "_ids:914",
-    "_container_problem:924",
-    "_box_problem:935",
-    "api_resolve:950",
-    "api_link:979",
-    "api_unlink:990",
-    "api_check:1003",
-    "api_give:1019",
-    "api_shipment_request_verification:1038",
-    "api_shipment_cancel_verification:1054",
-    "api_shipment_dispatch:1063",
-    "api_shipment_receive_all:1084",
-    "api_ship:1101",
-    "_line:1111",
-    "api_receive:1121",
-    "api_return:1131",
-    "shipment_print:1137"
+    "_can_view_section:121",
+    "_allowed_sections:128",
+    "_allowed_tabs:132",
+    "flow_access_required:136",
+    "_flow_url:151",
+    "_deny:158",
+    "_json:163",
+    "_allowed:170",
+    "_api:176",
+    "_card:200",
+    "_flows_qs:281",
+    "_flows:290",
+    "_search_flows_qs:294",
+    "_incoming:312",
+    "_patok_rows:319",
+    "_ctx_meto:329",
+    "_ctx_tasnif:444",
+    "_ctx_stiker:566",
+    "_sklad_search:587",
+    "_sklad_flags:605",
+    "_sklad_list_ctx:617",
+    "_sklad_sections:659",
+    "_sklad_partial:677",
+    "_ctx_sklad:686",
+    "_ctx_uychi:692",
+    "_ctx_yukxat:698",
+    "_ctx_zakazlar:706",
+    "_can_open_containers:730",
+    "_hub_stats:735",
+    "flow_view:792",
+    "section_view:857",
+    "_form_action:879",
+    "_batch:914",
+    "_posted_counts:918",
+    "_name:922",
+    "meto_take:927",
+    "meto_cancel:934",
+    "meto_finish:941",
+    "tasnif_take:948",
+    "tasnif_cancel:955",
+    "tasnif_return:962",
+    "tasnif_finish:970",
+    "tasnif_update:977",
+    "split:984",
+    "sklad_receive:998",
+    "beta_toggle:1005",
+    "_require_branch:1021",
+    "_ids:1026",
+    "_container_problem:1036",
+    "_box_problem:1047",
+    "api_resolve:1062",
+    "api_link:1091",
+    "api_unlink:1102",
+    "api_check:1115",
+    "api_give:1131",
+    "api_shipment_request_verification:1150",
+    "api_shipment_cancel_verification:1166",
+    "api_shipment_dispatch:1175",
+    "api_shipment_receive_all:1196",
+    "api_ship:1213",
+    "_line:1223",
+    "api_receive:1233",
+    "api_return:1243",
+    "shipment_print:1249"
    ]
   },
   "production/meto_hub_urls.py": {
@@ -1600,8 +1605,8 @@
   },
   "production/test_meto_flow.py": {
    "module": "tests",
-   "lines": 1626,
-   "sha256_16": "bc8d88eb27ea2589",
+   "lines": 1721,
+   "sha256_16": "0cd23dfc6c5616c6",
    "symbols": [
     "MetoFlowBase:22",
     "MetoFlowStepsTest:96",
@@ -1613,7 +1618,8 @@
     "TayyorlovMetoUpgradeTest:615",
     "MetoTwoShiftsTest:723",
     "MetoTabletTest:1188",
-    "TayyorlovReviewFixesTest:1506"
+    "TayyorlovReviewFixesTest:1506",
+    "BoshSkladListTest:1628"
    ]
   },
   "production/test_norma_canvas.py": {
@@ -2034,6 +2040,11 @@
    "lines": 279,
    "sha256_16": "18219e7bedef33fe"
   },
+  "templates/meto_hub/_scan_auto_enter.html": {
+   "module": "templates",
+   "lines": 32,
+   "sha256_16": "ba6cd73c2deff8b4"
+  },
   "templates/meto_hub/base_meto_hub.html": {
    "module": "templates",
    "lines": 182,
@@ -2081,18 +2092,13 @@
   },
   "templates/meto_hub/flow/_link_panel.html": {
    "module": "templates",
-   "lines": 77,
-   "sha256_16": "d97141b024538fdd"
+   "lines": 83,
+   "sha256_16": "cdd71d8ee62b1f3a"
   },
   "templates/meto_hub/flow/_patok_list.html": {
    "module": "templates",
    "lines": 25,
    "sha256_16": "32b1bf9c731c9e6d"
-  },
-  "templates/meto_hub/flow/_sklad_card.html": {
-   "module": "templates",
-   "lines": 94,
-   "sha256_16": "ab22a8eab2c5767b"
   },
   "templates/meto_hub/flow/_tasnif_edit.html": {
    "module": "templates",
@@ -2106,8 +2112,8 @@
   },
   "templates/meto_hub/flow/sklad.html": {
    "module": "templates",
-   "lines": 119,
-   "sha256_16": "78490042966d1c25"
+   "lines": 16,
+   "sha256_16": "f8682e5c596d17c9"
   },
   "templates/meto_hub/flow/stiker.html": {
    "module": "templates",
@@ -2121,8 +2127,8 @@
   },
   "templates/meto_hub/flow/uychi.html": {
    "module": "templates",
-   "lines": 18,
-   "sha256_16": "b06b13bf4432a53d"
+   "lines": 14,
+   "sha256_16": "9eeee4faabb7142d"
   },
   "templates/meto_hub/flow/yukxat.html": {
    "module": "templates",

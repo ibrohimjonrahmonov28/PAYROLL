@@ -1516,14 +1516,6 @@
     "meto_hub_flow_api_unlink"
    ]
   },
-  "templates/meto_hub/flow/_sklad_card.html": {
-   "includes": [
-    "meto_hub/flow/_card_head.html"
-   ],
-   "url_names": [
-    "meto_hub_flow_sklad_receive"
-   ]
-  },
   "templates/meto_hub/flow/_tasnif_edit.html": {
    "url_names": [
     "meto_hub_flow_tasnif_update"
@@ -1544,14 +1536,12 @@
   "templates/meto_hub/flow/sklad.html": {
    "includes": [
     "meto_hub/flow/_link_panel.html",
-    "meto_hub/flow/_sklad_card.html",
-    "meto_hub/flow/_incoming.html",
-    "meto_hub/flow/_patok_list.html",
-    "meto_hub/flow/_branch_js.html"
-   ],
-   "url_names": [
-    "meto_hub_flow_api_shipment_request_verification",
-    "meto_hub_shipment_print"
+    "meto_hub/flow/_sklad_top.html",
+    "meto_hub/flow/_sklad_filters.html",
+    "meto_hub/flow/_sklad_list.html",
+    "meto_hub/flow/_sklad_bottom.html",
+    "meto_hub/flow/_branch_js.html",
+    "meto_hub/flow/_sklad_js.html"
    ]
   },
   "templates/meto_hub/flow/stiker.html": {
@@ -1575,11 +1565,13 @@
   },
   "templates/meto_hub/flow/uychi.html": {
    "includes": [
-    "meto_hub/flow/_incoming.html",
-    "meto_hub/flow/_sklad_card.html",
+    "meto_hub/flow/_sklad_top.html",
+    "meto_hub/flow/_sklad_filters.html",
+    "meto_hub/flow/_sklad_list.html",
     "meto_hub/flow/_link_panel.html",
-    "meto_hub/flow/_patok_list.html",
-    "meto_hub/flow/_branch_js.html"
+    "meto_hub/flow/_sklad_bottom.html",
+    "meto_hub/flow/_branch_js.html",
+    "meto_hub/flow/_sklad_js.html"
    ]
   },
   "templates/meto_hub/flow/yukxat.html": {

@@ -112,6 +112,12 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
      - On the planshet and the sklad/Uychi link panel, the box and the container can be scanned in either order; the link happens as soon as both are known (owner, 2026-11-21).
      - `api_resolve` returns a `problem` so a bad scan is refused at once. An unknown `KONT-…` says it was never created and names the last one; Cyrillic input gets a "switch to Latin" hint, not transliteration. Long dashes (–, —) count as `-`.
      - Scan inputs auto-submit without Enter (`meto_hub/_scan_auto_enter.html`), either on fast scanner input or on a full `KONT-000123` typed by hand.
+  - **Bosh sklad:** `/tayyorlov/sklad/` is called "Bosh sklad" (owner, 2026-11-21). The METO_SKLAD role label is unchanged.
+     - Both it and `/tayyorlov/uychi/` show the sklad as a compact list (`_sklad_list.html`).
+     - Status filters (`?f=` kg / stiker / kont / tayyor / tekshiruv) are counted in 3 light queries by `_sklad_list_ctx`; cards are built only for the ≤150 shown rows.
+     - Search is server-side (`?q=`): pastal, order or article text, or a scanned container QR / box sticker.
+     - Each row offers "Koson patokiga" (container check) and "Uychiga" (sends the pastal to the planshet for verification). Kg is entered or fixed inline by AJAX.
+     - The page refreshes itself (`_sklad_js.html`, `?partial=1` JSON): at once after a link or unlink on its own panel (`tayyorlov:changed` event), otherwise every 20 s while visible. Typed kg, ticked rows and focus survive a refresh.
 - **Check before anything moves:** giving to a patok, loading a waybill and receiving at Uychi all open the shared scan modal (`flow.html::openCheck`). Every container of the pastal must be scanned green and every active box must have a container; otherwise `_verify` raises and nothing moves. A pastal in a PENDING (planshet verification) or in-transit waybill can't be given to a patok, the planshet doesn't show it as ready, and `dispatch_shipment` locks the pastals and re-checks `_require_ready` (otherwise one pastal went both to a patok and onto the truck). `create_shipment` is one transaction, so a failed direct load leaves no PENDING waybill behind.
   - Koson hand-out sets `DISPATCHED`, and master tablet acceptance stays.
   - Uychi hand-out (UYCHI_SKLAD / BRANCH_ADMIN, U-patoks) sets `ACCEPTED`, like the old Uychi warehouse.

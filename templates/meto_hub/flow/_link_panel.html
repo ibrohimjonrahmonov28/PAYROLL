@@ -15,6 +15,7 @@
         const input = document.getElementById('link-input');
         const stateEl = document.getElementById('link-state');
         let boxCode = null, containerCode = null, unlinkMode = false, queue = Promise.resolve();
+        let boxInfo = '', containerInfo = '';   // tanlangani holat qatorida ko'rinadi, jurnalga faqat natija yoziladi
 
         function log(ok, text) {
             const row = document.createElement('div');
@@ -22,17 +23,20 @@
             row.textContent = text;
             const box = document.getElementById('link-log');
             box.prepend(row);
-            while (box.children.length > 6) box.lastChild.remove();
+            while (box.children.length > 5) box.lastChild.remove();
         }
 
         function setState() {
             const btn = document.getElementById('unlink-toggle');
             btn.className = `px-3 py-1.5 rounded-lg border text-xs font-bold ${unlinkMode ? 'bg-rose-600 border-rose-500 text-white' : 'bg-slate-800 border-slate-700 text-rose-300'}`;
             stateEl.textContent = unlinkMode ? "Bekor qilish: qutining stikerini yoki konteynerni uring."
-                : boxCode ? `${boxCode} tanlandi — endi bo'sh katta konteynerni uring.`
-                : containerCode ? `${containerCode} tanlandi — endi qutining stikerini uring.`
+                : boxCode ? `${boxInfo} — endi bo'sh katta konteynerni uring.`
+                : containerCode ? `${containerInfo} — endi qutining stikerini uring.`
                 : 'Qutining stikerini yoki konteyner QR kodini uring (tartib muhim emas).';
         }
+
+        // ro'yxat (bosh sklad / Uychi) darhol yangilansin — _sklad_js.html shu hodisani tinglaydi
+        function changed() { document.dispatchEvent(new CustomEvent('tayyorlov:changed')); }
 
         window.toggleUnlink = function () { unlinkMode = !unlinkMode; boxCode = null; containerCode = null; setState(); input.focus(); };
 
@@ -40,6 +44,7 @@
             if (unlinkMode) {
                 const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, {code});
                 log(r.ok, r.data.message || 'Xatolik');
+                if (r.ok) changed();
                 unlinkMode = false;
                 setState();
                 return;
@@ -49,14 +54,15 @@
             if (r.data.problem) { log(false, r.data.problem); return; }
             if (r.data.kind === 'container') {
                 containerCode = r.data.code;
-                log(true, `Konteyner ${r.data.code} (${r.data.state})`);
+                containerInfo = `Konteyner ${r.data.code} (${r.data.state})`;
             } else {
                 boxCode = r.data.box;
-                log(true, `Quti ${r.data.box} · pastal ${r.data.pastal} · ${r.data.razmer} · ${r.data.qty} dona`);
+                boxInfo = `Quti ${r.data.box} · pastal ${r.data.pastal} · ${r.data.razmer} · ${r.data.qty} dona`;
             }
             if (boxCode && containerCode) {
                 const res = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, {box: boxCode, container: containerCode});
                 log(res.ok, res.data.message || 'Xatolik');
+                if (res.ok) changed();
                 boxCode = null;
                 containerCode = null;
             }

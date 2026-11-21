@@ -1,118 +1,15 @@
-{% comment %}Koson (meto) sklad: kg bilan qabul, konteynerga biriktirish, patokka berish (konteyner tekshiruvi), Uychiga yuk xati,
-Uychidan qaytgan pastalni qabul, patokdagi pastallar.{% endcomment %}
+{% comment %}Bosh sklad (Koson, egasi 2026-11-21): tasnifdan kelgan pastallar ixcham ro'yxatda — kg qabul, konteynerga biriktirish,
+holat filtrlari va qidiruv, Koson patokiga berish (konteyner tekshiruvi) va Uychiga (planshetda tekshirib) jo'natish;
+Uychidan qaytgan pastalni qabul, patokdagi pastallar. Ro'yxat jonli yangilanadi (_sklad_js.html).{% endcomment %}
 <div class="space-y-6">
     {% include 'meto_hub/flow/_link_panel.html' %}
-
-    {% if recent_dispatched %}
-    <!-- Jo'natilgan yuk xatlari (Chop etish) -->
-    <div class="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 space-y-3">
-        <div class="flex items-center justify-between">
-            <h3 class="text-xs font-black uppercase tracking-wide text-emerald-300 flex items-center gap-2">
-                <i class="fa-solid fa-truck-fast"></i> Jo'natilgan yuk xatlari — Chop etishga tayyor
-            </h3>
-            <span class="text-xs text-emerald-400/80 font-mono">Planshetda tekshirib jo'natildi</span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {% for s in recent_dispatched %}
-            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3 shadow-md">
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-black font-mono text-white">{{ s.number }}</span>
-                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">Yo'lda</span>
-                    </div>
-                    <p class="text-xs text-slate-400 truncate mt-0.5">
-                        {{ s.lines.count }} ta pastal · Uychi filialiga
-                    </p>
-                </div>
-                <a href="{% url 'meto_hub_shipment_print' s.id %}" target="_blank"
-                   class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 whitespace-nowrap transition">
-                    <i class="fa-solid fa-print"></i> Chop etish
-                </a>
-            </div>
-            {% endfor %}
-        </div>
+    <div id="sklad-top" class="space-y-6">{% include 'meto_hub/flow/_sklad_top.html' %}</div>
+    <div class="space-y-3">
+        {% include 'meto_hub/flow/_sklad_filters.html' %}
+        <div id="sklad-list">{% include 'meto_hub/flow/_sklad_list.html' %}</div>
     </div>
-    {% endif %}
-
-    {% if pending_shipments %}
-    <!-- Meto Planshetida tekshirilayotgan yuk xatlari -->
-    <div class="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 space-y-3">
-        <div class="flex items-center justify-between">
-            <h3 class="text-xs font-black uppercase tracking-wide text-amber-300 flex items-center gap-2">
-                <i class="fa-solid fa-tablet-screen-button animate-pulse text-amber-400"></i>
-                Meto Planshetida tekshiruv kutayotgan yuk xatlari ({{ pending_shipments|length }})
-            </h3>
-            <span class="text-[11px] text-amber-400/80">Planshet orqali konteynerlar tekshirilmoqda</span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {% for s in pending_shipments %}
-            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3 shadow-md">
-                <div class="min-w-0 space-y-1">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-black font-mono text-amber-300">{{ s.number }}</span>
-                        <span class="text-[10px] text-slate-400 font-mono">{{ s.created_at|date:"H:i" }}</span>
-                    </div>
-                    <p class="text-xs text-slate-300 truncate">
-                        {% for line in s.lines.all %}
-                            <span class="font-bold text-white">{{ line.batch.pastal_code|default:line.batch.name }}</span>{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    </p>
-                </div>
-                <button type="button" onclick="cancelVerification({{ s.id }})"
-                        class="px-3 py-1.5 rounded-xl bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700/60 text-rose-200 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap">
-                    <i class="fa-solid fa-xmark"></i> Bekor qilish
-                </button>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <section class="space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-sm font-black uppercase text-white">Skladdagi pastallar <span class="text-slate-400">({{ cards|length }})</span></h2>
-            <button type="button" onclick="sendToVerification()" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-sm shadow-lg shadow-violet-600/20 transition flex items-center gap-2">
-                <i class="fa-solid fa-clipboard-check"></i>Tekshirishga yuborish (Planshetga)
-            </button>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-            {% for c in cards %}{% include 'meto_hub/flow/_sklad_card.html' with branch='HQ' %}
-            {% empty %}<p class="text-sm text-slate-500">Skladda pastal yo'q.</p>{% endfor %}
-        </div>
-    </section>
-
-    {% include 'meto_hub/flow/_incoming.html' with incoming_title="Uychidan qaytgan pastallar" %}
-    {% include 'meto_hub/flow/_patok_list.html' %}
+    <div id="sklad-bottom" class="space-y-6">{% include 'meto_hub/flow/_sklad_bottom.html' %}</div>
 </div>
 
 {% include 'meto_hub/flow/_branch_js.html' %}
-<script>
-    async function sendToVerification() {
-        const ids = Array.from(document.querySelectorAll('.ship-pick:checked')).map(el => parseInt(el.value, 10));
-        if (!ids.length) {
-            alert("Tekshirishga yuborish uchun kamida bitta tayyor pastalni belgilang.");
-            return;
-        }
-        if (!confirm(`${ids.length} ta pastalni Meto Planshetiga tekshirish uchun yuborasizmi?`)) {
-            return;
-        }
-        const r = await postJSON(`{% url 'meto_hub_flow_api_shipment_request_verification' %}`, { batch_ids: ids });
-        if (r.ok) {
-            location.reload();
-        } else {
-            alert(r.data?.message || "Xatolik yuz berdi");
-        }
-    }
-
-    async function cancelVerification(shipmentId) {
-        if (!confirm("Tekshiruvni bekor qilishni tasdiqlaysizmi? Pastallar qayta skladdagi ro'yxatga qaytadi.")) {
-            return;
-        }
-        const r = await postJSON(`/tayyorlov/api/shipment/${shipmentId}/cancel-verification/`, {});
-        if (r.ok) {
-            location.reload();
-        } else {
-            alert(r.data?.message || "Xatolik yuz berdi");
-        }
-    }
-</script>
+{% include 'meto_hub/flow/_sklad_js.html' %}
