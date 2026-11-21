@@ -29,6 +29,22 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `37eeffd`] — 21.11.2026
+* **Turi:** `feat(tayyorlov)` — Bosh sklad: ixcham ro'yxat, filtrlar, qidiruv, Koson/Uychiga jo'natish va jonli yangilanish
+* **Mavzu:** Foydalanuvchi talabi («https://terryjar.uz/tayyorlov/sklad/ da men hozirgina konteynerga qutini biriktirdim ammo bu sahifada o'zgarmasdan turibdi va yana bu yerda ham list emas keyin bu yer sklad emas bosh sklad bo'ladi va bu yerda filterlar bo'lishi kerak stiker chiqmagan konteyner birikmagan va pastal bo'yicha qidirish funksiyalari va uni ham Kosonga Uychiga jo'natish funksiyasi bo'lishi kerak»):
+  - **1. Jonli yangilanish:** shu sahifada biriktirilgach ro'yxat darhol (sahifa yuklanmasdan) yangilanadi; planshetdagi o'zgarishlar har 20 soniyada ko'rinadi. Yozilayotgan kg va belgilangan qatorlar saqlanadi.
+  - **2. «Bosh sklad» va ixcham ro'yxat:** bo'lim nomi «Bosh sklad»; katta kartalar o'rniga planshetdagi kabi jadval. Uychi skladi sahifasi ham shu ro'yxatda.
+  - **3. Filtrlar va qidiruv:** Kg kiritilmagan, Stiker chiqmagan, Konteyner birikmagan, Tayyor, Planshetda tekshiruvda (sanog'i bilan); pastal / zakaz / artikul yoki konteyner QR / quti stikeri bo'yicha qidiruv.
+  - **4. Jo'natish:** har qatorda «Koson patokiga» (konteyner tekshiruvi) va «Uychiga» (planshetda tekshirib yuk xati); tanlanganlarni birdan Uychiga. Tayyor bo'lmaguncha tugmalar o'chiq, sababi yoziladi. Kg ro'yxatda kiritiladi / tuzatiladi.
+  - **5. Tuzatish:** tekshiruvni «Bekor qilish» tugmasi endi ishlaydi (avval mavjud bo'lmagan funksiyani chaqirardi).
+* **O'zgartirilgan fayllar:**
+  - `production/meto_flow_views.py`
+  - `templates/meto_hub/flow/sklad.html`, `uychi.html`, `_link_panel.html`
+  - `templates/meto_hub/flow/_sklad_top.html`, `_sklad_filters.html`, `_sklad_list.html`, `_sklad_bottom.html`, `_sklad_js.html` (yangi)
+  - `templates/meto_hub/flow/_sklad_card.html` (olib tashlandi)
+  - `production/test_meto_flow.py`
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `dbf4920`] — 21.11.2026
 * **Turi:** `fix(tayyorlov)` — Planshetda quti va konteyner istalgan tartibda biriktiriladi, avto-Enter, aniq xato xabarlari
 * **Mavzu:** Foydalanuvchi talabi («konteyner id KONT-000050 ... /tayyorlov/tablet/ da qutiga biriktirish uchun yozsam stiker yoki konteyner topilmadi deyapti ... auto enter ham kerak ... stikerni qr kodini scan qilsa u orqali quti id bilan konteyner id boglanishi kerak»):
