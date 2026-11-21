@@ -29,7 +29,20 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
-### 🔹 [Commit: `4a485fd`] — 20.11.2026
+### 🔹 [Commit: `6f572d6`] — 21.11.2026
+* **Turi:** `feat(tayyorlov)` — Meto Planshet: Uychi filialida quti biriktirishni yashirish, faqat yuk qabuli, omborda saqlash va patokka berish
+* **Mavzu:** Egasi talabi («https://terryjar.uz/tayyorlov/tablet/?branch=UYCHI da quti bilan konteyner birlashtirish funksiyasi bolmaydi ular faqat yukni qabul qiladi saqlaydi va kerakli paytda trekshirib patokka beradi»):
+  - **Quti ↔ Konteyner biriktirish rejimi Uychida olib tashlandi:** Uychi filialida qutilar alohida konteynerga biriktirilmaydi (bu faqat Koson bosh binosida amalga oshiriladi). `1. Biriktirish` tugmasi va rejimi Uychi planshetida to'liq yashirildi.
+  - **1. Yuk Qabuli:** Kosondan yo'lda kelayotgan yuk xatlarini ko'rish, konteynerlarni skanerlab omborga qabul qilish (`/tayyorlov/api/receive/<line_id>/`).
+  - **2. Saqlash (Ombor):** Uychi omborida saqlanayotgan pastallar va ularning konteynerlari ro'yxati (har bir kartochkada saqlanayotgan `KONT-...` kodlari vizual ko'rsatiladi va to'g'ridan-to'g'ri patokka berish tugmasi mavjud).
+  - **3. Patokka Berish:** Uychi tikuv patoklariga (`U1`..`U6`) konteynerlarni skanerlab tekshirib chiqarish (`/tayyorlov/api/give/`).
+  - **Statistika va navigatsiya:** Uychi filiali uchun alohida konteyner va saqlash hisoblagichi, Uychi ochilganda avtomatik ravishda Yuk Qabuli yoki Saqlash rejimining ochilishi (`default_mode`).
+* **O'zgartirilgan fayllar:**
+  - `production/meto_tablet_views.py`
+  - `templates/meto_hub/tablet.html`
+  - `production/test_meto_flow.py`
+
+### 🔹 [Commit: `c8ec6b4`] — 20.11.2026
 * **Turi:** `feat(tayyorlov)` — Meto Planshet (Tablet) interfeysi: Quti ↔ Konteyner biriktirish, Yuk xati tekshiruvi va Patokka yuk berish
 * **Mavzu:** Meto ombori va tayyorlov xodimlari planshet/mobil qurilmalari orqali ishlashi uchun maxsus planshet UI (`/tayyorlov/tablet/` / `/tayyorlov/planshet/`):
   - **1. Quti ↔ Konteyner biriktirish (Box ↔ Container Linking):** Sklad va filiallar bo'yicha konteynerlar holati, qutilarni konteynerga skaner orqali biriktirish (`api/link/`) yoki ajratish (`api/unlink/`), tezkor filtrlash va avtomatik yuklanish.

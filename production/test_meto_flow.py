@@ -1240,6 +1240,24 @@ class MetoTabletTest(MetoFlowBase):
         c1.refresh_from_db()
         self.assertEqual(c1.status, Container.Status.AT_PATOK)
 
+    def test_tablet_uychi_branch_no_link_mode(self):
+        # 1) Uychi filialida quti bilan konteyner biriktirish rejimi ko'rsatilmaydi
+        self.client.force_login(self.uychi)
+        res = self.client.get(f"{reverse('meto_hub_tablet')}?branch=UYCHI")
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Uychi Filiali")
+        self.assertContains(res, "1. Yuk Qabuli")
+        self.assertContains(res, "2. Saqlash (Ombor)")
+        self.assertContains(res, "3. Patokka Berish")
+        self.assertNotContains(res, "1. Biriktirish")
+        self.assertNotContains(res, 'id="mode-link"')
+        self.assertContains(res, 'id="mode-storage"')
+
+        # 2) Uychi screens U1..U6 mavjud
+        self.assertContains(res, "U1")
+        self.assertContains(res, "U6")
+
+
 
 
 

@@ -60,13 +60,21 @@ def tablet_access_required(view_func):
 
 
 def _tablet_branch(request):
-    """Foydalanuvchi filiali (HQ yoki UYCHI), admin/superadmin url parametri orqali o'zgartirishi mumkin."""
+    """Foydalanuvchi filiali (HQ yoki UYCHI)."""
     req_branch = (request.GET.get('branch') or '').strip().upper()
-    user_branch = getattr(request.user, 'branch', None)
-    if req_branch in ('HQ', 'UYCHI') and (request.user.is_superadmin() or request.user.role == User.Role.ADMIN or not user_branch):
-        return req_branch
+    user = request.user
+    user_branch = getattr(user, 'branch', None)
+    if req_branch in ('HQ', 'UYCHI'):
+        if user.is_superadmin() or user.role == User.Role.ADMIN or not user_branch:
+            return req_branch
+        if req_branch == 'UYCHI' and can(user, 'uychi'):
+            return 'UYCHI'
+        if req_branch == 'HQ' and can(user, 'sklad'):
+            return 'HQ'
     if user_branch in ('HQ', 'UYCHI'):
         return user_branch
+    if can(user, 'uychi') and not can(user, 'sklad'):
+        return 'UYCHI'
     return 'HQ'
 
 
@@ -95,7 +103,9 @@ def _tablet_card(flow):
         })
 
     boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
-    linked = {c.box_id for c in Container.objects.filter(box__in=boxes)} if boxes else set()
+    containers_qs = list(Container.objects.filter(box__in=boxes).order_by('number')) if boxes else []
+    linked = {c.box_id for c in containers_qs} if boxes else set()
+    container_codes = [c.code for c in containers_qs]
     total_cut = sum(s['cut'] for s in sizes)
     total_meto = sum(s['meto'] or 0 for s in sizes)
     total_tasnif = sum(s['tasnif'] or 0 for s in sizes)
@@ -125,6 +135,7 @@ def _tablet_card(flow):
         'boxes_count': len(boxes),
         'printed_count': sum(1 for b in boxes if b.is_printed),
         'linked_count': len(linked),
+        'containers': container_codes,
         'weight_kg': batch.actual_weight_kg,
         'sklad_received': bool(flow.sklad_received_at and batch.actual_weight_kg),
         'ready': ready,
@@ -232,11 +243,12 @@ def meto_tablet_view(request):
     branch = _tablet_branch(request)
     can_switch_branch = request.user.is_superadmin() or request.user.role == User.Role.ADMIN
 
-    # Konteynerlar statistikasi
-    empty_c = Container.objects.filter(status=Container.Status.EMPTY).count()
-    filled_c = Container.objects.filter(status=Container.Status.FILLED).count()
-    patok_c = Container.objects.filter(status=Container.Status.AT_PATOK).count()
-    total_c = Container.objects.count()
+    # Konteynerlar statistikasi filial bo'yicha
+    branch_c = Container.objects.filter(branch=branch)
+    empty_c = branch_c.filter(status=Container.Status.EMPTY).count()
+    filled_c = branch_c.filter(status=Container.Status.FILLED).count()
+    patok_c = branch_c.filter(status=Container.Status.AT_PATOK).count()
+    total_c = branch_c.count()
 
     # Patoklar (ekranlar) ro'yxati
     screen_range = flow_logic.KOSON_SCREENS if branch == 'HQ' else flow_logic.UYCHI_SCREENS
@@ -247,9 +259,16 @@ def meto_tablet_view(request):
     incoming = _tablet_incoming(branch)
     patok_rows = _tablet_patok_rows(branch)
 
+    # Boshlang'ich rejim (default_mode): Uychida quti biriktirish yo'q, yuk qabuli yoki saqlash ochiladi
+    if branch == 'UYCHI':
+        default_mode = 'shipment' if incoming else 'storage'
+    else:
+        default_mode = 'link'
+
     # Oxirgi konteyner voqealari (oxirgi 15 tasi)
     recent_events = (
-        ContainerEvent.objects.select_related('container', 'box', 'user')
+        ContainerEvent.objects.filter(branch=branch)
+        .select_related('container', 'box', 'user')
         .order_by('-id')[:15]
     )
 
@@ -257,6 +276,7 @@ def meto_tablet_view(request):
         'branch': branch,
         'branch_label': "Koson Bosh Bino" if branch == 'HQ' else "Uychi Filiali",
         'can_switch_branch': can_switch_branch,
+        'default_mode': default_mode,
         'empty_containers': empty_c,
         'filled_containers': filled_c,
         'patok_containers': patok_c,
@@ -276,10 +296,11 @@ def meto_tablet_state_api(request):
     """Planshet uchun jonli yangilanish API (/tayyorlov/api/tablet/state/)."""
     flow_logic.sync_rejected_flows()
     branch = _tablet_branch(request)
-    empty_c = Container.objects.filter(status=Container.Status.EMPTY).count()
-    filled_c = Container.objects.filter(status=Container.Status.FILLED).count()
-    patok_c = Container.objects.filter(status=Container.Status.AT_PATOK).count()
-    total_c = Container.objects.count()
+    branch_c = Container.objects.filter(branch=branch)
+    empty_c = branch_c.filter(status=Container.Status.EMPTY).count()
+    filled_c = branch_c.filter(status=Container.Status.FILLED).count()
+    patok_c = branch_c.filter(status=Container.Status.AT_PATOK).count()
+    total_c = branch_c.count()
 
     sklad_cards = _tablet_sklad_cards(branch)
     incoming = _tablet_incoming(branch)
