@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 1038,
-   "sha256_16": "2bad0d679c51ab33"
+   "lines": 1202,
+   "sha256_16": "57f12acf84c51181"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 177,
-   "sha256_16": "b6b81270d146b75c"
+   "lines": 181,
+   "sha256_16": "7e8146835fbd8c17"
   },
   "Dockerfile": {
    "module": "ops",
@@ -873,111 +873,130 @@
   },
   "production/meto_flow.py": {
    "module": "production.meto",
-   "lines": 643,
-   "sha256_16": "8cb41e934fd31395",
+   "lines": 851,
+   "sha256_16": "57e13f2bb0c4c0dc",
    "symbols": [
-    "FlowError:45",
-    "can:49",
-    "user_name:54",
-    "v2_batches:60",
-    "is_v2_batch:66",
-    "is_v2_box:71",
-    "get_flow:76",
-    "ensure_flows:81",
-    "sync_rejected_flows:90",
-    "_items:103",
-    "_size:107",
-    "_counts:112",
-    "_require:125",
-    "take_meto:132",
-    "cancel_meto:145",
-    "finish_meto:157",
-    "take_tasnif:184",
-    "finish_tasnif:193",
-    "_active_boxes:210",
-    "update_tasnif_counts:214",
-    "split_boxes:242",
-    "_positive:277",
-    "sklad_receive:282",
-    "resolve_box:307",
-    "find_container:329",
-    "_set_status:334",
-    "link_container:345",
-    "unlink:378",
-    "check_list:403",
-    "_unscanned:414",
-    "_verify:419",
-    "_require_ready:437",
-    "give_to_patok:448",
-    "_new_shipment:481",
-    "create_shipment:492",
-    "_close_if_done:517",
-    "receive_line:523",
-    "return_line:550",
-    "release:574",
-    "check_repair_container:580",
-    "link_repair_container:591",
-    "after_initial_inspection:599",
-    "after_repair_return:606",
-    "release_for_scan:624",
-    "container_state:637"
+    "FlowError:46",
+    "can:50",
+    "user_name:55",
+    "v2_batches:61",
+    "is_v2_batch:70",
+    "is_v2_box:77",
+    "get_flow:82",
+    "ensure_flows:87",
+    "sync_rejected_flows:96",
+    "_items:112",
+    "_size:116",
+    "_counts:121",
+    "_require:134",
+    "take_meto:141",
+    "cancel_meto:154",
+    "finish_meto:166",
+    "take_tasnif:196",
+    "cancel_tasnif:207",
+    "return_tasnif:219",
+    "_validate_tasnif_values:246",
+    "finish_tasnif:257",
+    "_active_boxes:279",
+    "update_tasnif_counts:283",
+    "split_boxes:313",
+    "_positive:357",
+    "sklad_receive:362",
+    "resolve_box:387",
+    "find_container:409",
+    "_set_status:414",
+    "link_container:425",
+    "unlink:462",
+    "check_list:487",
+    "_unscanned:498",
+    "_verify:503",
+    "_require_ready:521",
+    "_require_no_open_shipment:530",
+    "give_to_patok:542",
+    "_new_shipment:576",
+    "request_verification:587",
+    "cancel_verification:607",
+    "dispatch_shipment:617",
+    "create_shipment:657",
+    "_close_if_done:665",
+    "receive_line:671",
+    "receive_shipment:698",
+    "return_line:712",
+    "release:736",
+    "check_repair_container:742",
+    "link_repair_container:753",
+    "after_initial_inspection:761",
+    "after_repair_return:768",
+    "release_for_scan:786",
+    "container_state:799",
+    "container_states_by_batch:807",
+    "box_containers:826",
+    "pending_lines_prefetch:837",
+    "pending_shipment:843"
    ]
   },
   "production/meto_flow_views.py": {
    "module": "production.meto",
-   "lines": 833,
-   "sha256_16": "62bcb9a7dd9e84ae",
+   "lines": 1109,
+   "sha256_16": "a35b9f7e5db67799",
    "symbols": [
-    "_can_view_section:119",
-    "_allowed_sections:126",
-    "_allowed_tabs:130",
-    "flow_access_required:134",
-    "_flow_url:149",
-    "_deny:156",
-    "_json:161",
-    "_allowed:168",
-    "_api:174",
-    "_card:198",
-    "_flows_qs:236",
-    "_flows:245",
-    "_search_flows_qs:249",
-    "_incoming:267",
-    "_patok_rows:274",
-    "_ctx_meto:288",
-    "_ctx_tasnif:403",
-    "_ctx_stiker:408",
-    "_ctx_sklad:414",
-    "_ctx_uychi:420",
-    "_ctx_yukxat:425",
-    "_ctx_zakazlar:433",
-    "_can_open_containers:457",
-    "_hub_stats:462",
-    "flow_view:519",
-    "section_view:584",
-    "_form_action:604",
-    "_batch:626",
-    "_posted_counts:630",
-    "_name:634",
-    "meto_take:639",
-    "meto_cancel:646",
-    "meto_finish:653",
-    "tasnif_take:660",
-    "tasnif_finish:667",
-    "tasnif_update:674",
-    "split:681",
-    "sklad_receive:694",
-    "beta_toggle:701",
-    "_require_branch:713",
-    "api_resolve:719",
-    "api_link:739",
-    "api_unlink:750",
-    "api_check:763",
-    "api_give:773",
-    "api_ship:786",
-    "_line:796",
-    "api_receive:806",
-    "api_return:816",
-    "shipment_print:822"
+    "_can_view_section:118",
+    "_allowed_sections:125",
+    "_allowed_tabs:129",
+    "flow_access_required:133",
+    "_flow_url:148",
+    "_deny:155",
+    "_json:160",
+    "_allowed:167",
+    "_api:173",
+    "_card:197",
+    "_flows_qs:261",
+    "_flows:270",
+    "_search_flows_qs:274",
+    "_incoming:292",
+    "_patok_rows:299",
+    "_ctx_meto:309",
+    "_ctx_tasnif:424",
+    "_ctx_stiker:546",
+    "_ctx_sklad:551",
+    "_ctx_uychi:581",
+    "_ctx_yukxat:586",
+    "_ctx_zakazlar:594",
+    "_can_open_containers:618",
+    "_hub_stats:623",
+    "flow_view:680",
+    "section_view:745",
+    "_form_action:765",
+    "_batch:800",
+    "_posted_counts:804",
+    "_name:808",
+    "meto_take:813",
+    "meto_cancel:820",
+    "meto_finish:827",
+    "tasnif_take:834",
+    "tasnif_cancel:841",
+    "tasnif_return:848",
+    "tasnif_finish:856",
+    "tasnif_update:863",
+    "split:870",
+    "sklad_receive:884",
+    "beta_toggle:891",
+    "_require_branch:907",
+    "_ids:912",
+    "api_resolve:920",
+    "api_link:940",
+    "api_unlink:951",
+    "api_check:964",
+    "api_give:980",
+    "api_shipment_request_verification:999",
+    "api_shipment_cancel_verification:1015",
+    "api_shipment_dispatch:1024",
+    "api_shipment_receive_all:1045",
+    "api_ship:1062",
+    "_line:1072",
+    "api_receive:1082",
+    "api_return:1092",
+    "shipment_print:1098"
    ]
   },
   "production/meto_hub_urls.py": {
@@ -1006,6 +1025,26 @@
     "meto_hub_dispatch_uychi_view:487"
    ]
   },
+  "production/meto_tablet_views.py": {
+   "module": "production.meto",
+   "lines": 556,
+   "sha256_16": "7a6983b9d51949c5",
+   "symbols": [
+    "_script_json:35",
+    "tablet_access_required:44",
+    "_tablet_branch:74",
+    "_tablet_card:98",
+    "_tablet_kg_pending_cards:194",
+    "_tablet_sklad_cards:210",
+    "_tablet_incoming:223",
+    "_tablet_pending_shipments:262",
+    "_tablet_incoming_shipments:318",
+    "_tablet_patok_rows:381",
+    "meto_tablet_view:402",
+    "meto_tablet_state_api:486",
+    "api_tablet_kg_receive:532"
+   ]
+  },
   "production/meto_urls.py": {
    "module": "production.meto",
    "lines": 13,
@@ -1028,8 +1067,8 @@
   },
   "production/models.py": {
    "module": "production.models",
-   "lines": 2489,
-   "sha256_16": "fe9a604c3df410f8",
+   "lines": 2494,
+   "sha256_16": "1d47ff6228de2bca",
    "symbols": [
     "_generate_qr_data_uri:18",
     "Customer:38",
@@ -1077,9 +1116,9 @@
     "Container:2313",
     "ContainerEvent:2354",
     "PastalFlow:2387",
-    "PastalFlowSize:2431",
-    "Shipment:2443",
-    "ShipmentPastal:2470"
+    "PastalFlowSize:2434",
+    "Shipment:2446",
+    "ShipmentPastal:2474"
    ]
   },
   "production/norma_services.py": {
@@ -1264,8 +1303,8 @@
   },
   "production/pastal_info.py": {
    "module": "production.platform",
-   "lines": 298,
-   "sha256_16": "add3cbaf302c668f",
+   "lines": 312,
+   "sha256_16": "580ea73b2739e05b",
    "symbols": [
     "_user_name:28",
     "find_pastal_batches:34",
@@ -1448,10 +1487,29 @@
     "worker_taxlov_total:82"
    ]
   },
+  "production/tayyorlov_stiker_views.py": {
+   "module": "production.platform",
+   "lines": 604,
+   "sha256_16": "67391714e198a128",
+   "symbols": [
+    "tayyorlov_stiker_required:33",
+    "_tasnif_done_v2_batches:48",
+    "_batch_tasnif_total:56",
+    "_batch_active_boxes:67",
+    "stiker_dashboard_context:71",
+    "tayyorlov_stiker_order_boxes:201",
+    "tayyorlov_stiker_batch_boxes:357",
+    "tayyorlov_stiker_mark_batch_printed:421",
+    "tayyorlov_stiker_mark_box_printed:452",
+    "tayyorlov_stiker_mark_all_printed:488",
+    "tayyorlov_stiker_regenerate_tickets:517",
+    "tayyorlov_stiker_copy_operations:558"
+   ]
+  },
   "production/tayyorlov_urls.py": {
    "module": "production.platform",
-   "lines": 46,
-   "sha256_16": "ebf0c72fe052d945"
+   "lines": 67,
+   "sha256_16": "3e168e0297be4ccb"
   },
   "production/telegram_reports.py": {
    "module": "production.reports",
@@ -1540,18 +1598,20 @@
   },
   "production/test_meto_flow.py": {
    "module": "tests",
-   "lines": 809,
-   "sha256_16": "7fb89301a0beae9b",
+   "lines": 1590,
+   "sha256_16": "7459bd854f168662",
    "symbols": [
     "MetoFlowBase:22",
     "MetoFlowStepsTest:96",
-    "ContainerLinkTest:207",
-    "DispatchTest:269",
-    "UychiShipmentTest:334",
-    "OtkV2Test:394",
-    "FlowAccessTest:486",
-    "TayyorlovMetoUpgradeTest:567",
-    "MetoTwoShiftsTest:675"
+    "ContainerLinkTest:209",
+    "DispatchTest:281",
+    "UychiShipmentTest:346",
+    "OtkV2Test:406",
+    "FlowAccessTest:498",
+    "TayyorlovMetoUpgradeTest:579",
+    "MetoTwoShiftsTest:687",
+    "MetoTabletTest:1152",
+    "TayyorlovReviewFixesTest:1470"
    ]
   },
   "production/test_norma_canvas.py": {
@@ -2029,8 +2089,8 @@
   },
   "templates/meto_hub/flow/_sklad_card.html": {
    "module": "templates",
-   "lines": 45,
-   "sha256_16": "42c190dc2323fe45"
+   "lines": 94,
+   "sha256_16": "ab22a8eab2c5767b"
   },
   "templates/meto_hub/flow/_tasnif_edit.html": {
    "module": "templates",
@@ -2039,23 +2099,23 @@
   },
   "templates/meto_hub/flow/meto.html": {
    "module": "templates",
-   "lines": 351,
-   "sha256_16": "e1958dde234b6221"
+   "lines": 531,
+   "sha256_16": "32a679e2e4b031fd"
   },
   "templates/meto_hub/flow/sklad.html": {
    "module": "templates",
-   "lines": 46,
-   "sha256_16": "55a80acaa0e129d0"
+   "lines": 119,
+   "sha256_16": "78490042966d1c25"
   },
   "templates/meto_hub/flow/stiker.html": {
    "module": "templates",
-   "lines": 44,
-   "sha256_16": "87eb1e050cec4023"
+   "lines": 307,
+   "sha256_16": "db47eba110ffe634"
   },
   "templates/meto_hub/flow/tasnif.html": {
    "module": "templates",
-   "lines": 46,
-   "sha256_16": "88feea544d93389e"
+   "lines": 858,
+   "sha256_16": "8e3c0e95534bf583"
   },
   "templates/meto_hub/flow/uychi.html": {
    "module": "templates",
@@ -2074,13 +2134,18 @@
   },
   "templates/meto_hub/hub.html": {
    "module": "templates",
-   "lines": 264,
-   "sha256_16": "fcfdf2b425224ab4"
+   "lines": 268,
+   "sha256_16": "54c55266d98b7dba"
   },
   "templates/meto_hub/shipment_print.html": {
    "module": "templates",
    "lines": 58,
    "sha256_16": "a46e58ae656c2b36"
+  },
+  "templates/meto_hub/tablet.html": {
+   "module": "templates",
+   "lines": 2962,
+   "sha256_16": "26700ddf7a9110f4"
   },
   "templates/meto_hub/uychi_dashboard.html": {
    "module": "templates",
@@ -2244,8 +2309,8 @@
   },
   "templates/production/partials/pastal_info_card.html": {
    "module": "templates",
-   "lines": 270,
-   "sha256_16": "7c2eaadff01f1ed2"
+   "lines": 276,
+   "sha256_16": "f4b7d3889b9d99ff"
   },
   "templates/production/partials/size_boxes_pipeline.html": {
    "module": "templates",
@@ -2414,8 +2479,18 @@
   },
   "templates/tayyorlov/base_tayyorlov.html": {
    "module": "templates",
-   "lines": 102,
-   "sha256_16": "f9e174aece032bc1"
+   "lines": 108,
+   "sha256_16": "936297141245b4a7"
+  },
+  "templates/tayyorlov/partials/stiker_batch_boxes.html": {
+   "module": "templates",
+   "lines": 306,
+   "sha256_16": "36e645191b98b086"
+  },
+  "templates/tayyorlov/stiker_order_boxes.html": {
+   "module": "templates",
+   "lines": 749,
+   "sha256_16": "9963ece79718ebd9"
   },
   "templates/terminal/index.html": {
    "module": "templates",

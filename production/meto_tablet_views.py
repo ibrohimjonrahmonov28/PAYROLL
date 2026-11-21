@@ -7,7 +7,6 @@ Planshet uchun maxsus sensorli (touch-first) va shtrix-kod skaneri bilan tezkor 
 """
 import functools
 import json
-from collections import OrderedDict
 
 from django.contrib import messages
 from django.db.models import Prefetch, Q
@@ -19,16 +18,27 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from production import meto_flow as flow_logic
-from production.meto_flow import can, get_flow, get_patok_code, is_v2_batch
+from production.meto_flow import can, get_patok_code
 from production.models import (
     Box,
     Container,
     ContainerEvent,
-    CuttingBatch,
     PastalFlow,
     Shipment,
     ShipmentPastal,
 )
+
+# Sahifaga <script> ichida qo'yiladigan JSON: nomlardagi "</script>" sahifani buzmasin (json_script bilan bir xil)
+_JSON_SCRIPT_ESCAPES = {ord('<'): '\\u003C', ord('>'): '\\u003E', ord('&'): '\\u0026'}
+
+
+def _script_json(value):
+    return json.dumps(value).translate(_JSON_SCRIPT_ESCAPES)
+
+
+# Planshet kartochkalari uchun umumiy prefetch (har kartochkaga alohida so'rov bo'lmasin)
+TABLET_CARD_SELECT = ('batch__order_item__order__customer', 'batch__order_item__article', 'sklad_received_by')
+TABLET_CARD_PREFETCH = ('batch__items__order_item_size', 'batch__items__flow_size', 'batch__items__boxes__container')
 
 
 def tablet_access_required(view_func):
@@ -62,9 +72,14 @@ def tablet_access_required(view_func):
 
 
 def _tablet_branch(request):
-    """Foydalanuvchi filiali (HQ yoki UYCHI)."""
+    """Foydalanuvchi filiali (HQ yoki UYCHI). Sklad rollari — rolidan (User.branch sukut bo'yicha HQ, Uychi sklad
+    foydalanuvchisida filial qo'yilmay qolsa planshet Kosonni ochardi)."""
     req_branch = (request.GET.get('branch') or '').strip().upper()
     user = request.user
+    if user.role == User.Role.UYCHI_SKLAD:
+        return 'UYCHI'
+    if user.role == User.Role.METO_SKLAD:
+        return 'HQ'
     user_branch = getattr(user, 'branch', None)
     if req_branch in ('HQ', 'UYCHI'):
         if user.is_superadmin() or user.role == User.Role.ADMIN or not user_branch:
@@ -105,8 +120,8 @@ def _tablet_card(flow):
         })
 
     boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
-    containers_qs = list(Container.objects.filter(box__in=boxes).order_by('number')) if boxes else []
-    linked = {c.box_id for c in containers_qs} if boxes else set()
+    containers_qs = flow_logic.box_containers(boxes)
+    linked = {c.box_id for c in containers_qs}
     container_codes = [c.code for c in containers_qs]
     total_cut = sum(s['cut'] for s in sizes)
     total_meto = sum(s['meto'] or 0 for s in sizes)
@@ -131,12 +146,15 @@ def _tablet_card(flow):
         packaging_status = 'ready'
         packaging_label = "To'liq tayyor"
 
-    # Tayyorlik sharti (patokka berish yoki yuk xatiga yuklash uchun)
+    # Tayyorlik sharti (patokka berish yoki yuk xatiga yuklash uchun). Tekshiruvga yuborilgan pastal tayyor emas —
+    # aks holda uni patokka berib, keyin yuk xatini ham jo'natib yuborish mumkin edi
+    pending = flow_logic.pending_shipment(batch)
     ready = (
         boxes_count > 0
         and printed_count == boxes_count
         and linked_count == boxes_count
         and (flow.branch != 'HQ' or sklad_received)
+        and not pending
     )
 
     weight_str = f"{batch.actual_weight_kg:.2f}".rstrip('0').rstrip('.') if batch.actual_weight_kg is not None else None
@@ -167,6 +185,7 @@ def _tablet_card(flow):
         'packaging_status': packaging_status,
         'packaging_label': packaging_label,
         'ready': ready,
+        'pending_verification': pending.number if pending else None,
         'branch': flow.branch,
         'stage': flow.stage,
     }
@@ -181,16 +200,8 @@ def _tablet_kg_pending_cards():
         ).filter(
             Q(sklad_received_at__isnull=True) | Q(batch__actual_weight_kg__isnull=True)
         )
-        .select_related(
-            'batch__order_item__order__customer',
-            'batch__order_item__article',
-            'sklad_received_by',
-        )
-        .prefetch_related(
-            'batch__items__order_item_size',
-            'batch__items__flow_size',
-            'batch__items__boxes',
-        )
+        .select_related(*TABLET_CARD_SELECT)
+        .prefetch_related(*TABLET_CARD_PREFETCH, flow_logic.pending_lines_prefetch())
         .order_by('-batch__created_at', '-id')[:100]
     )
     return [_tablet_card(f) for f in qs]
@@ -202,16 +213,8 @@ def _tablet_sklad_cards(branch):
     if branch == 'HQ':
         qs = qs.filter(sklad_received_at__isnull=False, batch__actual_weight_kg__isnull=False)
     qs = (
-        qs.select_related(
-            'batch__order_item__order__customer',
-            'batch__order_item__article',
-            'sklad_received_by',
-        )
-        .prefetch_related(
-            'batch__items__order_item_size',
-            'batch__items__flow_size',
-            'batch__items__boxes',
-        )
+        qs.select_related(*TABLET_CARD_SELECT)
+        .prefetch_related(*TABLET_CARD_PREFETCH, flow_logic.pending_lines_prefetch())
         .order_by('-batch__created_at', '-id')[:150]
     )
     return [_tablet_card(f) for f in qs]
@@ -377,26 +380,18 @@ def _tablet_incoming_shipments(branch):
 
 def _tablet_patok_rows(branch):
     """Patokka berilgan faol pastallar (oxirgi 60 tasi)."""
-    qs = (
+    qs = list(
         PastalFlow.objects.filter(stage=PastalFlow.Stage.AT_PATOK, branch=branch)
-        .select_related(
-            'batch__order_item__order',
-            'batch__order_item__article',
-            'patok_given_by',
-        )
-        .prefetch_related('batch__items__boxes')
+        .select_related(*TABLET_CARD_SELECT, 'patok_given_by')
+        .prefetch_related(*TABLET_CARD_PREFETCH, flow_logic.pending_lines_prefetch())
         .order_by('-patok_given_at', '-id')[:60]
     )
+    states_by_batch = flow_logic.container_states_by_batch([flow.batch_id for flow in qs])
     rows = []
     for flow in qs:
         card = _tablet_card(flow)
-        containers = Container.objects.filter(box__cutting_batch_item__batch=card['batch_id'])
-        states = OrderedDict()
-        for c in containers:
-            st = flow_logic.container_state(c)
-            states[st] = states.get(st, 0) + 1
         card['patok_code'] = get_patok_code(flow.batch.assigned_screen) if flow.batch.assigned_screen else '—'
-        card['container_states'] = list(states.items())
+        card['container_states'] = states_by_batch.get(flow.batch_id, [])
         card['patok_given_at'] = flow.patok_given_at
         card['patok_given_by'] = flow.patok_given_by.get_full_name() or flow.patok_given_by.username if flow.patok_given_by else '—'
         rows.append(card)
@@ -476,10 +471,10 @@ def meto_tablet_view(request):
         'incoming': incoming,
         'incoming_shipments': incoming_shipments,
         'pending_shipments': pending_shipments,
-        'pending_shipments_json': json.dumps(pending_shipments),
-        'incoming_shipments_json': json.dumps(incoming_shipments),
-        'kg_pending_cards_json': json.dumps(kg_pending_cards),
-        'stored_cards_json': json.dumps(sklad_cards),
+        'pending_shipments_json': _script_json(pending_shipments),
+        'incoming_shipments_json': _script_json(incoming_shipments),
+        'kg_pending_cards_json': _script_json(kg_pending_cards),
+        'stored_cards_json': _script_json(sklad_cards),
         'patok_rows': patok_rows,
         'screens': screens,
         'recent_events': recent_events,
@@ -535,16 +530,19 @@ def meto_tablet_state_api(request):
 @tablet_access_required
 @require_POST
 def api_tablet_kg_receive(request):
-    """Meto Planshet orqali tasnifdan chiqqan pastalga kg kiritish va skladga qabul qilish."""
+    """Meto Planshet orqali tasnifdan chiqqan pastalga kg kiritish va skladga qabul qilish (faqat Tayyorlov skladi)."""
+    if not can(request.user, 'sklad'):
+        return JsonResponse({'status': 'FORBIDDEN', 'message': "Kg kiritish faqat Tayyorlov skladiga ruxsat etilgan."},
+                            status=403)
     try:
         data = json.loads(request.body) if request.body else request.POST
     except Exception:
         data = request.POST
-    batch_id = data.get('batch_id')
+    batch_id = str(data.get('batch_id') or '').strip()
     kg = data.get('kg')
-    if not batch_id:
+    if not batch_id.isdigit():
         return JsonResponse({'status': 'ERROR', 'message': "Pastal tanlanmadi."}, status=400)
-    batch = get_object_or_404(CuttingBatch, id=batch_id)
+    batch = get_object_or_404(flow_logic.v2_batches(), id=int(batch_id))
     try:
         flow = flow_logic.sklad_receive(batch, kg, request.user)
         card = _tablet_card(flow)

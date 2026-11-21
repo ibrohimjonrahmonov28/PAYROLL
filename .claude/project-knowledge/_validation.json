@@ -1,7 +1,7 @@
 {
  "fetch_path_check": {
   "exact": 8,
-  "dynamic_prefix": 6,
+  "dynamic_prefix": 7,
   "unmatched": 0
  },
  "middleware_prefixes_without_route": [],

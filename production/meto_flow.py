@@ -14,10 +14,11 @@ sanoqchi qog'ozni urganda (production/packing_services.take_paper). "Patok ichid
 urilganidan aniqlanadi (terminalga tegilmaydi). Quti va stiker kodlari hech qachon o'zgarmaydi (oltin qoida).
 """
 import re
+from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import F, Max
+from django.db.models import Exists, F, Max, OuterRef, Prefetch, Q
 from django.utils import timezone
 
 from accounts.models import User
@@ -58,14 +59,19 @@ def user_name(user):
 # ------------------------------------------------------------------ qaysi pastal yangi oqimda
 
 def v2_batches():
+    """Yangi oqim pastallari: oqim yozuvi bor (belgi keyin o'chirilsa ham ishi shu oqimda tugaydi) yoki beta zakazning
+    belgi yoqilgandan keyin kesilgan pastali."""
     return CuttingBatch.objects.filter(
-        order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False,
-        created_at__gte=F('order_item__order__meto_beta_since'))
+        Q(flow__isnull=False)
+        | Q(order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False,
+            created_at__gte=F('order_item__order__meto_beta_since')))
 
 
 def is_v2_batch(batch):
-    order = batch.order_item.order
-    return bool(order.meto_beta and order.meto_beta_since and batch.created_at >= order.meto_beta_since)
+    order = batch.order_item.order if batch.order_item_id else None
+    if order and order.meto_beta and order.meto_beta_since and batch.created_at >= order.meto_beta_since:
+        return True
+    return PastalFlow.objects.filter(batch_id=batch.id).exists()
 
 
 def is_v2_box(box):
@@ -88,16 +94,19 @@ def ensure_flows():
 
 
 def sync_rejected_flows():
-    """Master planshetda rad etsa pastal patoksiz WAITING ga qaytadi — yangi oqimda u skladga qaytadi."""
-    for flow in PastalFlow.objects.filter(stage=PastalFlow.Stage.AT_PATOK).select_related('batch'):
+    """Master planshetda rad etsa pastal patoksiz WAITING ga qaytadi — yangi oqimda u skladga qaytadi.
+    Patokdagi pastallar ko'payib boradi, shuning uchun faqat rad etilganlari bazada tanlanadi."""
+    rejected = PastalFlow.objects.filter(
+        stage=PastalFlow.Stage.AT_PATOK, batch__dispatch_status=CuttingBatch.DispatchStatus.WAITING,
+        batch__assigned_screen__isnull=True).select_related('batch')
+    for flow in rejected:
         batch = flow.batch
-        if batch.dispatch_status == CuttingBatch.DispatchStatus.WAITING and batch.assigned_screen is None:
-            with transaction.atomic():
-                flow.stage = PastalFlow.Stage.SKLAD
-                flow.save(update_fields=['stage', 'updated_at'])
-                for container in Container.objects.filter(box__cutting_batch_item__batch=batch):
-                    _set_status(container, Container.Status.FILLED, ContainerEvent.Action.RETURNED, None,
-                                note=f"Master qaytardi: {batch.rejection_reason[:150]}")
+        with transaction.atomic():
+            flow.stage = PastalFlow.Stage.SKLAD
+            flow.save(update_fields=['stage', 'updated_at'])
+            for container in Container.objects.filter(box__cutting_batch_item__batch=batch):
+                _set_status(container, Container.Status.FILLED, ContainerEvent.Action.RETURNED, None,
+                            note=f"Master qaytardi: {batch.rejection_reason[:150]}")
 
 
 def _items(batch):
@@ -440,7 +449,11 @@ def link_container(raw_box, raw_container, user):
         if container.status != Container.Status.EMPTY:
             raise FlowError(f"{container.code} bo'sh emas.")
         if container.branch != flow.branch:
-            raise FlowError(f"{container.code} boshqa filialda.")
+            if flow.branch != 'HQ':
+                raise FlowError(f"{container.code} boshqa filialda.")
+            # Uychida bo'shagan konteyner darhol mashinada Kosonga qaytadi (egasi 2026-11-21): Kosonda uriladi — shu yerda
+            _set_status(container, Container.Status.EMPTY, ContainerEvent.Action.RECEIVED, user, branch='HQ',
+                        note=f"{container.get_branch_display()} dan bo'sh qaytdi")
         container.box, container.linked_at = box, timezone.now()
         _set_status(container, Container.Status.FILLED, ContainerEvent.Action.LINKED, user, box=box)
     return container, box
@@ -514,6 +527,16 @@ def _require_ready(batch, flow):
         raise FlowError(f"{batch.pastal_code or batch.name}: hamma stiker chop etilmagan.")
 
 
+def _require_no_open_shipment(batch):
+    """Tekshiruvga yuborilgan (yoki yo'ldagi) pastal patokka berilmaydi — aks holda yuk xati ham jo'natilib ketardi."""
+    line = (ShipmentPastal.objects.filter(batch=batch, status__in=[ShipmentPastal.Status.PENDING,
+                                                                    ShipmentPastal.Status.IN_TRANSIT])
+            .select_related('shipment').first())
+    if line:
+        raise FlowError(f"{batch.pastal_code or batch.name}: {line.shipment.number} yuk xatida (tekshiruv yoki yo'lda) "
+                        f"— avval yuk xatini bekor qiling.")
+
+
 # ------------------------------------------------------------------ patokka berish
 
 def give_to_patok(batch, screen, scanned, user):
@@ -521,6 +544,7 @@ def give_to_patok(batch, screen, scanned, user):
         batch = CuttingBatch.objects.select_for_update().get(id=batch.id)
         flow = get_flow(batch)
         _require_ready(batch, flow)
+        _require_no_open_shipment(batch)
         allowed = KOSON_SCREENS if flow.branch == 'HQ' else UYCHI_SCREENS
         if screen not in allowed:
             raise FlowError("Patok shu filialniki bo'lishi kerak.")
@@ -593,10 +617,18 @@ def cancel_verification(shipment, user):
 def dispatch_shipment(shipment, scanned, user, vehicle='', driver='', phone='', notes=''):
     """Meto planshetida barcha konteynerlar tekshirib bo'lingach, yuk xatini filialga jo'natish."""
     with transaction.atomic():
-        shipment = Shipment.objects.select_for_update().prefetch_related('lines__batch').get(id=shipment.id)
+        shipment = Shipment.objects.select_for_update().get(id=shipment.id)
         if shipment.status != Shipment.Status.PENDING:
             raise FlowError("Ushbu yuk xati tekshiruv holatida emas.")
-        batches = [line.batch for line in shipment.lines.all()]
+        # Tekshiruv paytida pastal boshqa joyga (patokka) ketgan bo'lishi mumkin — qulflab, qaytadan tekshiriladi
+        batch_ids = list(shipment.lines.values_list('batch_id', flat=True))
+        locked = {b.id: b for b in CuttingBatch.objects.select_for_update().filter(id__in=batch_ids)}
+        batches = [locked[batch_id] for batch_id in batch_ids]
+        for batch in batches:
+            flow = get_flow(batch)
+            _require_ready(batch, flow)
+            if flow.branch != shipment.source_branch:
+                raise FlowError(f"{batch.pastal_code or batch.name}: pastal jo'natuvchi filial skladida emas.")
         _verify(batches, scanned)
 
         shipment.status = Shipment.Status.IN_TRANSIT
@@ -623,9 +655,11 @@ def dispatch_shipment(shipment, scanned, user, vehicle='', driver='', phone='', 
 
 
 def create_shipment(batches, scanned, user, vehicle='', driver='', phone='', notes=''):
-    """Koson skladidagi tayyor pastallarni to'g'ridan-to'g'ri (bir bosqichda) Uychiga jo'natish."""
-    shipment = request_verification(batches, user, notes=notes)
-    return dispatch_shipment(shipment, scanned, user, vehicle=vehicle, driver=driver, phone=phone, notes=notes)
+    """Koson skladidagi tayyor pastallarni to'g'ridan-to'g'ri (bir bosqichda) Uychiga jo'natish.
+    Bitta tranzaksiya: tekshiruv o'tmasa "tekshiruv kutmoqda" yuk xati qolib ketmaydi."""
+    with transaction.atomic():
+        shipment = request_verification(batches, user, notes=notes)
+        return dispatch_shipment(shipment, scanned, user, vehicle=vehicle, driver=driver, phone=phone, notes=notes)
 
 
 def _close_if_done(shipment):
@@ -768,3 +802,49 @@ def container_state(container):
         scanned = Ticket.objects.filter(box_id=container.box_id, status=Ticket.Status.SCANNED).exists()
         return "Patok ichida" if scanned else "Patok oldida"
     return container.get_status_display()
+
+
+def container_states_by_batch(batch_ids):
+    """{pastal id: [(holat, soni), ...]} — container_state bilan bir xil, lekin hamma pastal uchun bitta so'rovda."""
+    if not batch_ids:
+        return {}
+    scanned = Ticket.objects.filter(box_id=OuterRef('box_id'), status=Ticket.Status.SCANNED)
+    rows = (Container.objects.filter(box__cutting_batch_item__batch_id__in=list(batch_ids))
+            .annotate(flow_batch_id=F('box__cutting_batch_item__batch_id'), has_scan=Exists(scanned))
+            .order_by('number'))
+    result = {}
+    for container in rows:
+        if container.status == Container.Status.AT_PATOK and container.box_id:
+            state = "Patok ichida" if container.has_scan else "Patok oldida"
+        else:
+            state = container.get_status_display()
+        states = result.setdefault(container.flow_batch_id, OrderedDict())
+        states[state] = states.get(state, 0) + 1
+    return {batch_id: list(states.items()) for batch_id, states in result.items()}
+
+
+def box_containers(boxes):
+    """Qutilarning konteynerlari (raqami bo'yicha). `boxes__container` prefetch qilingan bo'lsa — so'rovsiz."""
+    boxes = list(boxes)
+    if not boxes:
+        return []
+    if all(Box.container.is_cached(box) for box in boxes):
+        found = (getattr(box, 'container', None) for box in boxes)
+        return sorted((c for c in found if c is not None), key=lambda c: c.number)
+    return list(Container.objects.filter(box__in=boxes).order_by('number'))
+
+
+def pending_lines_prefetch(prefix='batch__'):
+    """Kartochkalar uchun: pastalning tekshiruv kutayotgan yuk xati qatori (har kartochkaga alohida so'rov bo'lmasin)."""
+    return Prefetch(f'{prefix}shipment_lines', to_attr='pending_lines', queryset=ShipmentPastal.objects.filter(
+        status=ShipmentPastal.Status.PENDING, shipment__status=Shipment.Status.PENDING).select_related('shipment'))
+
+
+def pending_shipment(batch):
+    """Pastal tekshiruv kutayotgan yuk xatida bo'lsa — o'sha yuk xati, aks holda None."""
+    lines = getattr(batch, 'pending_lines', None)
+    if lines is None:
+        lines = list(ShipmentPastal.objects.filter(
+            batch=batch, status=ShipmentPastal.Status.PENDING, shipment__status=Shipment.Status.PENDING,
+        ).select_related('shipment')[:1])
+    return lines[0].shipment if lines else None

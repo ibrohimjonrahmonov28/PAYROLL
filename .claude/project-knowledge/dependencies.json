@@ -95,6 +95,7 @@
    "production/meto_flow_views.py",
    "production/meto_hub_urls.py",
    "production/meto_hub_views.py",
+   "production/meto_tablet_views.py",
    "production/meto_urls.py",
    "production/meto_views.py",
    "production/models.py",
@@ -118,6 +119,7 @@
    "production/sticker_urls.py",
    "production/sticker_views.py",
    "production/taxlov_pay.py",
+   "production/tayyorlov_stiker_views.py",
    "production/tayyorlov_urls.py",
    "production/telegram_reports.py",
    "production/terminal_views.py",
@@ -519,6 +521,9 @@
     "production.models",
     "production.services",
     "production.shifts"
+   ],
+   "lazy": [
+    "production.tayyorlov_stiker_views"
    ]
   },
   "production.meto_hub_urls": {
@@ -531,6 +536,14 @@
     "accounts.models",
     "production.models",
     "production.services"
+   ]
+  },
+  "production.meto_tablet_views": {
+   "imports": [
+    "accounts.models",
+    "production",
+    "production.meto_flow",
+    "production.models"
    ]
   },
   "production.meto_urls": {
@@ -696,10 +709,21 @@
     "production.models"
    ]
   },
+  "production.tayyorlov_stiker_views": {
+   "imports": [
+    "production",
+    "production.models"
+   ],
+   "lazy": [
+    "production.services"
+   ]
+  },
   "production.tayyorlov_urls": {
    "imports": [
     "production.meto_container_views",
-    "production.meto_flow_views"
+    "production.meto_flow_views",
+    "production.meto_tablet_views",
+    "production.tayyorlov_stiker_views"
    ]
   },
   "production.telegram_reports": {
@@ -780,6 +804,7 @@
    "lazy": [
     "production.models",
     "production.packing_services",
+    "production.pastal_info",
     "production.shifts"
    ]
   },
@@ -1060,6 +1085,9 @@
    "meto_hub/waybill_detail.html",
    "meto_hub/waybill_print_a4.html"
   ],
+  "production/meto_tablet_views.py": [
+   "meto_hub/tablet.html"
+  ],
   "production/meto_views.py": [
    "meto/dashboard.html",
    "meto/order_detail.html",
@@ -1099,6 +1127,10 @@
    "stickers/dashboard.html",
    "stickers/order_boxes.html",
    "stickers/partials/batch_boxes.html"
+  ],
+  "production/tayyorlov_stiker_views.py": [
+   "tayyorlov/partials/stiker_batch_boxes.html",
+   "tayyorlov/stiker_order_boxes.html"
   ],
   "production/terminal_views.py": [
    "terminal/index.html"
@@ -1514,19 +1546,14 @@
     "meto_hub/flow/_branch_js.html"
    ],
    "url_names": [
-    "meto_hub_flow_api_ship"
+    "meto_hub_flow_api_shipment_request_verification",
+    "meto_hub_shipment_print"
    ]
   },
   "templates/meto_hub/flow/stiker.html": {
-   "includes": [
-    "meto_hub/flow/_card_head.html",
-    "meto_hub/flow/_tasnif_edit.html",
-    "meto_hub/flow/_card_head.html",
-    "meto_hub/flow/_tasnif_edit.html"
-   ],
    "url_names": [
-    "meto_hub_flow_split",
-    "sticker_order_boxes"
+    "production:order_print_all_stickers",
+    "tayyorlov_stiker_order_boxes"
    ]
   },
   "templates/meto_hub/flow/tasnif.html": {
@@ -1535,7 +1562,10 @@
     "meto_hub/flow/_card_head.html"
    ],
    "url_names": [
+    "meto_hub_flow_tasnif",
+    "meto_hub_flow_tasnif_cancel",
     "meto_hub_flow_tasnif_finish",
+    "meto_hub_flow_tasnif_return",
     "meto_hub_flow_tasnif_take"
    ]
   },
@@ -1563,6 +1593,7 @@
     "tayyorlov/base_tayyorlov.html"
    ],
    "url_names": [
+    "meto_hub_tablet",
     "superadmin_dashboard"
    ]
   },
@@ -1570,6 +1601,22 @@
    "url_names": [
     "meto_hub_flow_sklad",
     "meto_hub_flow_uychi"
+   ]
+  },
+  "templates/meto_hub/tablet.html": {
+   "includes": [
+    "includes/theme_head.html"
+   ],
+   "url_names": [
+    "meto_hub_containers",
+    "meto_hub_flow",
+    "meto_hub_flow_api_check",
+    "meto_hub_flow_api_give",
+    "meto_hub_flow_api_link",
+    "meto_hub_flow_api_resolve",
+    "meto_hub_flow_api_ship",
+    "meto_hub_flow_api_unlink",
+    "meto_hub_tablet_kg_receive"
    ]
   },
   "templates/meto_hub/uychi_dashboard.html": {
@@ -2214,7 +2261,36 @@
     "includes/theme_toggle.html"
    ],
    "url_names": [
+    "meto_hub_tablet",
     "root_logout"
+   ]
+  },
+  "templates/tayyorlov/partials/stiker_batch_boxes.html": {
+   "url_names": [
+    "meto_hub_flow_split",
+    "meto_hub_flow_tasnif_update",
+    "production:box_print_stickers",
+    "production:order_print_all_stickers",
+    "production:pastal_passport",
+    "tayyorlov_stiker_mark_batch_printed",
+    "tayyorlov_stiker_mark_box_printed",
+    "tayyorlov_stiker_order_boxes"
+   ]
+  },
+  "templates/tayyorlov/stiker_order_boxes.html": {
+   "extends": [
+    "tayyorlov/base_tayyorlov.html"
+   ],
+   "url_names": [
+    "meto_hub_flow_stiker",
+    "production:order_print_all_stickers",
+    "production:pastal_passport",
+    "tayyorlov_stiker_copy_operations",
+    "tayyorlov_stiker_mark_all_printed",
+    "tayyorlov_stiker_regenerate_tickets"
+   ],
+   "fetch_paths": [
+    "/tayyorlov/stiker/orders/"
    ]
   },
   "templates/terminal/index.html": {

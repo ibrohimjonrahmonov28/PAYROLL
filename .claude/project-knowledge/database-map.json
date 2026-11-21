@@ -6,8 +6,8 @@
    "latest": "0025_alter_user_role"
   },
   "production": {
-   "count": 54,
-   "latest": "0054_pastalflow_meto_note_alter_pastalflow_meto_done_at_and_more"
+   "count": 56,
+   "latest": "0056_alter_shipment_status_alter_shipmentpastal_status"
   },
   "screens": {
    "count": 0,
@@ -1446,6 +1446,8 @@
     "meto_note": "CharField",
     "tasnif_taken_at": "DateTimeField",
     "tasnif_done_at": "DateTimeField[idx]",
+    "tasnif_return_reason": "CharField",
+    "tasnif_returned_at": "DateTimeField",
     "boxes_split_at": "DateTimeField",
     "sklad_received_at": "DateTimeField",
     "patok_given_at": "DateTimeField",
@@ -1488,6 +1490,13 @@
      "related_name": "+"
     },
     {
+     "field": "tasnif_returned_by",
+     "type": "ForeignKey",
+     "to": "accounts.User",
+     "on_delete": "SET_NULL",
+     "related_name": "+"
+    },
+    {
      "field": "boxes_split_by",
      "type": "ForeignKey",
      "to": "accounts.User",
@@ -1512,7 +1521,7 @@
   },
   "production.PastalFlowSize": {
    "table": "production_pastalflowsize",
-   "file": "production/models.py:2431",
+   "file": "production/models.py:2434",
    "fields": {
     "id": "BigAutoField",
     "meto_qty": "PositiveIntegerField",
@@ -1530,7 +1539,7 @@
   },
   "production.Shipment": {
    "table": "production_shipment",
-   "file": "production/models.py:2443",
+   "file": "production/models.py:2446",
    "fields": {
     "id": "BigAutoField",
     "number": "CharField[unique]",
@@ -1556,7 +1565,7 @@
   },
   "production.ShipmentPastal": {
    "table": "production_shipmentpastal",
-   "file": "production/models.py:2470",
+   "file": "production/models.py:2474",
    "fields": {
     "id": "BigAutoField",
     "status": "CharField[idx,choices]",

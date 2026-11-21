@@ -106,7 +106,7 @@ class MetoFlowStepsTest(MetoFlowBase):
         self.assertEqual(list(PastalFlow.objects.values_list('batch_id', flat=True)), [self.batch.id])
         self.assertFalse(PastalFlow.objects.filter(batch__in=[before, old_flow]).exists())
 
-    def test_beta_toggle_sets_since_once(self):
+    def test_beta_toggle_since_resets_on_every_enable(self):
         order = Order.objects.create(order_number='ZAK-T', article=self.article)
         self.client.force_login(self.admin)
         url = reverse('meto_hub_flow_beta_toggle', args=[order.id])
@@ -117,7 +117,9 @@ class MetoFlowStepsTest(MetoFlowBase):
         self.client.post(url)
         self.client.post(url)
         order.refresh_from_db()
-        self.assertEqual((order.meto_beta, order.meto_beta_since), (True, since))
+        # o'chiq paytda kesilganlar yangi oqimga tushmasligi uchun "hozirdan" qayta boshlanadi
+        self.assertTrue(order.meto_beta)
+        self.assertGreater(order.meto_beta_since, since)
         self.client.force_login(self.meto)   # faqat superadmin / admin
         self.client.post(url)
         order.refresh_from_db()
@@ -228,16 +230,26 @@ class ContainerLinkTest(MetoFlowBase):
 
     def test_link_refuses_wrong_container_or_box(self):
         small = self.new_containers(1, 'SMALL')[0]
-        uychi = self.new_containers(1)[0]
-        Container.objects.filter(id=uychi.id).update(branch='UYCHI')
+        uychi_busy = self.new_containers(1)[0]
+        Container.objects.filter(id=uychi_busy.id).update(branch='UYCHI', status=Container.Status.IN_TRANSIT)
         old_order = Order.objects.create(order_number='ZAK-OLD', article=self.article)
         old_box = Box.objects.create(order=old_order, article=self.article, box_number=1, quantity=10, razmer='M')
-        for box_code, container_code in ((self.box_m.box_code, small.code), (self.box_m.box_code, uychi.code),
+        for box_code, container_code in ((self.box_m.box_code, small.code), (self.box_m.box_code, uychi_busy.code),
                                          (self.box_m.box_code, 'KONT-999999'), (old_box.box_code, self.c1.code),
                                          ('YOQ-123', self.c1.code)):
             with self.assertRaises(FlowError, msg=(box_code, container_code)):
                 meto_flow.link_container(box_code, container_code, self.sklad)
         self.assertFalse(Container.objects.filter(box__isnull=False).exists())
+
+    def test_empty_container_back_from_uychi_links_at_koson(self):
+        # Uychida bo'shagan konteyner darhol mashinada Kosonga qaytadi (egasi 2026-11-21) — Kosonda uriladi
+        returned = self.new_containers(1)[0]
+        Container.objects.filter(id=returned.id).update(branch='UYCHI')
+        meto_flow.link_container(self.box_m.box_code, returned.code, self.sklad)
+        returned.refresh_from_db()
+        self.assertEqual((returned.branch, returned.status, returned.box), ('HQ', Container.Status.FILLED, self.box_m))
+        self.assertTrue(ContainerEvent.objects.filter(container=returned, action=ContainerEvent.Action.RECEIVED,
+                                                      branch='HQ', note__contains="bo'sh qaytdi").exists())
 
     def test_lost_label_unlink_by_sticker_then_relink(self):
         meto_flow.link_container(self.box_m.box_code, self.c1.code, self.sklad)
@@ -1453,3 +1465,125 @@ class MetoTabletTest(MetoFlowBase):
 
 
 
+
+
+class TayyorlovReviewFixesTest(MetoFlowBase):
+    """/tayyorlov/ tekshiruvidagi xatolar tuzatilgani (2026-11-21)."""
+
+    def test_pending_shipment_blocks_patok_and_dispatch_rechecks(self):
+        codes = self.ready()
+        shipment = meto_flow.request_verification([self.batch], self.sklad)
+        with self.assertRaises(FlowError) as error:
+            meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        self.assertIn(shipment.number, str(error.exception))
+        self.client.force_login(self.sklad)
+        card = next(c for c in self.client.get(reverse('meto_hub_tablet_state')).json()['stored_cards']
+                    if c['batch_id'] == self.batch.id)
+        self.assertEqual((card['ready'], card['pending_verification']), (False, shipment.number))
+        # tekshiruv paytida pastal skladdan chiqib ketgan bo'lsa — yuk xati jo'natilmaydi
+        PastalFlow.objects.filter(batch=self.batch).update(stage=PastalFlow.Stage.AT_PATOK)
+        with self.assertRaises(FlowError):
+            meto_flow.dispatch_shipment(shipment, codes, self.sklad)
+        shipment.refresh_from_db()
+        self.assertEqual(shipment.status, Shipment.Status.PENDING)
+
+    def test_direct_ship_failure_leaves_no_pending_shipment(self):
+        codes = self.ready()
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_ship'),
+                             {'batch_ids': [self.batch.id], 'scanned': codes[:1]})
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(Shipment.objects.exists())
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_ship'), {'batch_ids': [self.batch.id], 'scanned': codes})
+        self.assertEqual(res.json()['status'], 'OK')
+
+    def test_kg_only_by_sklad_and_shipment_permissions(self):
+        self.to_sklad()
+        for user in (self.tasnif, self.sticker):
+            res = self.post_json(user, reverse('meto_hub_tablet_kg_receive'), {'batch_id': self.batch.id, 'kg': '9'})
+            self.assertEqual(res.status_code, 403)
+        res = self.post_json(self.sklad, reverse('meto_hub_tablet_kg_receive'), {'batch_id': 'abc', 'kg': '9'})
+        self.assertEqual(res.status_code, 400)
+        self.batch.refresh_from_db()
+        self.assertIsNone(self.batch.actual_weight_kg)
+
+        other = self.cut('11-7')
+        codes = self.ready(other)
+        shipment = meto_flow.request_verification([other], self.sklad)
+        url = reverse('meto_hub_flow_api_shipment_dispatch', args=[shipment.id])
+        self.assertEqual(self.post_json(self.uychi, url, {'scanned': codes}).status_code, 403)
+        self.assertEqual(self.post_json(self.sklad, url, {'scanned': codes}).json()['status'], 'OK')
+        back = meto_flow.return_line(shipment.lines.get(), self.uychi, 'kam')
+        url = reverse('meto_hub_flow_api_shipment_receive_all', args=[back.id])
+        self.assertEqual(self.post_json(self.uychi, url, {'scanned': codes}).status_code, 400)   # Kosonga qaytayotgan yuk
+        self.assertEqual(self.post_json(self.sklad, url, {'scanned': codes}).json()['status'], 'OK')
+        self.assertEqual(meto_flow.get_flow(other).branch, 'HQ')
+
+    def test_uychi_sklad_with_default_branch_gets_uychi_tablet(self):
+        user = User.objects.create_user(username='mf_uychi_def', password='x', role=User.Role.UYCHI_SKLAD)
+        self.assertEqual(user.branch, 'HQ')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse('meto_hub_tablet')).context['branch'], 'UYCHI')
+
+    def test_beta_off_keeps_started_pastals_and_on_skips_off_period(self):
+        self.to_sklad()
+        url = reverse('meto_hub_flow_beta_toggle', args=[self.order.id])
+        self.client.force_login(self.admin)
+        self.client.post(url)                                        # o'chirildi
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.meto_beta)
+        res = self.client.post(reverse('meto_hub_flow_split', args=[self.batch.id]))
+        self.assertEqual(res.status_code, 302)                       # 404 emas — ishi shu oqimda tugaydi
+        self.assertTrue(self.boxes())
+        off_batch = self.cut('11-5')                                 # o'chiq paytda kesildi (eski oqim)
+        self.client.post(url)                                        # qayta yoqildi
+        self.assertFalse(meto_flow.is_v2_batch(off_batch))
+        meto_flow.ensure_flows()
+        self.assertFalse(PastalFlow.objects.filter(batch=off_batch).exists())
+        self.assertTrue(meto_flow.is_v2_batch(self.batch))
+
+    def test_give_api_bad_input_is_400(self):
+        codes = self.ready()
+        url = reverse('meto_hub_flow_api_give')
+        self.assertEqual(self.post_json(self.sklad, url, {'batch_id': self.batch.id, 'screen': 'K3', 'scanned': codes}).status_code, 400)
+        self.assertEqual(self.post_json(self.sklad, url, {'batch_id': 'x', 'screen': 3}).status_code, 400)
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_shipment_request_verification'), {'batch_ids': ['a', None]})
+        self.assertEqual(res.status_code, 400)
+
+    def test_container_states_bulk_equals_single(self):
+        codes = self.ready()
+        meto_flow.give_to_patok(self.batch, 3, codes, self.sklad)
+        first = self.boxes()[0]
+        Ticket.objects.filter(id=first.tickets.first().id).update(status=Ticket.Status.SCANNED)
+        expected = {}
+        for container in Container.objects.filter(box__cutting_batch_item__batch=self.batch).order_by('number'):
+            state = meto_flow.container_state(container)
+            expected[state] = expected.get(state, 0) + 1
+        self.assertEqual(meto_flow.container_states_by_batch([self.batch.id]), {self.batch.id: list(expected.items())})
+
+    def test_tablet_and_sklad_queries_do_not_grow_per_patok_pastal(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        self.client.force_login(self.admin)
+
+        def count(url):
+            with CaptureQueriesContext(connection) as ctx:
+                self.client.get(url)
+            return len(ctx.captured_queries)
+
+        counts = []
+        for n in range(1, 5):
+            batch = self.batch if n == 1 else self.cut(f'11-{n + 20}')
+            meto_flow.give_to_patok(batch, 3, self.ready(batch), self.sklad)
+            if n in (1, 4):
+                counts.append((count(reverse('meto_hub_tablet')), count(reverse('meto_hub_flow_sklad'))))
+        (tablet_1, sklad_1), (tablet_4, sklad_4) = counts
+        self.assertLessEqual(tablet_4 - tablet_1, 3, counts)
+        self.assertLessEqual(sklad_4 - sklad_1, 3, counts)
+
+    def test_tablet_json_escapes_script_tags(self):
+        Article.objects.filter(id=self.article.id).update(name='Pijama </script><b>')
+        self.to_sklad()
+        self.client.force_login(self.sklad)
+        page = self.client.get(reverse('meto_hub_tablet')).content.decode()
+        self.assertNotIn('Pijama </script>', page)
+        self.assertIn('Pijama \\u003C/script\\u003E', page)

@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3613,
+  "lines": 3781,
   "depends_on": [
    "accounts.core"
   ]
@@ -244,10 +244,11 @@
    "production/meto_flow_views.py",
    "production/meto_hub_urls.py",
    "production/meto_hub_views.py",
+   "production/meto_tablet_views.py",
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 2727,
+  "lines": 3767,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -260,7 +261,7 @@
   "files": [
    "production/models.py"
   ],
-  "lines": 2489,
+  "lines": 2494,
   "depends_on": [
    "accounts.core",
    "production.services"
@@ -331,9 +332,10 @@
    "production/static/brand/terryjar-icon.svg",
    "production/static/brand/terryjar-logo.svg",
    "production/taxlov_pay.py",
+   "production/tayyorlov_stiker_views.py",
    "production/tayyorlov_urls.py"
   ],
-  "lines": 3180,
+  "lines": 3819,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -490,6 +492,7 @@
    "templates/meto_hub/flow/zakazlar.html",
    "templates/meto_hub/hub.html",
    "templates/meto_hub/shipment_print.html",
+   "templates/meto_hub/tablet.html",
    "templates/meto_hub/uychi_dashboard.html",
    "templates/meto_hub/waybill_detail.html",
    "templates/meto_hub/waybill_print_a4.html",
@@ -557,9 +560,11 @@
    "templates/superadmin/users_badges_batch_print.html",
    "templates/superadmin/worker_history.html",
    "templates/tayyorlov/base_tayyorlov.html",
+   "templates/tayyorlov/partials/stiker_batch_boxes.html",
+   "templates/tayyorlov/stiker_order_boxes.html",
    "templates/terminal/index.html"
   ],
-  "lines": 52869,
+  "lines": 58279,
   "depends_on": []
  },
  "tests": {
@@ -591,7 +596,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 13513,
+  "lines": 14294,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

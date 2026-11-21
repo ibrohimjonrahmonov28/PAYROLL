@@ -5,7 +5,6 @@ hammasini. Skanerli amallar (biriktirish, konteyner tekshiruvi, patokka berish, 
 """
 import functools
 import json
-from collections import OrderedDict
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -214,7 +213,7 @@ def _card(flow):
             'meto': size.meto_qty if size else None, 'tasnif': size.tasnif_qty if size else None,
         })
     boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
-    linked = {c.box_id for c in Container.objects.filter(box__in=boxes)} if boxes else set()
+    linked = {c.box_id for c in flow_logic.box_containers(boxes)}
     customer = order.customer.name if order.customer_id else (order.client_name or '')
     has_ops = bool(article and len(article.article_operations.all()) > 0)
     total_cut = sum(s['cut'] for s in sizes)
@@ -222,11 +221,7 @@ def _card(flow):
     total_tasnif = sum(s['tasnif'] or 0 for s in sizes)
     meto_shift = get_shift_for_timestamp(flow.meto_done_at) if flow.meto_done_at else None
     tasnif_shift = get_shift_for_timestamp(flow.tasnif_done_at) if flow.tasnif_done_at else None
-    pending_sp = ShipmentPastal.objects.filter(
-        batch=batch,
-        status=ShipmentPastal.Status.PENDING,
-        shipment__status=Shipment.Status.PENDING,
-    ).select_related('shipment').first()
+    pending_shipment = flow_logic.pending_shipment(batch)
 
     boxes_count = len(boxes)
     printed_count = sum(1 for b in boxes if b.is_printed)
@@ -245,7 +240,7 @@ def _card(flow):
         and printed_count == boxes_count
         and linked_count == boxes_count
         and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))
-        and not pending_sp
+        and not pending_shipment
     )
 
     return {
@@ -259,7 +254,7 @@ def _card(flow):
         'meto_shift': meto_shift,
         'tasnif_shift': tasnif_shift,
         'ready': ready,
-        'pending_verification': pending_sp.shipment if pending_sp else None,
+        'pending_verification': pending_shipment,
     }
 
 
@@ -267,8 +262,8 @@ def _flows_qs(**filters):
     return (PastalFlow.objects.filter(**filters)
             .select_related(*FLOW_RELATED, 'meto_taken_by', 'meto_done_by', 'tasnif_taken_by', 'tasnif_done_by',
                             'tasnif_returned_by', 'sklad_received_by')
-            .prefetch_related('batch__items__order_item_size', 'batch__items__flow_size', 'batch__items__boxes',
-                              'batch__order_item__article__article_operations')
+            .prefetch_related('batch__items__order_item_size', 'batch__items__flow_size', 'batch__items__boxes__container',
+                              'batch__order_item__article__article_operations', flow_logic.pending_lines_prefetch())
             .order_by('-batch__created_at', '-id'))
 
 
@@ -302,17 +297,13 @@ def _incoming(destination):
 
 
 def _patok_rows(branch):
-    rows = []
-    for card in _flows(stage=PastalFlow.Stage.AT_PATOK, branch=branch)[:60]:
-        containers = Container.objects.filter(box__cutting_batch_item__batch=card['batch'])
-        states = OrderedDict()
-        for c in containers:
-            state = flow_logic.container_state(c)
-            states[state] = states.get(state, 0) + 1
+    """Patokdagi oxirgi 60 pastal (AT_PATOK — oxirgi bosqich, ro'yxat o'sib boradi: faqat 60 tasi yasaladi)."""
+    cards = [_card(f) for f in _flows_qs(stage=PastalFlow.Stage.AT_PATOK, branch=branch)[:60]]
+    states = flow_logic.container_states_by_batch([card['batch'].id for card in cards])
+    for card in cards:
         card['patok_code'] = get_patok_code(card['batch'].assigned_screen) if card['batch'].assigned_screen else '—'
-        card['container_states'] = list(states.items())
-        rows.append(card)
-    return rows
+        card['container_states'] = states.get(card['batch'].id, [])
+    return cards
 
 
 def _ctx_meto(request):
@@ -899,9 +890,13 @@ def sklad_receive(request, batch_id):
 @_form_action('zakazlar', 'zakazlar')
 def beta_toggle(request, order_id):
     order = get_object_or_404(Order, id=order_id)
+    if order.meto_beta:
+        # O'chirishdan oldin: yoqiq paytda kesilgan pastallarga oqim yozuvi — ular yangi oqimda tugaydi
+        flow_logic.ensure_flows()
     order.meto_beta = not order.meto_beta
-    if order.meto_beta and not order.meto_beta_since:
-        order.meto_beta_since = timezone.now()   # belgi yoqilgandan keyin kesilgan pastallar yangi oqimda
+    if order.meto_beta:
+        # Har yoqilganda "hozirdan": o'chiq paytda kesilib eski oqimda yurgan pastallar yangi oqimga tushmaydi
+        order.meto_beta_since = timezone.now()
     order.save(update_fields=['meto_beta', 'meto_beta_since'])
     state = "yoqildi (shundan keyin kesilgan pastallar)" if order.meto_beta else "o'chirildi"
     return f"«{order.order_number}»: yangi meto oqimi {state}."
@@ -912,6 +907,13 @@ def beta_toggle(request, order_id):
 def _require_branch(user, branch):
     if not can(user, 'sklad' if branch == 'HQ' else 'uychi'):
         raise FlowError("Bu filial skladi uchun ruxsatingiz yo'q.")
+
+
+def _ids(values):
+    """JSON dagi id lar ro'yxati -> butun sonlar (raqam bo'lmaganlari tashlanadi, 500 xato bo'lmasin)."""
+    if not isinstance(values, (list, tuple)):
+        return []
+    return [int(v) for v in values if str(v).strip().isdigit()]
 
 
 @_api('ship_any')
@@ -977,11 +979,17 @@ def api_check(request):
 @require_POST
 def api_give(request):
     data = _json(request)
-    batch = _batch(data.get('batch_id'))
+    batch_ids = _ids([data.get('batch_id')])
+    if not batch_ids:
+        raise FlowError("Pastal tanlanmadi.")
+    batch = _batch(batch_ids[0])
     step = 'sklad' if flow_logic.get_flow(batch).branch == 'HQ' else 'uychi'
     if not can(request.user, step):
         raise FlowError("Bu filial patogiga berishga ruxsatingiz yo'q.")
-    screen = int(data.get('screen') or 0)
+    screen_ids = _ids([data.get('screen')])
+    if not screen_ids:
+        raise FlowError("Patokni tanlang.")
+    screen = screen_ids[0]
     flow_logic.give_to_patok(batch, screen, data.get('scanned') or [], request.user)
     return JsonResponse({'status': 'OK', 'message': f"{_name(batch)} {get_patok_code(screen)}-patokka berildi."})
 
@@ -991,7 +999,7 @@ def api_give(request):
 def api_shipment_request_verification(request):
     """Tayyorlov masteri pastallarni tanlab, Meto planshetiga tekshirishga yuboradi."""
     data = _json(request)
-    batches = list(flow_logic.v2_batches().filter(id__in=[int(x) for x in data.get('batch_ids') or []]))
+    batches = list(flow_logic.v2_batches().filter(id__in=_ids(data.get('batch_ids'))))
     notes = (data.get('notes') or '').strip()
     shipment = flow_logic.request_verification(batches, request.user, notes=notes)
     return JsonResponse({
@@ -1011,7 +1019,7 @@ def api_shipment_cancel_verification(request, shipment_id):
     return JsonResponse({'status': 'OK', 'message': f"{shipment.number} tekshiruvi bekor qilindi."})
 
 
-@_api('ship_any')
+@_api('sklad')   # Koson → Uychi yuk xatini faqat Koson (Tayyorlov skladi) jo'natadi
 @require_POST
 def api_shipment_dispatch(request, shipment_id):
     """Meto planshetida barcha konteynerlar tekshirilgach, yuk xati jo'natiladi."""
@@ -1032,17 +1040,20 @@ def api_shipment_dispatch(request, shipment_id):
     })
 
 
-@_api('uychi')
+@_api('ship_any')
 @require_POST
 def api_shipment_receive_all(request, shipment_id):
-    """Uychi filialida barcha konteynerlar skanerlangach, barcha pastallarni balansga qabul qilish."""
+    """Qabul qiluvchi filial skladi barcha konteynerlar skanerlangach yuk xatidagi barcha pastallarni qabul qiladi
+    (Koson → Uychi — Uychi sklad, qaytarish Uychi → Koson — Tayyorlov skladi)."""
     data = _json(request)
     shipment = get_object_or_404(Shipment, id=shipment_id)
+    _require_branch(request.user, shipment.destination_branch)
     scanned = data.get('scanned') or []
-    shipment, results = flow_logic.receive_shipment(shipment, scanned, request.user)
+    shipment, _results = flow_logic.receive_shipment(shipment, scanned, request.user)
+    where = "Uychi filial" if shipment.destination_branch == 'UYCHI' else "Koson sklad"
     return JsonResponse({
         'status': 'OK',
-        'message': f"{shipment.number} bo'yicha barcha pastallar Uychi filial balansiga qabul qilindi!"
+        'message': f"{shipment.number} bo'yicha barcha pastallar {where} balansiga qabul qilindi!"
     })
 
 
@@ -1050,7 +1061,7 @@ def api_shipment_receive_all(request, shipment_id):
 @require_POST
 def api_ship(request):
     data = _json(request)
-    batches = list(flow_logic.v2_batches().filter(id__in=[int(x) for x in data.get('batch_ids') or []]))
+    batches = list(flow_logic.v2_batches().filter(id__in=_ids(data.get('batch_ids'))))
     shipment = flow_logic.create_shipment(batches, data.get('scanned') or [], request.user,
                                           vehicle=data.get('vehicle', ''), driver=data.get('driver', ''),
                                           phone=data.get('phone', ''), notes=data.get('notes', ''))

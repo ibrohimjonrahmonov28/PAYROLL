@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 265,
+ "route_count": 282,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1480,6 +1480,106 @@
    ]
   },
   {
+   "path": "/tayyorlov/stiker/orders/<int:order_id>/",
+   "name": "tayyorlov_stiker_order_boxes",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_order_boxes",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/orders/<int:order_id>/batches/<int:batch_id>/boxes/",
+   "name": "tayyorlov_stiker_batch_boxes",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_batch_boxes",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/orders/<int:order_id>/batches/<int:batch_id>/mark-printed/",
+   "name": "tayyorlov_stiker_mark_batch_printed",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_mark_batch_printed",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/orders/<int:order_id>/regenerate-tickets/",
+   "name": "tayyorlov_stiker_regenerate_tickets",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_regenerate_tickets",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/orders/<int:order_id>/copy-operations/",
+   "name": "tayyorlov_stiker_copy_operations",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_copy_operations",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/boxes/<int:box_id>/mark-printed/",
+   "name": "tayyorlov_stiker_mark_box_printed",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_mark_box_printed",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/stiker/orders/<int:order_id>/mark-all-printed/",
+   "name": "tayyorlov_stiker_mark_all_printed",
+   "view": "production.tayyorlov_stiker_views.tayyorlov_stiker_mark_all_printed",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tayyorlov_stiker_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/tablet/",
+   "name": "meto_hub_tablet",
+   "view": "production.meto_tablet_views.meto_tablet_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tablet_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/planshet/",
+   "name": "meto_hub_planshet",
+   "view": "production.meto_tablet_views.meto_tablet_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tablet_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/tablet/state/",
+   "name": "meto_hub_tablet_state",
+   "view": "production.meto_tablet_views.meto_tablet_state_api",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tablet_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/tablet/kg-receive/",
+   "name": "meto_hub_tablet_kg_receive",
+   "view": "production.meto_tablet_views.api_tablet_kg_receive",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "tablet_access_required",
+    "require_POST"
+   ]
+  },
+  {
    "path": "/tayyorlov/sklad/",
    "name": "meto_hub_flow_sklad",
    "view": "production.meto_flow_views.section_view",
@@ -1546,6 +1646,24 @@
    "path": "/tayyorlov/<int:batch_id>/tasnif/qabul/",
    "name": "meto_hub_flow_tasnif_take",
    "view": "production.meto_flow_views.tasnif_take",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/tasnif/bekor/",
+   "name": "meto_hub_flow_tasnif_cancel",
+   "view": "production.meto_flow_views.tasnif_cancel",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_form_action"
+   ]
+  },
+  {
+   "path": "/tayyorlov/<int:batch_id>/tasnif/qaytarish/",
+   "name": "meto_hub_flow_tasnif_return",
+   "view": "production.meto_flow_views.tasnif_return",
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "_form_action"
@@ -1648,6 +1766,46 @@
    "path": "/tayyorlov/api/ship/",
    "name": "meto_hub_flow_api_ship",
    "view": "production.meto_flow_views.api_ship",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/shipment/request-verification/",
+   "name": "meto_hub_flow_api_shipment_request_verification",
+   "view": "production.meto_flow_views.api_shipment_request_verification",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/shipment/<int:shipment_id>/cancel-verification/",
+   "name": "meto_hub_flow_api_shipment_cancel_verification",
+   "view": "production.meto_flow_views.api_shipment_cancel_verification",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/shipment/<int:shipment_id>/dispatch/",
+   "name": "meto_hub_flow_api_shipment_dispatch",
+   "view": "production.meto_flow_views.api_shipment_dispatch",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "_api",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/api/shipment/<int:shipment_id>/receive-all/",
+   "name": "meto_hub_flow_api_shipment_receive_all",
+   "view": "production.meto_flow_views.api_shipment_receive_all",
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "_api",

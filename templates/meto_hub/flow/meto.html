@@ -498,7 +498,10 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                 secondsLeft = curInterval;
                 timerId = setInterval(() => {
                     const activeEl = document.activeElement;
-                    if (activeEl && (activeEl.classList.contains('meto-qty-input') || activeEl.classList.contains('meto-note-input') || activeEl.id === 'meto-search-input')) {
+                    // Saqlanmagan son/izoh bo'lsa (−/+ bosilgach fokus tugmada qoladi) — yangilanmaydi, kiritilgani yo'qolmasin
+                    const hasUnsaved = Array.from(document.querySelectorAll('.meto-qty-input, .meto-note-input'))
+                        .some(el => el.value !== el.defaultValue);
+                    if (hasUnsaved || (activeEl && (activeEl.classList.contains('meto-qty-input') || activeEl.classList.contains('meto-note-input') || activeEl.id === 'meto-search-input'))) {
                         secondsLeft = curInterval;
                         updateRefreshUI();
                         return;
