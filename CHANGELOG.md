@@ -29,6 +29,21 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `dbf4920`] — 21.11.2026
+* **Turi:** `fix(tayyorlov)` — Planshetda quti va konteyner istalgan tartibda biriktiriladi, avto-Enter, aniq xato xabarlari
+* **Mavzu:** Foydalanuvchi talabi («konteyner id KONT-000050 ... /tayyorlov/tablet/ da qutiga biriktirish uchun yozsam stiker yoki konteyner topilmadi deyapti ... auto enter ham kerak ... stikerni qr kodini scan qilsa u orqali quti id bilan konteyner id boglanishi kerak»):
+  - **1. Tartib erkin:** avval konteyner (qo'lda yozilgan ID), keyin stiker QR — yoki teskarisi; ikkalasi ma'lum bo'lishi bilan o'zi biriktiriladi. Boshqa quti urilsa tanlov almashadi. `/tayyorlov/sklad/` va `/tayyorlov/uychi/` panelida ham shunday.
+  - **2. Avto-Enter:** skaner Enter yubormasa ham, qo'lda to'liq `KONT-000123` yozilganda ham o'zi yuboriladi (chala kod yuborilmaydi); yuk xati / patok / Uychi tekshiruv oynalarida ham. Qo'lda yozilgan quti kodi uchun «OK» tugmasi.
+  - **3. Aniq xatolar:** yaroqsiz konteyner/quti (kichik, band, bo'sh emas, bekor qilingan, allaqachon biriktirilgan, skladda emas) urilgan zahoti aytiladi; yaratilmagan KONT kodi uchun «tizimda yo'q, oxirgi yaratilgani KONT-…»; kirill klaviatura uchun «lotinga o'tkazing» maslahati; uzun chiziqcha (–, —) oddiy «-» deb olinadi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/tablet.html`
+  - `templates/meto_hub/flow/_link_panel.html`
+  - `templates/meto_hub/_scan_auto_enter.html` (yangi)
+  - `production/meto_flow_views.py`
+  - `production/container_services.py`
+  - `production/test_meto_flow.py`
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `4b9d074`] — 21.11.2026
 * **Turi:** `fix(tayyorlov)` — /tayyorlov/ tekshiruvida topilgan xatolar tuzatildi
 * **Mavzu:** Foydalanuvchi talabi («https://terryjar.uz/tayyorlov/ ni qildim qanday xatolar bor organib chiq toliq», keyin «qolgan muamolarni hal qil»). Telegram bot va eski `/meto-hub/` egasi qarori bilan hozircha o'zgarmaydi («eski holat hozircha ishlasin»).
