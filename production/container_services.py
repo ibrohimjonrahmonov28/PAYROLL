@@ -17,11 +17,13 @@ MAX_CREATE = 1000   # bir martada yaratiladigan eng ko'p konteyner
 MAX_PRINT = 500     # bitta yorliq sahifasidagi eng ko'p yorliq
 
 _CODE_RE = re.compile(r'^KONT\s*[-:+]?\s*(\d{1,9})$', re.IGNORECASE)
+_DASHES = str.maketrans({c: '-' for c in '‐‑‒–—―−－'})
 
 
 def parse_container_code(raw):
-    """'KONT-000123', 'kont+123', 'KONT:000123', 'KONT000123' -> 123; boshqa narsa -> None."""
-    match = _CODE_RE.match((raw or '').strip())
+    """'KONT-000123', 'kont+123', 'KONT:000123', 'KONT000123' -> 123; boshqa narsa -> None.
+    Planshet klaviaturasi qo'ygan uzun chiziqcha (–, —, −) ham oddiy "-" deb olinadi."""
+    match = _CODE_RE.match((raw or '').strip().translate(_DASHES))
     return int(match.group(1)) if match else None
 
 

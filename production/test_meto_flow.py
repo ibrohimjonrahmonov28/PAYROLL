@@ -277,6 +277,42 @@ class ContainerLinkTest(MetoFlowBase):
         self.assertEqual(res.status_code, 400)
         self.assertFalse(Container.objects.filter(box__isnull=False).exists())
 
+    def resolve(self, code):
+        self.client.force_login(self.sklad)
+        return self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': code})
+
+    def test_resolve_container_first_with_tablet_dash(self):
+        # Planshet: avval konteyner (qo'lda yozilgan, klaviatura uzun chiziqcha qo'ygan), keyin stiker
+        data = self.resolve(f"KONT–{self.c1.number:06d}").json()
+        self.assertEqual((data['kind'], data['code'], data['problem']), ('container', self.c1.code, None))
+        data = self.resolve(f"CONTROL:{self.box_m.box_code}").json()
+        self.assertEqual((data['kind'], data['problem']), ('box', None))
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {'box': data['box'], 'container': self.c1.code})
+        self.assertEqual(res.json()['status'], 'OK')
+        self.assertIn('allaqachon', self.resolve(self.c1.code).json()['problem'])
+        self.assertIn('allaqachon', self.resolve(self.box_m.box_code).json()['problem'])
+
+    def test_resolve_explains_missing_container_and_cyrillic(self):
+        res = self.resolve('KONT-000050')
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("KONT-000050 konteyneri tizimda yo'q", res.json()['message'])
+        self.assertIn(self.c3.code, res.json()['message'])   # oxirgi yaratilgani
+        self.assertIn('kirill', self.resolve('ЛЩТЕ-000050').json()['message'])
+        self.assertIn('«YOQ-123»', self.resolve('YOQ-123').json()['message'])
+
+    def test_resolve_flags_unlinkable_container_or_box(self):
+        small = self.new_containers(1, 'SMALL')[0]
+        self.assertIn('kichik', self.resolve(small.code).json()['problem'])
+        Container.objects.filter(id=self.c2.id).update(status=Container.Status.IN_TRANSIT)
+        self.assertIn("bo'sh emas", self.resolve(self.c2.code).json()['problem'])
+        old_order = Order.objects.create(order_number='ZAK-OLD2', article=self.article)
+        old_box = Box.objects.create(order=old_order, article=self.article, box_number=1, quantity=10, razmer='M')
+        self.assertIn('yangi meto oqimida emas', self.resolve(old_box.box_code).json()['problem'])
+        Box.objects.filter(id=self.box_l.id).update(status=Box.Status.CANCELLED)
+        self.assertIn('bekor qilingan', self.resolve(self.box_l.box_code).json()['problem'])
+        PastalFlow.objects.filter(batch=self.batch).update(stage=PastalFlow.Stage.TASNIF_WORK)
+        self.assertIn('skladda emas', self.resolve(self.box_m.box_code).json()['problem'])
+
 
 class DispatchTest(MetoFlowBase):
     def test_give_to_koson_patok_needs_every_container(self):

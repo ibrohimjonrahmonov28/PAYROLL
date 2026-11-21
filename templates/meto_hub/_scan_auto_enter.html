@@ -1,0 +1,31 @@
+{% comment %}
+Avto-Enter (skaner Enter yubormasa ham, qo'lda yozilganda ham): attachAutoEnter(input, isComplete).
+- Skaner: belgilar juda tez keladi (yoki butun matn bir martada) — to'xtagach 250 ms da o'zi yuboriladi.
+- Qo'lda: isComplete(qiymat) rost bo'lsa (masalan to'liq KONT-000050) — 600 ms jim turgach yuboriladi.
+Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchilari o'zgarmaydi.
+{% endcomment %}
+<script>
+    const FULL_CONTAINER_RE = /^KONT\s*[-:+‐-―−－]?\s*\d{6}$/i;
+    const PREFIXED_CODE_RE = /^(CONTROL|TICKET|TAMIR\d*)\s*[:+]\s*\S{3,}$/i;
+
+    function attachAutoEnter(input, isComplete) {
+        if (!input) return;
+        let timer = null, lastAt = 0, fastRun = 0;
+        input.addEventListener('input', (e) => {
+            const now = Date.now();
+            const bulk = e.inputType === 'insertFromPaste' || (e.inputType === 'insertText' && (e.data || '').length > 3);
+            fastRun = bulk ? 99 : (now - lastAt < 60 ? fastRun + 1 : 0);
+            lastAt = now;
+            clearTimeout(timer);
+            const value = input.value.trim();
+            if (!value) return;
+            const scanner = fastRun >= 3;
+            if (!scanner && !(isComplete && isComplete(value))) return;
+            timer = setTimeout(() => {
+                if (input.value.trim() !== value) return;   // shu orada yana yozildi
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            }, scanner ? 250 : 600);
+        });
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') clearTimeout(timer); });
+    }
+</script>

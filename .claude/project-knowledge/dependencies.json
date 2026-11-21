@@ -517,6 +517,7 @@
    "imports": [
     "accounts.models",
     "production",
+    "production.container_services",
     "production.meto_flow",
     "production.models",
     "production.services",
@@ -1506,6 +1507,9 @@
    ]
   },
   "templates/meto_hub/flow/_link_panel.html": {
+   "includes": [
+    "meto_hub/_scan_auto_enter.html"
+   ],
    "url_names": [
     "meto_hub_flow_api_link",
     "meto_hub_flow_api_resolve",
@@ -1605,7 +1609,8 @@
   },
   "templates/meto_hub/tablet.html": {
    "includes": [
-    "includes/theme_head.html"
+    "includes/theme_head.html",
+    "meto_hub/_scan_auto_enter.html"
    ],
    "url_names": [
     "meto_hub_containers",

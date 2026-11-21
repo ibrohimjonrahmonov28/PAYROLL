@@ -298,8 +298,13 @@
                         </div>
                         <input type="text" id="scanner-input" autocomplete="off" autofocus
                             placeholder="Stiker yoki konteyner QR kodini skaner qiling..."
-                            class="w-full pl-12 pr-28 py-4 bg-slate-950 border-2 border-cyan-500/60 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-cyan-400 scanner-glow shadow-inner">
+                            class="w-full pl-12 pr-40 py-4 bg-slate-950 border-2 border-cyan-500/60 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-cyan-400 scanner-glow shadow-inner">
                         <div class="absolute inset-y-0 right-2 flex items-center gap-1.5">
+                            <button type="button" onclick="submitScanInput()"
+                                class="px-3 py-1.5 rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400 text-xs font-black touch-btn"
+                                title="Kiritish (Enter)">
+                                OK
+                            </button>
                             <button type="button" onclick="clearActiveScan()"
                                 class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-bold touch-btn"
                                 title="Tozalash">
@@ -312,7 +317,7 @@
                     <div id="scan-status-banner"
                         class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300">
                         <i class="fa-solid fa-info-circle text-base text-cyan-400"></i>
-                        <span id="scan-status-text">Tayyor. Avval quti stikerini (QR yoki shtrix-kod) uring.</span>
+                        <span id="scan-status-text">Tayyor. Quti stikerini yoki konteyner QR kodini uring (tartib muhim emas).</span>
                     </div>
                 </div>
 
@@ -370,7 +375,7 @@
                                 <i class="fa-solid fa-box-archive"></i>
                             </div>
                             <p class="text-sm font-bold text-slate-400">Konteyner kutilmoqda</p>
-                            <p class="text-xs text-slate-500">Qutidan keyin bo'sh konteyner QR kodini uring</p>
+                            <p class="text-xs text-slate-500">Bo'sh katta konteyner QR kodini uring (qutidan oldin ham bo'ladi)</p>
                         </div>
 
                         <div id="active-container-footer" class="border-t border-slate-800 pt-3 text-center">
@@ -1630,6 +1635,8 @@
         }
     </script>
 
+    {% include 'meto_hub/_scan_auto_enter.html' %}
+
     <!-- NETWORK FETCH HELPERS -->
     <script>
         async function postJSON(url, body) {
@@ -1858,9 +1865,12 @@
     <!-- LOGIC 1: BIRIKTIRISH (QUTI ↔ KONTEYNER LINK / UNLINK)          -->
     <!-- ============================================================== -->
     <script>
-        let currentBoxCode = null;
+        // Tartib muhim emas: avval quti stikeri yoki avval konteyner — ikkalasi bo'lgach o'zi biriktiriladi
+        let currentBox = null;        // api/resolve javobi (kind: 'box')
+        let currentContainer = null;  // api/resolve javobi (kind: 'container')
         let isUnlinkMode = false;
         let sessionLogs = [];
+        let linkQueue = Promise.resolve();   // tez ketma-ket skanerlar navbat bilan
 
         const scanInput = document.getElementById('scanner-input');
         const statusText = document.getElementById('scan-status-text');
@@ -1880,16 +1890,30 @@
         function updateLinkStepper() {
             const pill1 = document.getElementById('step-pill-1');
             const pill2 = document.getElementById('step-pill-2');
+            const base = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 ';
+            const idle = base + 'bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
+            const done = base + 'bg-emerald-500/10 border-emerald-600 text-emerald-300';
             if (isUnlinkMode) {
-                pill1.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-rose-950/40 border-rose-500 text-rose-300';
-                pill2.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-rose-950/40 border-rose-500 text-rose-300';
-            } else if (!currentBoxCode) {
-                pill1.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10';
-                pill2.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
+                pill1.className = base + 'bg-rose-950/40 border-rose-500 text-rose-300';
+                pill2.className = base + 'bg-rose-950/40 border-rose-500 text-rose-300';
+            } else if (!currentBox && !currentContainer) {
+                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10';
+                pill2.className = idle;
+            } else if (currentBox) {
+                pill1.className = done;
+                pill2.className = base + 'bg-amber-500/10 border-amber-500 text-amber-300 shadow-lg shadow-amber-500/10 animate-pulse';
             } else {
-                pill1.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
-                pill2.className = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-amber-500/10 border-amber-500 text-amber-300 shadow-lg shadow-amber-500/10 animate-pulse';
+                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10 animate-pulse';
+                pill2.className = done;
             }
+        }
+
+        function resetLinkSelection() {
+            currentBox = null;
+            currentContainer = null;
+            renderBoxCard(null);
+            renderContainerCard(null);
+            updateLinkStepper();
         }
 
         function toggleUnlinkMode() {
@@ -1899,9 +1923,7 @@
                 }
             }
             isUnlinkMode = !isUnlinkMode;
-            currentBoxCode = null;
-            renderBoxCard(null);
-            renderContainerCard(null);
+            resetLinkSelection();
 
             const btn = document.getElementById('unlink-toggle-btn');
             const text = document.getElementById('unlink-toggle-text');
@@ -1916,7 +1938,7 @@
                 btn.className = 'touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60';
                 text.textContent = 'Bekor Qilish Rejimi';
                 header.textContent = 'Qutini Katta Konteynerga Biriktirish';
-                setStatus("Tayyor. Avval quti stikerini (QR yoki shtrix-kod) uring.", "info");
+                setStatus("Tayyor. Quti stikerini yoki konteyner QR kodini uring (tartib muhim emas).", "info");
             }
             updateLinkStepper();
             scanInput.focus();
@@ -2004,17 +2026,19 @@
         }
 
         function cancelBoxSelection() {
-            currentBoxCode = null;
-            renderBoxCard(null);
-            renderContainerCard(null);
-            updateLinkStepper();
-            setStatus("Quti bekor qilindi. Boshqa quti stikerini uring.", "info");
+            resetLinkSelection();
+            setStatus("Tanlov bekor qilindi. Quti stikerini yoki konteyner QR kodini uring.", "info");
             scanInput.focus();
         }
 
         function clearActiveScan() {
             scanInput.value = '';
             cancelBoxSelection();
+        }
+
+        function submitScanInput() {
+            scanInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            scanInput.focus();
         }
 
         function addSessionLog(ok, text, undoCode = null) {
@@ -2062,99 +2086,94 @@
             }
         }
 
-        // Handle Scan input (Enter pressed)
+        async function linkSelected() {
+            const box = currentBox, container = currentContainer;
+            const r = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, { box: box.box, container: container.code });
+            if (r.ok) {
+                playSoundSuccess();
+                const successMsg = `${box.box} → ${container.code} muvaffaqiyatli biriktirildi!`;
+                addSessionLog(true, successMsg, container.code);
+                setStatus(successMsg, "success");
+
+                // Flash card animation
+                document.getElementById('active-box-card')?.classList.add('success-flash');
+                document.getElementById('active-container-card')?.classList.add('success-flash');
+                setTimeout(() => {
+                    document.getElementById('active-box-card')?.classList.remove('success-flash');
+                    document.getElementById('active-container-card')?.classList.remove('success-flash');
+                }, 600);
+            } else {
+                playSoundError();
+                setStatus(r.data.message || "Biriktirib bo'lmadi.", "error");
+                addSessionLog(false, r.data.message || 'Xatolik');
+            }
+            resetLinkSelection();   // keyingi juftlik uchun boshidan
+        }
+
+        async function handleLinkScan(raw) {
+            // UNLINK MODE
+            if (isUnlinkMode) {
+                const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code: raw });
+                if (r.ok) {
+                    playSoundSuccess();
+                    addSessionLog(true, r.data.message || `${raw} bo'shatildi`);
+                    setStatus(r.data.message || 'Bo\'shatildi.', 'success');
+                } else {
+                    playSoundError();
+                    addSessionLog(false, r.data.message || 'Xatolik');
+                    setStatus(r.data.message || 'Xatolik', 'error');
+                }
+                toggleUnlinkMode(); // Exit unlink mode back to normal
+                return;
+            }
+
+            // Quti stikeri (CONTROL / bilet / quti kodi) yoki konteyner QR — qaysi biri ekanini server aytadi
+            const r = await getJSON(`{% url 'meto_hub_flow_api_resolve' %}?code=${encodeURIComponent(raw)}`);
+            if (!r.ok) {
+                playSoundError();
+                setStatus(r.data.message || "Stiker yoki konteyner topilmadi.", "error");
+                addSessionLog(false, r.data.message || `${raw} topilmadi`);
+                return;
+            }
+            if (r.data.problem) {   // bekor qilingan / allaqachon biriktirilgan / skladda emas / bo'sh emas / kichik
+                playSoundError();
+                setStatus(r.data.problem, "error");
+                addSessionLog(false, r.data.problem);
+                return;
+            }
+
+            if (r.data.kind === 'container') {
+                currentContainer = r.data;
+                renderContainerCard(r.data);
+            } else {
+                currentBox = r.data;
+                renderBoxCard(r.data);
+            }
+            updateLinkStepper();
+
+            if (currentBox && currentContainer) {
+                await linkSelected();
+                return;
+            }
+            playSoundBeep();
+            if (currentBox) {
+                setStatus(`Quti ${currentBox.box} tanlandi. Endi bo'sh katta konteyner QR kodini uring.`, "info");
+            } else {
+                setStatus(`Konteyner ${currentContainer.code} tanlandi. Endi qutining stikerini (QR) uring — o'zi biriktiriladi.`, "info");
+            }
+        }
+
+        // Handle Scan input (Enter yoki avto-Enter)
         if (scanInput) {
-            scanInput.addEventListener('keydown', async (event) => {
+            scanInput.addEventListener('keydown', (event) => {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();
                 const raw = scanInput.value.trim();
                 scanInput.value = '';
                 if (!raw) return;
-
-                // UNLINK MODE
-                if (isUnlinkMode) {
-                    const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code: raw });
-                    if (r.ok) {
-                        playSoundSuccess();
-                        addSessionLog(true, r.data.message || `${raw} bo'shatildi`);
-                        setStatus(r.data.message || 'Bo\'shatildi.', 'success');
-                    } else {
-                        playSoundError();
-                        addSessionLog(false, r.data.message || 'Xatolik');
-                        setStatus(r.data.message || 'Xatolik', 'error');
-                    }
-                    toggleUnlinkMode(); // Exit unlink mode back to normal
-                    return;
-                }
-
-                // STEP 1: RESOLVE BOX
-                if (!currentBoxCode) {
-                    const r = await getJSON(`{% url 'meto_hub_flow_api_resolve' %}?code=${encodeURIComponent(raw)}`);
-                    if (!r.ok) {
-                        playSoundError();
-                        setStatus(r.data.message || "Stiker topilmadi.", "error");
-                        addSessionLog(false, r.data.message || `${raw} topilmadi`);
-                        return;
-                    }
-
-                    if (r.data.kind === 'container') {
-                        playSoundError();
-                        setStatus(`${r.data.code} — bu konteyner! Avval qutining stikerini uring.`, "error");
-                        return;
-                    }
-
-                    if (r.data.cancelled) {
-                        playSoundError();
-                        setStatus(`Quti ${r.data.box} bekor qilingan! Yangi stikerni uring.`, "error");
-                        return;
-                    }
-
-                    if (r.data.container) {
-                        playSoundError();
-                        setStatus(`Quti ${r.data.box} allaqachon ${r.data.container} konteynerida!`, "error");
-                        return;
-                    }
-
-                    // Success Box resolved
-                    playSoundBeep();
-                    currentBoxCode = r.data.box;
-                    renderBoxCard(r.data);
-                    updateLinkStepper();
-                    setStatus(`Quti ${r.data.box} tanlandi! Endi bo'sh konteyner QR kodini uring.`, "info");
-                    return;
-                }
-
-                // STEP 2: LINK TO CONTAINER
-                const r = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, {
-                    box: currentBoxCode,
-                    container: raw
-                });
-
-                if (r.ok) {
-                    playSoundSuccess();
-                    const successMsg = `${currentBoxCode} → ${raw} muvaffaqiyatli biriktirildi!`;
-                    addSessionLog(true, successMsg, raw);
-                    setStatus(successMsg, "success");
-
-                    // Flash card animation
-                    document.getElementById('active-box-card')?.classList.add('success-flash');
-                    document.getElementById('active-container-card')?.classList.add('success-flash');
-                    setTimeout(() => {
-                        document.getElementById('active-box-card')?.classList.remove('success-flash');
-                        document.getElementById('active-container-card')?.classList.remove('success-flash');
-                    }, 600);
-
-                    // Reset back to Step 1
-                    currentBoxCode = null;
-                    renderBoxCard(null);
-                    renderContainerCard(null);
-                    updateLinkStepper();
-                } else {
-                    playSoundError();
-                    setStatus(r.data.message || "Biriktirib bo'lmadi.", "error");
-                    addSessionLog(false, r.data.message || 'Xatolik');
-                }
+                linkQueue = linkQueue.then(() => handleLinkScan(raw)).catch(() => {});
             });
+            attachAutoEnter(scanInput, (v) => FULL_CONTAINER_RE.test(v) || PREFIXED_CODE_RE.test(v));
         }
 
         // Global key listener to auto-focus scanner
@@ -2289,7 +2308,8 @@
             if (currentMode === 'link' && scanInput) scanInput.focus();
         }
 
-        // Modal Scan Input Enter event
+        // Modal Scan Input Enter event (+ avto-Enter: to'liq KONT-000123)
+        attachAutoEnter(modalScanInput, (v) => FULL_CONTAINER_RE.test(v));
         modalScanInput.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' || !modalCheck) return;
             e.preventDefault();
@@ -2934,6 +2954,7 @@
         // Scanner listeners
         const verifyScanInput = document.getElementById('verify-scan-input');
         if (verifyScanInput) {
+            attachAutoEnter(verifyScanInput, (v) => FULL_CONTAINER_RE.test(v));
             verifyScanInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -2946,6 +2967,7 @@
 
         const uychiScanInput = document.getElementById('uychi-modal-scan-input');
         if (uychiScanInput) {
+            attachAutoEnter(uychiScanInput, (v) => FULL_CONTAINER_RE.test(v));
             uychiScanInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();

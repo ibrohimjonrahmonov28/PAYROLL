@@ -5,6 +5,7 @@ hammasini. Skanerli amallar (biriktirish, konteyner tekshiruvi, patokka berish, 
 """
 import functools
 import json
+import re
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -18,6 +19,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from production import meto_flow as flow_logic
+from production.container_services import parse_container_code
 from production.meto_flow import FlowError, can
 from production.models import Box, Container, CuttingBatchItem, Order, PastalFlow, PastalFlowSize, Shipment, ShipmentPastal
 from production.services import get_patok_code
@@ -916,23 +918,60 @@ def _ids(values):
     return [int(v) for v in values if str(v).strip().isdigit()]
 
 
+_CYRILLIC = re.compile('[Ѐ-ӿ]')
+
+
+def _container_problem(container):
+    """Biriktirishga yaramasa — sababi (planshet konteynerni qutidan oldin ham qabul qiladi)."""
+    if container.box_id:
+        return f"{container.code} allaqachon {container.box.box_code} qutisiga biriktirilgan."
+    if container.kind != Container.Kind.BIG:
+        return f"{container.code} — kichik (ta'mir) konteyner; katta konteynerni uring."
+    if container.status != Container.Status.EMPTY:
+        return f"{container.code} bo'sh emas ({container.get_status_display()})."
+    return None
+
+
+def _box_problem(box, batch, current):
+    if box.status == Box.Status.CANCELLED:
+        return f"{box.box_code} qutisi bekor qilingan — yangi stikerni uring."
+    if current:
+        return f"{box.box_code} allaqachon {current.code} konteynerida."
+    if batch is None or not flow_logic.is_v2_batch(batch):
+        return f"{box.box_code} — bu quti yangi meto oqimida emas."
+    flow = flow_logic.get_flow(batch)
+    if flow.stage != PastalFlow.Stage.SKLAD:
+        return (f"{batch.pastal_code or batch.name} pastali skladda emas ({flow.get_stage_display()}) — "
+                f"biriktirish faqat skladdagi pastal qutilari uchun.")
+    return None
+
+
 @_api('ship_any')
 def api_resolve(request):
-    code = request.GET.get('code', '')
+    code = request.GET.get('code', '').strip()
     container = flow_logic.find_container(code)
     if container is not None:
         return JsonResponse({'status': 'OK', 'kind': 'container', 'code': container.code,
                              'container_kind': container.get_kind_display(), 'state': flow_logic.container_state(container),
-                             'box': container.box.box_code if container.box_id else None})
+                             'box': container.box.box_code if container.box_id else None,
+                             'problem': _container_problem(container)})
+    number = parse_container_code(code)
+    if number is not None:   # format to'g'ri, lekin bunday konteyner yaratilmagan
+        last = Container.objects.order_by('-number').values_list('number', flat=True).first()
+        hint = f" Oxirgi yaratilgani: KONT-{last:06d}." if last else " Hali birorta konteyner yaratilmagan."
+        raise FlowError(f"KONT-{number:06d} konteyneri tizimda yo'q — avval «Konteynerlar» bo'limida yaratiladi.{hint}")
     box = flow_logic.resolve_box(code)
     if box is None:
-        raise FlowError("Stiker yoki konteyner topilmadi.")
+        if _CYRILLIC.search(code):
+            raise FlowError(f"«{code[:40]}» — klaviatura kirill (rus) tilida. Lotin (EN) ga o'tkazib, qayta uring.")
+        raise FlowError(f"«{code[:40]}» — bunday stiker yoki konteyner topilmadi.")
     batch = box.cutting_batch_item.batch if box.cutting_batch_item_id else None
     current = Container.objects.filter(box=box).first()
     return JsonResponse({'status': 'OK', 'kind': 'box', 'box': box.box_code, 'razmer': box.razmer or '—',
                          'qty': box.quantity, 'pastal': (batch.pastal_code or batch.name) if batch else '—',
                          'cancelled': box.status == Box.Status.CANCELLED,
-                         'container': current.code if current else None})
+                         'container': current.code if current else None,
+                         'problem': _box_problem(box, batch, current)})
 
 
 @_api('ship_any')
