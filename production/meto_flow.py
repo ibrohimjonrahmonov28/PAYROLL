@@ -560,10 +560,10 @@ def _new_shipment(**fields):
                 raise
 
 
-def create_shipment(batches, scanned, user, vehicle='', driver='', phone='', notes=''):
-    """Koson skladidagi tayyor pastallarni (hamma konteyneri skaner qilingan) Uychiga yuk xati bilan jo'natish."""
+def request_verification(batches, user, notes=''):
+    """Tayyorlov masteri pastallarni Uychiga jo'natish uchun planshetga tekshiruvga yuboradi."""
     if not batches:
-        raise FlowError("Yuk xati uchun pastal tanlang.")
+        raise FlowError("Tekshirish uchun pastal tanlang.")
     with transaction.atomic():
         locked = list(CuttingBatch.objects.select_for_update().filter(id__in=[b.id for b in batches]))
         for batch in locked:
@@ -571,18 +571,61 @@ def create_shipment(batches, scanned, user, vehicle='', driver='', phone='', not
             _require_ready(batch, flow)
             if flow.branch != 'HQ':
                 raise FlowError(f"{batch.pastal_code or batch.name}: pastal Koson skladida emas.")
-        _verify(locked, scanned)
-        shipment = _new_shipment(source_branch='HQ', destination_branch='UYCHI', vehicle_number=vehicle.upper(),
-                                 driver_name=driver, driver_phone=phone, notes=notes, created_by=user)
+            if ShipmentPastal.objects.filter(batch=batch, status__in=[ShipmentPastal.Status.PENDING, ShipmentPastal.Status.IN_TRANSIT]).exists():
+                raise FlowError(f"{batch.pastal_code or batch.name}: allaqachon tekshiruvda yoki yo'lda.")
+        shipment = _new_shipment(source_branch='HQ', destination_branch='UYCHI', status=Shipment.Status.PENDING,
+                                 notes=notes, created_by=user)
         for batch in locked:
-            ShipmentPastal.objects.create(shipment=shipment, batch=batch)
-            flow = get_flow(batch)
+            ShipmentPastal.objects.create(shipment=shipment, batch=batch, status=ShipmentPastal.Status.PENDING)
+    return shipment
+
+
+def cancel_verification(shipment, user):
+    """Tekshiruv kutilayotgan yuk xatini bekor qilish (pastallar yana skladda bo'sh turadi)."""
+    with transaction.atomic():
+        shipment = Shipment.objects.select_for_update().get(id=shipment.id)
+        if shipment.status != Shipment.Status.PENDING:
+            raise FlowError("Faqat tekshiruv kutayotgan yuk xatini bekor qilish mumkin.")
+        shipment.lines.all().delete()
+        shipment.delete()
+
+
+def dispatch_shipment(shipment, scanned, user, vehicle='', driver='', phone='', notes=''):
+    """Meto planshetida barcha konteynerlar tekshirib bo'lingach, yuk xatini filialga jo'natish."""
+    with transaction.atomic():
+        shipment = Shipment.objects.select_for_update().prefetch_related('lines__batch').get(id=shipment.id)
+        if shipment.status != Shipment.Status.PENDING:
+            raise FlowError("Ushbu yuk xati tekshiruv holatida emas.")
+        batches = [line.batch for line in shipment.lines.all()]
+        _verify(batches, scanned)
+
+        shipment.status = Shipment.Status.IN_TRANSIT
+        if vehicle:
+            shipment.vehicle_number = vehicle.upper()
+        if driver:
+            shipment.driver_name = driver
+        if phone:
+            shipment.driver_phone = phone
+        if notes:
+            shipment.notes = notes
+        shipment.save()
+
+        for line in shipment.lines.all():
+            line.status = ShipmentPastal.Status.IN_TRANSIT
+            line.save(update_fields=['status'])
+            flow = get_flow(line.batch)
             flow.stage = PastalFlow.Stage.IN_TRANSIT
             flow.save(update_fields=['stage', 'updated_at'])
-            for container in Container.objects.filter(box__cutting_batch_item__batch=batch):
+            for container in Container.objects.filter(box__cutting_batch_item__batch=line.batch):
                 _set_status(container, Container.Status.IN_TRANSIT, ContainerEvent.Action.LOADED, user,
                             note=shipment.number)
     return shipment
+
+
+def create_shipment(batches, scanned, user, vehicle='', driver='', phone='', notes=''):
+    """Koson skladidagi tayyor pastallarni to'g'ridan-to'g'ri (bir bosqichda) Uychiga jo'natish."""
+    shipment = request_verification(batches, user, notes=notes)
+    return dispatch_shipment(shipment, scanned, user, vehicle=vehicle, driver=driver, phone=phone, notes=notes)
 
 
 def _close_if_done(shipment):
@@ -616,6 +659,20 @@ def receive_line(line, scanned, user):
                         branch=destination, note=note)
         _close_if_done(line.shipment)
     return line, missing
+
+
+def receive_shipment(shipment, scanned, user):
+    """Uychi filialida yuk xatidagi barcha pastallarni konteynerlar orqali birato'la qabul qilish."""
+    with transaction.atomic():
+        shipment = Shipment.objects.select_for_update().prefetch_related('lines__batch').get(id=shipment.id)
+        if shipment.status != Shipment.Status.IN_TRANSIT:
+            raise FlowError("Ushbu yuk xati yo'lda emas.")
+        results = []
+        for line in list(shipment.lines.filter(status=ShipmentPastal.Status.IN_TRANSIT)):
+            res_line, missing = receive_line(line, scanned, user)
+            results.append((res_line, missing))
+        _close_if_done(shipment)
+    return shipment, results
 
 
 def return_line(line, user, note=''):

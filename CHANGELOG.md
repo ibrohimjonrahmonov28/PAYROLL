@@ -29,6 +29,25 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `eafe567`] — 21.11.2026
+* **Turi:** `feat(tayyorlov)` — Meto Planshet: Bosh bino tekshiruvi (20/20 qizil/yashil), yuk xati jo'natish, chop etish va Uychi filialida konteyner orqali qabul qilish
+* **Mavzu:** Foydalanuvchi talablari asosida to'liq zanjir joriy etildi:
+  - **1. Quti ↔ Konteyner biriktirish va bekor qilish xavfsizligi:** Qutilar va konteynerlarni biriktirish huquqi faqat Koson bosh binosida bo'ladi. Konteynerni qutidan ajratish (bo'shatish) yoki bekor qilish rejimiga o'tishda ogohlantiruvchi tasdiqlash (`confirm()`) darchasi qo'shildi.
+  - **2. Tayyorlov bo'limi (Kompyuter / Desktop):** Skladdagi tayyor pastallarni tanlab "Tekshirishga yuborish (Planshetga)" tugmasi orqali Meto planshetiga yo'naltirish (`Shipment.Status.PENDING`). Planshetda tekshirilayotgan pastallar uchun "Bekor qilish" imkoniyati. Planshetda tekshiruv yakunlanib jo'natilgach (`IN_TRANSIT`), Tayyorlov masteri ekranida darhol "Chop etish" tugmasi ochilishi (`/tayyorlov/yukxat/<id>/chop-etish/`).
+  - **3. Meto Planshet (Koson Bosh Bino):** "Tekshirish kutayotgan pastallar" ro'yxati chiqadi. Pastal tanlanganda tekshirish boshlanadi: undagi qutilar soni (masalan 20 ta) bo'lsa, yuqoridagi status bar `20/20 o'tdi` bo'lmaguncha QIZIL (`🔴 X/20 o'tdi (Chala)`) turadi. Barcha qutilar skanerlangach YASHIL (`🟢 20/20 o'tdi (To'liq)`) ga aylanadi va keyingi pastalga o'tadi. Barcha pastallar to'liq yashil bo'lgach, «Yuk xati uchun jo'natish» tugmasi ochiladi va yuk yo'lga chiqariladi.
+  - **4. Uychi Filiali Sklad Plansheti:** Kelgan yuk xatlari bo'yicha "Tekshiruvga Olish" tugmasi. Pastallar bo'yicha har bir konteyner skanerlanganda, tizim avtomatik ravishda qaysi quti va pastalga tegishli ekanini aniqlaydi va yashil qiladi. Barchasi tugagach «Saqlash (Filial Balansiga Tushirish)» tugmasi bosiladi va barcha pastallar hamda konteynerlar Uychi filiali balansiga o'tadi.
+* **O'zgartirilgan va yangi fayllar:**
+  - `production/models.py` (`PENDING` status qo'shildi)
+  - `production/migrations/0056_alter_shipment_status_alter_shipmentpastal_status.py`
+  - `production/meto_flow.py` (`request_verification`, `cancel_verification`, `dispatch_shipment`, `receive_shipment`)
+  - `production/meto_flow_views.py` (API endpoints va `_card`, `_ctx_sklad`)
+  - `production/meto_tablet_views.py` (`_tablet_pending_shipments`, `_tablet_incoming_shipments`, context)
+  - `production/tayyorlov_urls.py`
+  - `templates/meto_hub/flow/sklad.html`
+  - `templates/meto_hub/flow/_sklad_card.html`
+  - `templates/meto_hub/tablet.html`
+  - `production/test_meto_flow.py`
+
 ### 🔹 [Commit: `6f572d6`] — 21.11.2026
 * **Turi:** `feat(tayyorlov)` — Meto Planshet: Uychi filialida quti biriktirishni yashirish, faqat yuk qabuli, omborda saqlash va patokka berish
 * **Mavzu:** Egasi talabi («https://terryjar.uz/tayyorlov/tablet/?branch=UYCHI da quti bilan konteyner birlashtirish funksiyasi bolmaydi ular faqat yukni qabul qiladi saqlaydi va kerakli paytda trekshirib patokka beradi»):

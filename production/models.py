@@ -2446,6 +2446,7 @@ class PastalFlowSize(models.Model):
 class Shipment(models.Model):
     """Yangi oqim yuk xati: Koson → Uychi yoki qaytarish (Uychi → Koson); har pastal alohida qabul / qaytariladi."""
     class Status(models.TextChoices):
+        PENDING = 'PENDING', "Tekshiruv kutmoqda"
         IN_TRANSIT = 'IN_TRANSIT', "Yo'lda"
         CLOSED = 'CLOSED', 'Yopildi'
 
@@ -2472,6 +2473,7 @@ class Shipment(models.Model):
 
 class ShipmentPastal(models.Model):
     class Status(models.TextChoices):
+        PENDING = 'PENDING', "Tekshiruv kutmoqda"
         IN_TRANSIT = 'IN_TRANSIT', "Yo'lda"
         ACCEPTED = 'ACCEPTED', 'Qabul qilindi'
         RETURNED = 'RETURNED', 'Qaytarildi'

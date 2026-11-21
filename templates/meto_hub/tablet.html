@@ -366,31 +366,31 @@
         <!-- ============================================================== -->
         <div id="mode-shipment" class="mode-view flex-1 {% if default_mode != 'shipment' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
             {% if branch == 'UYCHI' %}
-            <!-- Uychi: Faqat Kosondan kelayotgan yuk xatlarini tekshirib qabul qilish -->
+            <!-- Uychi: Kosondan kelayotgan yuk xatlarini tekshirib qabul qilish -->
             <div class="flex items-center justify-between flex-shrink-0">
                 <div>
                     <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
                         <i class="fa-solid fa-truck-ramp-box text-emerald-400"></i>
                         <span>Kosondan Kelayotgan Yuk Xatlari</span>
                     </h3>
-                    <p class="text-xs text-slate-400">Yuk xatini tanlang va kelgan konteynerlarni skanerlab omborga qabul qiling</p>
+                    <p class="text-xs text-slate-400">Yuk xati bo'yicha konteynerlarni skanerlang va filial balansiga qabul qiling</p>
                 </div>
                 <div class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
                     <i class="fa-solid fa-bell animate-pulse"></i>
-                    <span>{{ incoming|length }} ta kutilmoqda</span>
+                    <span>{{ incoming_shipments|length }} ta yuk xati kutilmoqda</span>
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto space-y-3 pr-1">
-                {% for item in incoming %}
+                {% for item in incoming_shipments %}
                 <div class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2">
+                    <div class="space-y-1.5">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-black text-sm">
                                 {{ item.shipment_number }}
                             </span>
-                            <span class="text-xs font-bold text-white">{{ item.pastal_code }}</span>
-                            <span class="text-xs text-amber-400 font-bold font-mono">({{ item.order_number }})</span>
+                            <span class="text-xs font-bold text-white">{{ item.pastals_count }} ta pastal</span>
+                            <span class="text-xs text-amber-400 font-mono font-bold">({{ item.total_boxes }} ta quti · {{ item.total_qty }} dona)</span>
                         </div>
                         <div class="text-xs text-slate-400">
                             <span>Haydovchi: <b class="text-slate-200">{{ item.driver|default:"—" }}</b></span>
@@ -398,14 +398,18 @@
                             {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{% endif %}
                         </div>
                         <div class="text-[11px] text-slate-500">
-                            {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.boxes_count }} ta quti ({{ item.qty }} dona) · {{ item.created_at|date:"d.m H:i" }}
+                            {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.created_at }} ·
+                            Pastallar:
+                            {% for p in item.pastals %}
+                            <span class="text-slate-300 font-semibold font-mono">{{ p.pastal_code }}</span>{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
 
                     <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                        <button type="button" onclick="startReceiveCheck({{ item.line_id }}, {{ item.batch_id }}, '{{ item.pastal_code }}', '{{ item.shipment_number }}')"
-                            class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-qrcode"></i> Qabulni Skanerlash
+                        <button type="button" onclick="startUychiReceive({{ item.shipment_id }})"
+                            class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-qrcode text-base"></i> Tekshiruvga Olish
                         </button>
                     </div>
                 </div>
@@ -418,13 +422,18 @@
                 {% endfor %}
             </div>
             {% else %}
-            <!-- Sub-tab switcher (Yuklash / Qabul Qilish) -->
+            <!-- Sub-tab switcher (Tekshirish / Yuklash / Qabul Qilish) -->
             <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="switchShipmentSubTab('pending')" id="sub-ship-pending-btn"
+                        class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                        <span>Tekshirish Kutayotganlar ({{ pending_shipments|length }})</span>
+                    </button>
                     <button type="button" onclick="switchShipmentSubTab('load')" id="sub-ship-load-btn"
-                        class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-violet-600 text-white shadow-lg shadow-violet-600/20">
+                        class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white">
                         <i class="fa-solid fa-truck-loading"></i>
-                        <span>Uychiga Yuklash ({% if branch == 'HQ' %}{{ ready_cards|length }}{% else %}0{% endif %})</span>
+                        <span>Skladdan Yuklash ({{ ready_cards|length }})</span>
                     </button>
                     <button type="button" onclick="switchShipmentSubTab('receive')" id="sub-ship-receive-btn"
                         class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white">
@@ -434,8 +443,62 @@
                 </div>
 
                 <div class="text-xs text-slate-400 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-info text-violet-400"></i>
-                    <span>Konteynerlarni skanerlab yuklash yoki qabul qilish</span>
+                    <i class="fa-solid fa-circle-info text-amber-400"></i>
+                    <span>Tekshiruv o'tkazish yoki yuk xati jo'natish</span>
+                </div>
+            </div>
+
+            <!-- Sub-tab 0: TEKSHIRISH KUTAYOTGAN PASTALLAR (TAYYORLOVDAN YUBORILGAN) -->
+            <div id="sub-ship-pending-view" class="flex-1 overflow-hidden flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-amber-400"></i>
+                            <span>Tayyorlov Bo'limidan Tekshirishga Yuborilgan Yuk Xatlari</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Yuk xatini tanlang va konteynerlarni skanerlang — 20/20 to'liq o'tgach jo'natish tugmasi ochiladi</p>
+                    </div>
+                    <div class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+                        <span>{{ pending_shipments|length }} ta kutilmoqda</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    {% for ship in pending_shipments %}
+                    <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-black text-sm">
+                                    {{ ship.shipment_number }}
+                                </span>
+                                <span class="text-xs font-bold text-white">{{ ship.pastals_count }} ta pastal</span>
+                                <span class="text-xs text-cyan-400 font-mono font-bold">({{ ship.total_boxes }} ta quti)</span>
+                            </div>
+                            <div class="text-xs text-slate-300">
+                                <span class="text-slate-400">Pastallar:</span>
+                                {% for p in ship.pastals %}
+                                    <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-white font-mono font-bold">{{ p.pastal_code }}</span> ({{ p.boxes_count }} quti){% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-mono">
+                                Yaratilgan: {{ ship.created_at }} · Borish joyi: {{ ship.destination_branch }}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <button type="button" onclick="startPendingVerification({{ ship.shipment_id }})"
+                                class="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 touch-btn flex items-center gap-2 whitespace-nowrap">
+                                <i class="fa-solid fa-barcode text-base"></i> Tekshirishni Boshlash
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-20 text-center text-slate-500 space-y-2">
+                        <i class="fa-solid fa-inbox text-4xl block text-slate-600 mb-2"></i>
+                        <p class="text-sm font-bold text-slate-400">Tekshirish kutayotgan yuk xatlari yo'q.</p>
+                        <p class="text-xs text-slate-500">Tayyorlov bo'limi (kompyuter) orqali pastallar tekshirishga yuborilganda bu yerda avtomatik chiqadi.</p>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -830,10 +893,180 @@
         </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- MODAL 2: METO PLANSHET — YUK XATINI TEKSHIRISH VA JO'NATISH     -->
+    <!-- 20/20 o'tdi bo'lmaguncha qizil turadi, hammasi o'tsa yashil   -->
+    <!-- ============================================================== -->
+    <div id="verify-shipment-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="verify-modal-title" class="text-base sm:text-lg font-black text-white font-mono">YX-00000000-000</h3>
+                            <span class="px-2 py-0.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-bold">Uychi Filiali</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Har bir pastaldagi barcha qutilarni skanerlang</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="verify-total-progress-badge" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-xs font-bold">
+                        0 / 0 o'tdi
+                    </span>
+                    <button type="button" onclick="closeVerifyModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pastal Tabs strip -->
+            <div id="verify-pastal-tabs" class="px-4 py-3 bg-slate-950/70 border-b border-slate-800 flex items-center gap-2 overflow-x-auto flex-shrink-0">
+                <!-- Dynamically filled tabs -->
+            </div>
+
+            <!-- Top Banner for Active Pastal (Red until 20/20 passed, then Green) -->
+            <div class="px-4 sm:px-6 pt-4 flex-shrink-0">
+                <div id="verify-pastal-status-banner" class="p-4 rounded-2xl bg-rose-950/80 border border-rose-600 text-rose-200 text-sm sm:text-base font-black flex items-center justify-between shadow-lg transition-all">
+                    <div class="flex items-center gap-2.5">
+                        <span id="verify-banner-dot" class="w-3.5 h-3.5 rounded-full bg-rose-500 animate-pulse"></span>
+                        <span id="verify-banner-text">0 / 0 o'tdi (Chala tekshirildi)</span>
+                    </div>
+                    <span id="verify-banner-tag" class="px-2.5 py-1 rounded-lg bg-rose-900/60 border border-rose-700 text-rose-300 text-xs font-mono uppercase">
+                        Qizil holat
+                    </span>
+                </div>
+            </div>
+
+            <!-- Modal Body (Scanner + Boxes Grid) -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                <!-- Scanner Input -->
+                <div class="relative">
+                    <input type="text" id="verify-scan-input" autocomplete="off"
+                        placeholder="Konteyner QR kodini uring (KONT-000123)..."
+                        class="w-full px-4 py-3.5 bg-slate-950 border-2 border-amber-500/70 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-amber-400 scanner-glow">
+                </div>
+
+                <!-- Live feedback banner -->
+                <div id="verify-feedback-banner" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
+                    <i class="fa-solid fa-barcode text-amber-400"></i>
+                    <span id="verify-feedback-text">Konteynerni skanerlang yoki ro'yxatdan tekshiring.</span>
+                </div>
+
+                <!-- Active Pastal Boxes List -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs uppercase font-bold text-slate-400">
+                            Ushbu pastaldagi qutilar va konteynerlar:
+                        </h4>
+                        <span id="verify-pastal-box-stats" class="text-xs font-mono font-bold text-slate-300"></span>
+                    </div>
+                    <div id="verify-boxes-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <!-- Boxes rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Controls -->
+            <div class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950">
+                <button type="button" onclick="closeVerifyModal()"
+                    class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm touch-btn">
+                    Yopish
+                </button>
+
+                <div class="flex items-center gap-3">
+                    <span id="verify-dispatch-hint" class="text-xs text-rose-400 font-bold hidden sm:inline">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha pastallar (20/20) to'liq o'tishi shart
+                    </span>
+                    <button type="button" id="verify-dispatch-btn" disabled onclick="submitVerifyDispatch()"
+                        class="px-6 py-3 rounded-2xl bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl transition-all">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        <span>Yuk xati uchun jo'natish</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 3: UYCHI FILIALI — YUK XATINI TEKSHIRUVGA OLISH VA SAQLASH -->
+    <!-- Konteyner scan qilinadi, qutini avtomatik taniydi, saqlash     -->
+    <!-- ============================================================== -->
+    <div id="uychi-receive-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="uychi-modal-title" class="text-base sm:text-lg font-black text-white font-mono">YX-00000000-000</h3>
+                            <span class="px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">Tekshiruvga Olish</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Kosondan kelgan yuk xati konteynerlarini skanerlang</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="uychi-total-progress-badge" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-xs font-bold">
+                        0 / 0 qabul qilindi
+                    </span>
+                    <button type="button" onclick="closeUychiReceiveModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg touch-btn">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Scanner + Pastals & Boxes Accordion) -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                <!-- Scanner Input -->
+                <div class="relative">
+                    <input type="text" id="uychi-modal-scan-input" autocomplete="off"
+                        placeholder="Konteyner QR kodini uring (KONT-000123)..."
+                        class="w-full px-4 py-3.5 bg-slate-950 border-2 border-emerald-500/70 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-emerald-400 scanner-glow">
+                </div>
+
+                <!-- Live feedback banner -->
+                <div id="uychi-feedback-banner" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold min-h-[2.5rem] flex items-center gap-2 text-slate-300">
+                    <i class="fa-solid fa-qrcode text-emerald-400"></i>
+                    <span id="uychi-feedback-text">Kelgan konteyner QR kodini skanerlang — quti avtomatik aniqlanadi.</span>
+                </div>
+
+                <!-- Pastals & Boxes List -->
+                <div id="uychi-pastals-container" class="space-y-3">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Footer Controls -->
+            <div class="p-4 sm:p-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950">
+                <button type="button" onclick="closeUychiReceiveModal()"
+                    class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm touch-btn">
+                    Bekor Qilish
+                </button>
+
+                <div class="flex items-center gap-3">
+                    <span id="uychi-receive-hint" class="text-xs text-slate-400 font-bold hidden sm:inline"></span>
+                    <button type="button" id="uychi-receive-save-btn" disabled onclick="submitUychiReceive()"
+                        class="px-6 py-3 rounded-2xl bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl transition-all">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Saqlash (Filial Balansiga Tushirish)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CSRF Token -->
     <script>
         const CSRF_TOKEN = '{{ csrf_token }}';
         const CURRENT_BRANCH = '{{ branch }}';
+        const PENDING_SHIPMENTS = {{ pending_shipments_json|default:'[]'|safe }};
+        const INCOMING_SHIPMENTS = {{ incoming_shipments_json|default:'[]'|safe }};
         const SCREENS_DATA = [
             {% for n, code in screens %}
             { id: {{ n }}, code: '{{ code }}' },
@@ -1001,21 +1234,30 @@
         }
 
         function switchShipmentSubTab(tab) {
+            const pendView = document.getElementById('sub-ship-pending-view');
             const loadView = document.getElementById('sub-ship-load-view');
             const recView = document.getElementById('sub-ship-receive-view');
+            const pendBtn = document.getElementById('sub-ship-pending-btn');
             const loadBtn = document.getElementById('sub-ship-load-btn');
             const recBtn = document.getElementById('sub-ship-receive-btn');
 
-            if (tab === 'load') {
-                loadView.classList.remove('hidden');
-                recView.classList.add('hidden');
-                loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-violet-600 text-white shadow-lg shadow-violet-600/20';
-                recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
+            if (pendView) pendView.classList.add('hidden');
+            if (loadView) loadView.classList.add('hidden');
+            if (recView) recView.classList.add('hidden');
+
+            if (pendBtn) pendBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
+            if (loadBtn) loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
+            if (recBtn) recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
+
+            if (tab === 'pending') {
+                if (pendView) pendView.classList.remove('hidden');
+                if (pendBtn) pendBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20';
+            } else if (tab === 'load') {
+                if (loadView) loadView.classList.remove('hidden');
+                if (loadBtn) loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-violet-600 text-white shadow-lg shadow-violet-600/20';
             } else {
-                loadView.classList.add('hidden');
-                recView.classList.remove('hidden');
-                loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
-                recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
+                if (recView) recView.classList.remove('hidden');
+                if (recBtn) recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
             }
         }
     </script>
@@ -1059,6 +1301,11 @@
         }
 
         function toggleUnlinkMode() {
+            if (!isUnlinkMode) {
+                if (!confirm("⚠️ DIQQAT! Konteynerni qutidan ajratish (bo'shatish) rejimini tasdiqlaysizmi?\nBu rejimda skanerlangan konteyner yoki quti bog'lanishdan chiqariladi.")) {
+                    return;
+                }
+            }
             isUnlinkMode = !isUnlinkMode;
             currentBoxCode = null;
             renderBoxCard(null);
@@ -1210,6 +1457,9 @@
         }
 
         async function undoLink(code) {
+            if (!confirm(`⚠️ DIQQAT! ${code} konteynerini qutidan ajratishni (bo'shatishni) tasdiqlaysizmi?`)) {
+                return;
+            }
             const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code });
             if (r.ok) {
                 playSoundSuccess();
@@ -1660,6 +1910,462 @@
                         screen: parseInt(screen, 10),
                         scanned: scanned
                     });
+                }
+            });
+        }
+    </script>
+
+    <!-- ============================================================== -->
+    <!-- LOGIC 3: METO PLANSHET VERIFICATION (HQ) & UYCHI FILIAL QABUL  -->
+    <!-- ============================================================== -->
+    <script>
+        // -------------------------------------------------------------
+        // HQ METO PLANSHET: VERIFY SHIPMENT PASTALS & DISPATCH
+        // -------------------------------------------------------------
+        let currentVerifyShipment = null;
+        let currentVerifyPastalIdx = 0;
+        let verifyScannedMap = new Map(); // batch_id -> Set of scanned container codes
+
+        function startPendingVerification(shipmentId) {
+            const ship = PENDING_SHIPMENTS.find(s => s.shipment_id === shipmentId);
+            if (!ship) {
+                alert("Yuk xati ma'lumotlari topilmadi.");
+                return;
+            }
+            currentVerifyShipment = ship;
+            currentVerifyPastalIdx = 0;
+            verifyScannedMap = new Map();
+            ship.pastals.forEach(p => {
+                verifyScannedMap.set(p.batch_id, new Set());
+            });
+
+            document.getElementById('verify-modal-title').textContent = ship.shipment_number;
+            renderVerifyModal();
+            document.getElementById('verify-shipment-modal').classList.remove('hidden');
+            setTimeout(() => {
+                const inp = document.getElementById('verify-scan-input');
+                if (inp) { inp.value = ''; inp.focus(); }
+            }, 100);
+        }
+
+        function renderVerifyModal() {
+            if (!currentVerifyShipment) return;
+            const ship = currentVerifyShipment;
+            const pTabs = document.getElementById('verify-pastal-tabs');
+            pTabs.innerHTML = '';
+
+            // Render pastal tabs
+            ship.pastals.forEach((p, idx) => {
+                const scannedSet = verifyScannedMap.get(p.batch_id) || new Set();
+                const isDone = (p.boxes_count > 0 && scannedSet.size >= p.boxes_count);
+                const isCurrent = (idx === currentVerifyPastalIdx);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => switchVerifyPastal(idx);
+
+                let bgClass = isCurrent
+                    ? (isDone ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/20' : 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20')
+                    : (isDone ? 'bg-emerald-950/70 border border-emerald-600/60 text-emerald-300 font-bold' : 'bg-slate-900 border border-slate-800 text-slate-300 font-bold hover:bg-slate-800');
+
+                btn.className = `touch-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap ${bgClass}`;
+                btn.innerHTML = `
+                    <span>${p.pastal_code}</span>
+                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono ${isDone ? 'bg-black/20 text-emerald-100' : 'bg-black/20 text-slate-900 font-black'}">
+                        ${isDone ? '✓ ' + p.boxes_count + '/' + p.boxes_count : scannedSet.size + '/' + p.boxes_count}
+                    </span>
+                `;
+                pTabs.append(btn);
+            });
+
+            // Active pastal details
+            const activePastal = ship.pastals[currentVerifyPastalIdx];
+            const scannedSet = verifyScannedMap.get(activePastal.batch_id) || new Set();
+            const isDone = (activePastal.boxes_count > 0 && scannedSet.size >= activePastal.boxes_count);
+
+            // Banner: "undagi 20 ta quti bolsa yuqorida 20/20 otdi bolmaguncha bu pastal qizil turadi hammasi otsa yashil boladi"
+            const banner = document.getElementById('verify-pastal-status-banner');
+            const bText = document.getElementById('verify-banner-text');
+            const bTag = document.getElementById('verify-banner-tag');
+            const bDot = document.getElementById('verify-banner-dot');
+
+            if (isDone) {
+                banner.className = 'p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500 text-emerald-200 text-sm sm:text-base font-black flex items-center justify-between shadow-lg transition-all success-flash';
+                bDot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-400';
+                bText.textContent = `🟢 ${activePastal.boxes_count}/${activePastal.boxes_count} o'tdi (To'liq tekshirildi)`;
+                bTag.className = 'px-2.5 py-1 rounded-lg bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-xs font-mono uppercase';
+                bTag.textContent = 'Yashil holat';
+            } else {
+                banner.className = 'p-4 rounded-2xl bg-rose-950/80 border border-rose-600 text-rose-200 text-sm sm:text-base font-black flex items-center justify-between shadow-lg transition-all';
+                bDot.className = 'w-3.5 h-3.5 rounded-full bg-rose-500 animate-pulse';
+                bText.textContent = `🔴 ${scannedSet.size}/${activePastal.boxes_count} o'tdi (Chala tekshirildi)`;
+                bTag.className = 'px-2.5 py-1 rounded-lg bg-rose-900/60 border border-rose-700 text-rose-300 text-xs font-mono uppercase';
+                bTag.textContent = 'Qizil holat';
+            }
+
+            document.getElementById('verify-pastal-box-stats').textContent = `${activePastal.article_code} · ${activePastal.article_name}`;
+
+            // Render boxes grid
+            const grid = document.getElementById('verify-boxes-grid');
+            grid.innerHTML = '';
+            activePastal.boxes.forEach(b => {
+                const isBoxScanned = b.container && scannedSet.has(b.container);
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
+                    isBoxScanned
+                        ? 'bg-emerald-950/60 border-emerald-500/80 shadow-md shadow-emerald-500/10'
+                        : 'bg-slate-950 border-slate-800'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-black font-mono text-white">Quti #${b.number}</span>
+                        <span class="text-[11px] font-bold text-slate-400">${b.qty} dona</span>
+                    </div>
+                    <div class="my-2">
+                        <span class="px-2.5 py-1 rounded-lg font-mono font-black text-xs block truncate ${
+                            isBoxScanned
+                                ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'
+                                : 'bg-slate-900 text-slate-300 border border-slate-700'
+                        }">
+                            ${b.container || 'Konteynersiz'}
+                        </span>
+                    </div>
+                    <div class="pt-2 border-t ${isBoxScanned ? 'border-emerald-800' : 'border-slate-800'} flex items-center justify-between text-[11px]">
+                        <span class="font-bold ${isBoxScanned ? 'text-emerald-400' : 'text-slate-500'}">
+                            ${isBoxScanned ? '<i class="fa-solid fa-circle-check"></i> O\'tdi' : '<i class="fa-regular fa-clock"></i> Kutilmoqda'}
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-mono">${b.code}</span>
+                    </div>
+                `;
+                grid.append(card);
+            });
+
+            // Total shipment progress
+            let totalBoxesAll = 0;
+            let totalScannedAll = 0;
+            let allPastalsDone = true;
+
+            ship.pastals.forEach(p => {
+                const set = verifyScannedMap.get(p.batch_id) || new Set();
+                totalBoxesAll += p.boxes_count;
+                totalScannedAll += set.size;
+                if (p.boxes_count === 0 || set.size < p.boxes_count) {
+                    allPastalsDone = false;
+                }
+            });
+
+            document.getElementById('verify-total-progress-badge').textContent = `${totalScannedAll} / ${totalBoxesAll} o'tdi`;
+
+            // Dispatch button state
+            const dispatchBtn = document.getElementById('verify-dispatch-btn');
+            const hint = document.getElementById('verify-dispatch-hint');
+            if (allPastalsDone && totalBoxesAll > 0) {
+                dispatchBtn.disabled = false;
+                dispatchBtn.className = 'px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl shadow-emerald-500/30 animate-pulse cursor-pointer';
+                hint.className = 'text-xs text-emerald-400 font-bold hidden sm:inline';
+                hint.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i>Barcha pastallar to\'liq tekshirildi!';
+            } else {
+                dispatchBtn.disabled = true;
+                dispatchBtn.className = 'px-6 py-3 rounded-2xl bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl';
+                hint.className = 'text-xs text-rose-400 font-bold hidden sm:inline';
+                hint.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha pastallar (20/20) to\'liq o\'tishi shart';
+            }
+        }
+
+        function switchVerifyPastal(idx) {
+            if (!currentVerifyShipment) return;
+            currentVerifyPastalIdx = idx;
+            renderVerifyModal();
+            const inp = document.getElementById('verify-scan-input');
+            if (inp) inp.focus();
+        }
+
+        function handleVerifyScan(rawCode) {
+            if (!currentVerifyShipment || !rawCode) return;
+            const ship = currentVerifyShipment;
+            const activePastal = ship.pastals[currentVerifyPastalIdx];
+            const fb = document.getElementById('verify-feedback-text');
+
+            // 1. Check if rawCode matches container in active pastal
+            const inActive = activePastal.boxes.find(b => b.container && b.container.toUpperCase() === rawCode.toUpperCase());
+            if (inActive) {
+                const set = verifyScannedMap.get(activePastal.batch_id);
+                const code = inActive.container;
+                if (set.has(code)) {
+                    playSoundBeep();
+                    fb.textContent = `${code} allaqachon tekshirib bo'lingan.`;
+                } else {
+                    set.add(code);
+                    playSoundSuccess();
+                    fb.textContent = `✅ ${code} o'tdi (Quti #${inActive.number}, ${inActive.qty} dona).`;
+
+                    // Check if active pastal just completed
+                    if (set.size >= activePastal.boxes_count) {
+                        const nextIncompleteIdx = ship.pastals.findIndex((p, i) => {
+                            const s = verifyScannedMap.get(p.batch_id) || new Set();
+                            return s.size < p.boxes_count;
+                        });
+                        if (nextIncompleteIdx !== -1 && nextIncompleteIdx !== currentVerifyPastalIdx) {
+                            setTimeout(() => {
+                                currentVerifyPastalIdx = nextIncompleteIdx;
+                                renderVerifyModal();
+                            }, 500);
+                        }
+                    }
+                }
+                renderVerifyModal();
+                return;
+            }
+
+            // 2. Check if rawCode matches container in another pastal in this shipment
+            for (let i = 0; i < ship.pastals.length; i++) {
+                const p = ship.pastals[i];
+                const match = p.boxes.find(b => b.container && b.container.toUpperCase() === rawCode.toUpperCase());
+                if (match) {
+                    currentVerifyPastalIdx = i;
+                    const set = verifyScannedMap.get(p.batch_id);
+                    const code = match.container;
+                    if (!set.has(code)) {
+                        set.add(code);
+                        playSoundSuccess();
+                        fb.textContent = `✅ ${code} o'tdi (${p.pastal_code}, Quti #${match.number}).`;
+                    } else {
+                        playSoundBeep();
+                        fb.textContent = `${code} allaqachon o'tgan (${p.pastal_code}).`;
+                    }
+                    renderVerifyModal();
+                    return;
+                }
+            }
+
+            // 3. Not in this shipment
+            playSoundError();
+            fb.textContent = `❌ ${rawCode} konteyneri ushbu yuk xatiga tegishli emas!`;
+        }
+
+        async function submitVerifyDispatch() {
+            if (!currentVerifyShipment) return;
+            const ship = currentVerifyShipment;
+            const allScanned = [];
+            verifyScannedMap.forEach(set => {
+                set.forEach(c => allScanned.push(c));
+            });
+
+            if (!confirm(`${ship.shipment_number} yuk xatini Uychiga jo'natishni tasdiqlaysizmi?\nTayyorlov bo'limida chop etish imkoniyati ochiladi.`)) {
+                return;
+            }
+
+            const r = await postJSON(`/tayyorlov/api/shipment/${ship.shipment_id}/dispatch/`, {
+                scanned: allScanned,
+            });
+
+            if (r.ok) {
+                playSoundSuccess();
+                alert(`✅ ${ship.shipment_number} yuk xati Uychiga jo'natildi!\nTayyorlov bo'limida yuk xatini chop etish ochildi.`);
+                closeVerifyModal();
+                location.reload();
+            } else {
+                playSoundError();
+                alert(r.data?.message || "Jo'natishda xatolik yuz berdi");
+            }
+        }
+
+        function closeVerifyModal() {
+            document.getElementById('verify-shipment-modal').classList.add('hidden');
+            currentVerifyShipment = null;
+        }
+
+        // -------------------------------------------------------------
+        // UYCHI FILIALI: RECEIVE SHIPMENT CONTAINERS & SAVE TO BALANCE
+        // -------------------------------------------------------------
+        let currentUychiShipment = null;
+        let uychiScannedContainers = new Set();
+
+        function startUychiReceive(shipmentId) {
+            const ship = INCOMING_SHIPMENTS.find(s => s.shipment_id === shipmentId);
+            if (!ship) {
+                alert("Yuk xati ma'lumotlari topilmadi.");
+                return;
+            }
+            currentUychiShipment = ship;
+            uychiScannedContainers = new Set();
+
+            document.getElementById('uychi-modal-title').textContent = ship.shipment_number;
+            renderUychiModal();
+            document.getElementById('uychi-receive-modal').classList.remove('hidden');
+            setTimeout(() => {
+                const inp = document.getElementById('uychi-modal-scan-input');
+                if (inp) { inp.value = ''; inp.focus(); }
+            }, 100);
+        }
+
+        function renderUychiModal() {
+            if (!currentUychiShipment) return;
+            const ship = currentUychiShipment;
+            const container = document.getElementById('uychi-pastals-container');
+            container.innerHTML = '';
+
+            let totalBoxes = 0;
+            let totalScanned = 0;
+
+            ship.pastals.forEach(p => {
+                totalBoxes += p.boxes_count;
+                let pScanned = 0;
+
+                const pWrap = document.createElement('div');
+                pWrap.className = 'rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden';
+
+                const pHead = document.createElement('div');
+                pHead.className = 'px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-2';
+
+                const bGrid = document.createElement('div');
+                bGrid.className = 'p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2';
+
+                p.boxes.forEach(b => {
+                    const isScanned = b.container && uychiScannedContainers.has(b.container);
+                    if (isScanned) { pScanned++; totalScanned++; }
+
+                    const row = document.createElement('div');
+                    row.className = `p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
+                        isScanned
+                            ? 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200'
+                            : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`;
+                    row.innerHTML = `
+                        <div class="min-w-0">
+                            <span class="font-bold text-xs ${isScanned ? 'text-white' : 'text-slate-300'}">Quti #${b.number}</span>
+                            <span class="text-[11px] block text-slate-400">${b.qty} dona</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-mono font-black text-xs px-2 py-0.5 rounded-lg ${
+                                isScanned ? 'bg-emerald-900 border border-emerald-600 text-emerald-300' : 'bg-slate-950 text-slate-400 border border-slate-700'
+                            }">${b.container || '—'}</span>
+                            <span class="block text-[10px] mt-0.5 font-bold ${isScanned ? 'text-emerald-400' : 'text-slate-500'}">
+                                ${isScanned ? '✅ Qabul qilindi' : '⏳ Kutilmoqda'}
+                            </span>
+                        </div>
+                    `;
+                    bGrid.append(row);
+                });
+
+                const isPastalDone = (p.boxes_count > 0 && pScanned >= p.boxes_count);
+                pHead.innerHTML = `
+                    <div>
+                        <span class="font-mono font-black text-white text-sm">${p.pastal_code}</span>
+                        <span class="text-xs text-slate-400 ml-2">${p.article_code} · ${p.article_name}</span>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-black ${
+                        isPastalDone ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    }">
+                        ${pScanned} / ${p.boxes_count} ta
+                    </span>
+                `;
+
+                pWrap.append(pHead, bGrid);
+                container.append(pWrap);
+            });
+
+            document.getElementById('uychi-total-progress-badge').textContent = `${totalScanned} / ${totalBoxes} qabul qilindi`;
+
+            const saveBtn = document.getElementById('uychi-receive-save-btn');
+            const hint = document.getElementById('uychi-receive-hint');
+            const isAllDone = (totalBoxes > 0 && totalScanned >= totalBoxes);
+
+            if (isAllDone) {
+                saveBtn.disabled = false;
+                saveBtn.className = 'px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl shadow-emerald-500/30 animate-pulse cursor-pointer';
+                hint.innerHTML = '<span class="text-emerald-400"><i class="fa-solid fa-circle-check mr-1"></i>Barcha konteynerlar skanerlandi!</span>';
+            } else {
+                saveBtn.disabled = totalScanned === 0;
+                saveBtn.className = totalScanned > 0
+                    ? 'px-6 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-lg cursor-pointer'
+                    : 'px-6 py-3 rounded-2xl bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed font-black text-sm sm:text-base touch-btn flex items-center gap-2';
+                hint.innerHTML = `<span class="text-slate-400">Qolgan konteynerlar: ${totalBoxes - totalScanned} ta</span>`;
+            }
+        }
+
+        function handleUychiScan(rawCode) {
+            if (!currentUychiShipment || !rawCode) return;
+            const ship = currentUychiShipment;
+            const fb = document.getElementById('uychi-feedback-text');
+
+            // Find container across all pastals
+            let foundBox = null;
+            let foundPastal = null;
+            for (const p of ship.pastals) {
+                const b = p.boxes.find(box => box.container && box.container.toUpperCase() === rawCode.toUpperCase());
+                if (b) {
+                    foundBox = b;
+                    foundPastal = p;
+                    break;
+                }
+            }
+
+            if (foundBox) {
+                const code = foundBox.container;
+                if (uychiScannedContainers.has(code)) {
+                    playSoundBeep();
+                    fb.textContent = `${code} allaqachon qabul qilingan (${foundPastal.pastal_code}).`;
+                } else {
+                    uychiScannedContainers.add(code);
+                    playSoundSuccess();
+                    fb.textContent = `✅ ${code} qabul qilindi → ${foundPastal.pastal_code} (Quti #${foundBox.number}, ${foundBox.qty} dona).`;
+                }
+                renderUychiModal();
+            } else {
+                playSoundError();
+                fb.textContent = `❌ ${rawCode} konteyneri ushbu yuk xatiga tegishli emas!`;
+            }
+        }
+
+        async function submitUychiReceive() {
+            if (!currentUychiShipment) return;
+            const ship = currentUychiShipment;
+            if (!confirm(`${ship.shipment_number} yuk xati bo'yicha pastallarni Uychi filial balansiga saqlashni tasdiqlaysizmi?`)) {
+                return;
+            }
+
+            const r = await postJSON(`/tayyorlov/api/shipment/${ship.shipment_id}/receive-all/`, {
+                scanned: Array.from(uychiScannedContainers),
+            });
+
+            if (r.ok) {
+                playSoundSuccess();
+                alert(`✅ ${ship.shipment_number} bo'yicha barcha pastallar Uychi filial balansiga qabul qilindi!`);
+                closeUychiReceiveModal();
+                location.reload();
+            } else {
+                playSoundError();
+                alert(r.data?.message || "Qabul qilishda xatolik yuz berdi");
+            }
+        }
+
+        function closeUychiReceiveModal() {
+            document.getElementById('uychi-receive-modal').classList.add('hidden');
+            currentUychiShipment = null;
+        }
+
+        // Scanner listeners
+        const verifyScanInput = document.getElementById('verify-scan-input');
+        if (verifyScanInput) {
+            verifyScanInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = verifyScanInput.value.trim();
+                    verifyScanInput.value = '';
+                    handleVerifyScan(val);
+                }
+            });
+        }
+
+        const uychiScanInput = document.getElementById('uychi-modal-scan-input');
+        if (uychiScanInput) {
+            uychiScanInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = uychiScanInput.value.trim();
+                    uychiScanInput.value = '';
+                    handleUychiScan(val);
                 }
             });
         }

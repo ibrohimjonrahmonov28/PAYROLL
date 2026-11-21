@@ -1,8 +1,18 @@
 {% comment %}Skladdagi pastal (c — _card; branch — 'HQ' / 'UYCHI'): kg qabuli (Koson), tayyorlik, patokka berish, Uychiga tanlash.{% endcomment %}
-<div class="bg-slate-900 border {% if c.ready %}border-emerald-800/70{% else %}border-slate-800{% endif %} rounded-2xl p-4 space-y-3">
+<div class="bg-slate-900 border {% if c.pending_verification %}border-amber-500/50 bg-amber-950/10{% elif c.ready %}border-emerald-800/70{% else %}border-slate-800{% endif %} rounded-2xl p-4 space-y-3">
+    {% if c.pending_verification %}
+    <div class="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+        <span class="font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-hourglass-half animate-spin"></i> Planshetda tekshirilmoqda ({{ c.pending_verification.number }})
+        </span>
+        <button type="button" onclick="cancelPendingShipment({{ c.pending_verification.id }})" class="text-rose-400 hover:text-rose-300 hover:underline font-bold text-[11px]">
+            Bekor qilish
+        </button>
+    </div>
+    {% endif %}
     <div class="flex items-start gap-3">
-        {% if branch == 'HQ' and c.ready %}
-        <input type="checkbox" class="ship-pick mt-1 w-5 h-5 accent-amber-500 flex-shrink-0" value="{{ c.batch.id }}" title="Uychiga yuklash uchun tanlash">
+        {% if branch == 'HQ' and c.ready and not c.pending_verification %}
+        <input type="checkbox" class="ship-pick mt-1 w-5 h-5 accent-violet-500 flex-shrink-0" value="{{ c.batch.id }}" title="Uychiga yuklash uchun tanlash">
         {% endif %}
         <div class="flex-1 min-w-0">{% include 'meto_hub/flow/_card_head.html' %}</div>
     </div>

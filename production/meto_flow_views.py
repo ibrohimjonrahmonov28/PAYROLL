@@ -222,6 +222,20 @@ def _card(flow):
     total_tasnif = sum(s['tasnif'] or 0 for s in sizes)
     meto_shift = get_shift_for_timestamp(flow.meto_done_at) if flow.meto_done_at else None
     tasnif_shift = get_shift_for_timestamp(flow.tasnif_done_at) if flow.tasnif_done_at else None
+    pending_sp = ShipmentPastal.objects.filter(
+        batch=batch,
+        status=ShipmentPastal.Status.PENDING,
+        shipment__status=Shipment.Status.PENDING,
+    ).select_related('shipment').first()
+
+    ready = (
+        len(boxes) > 0
+        and all(b.is_printed for b in boxes)
+        and len(linked) == len(boxes)
+        and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))
+        and not pending_sp
+    )
+
     return {
         'flow': flow, 'batch': batch, 'order': order, 'article': article, 'image': image, 'customer': customer,
         'has_ops': has_ops, 'sizes': sizes, 'total_cut': total_cut,
@@ -231,8 +245,8 @@ def _card(flow):
         'linked_count': len(linked),
         'meto_shift': meto_shift,
         'tasnif_shift': tasnif_shift,
-        'ready': (len(boxes) > 0 and all(b.is_printed for b in boxes) and len(linked) == len(boxes)
-                  and (flow.branch != 'HQ' or bool(flow.sklad_received_at and batch.actual_weight_kg))),
+        'ready': ready,
+        'pending_verification': pending_sp.shipment if pending_sp else None,
     }
 
 
@@ -532,8 +546,32 @@ def _ctx_stiker(request):
 
 def _ctx_sklad(request):
     flow_logic.sync_rejected_flows()
-    return {'cards': _flows(stage=PastalFlow.Stage.SKLAD, branch='HQ'), 'incoming': list(_incoming('HQ')),
-            'patok_rows': _patok_rows('HQ'), 'screens': [(n, get_patok_code(n)) for n in flow_logic.KOSON_SCREENS]}
+    pending_shipments = (
+        Shipment.objects.filter(
+            source_branch='HQ',
+            destination_branch='UYCHI',
+            status=Shipment.Status.PENDING,
+        )
+        .prefetch_related('lines__batch__order_item__article', 'lines__batch__items__boxes')
+        .order_by('-id')
+    )
+    recent_dispatched = (
+        Shipment.objects.filter(
+            source_branch='HQ',
+            destination_branch='UYCHI',
+            status=Shipment.Status.IN_TRANSIT,
+        )
+        .prefetch_related('lines__batch')
+        .order_by('-id')[:5]
+    )
+    return {
+        'cards': _flows(stage=PastalFlow.Stage.SKLAD, branch='HQ'),
+        'incoming': list(_incoming('HQ')),
+        'pending_shipments': pending_shipments,
+        'recent_dispatched': recent_dispatched,
+        'patok_rows': _patok_rows('HQ'),
+        'screens': [(n, get_patok_code(n)) for n in flow_logic.KOSON_SCREENS],
+    }
 
 
 def _ctx_uychi(request):
@@ -896,9 +934,15 @@ def api_unlink(request):
 
 @_api('ship_any')
 def api_check(request):
-    ids = [int(x) for x in request.GET.get('batches', '').split(',') if x.strip().isdigit()]
+    shipment_id = request.GET.get('shipment')
+    if shipment_id and shipment_id.isdigit():
+        shipment = get_object_or_404(Shipment.objects.prefetch_related('lines__batch'), id=int(shipment_id))
+        batches = [line.batch for line in shipment.lines.all()]
+    else:
+        ids = [int(x) for x in request.GET.get('batches', '').split(',') if x.strip().isdigit()]
+        batches = list(flow_logic.v2_batches().filter(id__in=ids))
     result = []
-    for batch in flow_logic.v2_batches().filter(id__in=ids):
+    for batch in batches:
         result.append({'batch_id': batch.id, 'pastal': _name(batch), 'rows': flow_logic.check_list(batch)})
     return JsonResponse({'status': 'OK', 'batches': result})
 
@@ -914,6 +958,66 @@ def api_give(request):
     screen = int(data.get('screen') or 0)
     flow_logic.give_to_patok(batch, screen, data.get('scanned') or [], request.user)
     return JsonResponse({'status': 'OK', 'message': f"{_name(batch)} {get_patok_code(screen)}-patokka berildi."})
+
+
+@_api('sklad')
+@require_POST
+def api_shipment_request_verification(request):
+    """Tayyorlov masteri pastallarni tanlab, Meto planshetiga tekshirishga yuboradi."""
+    data = _json(request)
+    batches = list(flow_logic.v2_batches().filter(id__in=[int(x) for x in data.get('batch_ids') or []]))
+    notes = (data.get('notes') or '').strip()
+    shipment = flow_logic.request_verification(batches, request.user, notes=notes)
+    return JsonResponse({
+        'status': 'OK',
+        'shipment_id': shipment.id,
+        'shipment_number': shipment.number,
+        'message': f"{shipment.number}: {len(batches)} ta pastal Meto planshetiga tekshirishga yuborildi."
+    })
+
+
+@_api('sklad')
+@require_POST
+def api_shipment_cancel_verification(request, shipment_id):
+    """Tekshiruv kutilayotgan yuk xatini bekor qilish."""
+    shipment = get_object_or_404(Shipment, id=shipment_id)
+    flow_logic.cancel_verification(shipment, request.user)
+    return JsonResponse({'status': 'OK', 'message': f"{shipment.number} tekshiruvi bekor qilindi."})
+
+
+@_api('ship_any')
+@require_POST
+def api_shipment_dispatch(request, shipment_id):
+    """Meto planshetida barcha konteynerlar tekshirilgach, yuk xati jo'natiladi."""
+    data = _json(request)
+    shipment = get_object_or_404(Shipment, id=shipment_id)
+    scanned = data.get('scanned') or []
+    shipment = flow_logic.dispatch_shipment(
+        shipment, scanned, request.user,
+        vehicle=data.get('vehicle', ''),
+        driver=data.get('driver', ''),
+        phone=data.get('phone', ''),
+        notes=data.get('notes', '')
+    )
+    return JsonResponse({
+        'status': 'OK',
+        'message': f"{shipment.number} yuk xati Uychiga jo'natildi!",
+        'print_url': reverse('meto_hub_shipment_print', args=[shipment.id])
+    })
+
+
+@_api('uychi')
+@require_POST
+def api_shipment_receive_all(request, shipment_id):
+    """Uychi filialida barcha konteynerlar skanerlangach, barcha pastallarni balansga qabul qilish."""
+    data = _json(request)
+    shipment = get_object_or_404(Shipment, id=shipment_id)
+    scanned = data.get('scanned') or []
+    shipment, results = flow_logic.receive_shipment(shipment, scanned, request.user)
+    return JsonResponse({
+        'status': 'OK',
+        'message': f"{shipment.number} bo'yicha barcha pastallar Uychi filial balansiga qabul qilindi!"
+    })
 
 
 @_api('sklad')

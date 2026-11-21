@@ -1257,6 +1257,126 @@ class MetoTabletTest(MetoFlowBase):
         self.assertContains(res, "U1")
         self.assertContains(res, "U6")
 
+    def test_pending_verification_full_cycle(self):
+        # Tayyorlov master selects pastal -> Request verification -> Meto tablet checks & dispatches -> Master prints -> Uychi receives
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {self.items()[0].id: {'boxes': 1}, self.items()[1].id: {'boxes': 1}}, self.sticker)
+        boxes = self.boxes()
+        for b in boxes:
+            b.is_printed = True
+            b.save(update_fields=['is_printed'])
+        c1 = Container.objects.create(number=910, branch='HQ', box=boxes[0], status=Container.Status.FILLED)
+        c2 = Container.objects.create(number=911, branch='HQ', box=boxes[1], status=Container.Status.FILLED)
+
+        flow = self.batch.flow
+        flow.stage = PastalFlow.Stage.SKLAD
+        flow.branch = 'HQ'
+        flow.sklad_received_at = timezone.now()
+        flow.sklad_received_by = self.sklad
+        flow.save()
+        self.batch.actual_weight_kg = Decimal('38.5')
+        self.batch.save(update_fields=['actual_weight_kg'])
+
+        # 1. Tayyorlov bo'limidan tekshirishga yuborish
+        self.client.force_login(self.sklad)
+        req_res = self.client.post(
+            reverse('meto_hub_flow_api_shipment_request_verification'),
+            data={'batch_ids': [self.batch.id]},
+            content_type='application/json'
+        )
+        self.assertEqual(req_res.status_code, 200)
+        shipment_id = req_res.json()['shipment_id']
+        shipment = Shipment.objects.get(id=shipment_id)
+        self.assertEqual(shipment.status, Shipment.Status.PENDING)
+        self.assertEqual(shipment.lines.first().status, ShipmentPastal.Status.PENDING)
+
+        # Tayyorlov sklad sahifasida tekshiruv kutilayotgani ko'rinadi
+        sklad_page = self.client.get(reverse('meto_hub_flow_sklad'))
+        self.assertContains(sklad_page, shipment.number)
+        self.assertContains(sklad_page, "Meto Planshetida tekshiruv kutayotgan")
+
+        # Meto planshetida pending_shipments mavjud
+        self.client.force_login(self.meto)
+        tablet_page = self.client.get(reverse('meto_hub_tablet'))
+        self.assertContains(tablet_page, shipment.number)
+        self.assertContains(tablet_page, "Tekshirishni Boshlash")
+
+        # 2. Meto planshetida konteynerlar tekshirilib jo'natiladi (dispatch)
+        disp_res = self.client.post(
+            reverse('meto_hub_flow_api_shipment_dispatch', args=[shipment.id]),
+            data={'scanned': [c1.code, c2.code], 'driver': 'Ali', 'vehicle': '01A123BC'},
+            content_type='application/json'
+        )
+        self.assertEqual(disp_res.status_code, 200)
+        shipment.refresh_from_db()
+        self.assertEqual(shipment.status, Shipment.Status.IN_TRANSIT)
+        self.assertEqual(shipment.driver_name, 'Ali')
+
+        # 3. Tayyorlov masterida chop etish tugmasi ochiladi
+        self.client.force_login(self.sklad)
+        sklad_page2 = self.client.get(reverse('meto_hub_flow_sklad'))
+        self.assertContains(sklad_page2, "Chop etishga tayyor")
+        self.assertContains(sklad_page2, reverse('meto_hub_shipment_print', args=[shipment.id]))
+
+        # 4. Uychi planshetida kelgan yuk ko'rinadi va qabul qilinadi
+        self.client.force_login(self.uychi)
+        uychi_tablet = self.client.get(f"{reverse('meto_hub_tablet')}?branch=UYCHI")
+        self.assertContains(uychi_tablet, shipment.number)
+        self.assertContains(uychi_tablet, "Tekshiruvga Olish")
+
+        # Uychida barcha konteynerlar skanerlanib balansga saqlanadi
+        rec_res = self.client.post(
+            reverse('meto_hub_flow_api_shipment_receive_all', args=[shipment.id]),
+            data={'scanned': [c1.code, c2.code]},
+            content_type='application/json'
+        )
+        self.assertEqual(rec_res.status_code, 200)
+        shipment.refresh_from_db()
+        self.assertEqual(shipment.status, Shipment.Status.CLOSED)
+
+        flow.refresh_from_db()
+        self.assertEqual(flow.branch, 'UYCHI')
+        self.assertEqual(flow.stage, PastalFlow.Stage.SKLAD)
+
+        c1.refresh_from_db()
+        c2.refresh_from_db()
+        self.assertEqual(c1.branch, 'UYCHI')
+        self.assertEqual(c2.branch, 'UYCHI')
+
+    def test_cancel_verification_flow(self):
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {self.items()[0].id: {'boxes': 1}, self.items()[1].id: {'boxes': 1}}, self.sticker)
+        boxes = self.boxes()
+        for b in boxes:
+            b.is_printed = True
+            b.save(update_fields=['is_printed'])
+        c1 = Container.objects.create(number=920, branch='HQ', box=boxes[0], status=Container.Status.FILLED)
+        c2 = Container.objects.create(number=921, branch='HQ', box=boxes[1], status=Container.Status.FILLED)
+
+        flow = self.batch.flow
+        flow.stage = PastalFlow.Stage.SKLAD
+        flow.branch = 'HQ'
+        flow.sklad_received_at = timezone.now()
+        flow.sklad_received_by = self.sklad
+        flow.save()
+        self.batch.actual_weight_kg = Decimal('38.5')
+        self.batch.save(update_fields=['actual_weight_kg'])
+
+        # Tekshirishga yuborish
+        shipment = meto_flow.request_verification([self.batch], self.sklad)
+        self.assertEqual(shipment.status, Shipment.Status.PENDING)
+
+        # Bekor qilish
+        self.client.force_login(self.sklad)
+        cancel_res = self.client.post(
+            reverse('meto_hub_flow_api_shipment_cancel_verification', args=[shipment.id]),
+            content_type='application/json'
+        )
+        self.assertEqual(cancel_res.status_code, 200)
+        self.assertFalse(Shipment.objects.filter(id=shipment.id).exists())
+        self.assertFalse(ShipmentPastal.objects.filter(batch=self.batch).exists())
+
+
 
 
 

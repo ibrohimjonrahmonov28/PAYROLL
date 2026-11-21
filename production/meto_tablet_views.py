@@ -6,6 +6,7 @@ Planshet uchun maxsus sensorli (touch-first) va shtrix-kod skaneri bilan tezkor 
 3. Patokka berilayotgan yuklarni tekshirish va chiqarish (Line dispatch).
 """
 import functools
+import json
 from collections import OrderedDict
 
 from django.contrib import messages
@@ -187,9 +188,9 @@ def _tablet_incoming(branch):
             'shipment_number': sp.shipment.number,
             'source_branch': sp.shipment.source_branch,
             'destination_branch': sp.shipment.destination_branch,
-            'driver': sp.shipment.driver,
-            'vehicle': sp.shipment.vehicle,
-            'phone': sp.shipment.phone,
+            'driver': sp.shipment.driver_name,
+            'vehicle': sp.shipment.vehicle_number,
+            'phone': sp.shipment.driver_phone,
             'created_at': sp.shipment.created_at,
             'batch_id': sp.batch_id,
             'pastal_code': sp.batch.pastal_code or sp.batch.name,
@@ -200,6 +201,125 @@ def _tablet_incoming(branch):
             'qty': sum(b.quantity for b in boxes),
         })
     return lines
+
+
+def _tablet_pending_shipments():
+    """HQ da tekshiruv kutayotgan yuk xatlari (Tayyorlov bo'limidan tekshirishga yuborilgan)."""
+    shipments = (
+        Shipment.objects.filter(
+            source_branch='HQ',
+            status=Shipment.Status.PENDING,
+        )
+        .prefetch_related(
+            'lines__batch__order_item__order',
+            'lines__batch__order_item__article',
+            'lines__batch__items__boxes',
+        )
+        .order_by('-id')[:20]
+    )
+    result = []
+    for s in shipments:
+        pastals_data = []
+        for line in s.lines.all():
+            batch = line.batch
+            order = batch.order_item.order if batch.order_item else None
+            article = batch.order_item.article if batch.order_item else None
+            boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
+            containers = list(Container.objects.filter(box__in=boxes).select_related('box').order_by('number'))
+            c_codes = [c.code for c in containers]
+            box_rows = []
+            for b in boxes:
+                c = next((cnt for cnt in containers if cnt.box_id == b.id), None)
+                box_rows.append({
+                    'id': b.id,
+                    'code': b.box_code,
+                    'number': b.box_number,
+                    'qty': b.quantity,
+                    'container': c.code if c else None,
+                })
+            pastals_data.append({
+                'batch_id': batch.id,
+                'pastal_code': batch.pastal_code or batch.name,
+                'order_number': order.order_number if order else '—',
+                'article_code': article.code if article else '—',
+                'article_name': article.name if article else '—',
+                'boxes_count': len(boxes),
+                'boxes': box_rows,
+                'containers': c_codes,
+            })
+        result.append({
+            'shipment_id': s.id,
+            'shipment_number': s.number,
+            'destination_branch': s.destination_branch,
+            'created_at': s.created_at.strftime('%H:%M · %d.%m.%Y'),
+            'pastals_count': len(pastals_data),
+            'total_boxes': sum(p['boxes_count'] for p in pastals_data),
+            'pastals': pastals_data,
+        })
+    return result
+
+
+def _tablet_incoming_shipments(branch):
+    """Filialga kelayotgan yuk xatlari (Yuk xati bo'yicha to'liq guruhlangan)."""
+    shipments = (
+        Shipment.objects.filter(
+            destination_branch=branch,
+            status=Shipment.Status.IN_TRANSIT,
+        )
+        .prefetch_related(
+            'lines__batch__order_item__order',
+            'lines__batch__order_item__article',
+            'lines__batch__items__boxes',
+        )
+        .order_by('-id')[:20]
+    )
+    result = []
+    for s in shipments:
+        pastals_data = []
+        for line in s.lines.filter(status=ShipmentPastal.Status.IN_TRANSIT):
+            batch = line.batch
+            order = batch.order_item.order if batch.order_item else None
+            article = batch.order_item.article if batch.order_item else None
+            boxes = [b for item in batch.items.all() for b in item.boxes.all() if b.status != Box.Status.CANCELLED]
+            containers = list(Container.objects.filter(box__in=boxes).select_related('box').order_by('number'))
+            c_codes = [c.code for c in containers]
+            box_rows = []
+            for b in boxes:
+                c = next((cnt for cnt in containers if cnt.box_id == b.id), None)
+                box_rows.append({
+                    'id': b.id,
+                    'code': b.box_code,
+                    'number': b.box_number,
+                    'qty': b.quantity,
+                    'container': c.code if c else None,
+                })
+            pastals_data.append({
+                'line_id': line.id,
+                'batch_id': batch.id,
+                'pastal_code': batch.pastal_code or batch.name,
+                'order_number': order.order_number if order else '—',
+                'article_code': article.code if article else '—',
+                'article_name': article.name if article else '—',
+                'boxes_count': len(boxes),
+                'qty': sum(b.quantity for b in boxes),
+                'boxes': box_rows,
+                'containers': c_codes,
+            })
+        result.append({
+            'shipment_id': s.id,
+            'shipment_number': s.number,
+            'source_branch': s.source_branch,
+            'destination_branch': s.destination_branch,
+            'driver': s.driver_name,
+            'vehicle': s.vehicle_number,
+            'phone': s.driver_phone,
+            'created_at': s.created_at.strftime('%H:%M · %d.%m.%Y'),
+            'pastals_count': len(pastals_data),
+            'total_boxes': sum(p['boxes_count'] for p in pastals_data),
+            'total_qty': sum(p['qty'] for p in pastals_data),
+            'pastals': pastals_data,
+        })
+    return result
 
 
 def _tablet_patok_rows(branch):
@@ -254,14 +374,16 @@ def meto_tablet_view(request):
     screen_range = flow_logic.KOSON_SCREENS if branch == 'HQ' else flow_logic.UYCHI_SCREENS
     screens = [(n, get_patok_code(n)) for n in screen_range]
 
-    # Skladdagi pastallar, kelayotgan yuklar va patokdagi pastallar
+    # Skladdagi pastallar, kelayotgan yuklar, kutilayotgan yuk xatlari va patokdagi pastallar
     sklad_cards = _tablet_sklad_cards(branch)
     incoming = _tablet_incoming(branch)
+    incoming_shipments = _tablet_incoming_shipments(branch)
+    pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
     patok_rows = _tablet_patok_rows(branch)
 
     # Boshlang'ich rejim (default_mode): Uychida quti biriktirish yo'q, yuk qabuli yoki saqlash ochiladi
     if branch == 'UYCHI':
-        default_mode = 'shipment' if incoming else 'storage'
+        default_mode = 'shipment' if incoming_shipments or incoming else 'storage'
     else:
         default_mode = 'link'
 
@@ -284,6 +406,10 @@ def meto_tablet_view(request):
         'sklad_cards': sklad_cards,
         'ready_cards': [c for c in sklad_cards if c['ready']],
         'incoming': incoming,
+        'incoming_shipments': incoming_shipments,
+        'pending_shipments': pending_shipments,
+        'pending_shipments_json': json.dumps(pending_shipments),
+        'incoming_shipments_json': json.dumps(incoming_shipments),
         'patok_rows': patok_rows,
         'screens': screens,
         'recent_events': recent_events,
@@ -304,6 +430,8 @@ def meto_tablet_state_api(request):
 
     sklad_cards = _tablet_sklad_cards(branch)
     incoming = _tablet_incoming(branch)
+    incoming_shipments = _tablet_incoming_shipments(branch)
+    pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
     patok_rows = _tablet_patok_rows(branch)
 
     return JsonResponse({
@@ -316,5 +444,7 @@ def meto_tablet_state_api(request):
         'sklad_cards': sklad_cards,
         'ready_cards': [c for c in sklad_cards if c['ready']],
         'incoming': incoming,
+        'incoming_shipments': incoming_shipments,
+        'pending_shipments': pending_shipments,
         'patok_rows': patok_rows,
     })
