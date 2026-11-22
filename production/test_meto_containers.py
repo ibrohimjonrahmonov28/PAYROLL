@@ -43,10 +43,13 @@ class MetoContainerTest(TestCase):
     def test_label_page_prints_the_range_and_logs_it(self):
         self.create(3)
         res = self.labels(dan='KONT-000001', gacha='2')
-        self.assertContains(res, 'alt="KONT-000001"')
-        self.assertContains(res, 'alt="KONT-000002"')
+        self.assertContains(res, 'alt="KONT-000001"', count=2)   # har konteynerga 2 ta — ikki tomoniga
+        self.assertContains(res, 'alt="KONT-000002"', count=2)
         self.assertNotContains(res, 'alt="KONT-000003"')
         self.assertContains(res, 'size: 100mm 80mm')
+        self.assertContains(res, 'TERRY JAR', count=4)
+        self.assertContains(res, 'mm">2</span>', count=2)   # o'ngdagi raqam nolsiz (000002 emas)
+        self.assertEqual(len(res.context['labels']), 4)
         self.assertEqual(Container.objects.get(number=1).print_count, 1)
         self.assertIsNotNone(Container.objects.get(number=2).last_printed_at)
         self.assertEqual(Container.objects.get(number=3).print_count, 0)
@@ -56,7 +59,7 @@ class MetoContainerTest(TestCase):
 
     def test_label_page_limits(self):
         self.create(3)
-        for params in ({'dan': 1, 'gacha': 501}, {'dan': 50, 'gacha': 60}, {'dan': 'abc'}, {'dan': 3, 'gacha': 1}):
+        for params in ({'dan': 1, 'gacha': 251}, {'dan': 50, 'gacha': 60}, {'dan': 'abc'}, {'dan': 3, 'gacha': 1}):
             self.assertRedirects(self.labels(**params), self.url, fetch_redirect_response=False)
         self.assertFalse(ContainerEvent.objects.filter(action=ContainerEvent.Action.PRINTED).exists())
 
@@ -75,7 +78,7 @@ class MetoContainerTest(TestCase):
 
     def test_print_buttons_after_a_big_creation(self):
         page = self.client.get(self.url, {'yaratildi_dan': 1, 'yaratildi_gacha': 1200})
-        self.assertEqual(page.context['print_chunks'], [(1, 500), (501, 1000), (1001, 1200)])
+        self.assertEqual(page.context['print_chunks'], [(1, 250), (251, 500), (501, 750), (751, 1000), (1001, 1200)])
         self.assertContains(page, 'KONT-000001')
 
     def test_parse_container_code(self):
@@ -92,3 +95,14 @@ class MetoContainerTest(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 302)
         self.create(5)
         self.assertFalse(Container.objects.exists())
+
+    def test_label_number_fills_the_column_but_never_overflows(self):
+        from production.meto_container_views import (LABEL_NUMBER_LENGTH_MM, LABEL_NUMBER_THICK_MM,
+                                                      label_number_font_mm)
+        small, big = float(label_number_font_mm(50)), float(label_number_font_mm(10000))
+        self.assertGreater(small, big)                                   # kam xonali raqam kattaroq
+        self.assertLessEqual(small * 0.77, LABEL_NUMBER_THICK_MM + 0.1)  # ustun kengligidan chiqmaydi
+        for number in (1, 50, 999, 1250, 10000, 99999):
+            size = float(label_number_font_mm(number))
+            self.assertLessEqual(size * 0.556 * len(str(number)), LABEL_NUMBER_LENGTH_MM + 0.1, number)
+        self.assertEqual(label_number_font_mm(10000), '25.9')            # CSS uchun nuqtali satr

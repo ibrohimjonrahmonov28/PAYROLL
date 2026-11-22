@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 1235,
-   "sha256_16": "83dbeea742dfa420"
+   "lines": 1251,
+   "sha256_16": "4060e4e23a71d077"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 190,
-   "sha256_16": "843242724660dc30"
+   "lines": 194,
+   "sha256_16": "8d662cf1973832fe"
   },
   "Dockerfile": {
    "module": "ops",
@@ -506,7 +506,7 @@
   "production/container_services.py": {
    "module": "production.platform",
    "lines": 70,
-   "sha256_16": "63033228158db76b",
+   "sha256_16": "4ffd538c81caa356",
    "symbols": [
     "parse_container_code:23",
     "create_containers:30",
@@ -859,16 +859,17 @@
   },
   "production/meto_container_views.py": {
    "module": "production.meto",
-   "lines": 157,
-   "sha256_16": "70ee08cfe05649c9",
+   "lines": 177,
+   "sha256_16": "3ebee167cb6c29ec",
    "symbols": [
-    "container_access_required:26",
-    "_number:43",
-    "_containers_url:51",
-    "containers_view:57",
-    "container_create_view:110",
-    "container_labels_view:126",
-    "container_detail_view:149"
+    "container_access_required:30",
+    "_number:47",
+    "label_number_font_mm:55",
+    "_containers_url:63",
+    "containers_view:69",
+    "container_create_view:123",
+    "container_labels_view:139",
+    "container_detail_view:169"
    ]
   },
   "production/meto_flow.py": {
@@ -1597,8 +1598,8 @@
   },
   "production/test_meto_containers.py": {
    "module": "tests",
-   "lines": 95,
-   "sha256_16": "33561433e19fdd6c",
+   "lines": 109,
+   "sha256_16": "4751c08ead52abf4",
    "symbols": [
     "MetoContainerTest:13"
    ]
@@ -2058,12 +2059,12 @@
   "templates/meto_hub/container_labels_print.html": {
    "module": "templates",
    "lines": 64,
-   "sha256_16": "02266ea1c485f9bb"
+   "sha256_16": "be514e260e25ef30"
   },
   "templates/meto_hub/containers.html": {
    "module": "templates",
    "lines": 167,
-   "sha256_16": "786029ffb9e2ab45"
+   "sha256_16": "900956c00c9a7694"
   },
   "templates/meto_hub/dashboard.html": {
    "module": "templates",
@@ -2099,6 +2100,31 @@
    "module": "templates",
    "lines": 25,
    "sha256_16": "32b1bf9c731c9e6d"
+  },
+  "templates/meto_hub/flow/_sklad_bottom.html": {
+   "module": "templates",
+   "lines": 4,
+   "sha256_16": "79ce5d947e2c6b3a"
+  },
+  "templates/meto_hub/flow/_sklad_filters.html": {
+   "module": "templates",
+   "lines": 46,
+   "sha256_16": "7dc29b89086cce2c"
+  },
+  "templates/meto_hub/flow/_sklad_js.html": {
+   "module": "templates",
+   "lines": 185,
+   "sha256_16": "8c1a0d572a93d99d"
+  },
+  "templates/meto_hub/flow/_sklad_list.html": {
+   "module": "templates",
+   "lines": 167,
+   "sha256_16": "0be51ec3bd1bf66b"
+  },
+  "templates/meto_hub/flow/_sklad_top.html": {
+   "module": "templates",
+   "lines": 71,
+   "sha256_16": "0e25433263009019"
   },
   "templates/meto_hub/flow/_tasnif_edit.html": {
    "module": "templates",

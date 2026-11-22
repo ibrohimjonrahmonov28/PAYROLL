@@ -792,6 +792,9 @@
     "accounts.models",
     "production.container_services",
     "production.models"
+   ],
+   "lazy": [
+    "production.meto_container_views"
    ]
   },
   "production.test_meto_flow": {
@@ -1514,6 +1517,27 @@
     "meto_hub_flow_api_link",
     "meto_hub_flow_api_resolve",
     "meto_hub_flow_api_unlink"
+   ]
+  },
+  "templates/meto_hub/flow/_sklad_bottom.html": {
+   "includes": [
+    "meto_hub/flow/_incoming.html",
+    "meto_hub/flow/_patok_list.html"
+   ]
+  },
+  "templates/meto_hub/flow/_sklad_js.html": {
+   "url_names": [
+    "meto_hub_flow_api_shipment_cancel_verification",
+    "meto_hub_flow_api_shipment_request_verification",
+    "meto_hub_flow_sklad_receive"
+   ]
+  },
+  "templates/meto_hub/flow/_sklad_top.html": {
+   "includes": [
+    "meto_hub/flow/_incoming.html"
+   ],
+   "url_names": [
+    "meto_hub_shipment_print"
    ]
   },
   "templates/meto_hub/flow/_tasnif_edit.html": {

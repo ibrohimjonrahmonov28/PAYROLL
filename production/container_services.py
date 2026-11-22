@@ -14,7 +14,7 @@ from django.utils import timezone
 from production.models import Container, ContainerEvent
 
 MAX_CREATE = 1000   # bir martada yaratiladigan eng ko'p konteyner
-MAX_PRINT = 500     # bitta yorliq sahifasidagi eng ko'p yorliq
+MAX_PRINT = 250     # bitta yorliq sahifasidagi eng ko'p konteyner (har biriga 2 ta yorliq — 500 sahifa)
 
 _CODE_RE = re.compile(r'^KONT\s*[-:+]?\s*(\d{1,9})$', re.IGNORECASE)
 _DASHES = str.maketrans({c: '-' for c in '‐‑‒–—―−－'})

@@ -1,7 +1,8 @@
 """
 Meto Markazi → "Konteynerlar" tabi (egasi talabi 2026-11-19, yangi meto oqimining 1-bosqichi):
 - yangi yaratish: ketma-ket ID (KONT-000123), katta yoki kichik (ta'mir) turi;
-- yorliq: 100×80 mm (Citizen CL-S703), bir sahifada eng ko'pi MAX_PRINT ta, yo'qolgan yorliq o'sha ID bilan qayta;
+- yorliq: 100×80 mm (Citizen CL-S703), har konteynerga 2 ta (ikki tomoniga), bir sahifada eng ko'pi MAX_PRINT ta konteyner;
+  yo'qolgan yorliq o'sha ID bilan qayta;
 - kuzatish: holat, tur, filial bo'yicha ro'yxat; QR skaner qilinsa konteyner kartochkasi (tarixi bilan) ochiladi.
 Mavjud Meto Markazi oqimiga tegmaydi.
 """
@@ -21,6 +22,9 @@ from production.meto_hub_views import meto_hub_access_required
 from production.models import Container, _generate_qr_data_uri
 
 PAGE_SIZE = 100
+LABEL_COPIES = 2              # har konteynerga 2 ta yorliq — ikki tomoniga (egasi 2026-11-22)
+LABEL_NUMBER_LENGTH_MM = 72   # o'ng ustunda raqam egallaydigan uzunlik (yorliq balandligi 80 mm, chetlari bilan)
+LABEL_NUMBER_THICK_MM = 33    # o'ng ustun kengligi = raqam balandligi chegarasi
 
 
 def container_access_required(*extra_roles):
@@ -46,6 +50,14 @@ def _number(value):
     if text.upper().startswith('KONT'):
         return parse_container_code(text)
     return int(text) if text.isdigit() else None
+
+
+def label_number_font_mm(number):
+    """Yorliqdagi nolsiz raqam shrifti (mm): ko'p xonali raqam ustun uzunligiga sig'sin, kam xonalisi esa ustun
+    kengligini to'ldirsin (Arial: raqam kengligi 0.556em, bosh harf balandligi ~0.72em). CSS uchun nuqtali satr."""
+    digits = len(str(number))
+    size = min(LABEL_NUMBER_THICK_MM / 0.77, LABEL_NUMBER_LENGTH_MM / (digits * 0.556))
+    return f"{size:.1f}"
 
 
 def _containers_url(**params):
@@ -101,6 +113,7 @@ def containers_view(request):
         'print_chunks': print_chunks,
         'max_create': MAX_CREATE,
         'max_print': MAX_PRINT,
+        'max_labels': MAX_PRINT * LABEL_COPIES,
         'can_create': request.user.role != User.Role.UYCHI_SKLAD,
     })
 
@@ -130,7 +143,8 @@ def container_labels_view(request):
         messages.error(request, "Yorliq uchun konteyner raqamlarini to'g'ri kiriting (dan — gacha).")
         return redirect('meto_hub_containers')
     if last - first + 1 > MAX_PRINT:
-        messages.error(request, f"Bir martada ko'pi bilan {MAX_PRINT} ta yorliq chop etiladi — oraliqni bo'ling.")
+        messages.error(request, f"Bir martada ko'pi bilan {MAX_PRINT} ta konteyner ({MAX_PRINT * LABEL_COPIES} ta yorliq) "
+                                f"chop etiladi — oraliqni bo'ling.")
         return redirect('meto_hub_containers')
     containers = list(Container.objects.filter(number__gte=first, number__lte=last).order_by('number'))
     if not containers:
@@ -138,8 +152,14 @@ def container_labels_view(request):
         return redirect('meto_hub_containers')
 
     mark_printed(containers, request.user)
+    labels = []
+    for c in containers:   # bir konteynerning ikkala yorlig'i ketma-ket (ikki tomoniga)
+        label = {'container': c, 'qr': _generate_qr_data_uri(c.code, box_size=10, border=1),
+                 'font_mm': label_number_font_mm(c.number)}
+        labels.extend([label] * LABEL_COPIES)
     return render(request, 'meto_hub/container_labels_print.html', {
-        'labels': [{'container': c, 'qr': _generate_qr_data_uri(c.code, box_size=10, border=1)} for c in containers],
+        'labels': labels,
+        'container_count': len(containers),
         'first_code': containers[0].code,
         'last_code': containers[-1].code,
     })

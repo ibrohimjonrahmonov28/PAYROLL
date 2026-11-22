@@ -35,7 +35,7 @@ kuzatish. Boshqa bo'limlarga havolasiz mustaqil sahifa.
     <div class="bg-amber-950/50 border border-amber-700/70 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div>
             <p class="font-black text-amber-200"><i class="fa-solid fa-circle-check mr-1.5"></i>Yangi konteynerlar: KONT-{{ created_from|stringformat:"06d" }} — KONT-{{ created_to|stringformat:"06d" }}</p>
-            <p class="text-xs text-amber-100/80 mt-0.5">Yorliqlarni chop etib, konteynerlarga yopishtiring (100×80 mm, Citizen CL-S703).</p>
+            <p class="text-xs text-amber-100/80 mt-0.5">Yorliqlarni chop etib, konteynerlarga yopishtiring (100×80 mm, Citizen CL-S703; har konteynerga 2 ta — ikki tomoniga).</p>
         </div>
         <div class="flex flex-wrap gap-2">
             {% for chunk_from, chunk_to in print_chunks %}
@@ -89,8 +89,8 @@ kuzatish. Boshqa bo'limlarga havolasiz mustaqil sahifa.
                             class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
                     </label>
                 </div>
-                <button class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold">Chop etish (100×80 mm)</button>
-                <p class="text-[11px] text-slate-500">Bir martada ko'pi bilan {{ max_print }} ta. Yo'qolgan yorliqni o'sha ID bilan qayta chop eting.</p>
+                <button class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold">Chop etish (100×80 mm, 2 tadan)</button>
+                <p class="text-[11px] text-slate-500">Har konteynerga 2 ta yorliq chiqadi (ikki tomoniga). Bir martada ko'pi bilan {{ max_print }} ta konteyner ({{ max_labels }} ta yorliq). Yo'qolgan yorliqni o'sha ID bilan qayta chop eting.</p>
             </form>
         </div>
 
