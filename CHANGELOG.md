@@ -29,6 +29,21 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `58d08ed`] — 22.11.2026
+* **Turi:** `feat(konteyner)` — Konteyner yorlig'ining yangi formati
+* **Mavzu:** Foydalanuvchi talabi («uni ga chiqadigan stiker ni formati o'zgaradi yani 100 x 80 bo'ladi chap tomonda katta QR kod bo'ladi undan konteyner id yonida terry jar yozuvi va tepadan pastga 0 lar olib tashlangan holatda id bo'ladi. misol id 000050 bo'lsa 50 yoziladi u yuqoridan pastga yoziladi shunda butun list ishlatiladi va har bir pechatda 2 tadan chiqadi bir quti uchun 2 tomoniga»):
+  - **1. Yangi joylashuv:** chapda katta QR, ostida KONT-000050 va TERRY JAR; o'ngda nolsiz raqam (50) yuqoridan pastga, butun balandlik bo'ylab. QR matni o'zgarmagan — eski yorliqlar ham ishlaydi.
+  - **2. Raqam o'lchami:** xonalar soniga qarab (1–3 xonali ~31 mm, 5 xonali ~18 mm), doim yorliqqa sig'adi.
+  - **3. Har konteynerga 2 ta yorliq** (ikki tomoniga), ketma-ket; bir martada 250 ta konteyner (500 ta yorliq).
+  - **4. Ta'mir konteyneri:** qora «TA'MIR KONTEYNERI» belgisi bilan ajraladi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/container_labels_print.html`
+  - `templates/meto_hub/containers.html`
+  - `production/meto_container_views.py`
+  - `production/container_services.py`
+  - `production/test_meto_containers.py`
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `37eeffd`] — 21.11.2026
 * **Turi:** `feat(tayyorlov)` — Bosh sklad: ixcham ro'yxat, filtrlar, qidiruv, Koson/Uychiga jo'natish va jonli yangilanish
 * **Mavzu:** Foydalanuvchi talabi («https://terryjar.uz/tayyorlov/sklad/ da men hozirgina konteynerga qutini biriktirdim ammo bu sahifada o'zgarmasdan turibdi va yana bu yerda ham list emas keyin bu yer sklad emas bosh sklad bo'ladi va bu yerda filterlar bo'lishi kerak stiker chiqmagan konteyner birikmagan va pastal bo'yicha qidirish funksiyalari va uni ham Kosonga Uychiga jo'natish funksiyasi bo'lishi kerak»):
