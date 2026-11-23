@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="uz" class="h-full bg-slate-950 text-slate-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% if active_master %}{{ tab_label }} — {{ active_master_name }}{% else %}Meto &amp; Tasnif Plansheti{% endif %} — TERRY JAR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    {% include 'includes/theme_head.html' with keep_font=True %}
+    <style>
+        :root {
+            --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            font-family: var(--font-sans);
+            letter-spacing: -0.011em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .font-mono, .tabular-nums {
+            font-feature-settings: "tnum" 1, "zero" 1;
+        }
+        @keyframes kiosk-glow {
+            0%, 100% { box-shadow: 0 0 24px rgba(245, 158, 11, 0.18), 0 0 24px rgba(6, 182, 212, 0.18); }
+            50% { box-shadow: 0 0 44px rgba(245, 158, 11, 0.38), 0 0 44px rgba(6, 182, 212, 0.38); }
+        }
+        .kiosk-qr-glow {
+            animation: kiosk-glow 2.8s infinite ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="min-h-full flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
+
+{% if not active_master %}
+    <!-- =====================================================================
+         1-HOLAT: KUTISH EKRANI (STANDBY) — QR BIRKA SKANERLASH
+    ====================================================================== -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 h-16 flex items-center justify-between gap-4 flex-shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-cyan-500 flex items-center justify-center text-slate-950 text-lg shadow-lg flex-shrink-0">
+                <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-base font-black tracking-tight text-white truncate">Meto &amp; Tasnif</span>
+                    <span class="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-black text-amber-400 uppercase tracking-wider">Planshet</span>
+                </div>
+                <span class="text-[11px] text-slate-400 font-medium block truncate">Umumiy QR-birka stoli · TERRY JAR</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+            <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 text-xs font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                {{ current_shift.shift_name }}
+            </span>
+            <span id="kiosk-clock" class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-sm font-black font-mono tabular-nums text-white">--:--</span>
+            {% include 'includes/theme_toggle.html' with compact=True %}
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="max-w-3xl mx-auto px-4 mt-4 w-full space-y-2">
+        {% for message in messages %}
+        <div class="p-3.5 rounded-xl text-sm font-semibold flex items-center justify-between border shadow-md {% if message.tags == 'error' %}bg-rose-950/80 border-rose-800 text-rose-200{% elif message.tags == 'warning' %}bg-amber-950/80 border-amber-800 text-amber-200{% elif message.tags == 'success' %}bg-emerald-950/80 border-emerald-800 text-emerald-200{% else %}bg-slate-900 border-slate-700 text-slate-200{% endif %}">
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid {% if message.tags == 'error' %}fa-circle-xmark text-rose-400{% elif message.tags == 'warning' %}fa-triangle-exclamation text-amber-400{% elif message.tags == 'success' %}fa-circle-check text-emerald-400{% else %}fa-circle-info text-cyan-400{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white px-2 py-1"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="flex-1 flex flex-col items-center justify-center px-4 py-8">
+        <div class="w-full max-w-xl space-y-6">
+            <!-- Asosiy skaner kartochkasi -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-7 sm:p-9 shadow-2xl text-center space-y-6">
+                <div class="w-24 h-24 rounded-3xl bg-slate-950 border-2 border-amber-500/50 mx-auto flex items-center justify-center text-4xl text-amber-400 kiosk-qr-glow">
+                    <i class="fa-solid fa-id-badge"></i>
+                </div>
+
+                <div class="space-y-2">
+                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">
+                        Birkangizni skanerlang
+                    </h1>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        QR birkangizni skanerlaganingizda o'zingizga tegishli bo'lim oynasi avtomatik ochiladi.
+                    </p>
+                </div>
+
+                <!-- 2 rol belgisi -->
+                <div class="grid grid-cols-2 gap-3 text-left">
+                    <div class="rounded-2xl bg-amber-950/40 border border-amber-800/60 px-4 py-3 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-base flex-shrink-0">
+                            <i class="fa-solid fa-tags"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-black text-amber-300 uppercase">Meto masteri</p>
+                            <p class="text-[11px] text-slate-400 truncate">Meto oynasi ochiladi</p>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl bg-cyan-950/40 border border-cyan-800/60 px-4 py-3 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center text-base flex-shrink-0">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-black text-cyan-300 uppercase">Tasnif masteri</p>
+                            <p class="text-[11px] text-slate-400 truncate">Tasnif oynasi ochiladi</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Doim fokusda turuvchi skaner maydoni -->
+                <form id="kiosk-scan-form" class="space-y-3" autocomplete="off">
+                    <div class="flex items-stretch gap-2">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-amber-400 text-lg">
+                                <i class="fa-solid fa-barcode"></i>
+                            </div>
+                            <input type="text" id="kiosk-qr-input" autocomplete="off" autofocus
+                                placeholder="QR birkani skanerlang yoki UID..."
+                                class="w-full h-14 bg-slate-950 border-2 border-amber-500/80 focus:border-cyan-400 rounded-2xl pl-12 pr-10 text-center text-lg sm:text-xl font-black font-mono text-white placeholder-slate-500 outline-none shadow-inner transition">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            </div>
+                        </div>
+                        <button type="submit" id="kiosk-scan-btn"
+                            class="px-5 h-14 rounded-2xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-sm sm:text-base transition flex items-center gap-2 flex-shrink-0 shadow-lg">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                            <span class="hidden sm:inline">Kirish</span>
+                        </button>
+                    </div>
+
+                    <div id="kiosk-scan-msg" class="hidden rounded-2xl px-4 py-3 text-sm font-bold text-left border"></div>
+                </form>
+
+                <div class="text-xs text-slate-400 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>Skaner faol · Faqat Meto va Tasnif masterlari uchun</span>
+                </div>
+            </div>
+
+            <!-- Jonli navbat holati (bir qarashda ko'rish uchun) -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-2">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase text-amber-400">Meto navbati</p>
+                        <p class="text-xl font-black text-white tabular-nums mt-0.5">{{ standby_stats.meto_wait }} <span class="text-xs font-semibold text-slate-400">kutmoqda</span></p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Ishda: <b class="text-slate-200">{{ standby_stats.meto_work }}</b> pastal</p>
+                    </div>
+                    <i class="fa-solid fa-tags text-2xl text-amber-500/35"></i>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-2">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase text-cyan-400">Tasnif navbati</p>
+                        <p class="text-xl font-black text-white tabular-nums mt-0.5">{{ standby_stats.tasnif_wait }} <span class="text-xs font-semibold text-slate-400">kutmoqda</span></p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Ishda: <b class="text-slate-200">{{ standby_stats.tasnif_work }}</b> pastal</p>
+                    </div>
+                    <i class="fa-solid fa-layer-group text-2xl text-cyan-500/35"></i>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="px-4 py-3 text-center text-[11px] text-slate-500 flex items-center justify-center gap-4">
+        <span>Planshet akkaunti: <b class="text-slate-400">{{ request.user.get_full_name|default:request.user.username }}</b></span>
+        {% if request.user.is_superadmin %}
+        <span>·</span>
+        <a href="{% url 'meto_hub_flow' %}" class="hover:text-slate-300 underline-offset-2 hover:underline">Bosh menyu</a>
+        {% endif %}
+    </footer>
+
+    {% include 'meto_hub/_scan_auto_enter.html' %}
+    <script>
+        (function () {
+            const CSRF_TOKEN = '{{ csrf_token }}';
+            const SCAN_URL = "{% url 'meto_hub_flow_kiosk_scan' %}";
+            const input = document.getElementById('kiosk-qr-input');
+            const form = document.getElementById('kiosk-scan-form');
+            const btn = document.getElementById('kiosk-scan-btn');
+            const msgBox = document.getElementById('kiosk-scan-msg');
+            const clockEl = document.getElementById('kiosk-clock');
+
+            // Eski kiosk teginish vaqtini tozalash
+            try {
+                Object.keys(sessionStorage).forEach(k => {
+                    if (k.startsWith('mt_kiosk_touch_')) sessionStorage.removeItem(k);
+                });
+            } catch (e) { }
+
+            function updateClock() {
+                if (!clockEl) return;
+                const d = new Date();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                clockEl.textContent = `${hh}:${mm}`;
+            }
+            updateClock();
+            setInterval(updateClock, 10000);
+
+            let busy = false;
+            let hasError = false;
+            let errClearTimer = null;
+
+            function showMsg(ok, text) {
+                hasError = !ok;
+                msgBox.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-700', 'text-rose-200', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-200');
+                if (ok) {
+                    msgBox.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-200');
+                } else {
+                    msgBox.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-200');
+                }
+                msgBox.textContent = text;
+                clearTimeout(errClearTimer);
+                if (!ok) {
+                    errClearTimer = setTimeout(() => {
+                        hasError = false;
+                    }, 8000);
+                }
+            }
+
+            async function submitCode(raw) {
+                const code = String(raw || '').trim();
+                if (!code || busy) return;
+                busy = true;
+                btn.disabled = true;
+                try {
+                    const res = await fetch(SCAN_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+                        body: JSON.stringify({ code }),
+                    });
+                    const data = await res.json().catch(() => ({ status: 'ERROR', message: 'Server javob bermadi.' }));
+                    if (res.ok && data.status === 'OK') {
+                        const m = data.master || {};
+                        showMsg(true, `Xush kelibsiz, ${m.name || ''} (${m.role_label || ''}) — oyna ochilmoqda...`);
+                        try {
+                            if (m.id) sessionStorage.setItem(`mt_kiosk_touch_${m.id}`, String(Date.now()));
+                        } catch (e) { }
+                        window.location.replace(data.redirect_url || window.location.pathname);
+                        return;
+                    }
+                    showMsg(false, data.message || 'Birka qabul qilinmadi.');
+                    input.value = '';
+                    input.focus();
+                } catch (e) {
+                    showMsg(false, "Aloqa uzildi. Qaytadan skanerlang.");
+                    input.value = '';
+                    input.focus();
+                } finally {
+                    busy = false;
+                    btn.disabled = false;
+                }
+            }
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitCode(input.value);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitCode(input.value);
+                }
+            });
+
+            // Avto-Enter (Zebra/Bluetooth skaner Enter yubormasa ham, to'liq 6 xonali UID yozilganda ham)
+            attachAutoEnter(input, (v) => /^(USER|WORKER|MASTER)\s*[:+\-]\s*\S{3,}$/i.test(v) || /^\d{6}$/.test(v));
+
+            // Fokusni doim skaner maydonida saqlash
+            function ensureFocus() {
+                if (document.activeElement !== input) input.focus();
+            }
+            window.addEventListener('focus', ensureFocus);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('button, a, input')) ensureFocus();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (document.activeElement !== input && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+                    input.focus();
+                }
+            });
+
+            // Kutish ekranidagi navbat sonini har 30 soniyada yangilash (yozuv yoki xato yo'q paytda)
+            setInterval(() => {
+                if (!busy && !hasError && !input.value.trim() && document.visibilityState === 'visible') {
+                    window.location.reload();
+                }
+            }, 30000);
+        })();
+    </script>
+
+{% else %}
+    <!-- =====================================================================
+         2-HOLAT: FAOL MASTER OYNASI (FAQAT METO YOKI FAQAT TASNIF)
+    ====================================================================== -->
+    <header class="bg-slate-900/95 backdrop-blur-md border-b {% if tab == 'meto' %}border-amber-500/40{% else %}border-cyan-500/40{% endif %} sticky top-0 z-40 shadow-md">
+        <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- Chap: Faol bo'lim -->
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg border flex-shrink-0 {% if tab == 'meto' %}bg-amber-500/15 border-amber-500/40 text-amber-400{% else %}bg-cyan-500/15 border-cyan-500/40 text-cyan-400{% endif %}">
+                    <i class="fa-solid {{ section.icon }}"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base sm:text-lg font-black tracking-tight text-white truncate">{{ tab_label }}</span>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border {% if tab == 'meto' %}bg-amber-500/15 border-amber-500/35 text-amber-300{% else %}bg-cyan-500/15 border-cyan-500/35 text-cyan-300{% endif %}">
+                            Planshet
+                        </span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-medium block truncate hidden sm:block">{{ section.desc }}</span>
+                </div>
+            </div>
+
+            <!-- O'ng: Faol master birkasi + 2 daqiqa taymer + Chiqish (Kutish ekraniga) -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-950 border {% if tab == 'meto' %}border-amber-600/50{% else %}border-cyan-600/50{% endif %}">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0 {% if tab == 'meto' %}bg-amber-500 text-slate-950{% else %}bg-cyan-500 text-slate-950{% endif %}">
+                        {{ active_master_initial }}
+                    </div>
+                    <div class="leading-tight min-w-0">
+                        <div class="text-xs sm:text-sm font-black text-white truncate max-w-[180px] sm:max-w-[240px]">{{ active_master_name }}</div>
+                        <div class="flex items-center gap-1.5 text-[10px] font-bold">
+                            <span class="{% if tab == 'meto' %}text-amber-400{% else %}text-cyan-400{% endif %}">{{ active_master_role_label }}</span>
+                            {% if active_master.uid %}
+                            <span class="text-slate-500">·</span>
+                            <span class="font-mono text-slate-400">UID {{ active_master.uid }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Harakatsizlik taymeri -->
+                <div id="kiosk-idle-pill"
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs font-mono font-bold tabular-nums flex items-center gap-1.5"
+                    title="Harakatsiz qolsa avtomatik kutish ekraniga qaytadi">
+                    <i id="kiosk-idle-icon" class="fa-solid fa-hourglass-half text-slate-400 text-[11px]"></i>
+                    <span id="kiosk-idle-text">02:00</span>
+                </div>
+
+                {% include 'includes/theme_toggle.html' with compact=True %}
+
+                <form method="POST" action="{% url 'meto_hub_flow_kiosk_exit' %}" id="kiosk-exit-form">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="px-3.5 sm:px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white text-xs sm:text-sm font-black transition flex items-center gap-1.5 shadow-lg shadow-rose-900/30">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Chiqish</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tezkor xabar (boshqa master skanerlanganda) -->
+    <div id="kiosk-switch-toast" class="hidden max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 mt-3 w-full">
+        <div id="kiosk-switch-toast-inner" class="p-3 rounded-xl text-sm font-bold border"></div>
+    </div>
+
+    {% if messages %}
+    <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full space-y-2">
+        {% for message in messages %}
+        <div class="p-3.5 rounded-xl text-sm font-semibold flex items-center justify-between border shadow-md {% if message.tags == 'error' %}bg-rose-950/80 border-rose-800 text-rose-200{% elif message.tags == 'warning' %}bg-amber-950/80 border-amber-800 text-amber-200{% elif message.tags == 'success' %}bg-emerald-950/80 border-emerald-800 text-emerald-200{% else %}bg-slate-900 border-slate-700 text-slate-200{% endif %}">
+            <div class="flex items-center gap-2.5">
+                {% if message.tags == 'error' %}<i class="fa-solid fa-circle-xmark text-rose-400 text-base"></i>
+                {% elif message.tags == 'warning' %}<i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
+                {% elif message.tags == 'success' %}<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+                {% else %}<i class="fa-solid fa-circle-info text-sky-400 text-base"></i>{% endif %}
+                <span>{{ message }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white px-2 py-1 rounded-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="flex-1 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+        {% include tab_template %}
+    </main>
+
+    <script>
+        (function () {
+            const CSRF_TOKEN = '{{ csrf_token }}';
+            const IDLE_MS = {{ kiosk_idle_seconds|default:120 }} * 1000;
+            const TOUCH_KEY = 'mt_kiosk_touch_{{ active_master.id }}';
+            const EXIT_URL = "{% url 'meto_hub_flow_kiosk_exit' %}";
+            const PING_URL = "{% url 'meto_hub_flow_kiosk_ping' %}";
+            const SCAN_URL = "{% url 'meto_hub_flow_kiosk_scan' %}";
+            const KIOSK_URL = "{% url 'meto_hub_flow_kiosk' %}";
+
+            const idlePill = document.getElementById('kiosk-idle-pill');
+            const idleIcon = document.getElementById('kiosk-idle-icon');
+            const idleText = document.getElementById('kiosk-idle-text');
+
+            let exiting = false;
+
+            function readLastTouch() {
+                try {
+                    const saved = parseInt(sessionStorage.getItem(TOUCH_KEY) || '0', 10);
+                    if (saved > 0) return saved;
+                } catch (e) { }
+                const now = Date.now();
+                writeLastTouch(now);
+                return now;
+            }
+
+            function writeLastTouch(ts) {
+                try { sessionStorage.setItem(TOUCH_KEY, String(ts)); } catch (e) { }
+            }
+
+            let lastTouch = readLastTouch();
+
+            function isEditingOrModalOpen() {
+                const finModal = document.getElementById('tasnif-finish-modal');
+                if (finModal && !finModal.classList.contains('hidden')) return true;
+                const retModal = document.getElementById('tasnif-return-modal');
+                if (retModal && !retModal.classList.contains('hidden')) return true;
+                const hasUnsaved = Array.from(document.querySelectorAll('.meto-qty-input, .meto-note-input'))
+                    .some(el => el.value !== el.defaultValue);
+                if (hasUnsaved) return true;
+                const act = document.activeElement;
+                if (act && (act.tagName === 'INPUT' || act.tagName === 'TEXTAREA' || act.tagName === 'SELECT')) return true;
+                return false;
+            }
+
+            function bumpActivity() {
+                lastTouch = Date.now();
+                writeLastTouch(lastTouch);
+            }
+
+            ['pointerdown', 'touchstart', 'click', 'keydown', 'input', 'scroll'].forEach(evt => {
+                window.addEventListener(evt, bumpActivity, { passive: true });
+            });
+            document.addEventListener('submit', bumpActivity);
+
+            const exitForm = document.getElementById('kiosk-exit-form');
+            if (exitForm) {
+                exitForm.addEventListener('submit', () => {
+                    try { sessionStorage.removeItem(TOUCH_KEY); } catch (e) { }
+                });
+            }
+
+            async function exitToStandby() {
+                if (exiting) return;
+                exiting = true;
+                try { sessionStorage.removeItem(TOUCH_KEY); } catch (e) { }
+                try {
+                    await fetch(EXIT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': CSRF_TOKEN,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json',
+                        },
+                    });
+                } catch (e) { }
+                window.location.replace(KIOSK_URL);
+            }
+
+            function formatMMSS(sec) {
+                const m = Math.floor(sec / 60);
+                const s = sec % 60;
+                return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+
+            function tickIdle() {
+                if (exiting) return;
+                if (isEditingOrModalOpen()) {
+                    bumpActivity();
+                    if (idleText) idleText.textContent = 'Faol';
+                    if (idlePill) {
+                        idlePill.className = 'px-2.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 text-xs font-bold flex items-center gap-1.5';
+                    }
+                    if (idleIcon) idleIcon.className = 'fa-solid fa-pen-to-square text-emerald-400 text-[11px]';
+                    return;
+                }
+                const remMs = IDLE_MS - (Date.now() - lastTouch);
+                if (remMs <= 0) {
+                    exitToStandby();
+                    return;
+                }
+                const remSec = Math.ceil(remMs / 1000);
+                if (idleText) idleText.textContent = formatMMSS(remSec);
+                if (idlePill) {
+                    if (remSec <= 30) {
+                        idlePill.className = 'px-2.5 py-1.5 rounded-xl bg-amber-950/80 border border-amber-600/70 text-amber-300 text-xs font-mono font-black tabular-nums flex items-center gap-1.5';
+                        if (idleIcon) idleIcon.className = 'fa-solid fa-hourglass-end text-amber-400 text-[11px] animate-pulse';
+                    } else {
+                        idlePill.className = 'px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs font-mono font-bold tabular-nums flex items-center gap-1.5';
+                        if (idleIcon) idleIcon.className = 'fa-solid fa-hourglass-half text-slate-400 text-[11px]';
+                    }
+                }
+            }
+
+            tickIdle();
+            setInterval(tickIdle, 1000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') tickIdle();
+            });
+
+            // Faol ish paytida (ayniqsa son kiritilayotganda) server sessiyasini tirik saqlash
+            setInterval(async () => {
+                if (exiting) return;
+                if (!isEditingOrModalOpen() && (Date.now() - lastTouch) >= IDLE_MS) return;
+                try {
+                    const res = await fetch(PING_URL, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
+                    });
+                    if (res.status === 401) {
+                        window.location.replace(KIOSK_URL);
+                    }
+                } catch (e) { }
+            }, 45000);
+
+            // Boshqa master to'g'ridan-to'g'ri birkasini skanerlasa (input/modal ochiq bo'lmaganda) darhol almashtirish
+            let scanBuf = '';
+            let scanLastTs = 0;
+            let scanFlushTimer = null;
+
+            function showSwitchToast(ok, text) {
+                const wrap = document.getElementById('kiosk-switch-toast');
+                const inner = document.getElementById('kiosk-switch-toast-inner');
+                if (!wrap || !inner) return;
+                wrap.classList.remove('hidden');
+                inner.className = ok
+                    ? 'p-3 rounded-xl text-sm font-bold border bg-emerald-950/80 border-emerald-700 text-emerald-200'
+                    : 'p-3 rounded-xl text-sm font-bold border bg-rose-950/80 border-rose-700 text-rose-200';
+                inner.textContent = text;
+                setTimeout(() => wrap.classList.add('hidden'), 5000);
+            }
+
+            async function switchMasterByScan(code) {
+                try {
+                    const res = await fetch(SCAN_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+                        body: JSON.stringify({ code }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.status === 'OK') {
+                        const m = data.master || {};
+                        try {
+                            sessionStorage.removeItem(TOUCH_KEY);
+                            if (m.id) sessionStorage.setItem(`mt_kiosk_touch_${m.id}`, String(Date.now()));
+                        } catch (e) { }
+                        window.location.replace(data.redirect_url || KIOSK_URL);
+                    } else if (data.message) {
+                        showSwitchToast(false, data.message);
+                    }
+                } catch (e) { }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (isEditingOrModalOpen() || e.ctrlKey || e.metaKey || e.altKey) {
+                    scanBuf = '';
+                    return;
+                }
+                const now = Date.now();
+                if (e.key === 'Enter') {
+                    const candidate = scanBuf.trim();
+                    scanBuf = '';
+                    clearTimeout(scanFlushTimer);
+                    if (/^(USER|WORKER|MASTER)\s*[:+\-]\s*\S{3,}$/i.test(candidate)) {
+                        e.preventDefault();
+                        switchMasterByScan(candidate);
+                    }
+                    return;
+                }
+                if (e.key.length === 1) {
+                    if (now - scanLastTs > 90) scanBuf = '';
+                    scanLastTs = now;
+                    scanBuf += e.key;
+                    clearTimeout(scanFlushTimer);
+                    if (/^(USER|WORKER|MASTER)\s*[:+\-]\s*\d{6}$/i.test(scanBuf)) {
+                        const candidate = scanBuf;
+                        scanFlushTimer = setTimeout(() => {
+                            scanBuf = '';
+                            switchMasterByScan(candidate);
+                        }, 250);
+                    }
+                }
+            });
+        })();
+    </script>
+{% endif %}
+
+</body>
+</html>

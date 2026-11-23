@@ -3,6 +3,13 @@
 {% block title %}Tayyorlov Bo'limi — Bosh Menyu{% endblock %}
 
 {% block header_actions %}
+{% if can_mt_kiosk %}
+<a href="{% url 'meto_hub_flow_kiosk' %}" target="_blank"
+    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black transition shadow-sm"
+    title="Meto va Tasnif umumiy QR-birka plansheti">
+    <i class="fa-solid fa-qrcode text-amber-400"></i> Meto / Tasnif (QR)
+</a>
+{% endif %}
 <a href="{% url 'meto_hub_tablet' %}" target="_blank"
     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-black transition shadow-sm">
     <i class="fa-solid fa-tablet-screen-button text-cyan-400"></i> Meto Planshet

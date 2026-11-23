@@ -400,8 +400,23 @@
                                 </span>
                                 {% elif u.role == 'METO' %}
                                 <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                    METO MASTERI
+                                </span>
+                                {% elif u.role == 'TASNIF' %}
+                                <span
                                     class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-900 border border-cyan-300">
-                                    METO / BARKOD
+                                    TASNIF MASTERI
+                                </span>
+                                {% elif u.role == 'METO_SKLAD' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                    TAYYORLOV SKLAD
+                                </span>
+                                {% elif u.role == 'UYCHI_SKLAD' %}
+                                <span
+                                    class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-violet-100 text-violet-900 border border-violet-300">
+                                    UYCHI SKLAD
                                 </span>
                                 {% elif u.role == 'STICKER' %}
                                 <span

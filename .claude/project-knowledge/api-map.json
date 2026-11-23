@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 282,
+ "route_count": 286,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -1468,6 +1468,46 @@
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
     "flow_access_required"
+   ]
+  },
+  {
+   "path": "/tayyorlov/meto-tasnif/",
+   "name": "meto_hub_flow_kiosk",
+   "view": "production.meto_flow_views.meto_tasnif_kiosk_view",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required",
+    "ensure_csrf_cookie"
+   ]
+  },
+  {
+   "path": "/tayyorlov/meto-tasnif/api/scan/",
+   "name": "meto_hub_flow_kiosk_scan",
+   "view": "production.meto_flow_views.api_meto_tasnif_scan",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/meto-tasnif/api/ping/",
+   "name": "meto_hub_flow_kiosk_ping",
+   "view": "production.meto_flow_views.api_meto_tasnif_ping",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required",
+    "require_POST"
+   ]
+  },
+  {
+   "path": "/tayyorlov/meto-tasnif/chiqish/",
+   "name": "meto_hub_flow_kiosk_exit",
+   "view": "production.meto_flow_views.meto_tasnif_kiosk_exit",
+   "urlconf": "production.tayyorlov_urls",
+   "decorators": [
+    "flow_access_required",
+    "require_POST"
    ]
   },
   {

@@ -1718,3 +1718,194 @@ class BoshSkladListTest(MetoFlowBase):
         self.client.force_login(self.tasnif)
         res = self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'})
         self.assertEqual(res.status_code, 302)
+
+
+class MetoTasnifKioskTest(MetoFlowBase):
+    """Meto va Tasnif umumiy QR-birka plansheti (/tayyorlov/meto-tasnif/)."""
+
+    def setUp(self):
+        super().setUp()
+        self.meto2 = User.objects.create_user(
+            username='mf_meto_2', password='x', role=User.Role.METO,
+            first_name='Dilshod', last_name='Karimov',
+        )
+        self.tasnif2 = User.objects.create_user(
+            username='mf_tasnif_2', password='x', role=User.Role.TASNIF,
+            first_name='Malika', last_name='Rustamova',
+        )
+        self.kiosk_url = reverse('meto_hub_flow_kiosk')
+        self.scan_url = reverse('meto_hub_flow_kiosk_scan')
+        self.ping_url = reverse('meto_hub_flow_kiosk_ping')
+        self.exit_url = reverse('meto_hub_flow_kiosk_exit')
+
+    def _scan(self, code):
+        return self.client.post(self.scan_url, json.dumps({'code': code}), content_type='application/json')
+
+    def test_standby_renders_and_rejects_unauthorized_hosts(self):
+        # Ruxsatli planshet akkauntlari kutish ekranini ko'radi
+        for host in (self.admin, self.meto, self.tasnif, self.sklad):
+            self.client.force_login(host)
+            res = self.client.get(self.kiosk_url)
+            self.assertEqual(res.status_code, 200, host.role)
+            self.assertContains(res, 'Birkangizni skanerlang')
+            self.assertIsNone(res.context['active_master'])
+
+        # Stikerchi va Uychi sklad bu planshetni ocholmaydi
+        for forbidden in (self.sticker, self.uychi):
+            self.client.force_login(forbidden)
+            res = self.client.get(self.kiosk_url)
+            self.assertEqual(res.status_code, 302, forbidden.role)
+
+    def test_scan_routes_by_role_and_blocks_other_roles_and_cyrillic(self):
+        self.client.force_login(self.admin)
+
+        # Kirill harf transliteratsiya qilinmaydi — ogohlantirish qaytadi
+        res = self._scan('ЮЗЕР:123456')
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('kirill', res.json()['message'].lower())
+
+        # Boshqa rollar (stikerchi, sklad, superadmin) rad etiladi — faqat Meto va Tasnif
+        for other in (self.sticker, self.sklad, self.admin, self.otk):
+            res = self._scan(f"USER:{other.uid}")
+            self.assertEqual(res.status_code, 403, other.role)
+            self.assertIn('faqat Meto va Tasnif', res.json()['message'])
+
+        # Nofaol master rad etiladi
+        inactive = User.objects.create_user(username='mf_meto_off', password='x', role=User.Role.METO, is_active=False)
+        res = self._scan(f"USER:{inactive.uid}")
+        self.assertEqual(res.status_code, 403)
+
+        # Meto birkasi (USER+ prefiksi bilan ham) -> Meto oynasi
+        res = self._scan(f"USER+{self.meto2.uid}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['master']['tab'], 'meto')
+        page = self.client.get(self.kiosk_url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Dilshod Karimov')
+        self.assertContains(page, 'METO MASTERI')
+        self.assertContains(page, 'Meto kutmoqda')
+        self.assertNotContains(page, 'Tasnif kutmoqda')
+
+        # Tasnif birkasi (plain 6 xonali UID bilan ham) -> darhol Tasnif oynasiga o'tadi
+        res = self._scan(self.tasnif2.uid)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['master']['tab'], 'tasnif')
+        page = self.client.get(self.kiosk_url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Malika Rustamova')
+        self.assertContains(page, 'TASNIF MASTERI')
+        self.assertContains(page, 'Tasnif kutmoqda')
+        self.assertNotContains(page, 'Meto kutmoqda')
+
+    def test_cross_role_actions_attribute_exact_scanned_master(self):
+        """Planshet bitta akkauntda (masalan mf_meto) kirgan bo'lsa ham,
+        skanerlangan Meto va Tasnif masterlarining haqiqiy ismi yoziladi."""
+        self.client.force_login(self.meto)
+
+        # 1) Dilshod (meto2) skanerlaydi → qabul va tugatish Dilshod nomiga yoziladi
+        self.assertEqual(self._scan(f"USER:{self.meto2.uid}").status_code, 200)
+        res = self.client.post(
+            reverse('meto_hub_flow_meto_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+        )
+        self.assertRedirects(res, self.kiosk_url)
+        flow = meto_flow.get_flow(self.batch)
+        self.assertEqual(flow.meto_taken_by, self.meto2)
+
+        # Meto masteri Tasnif amalini bajarolmaydi
+        res_bad = self.client.post(
+            reverse('meto_hub_flow_tasnif_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(res_bad.status_code, 403)
+
+        first, second = self.items()
+        res = self.client.post(
+            reverse('meto_hub_flow_meto_finish', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url, f'qty_{first.id}': '49', f'qty_{second.id}': '40', 'meto_note': 'OK'},
+        )
+        self.assertRedirects(res, self.kiosk_url)
+        flow.refresh_from_db()
+        self.assertEqual(flow.stage, PastalFlow.Stage.TASNIF_WAIT)
+        self.assertEqual(flow.meto_done_by, self.meto2)
+
+        # 2) Chiqish -> kutish ekraniga qaytadi, planshetning o'zi tizimdan chiqmaydi
+        res = self.client.post(self.exit_url)
+        self.assertRedirects(res, self.kiosk_url)
+        standby = self.client.get(self.kiosk_url)
+        self.assertContains(standby, 'Birkangizni skanerlang')
+        self.assertTrue(standby.wsgi_request.user.is_authenticated)
+
+        # Chiqishdan keyin kiosk POST rad etiladi (planshet akkaunti nomidan yozilmaydi!)
+        res_unauth = self.client.post(
+            reverse('meto_hub_flow_tasnif_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(res_unauth.status_code, 401)
+
+        # 3) Malika (tasnif2) o'sha planshetda (host=mf_meto) skanerlaydi → Tasnif amallari Malika nomiga yoziladi
+        self.assertEqual(self._scan(f"USER:{self.tasnif2.uid}").status_code, 200)
+        res = self.client.post(
+            reverse('meto_hub_flow_tasnif_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+        )
+        self.assertRedirects(res, self.kiosk_url)
+        flow.refresh_from_db()
+        self.assertEqual(flow.tasnif_taken_by, self.tasnif2)
+
+        # Tasnif masteri Meto amalini bajarolmaydi
+        res_bad2 = self.client.post(
+            reverse('meto_hub_flow_meto_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(res_bad2.status_code, 403)
+
+        # Tasnif tugatish -> Malika nomiga saqlanadi
+        res = self.client.post(
+            reverse('meto_hub_flow_tasnif_finish', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url, f'qty_{first.id}': '48', f'qty_{second.id}': '40'},
+        )
+        self.assertRedirects(res, self.kiosk_url)
+        flow.refresh_from_db()
+        self.assertEqual(flow.stage, PastalFlow.Stage.SKLAD)
+        self.assertEqual(flow.tasnif_done_by, self.tasnif2)
+
+    def test_server_idle_expiry_and_ping_and_desktop_isolation(self):
+        from production import meto_flow_views as mfv
+
+        self.client.force_login(self.admin)
+        self.assertEqual(self._scan(f"USER:{self.meto2.uid}").status_code, 200)
+
+        # Ping faol sessiyani tirik saqlaydi
+        self.assertEqual(self.client.post(self.ping_url).status_code, 200)
+
+        # Kompyuterdagi oddiy /tayyorlov/meto/ da kiosk sessiyasi ta'sir qilmaydi (admin nomiga yoziladi)
+        res = self.client.post(
+            reverse('meto_hub_flow_meto_take', args=[self.batch.id]),
+            {'next': reverse('meto_hub_flow_meto')},
+        )
+        self.assertRedirects(res, reverse('meto_hub_flow_meto'))
+        self.assertEqual(meto_flow.get_flow(self.batch).meto_taken_by, self.admin)
+
+        # Server zaxira muddati o'tsa kutish ekraniga qaytadi
+        sess = self.client.session
+        sess[mfv.MT_KIOSK_SESSION_AT_KEY] = 1
+        sess.save()
+        res = self.client.get(self.kiosk_url)
+        self.assertIsNone(res.context['active_master'])
+        self.assertContains(res, 'Birkangizni skanerlang')
+        self.assertEqual(self.client.post(self.ping_url).status_code, 401)
+
+    def test_meto_and_tasnif_badges_render_role_labels(self):
+        self.client.force_login(self.admin)
+        res_meto = self.client.get(reverse('superadmin_user_badge', args=[self.meto2.id]))
+        self.assertEqual(res_meto.status_code, 200)
+        self.assertContains(res_meto, 'METO MASTERI')
+
+        res_tasnif = self.client.get(reverse('superadmin_user_badge', args=[self.tasnif2.id]))
+        self.assertEqual(res_tasnif.status_code, 200)
+        self.assertContains(res_tasnif, 'TASNIF MASTERI')
+

@@ -92,7 +92,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
         <button
             class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Ko'rsatish</button>
         {% if q or zakaz or holat != 'faol' or smena %}
-        <a href="{% url 'meto_hub_flow_meto' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
+        <a href="{% if section_reset_url %}{{ section_reset_url }}{% else %}{% url 'meto_hub_flow_meto' %}{% endif %}" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Tozalash</a>
         {% endif %}
         <div class="flex items-center gap-1.5 ml-auto">
             <button type="button" id="btn-auto-refresh"
@@ -136,6 +136,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                     <form method="POST" action="{% url 'meto_hub_flow_meto_take' c.batch.id %}"
                         class="flex justify-end">
                         {% csrf_token %}
+                        {% if kiosk_mode %}<input type="hidden" name="kiosk" value="1">{% endif %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <button
                             class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm">Qabul
@@ -187,6 +188,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                         <form method="POST" action="{% url 'meto_hub_flow_meto_cancel' c.batch.id %}"
                             onsubmit="return confirm('Qabulni bekor qilib, Meto kutmoqdaga qaytarasizmi?');">
                             {% csrf_token %}
+                            {% if kiosk_mode %}<input type="hidden" name="kiosk" value="1">{% endif %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <button type="submit"
                                 class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-300 font-bold text-[11px]">
@@ -197,6 +199,7 @@ jonli kesim→meto farqi, meto izohi, katta xato raqamdan himoya va tugatilganla
                     <form method="POST" action="{% url 'meto_hub_flow_meto_finish' c.batch.id %}"
                         class="space-y-3 meto-finish-form">
                         {% csrf_token %}
+                        {% if kiosk_mode %}<input type="hidden" name="kiosk" value="1">{% endif %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                             {% for s in c.sizes %}

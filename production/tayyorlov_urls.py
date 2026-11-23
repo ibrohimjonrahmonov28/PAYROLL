@@ -15,6 +15,11 @@ urlpatterns = [
     path('', flow.flow_view, name='meto_hub_flow'),
     path('meto/', flow.section_view, {'tab': 'meto'}, name='meto_hub_flow_meto'),
     path('tasnif/', flow.section_view, {'tab': 'tasnif'}, name='meto_hub_flow_tasnif'),
+    # Meto va Tasnif umumiy QR-birka plansheti (kutish ekrani → skaner → rolga qarab Meto yoki Tasnif)
+    path('meto-tasnif/', flow.meto_tasnif_kiosk_view, name='meto_hub_flow_kiosk'),
+    path('meto-tasnif/api/scan/', flow.api_meto_tasnif_scan, name='meto_hub_flow_kiosk_scan'),
+    path('meto-tasnif/api/ping/', flow.api_meto_tasnif_ping, name='meto_hub_flow_kiosk_ping'),
+    path('meto-tasnif/chiqish/', flow.meto_tasnif_kiosk_exit, name='meto_hub_flow_kiosk_exit'),
     path('stiker/', flow.section_view, {'tab': 'stiker'}, name='meto_hub_flow_stiker'),
     # Tayyorlov stiker chiqarish (/stickers/ ning 1 ga 1 nusxasi, Tasnif soni bilan)
     path('stiker/orders/<int:order_id>/', tstiker.tayyorlov_stiker_order_boxes, name='tayyorlov_stiker_order_boxes'),

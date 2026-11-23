@@ -806,6 +806,7 @@
     "production.models"
    ],
    "lazy": [
+    "production",
     "production.models",
     "production.packing_services",
     "production.pastal_info",
@@ -1081,6 +1082,7 @@
   "production/meto_flow_views.py": [
    "meto_hub/flow.html",
    "meto_hub/hub.html",
+   "meto_hub/meto_tasnif_kiosk.html",
    "meto_hub/shipment_print.html"
   ],
   "production/meto_hub_views.py": [
@@ -1613,6 +1615,7 @@
     "tayyorlov/base_tayyorlov.html"
    ],
    "url_names": [
+    "meto_hub_flow_kiosk",
     "meto_hub_tablet",
     "superadmin_dashboard"
    ]

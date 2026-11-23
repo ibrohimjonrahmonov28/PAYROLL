@@ -53,7 +53,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4449,
+  "lines": 4452,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3859,
+  "lines": 3870,
   "depends_on": [
    "accounts.core"
   ]
@@ -248,7 +248,7 @@
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 3941,
+  "lines": 4171,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -335,7 +335,7 @@
    "production/tayyorlov_stiker_views.py",
    "production/tayyorlov_urls.py"
   ],
-  "lines": 3821,
+  "lines": 3826,
   "depends_on": [
    "accounts.core",
    "accounts.superadmin",
@@ -569,7 +569,7 @@
    "templates/tayyorlov/stiker_order_boxes.html",
    "templates/terminal/index.html"
   ],
-  "lines": 58621,
+  "lines": 58686,
   "depends_on": []
  },
  "tests": {
@@ -601,7 +601,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 14443,
+  "lines": 14634,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

@@ -6,6 +6,7 @@ hammasini. Skanerli amallar (biriktirish, konteyner tekshiruvi, patokka berish, 
 import functools
 import json
 import re
+import time
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -16,9 +17,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
-from accounts.models import User
+from accounts.models import User, Worker
 from production import meto_flow as flow_logic
 from production.container_services import parse_container_code
 from production.meto_flow import FlowError, can
@@ -850,6 +852,7 @@ def flow_view(request):
         'filial_cards': filial_cards,
         'utility_cards': utility_cards,
         'summary_pills': summary_pills,
+        'can_mt_kiosk': _can_use_mt_kiosk(request.user),
     })
 
 
@@ -869,9 +872,208 @@ def section_view(request, tab):
         'tab': tab,
         'tab_label': section['label'],
         'tab_template': f"meto_hub/flow/{tab}.html",
+        'section_reset_url': reverse(section['url_name']),
+        'kiosk_mode': False,
     }
     context.update(TAB_CONTEXT[tab](request))
     return render(request, 'meto_hub/flow.html', context)
+
+
+# ------------------------------------------------------------------ Meto & Tasnif umumiy QR-birka plansheti
+
+MT_KIOSK_ROLES = (User.Role.METO, User.Role.TASNIF)
+MT_KIOSK_STEP_ROLE = {'meto': User.Role.METO, 'tasnif': User.Role.TASNIF}
+MT_KIOSK_HOST_ROLES = (User.Role.ADMIN, User.Role.METO, User.Role.TASNIF, User.Role.METO_SKLAD)
+MT_KIOSK_SESSION_USER_KEY = 'mt_kiosk_user_id'
+MT_KIOSK_SESSION_AT_KEY = 'mt_kiosk_last_active'
+MT_KIOSK_IDLE_SECONDS = 120          # 2 daqiqa harakatsizlikdan so'ng kutish ekraniga qaytadi
+MT_KIOSK_SERVER_MAX_IDLE = 600       # 10 daqiqa server zaxira muddati (planshet uxlab qolsa)
+
+_CYRILLIC_RE = re.compile(r'[\u0400-\u04FF]')
+_LONG_DASHES_RE = re.compile(r'[\u2010-\u2015\u2212\uFF0D]')
+_BADGE_PREFIX_RE = re.compile(r'^(USER|WORKER|MASTER)\s*[:+\-]\s*', re.IGNORECASE)
+
+
+def _can_use_mt_kiosk(user):
+    """Umumiy Meto/Tasnif planshetini kim ochib qo'ya oladi (dastlabki kirish)."""
+    return bool(user.is_authenticated and (user.is_superadmin() or user.role in MT_KIOSK_HOST_ROLES))
+
+
+def _clear_mt_kiosk(request):
+    request.session.pop(MT_KIOSK_SESSION_USER_KEY, None)
+    request.session.pop(MT_KIOSK_SESSION_AT_KEY, None)
+    request.session.modified = True
+
+
+def _get_mt_kiosk_user(request):
+    """Sessiyadagi faol Meto/Tasnif masterini qaytaradi (muddati o'tgan yoki roli o'zgargan bo'lsa tozalaydi)."""
+    uid = request.session.get(MT_KIOSK_SESSION_USER_KEY)
+    if not uid:
+        return None
+    last_at = request.session.get(MT_KIOSK_SESSION_AT_KEY)
+    if last_at is not None:
+        try:
+            if int(time.time()) - int(last_at) > MT_KIOSK_SERVER_MAX_IDLE:
+                _clear_mt_kiosk(request)
+                return None
+        except (TypeError, ValueError):
+            _clear_mt_kiosk(request)
+            return None
+    user = User.objects.filter(id=uid, is_active=True, role__in=MT_KIOSK_ROLES).first()
+    if not user:
+        _clear_mt_kiosk(request)
+        return None
+    return user
+
+
+def _is_mt_kiosk_post(request):
+    next_url = (request.POST.get('next') or '').strip()
+    return request.POST.get('kiosk') == '1' or next_url.startswith('/tayyorlov/meto-tasnif/')
+
+
+def _action_user(request):
+    """Kiosk POST da skanerlangan master, oddiy sahifada esa request.user."""
+    return getattr(request, '_mt_actor', request.user)
+
+
+def _parse_badge_user(raw_code):
+    """QR birkadan Meto/Tasnif masterini topadi. Kirill harflar transliteratsiya qilinmaydi — ogohlantiriladi."""
+    text = str(raw_code or '').strip()
+    if not text:
+        return None, "Iltimos, QR birkangizni skanerlang yoki 6 xonali UID kiriting.", 400
+    if _CYRILLIC_RE.search(text):
+        return None, "Klaviatura kirill (ruscha) rejimda! Lotin (EN) ga o'tkazib qayta skanerlang.", 400
+
+    normalized = _LONG_DASHES_RE.sub('-', text)
+    clean = _BADGE_PREFIX_RE.sub('', normalized).strip()
+    if '+' in clean:
+        clean = clean.replace('+', '-')
+    if not clean:
+        return None, "Birka kodi noto'g'ri. Qaytadan skanerlang.", 400
+
+    user = User.objects.filter(Q(uid__iexact=clean) | Q(username__iexact=clean)).first()
+    if not user:
+        worker = Worker.objects.select_related('user').filter(
+            Q(worker_id__iexact=clean) | Q(user__uid__iexact=clean)
+        ).first()
+        if worker and worker.user:
+            user = worker.user
+    if not user:
+        return None, f"Birka topilmadi (Kod: {clean}). Qaytadan skanerlang.", 404
+    if not user.is_active:
+        return None, f"{flow_logic.user_name(user)} hisobi nofaol.", 403
+    if user.role not in MT_KIOSK_ROLES:
+        return (
+            None,
+            f"Bu planshet faqat Meto va Tasnif masterlari uchun! ({flow_logic.user_name(user)} — {user.get_role_display()})",
+            403,
+        )
+    return user, '', 200
+
+
+@flow_access_required
+@ensure_csrf_cookie
+def meto_tasnif_kiosk_view(request):
+    """Meto va Tasnif uchun bitta umumiy planshet: kutish ekrani → QR birka → rolga mos oyna."""
+    if not _can_use_mt_kiosk(request.user):
+        messages.error(request, "Meto / Tasnif planshetiga ruxsatingiz yo'q.")
+        return redirect('meto_hub_flow')
+
+    active_master = _get_mt_kiosk_user(request)
+    if not active_master:
+        flow_logic.ensure_flows()
+        standby_stats = {
+            'meto_wait': PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WAIT).count(),
+            'meto_work': PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WORK).count(),
+            'tasnif_wait': PastalFlow.objects.filter(stage=PastalFlow.Stage.TASNIF_WAIT).count(),
+            'tasnif_work': PastalFlow.objects.filter(stage=PastalFlow.Stage.TASNIF_WORK).count(),
+        }
+        return render(request, 'meto_hub/meto_tasnif_kiosk.html', {
+            'kiosk_mode': True,
+            'active_master': None,
+            'current_shift': get_shift_info(),
+            'standby_stats': standby_stats,
+            'kiosk_idle_seconds': MT_KIOSK_IDLE_SECONDS,
+        })
+
+    tab = 'meto' if active_master.role == User.Role.METO else 'tasnif'
+    section = SECTION_BY_KEY[tab]
+    context = {
+        'kiosk_mode': True,
+        'active_master': active_master,
+        'active_master_name': flow_logic.user_name(active_master),
+        'active_master_initial': (active_master.first_name or active_master.username or 'M')[:1].upper(),
+        'active_master_role_label': "METO MASTERI" if tab == 'meto' else "TASNIF MASTERI",
+        'section': section,
+        'tab': tab,
+        'tab_label': section['label'],
+        'tab_template': f"meto_hub/flow/{tab}.html",
+        'section_reset_url': reverse('meto_hub_flow_kiosk'),
+        'kiosk_idle_seconds': MT_KIOSK_IDLE_SECONDS,
+    }
+    context.update(TAB_CONTEXT[tab](request))
+    return render(request, 'meto_hub/meto_tasnif_kiosk.html', context)
+
+
+@flow_access_required
+@require_POST
+def api_meto_tasnif_scan(request):
+    """QR birkani tekshirib, Meto yoki Tasnif masteri sessiyasini ochadi."""
+    if not _can_use_mt_kiosk(request.user):
+        return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu planshetga ruxsatingiz yo'q."}, status=403)
+    data = _json(request) if request.content_type and 'json' in request.content_type else request.POST
+    raw_code = data.get('code', '')
+    user, error, status_code = _parse_badge_user(raw_code)
+    if not user:
+        return JsonResponse({'status': 'ERROR', 'message': error}, status=status_code)
+
+    request.session[MT_KIOSK_SESSION_USER_KEY] = user.id
+    request.session[MT_KIOSK_SESSION_AT_KEY] = int(time.time())
+    request.session.modified = True
+
+    tab = 'meto' if user.role == User.Role.METO else 'tasnif'
+    return JsonResponse({
+        'status': 'OK',
+        'redirect_url': reverse('meto_hub_flow_kiosk'),
+        'master': {
+            'id': user.id,
+            'name': flow_logic.user_name(user),
+            'uid': user.uid or '',
+            'role': user.role,
+            'role_label': "METO MASTERI" if tab == 'meto' else "TASNIF MASTERI",
+            'tab': tab,
+        },
+    })
+
+
+@flow_access_required
+@require_POST
+def api_meto_tasnif_ping(request):
+    """Faol ish (yoki son kiritish oynasi) paytida kiosk sessiyasini tirik saqlaydi."""
+    if not _can_use_mt_kiosk(request.user):
+        return JsonResponse({'status': 'FORBIDDEN'}, status=403)
+    active_master = _get_mt_kiosk_user(request)
+    if not active_master:
+        return JsonResponse({'status': 'EXPIRED'}, status=401)
+    request.session[MT_KIOSK_SESSION_AT_KEY] = int(time.time())
+    request.session.modified = True
+    return JsonResponse({'status': 'OK'})
+
+
+@flow_access_required
+@require_POST
+def meto_tasnif_kiosk_exit(request):
+    """Masterni chiqarib kutish ekraniga qaytaradi (planshet akkaunti tizimdan chiqmaydi)."""
+    _clear_mt_kiosk(request)
+    is_ajax = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('accept', '')
+        or (request.content_type and 'json' in request.content_type)
+        or request.GET.get('ajax') == '1'
+    )
+    if is_ajax:
+        return JsonResponse({'status': 'OK', 'redirect_url': reverse('meto_hub_flow_kiosk')})
+    return redirect('meto_hub_flow_kiosk')
 
 
 # ------------------------------------------------------------------ formalar (sahifaga qaytadi)
@@ -889,10 +1091,36 @@ def _form_action(step, tab):
                 if is_ajax:
                     return JsonResponse({'status': 'ERROR', 'message': "Faqat POST so'rovi qabul qilinadi."}, status=405)
                 return redirect(_flow_url(tab))
-            if not can(request.user, step):
-                if is_ajax:
-                    return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu amalga ruxsatingiz yo'q."}, status=403)
-                return _deny(request, tab)
+
+            kiosk_post = step in MT_KIOSK_STEP_ROLE and _is_mt_kiosk_post(request)
+            if kiosk_post:
+                if not _can_use_mt_kiosk(request.user):
+                    if is_ajax:
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu amalga ruxsatingiz yo'q."}, status=403)
+                    return _deny(request, tab)
+                actor = _get_mt_kiosk_user(request)
+                if not actor:
+                    msg = "Sessiya yakunlangan — iltimos, QR birkangizni qayta skanerlang."
+                    if is_ajax:
+                        return JsonResponse({'status': 'UNAUTHORIZED', 'message': msg}, status=401)
+                    messages.warning(request, msg)
+                    return redirect('meto_hub_flow_kiosk')
+                if actor.role != MT_KIOSK_STEP_ROLE[step]:
+                    msg = "Sizning birkangiz bu bo'lim amali uchun ruxsatga ega emas."
+                    if is_ajax:
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': msg}, status=403)
+                    messages.error(request, msg)
+                    return redirect('meto_hub_flow_kiosk')
+                request.session[MT_KIOSK_SESSION_AT_KEY] = int(time.time())
+                request.session.modified = True
+                request._mt_actor = actor
+            else:
+                if not can(request.user, step):
+                    if is_ajax:
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu amalga ruxsatingiz yo'q."}, status=403)
+                    return _deny(request, tab)
+                request._mt_actor = request.user
+
             try:
                 message = view(request, *args, **kwargs)
                 if is_ajax:
@@ -906,6 +1134,8 @@ def _form_action(step, tab):
             next_url = (request.POST.get('next') or '').strip()
             if next_url.startswith('/tayyorlov/'):
                 return redirect(next_url)
+            if kiosk_post:
+                return redirect('meto_hub_flow_kiosk')
             return redirect(_flow_url(tab))
         return flow_access_required(wrapper)
     return decorator
@@ -926,35 +1156,35 @@ def _name(batch):
 @_form_action('meto', 'meto')
 def meto_take(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.take_meto(batch, request.user)
+    flow_logic.take_meto(batch, _action_user(request))
     return f"{_name(batch)}: meto boshlandi."
 
 
 @_form_action('meto', 'meto')
 def meto_cancel(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.cancel_meto(batch, request.user)
+    flow_logic.cancel_meto(batch, _action_user(request))
     return f"{_name(batch)}: qabul bekor qilindi, «Meto kutmoqda» ga qaytdi."
 
 
 @_form_action('meto', 'meto')
 def meto_finish(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.finish_meto(batch, _posted_counts(request), request.user, note=request.POST.get('meto_note', ''))
+    flow_logic.finish_meto(batch, _posted_counts(request), _action_user(request), note=request.POST.get('meto_note', ''))
     return f"{_name(batch)}: meto tugadi, tasnifga uzatildi."
 
 
 @_form_action('tasnif', 'tasnif')
 def tasnif_take(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.take_tasnif(batch, request.user)
+    flow_logic.take_tasnif(batch, _action_user(request))
     return f"{_name(batch)}: tasnif boshlandi."
 
 
 @_form_action('tasnif', 'tasnif')
 def tasnif_cancel(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.cancel_tasnif(batch, request.user)
+    flow_logic.cancel_tasnif(batch, _action_user(request))
     return f"{_name(batch)}: qabul bekor qilindi, «Tasnif kutmoqda» ga qaytdi."
 
 
@@ -962,14 +1192,14 @@ def tasnif_cancel(request, batch_id):
 def tasnif_return(request, batch_id):
     batch = _batch(batch_id)
     reason = request.POST.get('reason', '')
-    flow_logic.return_tasnif(batch, request.user, reason=reason)
+    flow_logic.return_tasnif(batch, _action_user(request), reason=reason)
     return f"{_name(batch)}: Meto bo'limiga qaytarildi."
 
 
 @_form_action('tasnif', 'tasnif')
 def tasnif_finish(request, batch_id):
     batch = _batch(batch_id)
-    flow_logic.finish_tasnif(batch, _posted_counts(request), request.user)
+    flow_logic.finish_tasnif(batch, _posted_counts(request), _action_user(request))
     return f"{_name(batch)}: tasnif soni saqlandi, stiker chiqarish ro'yxati va Meto omboriga o'tdi."
 
 
