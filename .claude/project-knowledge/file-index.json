@@ -27,13 +27,13 @@
   },
   "CHANGELOG.md": {
    "module": "ops",
-   "lines": 1251,
-   "sha256_16": "4060e4e23a71d077"
+   "lines": 1266,
+   "sha256_16": "459edb549ee58ff0"
   },
   "CLAUDE.md": {
    "module": "ops",
-   "lines": 194,
-   "sha256_16": "8d662cf1973832fe"
+   "lines": 195,
+   "sha256_16": "58d400f8248b1b74"
   },
   "Dockerfile": {
    "module": "ops",
@@ -859,17 +859,17 @@
   },
   "production/meto_container_views.py": {
    "module": "production.meto",
-   "lines": 177,
-   "sha256_16": "3ebee167cb6c29ec",
+   "lines": 180,
+   "sha256_16": "972bf60bfd300cd4",
    "symbols": [
-    "container_access_required:30",
-    "_number:47",
-    "label_number_font_mm:55",
-    "_containers_url:63",
-    "containers_view:69",
-    "container_create_view:123",
-    "container_labels_view:139",
-    "container_detail_view:169"
+    "container_access_required:32",
+    "_number:49",
+    "label_number_font_mm:57",
+    "_containers_url:66",
+    "containers_view:72",
+    "container_create_view:126",
+    "container_labels_view:142",
+    "container_detail_view:172"
    ]
   },
   "production/meto_flow.py": {
@@ -1598,8 +1598,8 @@
   },
   "production/test_meto_containers.py": {
    "module": "tests",
-   "lines": 109,
-   "sha256_16": "4751c08ead52abf4",
+   "lines": 113,
+   "sha256_16": "d837b4bdbeebb8e8",
    "symbols": [
     "MetoContainerTest:13"
    ]
@@ -2058,8 +2058,8 @@
   },
   "templates/meto_hub/container_labels_print.html": {
    "module": "templates",
-   "lines": 64,
-   "sha256_16": "be514e260e25ef30"
+   "lines": 66,
+   "sha256_16": "86d845fcfdf33f18"
   },
   "templates/meto_hub/containers.html": {
    "module": "templates",

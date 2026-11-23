@@ -48,7 +48,7 @@ class MetoContainerTest(TestCase):
         self.assertNotContains(res, 'alt="KONT-000003"')
         self.assertContains(res, 'size: 100mm 80mm')
         self.assertContains(res, 'TERRY JAR', count=4)
-        self.assertContains(res, 'mm">2</span>', count=2)   # o'ngdagi raqam nolsiz (000002 emas)
+        self.assertContains(res, 'mm"><span>2</span></div>', count=2)   # o'ngdagi raqam nolsiz (000002 emas)
         self.assertEqual(len(res.context['labels']), 4)
         self.assertEqual(Container.objects.get(number=1).print_count, 1)
         self.assertIsNotNone(Container.objects.get(number=2).last_printed_at)
@@ -96,13 +96,17 @@ class MetoContainerTest(TestCase):
         self.create(5)
         self.assertFalse(Container.objects.exists())
 
-    def test_label_number_fills_the_column_but_never_overflows(self):
-        from production.meto_container_views import (LABEL_NUMBER_LENGTH_MM, LABEL_NUMBER_THICK_MM,
-                                                      label_number_font_mm)
-        small, big = float(label_number_font_mm(50)), float(label_number_font_mm(10000))
-        self.assertGreater(small, big)                                   # kam xonali raqam kattaroq
-        self.assertLessEqual(small * 0.77, LABEL_NUMBER_THICK_MM + 0.1)  # ustun kengligidan chiqmaydi
-        for number in (1, 50, 999, 1250, 10000, 99999):
+    def test_label_number_digits_stacked_and_always_fit(self):
+        # egasi 2026-11-23: raqamlar ustma-ust, tik; son kattalashsa ham (1000, 10000) yorliqqa sig'sin
+        from production.meto_container_views import (LABEL_DIGIT_SLOT_EM, LABEL_DIGIT_WIDTH_EM, LABEL_NUMBER_LENGTH_MM,
+                                                      LABEL_NUMBER_THICK_MM, label_number_font_mm)
+        for number in (1, 50, 999, 1000, 1250, 10000, 99999):
             size = float(label_number_font_mm(number))
-            self.assertLessEqual(size * 0.556 * len(str(number)), LABEL_NUMBER_LENGTH_MM + 0.1, number)
-        self.assertEqual(label_number_font_mm(10000), '25.9')            # CSS uchun nuqtali satr
+            self.assertLessEqual(size * LABEL_DIGIT_SLOT_EM * len(str(number)), LABEL_NUMBER_LENGTH_MM + 0.1, number)
+            self.assertLessEqual(size * LABEL_DIGIT_WIDTH_EM, LABEL_NUMBER_THICK_MM + 0.1, number)
+        self.assertGreater(float(label_number_font_mm(50)), float(label_number_font_mm(1000)))
+        self.assertEqual(label_number_font_mm(1000), '22.5')            # CSS uchun nuqtali satr
+        Container.objects.create(number=1000)
+        res = self.labels(dan=1000)
+        self.assertContains(res, 'style="font-size: 22.5mm"><span>1</span><span>0</span><span>0</span><span>0</span></div>',
+                            count=2)

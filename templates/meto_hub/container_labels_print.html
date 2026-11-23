@@ -7,8 +7,9 @@
     {% comment %}
     Konteyner yorliqlari 100×80 mm (Citizen CL-S703), har sahifada bitta yorliq, har konteynerga 2 ta — ikki tomoniga
     (egasi 2026-11-22; production/meto_container_views.py::container_labels_view). Chapda katta QR (matni = KONT-000123),
-    ostida ID va TERRY JAR; o'ngda nolsiz raqam yuqoridan pastga butun balandlik bo'ylab (shrift o'lchami xonalar soniga
-    qarab — label_number_font_mm). Chop etish sahifasi: Kun/Tun mavzusi ulanmagan.
+    ostida ID va TERRY JAR; o'ngda nolsiz raqam — raqamlar ustma-ust, tik, butun balandlik bo'ylab (egasi 2026-11-23;
+    shrift o'lchami xonalar soniga qarab — label_number_font_mm, 1000 ham sig'adi). Chop etish sahifasi: Kun/Tun
+    mavzusi ulanmagan.
     {% endcomment %}
     <style>
         @page { size: 100mm 80mm; margin: 0; }
@@ -25,9 +26,10 @@
         .code { font-family: "Courier New", Courier, monospace; font-size: 4.9mm; font-weight: 900; letter-spacing: -0.1mm; }
         .brand { font-size: 3.5mm; font-weight: 900; letter-spacing: 0.35mm; }
         .kind { padding: 0.6mm 2mm; background: #000; color: #fff; font-size: 3.2mm; font-weight: 900; letter-spacing: 0.3mm; }
-        /* Raqam: yuqoridan pastga (90° o'ngga burilgan), o'ng ustunning butun balandligi bo'ylab, markazda */
+        /* Raqam: raqamlar ustma-ust, tik (har biri alohida qatorda), o'ng ustunning butun balandligi bo'ylab, markazda */
         .num { flex: 1; min-width: 0; height: 74mm; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .num span { writing-mode: vertical-rl; text-orientation: mixed; line-height: 1; font-weight: 900; white-space: nowrap; }
+        .stack { display: flex; flex-direction: column; align-items: center; line-height: 0.8; font-weight: 900; }
+        .stack span { display: block; }
         @media print {
             body { background: #fff; }
             .toolbar { display: none; }
@@ -54,7 +56,7 @@
                 </div>
                 {% if l.container.kind == 'SMALL' %}<div class="kind">TA'MIR KONTEYNERI</div>{% endif %}
             </div>
-            <div class="num"><span style="font-size: {{ l.font_mm }}mm">{{ l.container.number }}</span></div>
+            <div class="num"><div class="stack" style="font-size: {{ l.font_mm }}mm">{% for d in l.digits %}<span>{{ d }}</span>{% endfor %}</div></div>
         </div>
         {% endfor %}
     </div>

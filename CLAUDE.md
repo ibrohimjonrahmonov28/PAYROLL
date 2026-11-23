@@ -129,7 +129,8 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
   - A container emptied at Uychi goes straight back to Koson by truck, and Uychi does no linking (owner, 2026-11-21). So when Koson links an EMPTY container still marked Uychi, `link_container` moves it to HQ and writes a RECEIVED event ("… dan bo'sh qaytdi").
   - Labels are 100×80 mm for the Citizen CL-S703; a lost label is reprinted with the same ID. Layout (owner, 2026-11-22):
      - a big QR on the left with `KONT-000123` and TERRY JAR under it;
-     - on the right, the number without leading zeros, written top to bottom across the full height (`label_number_font_mm` sizes it by digit count);
+     - on the right, the number without leading zeros, its digits stacked upright one under another across the full height (owner, 2026-11-23);
+     - `label_number_font_mm` shrinks the digits by digit count so 1000 and 10000 still fit;
      - SMALL containers also get a black "TA'MIR KONTEYNERI" tag.
      - Every container prints 2 labels in a row, one for each side, up to 250 containers (500 labels) per page.
   - Statuses: EMPTY / FILLED ("Skladda") / IN_TRANSIT / AT_PATOK / IN_REPAIR.

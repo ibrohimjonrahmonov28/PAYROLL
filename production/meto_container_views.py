@@ -23,8 +23,10 @@ from production.models import Container, _generate_qr_data_uri
 
 PAGE_SIZE = 100
 LABEL_COPIES = 2              # har konteynerga 2 ta yorliq — ikki tomoniga (egasi 2026-11-22)
-LABEL_NUMBER_LENGTH_MM = 72   # o'ng ustunda raqam egallaydigan uzunlik (yorliq balandligi 80 mm, chetlari bilan)
-LABEL_NUMBER_THICK_MM = 33    # o'ng ustun kengligi = raqam balandligi chegarasi
+LABEL_NUMBER_LENGTH_MM = 72   # o'ng ustunda raqamlar egallaydigan balandlik (yorliq 80 mm, chetlari bilan)
+LABEL_NUMBER_THICK_MM = 33    # o'ng ustun kengligi = bitta raqam kengligi chegarasi
+LABEL_DIGIT_SLOT_EM = 0.8     # ustma-ust raqamlarning har biriga ajratilgan balandlik (shriftga nisbatan, line-height)
+LABEL_DIGIT_WIDTH_EM = 0.6    # Arial Bold raqam kengligi 0.556em — ozgina zaxira bilan
 
 
 def container_access_required(*extra_roles):
@@ -53,10 +55,11 @@ def _number(value):
 
 
 def label_number_font_mm(number):
-    """Yorliqdagi nolsiz raqam shrifti (mm): ko'p xonali raqam ustun uzunligiga sig'sin, kam xonalisi esa ustun
-    kengligini to'ldirsin (Arial: raqam kengligi 0.556em, bosh harf balandligi ~0.72em). CSS uchun nuqtali satr."""
+    """Yorliqdagi nolsiz raqam shrifti (mm) — raqamlar ustma-ust, tik (egasi 2026-11-23): hamma xonalar o'ng ustun
+    balandligiga sig'sin (har biriga 0.8em), bitta raqam esa ustun kengligidan chiqmasin. 50 — har raqam ~32 mm,
+    1000 — ~16 mm, 10000 — ~13 mm. CSS uchun nuqtali satr (lokalizatsiya vergul qo'ymasin)."""
     digits = len(str(number))
-    size = min(LABEL_NUMBER_THICK_MM / 0.77, LABEL_NUMBER_LENGTH_MM / (digits * 0.556))
+    size = min(LABEL_NUMBER_THICK_MM / LABEL_DIGIT_WIDTH_EM, LABEL_NUMBER_LENGTH_MM / (digits * LABEL_DIGIT_SLOT_EM))
     return f"{size:.1f}"
 
 
@@ -155,7 +158,7 @@ def container_labels_view(request):
     labels = []
     for c in containers:   # bir konteynerning ikkala yorlig'i ketma-ket (ikki tomoniga)
         label = {'container': c, 'qr': _generate_qr_data_uri(c.code, box_size=10, border=1),
-                 'font_mm': label_number_font_mm(c.number)}
+                 'font_mm': label_number_font_mm(c.number), 'digits': list(str(c.number))}
         labels.extend([label] * LABEL_COPIES)
     return render(request, 'meto_hub/container_labels_print.html', {
         'labels': labels,
