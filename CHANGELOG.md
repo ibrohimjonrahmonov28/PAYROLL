@@ -29,6 +29,17 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `f065f1b`] — 23.11.2026
+* **Turi:** `feat(konteyner)` — Yorliqdagi raqamlar ustma-ust, tik
+* **Mavzu:** Foydalanuvchi talabi («raqamlar ustma-ust tik tursin va sonlar kattalashgani sari yani 1000 bo'lsa sig'ishi kerak»):
+  - **1. Ustma-ust raqamlar:** o'ngdagi nolsiz raqamning har xonasi alohida qatorda, tik turadi (50 → 5 tepada, 0 pastda).
+  - **2. Doim sig'adi:** shrift xonalar soniga qarab kichrayadi — 7 ~39 mm, 50 ~32 mm, 999 ~21 mm, 1000 ~16 mm, 10000 ~13 mm.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/container_labels_print.html`
+  - `production/meto_container_views.py`
+  - `production/test_meto_containers.py`
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `58d08ed`] — 22.11.2026
 * **Turi:** `feat(konteyner)` — Konteyner yorlig'ining yangi formati
 * **Mavzu:** Foydalanuvchi talabi («uni ga chiqadigan stiker ni formati o'zgaradi yani 100 x 80 bo'ladi chap tomonda katta QR kod bo'ladi undan konteyner id yonida terry jar yozuvi va tepadan pastga 0 lar olib tashlangan holatda id bo'ladi. misol id 000050 bo'lsa 50 yoziladi u yuqoridan pastga yoziladi shunda butun list ishlatiladi va har bir pechatda 2 tadan chiqadi bir quti uchun 2 tomoniga»):
