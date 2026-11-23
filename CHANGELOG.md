@@ -29,6 +29,19 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `bb9b4f8`] — 23.11.2026
+* **Turi:** `feat(tayyorlov)` — Meto va Tasnif uchun bitta umumiy QR-birkali planshet (`/tayyorlov/meto-tasnif/`)
+* **Mavzu:** Foydalanuvchi talabi («meto va tasnif uchun bitta planshet bo'ladi, masterlar QR kodli birka bilan skaner qilsa o'z oynasi ochiladi, ekran kutishda turadi, kim qilgani aniq ko'rinadi»):
+  - **1. Kutish ekrani va avtomatik yo'naltirish:** `/tayyorlov/meto-tasnif/` doim QR birka kutish ekranida turadi; `METO` birkasi → faqat Meto oynasi, `TASNIF` birkasi → faqat Tasnif oynasi ochiladi. Boshqa rollar hamda kirill klaviatura aniq xabar bilan rad etiladi.
+  - **2. Aniq mualliflik:** barcha qabul, bekor qilish, qaytarish va tugatish amallari planshet akkauntiga emas, QR birkasini skanerlagan master nomiga (`_action_user`) yoziladi; Tasnif kutish kartochkalarida Metoni tugatgan master ham ko'rinadi.
+  - **3. Xavfsiz qaytish va almashtirish:** «Chiqish» tugmasi planshetni tizimdan chiqarmasdan kutish ekraniga qaytaradi; 2 daqiqa harakatsizlik taymeri (modal va son kiritish paytida to'xtab turadi) + boshqa master QR skanerlaganda darhol o'tish; kompyuterdagi oddiy `/tayyorlov/meto/` va `/tayyorlov/tasnif/` o'zgarmagan.
+  - **4. Birka yozuvlari:** bittalik, ommaviy va PDF birkalarda `METO MASTERI` va `TASNIF MASTERI` (shuningdek sklad rollari) aniq ko'rsatiladi.
+* **O'zgartirilgan fayllar:**
+  - `production/tayyorlov_urls.py`, `production/meto_flow_views.py`
+  - `templates/meto_hub/meto_tasnif_kiosk.html`, `templates/meto_hub/hub.html`, `templates/meto_hub/flow/meto.html`, `templates/meto_hub/flow/tasnif.html`
+  - `templates/superadmin/user_badge_print.html`, `templates/superadmin/users_badges_batch_print.html`, `accounts/superadmin_views.py`
+  - `production/test_meto_flow.py` (`MetoTasnifKioskTest`), `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `f065f1b`] — 23.11.2026
 * **Turi:** `feat(konteyner)` — Yorliqdagi raqamlar ustma-ust, tik
 * **Mavzu:** Foydalanuvchi talabi («raqamlar ustma-ust tik tursin va sonlar kattalashgani sari yani 1000 bo'lsa sig'ishi kerak»):
