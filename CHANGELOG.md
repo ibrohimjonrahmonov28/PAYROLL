@@ -29,6 +29,20 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `5ea1a2d`] — 24.11.2026
+* **Turi:** `fix(tayyorlov)` — Beta zakazning hali meto qilinmagan hamma pastali «Meto kutmoqda» da
+* **Mavzu:** Foydalanuvchi talabi («/tayyorlov/meto/ da juda ko'p pastal aslida meto kutilmoqda o'zi negadir lekin faqat 24 ta ko'rinyapti beta belgilangan va hali meto bo'lmaganlar hammasi chiqsin»):
+  - **1. Sabab:** yangi oqim faqat beta belgisi yoqilgandan keyin kesilgan pastallarni olardi; 23.11 da beta qilingan zakazlarning avval kesilgan pastallari tushib qolardi.
+  - **2. Yangi qoida:** beta zakazning eski oqim hali tegmagan (meto tasdiqlamagan, qutisi yo'q, patokka berilmagan, eski yuk xatida emas) har bir pastali, qachon kesilganidan qat'i nazar, yangi oqimda. Eski meto qilgani yoki bot bergani eski oqimda qoladi.
+  - **3. Natija (real ma'lumot nusxasi):** «Meto kutmoqda» 11 → 121.
+  - **4. Matnlar:** «Beta zakazlar» izohi, tasdiqlash oynasi va xabar yangilandi.
+* **O'zgartirilgan fayllar:**
+  - `production/meto_flow.py`
+  - `production/meto_flow_views.py`
+  - `templates/meto_hub/flow/zakazlar.html`
+  - `production/test_meto_flow.py`
+  - `CLAUDE.md`
+
 ### 🔹 [Commit: `35005c7`] — 24.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/meto-tasnif/` plansheti uchun to'liq ekran rejimi
 * **Mavzu:** Kutish ekrani va faol Meto/Tasnif oynasiga `To'liq ekran` / `Oddiy ekran` tugmasi (`F11` bilan ham ishlaydi) qo'shildi; kutish ekranining 30 soniyalik navbat yangilanishi sahifani qayta yuklamasdan (to'liq ekrandan chiqarmasdan) fon orqali yangilanadi; sahifa o'tgandan so'ng to'liq ekran birinchi teginishda avtomatik tiklanadi.
