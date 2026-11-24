@@ -29,6 +29,12 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `35005c7`] — 24.11.2026
+* **Turi:** `feat(tayyorlov)` — `/tayyorlov/meto-tasnif/` plansheti uchun to'liq ekran rejimi
+* **Mavzu:** Kutish ekrani va faol Meto/Tasnif oynasiga `To'liq ekran` / `Oddiy ekran` tugmasi (`F11` bilan ham ishlaydi) qo'shildi; kutish ekranining 30 soniyalik navbat yangilanishi sahifani qayta yuklamasdan (to'liq ekrandan chiqarmasdan) fon orqali yangilanadi; sahifa o'tgandan so'ng to'liq ekran birinchi teginishda avtomatik tiklanadi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/meto_tasnif_kiosk.html`, `production/test_meto_flow.py`
+
 ### 🔹 [Commit: `612f7a7`] — 24.11.2026
 * **Turi:** `feat(tayyorlov)` — `/tayyorlov/meto-tasnif/` login/parolsiz kutish ekrani
 * **Mavzu:** Umumiy Meto va Tasnif plansheti (`/tayyorlov/meto-tasnif/`) endi istalgan qurilmadan login/parol so'ramasdan to'g'ridan-to'g'ri QR-birka kutish ekraniga ochiladi (xuddi `/master-tablet/` kabi). Amallar faqat skanerlangan faol `METO` yoki `TASNIF` masteri sessiyasi bilan bajariladi; oddiy `/tayyorlov/meto/` va `/tayyorlov/tasnif/` sahifalari login himoyasida qoladi.
