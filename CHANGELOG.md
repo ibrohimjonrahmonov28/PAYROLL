@@ -29,6 +29,12 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `cde1dc4`] — 24.11.2026
+* **Turi:** `fix(users)` — `/superadmin/users/` da `Meto masteri` roli, filtrlar va jadval belgilari
+* **Mavzu:** Foydalanuvchi yaratish, tahrirlash va tezkor rol o'zgartirish oynalariga `METO` (`Meto masteri`) hamda `TASNIF` (`Tasnif masteri`) qo'shildi; jadvalda Tayyorlov va boshqa rollar “Oddiy User” o'rniga o'z nomi bilan chiqadigan qilindi; tepadagi filtrga `Meto` va `Tasnif` tablari qo'shildi.
+* **O'zgartirilgan fayllar:**
+  - `templates/superadmin/users.html`, `accounts/superadmin_views.py`, `production/test_meto_flow.py`
+
 ### 🔹 [Commit: `bb9b4f8`] — 23.11.2026
 * **Turi:** `feat(tayyorlov)` — Meto va Tasnif uchun bitta umumiy QR-birkali planshet (`/tayyorlov/meto-tasnif/`)
 * **Mavzu:** Foydalanuvchi talabi («meto va tasnif uchun bitta planshet bo'ladi, masterlar QR kodli birka bilan skaner qilsa o'z oynasi ochiladi, ekran kutishda turadi, kim qilgani aniq ko'rinadi»):
