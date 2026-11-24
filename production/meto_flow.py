@@ -425,6 +425,16 @@ _TICKET_PREFIX = re.compile(r'^(TICKET|TK)\s*[:+]\s*', re.IGNORECASE)
 _BOX_PREFIX = re.compile(r'^(CONTROL|BOX|QUTI)\s*[:+]\s*', re.IGNORECASE)
 
 
+def _box_by_terminal_lookup(raw):
+    """Terminal bilan bir xil bilet qidiruvi (terminal_views.find_ticket_fast, o'zgartirilmagan): zakaz nomida kirill
+    harflari bo'lsa (0410(Шорты), Х5-ДМ 4), US klaviaturadagi skaner ularni yoza olmaydi — TICKET:TK-0410()-1291-O11-290-43F974
+    keladi; terminal bunday biletni oxiridagi quti raqami/kodi va 6 belgili xesh bo'yicha topadi."""
+    from production.terminal_views import find_ticket_fast
+    ticket_id = find_ticket_fast(raw)
+    ticket = Ticket.objects.select_related('box').filter(id=ticket_id).first() if ticket_id else None
+    return ticket.box if ticket else None
+
+
 def resolve_box(raw):
     """Qutining istalgan stikeri: CONTROL:<quti>, TICKET:<bilet>, 8 belgili stiker kodi yoki quti kodi -> Box."""
     text = (raw or '').strip()
@@ -437,14 +447,14 @@ def resolve_box(raw):
         code = _TICKET_PREFIX.sub('', text).replace('+', '-')
         ticket = Ticket.objects.filter(ticket_code__iexact=code).select_related('box').first() \
             or Ticket.objects.filter(stiker_code__iexact=code).select_related('box').first()
-        return ticket.box if ticket else None
+        return ticket.box if ticket else _box_by_terminal_lookup(text)
     code = text.replace('+', '-')
     box = Box.objects.filter(box_code__iexact=code).first()
     if box:
         return box
     ticket = Ticket.objects.filter(stiker_code__iexact=code).select_related('box').first() \
         or Ticket.objects.filter(ticket_code__iexact=code).select_related('box').first()
-    return ticket.box if ticket else None
+    return ticket.box if ticket else _box_by_terminal_lookup(text)
 
 
 def find_container(raw):

@@ -2,15 +2,32 @@
 Avto-Enter (skaner Enter yubormasa ham, qo'lda yozilganda ham): attachAutoEnter(input, isComplete).
 - Skaner: belgilar juda tez keladi (yoki butun matn bir martada) — to'xtagach 250 ms da o'zi yuboriladi.
 - Qo'lda: isComplete(qiymat) rost bo'lsa (masalan to'liq KONT-000050) — 600 ms jim turgach yuboriladi.
+- Chala bilet kodi (2026-11-24): bilet QR'i TICKET:TK-<zakaz>-<quti №>-<quti kodi>-<6 belgili xesh>. Zakaz nomida
+  kirill harfi bo'lsa (0410(Шорты)) US klaviaturadagi skaner o'sha joyda to'xtab qoladi yoki Enter yuboradi — kod
+  ikkiga bo'linib ketardi. Xesh bilan tugamagan TICKET: kodi uchun avto-Enter ham, o'rtadagi Enter ham kod tugaguncha
+  ushlab turiladi (davomi HOLD_MS da kelmasa — borini yuboradi; server terminal kabi oxiridagi xesh bo'yicha topadi).
 Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchilari o'zgarmaydi.
 {% endcomment %}
 <script>
     const FULL_CONTAINER_RE = /^KONT\s*[-:+‐-―−－]?\s*\d{6}$/i;
-    const PREFIXED_CODE_RE = /^(CONTROL|TICKET|TAMIR\d*)\s*[:+]\s*\S{3,}$/i;
+    const PREFIXED_CODE_RE = /^(CONTROL|TAMIR\d*)\s*[:+]\s*\S{3,}$|^(TICKET|TK)\s*[:+].*[-+][A-Z0-9]{6}$/i;
+    const TICKET_START_RE = /^(TICKET|TK)\s*[:+]/i;
+    const TICKET_END_RE = /[-+][A-Z0-9]{6}$/i;
+    const SCAN_HOLD_MS = 1800;
+
+    function isPartialTicket(value) {
+        return TICKET_START_RE.test(value) && !TICKET_END_RE.test(value);
+    }
 
     function attachAutoEnter(input, isComplete) {
         if (!input) return;
         let timer = null, lastAt = 0, fastRun = 0;
+        const submit = (value) => {
+            if (input.value.trim() !== value) return;   // shu orada yana yozildi
+            const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+            ev.autoEnter = true;
+            input.dispatchEvent(ev);
+        };
         input.addEventListener('input', (e) => {
             const now = Date.now();
             const bulk = e.inputType === 'insertFromPaste' || (e.inputType === 'insertText' && (e.data || '').length > 3);
@@ -19,13 +36,26 @@ Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchi
             clearTimeout(timer);
             const value = input.value.trim();
             if (!value) return;
+            if (isPartialTicket(value)) {   // chala bilet kodi — davomini kutamiz
+                timer = setTimeout(() => submit(value), SCAN_HOLD_MS);
+                return;
+            }
             const scanner = fastRun >= 3;
             if (!scanner && !(isComplete && isComplete(value))) return;
-            timer = setTimeout(() => {
-                if (input.value.trim() !== value) return;   // shu orada yana yozildi
-                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-            }, scanner ? 250 : 600);
+            timer = setTimeout(() => submit(value), scanner ? 250 : 600);
         });
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') clearTimeout(timer); });
+        // Skaner kodning o'rtasida Enter yuborsa — kod tugaguncha sahifaning Enter ishlovchisiga o'tkazilmaydi
+        // (document'da capture: input'ning o'z tinglovchilaridan oldin ishlaydi)
+        document.addEventListener('keydown', (e) => {
+            if (e.target !== input || e.key !== 'Enter') return;
+            clearTimeout(timer);
+            if (e.autoEnter) return;
+            const value = input.value.trim();
+            if (isPartialTicket(value)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                timer = setTimeout(() => submit(value), SCAN_HOLD_MS);
+            }
+        }, true);
     }
 </script>

@@ -2050,3 +2050,35 @@ class SharedMetoWaitTest(MetoFlowBase):
         self.assertEqual(first.status, CuttingBatchItem.Status.CUT_ENTERED)
         meto_flow.ensure_flows()
         self.assertTrue(PastalFlow.objects.filter(batch=self.batch).exists())      # supurilmaydi
+
+
+class CyrillicOrderTicketScanTest(MetoFlowBase):
+    """Zakaz nomida kirill harflari (0410(Шорты)): US klaviaturadagi skaner ularni yoza olmaydi — bilet QR'i
+    TICKET:TK-0410()-<quti №>-<quti kodi>-<xesh> bo'lib keladi. Planshet terminal kabi oxiri bo'yicha topadi (2026-11-24)."""
+
+    def setUp(self):
+        super().setUp()
+        Order.objects.filter(id=self.order.id).update(order_number='0410(Шорты)')
+        self.order.refresh_from_db()
+        self.to_sklad()
+        meto_flow.split_boxes(self.batch, {}, self.sticker)
+        self.box = self.boxes()[0]
+        self.ticket = self.box.tickets.exclude(status=Ticket.Status.CANCELLED).first()
+        self.assertIn('Шорты', self.ticket.ticket_code)
+        self.scanned = 'TICKET:' + ''.join(ch for ch in self.ticket.ticket_code if ord(ch) < 128)   # skaner yozgani
+
+    def test_ticket_without_cyrillic_part_resolves_to_its_box(self):
+        self.assertEqual(meto_flow.resolve_box(f"TICKET:{self.ticket.ticket_code}"), self.box)   # to'liq QR
+        self.assertEqual(meto_flow.resolve_box(self.scanned), self.box)                         # kirillsiz
+        tail = self.scanned[self.scanned.index(')'):]                                            # bo'linib qolgan oxiri
+        self.assertEqual(meto_flow.resolve_box(tail), self.box)
+        self.assertIsNone(meto_flow.resolve_box('TICKET:TK-0410('))                              # boshi — topilmaydi
+
+    def test_tablet_links_box_scanned_without_cyrillic(self):
+        self.client.force_login(self.sklad)
+        data = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': self.scanned}).json()
+        self.assertEqual((data['kind'], data['box'], data['problem']), ('box', self.box.box_code, None))
+        container = self.new_containers(1)[0]
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {'box': self.scanned, 'container': container.code})
+        self.assertEqual(res.json()['status'], 'OK')
+        self.assertEqual(Container.objects.get(box=self.box), container)

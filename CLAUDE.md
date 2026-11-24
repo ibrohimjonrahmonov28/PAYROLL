@@ -121,6 +121,9 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
      - On the planshet and the sklad/Uychi link panel, the box and the container can be scanned in either order; the link happens as soon as both are known (owner, 2026-11-21).
      - `api_resolve` returns a `problem` so a bad scan is refused at once. An unknown `KONT-…` says it was never created and names the last one; Cyrillic input gets a "switch to Latin" hint, not transliteration. Long dashes (–, —) count as `-`.
      - Scan inputs auto-submit without Enter (`meto_hub/_scan_auto_enter.html`), either on fast scanner input or on a full `KONT-000123` typed by hand.
+     - Order numbers may contain Cyrillic (`0410(Шорты)`, `Х5-ДМ 4`), and the ticket QR carries them (`TICKET:TK-<order>-<box №>-<box code>-<6-char hash>`). The QR gets denser, and a US-layout scanner can't type those letters: it drops them, pauses or even sends Enter mid-code.
+     - So a `TICKET:` value not yet ending in the hash is held (`isPartialTicket`) and neither auto-Enter nor a mid-code Enter submits it until it completes, or after 1.8 s.
+     - `resolve_box` then falls back to the terminal's own `find_ticket_fast`, which matches the tail `<box №>-<box code>-<hash>` exactly like the payroll terminal does. Don't change the ticket code or QR (golden rule).
   - **Bosh sklad:** `/tayyorlov/sklad/` is called "Bosh sklad" (owner, 2026-11-21). The METO_SKLAD role label is unchanged.
      - Both it and `/tayyorlov/uychi/` show the sklad as a compact list (`_sklad_list.html`).
      - Status filters (`?f=` kg / stiker / kont / tayyor / tekshiruv) are counted in 3 light queries by `_sklad_list_ctx`; cards are built only for the ≤150 shown rows.
