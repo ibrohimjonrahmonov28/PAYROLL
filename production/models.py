@@ -1,6 +1,7 @@
 import io
 import re
 import base64
+import unicodedata
 import uuid
 import secrets
 import string
@@ -1196,6 +1197,38 @@ def generate_unique_box_code():
             cur_num = 1
 
 
+_TICKET_CYRILLIC = {
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'YO', 'Ж': 'J', 'З': 'Z', 'И': 'I', 'Й': 'Y',
+    'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F',
+    'Х': 'X', 'Ц': 'TS', 'Ч': 'CH', 'Ш': 'SH', 'Щ': 'SHCH', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'YU', 'Я': 'YA',
+    'Ў': 'O', 'Қ': 'Q', 'Ғ': 'G', 'Ҳ': 'H', 'Є': 'YE', 'І': 'I', 'Ї': 'YI',
+}
+_TICKET_PUNCT = {'ʻ': "'", 'ʼ': "'", '‘': "'", '’': "'", '–': '-', '—': '-', '−': '-', '«': '', '»': ''}
+TICKET_CODE_MAX = 64
+
+
+def ticket_order_part(order_number):
+    """Bilet kodidagi zakaz qismi (egasi 2026-11-24: yangi stikerlar QR'ida kirill bo'lmasin). Lotincha (ASCII) nom
+    o'zgarishsiz; kirill (rus/o'zbek) va boshqa harfli nom lotinga o'giriladi — 0410(Шорты) -> 0410(SHORTY),
+    Х5-ДМ 4 -> X5-DM 4. Sabab: US klaviaturadagi skaner kirill harfini Alt+raqamlar bilan sekin yozadi (pauza),
+    Android planshetda esa harf umuman tushib qoladi; QR ham zichlashadi. Faqat YANGI biletlar uchun — mavjud
+    kodlar hech qachon o'zgarmaydi (oltin qoida)."""
+    text = str(order_number or '')
+    if text.isascii():
+        return text
+    out = []
+    for ch in text.upper():
+        if ch in _TICKET_CYRILLIC:
+            out.append(_TICKET_CYRILLIC[ch])
+        elif ch in _TICKET_PUNCT:
+            out.append(_TICKET_PUNCT[ch])
+        elif ch.isascii():
+            out.append(ch)
+        else:   # lotin harfi diakritika bilan (É -> E, № -> No), qolgani tashlanadi
+            out.append(unicodedata.normalize('NFKD', ch).encode('ascii', 'ignore').decode())
+    return re.sub(r'\s+', ' ', ''.join(out)).strip() or 'ORD'
+
+
 def generate_unique_stiker_code():
     """Yangi stikerlar uchun 8 xonali unikal harf va raqamlardan iborat kod"""
     alphabet = string.ascii_uppercase + string.digits
@@ -1705,9 +1738,14 @@ class Ticket(models.Model):
         return _generate_qr_data_uri(f"TICKET:{self.ticket_code}", box_size=8, border=1)
 
     def save(self, *args, **kwargs):
-        if not self.ticket_code:
+        if not self.ticket_code:   # faqat YANGI bilet — mavjud kod hech qachon o'zgarmaydi (oltin qoida)
             random_part = uuid.uuid4().hex[:6].upper()
-            self.ticket_code = f"TK-{self.box.order.order_number}-{self.box.box_number}-{self.box.box_code}-{random_part}"
+            rest = f"-{self.box.box_number}-{self.box.box_code}-{random_part}"
+            order_number = self.box.order.order_number
+            order_part = ticket_order_part(order_number)
+            if order_part != order_number:   # lotinga o'girilgan nom kod uzunligiga (64) sig'sin
+                order_part = order_part[:max(1, TICKET_CODE_MAX - len('TK-') - len(rest))].rstrip(' -') or 'ORD'
+            self.ticket_code = f"TK-{order_part}{rest}"
         if not self.stiker_code and not self.pk:
             self.stiker_code = generate_unique_stiker_code()
 

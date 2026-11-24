@@ -2037,7 +2037,9 @@
         }
 
         function submitScanInput() {
-            scanInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+            ev.autoEnter = true;   // "OK" — chala bilet kodini ham majburan yuboradi (_scan_auto_enter.html)
+            scanInput.dispatchEvent(ev);
             scanInput.focus();
         }
 

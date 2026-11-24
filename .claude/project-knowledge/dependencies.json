@@ -503,7 +503,8 @@
     "production.services"
    ],
    "lazy": [
-    "production.models"
+    "production.models",
+    "production.terminal_views"
    ]
   },
   "production.meto_flow_views": {

@@ -3,9 +3,12 @@ Avto-Enter (skaner Enter yubormasa ham, qo'lda yozilganda ham): attachAutoEnter(
 - Skaner: belgilar juda tez keladi (yoki butun matn bir martada) — to'xtagach 250 ms da o'zi yuboriladi.
 - Qo'lda: isComplete(qiymat) rost bo'lsa (masalan to'liq KONT-000050) — 600 ms jim turgach yuboriladi.
 - Chala bilet kodi (2026-11-24): bilet QR'i TICKET:TK-<zakaz>-<quti №>-<quti kodi>-<6 belgili xesh>. Zakaz nomida
-  kirill harfi bo'lsa (0410(Шорты)) US klaviaturadagi skaner o'sha joyda to'xtab qoladi yoki Enter yuboradi — kod
-  ikkiga bo'linib ketardi. Xesh bilan tugamagan TICKET: kodi uchun avto-Enter ham, o'rtadagi Enter ham kod tugaguncha
-  ushlab turiladi (davomi HOLD_MS da kelmasa — borini yuboradi; server terminal kabi oxiridagi xesh bo'yicha topadi).
+  kirill harfi bo'lsa (0410(Шорты)) US klaviaturadagi skaner har bir shunday harfni Alt+raqamlar bilan "yozishga"
+  urinadi — o'sha joyda sezilarli to'xtaydi (Excel'da ham), Android'da esa harf chiqmaydi; kod ikkiga bo'linib ketardi.
+  Xesh bilan tugamagan TICKET: kodi uchun avto-Enter ham, o'rtadagi Enter ham kod tugaguncha ushlab turiladi —
+  taymer yo'q (egasi: kutish bo'lmasin): skaner davomini yozib bo'lishi bilan darhol yuboriladi; server terminal kabi
+  kirillsiz kodni oxiridagi xesh bo'yicha topadi. Kutilayotganda yangi skan boshlansa (TICKET:/CONTROL:/KONT-), chala
+  qism tashlanadi; "OK" tugmasi (ev.autoEnter) chala kodni ham majburan yuboradi.
 Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchilari o'zgarmaydi.
 {% endcomment %}
 <script>
@@ -13,7 +16,14 @@ Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchi
     const PREFIXED_CODE_RE = /^(CONTROL|TAMIR\d*)\s*[:+]\s*\S{3,}$|^(TICKET|TK)\s*[:+].*[-+][A-Z0-9]{6}$/i;
     const TICKET_START_RE = /^(TICKET|TK)\s*[:+]/i;
     const TICKET_END_RE = /[-+][A-Z0-9]{6}$/i;
-    const SCAN_HOLD_MS = 1800;
+    const SCAN_START_RE = /(TICKET|CONTROL|TAMIR\d*)\s*[:+]|KONT\s*[-:+]?\s*\d/gi;
+
+    function lastScanStart(value) {
+        let last = 0, match;
+        SCAN_START_RE.lastIndex = 0;
+        while ((match = SCAN_START_RE.exec(value))) last = match.index;
+        return last;
+    }
 
     function isPartialTicket(value) {
         return TICKET_START_RE.test(value) && !TICKET_END_RE.test(value);
@@ -34,12 +44,14 @@ Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchi
             fastRun = bulk ? 99 : (now - lastAt < 60 ? fastRun + 1 : 0);
             lastAt = now;
             clearTimeout(timer);
-            const value = input.value.trim();
+            let value = input.value.trim();
             if (!value) return;
-            if (isPartialTicket(value)) {   // chala bilet kodi — davomini kutamiz
-                timer = setTimeout(() => submit(value), SCAN_HOLD_MS);
-                return;
+            const restart = TICKET_START_RE.test(value) ? lastScanStart(value) : 0;
+            if (restart > 0) {   // chala bilet kutilayotganda yangi skan boshlandi — chala qism tashlanadi
+                input.value = value.slice(restart);
+                value = input.value.trim();
             }
+            if (isPartialTicket(value)) return;   // chala bilet kodi — skaner davomini yozishini kutadi (taymersiz)
             const scanner = fastRun >= 3;
             if (!scanner && !(isComplete && isComplete(value))) return;
             timer = setTimeout(() => submit(value), scanner ? 250 : 600);
@@ -51,10 +63,9 @@ Yuborish = input'ga Enter keydown hodisasi, shuning uchun mavjud Enter ishlovchi
             clearTimeout(timer);
             if (e.autoEnter) return;
             const value = input.value.trim();
-            if (isPartialTicket(value)) {
+            if (isPartialTicket(value)) {   // o'rtadagi Enter — davomi kelguncha sahifaga o'tkazilmaydi
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                timer = setTimeout(() => submit(value), SCAN_HOLD_MS);
             }
         }, true);
     }

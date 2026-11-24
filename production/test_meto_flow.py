@@ -2064,6 +2064,10 @@ class CyrillicOrderTicketScanTest(MetoFlowBase):
         meto_flow.split_boxes(self.batch, {}, self.sticker)
         self.box = self.boxes()[0]
         self.ticket = self.box.tickets.exclude(status=Ticket.Status.CANCELLED).first()
+        # yangi stikerlar endi lotincha (0410(SHORTY)) — oldin chop etilgan kirill kodli stikerni yasab olamiz
+        legacy = self.ticket.ticket_code.replace('0410(SHORTY)', '0410(Шорты)')
+        Ticket.objects.filter(id=self.ticket.id).update(ticket_code=legacy)
+        self.ticket.refresh_from_db()
         self.assertIn('Шорты', self.ticket.ticket_code)
         self.scanned = 'TICKET:' + ''.join(ch for ch in self.ticket.ticket_code if ord(ch) < 128)   # skaner yozgani
 

@@ -69,6 +69,11 @@ Three Django apps: `accounts` (users, workers, payroll closing, superadmin panel
 
 Each `Box` gets one or more `Ticket`s (stickers, 8-char `stiker_code`) per active `ArticleOperation` via `services.generate_box_tickets`, which splits the box quantity with `allocate_ticket_quantities` (remainder goes to the first splits; never fractional). Regeneration **preserves existing ticket/sticker codes** and marks obsolete tickets `CANCELLED` rather than deleting them — keep that invariant, printed stickers must stay valid.
 
+A ticket code is `TK-<order>-<box №>-<box code>-<6 hex>`, and the ticket QR is `TICKET:<code>`.
+- Since 2026-11-24 (owner's decision), the order part of **new** tickets is ASCII. `models.ticket_order_part` transliterates Cyrillic, e.g. `0410(Шорты)` → `0410(SHORTY)`, `Х5-ДМ 4` → `X5-DM 4`, and trims the name so the code fits 64 characters.
+- The reason: a keyboard-mode scanner can't type Cyrillic. It pauses on Alt-codes, and on Android the letters are lost.
+- ASCII order names give exactly the old code. Existing codes, including old Cyrillic ones, are never changed; the terminal and the Tayyorlov planshet still find those by their tail (`find_ticket_fast`).
+
 **Payroll is ticket-driven:** a master scans a worker's QR then ticket QRs at `/terminal/` (`terminal_views.py`); the ticket becomes `SCANNED` with `worker`, `scanned_at`, `screen_number`, and its `total_amount` is the worker's earnings. Daily/monthly pay are aggregates over scanned tickets. `MonthlyClosing` (OPEN → PENDING_FREEZE with a 7-day timer → FROZEN) and `Ticket.is_frozen` lock past months so price recalculations don't change already-paid salaries; `accounts/freeze_services.auto_freeze_past_months` freezes every past month not deliberately reopened by an admin. Respect `is_frozen` when changing any price/recalc logic.
 
 Never mass-update tickets in one statement inside a web request. On 2026-11-11 the payroll page's "Muzlatish" button froze October's ~208k tickets with a single `UPDATE`. `production_ticket` has 21 indexes and the server has 4 GB, so the request outlived nginx and every gunicorn thread got stuck, putting the whole site, terminal included, on 504.
@@ -122,7 +127,8 @@ After sewing, OTK quality control (`control_views.py`, `services.close_boxes_as_
      - `api_resolve` returns a `problem` so a bad scan is refused at once. An unknown `KONT-…` says it was never created and names the last one; Cyrillic input gets a "switch to Latin" hint, not transliteration. Long dashes (–, —) count as `-`.
      - Scan inputs auto-submit without Enter (`meto_hub/_scan_auto_enter.html`), either on fast scanner input or on a full `KONT-000123` typed by hand.
      - Order numbers may contain Cyrillic (`0410(Шорты)`, `Х5-ДМ 4`), and the ticket QR carries them (`TICKET:TK-<order>-<box №>-<box code>-<6-char hash>`). The QR gets denser, and a US-layout scanner can't type those letters: it drops them, pauses or even sends Enter mid-code.
-     - So a `TICKET:` value not yet ending in the hash is held (`isPartialTicket`) and neither auto-Enter nor a mid-code Enter submits it until it completes, or after 1.8 s.
+     - So a `TICKET:` value not yet ending in the hash is held (`isPartialTicket`) and neither auto-Enter nor a mid-code Enter submits it until it completes. There is no timer: the owner refused any added wait (8 s was rejected). A new scan start (`TICKET:` / `CONTROL:` / `KONT-`) drops the partial, and the tablet's OK button (`ev.autoEnter`) forces it.
+     - The scanner's own pause on Cyrillic letters (Alt-code typing, visible in Excel too) can't be removed in software. The browser can't receive those letters from a keyboard-mode scanner on Android.
      - `resolve_box` then falls back to the terminal's own `find_ticket_fast`, which matches the tail `<box №>-<box code>-<hash>` exactly like the payroll terminal does. Don't change the ticket code or QR (golden rule).
   - **Bosh sklad:** `/tayyorlov/sklad/` is called "Bosh sklad" (owner, 2026-11-21). The METO_SKLAD role label is unchanged.
      - Both it and `/tayyorlov/uychi/` show the sklad as a compact list (`_sklad_list.html`).
