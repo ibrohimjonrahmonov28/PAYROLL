@@ -29,6 +29,20 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `e3a9707`] — 24.11.2026
+* **Turi:** `feat(stiker)` — Yangi stikerlar QR'ida kirill bo'lmasin; skaner pauzasida taymersiz kutish
+* **Mavzu:** Foydalanuvchi talabi («Yangi stikerlarda QR ichida kirill bo'lmasin. shuni qilamiz avval»; oldin: «excelda yozsam ham to'xtab yozyapti orada», «8 sek bu juda ko'p»):
+  - **1. Yangi stikerlar:** bilet kodidagi zakaz nomi lotinga o'giriladi (`0410(Шорты)` → `0410(SHORTY)`, `Х5-ДМ 4` → `X5-DM 4`, o'zbek kirill harflari ham) — skaner to'xtamaydi, QR siyrakroq, terminal/bot aniq topadi.
+  - **2. Oltin qoida:** eski stikerlar (kirill kodlilar ham) o'zgarmaydi; lotincha nomli zakaz kodi aynan avvalgidek; stikerdagi «Zakaz: ...» matni o'zgarmaydi.
+  - **3. Planshet skaneri:** chala stiker kodi uchun taymer yo'q (8 s rad etildi) — kod skaner tugatishi bilan darhol yuboriladi; yangi skan chala qismni tashlaydi; «OK» majburan yuboradi.
+* **O'zgartirilgan fayllar:**
+  - `production/models.py`
+  - `production/test_ticket_code_ascii.py` (yangi)
+  - `production/test_meto_flow.py`
+  - `templates/meto_hub/_scan_auto_enter.html`
+  - `templates/meto_hub/tablet.html`
+  - `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `1fd60fc`] — 24.11.2026
 * **Turi:** `fix(tayyorlov)` — Kirill nomli zakaz stikeri planshetda bo'linib qolmasin va topilsin
 * **Mavzu:** Foydalanuvchi talabi (rasm bilan: «yaqinda stiker chiqarishda bizda oldin QR kod sal kattaroq edi yaqinda uni sal kichrayibdi ... scan qilinganda o'rtasida enter bor bo'lib qolyapti»):
