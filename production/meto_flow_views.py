@@ -1234,10 +1234,12 @@ def beta_toggle(request, order_id):
         flow_logic.ensure_flows()
     order.meto_beta = not order.meto_beta
     if order.meto_beta:
-        # Har yoqilganda "hozirdan": o'chiq paytda kesilib eski oqimda yurgan pastallar yangi oqimga tushmaydi
+        # Har yoqilganda "hozirdan": o'chiq paytda kesilib eski oqimda ishlangan pastallar yangi oqimga tushmaydi
+        # (hali meto qilinmaganlari baribir tushadi — v2_batches)
         order.meto_beta_since = timezone.now()
     order.save(update_fields=['meto_beta', 'meto_beta_since'])
-    state = "yoqildi (shundan keyin kesilgan pastallar)" if order.meto_beta else "o'chirildi"
+    state = ("yoqildi (hali meto qilinmagan va bundan keyin kesiladigan pastallar)" if order.meto_beta
+             else "o'chirildi")
     return f"«{order.order_number}»: yangi meto oqimi {state}."
 
 

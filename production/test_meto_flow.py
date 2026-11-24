@@ -94,17 +94,29 @@ class MetoFlowBase(TestCase):
 
 
 class MetoFlowStepsTest(MetoFlowBase):
-    def test_only_pastals_cut_after_beta_flag_are_in_new_flow(self):
-        before = self.cut('11-0')
-        CuttingBatch.objects.filter(id=before.id).update(created_at=self.order.meto_beta_since - datetime.timedelta(minutes=5))
+    def test_new_flow_takes_unmetoed_beta_pastals_whenever_cut(self):
+        # egasi 2026-11-24: beta zakazning hali meto qilinmagan hamma pastali (belgidan oldin kesilgani ham) yangi oqimda;
+        # eski oqim ishlagani (eski meto tasdiqlagan yoki bot patokka bergan) eski oqimda qoladi
+        untouched = self.cut('11-0')
+        metoed = self.cut('11-7')
+        metoed.items.update(status=CuttingBatchItem.Status.METO_CONFIRMED)
+        dispatched = self.cut('11-8')
+        CuttingBatch.objects.filter(id=dispatched.id).update(
+            dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED, assigned_screen=3)
+        CuttingBatch.objects.filter(id__in=[untouched.id, metoed.id, dispatched.id]).update(
+            created_at=self.order.meto_beta_since - datetime.timedelta(days=3))
         other_order = Order.objects.create(order_number='ZAK-OLD', article=self.article)
         other_item = OrderItem.objects.create(order=other_order, article=self.article, quantity=10)
-        old_flow = CuttingBatch.objects.create(order_item=other_item, batch_number=1, pastal_code='11-9')
+        old_flow = CuttingBatch.objects.create(order_item=other_item, batch_number=1, pastal_code='11-9')   # beta emas
 
-        self.assertEqual(list(meto_flow.v2_batches()), [self.batch])
-        meto_flow.ensure_flows()
-        self.assertEqual(list(PastalFlow.objects.values_list('batch_id', flat=True)), [self.batch.id])
-        self.assertFalse(PastalFlow.objects.filter(batch__in=[before, old_flow]).exists())
+        self.assertEqual(set(meto_flow.v2_batches()), {self.batch, untouched})
+        for batch in (untouched, metoed, dispatched, old_flow):
+            batch.refresh_from_db()
+            self.assertEqual(meto_flow.is_v2_batch(batch), batch == untouched, batch.pastal_code)
+        self.client.force_login(self.meto)
+        res = self.client.get(reverse('meto_hub_flow_meto'))           # sahifa oqim yozuvlarini o'zi yaratadi
+        self.assertEqual({c['batch'].id for c in res.context['waiting']}, {self.batch.id, untouched.id})
+        self.assertEqual(set(PastalFlow.objects.values_list('batch_id', flat=True)), {self.batch.id, untouched.id})
 
     def test_beta_toggle_since_resets_on_every_enable(self):
         order = Order.objects.create(order_number='ZAK-T', article=self.article)
@@ -117,7 +129,7 @@ class MetoFlowStepsTest(MetoFlowBase):
         self.client.post(url)
         self.client.post(url)
         order.refresh_from_db()
-        # o'chiq paytda kesilganlar yangi oqimga tushmasligi uchun "hozirdan" qayta boshlanadi
+        # "hozirdan" qayta boshlanadi: o'chiq paytda kesilib eski oqimda ishlanganlari yangi oqimga tushmaydi
         self.assertTrue(order.meto_beta)
         self.assertGreater(order.meto_beta_since, since)
         self.client.force_login(self.meto)   # faqat superadmin / admin
@@ -1560,7 +1572,7 @@ class TayyorlovReviewFixesTest(MetoFlowBase):
         self.client.force_login(user)
         self.assertEqual(self.client.get(reverse('meto_hub_tablet')).context['branch'], 'UYCHI')
 
-    def test_beta_off_keeps_started_pastals_and_on_skips_off_period(self):
+    def test_beta_off_keeps_started_pastals_and_on_takes_only_unmetoed_ones(self):
         self.to_sklad()
         url = reverse('meto_hub_flow_beta_toggle', args=[self.order.id])
         self.client.force_login(self.admin)
@@ -1570,11 +1582,16 @@ class TayyorlovReviewFixesTest(MetoFlowBase):
         res = self.client.post(reverse('meto_hub_flow_split', args=[self.batch.id]))
         self.assertEqual(res.status_code, 302)                       # 404 emas — ishi shu oqimda tugaydi
         self.assertTrue(self.boxes())
-        off_batch = self.cut('11-5')                                 # o'chiq paytda kesildi (eski oqim)
+        off_batch = self.cut('11-5')                                 # o'chiq paytda kesildi va eski meto tasdiqladi
+        off_batch.items.update(status=CuttingBatchItem.Status.METO_CONFIRMED)
+        off_untouched = self.cut('11-6')                             # o'chiq paytda kesildi, hali meto qilinmagan
         self.client.post(url)                                        # qayta yoqildi
+        off_batch, off_untouched = (CuttingBatch.objects.get(id=b.id) for b in (off_batch, off_untouched))  # yangi holat
         self.assertFalse(meto_flow.is_v2_batch(off_batch))
+        self.assertTrue(meto_flow.is_v2_batch(off_untouched))        # egasi 2026-11-24: meto qilinmagani yangi oqimga
         meto_flow.ensure_flows()
         self.assertFalse(PastalFlow.objects.filter(batch=off_batch).exists())
+        self.assertTrue(PastalFlow.objects.filter(batch=off_untouched).exists())
         self.assertTrue(meto_flow.is_v2_batch(self.batch))
 
     def test_give_api_bad_input_is_400(self):

@@ -1,6 +1,7 @@
 """
-Yangi meto oqimi (egasi talabi 2026-11-19). Beta: faqat Order.meto_beta zakazning belgi yoqilgandan keyin kesilgan
-pastallari; eski /meto/, eski Meto Markazi tablari va Telegram bot o'zgarmaydi.
+Yangi meto oqimi (egasi talabi 2026-11-19). Beta: Order.meto_beta zakazning belgi yoqilgandan keyin kesilgan pastallari
+va (egasi 2026-11-24) eski oqim hali tegmagan (meto qilinmagan) barcha pastallari; eski /meto/, eski Meto Markazi tablari
+va Telegram bot o'zgarmaydi.
 
   kesim → meto masteri (METO): qabul, meto soni, tugatish (son qulflanadi)
         → tasnif masteri (TASNIF): qabul, real son, tugatish → pastal avtomatik meto skladga
@@ -58,20 +59,34 @@ def user_name(user):
 
 # ------------------------------------------------------------------ qaysi pastal yangi oqimda
 
+def _old_meto_untouched_q():
+    """Eski oqim hali tegmagan pastal: eski meto tasdiqlamagan (hamma o'lchami CUT_ENTERED — eski metoda "olingan"
+    holat yo'q, hamma maydon tasdiqlashda yoziladi), faol qutisi yo'q, patokka berilmagan va eski yuk xatida emas."""
+    confirmed = CuttingBatchItem.objects.filter(batch=OuterRef('pk')).exclude(status=CuttingBatchItem.Status.CUT_ENTERED)
+    boxes = Box.objects.filter(cutting_batch_item__batch=OuterRef('pk')).exclude(status=Box.Status.CANCELLED)
+    return (Q(dispatch_status=CuttingBatch.DispatchStatus.WAITING, assigned_screen__isnull=True, waybill__isnull=True)
+            & ~Exists(confirmed) & ~Exists(boxes))
+
+
 def v2_batches():
     """Yangi oqim pastallari: oqim yozuvi bor (belgi keyin o'chirilsa ham ishi shu oqimda tugaydi) yoki beta zakazning
-    belgi yoqilgandan keyin kesilgan pastali."""
+    belgi yoqilgandan keyin kesilgan pastali, yoki (egasi 2026-11-24) beta zakazning eski oqim hali tegmagan — meto
+    qilinmagan — pastali, qachon kesilganidan qat'i nazar."""
+    beta = Q(order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False)
     return CuttingBatch.objects.filter(
         Q(flow__isnull=False)
-        | Q(order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False,
-            created_at__gte=F('order_item__order__meto_beta_since')))
+        | (beta & (Q(created_at__gte=F('order_item__order__meto_beta_since')) | _old_meto_untouched_q())))
 
 
 def is_v2_batch(batch):
+    """v2_batches() bilan bir xil qoida, bitta pastal uchun."""
     order = batch.order_item.order if batch.order_item_id else None
-    if order and order.meto_beta and order.meto_beta_since and batch.created_at >= order.meto_beta_since:
+    beta = bool(order and order.meto_beta and order.meto_beta_since)
+    if beta and batch.created_at >= order.meto_beta_since:
         return True
-    return PastalFlow.objects.filter(batch_id=batch.id).exists()
+    if PastalFlow.objects.filter(batch_id=batch.id).exists():
+        return True
+    return beta and CuttingBatch.objects.filter(pk=batch.pk).filter(_old_meto_untouched_q()).exists()
 
 
 def is_v2_box(box):
@@ -85,7 +100,8 @@ def get_flow(batch):
 
 
 def ensure_flows():
-    """Beta zakazning yangi kesilgan pastallari uchun oqim yozuvi (kesim portaliga tegmaslik uchun — shu yerda)."""
+    """Yangi oqimga tushadigan (v2_batches) pastallar uchun oqim yozuvi — kesim portaliga tegmaslik uchun shu yerda.
+    Yozuv paydo bo'lgach pastal yangi oqimda qoladi (keyin eski meto uni ololmaydi)."""
     missing_ids = list(
         v2_batches().filter(order_item__isnull=False, flow__isnull=True).values_list('id', flat=True)
     )
