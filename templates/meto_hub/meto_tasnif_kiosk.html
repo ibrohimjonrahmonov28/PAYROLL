@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{% if active_master %}{{ tab_label }} — {{ active_master_name }}{% else %}Meto &amp; Tasnif Plansheti{% endif %} — TERRY JAR</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,12 +57,18 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+        <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
             <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 text-xs font-bold">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 {{ current_shift.shift_name }}
             </span>
             <span id="kiosk-clock" class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-sm font-black font-mono tabular-nums text-white">--:--</span>
+            <button type="button" id="btn-kiosk-fullscreen" onclick="toggleKioskFullscreen()"
+                title="To'liq ekran rejimi (F11)"
+                class="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                <i id="kiosk-fs-icon" class="fa-solid fa-expand text-amber-400"></i>
+                <span id="kiosk-fs-text" class="hidden sm:inline">To'liq ekran</span>
+            </button>
             {% include 'includes/theme_toggle.html' with compact=True %}
         </div>
     </header>
@@ -152,16 +161,16 @@
                 <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-2">
                     <div>
                         <p class="text-[11px] font-bold uppercase text-amber-400">Meto navbati</p>
-                        <p class="text-xl font-black text-white tabular-nums mt-0.5">{{ standby_stats.meto_wait }} <span class="text-xs font-semibold text-slate-400">kutmoqda</span></p>
-                        <p class="text-[11px] text-slate-400 mt-0.5">Ishda: <b class="text-slate-200">{{ standby_stats.meto_work }}</b> pastal</p>
+                        <p class="text-xl font-black text-white tabular-nums mt-0.5"><span id="st-meto-wait">{{ standby_stats.meto_wait }}</span> <span class="text-xs font-semibold text-slate-400">kutmoqda</span></p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Ishda: <b id="st-meto-work" class="text-slate-200">{{ standby_stats.meto_work }}</b> pastal</p>
                     </div>
                     <i class="fa-solid fa-tags text-2xl text-amber-500/35"></i>
                 </div>
                 <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-2">
                     <div>
                         <p class="text-[11px] font-bold uppercase text-cyan-400">Tasnif navbati</p>
-                        <p class="text-xl font-black text-white tabular-nums mt-0.5">{{ standby_stats.tasnif_wait }} <span class="text-xs font-semibold text-slate-400">kutmoqda</span></p>
-                        <p class="text-[11px] text-slate-400 mt-0.5">Ishda: <b class="text-slate-200">{{ standby_stats.tasnif_work }}</b> pastal</p>
+                        <p class="text-xl font-black text-white tabular-nums mt-0.5"><span id="st-tasnif-wait">{{ standby_stats.tasnif_wait }}</span> <span class="text-xs font-semibold text-slate-400">kutmoqda</span></p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Ishda: <b id="st-tasnif-work" class="text-slate-200">{{ standby_stats.tasnif_work }}</b> pastal</p>
                     </div>
                     <i class="fa-solid fa-layer-group text-2xl text-cyan-500/35"></i>
                 </div>
@@ -293,11 +302,20 @@
                 }
             });
 
-            // Kutish ekranidagi navbat sonini har 30 soniyada yangilash (yozuv yoki xato yo'q paytda)
-            setInterval(() => {
-                if (!busy && !hasError && !input.value.trim() && document.visibilityState === 'visible') {
-                    window.location.reload();
-                }
+            // Kutish ekranidagi navbat sonini har 30 soniyada sahifani qayta yuklamasdan (to'liq ekranni buzmasdan!) yangilash
+            setInterval(async () => {
+                if (busy || document.visibilityState !== 'visible') return;
+                try {
+                    const res = await fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!res.ok) return;
+                    const html = await res.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    ['st-meto-wait', 'st-meto-work', 'st-tasnif-wait', 'st-tasnif-work'].forEach(id => {
+                        const fresh = doc.getElementById(id);
+                        const cur = document.getElementById(id);
+                        if (fresh && cur) cur.textContent = fresh.textContent;
+                    });
+                } catch (e) { }
             }, 30000);
         })();
     </script>
@@ -349,6 +367,13 @@
                     <i id="kiosk-idle-icon" class="fa-solid fa-hourglass-half text-slate-400 text-[11px]"></i>
                     <span id="kiosk-idle-text">02:00</span>
                 </div>
+
+                <button type="button" id="btn-kiosk-fullscreen" onclick="toggleKioskFullscreen()"
+                    title="To'liq ekran rejimi (F11)"
+                    class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5">
+                    <i id="kiosk-fs-icon" class="fa-solid fa-expand {% if tab == 'meto' %}text-amber-400{% else %}text-cyan-400{% endif %}"></i>
+                    <span id="kiosk-fs-text" class="hidden md:inline">To'liq ekran</span>
+                </button>
 
                 {% include 'includes/theme_toggle.html' with compact=True %}
 
@@ -599,6 +624,107 @@
         })();
     </script>
 {% endif %}
+
+    <!-- Umumiy To'liq ekran (Fullscreen) boshqaruvi -->
+    <script>
+        (function () {
+            const FS_KEY = 'mt_kiosk_want_fs';
+
+            function isFullscreen() {
+                return !!(
+                    document.fullscreenElement
+                    || document.webkitFullscreenElement
+                    || document.mozFullScreenElement
+                    || document.msFullscreenElement
+                );
+            }
+
+            function requestFullscreen() {
+                const el = document.documentElement;
+                const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+                if (fn) {
+                    try {
+                        const p = fn.call(el);
+                        if (p && typeof p.catch === 'function') p.catch(() => { });
+                    } catch (e) { }
+                }
+            }
+
+            function exitFullscreen() {
+                const fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+                if (fn) {
+                    try {
+                        const p = fn.call(document);
+                        if (p && typeof p.catch === 'function') p.catch(() => { });
+                    } catch (e) { }
+                }
+            }
+
+            function syncFsButton() {
+                const btn = document.getElementById('btn-kiosk-fullscreen');
+                const icon = document.getElementById('kiosk-fs-icon');
+                const text = document.getElementById('kiosk-fs-text');
+                if (!btn) return;
+                const active = isFullscreen();
+                if (icon) {
+                    icon.classList.toggle('fa-expand', !active);
+                    icon.classList.toggle('fa-compress', active);
+                }
+                if (text) {
+                    text.textContent = active ? "Oddiy ekran" : "To'liq ekran";
+                }
+                btn.title = active ? "To'liq ekrandan chiqish (F11 yoki Esc)" : "To'liq ekran rejimi (F11)";
+                btn.classList.toggle('bg-emerald-950/80', active);
+                btn.classList.toggle('border-emerald-700/70', active);
+                btn.classList.toggle('text-emerald-200', active);
+                btn.classList.toggle('bg-slate-800/90', !active);
+                btn.classList.toggle('border-slate-700', !active);
+                btn.classList.toggle('text-slate-200', !active);
+            }
+
+            window.toggleKioskFullscreen = function () {
+                if (isFullscreen()) {
+                    try { localStorage.removeItem(FS_KEY); } catch (e) { }
+                    exitFullscreen();
+                } else {
+                    try { localStorage.setItem(FS_KEY, '1'); } catch (e) { }
+                    requestFullscreen();
+                }
+                const qrInp = document.getElementById('kiosk-qr-input');
+                if (qrInp) setTimeout(() => qrInp.focus(), 80);
+            };
+
+            ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+                document.addEventListener(evt, syncFsButton);
+            });
+
+            // Agar avval to'liq ekran yoqilgan bo'lsa (sahifa o'tgach brauzer chiqarib yuborsa), birinchi teginishda qayta tiklash
+            let wantFs = false;
+            try { wantFs = localStorage.getItem(FS_KEY) === '1'; } catch (e) { }
+            if (wantFs && !isFullscreen()) {
+                const restoreOnGesture = (e) => {
+                    if (e.target && e.target.closest && e.target.closest('#btn-kiosk-fullscreen')) return;
+                    if (localStorage.getItem(FS_KEY) === '1' && !isFullscreen()) {
+                        requestFullscreen();
+                    }
+                    document.removeEventListener('pointerdown', restoreOnGesture, true);
+                    document.removeEventListener('keydown', restoreOnGesture, true);
+                };
+                document.addEventListener('pointerdown', restoreOnGesture, true);
+                document.addEventListener('keydown', restoreOnGesture, true);
+            }
+
+            // F11 tugmasi orqali almashtirish
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F11') {
+                    e.preventDefault();
+                    window.toggleKioskFullscreen();
+                }
+            });
+
+            syncFsButton();
+        })();
+    </script>
 
 </body>
 </html>

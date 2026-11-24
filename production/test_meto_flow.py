@@ -1747,6 +1747,7 @@ class MetoTasnifKioskTest(MetoFlowBase):
         res = self.client.get(self.kiosk_url)
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'Birkangizni skanerlang')
+        self.assertContains(res, 'btn-kiosk-fullscreen')
         self.assertIsNone(res.context['active_master'])
 
         # Oddiy kompyuter sahifalari va desktop POST esa baribir login talab qiladi
