@@ -325,7 +325,7 @@ def superadmin_users(request):
                 branch = user_branch
                 if role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER,
                             User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER,
-                            User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD]:
+                            User.Role.METO, User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD]:
                     role = User.Role.USER
             else:
                 branch = request.POST.get('branch', User.Branch.HQ)
@@ -423,7 +423,7 @@ def superadmin_users(request):
             new_role = request.POST.get('role', user.role)
             if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER,
                                                 User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER,
-                                                User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD]:
+                                                User.Role.METO, User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD]:
                 new_role = user.role
             if user == request.user and new_role != User.Role.SUPER_ADMIN and not is_branch_admin:
                 messages.warning(request, "O'zingizning Super Admin rolingizni tushira olmaysiz!")
@@ -524,7 +524,9 @@ def superadmin_users(request):
             if is_branch_admin and user.branch != user_branch:
                 messages.error(request, "Siz faqat o'z filialingizdagi foydalanuvchilar rolini o'zgartira olasiz!")
                 return redirect('superadmin_users')
-            if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN]:
+            if is_branch_admin and new_role in [User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.BRANCH_ADMIN, User.Role.MANAGER,
+                                                User.Role.PACKING, User.Role.COUNTER, User.Role.PACKING_MASTER,
+                                                User.Role.METO, User.Role.TASNIF, User.Role.METO_SKLAD, User.Role.UYCHI_SKLAD]:
                 messages.error(request, "Filial admini ushbu rolni biriktira olmaydi!")
                 return redirect('superadmin_users')
             if user == request.user and new_role != User.Role.SUPER_ADMIN and not is_branch_admin:
@@ -753,6 +755,8 @@ def superadmin_users(request):
     screens_count = base_counts_qs.filter(role=User.Role.SCREEN).count()
     plan_count = base_counts_qs.filter(role=User.Role.PLAN).count()
     technologists_count = base_counts_qs.filter(role=User.Role.TECHNOLOGIST).count()
+    meto_count = base_counts_qs.filter(role=User.Role.METO).count()
+    tasnif_count = base_counts_qs.filter(role=User.Role.TASNIF).count()
     admins_count = base_counts_qs.filter(role=User.Role.ADMIN).count()
     superadmins_count = base_counts_qs.filter(role=User.Role.SUPER_ADMIN).count()
     unprinted_badges_count = base_counts_qs.filter(is_badge_printed=False).count()
@@ -772,6 +776,8 @@ def superadmin_users(request):
         'screens_count': screens_count,
         'plan_count': plan_count,
         'technologists_count': technologists_count,
+        'meto_count': meto_count,
+        'tasnif_count': tasnif_count,
         'admins_count': admins_count,
         'superadmins_count': superadmins_count,
         'unprinted_badges_count': unprinted_badges_count,

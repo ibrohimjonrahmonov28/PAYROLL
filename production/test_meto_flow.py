@@ -1909,3 +1909,33 @@ class MetoTasnifKioskTest(MetoFlowBase):
         self.assertEqual(res_tasnif.status_code, 200)
         self.assertContains(res_tasnif, 'TASNIF MASTERI')
 
+    def test_superadmin_users_has_meto_and_tasnif_roles(self):
+        self.client.force_login(self.admin)
+        url = reverse('superadmin_users')
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'value="METO"')
+        self.assertContains(page, 'value="TASNIF"')
+        self.assertContains(page, 'Meto masteri')
+        self.assertContains(page, 'Tasnif masteri')
+
+        # Yangi Meto masteri yaratish va filtr orqali ko'rish
+        res = self.client.post(url, {
+            'action': 'create_user',
+            'first_name': 'Sardor',
+            'last_name': 'Metochi',
+            'password': 'secret',
+            'role': User.Role.METO,
+            'branch': User.Branch.HQ,
+        })
+        self.assertEqual(res.status_code, 302)
+        created = User.objects.get(first_name='Sardor', last_name='Metochi')
+        self.assertEqual(created.role, User.Role.METO)
+        self.assertTrue(bool(created.uid))
+
+        filtered = self.client.get(url, {'role': User.Role.METO})
+        self.assertContains(filtered, 'Sardor')
+        self.assertContains(filtered, 'Meto masteri')
+        self.assertNotContains(filtered, 'Malika')
+
+

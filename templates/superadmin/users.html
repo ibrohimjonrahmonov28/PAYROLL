@@ -154,6 +154,14 @@
                     <i class="fa-solid fa-gears mr-1"></i> Texnolog ({{ technologists_count|default:0 }})
                 </a>
                 {% if not is_branch_admin %}
+                <a href="{% url 'superadmin_users' %}?role=METO{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'METO' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
+                    <i class="fa-solid fa-tags mr-1"></i> Meto ({{ meto_count|default:0 }})
+                </a>
+                <a href="{% url 'superadmin_users' %}?role=TASNIF{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'TASNIF' %}bg-cyan-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-cyan-400{% endif %}">
+                    <i class="fa-solid fa-layer-group mr-1"></i> Tasnif ({{ tasnif_count|default:0 }})
+                </a>
                 <a href="{% url 'superadmin_users' %}?role=ADMIN{% if badge_filter %}&badge={{ badge_filter }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap {% if role_filter == 'ADMIN' %}bg-amber-500 text-slate-950 shadow-sm font-black{% else %}text-slate-400 hover:text-amber-400{% endif %}">
                     <i class="fa-solid fa-user-shield mr-1"></i> Admin ({{ admins_count }})
@@ -445,10 +453,35 @@
                                     class="bg-violet-500/20 text-violet-300 border border-violet-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-gears text-[11px]"></i> Katta Texnolog
                                 </span>
-                                {% else %}
+                                {% elif u.role == 'METO' %}
+                                <span
+                                    class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-tags text-[11px]"></i> Meto masteri
+                                </span>
+                                {% elif u.role == 'TASNIF' %}
+                                <span
+                                    class="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-layer-group text-[11px]"></i> Tasnif masteri
+                                </span>
+                                {% elif u.role == 'METO_SKLAD' %}
+                                <span
+                                    class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-warehouse text-[11px]"></i> Tayyorlov skladi
+                                </span>
+                                {% elif u.role == 'UYCHI_SKLAD' %}
+                                <span
+                                    class="bg-violet-500/20 text-violet-300 border border-violet-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-truck-ramp-box text-[11px]"></i> Uychi sklad
+                                </span>
+                                {% elif u.role == 'USER' %}
                                 <span
                                     class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-user text-[11px]"></i> Oddiy User
+                                </span>
+                                {% else %}
+                                <span
+                                    class="bg-slate-700/60 text-slate-200 border border-slate-600/60 text-xs font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-id-badge text-[11px]"></i> {{ u.get_role_display }}
                                 </span>
                                 {% endif %}
 
@@ -804,6 +837,7 @@
                         <option value="COUNTER">🧮 Sanoqchi (2-sort, beta)</option>
                         <option value="PACKING_MASTER">🧾 Upakovka masteri (2-sort savatlarini qabul qiladi, beta)
                         </option>
+                        <option value="METO">🏷️ Meto masteri (Tayyorlov / Meto)</option>
                         <option value="TASNIF">🗂️ Tasnif masteri (Tayyorlov, beta)</option>
                         <option value="METO_SKLAD">🏬 Tayyorlov skladi (Bosh bino: kg, konteyner, patok va yuk xati,
                             beta)</option>
@@ -983,6 +1017,7 @@
                         <option value="COUNTER">🧮 Sanoqchi (2-sort, beta)</option>
                         <option value="PACKING_MASTER">🧾 Upakovka masteri (2-sort savatlarini qabul qiladi, beta)
                         </option>
+                        <option value="METO">🏷️ Meto masteri (Tayyorlov / Meto)</option>
                         <option value="TASNIF">🗂️ Tasnif masteri (Tayyorlov, beta)</option>
                         <option value="METO_SKLAD">🏬 Tayyorlov skladi (Bosh bino: kg, konteyner, patok va yuk xati,
                             beta)</option>
@@ -1138,7 +1173,7 @@
                 <strong id="role-user-fullname" class="text-white text-base block font-bold"></strong>
             </div>
 
-            <div class="space-y-2.5">
+            <div class="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
                 <label
                     class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
                     <input type="radio" name="role" value="USER" id="role-radio-user"
@@ -1199,6 +1234,28 @@
                 </label>
 
                 {% if not is_branch_admin %}
+                <label
+                    class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="role" value="METO" id="role-radio-meto"
+                        class="text-amber-500 focus:ring-0">
+                    <div>
+                        <strong class="text-sm font-bold text-amber-400 block"><i class="fa-solid fa-tags mr-1"></i>
+                            Meto masteri</strong>
+                        <span class="text-[11px] text-slate-400">Tayyorlov — Meto bo'limi va umumiy Meto/Tasnif QR plansheti</span>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+                    <input type="radio" name="role" value="TASNIF" id="role-radio-tasnif"
+                        class="text-cyan-500 focus:ring-0">
+                    <div>
+                        <strong class="text-sm font-bold text-cyan-400 block"><i class="fa-solid fa-layer-group mr-1"></i>
+                            Tasnif masteri</strong>
+                        <span class="text-[11px] text-slate-400">Tayyorlov — Tasnif bo'limi va umumiy Meto/Tasnif QR plansheti</span>
+                    </div>
+                </label>
+
                 <label
                     class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
                     <input type="radio" name="role" value="ADMIN" id="role-radio-admin"
@@ -1509,6 +1566,12 @@
         } else if (currentRole === 'TECHNOLOGIST') {
             const rTech = document.getElementById('role-radio-technologist');
             if (rTech) rTech.checked = true;
+        } else if (currentRole === 'METO') {
+            const rMeto = document.getElementById('role-radio-meto');
+            if (rMeto) rMeto.checked = true;
+        } else if (currentRole === 'TASNIF') {
+            const rTasnif = document.getElementById('role-radio-tasnif');
+            if (rTasnif) rTasnif.checked = true;
         } else {
             document.getElementById('role-radio-user').checked = true;
         }
@@ -1533,15 +1596,19 @@
         document.getElementById('qr-modal-footer-code').innerText = 'USER:' + uid;
 
         var badgeElement = document.getElementById('qr-modal-role-badge');
-        badgeElement.innerText = roleDisplay;
+        badgeElement.innerText = roleKey === 'METO' ? 'METO MASTERI' : (roleKey === 'TASNIF' ? 'TASNIF MASTERI' : roleDisplay);
         if (roleKey === 'SUPER_ADMIN') {
             badgeElement.style.background = '#ffe4e6';
             badgeElement.style.color = '#9f1239';
             badgeElement.style.borderColor = '#fecdd3';
-        } else if (roleKey === 'ADMIN') {
+        } else if (roleKey === 'ADMIN' || roleKey === 'METO') {
             badgeElement.style.background = '#fef3c7';
             badgeElement.style.color = '#92400e';
             badgeElement.style.borderColor = '#fde68a';
+        } else if (roleKey === 'TASNIF') {
+            badgeElement.style.background = '#cffafe';
+            badgeElement.style.color = '#155e75';
+            badgeElement.style.borderColor = '#67e8f9';
         } else if (roleKey === 'MASTER') {
             badgeElement.style.background = '#e0f2fe';
             badgeElement.style.color = '#075985';
