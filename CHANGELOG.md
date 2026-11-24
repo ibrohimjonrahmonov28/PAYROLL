@@ -29,6 +29,12 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `612f7a7`] — 24.11.2026
+* **Turi:** `feat(tayyorlov)` — `/tayyorlov/meto-tasnif/` login/parolsiz kutish ekrani
+* **Mavzu:** Umumiy Meto va Tasnif plansheti (`/tayyorlov/meto-tasnif/`) endi istalgan qurilmadan login/parol so'ramasdan to'g'ridan-to'g'ri QR-birka kutish ekraniga ochiladi (xuddi `/master-tablet/` kabi). Amallar faqat skanerlangan faol `METO` yoki `TASNIF` masteri sessiyasi bilan bajariladi; oddiy `/tayyorlov/meto/` va `/tayyorlov/tasnif/` sahifalari login himoyasida qoladi.
+* **O'zgartirilgan fayllar:**
+  - `production/meto_flow_views.py`, `templates/meto_hub/meto_tasnif_kiosk.html`, `production/test_meto_flow.py`, `CLAUDE.md`, `.claude/project-knowledge/*`
+
 ### 🔹 [Commit: `cde1dc4`] — 24.11.2026
 * **Turi:** `fix(users)` — `/superadmin/users/` da `Meto masteri` roli, filtrlar va jadval belgilari
 * **Mavzu:** Foydalanuvchi yaratish, tahrirlash va tezkor rol o'zgartirish oynalariga `METO` (`Meto masteri`) hamda `TASNIF` (`Tasnif masteri`) qo'shildi; jadvalda Tayyorlov va boshqa rollar “Oddiy User” o'rniga o'z nomi bilan chiqadigan qilindi; tepadagi filtrga `Meto` va `Tasnif` tablari qo'shildi.
