@@ -29,6 +29,19 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `1fd60fc`] — 24.11.2026
+* **Turi:** `fix(tayyorlov)` — Kirill nomli zakaz stikeri planshetda bo'linib qolmasin va topilsin
+* **Mavzu:** Foydalanuvchi talabi (rasm bilan: «yaqinda stiker chiqarishda bizda oldin QR kod sal kattaroq edi yaqinda uni sal kichrayibdi ... scan qilinganda o'rtasida enter bor bo'lib qolyapti»):
+  - **1. Sabab:** zakaz nomidagi kirill harflari (0410(Шорты), Х5-ДМ 4 ...) bilet QR'ida ham bor; US klaviaturadagi skaner ularni yoza olmaydi va to'xtaydi — avto-Enter kodni ikkiga bo'lib yuborardi. QR zichroq bo'lgani uchun «kichraygan» ko'rinadi (lotin 25×25, 0410(Шорты) 29×29); shablon o'zgarmagan.
+  - **2. Skaner kodni oxirigacha kutadi:** xesh bilan tugamagan `TICKET:` kodi chala — pauza ham, o'rtadagi Enter ham kodni bo'lmaydi (1.8 s da davomi kelmasa — borini yuboradi).
+  - **3. Terminal kabi qidiruv:** planshet bileti terminalning `find_ticket_fast` funksiyasi bilan topadi — kirillsiz kod ham, bo'lingan oxiri ham qutini topadi. Terminal (ish haqi) zarar ko'rmagan.
+  - **4. Oltin qoida:** stiker kodi va QR o'zgarmaydi.
+* **O'zgartirilgan fayllar:**
+  - `templates/meto_hub/_scan_auto_enter.html`
+  - `production/meto_flow.py`
+  - `production/test_meto_flow.py`
+  - `CLAUDE.md`
+
 ### 🔹 [Commit: `a0e874b`] — 24.11.2026
 * **Turi:** `feat(meto)` — Meto kutayotgan pastal eski va yangi oqimda parallel (kim birinchi olsa, o'shaniki)
 * **Mavzu:** Foydalanuvchi talabi («bu yerda bir narsa 2 la tomondan ham qilsa bo'ladimi shunda eski ham yangida ham»):
