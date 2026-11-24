@@ -52,8 +52,9 @@ def meto_dashboard(request):
             Q(items__article__code__icontains=search_q)
         ).distinct()
 
-    from .meto_flow import v2_batches
-    v2_batch_ids = set(v2_batches().values_list('id', flat=True))
+    # Yangi metoda olingan pastallar bu yerda sanalmaydi; ikkala tomonda kutayotganlari esa eski metoda ham kutmoqda
+    from .meto_flow import new_flow_owned_batches
+    v2_batch_ids = set(new_flow_owned_batches().values_list('id', flat=True))
 
     orders_data = []
     total_pending_meto_count = 0
@@ -124,7 +125,10 @@ def meto_order_detail(request, order_id: int):
         'cutting_batches__items__boxes'
     )
 
-    from .meto_flow import is_v2_batch
+    # is_v2 — yangi metoda olingan (eski /meto/ tegmaydi); is_shared — ikkala tomonda kutmoqda (kim birinchi olsa)
+    from .meto_flow import new_flow_owned_batches, v2_batches
+    owned_ids = set(new_flow_owned_batches().filter(order_item__order=order).values_list('id', flat=True))
+    shared_ids = set(v2_batches().filter(order_item__order=order).exclude(id__in=owned_ids).values_list('id', flat=True))
     items_data = []
     for item in order_items:
         operations_count = item.article.article_operations.count() if item.article else 0
@@ -168,7 +172,8 @@ def meto_order_detail(request, order_id: int):
                 'has_boxes': has_boxes,
                 'needs_boxes_generation': needs_boxes_generation,
                 'total_boxes_count': total_boxes_count,
-                'is_v2': is_v2_batch(batch),
+                'is_v2': batch.id in owned_ids,
+                'is_shared': batch.id in shared_ids,
             })
 
         items_data.append({
@@ -256,14 +261,17 @@ def meto_batch_items_view(request, batch_id: int):
     })
 
 
+V2_OWNED_MESSAGE = ("Bu pastalni yangi metoda (Tayyorlov, /tayyorlov/meto/) olishgan — eski /meto/ sahifasidan o'zgartirib "
+                    "bo'lmaydi.")
+
+
 def _block_v2_in_legacy_meto(request, batch):
-    from .meto_flow import is_v2_batch
-    if not is_v2_batch(batch):
+    """Faqat yangi metoda olingan pastal bloklanadi; ikkala tomonda kutayotganini eski meto ham tasdiqlay oladi
+    (egasi 2026-11-24) — shunda u eski oqimda qoladi."""
+    from .meto_flow import new_flow_owns
+    if not new_flow_owns(batch):
         return None
-    messages.error(
-        request,
-        "Bu pastal Tayyorlov bo'limi (/tayyorlov/) oqimida — eski /meto/ sahifasidan o'zgartirib bo'lmaydi."
-    )
+    messages.error(request, V2_OWNED_MESSAGE)
     return redirect('meto_hub_flow_meto')
 
 
@@ -405,7 +413,14 @@ def meto_confirm_item(request, item_id: int):
 
     worker_name = meto_worker or (request.user.get_full_name() or request.user.username)
 
+    from .meto_flow import new_flow_owns, release_to_old_flow
     with transaction.atomic():
+        # Ikkala tomonda kutayotgan pastal: yangi meto bilan navbatma-navbat (pastal qatori qulflanadi) — shu orada
+        # yangi metoda olingan bo'lsa, eski meto tegmaydi
+        CuttingBatch.objects.select_for_update().filter(id=batch_item.batch_id).first()
+        if new_flow_owns(batch_item.batch):
+            messages.error(request, V2_OWNED_MESSAGE)
+            return redirect(f"/meto/orders/{order.id}/?open_batch={batch_item.batch_id}")
         # Agar avval faol qutilar bo'lsa (qayta tasdiqlash/soni o'zgarishi holatida), ularni bekor qilish
         active_prev_boxes = list(batch_item.boxes.exclude(status=Box.Status.CANCELLED))
         cancelled_prev_count = len(active_prev_boxes)
@@ -434,6 +449,8 @@ def meto_confirm_item(request, item_id: int):
             box_capacity=box_capacity,
             pastal_number=pastal_number
         )
+        # Eski meto birinchi oldi — yangi oqimdagi kutish yozuvi o'chadi (pastal eski oqimda davom etadi)
+        release_to_old_flow([batch_item.batch_id])
 
     ops_count = ArticleOperation.objects.filter(article=article).count()
     if ops_count == 0:

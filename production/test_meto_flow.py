@@ -713,13 +713,15 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
         filtered = self.client.get(reverse('meto_hub_flow_meto'), {'q': 'P-015'})
         self.assertEqual([c['batch'].pastal_code for c in filtered.context['waiting']], ['P-015'])
 
-    def test_old_meto_blocks_tayyorlov_batches_and_split_handles_zero_and_recount(self):
+    def test_old_meto_blocks_taken_tayyorlov_batches_and_split_handles_zero_and_recount(self):
         self.client.force_login(self.meto)
         first, second = self.items()
+        meto_flow.take_meto(self.batch, self.meto)          # yangi metoda olindi — endi faqat yangi oqimniki
         self.client.post(reverse('meto_confirm_item', args=[first.id]), {'real_quantity': '50'})
         first.refresh_from_db()
         self.assertEqual(first.status, CuttingBatchItem.Status.CUT_ENTERED)
         self.assertFalse(Box.objects.filter(cutting_batch_item=first).exists())
+        meto_flow.cancel_meto(self.batch, self.meto)        # to_sklad o'zi qaytadan oladi
 
         self.to_sklad(tasnif=(45, 0))
         meto_flow.split_boxes(self.batch, {}, self.sticker)
@@ -1979,3 +1981,72 @@ class MetoTasnifKioskTest(MetoFlowBase):
         self.assertNotContains(filtered, 'Malika')
 
 
+
+
+class SharedMetoWaitTest(MetoFlowBase):
+    """Egasi 2026-11-24: meto kutayotgan pastal eski /meto/ da ham, yangi /tayyorlov/meto/ da ham ko'rinadi — qaysi tomon
+    birinchi olsa, pastal o'shaniki (ikkinchisidan yo'qoladi)."""
+
+    def old_confirm(self, item, qty='48'):
+        self.client.force_login(self.meto)
+        return self.client.post(reverse('meto_confirm_item', args=[item.id]), {'real_quantity': qty})
+
+    def old_row(self):
+        page = self.client.get(reverse('meto_order_detail', args=[self.order.id]))
+        return page, next(b for it in page.context['items_data'] for b in it['batches'] if b['id'] == self.batch.id)
+
+    def test_waiting_pastal_is_visible_on_both_sides(self):
+        self.client.force_login(self.meto)
+        new_page = self.client.get(reverse('meto_hub_flow_meto'))
+        self.assertEqual([c['batch'].id for c in new_page.context['waiting']], [self.batch.id])
+        page, row = self.old_row()
+        self.assertEqual((row['is_v2'], row['is_shared']), (False, True))
+        self.assertContains(page, "Tayyorlov'da ham kutmoqda")
+        dashboard = self.client.get(reverse('meto_dashboard'))
+        order_row = next(r for r in dashboard.context['orders_data'] if r['order'].id == self.order.id)
+        self.assertEqual((order_row['pending_items_count'], order_row['v2_batches_count']), (2, 0))
+
+    def test_old_meto_first_takes_it_out_of_the_new_flow(self):
+        meto_flow.ensure_flows()
+        first, second = self.items()
+        self.old_confirm(first)
+        first.refresh_from_db()
+        self.assertEqual(first.status, CuttingBatchItem.Status.METO_CONFIRMED)
+        self.assertTrue(Box.objects.filter(cutting_batch_item=first).exists())
+        self.assertFalse(PastalFlow.objects.filter(batch=self.batch).exists())     # yangi oqimdagi kutish yozuvi o'chdi
+        self.assertFalse(meto_flow.is_v2_batch(self.batch))
+        res = self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))   # eskirgan ro'yxatdan bosildi
+        self.assertEqual(res.status_code, 302)                                       # 404 emas — tushunarli xabar
+        self.assertFalse(PastalFlow.objects.filter(batch=self.batch).exists())
+        with self.assertRaises(FlowError):
+            meto_flow.take_meto(self.batch, self.meto)
+        self.assertEqual(self.client.get(reverse('meto_hub_flow_meto')).context['kpi']['wait_count'], 0)
+        self.old_confirm(second, '40')                                               # eski metoda davom etadi
+        second.refresh_from_db()
+        self.assertEqual(second.status, CuttingBatchItem.Status.METO_CONFIRMED)
+
+    def test_leftover_wait_record_is_swept_when_old_side_took_it(self):
+        meto_flow.ensure_flows()
+        CuttingBatchItem.objects.filter(batch=self.batch).update(status=CuttingBatchItem.Status.METO_CONFIRMED)
+        self.assertEqual(meto_flow.release_to_old_flow(), 1)
+        self.assertFalse(PastalFlow.objects.filter(batch=self.batch).exists())
+
+    def test_new_meto_first_blocks_the_old_meto(self):
+        meto_flow.take_meto(self.batch, self.meto)
+        first, _second = self.items()
+        self.old_confirm(first)
+        first.refresh_from_db()
+        self.assertEqual(first.status, CuttingBatchItem.Status.CUT_ENTERED)
+        self.assertFalse(Box.objects.filter(cutting_batch_item=first).exists())
+        page, row = self.old_row()
+        self.assertEqual((row['is_v2'], row['is_shared']), (True, False))
+        # tasnif metoga qaytargani ham faqat yangi oqimniki
+        meto_flow.finish_meto(self.batch, self.counts(49, 40), self.meto)
+        meto_flow.return_tasnif(self.batch, self.tasnif, 'qayta sanang')
+        self.assertEqual(meto_flow.get_flow(self.batch).stage, PastalFlow.Stage.METO_WAIT)
+        self.assertTrue(meto_flow.new_flow_owns(self.batch))
+        self.old_confirm(first)
+        first.refresh_from_db()
+        self.assertEqual(first.status, CuttingBatchItem.Status.CUT_ENTERED)
+        meto_flow.ensure_flows()
+        self.assertTrue(PastalFlow.objects.filter(batch=self.batch).exists())      # supurilmaydi

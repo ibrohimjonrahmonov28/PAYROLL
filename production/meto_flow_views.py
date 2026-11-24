@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Prefetch, Q, Sum
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -24,7 +24,8 @@ from accounts.models import User, Worker
 from production import meto_flow as flow_logic
 from production.container_services import parse_container_code
 from production.meto_flow import FlowError, can
-from production.models import Box, Container, CuttingBatchItem, Order, PastalFlow, PastalFlowSize, Shipment, ShipmentPastal
+from production.models import (Box, Container, CuttingBatch, CuttingBatchItem, Order, PastalFlow, PastalFlowSize, Shipment,
+                               ShipmentPastal)
 from production.services import get_patok_code
 from production.shifts import get_shift_for_timestamp, get_shift_info, get_work_day_shifts
 
@@ -1137,7 +1138,12 @@ def _form_action(step, tab):
 
 
 def _batch(batch_id):
-    return get_object_or_404(flow_logic.v2_batches(), id=batch_id)
+    batch = flow_logic.v2_batches().filter(id=batch_id).first()
+    if batch is None:
+        if CuttingBatch.objects.filter(id=batch_id).exists():   # ro'yxat eskirgan: eski /meto/ birinchi olgan
+            raise FlowError("Bu pastal endi yangi oqimda emas — eski /meto/ da tasdiqlangan, u eski tartibda davom etadi.")
+        raise Http404
+    return batch
 
 
 def _posted_counts(request):

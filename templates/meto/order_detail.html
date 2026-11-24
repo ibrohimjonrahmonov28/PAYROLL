@@ -147,6 +147,12 @@
 
                     <!-- O'ng Tomon: Holati va Pastal Pasporti Tugmalari -->
                     <div class="flex items-center gap-2 flex-wrap" onclick="event.stopPropagation()">
+                        {% if b.is_shared %}
+                        <span class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] font-bold"
+                            title="Bu pastal yangi /tayyorlov/meto/ da ham kutmoqda — qaysi tomon birinchi olsa, pastal o'shaniki">
+                            <i class="fa-solid fa-code-branch"></i> Tayyorlov'da ham kutmoqda
+                        </span>
+                        {% endif %}
                         {% if b.is_v2 %}
                         <a href="{% url 'meto_hub_flow_meto' %}?q={{ b.pastal_code|default:b.name|urlencode }}" target="_blank" rel="noopener noreferrer"
                             class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm">

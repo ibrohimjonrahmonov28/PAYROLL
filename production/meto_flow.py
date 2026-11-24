@@ -1,7 +1,7 @@
 """
-Yangi meto oqimi (egasi talabi 2026-11-19). Beta: Order.meto_beta zakazning belgi yoqilgandan keyin kesilgan pastallari
-va (egasi 2026-11-24) eski oqim hali tegmagan (meto qilinmagan) barcha pastallari; eski /meto/, eski Meto Markazi tablari
-va Telegram bot o'zgarmaydi.
+Yangi meto oqimi (egasi talabi 2026-11-19). Beta: Order.meto_beta zakazning eski oqim hali tegmagan (meto qilinmagan)
+barcha pastallari (egasi 2026-11-24). Meto kutayotgan pastal eski /meto/ da ham ko'rinadi — qaysi tomon birinchi olsa,
+o'shaniki; eski Meto Markazi tablari va Telegram bot o'zgarmaydi.
 
   kesim → meto masteri (METO): qabul, meto soni, tugatish (son qulflanadi)
         → tasnif masteri (TASNIF): qabul, real son, tugatish → pastal avtomatik meto skladga
@@ -68,25 +68,47 @@ def _old_meto_untouched_q():
             & ~Exists(confirmed) & ~Exists(boxes))
 
 
+_STARTED_STAGES = tuple(stage for stage in PastalFlow.Stage.values if stage != PastalFlow.Stage.METO_WAIT)
+
+
+def _new_flow_owned_q():
+    """Faqat yangi oqimniki: yangi metoda olingan yoki keyingi bosqichlarda, yoki tasnifdan metoga qaytgan."""
+    return Q(flow__stage__in=_STARTED_STAGES) | Q(flow__tasnif_returned_at__isnull=False)
+
+
 def v2_batches():
-    """Yangi oqim pastallari: oqim yozuvi bor (belgi keyin o'chirilsa ham ishi shu oqimda tugaydi) yoki beta zakazning
-    belgi yoqilgandan keyin kesilgan pastali, yoki (egasi 2026-11-24) beta zakazning eski oqim hali tegmagan — meto
-    qilinmagan — pastali, qachon kesilganidan qat'i nazar."""
-    beta = Q(order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False)
-    return CuttingBatch.objects.filter(
-        Q(flow__isnull=False)
-        | (beta & (Q(created_at__gte=F('order_item__order__meto_beta_since')) | _old_meto_untouched_q())))
+    """Yangi oqim pastallari (egasi 2026-11-24, "ikkala tomondan"):
+    - yangi oqimniki (_new_flow_owned_q) — belgi keyin o'chirilsa ham ishi shu oqimda tugaydi;
+    - meto kutayotganlar — hech kim olmagan oqim yozuvi yoki beta zakazning yozuvsiz pastali, eski oqim tegmagan bo'lsa
+      (qachon kesilganidan qat'i nazar). Ular eski /meto/ da ham ko'rinadi: eski meto birinchi tasdiqlasa — eski oqimda
+      qoladi (release_to_old_flow), yangi meto birinchi olsa — yangi oqimniki."""
+    waiting = (Q(flow__stage=PastalFlow.Stage.METO_WAIT, flow__tasnif_returned_at__isnull=True)
+               | Q(flow__isnull=True, order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False))
+    return CuttingBatch.objects.filter(_new_flow_owned_q() | (waiting & _old_meto_untouched_q()))
+
+
+def new_flow_owned_batches():
+    return CuttingBatch.objects.filter(_new_flow_owned_q())
+
+
+def new_flow_owns(batch):
+    """Eski /meto/ uchun: yangi metoda olingan pastalga tegmaydi (faqat kutayotganini eski meto ham olishi mumkin)."""
+    return new_flow_owned_batches().filter(pk=batch.pk).exists()
 
 
 def is_v2_batch(batch):
-    """v2_batches() bilan bir xil qoida, bitta pastal uchun."""
-    order = batch.order_item.order if batch.order_item_id else None
-    beta = bool(order and order.meto_beta and order.meto_beta_since)
-    if beta and batch.created_at >= order.meto_beta_since:
-        return True
-    if PastalFlow.objects.filter(batch_id=batch.id).exists():
-        return True
-    return beta and CuttingBatch.objects.filter(pk=batch.pk).filter(_old_meto_untouched_q()).exists()
+    """v2_batches() bilan bir xil qoida, bitta pastal uchun (bitta so'rov)."""
+    return v2_batches().filter(pk=batch.pk).exists()
+
+
+def release_to_old_flow(batch_ids=None):
+    """Ikkala tomonda kutayotgan pastalni eski oqim birinchi olgan bo'lsa (eski meto tasdiqladi, bot berdi...) — yangi
+    oqimdagi kutish yozuvi o'chadi va pastal eski oqimda davom etadi. Yangi metoda olinganlariga tegmaydi."""
+    stale = PastalFlow.objects.filter(stage=PastalFlow.Stage.METO_WAIT, tasnif_returned_at__isnull=True).exclude(
+        batch__in=CuttingBatch.objects.filter(_old_meto_untouched_q()))
+    if batch_ids is not None:
+        stale = stale.filter(batch_id__in=list(batch_ids))
+    return stale.delete()[0]
 
 
 def is_v2_box(box):
@@ -101,7 +123,8 @@ def get_flow(batch):
 
 def ensure_flows():
     """Yangi oqimga tushadigan (v2_batches) pastallar uchun oqim yozuvi — kesim portaliga tegmaslik uchun shu yerda.
-    Yozuv paydo bo'lgach pastal yangi oqimda qoladi (keyin eski meto uni ololmaydi)."""
+    Meto kutayotgan yozuvni eski meto birinchi olgan bo'lsa — avval o'shalar tozalanadi (release_to_old_flow)."""
+    release_to_old_flow()
     missing_ids = list(
         v2_batches().filter(order_item__isnull=False, flow__isnull=True).values_list('id', flat=True)
     )
@@ -155,10 +178,12 @@ def _require(flow, stage, message):
 # ------------------------------------------------------------------ meto va tasnif
 
 def take_meto(batch, user):
-    if not is_v2_batch(batch):
-        raise FlowError("Bu pastal Tayyorlov (yangi meto oqimi) da emas.")
     with transaction.atomic():
-        flow = get_flow(CuttingBatch.objects.select_for_update().get(id=batch.id))
+        locked = CuttingBatch.objects.select_for_update().get(id=batch.id)   # eski /meto/ tasdiqlash bilan navbatma-navbat
+        if not is_v2_batch(locked):
+            raise FlowError(f"{locked.pastal_code or locked.name}: yangi oqimda emas — eski /meto/ da tasdiqlangan "
+                            f"bo'lishi mumkin, u eski tartibda davom etadi.")
+        flow = get_flow(locked)
         if flow.stage == PastalFlow.Stage.METO_WORK and flow.meto_taken_by_id:
             raise FlowError(f"Bu pastal allaqachon qabul qilingan ({user_name(flow.meto_taken_by)}).")
         _require(flow, PastalFlow.Stage.METO_WAIT, "Bu pastal meto kutmoqda holatida emas.")
