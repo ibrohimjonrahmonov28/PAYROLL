@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3890,
+  "lines": 3921,
   "depends_on": [
    "accounts.core"
   ]
@@ -142,7 +142,6 @@
   "description": "production management commands (scheduler daemon, passport bot, reports, backups, cleanup).",
   "files": [
    "production/management/commands/cleanup_old_ticket_images.py",
-   "production/management/commands/close_unprinted_boxes.py",
    "production/management/commands/restore_stickers_from_backup.py",
    "production/management/commands/run_passport_bot.py",
    "production/management/commands/run_scheduler.py",
@@ -152,7 +151,7 @@
    "production/management/commands/send_db_backup.py",
    "production/management/commands/sync_article_operations.py"
   ],
-  "lines": 1998,
+  "lines": 1915,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -248,7 +247,7 @@
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 4166,
+  "lines": 4184,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -286,7 +285,7 @@
    "production/urls.py",
    "production/views.py"
   ],
-  "lines": 1366,
+  "lines": 1364,
   "depends_on": [
    "accounts.core",
    "production.control",
@@ -371,7 +370,7 @@
   "files": [
    "production/services.py"
   ],
-  "lines": 611,
+  "lines": 535,
   "depends_on": [
    "production.models"
   ]
@@ -382,7 +381,7 @@
    "production/sewing_pipeline_summary.py",
    "production/sewing_statistics_views.py"
   ],
-  "lines": 3779,
+  "lines": 3711,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -570,7 +569,7 @@
    "templates/tayyorlov/stiker_order_boxes.html",
    "templates/terminal/index.html"
   ],
-  "lines": 59358,
+  "lines": 59431,
   "depends_on": []
  },
  "tests": {
@@ -602,7 +601,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 14686,
+  "lines": 14629,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

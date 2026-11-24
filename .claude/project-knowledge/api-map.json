@@ -1,6 +1,6 @@
 {
  "_note": "Generated from Django's URL resolver (authoritative). Paths are full; 'name' is reverse() name incl. namespace. Access is additionally filtered by accounts/middleware.py allow-lists per role.",
- "route_count": 286,
+ "route_count": 284,
  "routes": [
   {
    "path": "/favicon.ico",
@@ -315,16 +315,6 @@
    ]
   },
   {
-   "path": "/sewing-statistics/close-all-unprinted/",
-   "name": "production:sewing_statistics_close_all_unprinted_boxes",
-   "view": "production.sewing_statistics_views.sewing_statistics_close_all_unprinted_boxes_view",
-   "urlconf": "production.urls",
-   "decorators": [
-    "manager_or_superadmin_required",
-    "require_POST"
-   ]
-  },
-  {
    "path": "/sewing-statistics/repairs/",
    "name": "production:sewing_statistics_repairs",
    "view": "production.sewing_statistics_views.sewing_statistics_repairs_view",
@@ -340,16 +330,6 @@
    "urlconf": "production.urls",
    "decorators": [
     "manager_or_superadmin_required"
-   ]
-  },
-  {
-   "path": "/sewing-statistics/orders/<int:order_id>/close-unprinted/",
-   "name": "production:sewing_statistics_close_order_unprinted_boxes",
-   "view": "production.sewing_statistics_views.sewing_statistics_close_order_unprinted_boxes_view",
-   "urlconf": "production.urls",
-   "decorators": [
-    "manager_or_superadmin_required",
-    "require_POST"
    ]
   },
   {
