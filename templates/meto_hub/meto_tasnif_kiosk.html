@@ -170,10 +170,14 @@
     </main>
 
     <footer class="px-4 py-3 text-center text-[11px] text-slate-500 flex items-center justify-center gap-4">
+        {% if request.user.is_authenticated %}
         <span>Planshet akkaunti: <b class="text-slate-400">{{ request.user.get_full_name|default:request.user.username }}</b></span>
         {% if request.user.is_superadmin %}
         <span>·</span>
         <a href="{% url 'meto_hub_flow' %}" class="hover:text-slate-300 underline-offset-2 hover:underline">Bosh menyu</a>
+        {% endif %}
+        {% else %}
+        <span>TERRY JAR · Meto &amp; Tasnif umumiy QR-birka plansheti</span>
         {% endif %}
     </footer>
 

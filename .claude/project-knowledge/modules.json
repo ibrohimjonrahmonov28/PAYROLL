@@ -53,7 +53,7 @@
    "accounts/superadmin_urls.py",
    "accounts/superadmin_views.py"
   ],
-  "lines": 4452,
+  "lines": 4458,
   "depends_on": [
    "accounts.commands",
    "accounts.core",
@@ -133,7 +133,7 @@
    "restore_data.sh",
    "scratch_badges_pdf.py"
   ],
-  "lines": 3870,
+  "lines": 3890,
   "depends_on": [
    "accounts.core"
   ]
@@ -248,7 +248,7 @@
    "production/meto_urls.py",
    "production/meto_views.py"
   ],
-  "lines": 4171,
+  "lines": 4166,
   "depends_on": [
    "accounts.core",
    "production.models",
@@ -496,6 +496,7 @@
    "templates/meto_hub/flow/yukxat.html",
    "templates/meto_hub/flow/zakazlar.html",
    "templates/meto_hub/hub.html",
+   "templates/meto_hub/meto_tasnif_kiosk.html",
    "templates/meto_hub/shipment_print.html",
    "templates/meto_hub/tablet.html",
    "templates/meto_hub/uychi_dashboard.html",
@@ -569,7 +570,7 @@
    "templates/tayyorlov/stiker_order_boxes.html",
    "templates/terminal/index.html"
   ],
-  "lines": 58686,
+  "lines": 59358,
   "depends_on": []
  },
  "tests": {
@@ -601,7 +602,7 @@
    "screens/test_packer_screens.py",
    "screens/tests.py"
   ],
-  "lines": 14634,
+  "lines": 14686,
   "depends_on": [
    "accounts.commands",
    "accounts.core",

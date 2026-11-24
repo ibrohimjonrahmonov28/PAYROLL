@@ -1476,7 +1476,6 @@
    "view": "production.meto_flow_views.meto_tasnif_kiosk_view",
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
-    "flow_access_required",
     "ensure_csrf_cookie"
    ]
   },
@@ -1486,7 +1485,6 @@
    "view": "production.meto_flow_views.api_meto_tasnif_scan",
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
-    "flow_access_required",
     "require_POST"
    ]
   },
@@ -1496,7 +1494,6 @@
    "view": "production.meto_flow_views.api_meto_tasnif_ping",
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
-    "flow_access_required",
     "require_POST"
    ]
   },
@@ -1506,7 +1503,6 @@
    "view": "production.meto_flow_views.meto_tasnif_kiosk_exit",
    "urlconf": "production.tayyorlov_urls",
    "decorators": [
-    "flow_access_required",
     "require_POST"
    ]
   },

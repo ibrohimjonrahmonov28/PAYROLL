@@ -971,14 +971,9 @@ def _parse_badge_user(raw_code):
     return user, '', 200
 
 
-@flow_access_required
 @ensure_csrf_cookie
 def meto_tasnif_kiosk_view(request):
-    """Meto va Tasnif uchun bitta umumiy planshet: kutish ekrani → QR birka → rolga mos oyna."""
-    if not _can_use_mt_kiosk(request.user):
-        messages.error(request, "Meto / Tasnif planshetiga ruxsatingiz yo'q.")
-        return redirect('meto_hub_flow')
-
+    """Meto va Tasnif uchun bitta umumiy planshet (login/parolsiz): kutish ekrani → QR birka → rolga mos oyna."""
     active_master = _get_mt_kiosk_user(request)
     if not active_master:
         flow_logic.ensure_flows()
@@ -1015,12 +1010,9 @@ def meto_tasnif_kiosk_view(request):
     return render(request, 'meto_hub/meto_tasnif_kiosk.html', context)
 
 
-@flow_access_required
 @require_POST
 def api_meto_tasnif_scan(request):
-    """QR birkani tekshirib, Meto yoki Tasnif masteri sessiyasini ochadi."""
-    if not _can_use_mt_kiosk(request.user):
-        return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu planshetga ruxsatingiz yo'q."}, status=403)
+    """QR birkani tekshirib, Meto yoki Tasnif masteri sessiyasini ochadi (login/parolsiz planshet)."""
     data = _json(request) if request.content_type and 'json' in request.content_type else request.POST
     raw_code = data.get('code', '')
     user, error, status_code = _parse_badge_user(raw_code)
@@ -1046,12 +1038,9 @@ def api_meto_tasnif_scan(request):
     })
 
 
-@flow_access_required
 @require_POST
 def api_meto_tasnif_ping(request):
     """Faol ish (yoki son kiritish oynasi) paytida kiosk sessiyasini tirik saqlaydi."""
-    if not _can_use_mt_kiosk(request.user):
-        return JsonResponse({'status': 'FORBIDDEN'}, status=403)
     active_master = _get_mt_kiosk_user(request)
     if not active_master:
         return JsonResponse({'status': 'EXPIRED'}, status=401)
@@ -1060,10 +1049,9 @@ def api_meto_tasnif_ping(request):
     return JsonResponse({'status': 'OK'})
 
 
-@flow_access_required
 @require_POST
 def meto_tasnif_kiosk_exit(request):
-    """Masterni chiqarib kutish ekraniga qaytaradi (planshet akkaunti tizimdan chiqmaydi)."""
+    """Masterni chiqarib kutish ekraniga qaytaradi."""
     _clear_mt_kiosk(request)
     is_ajax = (
         request.headers.get('x-requested-with') == 'XMLHttpRequest'
@@ -1087,17 +1075,9 @@ def _form_action(step, tab):
                 or request.POST.get('ajax') == '1'
                 or request.GET.get('format') == 'json'
             )
-            if request.method != 'POST':
-                if is_ajax:
-                    return JsonResponse({'status': 'ERROR', 'message': "Faqat POST so'rovi qabul qilinadi."}, status=405)
-                return redirect(_flow_url(tab))
+            kiosk_post = request.method == 'POST' and step in MT_KIOSK_STEP_ROLE and _is_mt_kiosk_post(request)
 
-            kiosk_post = step in MT_KIOSK_STEP_ROLE and _is_mt_kiosk_post(request)
             if kiosk_post:
-                if not _can_use_mt_kiosk(request.user):
-                    if is_ajax:
-                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu amalga ruxsatingiz yo'q."}, status=403)
-                    return _deny(request, tab)
                 actor = _get_mt_kiosk_user(request)
                 if not actor:
                     msg = "Sessiya yakunlangan — iltimos, QR birkangizni qayta skanerlang."
@@ -1115,6 +1095,19 @@ def _form_action(step, tab):
                 request.session.modified = True
                 request._mt_actor = actor
             else:
+                if not request.user.is_authenticated:
+                    if is_ajax or '/api/' in request.path:
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat yo'q"}, status=403)
+                    return redirect(f"{reverse('root_login')}?next={request.path}")
+                if not _allowed_tabs(request.user):
+                    if is_ajax or '/api/' in request.path:
+                        return JsonResponse({'status': 'FORBIDDEN', 'message': "Ruxsat yo'q"}, status=403)
+                    messages.error(request, "Bu bo'limga ruxsatingiz yo'q.")
+                    return redirect('root_login')
+                if request.method != 'POST':
+                    if is_ajax:
+                        return JsonResponse({'status': 'ERROR', 'message': "Faqat POST so'rovi qabul qilinadi."}, status=405)
+                    return redirect(_flow_url(tab))
                 if not can(request.user, step):
                     if is_ajax:
                         return JsonResponse({'status': 'FORBIDDEN', 'message': "Bu amalga ruxsatingiz yo'q."}, status=403)
@@ -1132,12 +1125,14 @@ def _form_action(step, tab):
                     return JsonResponse({'status': 'ERROR', 'message': str(exc)}, status=400)
                 messages.error(request, str(exc))
             next_url = (request.POST.get('next') or '').strip()
+            if kiosk_post:
+                if next_url.startswith('/tayyorlov/meto-tasnif/'):
+                    return redirect(next_url)
+                return redirect('meto_hub_flow_kiosk')
             if next_url.startswith('/tayyorlov/'):
                 return redirect(next_url)
-            if kiosk_post:
-                return redirect('meto_hub_flow_kiosk')
             return redirect(_flow_url(tab))
-        return flow_access_required(wrapper)
+        return wrapper
     return decorator
 
 

@@ -1741,23 +1741,45 @@ class MetoTasnifKioskTest(MetoFlowBase):
     def _scan(self, code):
         return self.client.post(self.scan_url, json.dumps({'code': code}), content_type='application/json')
 
-    def test_standby_renders_and_rejects_unauthorized_hosts(self):
-        # Ruxsatli planshet akkauntlari kutish ekranini ko'radi
-        for host in (self.admin, self.meto, self.tasnif, self.sklad):
-            self.client.force_login(host)
-            res = self.client.get(self.kiosk_url)
-            self.assertEqual(res.status_code, 200, host.role)
-            self.assertContains(res, 'Birkangizni skanerlang')
-            self.assertIsNone(res.context['active_master'])
+    def test_login_free_standby_and_anonymous_full_cycle(self):
+        # Login/parolsiz istalgan qurilmadan kutish ekrani to'g'ridan-to'g'ri ochiladi
+        self.client.logout()
+        res = self.client.get(self.kiosk_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Birkangizni skanerlang')
+        self.assertIsNone(res.context['active_master'])
 
-        # Stikerchi va Uychi sklad bu planshetni ocholmaydi
-        for forbidden in (self.sticker, self.uychi):
-            self.client.force_login(forbidden)
-            res = self.client.get(self.kiosk_url)
-            self.assertEqual(res.status_code, 302, forbidden.role)
+        # Oddiy kompyuter sahifalari va desktop POST esa baribir login talab qiladi
+        self.assertEqual(self.client.get(reverse('meto_hub_flow_meto')).status_code, 302)
+        self.assertIn('/login/', self.client.get(reverse('meto_hub_flow_meto')).url)
+        desktop_post = self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
+        self.assertEqual(desktop_post.status_code, 302)
+        self.assertIn('/login/', desktop_post.url)
+
+        # Birka skanerlanmasdan kiosk POST ham rad etiladi
+        unauth_kiosk = self.client.post(
+            reverse('meto_hub_flow_meto_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(unauth_kiosk.status_code, 401)
+
+        # Loginsiz brauzerda Meto birkasini skanerlab to'liq ish bajara oladi
+        self.assertEqual(self._scan(f"USER:{self.meto2.uid}").status_code, 200)
+        res = self.client.post(
+            reverse('meto_hub_flow_meto_take', args=[self.batch.id]),
+            {'kiosk': '1', 'next': self.kiosk_url},
+        )
+        self.assertRedirects(res, self.kiosk_url)
+        self.assertEqual(meto_flow.get_flow(self.batch).meto_taken_by, self.meto2)
+
+        # Chiqish -> yana loginsiz kutish ekrani
+        res = self.client.post(self.exit_url)
+        self.assertRedirects(res, self.kiosk_url)
+        self.assertIsNone(self.client.get(self.kiosk_url).context['active_master'])
 
     def test_scan_routes_by_role_and_blocks_other_roles_and_cyrillic(self):
-        self.client.force_login(self.admin)
+        self.client.logout()
 
         # Kirill harf transliteratsiya qilinmaydi — ogohlantirish qaytadi
         res = self._scan('ЮЗЕР:123456')

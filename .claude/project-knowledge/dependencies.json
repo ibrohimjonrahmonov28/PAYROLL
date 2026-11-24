@@ -1620,6 +1620,21 @@
     "superadmin_dashboard"
    ]
   },
+  "templates/meto_hub/meto_tasnif_kiosk.html": {
+   "includes": [
+    "includes/theme_head.html",
+    "includes/theme_toggle.html",
+    "meto_hub/_scan_auto_enter.html",
+    "includes/theme_toggle.html"
+   ],
+   "url_names": [
+    "meto_hub_flow",
+    "meto_hub_flow_kiosk",
+    "meto_hub_flow_kiosk_exit",
+    "meto_hub_flow_kiosk_ping",
+    "meto_hub_flow_kiosk_scan"
+   ]
+  },
   "templates/meto_hub/shipment_print.html": {
    "url_names": [
     "meto_hub_flow_sklad",
