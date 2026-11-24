@@ -29,6 +29,22 @@ Istalgan paytda tizimni avvalgi holatiga qaytarish yoki muayyan versiyani tekshi
 
 ## 📌 Versiyalar va Funksiyalar Ro'yxati
 
+### 🔹 [Commit: `a0e874b`] — 24.11.2026
+* **Turi:** `feat(meto)` — Meto kutayotgan pastal eski va yangi oqimda parallel (kim birinchi olsa, o'shaniki)
+* **Mavzu:** Foydalanuvchi talabi («bu yerda bir narsa 2 la tomondan ham qilsa bo'ladimi shunda eski ham yangida ham»):
+  - **1. Ikkala tomonda:** hech kim olmagan, eski oqim tegmagan beta pastal ham yangi `/tayyorlov/meto/` da, ham eski `/meto/` da ko'rinadi (eski sahifada «Tayyorlov'da ham kutmoqda» belgisi); eski dashboard ularni «meto kutilmoqda» da sanaydi.
+  - **2. Birinchi olgan yutadi:** yangi metoda «Qabul» bosilsa — faqat yangi oqimniki, eski `/meto/` tasdiqlay olmaydi; eski metoda birorta razmer tasdiqlansa — yangi oqimdagi kutish yozuvi o'chadi (`release_to_old_flow`), pastal eski oqimda davom etadi. Ikkala tomon pastal qatorini qulflab qayta tekshiradi — bir vaqtda bosilsa ham faqat bittasi o'tadi.
+  - **3. Tasnif qaytargan pastal** faqat yangi oqimda qoladi.
+  - **4. Eskirgan ro'yxat:** yangi metoda allaqachon eski meto olgan pastal bosilsa 404 emas, tushunarli xabar.
+  - **5. Real ma'lumot nusxasida:** mavjud yozuvlardan hech biri o'chmadi; 121 ta pastal ikkala tomonda kutmoqda.
+* **O'zgartirilgan fayllar:**
+  - `production/meto_flow.py`
+  - `production/meto_flow_views.py`
+  - `production/meto_views.py`
+  - `templates/meto/order_detail.html`
+  - `production/test_meto_flow.py`
+  - `CLAUDE.md` (keyingi hujjat commit'ida)
+
 ### 🔹 [Commit: `5ea1a2d`] — 24.11.2026
 * **Turi:** `fix(tayyorlov)` — Beta zakazning hali meto qilinmagan hamma pastali «Meto kutmoqda» da
 * **Mavzu:** Foydalanuvchi talabi («/tayyorlov/meto/ da juda ko'p pastal aslida meto kutilmoqda o'zi negadir lekin faqat 24 ta ko'rinyapti beta belgilangan va hali meto bo'lmaganlar hammasi chiqsin»):
