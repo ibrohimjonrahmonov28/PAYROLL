@@ -676,6 +676,10 @@ def control_submit_inspection_api(request):
             receipt = create_repair_receipt(box, repair_qty, repair_details, inspector_user, operator_name, log)
             queue_repair_receipt(box, log, receipt, repair_details, user=request.user, operator_name=operator_name)
 
+        # OTK birinchi tekshiruvi (egasi 2026-11-25): katta konteyner bor bo'lsa darhol avtomatik bo'shaydi
+        from .meto_flow import after_initial_inspection
+        after_initial_inspection(box, first_sort, inspector_user)
+
         if is_closed:
             msg = f"Quti {box.box_code} yopildi: {first_sort} ta 1-sort, {second_sort} ta 2-sort. Mahsulot qabul qilindi!"
         else:

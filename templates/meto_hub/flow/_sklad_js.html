@@ -74,6 +74,14 @@ Bosh sklad / Uychi sahifasi: jonli yangilanish va ro'yxat amallari.
                 Object.entries(data.counts).forEach(([key, n]) => {
                     document.querySelectorAll(`[data-count="${key}"]`).forEach(el => { el.textContent = n; });
                 });
+                if (data.total_kg !== undefined) {
+                    const totalKgEl = document.getElementById('sklad-total-kg');
+                    if (totalKgEl) totalKgEl.textContent = data.total_kg;
+                    const shownKgEl = document.getElementById('sklad-shown-kg');
+                    if (shownKgEl && data.shown_kg !== undefined) shownKgEl.textContent = data.shown_kg;
+                    const wrap = document.getElementById('sklad-shown-kg-wrap');
+                    if (wrap) wrap.classList.toggle('hidden', state.f === 'all' && !state.q);
+                }
                 const now = new Date();
                 const pad = (n) => String(n).padStart(2, '0');
                 liveText(`jonli · ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`);

@@ -9,7 +9,7 @@ import functools
 import json
 
 from django.contrib import messages
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -425,6 +425,10 @@ def meto_tablet_view(request):
     # Skladdagi pastallar, kg kutilayotganlar, kelayotgan yuklar, kutilayotgan yuk xatlari va patokdagi pastallar
     kg_pending_cards = _tablet_kg_pending_cards() if branch == 'HQ' else []
     sklad_cards = _tablet_sklad_cards(branch)
+    sklad_kg_qs = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
+    if branch == 'HQ':
+        sklad_kg_qs = sklad_kg_qs.filter(sklad_received_at__isnull=False)
+    total_sklad_kg = flow_logic.format_kg(sklad_kg_qs.aggregate(s=Sum('batch__actual_weight_kg'))['s'])
     packet_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'packet')
     stiker_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'stiker_pending')
     container_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'container_pending')
@@ -460,6 +464,7 @@ def meto_tablet_view(request):
         'filled_containers': filled_c,
         'patok_containers': patok_c,
         'total_containers': total_c,
+        'total_sklad_kg': total_sklad_kg,
         'kg_pending_cards': kg_pending_cards,
         'stored_cards': sklad_cards,
         'sklad_cards': sklad_cards,
@@ -495,6 +500,10 @@ def meto_tablet_state_api(request):
 
     kg_pending_cards = _tablet_kg_pending_cards() if branch == 'HQ' else []
     sklad_cards = _tablet_sklad_cards(branch)
+    sklad_kg_qs = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
+    if branch == 'HQ':
+        sklad_kg_qs = sklad_kg_qs.filter(sklad_received_at__isnull=False)
+    total_sklad_kg = flow_logic.format_kg(sklad_kg_qs.aggregate(s=Sum('batch__actual_weight_kg'))['s'])
     packet_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'packet')
     stiker_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'stiker_pending')
     container_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'container_pending')
@@ -512,6 +521,7 @@ def meto_tablet_state_api(request):
         'filled_containers': filled_c,
         'patok_containers': patok_c,
         'total_containers': total_c,
+        'total_sklad_kg': total_sklad_kg,
         'kg_pending_cards': kg_pending_cards,
         'stored_cards': sklad_cards,
         'sklad_cards': sklad_cards,

@@ -57,7 +57,8 @@
                 containerInfo = `Konteyner ${r.data.code} (${r.data.state})`;
             } else {
                 boxCode = r.data.box;
-                boxInfo = `Quti ${r.data.box} · pastal ${r.data.pastal} · ${r.data.razmer} · ${r.data.qty} dona`;
+                const adoptHint = r.data.will_adopt ? ' · eski pastal (Bosh skladga tushadi)' : '';
+                boxInfo = `Quti ${r.data.box} · pastal ${r.data.pastal} · ${r.data.razmer} · ${r.data.qty} dona${adoptHint}`;
             }
             if (boxCode && containerCode) {
                 const res = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, {box: boxCode, container: containerCode});

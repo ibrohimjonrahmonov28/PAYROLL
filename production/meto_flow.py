@@ -77,13 +77,20 @@ def _new_flow_owned_q():
 
 
 def v2_batches():
-    """Yangi oqim pastallari (egasi 2026-11-24, "ikkala tomondan"):
-    - yangi oqimniki (_new_flow_owned_q) — belgi keyin o'chirilsa ham ishi shu oqimda tugaydi;
-    - meto kutayotganlar — hech kim olmagan oqim yozuvi yoki beta zakazning yozuvsiz pastali, eski oqim tegmagan bo'lsa
-      (qachon kesilganidan qat'i nazar). Ular eski /meto/ da ham ko'rinadi: eski meto birinchi tasdiqlasa — eski oqimda
-      qoladi (release_to_old_flow), yangi meto birinchi olsa — yangi oqimniki."""
-    waiting = (Q(flow__stage=PastalFlow.Stage.METO_WAIT, flow__tasnif_returned_at__isnull=True)
-               | Q(flow__isnull=True, order_item__order__meto_beta=True, order_item__order__meto_beta_since__isnull=False))
+    """Yangi tayyorlov oqimi pastallari (egasi 2026-11-25):
+    - barcha faol (arxivlanmagan/bekor qilinmagan) zakazlar sukut bo'yicha yangi tayyorlov oqimida (Order.meto_beta=True);
+    - yangi oqimniki (_new_flow_owned_q) — zakaz keyin eski oqimga o'tkazilsa ham boshlangan ishi shu oqimda tugaydi;
+    - meto kutayotganlar — eski oqim hali tegmagan pastallar (_old_meto_untouched_q). Ular eski /meto/ da ham
+      ko'rinadi (muhim bo'lganda ba'zi ishlarni eski oqimda bajarish uchun): eski meto birinchi tasdiqlasa —
+      eski oqimda qoladi (release_to_old_flow), yangi meto birinchi olsa — faqat yangi oqimniki."""
+    from production.models import Order
+    waiting = (
+        Q(flow__stage=PastalFlow.Stage.METO_WAIT, flow__tasnif_returned_at__isnull=True)
+        | (
+            Q(flow__isnull=True, order_item__isnull=False, order_item__order__meto_beta=True)
+            & ~Q(order_item__order__status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED])
+        )
+    )
     return CuttingBatch.objects.filter(_new_flow_owned_q() | (waiting & _old_meto_untouched_q()))
 
 
@@ -481,8 +488,60 @@ def _set_status(container, status, action, user, *, box=None, note='', branch=No
                                   box=box or container.box, user=user, note=note[:200])
 
 
+def adopt_problem(box, batch=None):
+    """Yangi metodan o'tmagan (eski /meto/ orqali chiqqan) pastalni konteynerga bog'lab Bosh skladga
+    o'tkazish mumkinmi? Mumkin bo'lsa None, aks holda tushunarli xato matni."""
+    if batch is None:
+        batch = box.cutting_batch_item.batch if box.cutting_batch_item_id else None
+    if batch is None:
+        return f"{box.box_code} — bu quti pastalga bog'lanmagan (yangi meto oqimida emas)."
+    name = batch.pastal_code or batch.name
+    if batch.dispatch_status not in (CuttingBatch.DispatchStatus.WAITING, CuttingBatch.DispatchStatus.REJECTED) \
+            or batch.assigned_screen is not None or batch.waybill_id is not None:
+        return f"{name} allaqachon patokka yoki yuk xatiga berilgan — konteynerga biriktirib bo'lmaydi."
+    if box.is_controlled or _active_boxes(batch).filter(is_controlled=True).exists():
+        return f"{name} allaqachon OTK dan o'tgan — konteynerga biriktirib bo'lmaydi."
+    if Ticket.objects.filter(box__cutting_batch_item__batch=batch, status=Ticket.Status.SCANNED).exists():
+        return f"{name} tikuvga kirib bo'lgan (bilet skanerlangan) — konteynerga biriktirib bo'lmaydi."
+    return None
+
+
+def _adopt_old_batch_to_sklad(batch, user):
+    """Eski metodan chiqqan, lekin patokka berilmagan pastalni avtomatik Bosh skladga (SKLAD/HQ) o'tkazish.
+    Kg kiritish majburiy bo'lishi uchun sklad_received_at bo'sh qoldiriladi."""
+    locked_batch = CuttingBatch.objects.select_for_update().get(id=batch.id)
+    flow = get_flow(locked_batch)
+    now = timezone.now()
+    flow.stage = PastalFlow.Stage.SKLAD
+    flow.branch = 'HQ'
+    if not flow.boxes_split_at:
+        flow.boxes_split_at = now
+        flow.boxes_split_by = user
+    flow.save(update_fields=['stage', 'branch', 'boxes_split_at', 'boxes_split_by', 'updated_at'])
+
+    items = _items(locked_batch)
+    active_by_item = {}
+    for b in _active_boxes(locked_batch).only('cutting_batch_item_id', 'quantity'):
+        active_by_item[b.cutting_batch_item_id] = active_by_item.get(b.cutting_batch_item_id, 0) + (b.quantity or 0)
+    for item in items:
+        size = _size(item)
+        qty = active_by_item.get(item.id) or item.real_quantity or item.quantity
+        changed = []
+        if size.meto_qty is None:
+            size.meto_qty = item.real_quantity or qty
+            changed.append('meto_qty')
+        if size.tasnif_qty is None:
+            size.tasnif_qty = qty
+            changed.append('tasnif_qty')
+        if changed:
+            size.save(update_fields=changed)
+    return flow
+
+
 def link_container(raw_box, raw_container, user):
-    """Stiker (quti) → konteyner: bitta konteynerga faqat bitta quti; konteyner bo'sh va shu filialda bo'lishi kerak."""
+    """Stiker (quti) → konteyner: bitta konteynerga faqat bitta quti; konteyner bo'sh va shu filialda bo'lishi kerak.
+    Yangi metodan o'tmagan, lekin hali patokka berilmagan eski pastallar birinchi quti bog'langanda avtomatik
+    Bosh skladga (SKLAD/HQ) tushadi (kg kiritish majburiy)."""
     with transaction.atomic():
         box = resolve_box(raw_box)
         if box is None:
@@ -491,14 +550,23 @@ def link_container(raw_box, raw_container, user):
         box = Box.objects.select_for_update(of=('self',)).select_related('cutting_batch_item__batch').get(id=box.id)
         if box.status == Box.Status.CANCELLED:
             raise FlowError(f"{box.box_code} qutisi bekor qilingan — yangi stikerni uring.")
-        if not is_v2_box(box):
-            raise FlowError("Bu quti yangi meto oqimida emas.")
-        flow = get_flow(box.cutting_batch_item.batch)
-        if flow.stage != PastalFlow.Stage.SKLAD:
-            raise FlowError("Biriktirish faqat skladdagi pastal qutilari uchun.")
         existing = Container.objects.filter(box=box).first()
         if existing:
             raise FlowError(f"{box.box_code} allaqachon {existing.code} konteynerida.")
+
+        need_adopt = not is_v2_box(box)
+        batch = box.cutting_batch_item.batch if box.cutting_batch_item_id else None
+        if need_adopt:
+            problem = adopt_problem(box, batch)
+            if problem:
+                raise FlowError(problem)
+            target_branch = 'HQ'
+        else:
+            flow = get_flow(batch)
+            if flow.stage != PastalFlow.Stage.SKLAD:
+                raise FlowError("Biriktirish faqat skladdagi pastal qutilari uchun.")
+            target_branch = flow.branch
+
         container = find_container(raw_container)
         if container is None:
             raise FlowError("Konteyner topilmadi — konteyner QR kodini uring.")
@@ -507,12 +575,16 @@ def link_container(raw_box, raw_container, user):
             raise FlowError(f"{container.code} — kichik (ta'mir) konteyner; katta konteynerni uring.")
         if container.status != Container.Status.EMPTY:
             raise FlowError(f"{container.code} bo'sh emas.")
-        if container.branch != flow.branch:
-            if flow.branch != 'HQ':
+        if container.branch != target_branch:
+            if target_branch != 'HQ':
                 raise FlowError(f"{container.code} boshqa filialda.")
             # Uychida bo'shagan konteyner darhol mashinada Kosonga qaytadi (egasi 2026-11-21): Kosonda uriladi — shu yerda
             _set_status(container, Container.Status.EMPTY, ContainerEvent.Action.RECEIVED, user, branch='HQ',
                         note=f"{container.get_branch_display()} dan bo'sh qaytdi")
+
+        if need_adopt:
+            _adopt_old_batch_to_sklad(batch, user)
+
         container.box, container.linked_at = box, timezone.now()
         _set_status(container, Container.Status.FILLED, ContainerEvent.Action.LINKED, user, box=box)
     return container, box
@@ -818,10 +890,13 @@ def link_repair_container(receipt, raw, user):
 
 
 def after_initial_inspection(box, first_sort, user):
-    """OTK birinchi tekshiruvi: 1-sort umuman bo'lmasa katta konteyner darhol bo'shaydi."""
-    container = Container.objects.filter(box=box).first()
-    if container and first_sort == 0:
-        release(container, user, note="1-sort yo'q (OTK)")
+    """OTK birinchi tekshiruvi (egasi 2026-11-25): OTK qutini bir marta ko'rishi bilan katta konteyner
+    avtomatik bo'shaydi (1-sort, 2-sort yoki ta'mir bo'lishidan qat'i nazar; /control/, /beta/ va /tayyorlov/otk/)."""
+    with transaction.atomic():
+        container = Container.objects.select_for_update().filter(box=box).first()
+        if container is not None:
+            note = "1-sort yo'q (OTK)" if first_sort == 0 else "OTK tekshirdi — konteyner bo'shadi"
+            release(container, user, note=note)
 
 
 def after_repair_return(box, closed_receipt, next_receipt, fixed_qty, user):
@@ -843,7 +918,8 @@ def after_repair_return(box, closed_receipt, next_receipt, fixed_qty, user):
 
 
 def release_for_scan(box, source, receipt, user):
-    """Sanoqchi qog'ozni urdi: CONTROL — katta konteyner, TAMIRn — o'sha chekning kichik konteyneri bo'shaydi."""
+    """Sanoqchi qog'ozni urdi: TAMIRn — kichik konteyner bo'shaydi; katta konteyner OTK da bo'shaydi
+    (avvaldan OTK dan o'tgan eski quti bo'lsa zaxira sifatida bu yerda ham bo'shatiladi)."""
     from production.models import PackingScan
     if source == PackingScan.Source.TAMIR:
         container = Container.objects.filter(repair_receipt=receipt).first() if receipt else None
@@ -851,6 +927,15 @@ def release_for_scan(box, source, receipt, user):
         container = Container.objects.filter(box=box).first()
     if container is not None:
         release(container, user, note="sanoqchi qog'ozni urdi")
+
+
+def format_kg(value):
+    """Sklad og'irligini chiroyli ko'rinishga keltirish: Decimal('1250.50') -> '1 250.5'."""
+    amount = Decimal(value or 0).quantize(Decimal('0.01'))
+    text = f"{amount:,.2f}".replace(',', ' ')
+    if '.' in text:
+        text = text.rstrip('0').rstrip('.')
+    return text
 
 
 # ------------------------------------------------------------------ ko'rinish uchun

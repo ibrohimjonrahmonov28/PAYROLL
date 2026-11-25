@@ -771,8 +771,14 @@
                     </h3>
                     <p class="text-xs text-slate-400">Kosondan qabul qilingan va patokka berish kutilayotgan konteynerlar</p>
                 </div>
-                <div class="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
-                    <span>Jami: {{ sklad_cards|length }} ta pastal</span>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="text-xs font-mono font-bold text-amber-200 bg-amber-500/15 border border-amber-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                        <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+                        <span>Mavjud: <b class="text-white font-black">{{ total_sklad_kg }}</b> kg</span>
+                    </div>
+                    <div class="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
+                        <span>Jami: {{ sklad_cards|length }} ta pastal</span>
+                    </div>
                 </div>
             </div>
 
@@ -808,6 +814,12 @@
                                 <span class="text-slate-400">Qutilar soni:</span>
                                 <span class="font-bold text-white font-mono">{{ card.boxes_count }} ta quti</span>
                             </div>
+                            {% if card.weight_kg %}
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-slate-400">Og'irlik:</span>
+                                <span class="font-bold text-amber-300 font-mono">{{ card.weight_kg }} kg</span>
+                            </div>
+                            {% endif %}
                             <div class="text-xs">
                                 <span class="text-slate-400 block mb-1.5 font-bold">Saqlanayotgan konteynerlar:</span>
                                 <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
@@ -944,11 +956,15 @@
             <div class="flex-1 overflow-hidden flex flex-col gap-3">
                 <!-- Header with Filters & Search -->
                 <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2.5 flex-wrap">
                         <span class="text-sm font-black text-white flex items-center gap-1.5">
                             <i class="fa-solid fa-boxes-stacked text-cyan-400"></i>
                             <span>Skladdagi Pastallar</span>
                             <span id="stored-total-badge" class="text-slate-400 font-mono">({{ stored_cards|length }})</span>
+                        </span>
+                        <span class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-bold inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+                            <span>Mavjud: <b id="tablet-total-kg" class="font-mono font-black text-white">{{ total_sklad_kg }}</b> kg</span>
                         </span>
                     </div>
 
@@ -2093,7 +2109,7 @@
             const r = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, { box: box.box, container: container.code });
             if (r.ok) {
                 playSoundSuccess();
-                const successMsg = `${box.box} → ${container.code} muvaffaqiyatli biriktirildi!`;
+                const successMsg = r.data.message || `${box.box} → ${container.code} muvaffaqiyatli biriktirildi!`;
                 addSessionLog(true, successMsg, container.code);
                 setStatus(successMsg, "success");
 
@@ -2159,7 +2175,8 @@
             }
             playSoundBeep();
             if (currentBox) {
-                setStatus(`Quti ${currentBox.box} tanlandi. Endi bo'sh katta konteyner QR kodini uring.`, "info");
+                const adoptHint = currentBox.will_adopt ? " (eski pastal — Bosh skladga qo'shiladi)" : "";
+                setStatus(`Quti ${currentBox.box}${adoptHint} tanlandi. Endi bo'sh katta konteyner QR kodini uring.`, "info");
             } else {
                 setStatus(`Konteyner ${currentContainer.code} tanlandi. Endi qutining stikerini (QR) uring — o'zi biriktiriladi.`, "info");
             }

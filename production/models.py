@@ -546,10 +546,10 @@ class Order(models.Model):
     packing_beta = models.BooleanField(default=False, db_index=True, verbose_name="Yangi qadoqlash tartibi (beta)")
     # Beta faqat yoqilgan vaqtdan (egasi talabi 2026-11-16): bundan oldin OTK dan o'tgan qutilar eski tartibda qoladi
     packing_beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Beta yoqilgan vaqt")
-    # Yangi meto oqimi (beta, egasi talabi 2026-11-19): konteynerli meto → tasnif → sklad → patok / Uychi, belgi
-    # yoqilgandan keyin kesilgan pastallar uchun (production/meto_flow.py). Eski /meto/ va bot o'zgarmaydi.
-    meto_beta = models.BooleanField(default=False, db_index=True, verbose_name="Yangi meto oqimi (beta)")
-    meto_beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Meto beta yoqilgan vaqt")
+    # Yangi tayyorlov oqimi (egasi talabi 2026-11-25): barcha zakazlar sukut bo'yicha yangi oqimda yuradi
+    # (production/meto_flow.py); eski /meto/ oldingi ishlar va zarur bo'lganda alohida pastallar/zakazlar uchun qoladi.
+    meto_beta = models.BooleanField(default=True, db_index=True, verbose_name="Yangi tayyorlov oqimi")
+    meto_beta_since = models.DateTimeField(null=True, blank=True, verbose_name="Yangi tayyorlov oqimi yoqilgan vaqt")
 
     class Meta:
         verbose_name = "Buyurtma"
@@ -567,6 +567,9 @@ class Order(models.Model):
             cust = Customer.objects.filter(name__iexact=self.client_name.strip()).first()
             if cust:
                 self.customer = cust
+        update_fields = kwargs.get('update_fields')
+        if self.meto_beta and not self.meto_beta_since and (update_fields is None or 'meto_beta_since' in update_fields):
+            self.meto_beta_since = timezone.now()
         super().save(*args, **kwargs)
 
     @property

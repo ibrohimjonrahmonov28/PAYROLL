@@ -2,10 +2,18 @@
 (sanoqlari JS da yangilanadi), pastal / zakaz / artikul / konteyner yoki quti QR bo'yicha qidiruv, tanlanganlarni Uychiga.{% endcomment %}
 <section class="space-y-3">
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex flex-wrap items-center gap-3 min-w-0">
             <h2 class="text-sm font-black uppercase text-white">
                 {% if branch == 'HQ' %}Bosh skladdagi pastallar{% else %}Uychi skladidagi pastallar{% endif %}
             </h2>
+            <span class="px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-bold inline-flex items-center gap-1.5"
+                title="Ushbu skladda hozir saqlanayotgan pastallarning jami og'irligi">
+                <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+                <span>Mavjud: <b id="sklad-total-kg" class="font-mono font-black text-white">{{ sklad_total_kg }}</b> kg</span>
+                <span id="sklad-shown-kg-wrap" class="{% if sklad_filter == 'all' and not sklad_q %}hidden{% endif %} text-amber-300/80">
+                    · filtrda: <b id="sklad-shown-kg" class="font-mono text-amber-100">{{ sklad_shown_kg }}</b> kg
+                </span>
+            </span>
             <span id="sklad-live" class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5"
                 title="Biriktirilganda darhol, aks holda har 20 soniyada o'zi yangilanadi">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>

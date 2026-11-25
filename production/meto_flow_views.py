@@ -3,6 +3,7 @@ Meto Markazi → "Yangi oqim (beta)" (egasi talabi 2026-11-19; mantiq: productio
 Meto, Tasnif, Stiker, Koson sklad, Uychi, Yuk xatlari, Beta zakazlar — har rol faqat o'z tabini ko'radi, superadmin
 hammasini. Skanerli amallar (biriktirish, konteyner tekshiruvi, patokka berish, yuk xati, qabul) — JSON API.
 """
+from decimal import Decimal
 import functools
 import json
 import re
@@ -104,7 +105,7 @@ SECTIONS = (
     },
     {
         'key': 'zakazlar',
-        'label': "Beta zakazlar",
+        'label': "Zakazlar oqimi",
         'step': 'zakazlar',
         'url_name': 'meto_hub_flow_zakazlar',
         'zone': 'utility',
@@ -112,7 +113,7 @@ SECTIONS = (
         'group': "Sozlama",
         'icon': 'fa-sliders',
         'accent': 'rose',
-        'desc': "Tayyorlov oqimiga tushadigan zakazlarni yoqish yoki o'chirish.",
+        'desc': "Barcha zakazlar sukut bo'yicha yangi tayyorlov oqimida; zarur bo'lganda alohida zakazni eski oqimga o'tkazish.",
     },
 )
 SECTION_BY_KEY = {s['key']: s for s in SECTIONS}
@@ -425,7 +426,9 @@ def _ctx_meto(request):
         's2_done_count': s2_done_count,
         's2_done_qty': s2_done_qty,
     }
-    orders_filter = Order.objects.filter(meto_beta=True).order_by('-created_at')[:100]
+    orders_filter = Order.objects.filter(meto_beta=True).exclude(
+        status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED]
+    ).order_by('-created_at')[:100]
 
     return {
         'waiting': [_card(f) for f in wait_page],
@@ -547,7 +550,9 @@ def _ctx_tasnif(request):
         's2_done_count': s2_done_count,
         's2_done_qty': s2_done_qty,
     }
-    orders_filter = Order.objects.filter(meto_beta=True).order_by('-created_at')[:100]
+    orders_filter = Order.objects.filter(meto_beta=True).exclude(
+        status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED]
+    ).order_by('-created_at')[:100]
 
     return {
         'waiting': [_card(f) for f in wait_page],
@@ -626,6 +631,9 @@ def _sklad_list_ctx(request, branch):
         current = 'all'
     q = request.GET.get('q', '').strip()[:60]
     base = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
+    kg_base = base.filter(sklad_received_at__isnull=False) if branch == 'HQ' else base
+    sklad_total_kg = flow_logic.format_kg(kg_base.aggregate(total_kg=Sum('batch__actual_weight_kg'))['total_kg'] or Decimal('0'))
+    sklad_total_count = base.count()
     flows = list(_sklad_search(base, q).order_by('-batch__created_at', '-id')
                  .values('id', 'batch_id', 'sklad_received_at', 'batch__actual_weight_kg'))
     batch_ids = [flow['batch_id'] for flow in flows]
@@ -639,6 +647,7 @@ def _sklad_list_ctx(request, branch):
     ).values_list('batch_id', flat=True))
     counts = {key: 0 for key, _ in filters}
     shown = []
+    shown_kg = Decimal('0')
     for flow in flows:
         stats = box_stats.get(flow['batch_id'], {})
         kg_ok = branch != 'HQ' or bool(flow['sklad_received_at'] and flow['batch__actual_weight_kg'])
@@ -648,6 +657,8 @@ def _sklad_list_ctx(request, branch):
             counts[key] += flags[key]
         if flags[current]:
             shown.append(flow['id'])
+            if kg_ok and flow['batch__actual_weight_kg']:
+                shown_kg += flow['batch__actual_weight_kg']
     return {
         'branch': branch,
         'cards': [_card(f) for f in _flows_qs(id__in=shown[:SKLAD_LIST_LIMIT])],
@@ -656,6 +667,9 @@ def _sklad_list_ctx(request, branch):
         'sklad_q': q,
         'sklad_total': len(shown),
         'sklad_hidden': max(0, len(shown) - SKLAD_LIST_LIMIT),
+        'sklad_total_kg': sklad_total_kg,
+        'sklad_shown_kg': flow_logic.format_kg(shown_kg),
+        'sklad_total_count': sklad_total_count,
     }
 
 
@@ -683,6 +697,8 @@ def _sklad_partial(request, tab):
     sections = {name: render_to_string(f'meto_hub/flow/_sklad_{name}.html', ctx, request=request)
                 for name in ('top', 'list', 'bottom')}
     return JsonResponse({'status': 'OK', 'sections': sections, 'total': ctx['sklad_total'],
+                         'total_kg': ctx['sklad_total_kg'], 'shown_kg': ctx['sklad_shown_kg'],
+                         'total_all_count': ctx['sklad_total_count'],
                          'counts': {key: n for key, _, n in ctx['sklad_filters']}})
 
 
@@ -779,10 +795,13 @@ def _hub_stats(allowed_keys, can_containers):
         total_ship = Shipment.objects.count()
         stats['yukxat'] = (open_ship, "yo'lda", [("Yo'lda", open_ship, 'sky'), ('Jami', total_ship, 'slate')])
     if 'zakazlar' in allowed_keys:
-        beta_cnt = Order.objects.filter(meto_beta=True).exclude(
-            status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED]
-        ).count()
-        stats['zakazlar'] = (beta_cnt, 'faol zakaz', [('Faol', beta_cnt, 'rose')])
+        active_orders = Order.objects.exclude(status__in=[Order.Status.ARCHIVED, Order.Status.CANCELLED])
+        new_cnt = active_orders.filter(meto_beta=True).count()
+        old_cnt = active_orders.filter(meto_beta=False).count()
+        pills = [('Yangi oqim', new_cnt, 'emerald')]
+        if old_cnt:
+            pills.append(('Eski oqim', old_cnt, 'slate'))
+        stats['zakazlar'] = (new_cnt, 'yangi oqimda', pills)
     if can_containers:
         empty_c = Container.objects.filter(status=Container.Status.EMPTY).count()
         tot_c = Container.objects.count()
@@ -1235,18 +1254,22 @@ def sklad_receive(request, batch_id):
 @_form_action('zakazlar', 'zakazlar')
 def beta_toggle(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-    if order.meto_beta:
-        # O'chirishdan oldin: yoqiq paytda kesilgan pastallarga oqim yozuvi — ular yangi oqimda tugaydi
-        flow_logic.ensure_flows()
     order.meto_beta = not order.meto_beta
     if order.meto_beta:
-        # Har yoqilganda "hozirdan": o'chiq paytda kesilib eski oqimda ishlangan pastallar yangi oqimga tushmaydi
-        # (hali meto qilinmaganlari baribir tushadi — v2_batches)
+        # Har yoqilganda "hozirdan": eski oqimda ishlangan pastallar eski oqimda qoladi, hali meto qilinmaganlari yangi oqimga tushadi
         order.meto_beta_since = timezone.now()
     order.save(update_fields=['meto_beta', 'meto_beta_since'])
-    state = ("yoqildi (hali meto qilinmagan va bundan keyin kesiladigan pastallar)" if order.meto_beta
-             else "o'chirildi")
-    return f"«{order.order_number}»: yangi meto oqimi {state}."
+    if not order.meto_beta:
+        # Eski oqimga o'tkazilganda: yangi metoda hali olinmagan kutish (METO_WAIT) yozuvlari o'chadi;
+        # yangi oqimda boshlanganlari (METO_WORK..AT_PATOK yoki tasnifdan qaytganlari) o'zida tugaydi
+        PastalFlow.objects.filter(
+            batch__order_item__order=order,
+            stage=PastalFlow.Stage.METO_WAIT,
+            tasnif_returned_at__isnull=True,
+        ).delete()
+    state = ("yangi tayyorlov oqimiga o'tkazildi (hali meto qilinmagan va bundan keyin kesiladigan pastallar)" if order.meto_beta
+             else "eski /meto/ oqimiga o'tkazildi (boshlangan pastallar yangi oqimda tugaydi)")
+    return f"«{order.order_number}»: {state}."
 
 
 # ------------------------------------------------------------------ JSON API (skaner)
@@ -1283,7 +1306,7 @@ def _box_problem(box, batch, current):
     if current:
         return f"{box.box_code} allaqachon {current.code} konteynerida."
     if batch is None or not flow_logic.is_v2_batch(batch):
-        return f"{box.box_code} — bu quti yangi meto oqimida emas."
+        return flow_logic.adopt_problem(box, batch)
     flow = flow_logic.get_flow(batch)
     if flow.stage != PastalFlow.Stage.SKLAD:
         return (f"{batch.pastal_code or batch.name} pastali skladda emas ({flow.get_stage_display()}) — "
@@ -1312,11 +1335,13 @@ def api_resolve(request):
         raise FlowError(f"«{code[:40]}» — bunday stiker yoki konteyner topilmadi.")
     batch = box.cutting_batch_item.batch if box.cutting_batch_item_id else None
     current = Container.objects.filter(box=box).first()
+    problem = _box_problem(box, batch, current)
     return JsonResponse({'status': 'OK', 'kind': 'box', 'box': box.box_code, 'razmer': box.razmer or '—',
                          'qty': box.quantity, 'pastal': (batch.pastal_code or batch.name) if batch else '—',
                          'cancelled': box.status == Box.Status.CANCELLED,
                          'container': current.code if current else None,
-                         'problem': _box_problem(box, batch, current)})
+                         'will_adopt': bool(not problem and batch and not flow_logic.is_v2_batch(batch)),
+                         'problem': problem})
 
 
 @_api('ship_any')
@@ -1324,10 +1349,17 @@ def api_resolve(request):
 def api_link(request):
     data = _json(request)
     box = flow_logic.resolve_box(data.get('box'))
-    if box is not None and flow_logic.is_v2_box(box):   # boshqa xatolarni link_container o'zi aytadi
-        _require_branch(request.user, flow_logic.get_flow(box.cutting_batch_item.batch).branch)
+    was_old = False
+    if box is not None:   # boshqa xatolarni link_container o'zi aytadi
+        if flow_logic.is_v2_box(box):
+            _require_branch(request.user, flow_logic.get_flow(box.cutting_batch_item.batch).branch)
+        else:
+            was_old = True
+            _require_branch(request.user, 'HQ')
     container, box = flow_logic.link_container(data.get('box'), data.get('container'), request.user)
-    return JsonResponse({'status': 'OK', 'message': f"{box.box_code} → {container.code} biriktirildi."})
+    msg = (f"{box.box_code} → {container.code} biriktirildi (pastal Bosh skladga qo'shildi — kg kiriting)."
+           if was_old else f"{box.box_code} → {container.code} biriktirildi.")
+    return JsonResponse({'status': 'OK', 'message': msg, 'adopted': was_old})
 
 
 @_api('ship_any')

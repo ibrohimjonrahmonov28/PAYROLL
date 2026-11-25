@@ -95,8 +95,9 @@ class MetoFlowBase(TestCase):
 
 class MetoFlowStepsTest(MetoFlowBase):
     def test_new_flow_takes_unmetoed_beta_pastals_whenever_cut(self):
-        # egasi 2026-11-24: beta zakazning hali meto qilinmagan hamma pastali (belgidan oldin kesilgani ham) yangi oqimda;
-        # eski oqim ishlagani (eski meto tasdiqlagan yoki bot patokka bergan) eski oqimda qoladi
+        # egasi 2026-11-25: har qanday faol zakaz sukut bo'yicha yangi tayyorlov oqimida;
+        # eski oqim ishlagani (eski meto tasdiqlagan yoki bot patokka bergan), arxiv/bekor qilingan yoki
+        # qo'lda eski oqimga o'tkazilgan (meto_beta=False) zakazlar eski oqimda qoladi
         untouched = self.cut('11-0')
         metoed = self.cut('11-7')
         metoed.items.update(status=CuttingBatchItem.Status.METO_CONFIRMED)
@@ -105,34 +106,51 @@ class MetoFlowStepsTest(MetoFlowBase):
             dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED, assigned_screen=3)
         CuttingBatch.objects.filter(id__in=[untouched.id, metoed.id, dispatched.id]).update(
             created_at=self.order.meto_beta_since - datetime.timedelta(days=3))
-        other_order = Order.objects.create(order_number='ZAK-OLD', article=self.article)
-        other_item = OrderItem.objects.create(order=other_order, article=self.article, quantity=10)
-        old_flow = CuttingBatch.objects.create(order_item=other_item, batch_number=1, pastal_code='11-9')   # beta emas
+        # Yangi yaratilgan oddiy zakaz (hech qanday belgi qo'yilmasdan) avtomatik yangi tayyorlov oqimida
+        default_order = Order.objects.create(order_number='ZAK-AUTO', article=self.article)
+        self.assertTrue(default_order.meto_beta and default_order.meto_beta_since)
+        default_item = OrderItem.objects.create(order=default_order, article=self.article, quantity=10)
+        auto_batch = CuttingBatch.objects.create(order_item=default_item, batch_number=1, pastal_code='11-10')
+        # Arxivlangan zakaz va qo'lda eski oqimga o'tkazilgan zakaz yangi oqimga kirmaydi
+        archived_order = Order.objects.create(order_number='ZAK-ARC', article=self.article, status=Order.Status.ARCHIVED)
+        archived_item = OrderItem.objects.create(order=archived_order, article=self.article, quantity=10)
+        archived_batch = CuttingBatch.objects.create(order_item=archived_item, batch_number=1, pastal_code='11-11')
+        old_order = Order.objects.create(order_number='ZAK-OLD', article=self.article, meto_beta=False)
+        old_item = OrderItem.objects.create(order=old_order, article=self.article, quantity=10)
+        old_flow = CuttingBatch.objects.create(order_item=old_item, batch_number=1, pastal_code='11-9')
 
-        self.assertEqual(set(meto_flow.v2_batches()), {self.batch, untouched})
-        for batch in (untouched, metoed, dispatched, old_flow):
+        self.assertEqual(set(meto_flow.v2_batches()), {self.batch, untouched, auto_batch})
+        for batch in (untouched, auto_batch, metoed, dispatched, old_flow, archived_batch):
             batch.refresh_from_db()
-            self.assertEqual(meto_flow.is_v2_batch(batch), batch == untouched, batch.pastal_code)
+            self.assertEqual(meto_flow.is_v2_batch(batch), batch in (untouched, auto_batch), batch.pastal_code)
         self.client.force_login(self.meto)
         res = self.client.get(reverse('meto_hub_flow_meto'))           # sahifa oqim yozuvlarini o'zi yaratadi
-        self.assertEqual({c['batch'].id for c in res.context['waiting']}, {self.batch.id, untouched.id})
-        self.assertEqual(set(PastalFlow.objects.values_list('batch_id', flat=True)), {self.batch.id, untouched.id})
+        self.assertEqual({c['batch'].id for c in res.context['waiting']}, {self.batch.id, untouched.id, auto_batch.id})
+        self.assertEqual(set(PastalFlow.objects.values_list('batch_id', flat=True)),
+                         {self.batch.id, untouched.id, auto_batch.id})
 
     def test_beta_toggle_since_resets_on_every_enable(self):
         order = Order.objects.create(order_number='ZAK-T', article=self.article)
+        oi = OrderItem.objects.create(order=order, article=self.article, quantity=10)
+        waiting_batch = CuttingBatch.objects.create(order_item=oi, batch_number=1, pastal_code='T-1')
+        meto_flow.ensure_flows()
+        self.assertTrue(order.meto_beta and order.meto_beta_since)
+        self.assertTrue(PastalFlow.objects.filter(batch=waiting_batch, stage=PastalFlow.Stage.METO_WAIT).exists())
+        since = order.meto_beta_since
         self.client.force_login(self.admin)
         url = reverse('meto_hub_flow_beta_toggle', args=[order.id])
-        self.client.post(url)
+        self.client.post(url)                                          # eski oqimga o'tkazildi
         order.refresh_from_db()
-        since = order.meto_beta_since
-        self.assertTrue(order.meto_beta and since)
-        self.client.post(url)
-        self.client.post(url)
+        self.assertFalse(order.meto_beta)
+        # Hali olinmagan METO_WAIT yozuvi o'chadi — /tayyorlov/meto/ da ko'rinmaydi, eski /meto/ da qoladi
+        self.assertFalse(PastalFlow.objects.filter(batch=waiting_batch).exists())
+        self.assertFalse(meto_flow.is_v2_batch(waiting_batch))
+        self.client.post(url)                                          # qayta yangi oqimga
         order.refresh_from_db()
-        # "hozirdan" qayta boshlanadi: o'chiq paytda kesilib eski oqimda ishlanganlari yangi oqimga tushmaydi
         self.assertTrue(order.meto_beta)
-        self.assertGreater(order.meto_beta_since, since)
-        self.client.force_login(self.meto)   # faqat superadmin / admin
+        self.assertGreaterEqual(order.meto_beta_since, since)
+        self.assertTrue(meto_flow.is_v2_batch(waiting_batch))
+        self.client.force_login(self.meto)                             # faqat superadmin / admin
         self.client.post(url)
         order.refresh_from_db()
         self.assertTrue(order.meto_beta)
@@ -484,7 +502,11 @@ class OtkV2Test(MetoFlowBase):
         self.small.refresh_from_db()
         self.assertEqual((self.small.status, self.small.repair_receipt), (Container.Status.IN_REPAIR, receipt))
         self.big.refresh_from_db()
-        self.assertEqual((self.big.status, self.big.box), (Container.Status.AT_PATOK, self.box))   # 1-sort bor
+        # Egasi talabi (2026-11-25): OTK birinchi tekshiruvi bilan katta konteyner darhol bo'shaydi (1-sort bo'lsa ham)
+        self.assertEqual((self.big.status, self.big.box), (Container.Status.EMPTY, None))
+        self.assertEqual(
+            ContainerEvent.objects.filter(container=self.big, action=ContainerEvent.Action.RELEASED).count(), 1
+        )
 
     def test_no_first_sort_releases_big_container_at_once(self):
         res = self.submit(mode='INITIAL', total_qty=48, second_sort_qty=48)
@@ -529,10 +551,12 @@ class OtkV2Test(MetoFlowBase):
         counter = User.objects.create_user(username='mf_sanoqchi', password='x', role=User.Role.COUNTER)
         packer = Worker.objects.create(worker_id='W-950', first_name='Taxlovchi', last_name='Bir')
         self.submit(mode='INITIAL', total_qty=48, repair_qty=3, repair_container=self.small.code)
-        scan, error = take_paper(f"CONTROL:{self.box.box_code}", packer, counter)
-        self.assertIsNone(error)
+        # Katta konteyner OTK da allaqachon bo'shagan bo'lishi kerak
         self.big.refresh_from_db()
         self.assertEqual((self.big.status, self.big.box), (Container.Status.EMPTY, None))
+        # Sanoqchi CONTROL qog'ozini urganda xatosiz o'tadi; kichik ta'mir konteyneri esa hali qaytmagan
+        scan, error = take_paper(f"CONTROL:{self.box.box_code}", packer, counter)
+        self.assertIsNone(error)
         self.small.refresh_from_db()
         self.assertEqual(self.small.status, Container.Status.IN_REPAIR)   # ta'mir cheki hali qaytmagan
 
@@ -2122,3 +2146,179 @@ class CyrillicOrderTicketScanTest(MetoFlowBase):
         res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {'box': self.scanned, 'container': container.code})
         self.assertEqual(res.json()['status'], 'OK')
         self.assertEqual(Container.objects.get(box=self.box), container)
+
+
+class OldPastalContainerAdoptAndOtkReleaseTest(MetoFlowBase):
+    """Egasi talabi (2026-11-25, A-variant):
+    1. Eski metodan chiqib stiker bosilgan, lekin hali patokka berilmagan pastal qutisi konteynerga bog'langanda
+       pastal avtomatik Bosh skladga (SKLAD/HQ) tushadi; kg kiritish majburiy bo'ladi.
+    2. Har bir skladda (Koson Bosh sklad va Uychi sklad — veb va planshetda) mavjud jami kg ko'rsatiladi.
+    3. Katta konteyner OTK qutini birinchi marta tekshirishi bilan (/control/, /beta/, /tayyorlov/otk/) avtomatik bo'shaydi."""
+
+    def _make_old_pastal(self, code='OLD-11-1', m=30, l=25):
+        from production.services import auto_generate_boxes_for_batch_item
+        old_order = Order.objects.create(order_number=f'ZAK-{code}', article=self.article, total_quantity=m + l,
+                                         meto_beta=False)
+        oi = OrderItem.objects.create(order=old_order, article=self.article, quantity=m + l)
+        sm = OrderItemSize.objects.create(order_item=oi, size_name='M', planned_quantity=m)
+        sl = OrderItemSize.objects.create(order_item=oi, size_name='L', planned_quantity=l)
+        batch = CuttingBatch.objects.create(order_item=oi, pastal_code=code, batch_number=1)
+        it_m = CuttingBatchItem.objects.create(batch=batch, order_item_size=sm, quantity=m, real_quantity=m,
+                                               status=CuttingBatchItem.Status.STICKERS_PRINTED)
+        it_l = CuttingBatchItem.objects.create(batch=batch, order_item_size=sl, quantity=l, real_quantity=l,
+                                               status=CuttingBatchItem.Status.STICKERS_PRINTED)
+        b1 = auto_generate_boxes_for_batch_item(batch_item=it_m, split_count=1, pastal_number=code)[0]
+        b2 = auto_generate_boxes_for_batch_item(batch_item=it_l, split_count=1, pastal_number=code)[0]
+        Box.objects.filter(id__in=[b1.id, b2.id]).update(is_printed=True)
+        b1.refresh_from_db()
+        b2.refresh_from_db()
+        return batch, [b1, b2]
+
+    def test_old_pastal_full_lifecycle_adopt_kg_uychi_and_control_otk_release(self):
+        batch, boxes = self._make_old_pastal('OLD-100')
+        c1, c2 = self.new_containers(2)
+        self.assertFalse(PastalFlow.objects.filter(batch=batch).exists())
+
+        # 1. api_resolve: eski pastal qutisini ruxsat beradi va will_adopt=True deydi
+        self.client.force_login(self.sklad)
+        resolved = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': f'CONTROL:{boxes[0].box_code}'}).json()
+        self.assertEqual((resolved['status'], resolved['problem'], resolved['will_adopt']), ('OK', None, True))
+
+        # 2. Uychi foydalanuvchisi eski pastalni o'zlashtira olmaydi (faqat Bosh sklad / HQ)
+        forbid = self.post_json(self.uychi, reverse('meto_hub_flow_api_link'),
+                                {'box': f'CONTROL:{boxes[0].box_code}', 'container': c1.code})
+        self.assertEqual(forbid.status_code, 400)
+        self.assertIn("ruxsatingiz yo'q", forbid.json()['message'])
+        self.assertFalse(PastalFlow.objects.filter(batch=batch).exists())
+
+        # 3. Noto'g'ri konteyner bo'lsa atomik bekor qilinadi — PastalFlow yasalmaydi
+        small = self.new_containers(1, kind='SMALL')[0]
+        fail = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'),
+                              {'box': f'CONTROL:{boxes[0].box_code}', 'container': small.code})
+        self.assertEqual(fail.status_code, 400)
+        self.assertFalse(PastalFlow.objects.filter(batch=batch).exists())
+
+        # 4. Birinchi qutini katta konteynerga bog'lash → avtomatik SKLAD/HQ (kg hali kiritilmagan!)
+        res1 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'),
+                              {'box': f'CONTROL:{boxes[0].box_code}', 'container': c1.code})
+        self.assertEqual(res1.status_code, 200, res1.content)
+        self.assertEqual(res1.json()['adopted'], True)
+        self.assertIn('kg', res1.json()['message'].lower())
+
+        flow = PastalFlow.objects.get(batch=batch)
+        self.assertEqual((flow.stage, flow.branch, flow.sklad_received_at), (PastalFlow.Stage.SKLAD, 'HQ', None))
+        self.assertTrue(meto_flow.is_v2_batch(batch))
+        self.assertEqual(list(batch.items.order_by('id').values_list('flow_size__tasnif_qty', flat=True)), [30, 25])
+
+        # Ikkinchi quti oddiy v2 pastal kabi bog'lanadi
+        res2 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'),
+                              {'box': f'CONTROL:{boxes[1].box_code}', 'container': c2.code})
+        self.assertEqual((res2.status_code, res2.json()['adopted']), (200, False))
+
+        # 5. Kg kiritilmasdan patokka ham, Uychiga ham chiqarib bo'lmaydi
+        with self.assertRaisesRegex(FlowError, 'kg'):
+            meto_flow.give_to_patok(batch, 3, [c1.code, c2.code], self.sklad)
+        with self.assertRaisesRegex(FlowError, 'kg'):
+            meto_flow.request_verification([batch], self.sklad)
+
+        # Kg kiritilmaguncha HQ jami kg = 0 va planshetning kg_pending_cards ro'yxatida chiqadi
+        self.client.force_login(self.sklad)
+        hq_partial = self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'}).json()
+        self.assertEqual(hq_partial['total_kg'], '0')
+        hq_state = self.client.get(reverse('meto_hub_tablet_state'), {'branch': 'HQ'}).json()
+        self.assertEqual(hq_state['total_sklad_kg'], '0')
+        self.assertIn(batch.id, [c['batch_id'] for c in hq_state['kg_pending_cards']])
+
+        # 6. Kg kiritilgandan keyin HQ veb va planshetda 24.5 kg ko'rinadi
+        meto_flow.sklad_receive(batch, '24.50', self.sklad)
+        hq_page = self.client.get(reverse('meto_hub_flow_sklad'))
+        self.assertContains(hq_page, '24.5')
+        hq_partial = self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'}).json()
+        self.assertEqual((hq_partial['total_kg'], hq_partial['shown_kg']), ('24.5', '24.5'))
+        hq_tablet = self.client.get(reverse('meto_hub_tablet'), {'branch': 'HQ'})
+        self.assertContains(hq_tablet, '24.5')
+        self.assertEqual(self.client.get(reverse('meto_hub_tablet_state'), {'branch': 'HQ'}).json()['total_sklad_kg'], '24.5')
+
+        # 7. Uychiga jo'natish va qabul qilish → HQ 0 kg, Uychi veb + planshet 24.5 kg
+        shipment = meto_flow.request_verification([batch], self.sklad)
+        meto_flow.dispatch_shipment(shipment, [c1.code, c2.code], self.sklad)
+        meto_flow.receive_shipment(shipment, [c1.code, c2.code], self.uychi)
+
+        self.assertEqual(self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'}).json()['total_kg'], '0')
+        self.client.force_login(self.uychi)
+        uychi_page = self.client.get(reverse('meto_hub_flow_uychi'))
+        self.assertContains(uychi_page, '24.5')
+        self.assertEqual(self.client.get(reverse('meto_hub_flow_uychi'), {'partial': '1'}).json()['total_kg'], '24.5')
+        uychi_tablet = self.client.get(reverse('meto_hub_tablet'), {'branch': 'UYCHI'})
+        self.assertContains(uychi_tablet, '24.5')
+        self.assertEqual(self.client.get(reverse('meto_hub_tablet_state'), {'branch': 'UYCHI'}).json()['total_sklad_kg'], '24.5')
+
+        # 8. Uychi patogiga (U3, screen=18) berib, oddiy /control/api/submit/ orqali OTK tekshirganda konteynerlar darhol bo'shaydi
+        meto_flow.give_to_patok(batch, 18, [c1.code, c2.code], self.uychi)
+        c1.refresh_from_db()
+        c2.refresh_from_db()
+        self.assertEqual((c1.status, c1.branch, c2.status), (Container.Status.AT_PATOK, 'UYCHI', Container.Status.AT_PATOK))
+
+        otk_u3 = User.objects.create_user(username='patoku3_test', password='x', role=User.Role.CONTROL,
+                                          branch=User.Branch.UYCHI, assigned_screen=18)
+        # 1-quti: to'liq 1-sort — konteyner OTK da avtomatik bo'shaydi
+        otk_res1 = self.post_json(otk_u3, reverse('control:api_submit'), {
+            'box_id': boxes[0].id, 'mode': 'INITIAL', 'total_qty': 30, 'second_sort_qty': 0, 'repair_qty': 0,
+        })
+        self.assertEqual(otk_res1.json()['status'], 'OK', otk_res1.content)
+        c1.refresh_from_db()
+        self.assertEqual((c1.status, c1.box, c1.branch), (Container.Status.EMPTY, None, 'UYCHI'))
+        self.assertEqual(ContainerEvent.objects.filter(container=c1, action=ContainerEvent.Action.RELEASED).count(), 1)
+
+        # 2-quti: 1-sort + ta'mir — katta konteyner baribir darhol bo'shaydi
+        otk_res2 = self.post_json(otk_u3, reverse('control:api_submit'), {
+            'box_id': boxes[1].id, 'mode': 'INITIAL', 'total_qty': 25, 'second_sort_qty': 2, 'repair_qty': 3,
+        })
+        self.assertEqual(otk_res2.json()['status'], 'OK', otk_res2.content)
+        c2.refresh_from_db()
+        self.assertEqual((c2.status, c2.box), (Container.Status.EMPTY, None))
+
+        # Sanoqchi CONTROL qog'ozini urganda xatosiz ishlaydi
+        from production.packing_services import take_paper
+        Order.objects.filter(id=batch.order_item.order_id).update(packing_beta=True)
+        counter = User.objects.create_user(username='mf_sanoqchi_old', password='x', role=User.Role.COUNTER)
+        packer = Worker.objects.create(worker_id='W-951', first_name='Taxlovchi', last_name='Ikki')
+        _, error = take_paper(f'CONTROL:{boxes[0].box_code}', packer, counter)
+        self.assertIsNone(error)
+
+    def test_old_pastal_guards_block_dispatched_scanned_or_controlled(self):
+        c1, c2, c3 = self.new_containers(3)
+        self.client.force_login(self.sklad)
+
+        # 1. Patokka berilgan eski pastal
+        b_disp, [box_disp, _] = self._make_old_pastal('OLD-DISP')
+        CuttingBatch.objects.filter(id=b_disp.id).update(
+            dispatch_status=CuttingBatch.DispatchStatus.DISPATCHED, assigned_screen=4
+        )
+        r = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': f'CONTROL:{box_disp.box_code}'}).json()
+        self.assertIsNotNone(r['problem'])
+        self.assertFalse(r['will_adopt'])
+        with self.assertRaises(FlowError):
+            meto_flow.link_container(f'CONTROL:{box_disp.box_code}', c1.code, self.sklad)
+
+        # 2. Tikuvga kirib bo'lgan (bilet skanerlangan) eski pastal
+        b_scan, [box_scan, _] = self._make_old_pastal('OLD-SCAN')
+        Ticket.objects.filter(box=box_scan).update(status=Ticket.Status.SCANNED)
+        r = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': f'CONTROL:{box_scan.box_code}'}).json()
+        self.assertIn('skanerlangan', r['problem'])
+        self.assertFalse(r['will_adopt'])
+        with self.assertRaises(FlowError):
+            meto_flow.link_container(f'CONTROL:{box_scan.box_code}', c2.code, self.sklad)
+
+        # 3. OTK dan o'tib bo'lgan eski pastal
+        b_otk, [box_otk, _] = self._make_old_pastal('OLD-OTK')
+        Box.objects.filter(id=box_otk.id).update(is_controlled=True)
+        r = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': f'CONTROL:{box_otk.box_code}'}).json()
+        self.assertIn('OTK', r['problem'])
+        self.assertFalse(r['will_adopt'])
+        with self.assertRaises(FlowError):
+            meto_flow.link_container(f'CONTROL:{box_otk.box_code}', c3.code, self.sklad)
+
+        # Hech biri PastalFlow ga o'tmagan
+        self.assertFalse(PastalFlow.objects.filter(batch__in=[b_disp, b_scan, b_otk]).exists())
+
