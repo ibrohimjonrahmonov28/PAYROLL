@@ -177,6 +177,11 @@ def _require(flow, stage, message):
 
 # ------------------------------------------------------------------ meto va tasnif
 
+# Hozircha o'chirilgan (egasi 2026-11-25): meto va tasnifda son kesimdan katta farq qilsa ham qabul qilinadi.
+# Cheklovni qayta yoqish kerak bo'lsa True qilinadi.
+ENFORCE_CUT_DIFF_LIMIT = False
+
+
 def take_meto(batch, user):
     with transaction.atomic():
         locked = CuttingBatch.objects.select_for_update().get(id=batch.id)   # eski /meto/ tasdiqlash bilan navbatma-navbat
@@ -213,14 +218,15 @@ def finish_meto(batch, counts, user, note=''):
         _require(flow, PastalFlow.Stage.METO_WORK, "Bu pastal meto bo'lmoqda holatida emas.")
         items = _items(batch)
         values = _counts(items, counts)
-        for item in items:
-            val = values[item.id]
-            max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)
-            if val > max_reasonable:
-                raise FlowError(
-                    f"{item.order_item_size.size_name} razmerida meto soni ({val}) "
-                    f"kesimdan ({item.quantity}) haddan tashqari katta — raqamni tekshiring."
-                )
+        if ENFORCE_CUT_DIFF_LIMIT:
+            for item in items:
+                val = values[item.id]
+                max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)
+                if val > max_reasonable:
+                    raise FlowError(
+                        f"{item.order_item_size.size_name} razmerida meto soni ({val}) "
+                        f"kesimdan ({item.quantity}) haddan tashqari katta — raqamni tekshiring."
+                    )
         for item in items:
             size = _size(item)
             size.meto_qty = values[item.id]
@@ -285,6 +291,8 @@ def return_tasnif(batch, user, reason=''):
 
 
 def _validate_tasnif_values(items, values):
+    if not ENFORCE_CUT_DIFF_LIMIT:
+        return
     for item in items:
         val = values[item.id]
         max_reasonable = min(max(item.quantity * 2 + 50, 100), 100000)

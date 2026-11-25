@@ -691,8 +691,17 @@ class TayyorlovMetoUpgradeTest(MetoFlowBase):
 
         self.client.post(reverse('meto_hub_flow_meto_take', args=[self.batch.id]))
         first, second = self.items()
-        with self.assertRaises(FlowError):   # 50 o'rniga 5000 yozishdan himoya
-            meto_flow.finish_meto(self.batch, {first.id: 5000, second.id: 40}, self.meto)
+        from unittest.mock import patch
+        with patch.object(meto_flow, 'ENFORCE_CUT_DIFF_LIMIT', True):
+            with self.assertRaises(FlowError):   # cheklov yoqilganda 50 o'rniga 5000 yozishdan himoya
+                meto_flow.finish_meto(self.batch, {first.id: 5000, second.id: 40}, self.meto)
+
+        # Hozircha cheklov o'chiq — kesimdan katta farq qilsa ham qabul qilinadi
+        big_batch = self.cut('P-BIG-DIFF', m=50, l=40)
+        b_first, b_second = self.items(big_batch)
+        meto_flow.take_meto(big_batch, self.meto)
+        meto_flow.finish_meto(big_batch, {b_first.id: 5000, b_second.id: 40}, self.meto)
+        self.assertEqual(meto_flow.get_flow(big_batch).stage, PastalFlow.Stage.TASNIF_WAIT)
 
         self.client.post(
             reverse('meto_hub_flow_meto_finish', args=[self.batch.id]),
@@ -919,10 +928,19 @@ class MetoTwoShiftsTest(MetoFlowBase):
         self.assertIsNone(flow.tasnif_taken_by)
         self.assertIsNone(flow.tasnif_taken_at)
 
-        # 3) Qayta qabul qilish va xato (haddan tashqari katta son kiritilganda)
+        # 3) Qayta qabul qilish: cheklov yoqilganda haddan tashqari katta son bloklanadi, o'chiq holatda qabul qilinadi
+        from unittest.mock import patch
         meto_flow.take_tasnif(b, self.tasnif)
-        with self.assertRaises(FlowError):
-            meto_flow.finish_tasnif(b, self.counts(999999, 40, batch=b), self.tasnif)
+        with patch.object(meto_flow, 'ENFORCE_CUT_DIFF_LIMIT', True):
+            with self.assertRaises(FlowError):
+                meto_flow.finish_tasnif(b, self.counts(999999, 40, batch=b), self.tasnif)
+
+        b_big = self.cut('T-LIFE-BIG', m=50, l=40)
+        meto_flow.take_meto(b_big, self.meto)
+        meto_flow.finish_meto(b_big, self.counts(500, 40, batch=b_big), self.meto)
+        meto_flow.take_tasnif(b_big, self.tasnif)
+        flow_big = meto_flow.finish_tasnif(b_big, self.counts(500, 40, batch=b_big), self.tasnif)
+        self.assertEqual(flow_big.stage, PastalFlow.Stage.SKLAD)
 
         # 4) Aniq sonlar bilan tugatish -> SKLAD bosqichiga o'tadi (Meto ombori)
         flow = meto_flow.finish_tasnif(b, self.counts(48, 40, batch=b), self.tasnif)
@@ -2077,6 +2095,24 @@ class CyrillicOrderTicketScanTest(MetoFlowBase):
         tail = self.scanned[self.scanned.index(')'):]                                            # bo'linib qolgan oxiri
         self.assertEqual(meto_flow.resolve_box(tail), self.box)
         self.assertIsNone(meto_flow.resolve_box('TICKET:TK-0410('))                              # boshi — topilmaydi
+
+    def test_new_ascii_sticker_links_to_container_directly(self):
+        # yangi stikerlar lotincha (0410(SHORTY)) — skaner to'xtamaydi, kod aniq topiladi, konteynerga biriktiriladi
+        box = self.boxes()[1]
+        ticket = box.tickets.exclude(status=Ticket.Status.CANCELLED).first()
+        self.assertTrue(ticket.ticket_code.isascii())
+        self.assertIn('0410(SHORTY)', ticket.ticket_code)
+        self.client.force_login(self.sklad)
+        container = self.new_containers(1)[0]
+        for code in (container.code, f"TICKET:{ticket.ticket_code}"):   # planshetda tartib muhim emas
+            data = self.client.get(reverse('meto_hub_flow_api_resolve'), {'code': code}).json()
+            self.assertEqual((data['status'], data['problem']), ('OK', None), code)
+        res = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'),
+                             {'box': f"TICKET:{ticket.ticket_code}", 'container': container.code})
+        self.assertEqual(res.json()['status'], 'OK')
+        self.assertEqual(Container.objects.get(box=box), container)
+        listed = self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'}).json()
+        self.assertIn(container.code, listed['sections']['list'])   # bosh sklad ro'yxatida darhol
 
     def test_tablet_links_box_scanned_without_cyrillic(self):
         self.client.force_login(self.sklad)
