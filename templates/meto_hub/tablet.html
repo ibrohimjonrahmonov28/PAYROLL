@@ -238,9 +238,9 @@
         <!-- MODE 1: BIRIKTIRISH (QUTI ↔ KONTEYNER) — FAQAT KOSON (HQ)      -->
         <!-- ============================================================== -->
         <div id="mode-link"
-            class="mode-view flex-1 {% if default_mode != 'link' %}hidden{% endif %} flex flex-col lg:flex-row gap-4 overflow-hidden">
+            class="mode-view flex-1 min-h-0 {% if default_mode != 'link' %}hidden{% endif %} flex flex-col lg:flex-row gap-4 overflow-hidden">
             <!-- Left Panel: Scanner & Current Linking State (60% width) -->
-            <div class="flex-1 flex flex-col gap-4 overflow-y-auto">
+            <div class="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto">
                 <!-- Visual Step Banner & Mode Controls -->
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -385,27 +385,27 @@
                 </div>
             </div>
 
-            <!-- Right Panel: Live Journal / Recent Scans (40% width) -->
-            <div class="w-full lg:w-[420px] flex flex-col gap-4 overflow-hidden">
+            <!-- Right Panel: Live Journal / Recent Scans (compact, oxirgi 5 ta) -->
+            <div class="w-full lg:w-[380px] flex-shrink-0 max-h-[250px] lg:max-h-none flex flex-col gap-4 overflow-hidden">
                 <div
-                    class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex-1 flex flex-col overflow-hidden">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                    class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <div
                                 class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
                             </div>
-                            <h3 class="text-sm font-black text-white">Oxirgi Biriktirilganlar</h3>
+                            <h3 class="text-sm font-black text-white">Oxirgi Biriktirilganlar <span class="text-[11px] font-semibold text-slate-400">(oxirgi 5 ta)</span></h3>
                         </div>
                         <span class="text-xs text-slate-400 font-mono font-bold" id="session-count-pill">Jami: 0
                             ta</span>
                     </div>
 
                     <!-- Scrollable Log List -->
-                    <div id="recent-logs-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                    <div id="recent-logs-list" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
                         <!-- Empty placeholder -->
-                        <div id="empty-logs-placeholder" class="py-12 text-center text-slate-500 space-y-2">
-                            <i class="fa-solid fa-list-check text-3xl block text-slate-600"></i>
+                        <div id="empty-logs-placeholder" class="py-5 text-center text-slate-500 space-y-1.5">
+                            <i class="fa-solid fa-list-check text-2xl block text-slate-600"></i>
                             <p class="text-xs font-bold text-slate-400">Bu seansda hali skaner qilinmadi</p>
                             <p class="text-[11px] text-slate-500">Qutilar biriktirilishi bilan shu yerda paydo bo'ladi
                             </p>
@@ -414,7 +414,7 @@
 
                     <!-- Quick Help Footer -->
                     <div
-                        class="border-t border-slate-800 pt-3 mt-3 flex items-center justify-between text-[11px] text-slate-400">
+                        class="border-t border-slate-800 pt-2.5 mt-2.5 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
                         <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato biriktirilsa: «Bekor
                             qilish»</span>
                         <a href="{% url 'meto_hub_containers' %}" target="_blank"
@@ -2059,31 +2059,47 @@
             scanInput.focus();
         }
 
+        const MAX_RECENT_LOGS = 5;
+
         function addSessionLog(ok, text, undoCode = null) {
             const list = document.getElementById('recent-logs-list');
             const empty = document.getElementById('empty-logs-placeholder');
-            if (empty) empty.classList.add('hidden');
+            if (empty) empty.remove();
 
             const now = new Date();
             const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
             const row = document.createElement('div');
-            row.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 text-xs transition-all ${ok ? 'bg-slate-950 border-emerald-800/80 text-emerald-200' : 'bg-rose-950/60 border-rose-800 text-rose-200'
+            row.className = `px-2.5 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${ok ? 'bg-slate-950 border-emerald-800/80 text-emerald-200' : 'bg-rose-950/60 border-rose-800 text-rose-200'
                 }`;
 
-            row.innerHTML = `
-                <div class="flex items-center gap-2 min-w-0">
-                    <i class="fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400'} text-sm flex-shrink-0"></i>
-                    <span class="truncate font-semibold">${text}</span>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
-                    ${undoCode ? `<button type="button" onclick="undoLink('${undoCode}')" class="px-2 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10px] font-bold touch-btn">Bekor</button>` : ''}
-                </div>
-            `;
+            const left = document.createElement('div');
+            left.className = 'flex items-center gap-2 min-w-0';
+            const icon = document.createElement('i');
+            icon.className = `fa-solid ${ok ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-rose-400'} text-sm flex-shrink-0`;
+            const label = document.createElement('span');
+            label.className = 'truncate font-semibold';
+            label.textContent = text;
+            left.append(icon, label);
 
+            const right = document.createElement('div');
+            right.className = 'flex items-center gap-2 flex-shrink-0';
+            const timeEl = document.createElement('span');
+            timeEl.className = 'text-[10px] text-slate-500 font-mono';
+            timeEl.textContent = timeStr;
+            right.append(timeEl);
+            if (undoCode) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-2 py-0.5 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10px] font-bold touch-btn';
+                btn.textContent = 'Bekor';
+                btn.onclick = () => undoLink(undoCode);
+                right.append(btn);
+            }
+
+            row.append(left, right);
             list.prepend(row);
-            while (list.children.length > 20) list.lastChild.remove();
+            while (list.children.length > MAX_RECENT_LOGS) list.lastChild.remove();
 
             sessionLogs.push({ ok, text });
             document.getElementById('session-count-pill').textContent = `Jami: ${sessionLogs.filter(l => l.ok).length} ta`;
