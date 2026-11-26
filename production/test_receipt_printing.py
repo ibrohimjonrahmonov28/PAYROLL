@@ -3,11 +3,13 @@ OTK ta'mir cheki: ta'mir saqlanganda patok printeriga chek navbatga tushadi (ope
 mavjud OTK QR kodi), pechat agenti API'si va superadmin printerlar sahifasi.
 """
 import base64
+import datetime
 import json
 from decimal import Decimal
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import User, Worker
 from production.models import (
@@ -208,3 +210,66 @@ class PrintersPageTest(TestCase):
 
         self.client.post(reverse('printers:page'), {'host-1': ''})            # bo'sh — printerlar o'chiriladi
         self.assertFalse(ReceiptPrinter.objects.exists())
+
+    def test_printers_realtime_partial_and_ajax(self):
+        ajax = {'HTTP_X_REQUESTED_WITH': 'XMLHttpRequest'}
+        url = reverse('printers:page')
+
+        # 1) AJAX saqlash: bitta to'g'ri, bitta xato -> PARTIAL (200)
+        res = self.client.post(url, {'host-1': '192.168.1.51', 'active-1': '1', 'host-5': 'tablet', 'active-5': '1',
+                                     'host-4': 'bad host'}, **ajax)
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        self.assertEqual(body['status'], 'PARTIAL')
+        self.assertEqual(body['error_screens'], [4])
+        self.assertEqual(body['live']['tablet_total'], 1)
+        self.assertEqual(body['live']['tablet_online'], 0)
+
+        # 2) Faqat xato bo'lsa -> ERROR (400)
+        bad = self.client.post(url, {'host-1': '192.168.1.51', 'active-1': '1', 'host-5': 'tablet', 'active-5': '1',
+                                     'host-4': 'bad host'}, **ajax)
+        self.assertEqual(bad.status_code, 400)
+        self.assertEqual(bad.json()['status'], 'ERROR')
+
+        # 3) Sinov cheki AJAX orqali -> live ichida navbatga tushadi
+        t_res = self.client.post(reverse('printers:test', args=[1]), **ajax)
+        self.assertEqual(t_res.status_code, 200)
+        t_body = t_res.json()
+        self.assertEqual(t_body['status'], 'OK')
+        self.assertEqual(t_body['live']['pending'], 1)
+        self.assertIn('Sinov cheki', t_body['live']['jobs_html'])
+        sig1 = t_body['live']['jobs_sig']
+
+        # 4) ?partial=1 bir xil sig bilan -> jobs_html qaytarilmaydi (None)
+        p_same = self.client.get(url, {'partial': '1', 'sig': sig1}, **ajax)
+        self.assertEqual(p_same.status_code, 200)
+        self.assertEqual(p_same.headers.get('Cache-Control'), 'no-store')
+        self.assertIsNone(p_same.json()['jobs_html'])
+
+        # 5) Holat SENDING/PRINTED ga o'zgarganda sig o'zgaradi va planshet onlayn holati ko'rinadi
+        now = timezone.now()
+        ReceiptPrinter.objects.filter(screen_number=5).update(last_seen_at=now - datetime.timedelta(seconds=10))
+        job = PrintJob.objects.get()
+        job.status = PrintJob.Status.PRINTED
+        job.printed_at = now
+        job.save(update_fields=['status', 'printed_at'])
+
+        p_changed = self.client.get(url, {'partial': '1', 'sig': sig1}, **ajax)
+        data = p_changed.json()
+        self.assertEqual(data['pending'], 0)
+        self.assertEqual(data['tablet_online'], 1)
+        self.assertNotEqual(data['jobs_sig'], sig1)
+        self.assertIn('Chiqdi', data['jobs_html'])
+        k5_row = next(r for r in data['rows'] if r['n'] == 5)
+        self.assertEqual(k5_row['tablet_state'], 'online')
+
+        # 6) Qayta chiqarish AJAX orqali
+        r_res = self.client.post(reverse('printers:reprint', args=[job.id]), **ajax)
+        self.assertEqual(r_res.status_code, 200)
+        self.assertEqual(r_res.json()['live']['pending'], 1)
+
+    def test_printers_partial_requires_superadmin(self):
+        self.client.logout()
+        res = self.client.get(reverse('printers:page'), {'partial': '1'})
+        self.assertEqual(res.status_code, 302)
+

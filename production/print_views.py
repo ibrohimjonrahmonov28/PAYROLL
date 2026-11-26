@@ -20,6 +20,8 @@ from django.db import transaction
 from django.db.models import OuterRef, Q, Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
@@ -35,6 +37,7 @@ MAX_ATTEMPTS = 5
 USB_NAME = re.compile(r'^usb:[A-Za-z0-9_.-]{1,60}$')
 TABLET = 'tablet'
 SEEN_EVERY = datetime.timedelta(seconds=20)      # planshet har 3 s so'raydi — bazaga 20 s da bir yoziladi
+ONLINE_WINDOW = datetime.timedelta(minutes=1)
 
 
 def agent_token():
@@ -43,6 +46,133 @@ def agent_token():
 
 def _agent_ok(request):
     return hmac.compare_digest(request.headers.get('X-Agent-Token', ''), agent_token())
+
+
+def _is_ajax(request):
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
+def _fmt_dt(dt, fmt='%d.%m %H:%M:%S'):
+    return timezone.localtime(dt).strftime(fmt) if dt else ''
+
+
+def _truncate(text, limit=60):
+    val = text or ''
+    return (val[:limit - 1] + '…') if len(val) > limit else val
+
+
+def _printers_context(request):
+    """Printerlar jadvali, planshetlar tirikligi va oxirgi 50 ta chek holati (sahifa va ?partial=1 uchun yagona manba)."""
+    now = timezone.now()
+    online_since = now - ONLINE_WINDOW
+    latest = PrintJob.objects.filter(printer=OuterRef('pk')).order_by('-created_at', '-id')
+    with_last = ReceiptPrinter.objects.annotate(
+        last_status=Subquery(latest.values('status')[:1]),
+        last_at=Subquery(latest.values('created_at')[:1]),
+        last_error=Subquery(latest.values('error')[:1]),
+    )
+    printers = {p.screen_number: p for p in with_last}
+    status_labels = dict(PrintJob.Status.choices)
+
+    rows = []
+    tablet_total = 0
+    tablet_online = 0
+    for n in PATOK_NUMBERS:
+        printer = printers.get(n)
+        tablet_state = ''
+        tablet_seen = ''
+        if printer and printer.host == TABLET:
+            tablet_total += 1
+            if printer.last_seen_at and printer.last_seen_at >= online_since:
+                tablet_state = 'online'
+                tablet_online += 1
+            elif printer.last_seen_at:
+                tablet_state = 'offline'
+                tablet_seen = _fmt_dt(printer.last_seen_at)
+            else:
+                tablet_state = 'never'
+
+        last_status = (printer.last_status or '') if printer else ''
+        last_error_full = (printer.last_error or '') if printer else ''
+        rows.append({
+            'n': n,
+            'code': get_patok_code(n),
+            'printer': printer,
+            'has_printer': printer is not None,
+            'host': printer.host if printer else '',
+            'is_active': printer.is_active if printer else True,
+            'tablet_state': tablet_state,
+            'tablet_seen': tablet_seen,
+            'last_status': last_status,
+            'last_status_label': status_labels.get(last_status, last_status),
+            'last_at': _fmt_dt(printer.last_at) if (printer and printer.last_at) else '',
+            'last_error': _truncate(last_error_full, 60),
+            'last_error_full': last_error_full,
+        })
+
+    jobs = list(PrintJob.objects.select_related('printer').order_by('-created_at', '-id')[:50])
+    for job in jobs:
+        job.patok_code = get_patok_code(job.printer.screen_number)
+
+    jobs_sig = hashlib.md5(
+        '|'.join(f"{j.id}:{j.status}:{j.attempts}:{j.error}" for j in jobs).encode('utf-8')
+    ).hexdigest()[:16]
+
+    pending_qs = PrintJob.objects.filter(status__in=[PrintJob.Status.PENDING, PrintJob.Status.SENDING])
+    pending = pending_qs.count()
+    sending = pending_qs.filter(status=PrintJob.Status.SENDING).count()
+
+    return {
+        'rows': rows,
+        'jobs': jobs,
+        'jobs_sig': jobs_sig,
+        'token': agent_token(),
+        'server_url': request.build_absolute_uri('/').rstrip('/'),
+        'online_since': online_since,
+        'pending': pending,
+        'sending': sending,
+        'tablet_total': tablet_total,
+        'tablet_online': tablet_online,
+        'server_time': _fmt_dt(now, '%H:%M:%S'),
+    }
+
+
+def _live_payload(request, client_sig=None):
+    ctx = _printers_context(request)
+    include_jobs = (client_sig is None or client_sig != ctx['jobs_sig'])
+    return {
+        'status': 'OK',
+        'server_time': ctx['server_time'],
+        'pending': ctx['pending'],
+        'sending': ctx['sending'],
+        'tablet_total': ctx['tablet_total'],
+        'tablet_online': ctx['tablet_online'],
+        'rows': [
+            {
+                'n': r['n'],
+                'has_printer': r['has_printer'],
+                'host': r['host'],
+                'is_active': r['is_active'],
+                'tablet_state': r['tablet_state'],
+                'tablet_seen': r['tablet_seen'],
+                'last_status': r['last_status'],
+                'last_status_label': r['last_status_label'],
+                'last_at': r['last_at'],
+                'last_error': r['last_error'],
+                'last_error_full': r['last_error_full'],
+                'test_url': reverse('printers:test', args=[r['n']]),
+            }
+            for r in ctx['rows']
+        ],
+        'jobs_sig': ctx['jobs_sig'],
+        'jobs_html': render_to_string('superadmin/_printers_jobs_rows.html', {'jobs': ctx['jobs']}, request=request) if include_jobs else None,
+    }
+
+
+def _no_store_json(data, status=200):
+    response = JsonResponse(data, status=status)
+    response['Cache-Control'] = 'no-store'
+    return response
 
 
 @require_http_methods(["GET"])
@@ -113,7 +243,7 @@ def _valid_host(host):
 def printers_page(request):
     printers = {p.screen_number: p for p in ReceiptPrinter.objects.all()}
     if request.method == 'POST':
-        errors, saved = [], 0
+        errors, error_screens, saved = [], [], 0
         for n in PATOK_NUMBERS:
             host = (request.POST.get(f'host-{n}') or '').strip()
             if host.lower() == TABLET:
@@ -127,6 +257,7 @@ def printers_page(request):
                 continue
             if not _valid_host(host):
                 errors.append(f"{get_patok_code(n)}: «{host}» — IP manzil, usb:nomi yoki tablet bo'lishi kerak")
+                error_screens.append(n)
                 continue
             if printer is None:
                 ReceiptPrinter.objects.create(screen_number=n, host=host, is_active=active)
@@ -135,25 +266,35 @@ def printers_page(request):
                 printer.host, printer.is_active = host, active
                 printer.save(update_fields=['host', 'is_active', 'updated_at'])
                 saved += 1
+        if _is_ajax(request):
+            err_msg = '. '.join(errors) + '.' if errors else ''
+            save_msg = f"Saqlandi: {saved} ta o'zgarish."
+            if errors and not saved:
+                return _no_store_json({
+                    'status': 'ERROR',
+                    'message': err_msg,
+                    'errors': errors,
+                    'error_screens': error_screens,
+                    'saved': saved,
+                    'live': _live_payload(request),
+                }, status=400)
+            return _no_store_json({
+                'status': 'PARTIAL' if errors else 'OK',
+                'message': f"{err_msg} {save_msg}".strip() if errors else save_msg,
+                'errors': errors,
+                'error_screens': error_screens,
+                'saved': saved,
+                'live': _live_payload(request),
+            })
         if errors:
             messages.error(request, '. '.join(errors) + '.')
         messages.success(request, f"Saqlandi: {saved} ta o'zgarish.")
         return redirect('printers:page')
 
-    latest = PrintJob.objects.filter(printer=OuterRef('pk')).order_by('-created_at')
-    with_last = ReceiptPrinter.objects.annotate(
-        last_status=Subquery(latest.values('status')[:1]), last_at=Subquery(latest.values('created_at')[:1]),
-        last_error=Subquery(latest.values('error')[:1]))
-    printers = {p.screen_number: p for p in with_last}
-    rows = [{'n': n, 'code': get_patok_code(n), 'printer': printers.get(n)} for n in PATOK_NUMBERS]
-    return render(request, 'superadmin/printers.html', {
-        'rows': rows,
-        'jobs': PrintJob.objects.select_related('printer')[:50],
-        'token': agent_token(),
-        'server_url': request.build_absolute_uri('/').rstrip('/'),
-        'online_since': timezone.now() - datetime.timedelta(minutes=1),
-        'pending': PrintJob.objects.filter(status__in=[PrintJob.Status.PENDING, PrintJob.Status.SENDING]).count(),
-    })
+    if request.GET.get('partial') == '1':
+        return _no_store_json(_live_payload(request, client_sig=request.GET.get('sig')))
+
+    return render(request, 'superadmin/printers.html', _printers_context(request))
 
 
 @superadmin_required
@@ -162,7 +303,10 @@ def printer_test(request, screen_number):
     printer = get_object_or_404(ReceiptPrinter, screen_number=screen_number)
     PrintJob.objects.create(printer=printer, title="Sinov cheki",
                             payload=base64.b64encode(build_test_receipt(printer)).decode('ascii'))
-    messages.success(request, f"{get_patok_code(screen_number)} printeriga sinov cheki navbatga qo'yildi.")
+    msg = f"{get_patok_code(screen_number)} printeriga sinov cheki navbatga qo'yildi."
+    if _is_ajax(request):
+        return _no_store_json({'status': 'OK', 'message': msg, 'live': _live_payload(request)})
+    messages.success(request, msg)
     return redirect('printers:page')
 
 
@@ -172,5 +316,8 @@ def job_reprint(request, job_id):
     job = get_object_or_404(PrintJob, id=job_id)
     PrintJob.objects.create(printer=job.printer, box=job.box, inspection_log=job.inspection_log,
                             title=f"Qayta: {job.title}"[:200], payload=job.payload)
-    messages.success(request, "Chek qayta navbatga qo'yildi.")
+    msg = "Chek qayta navbatga qo'yildi."
+    if _is_ajax(request):
+        return _no_store_json({'status': 'OK', 'message': msg, 'live': _live_payload(request)})
+    messages.success(request, msg)
     return redirect('printers:page')

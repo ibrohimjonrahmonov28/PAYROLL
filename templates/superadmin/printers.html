@@ -3,13 +3,22 @@
 {% block title %}Chek printerlari — OTK{% endblock %}
 
 {% block superadmin_header %}
-<div class="flex items-center gap-3">
+<div class="flex items-center gap-3 flex-wrap">
     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-500 text-slate-950 flex items-center justify-center font-black text-lg">
         <i class="fa-solid fa-receipt"></i>
     </div>
     <div>
         <h2 class="text-lg font-black text-white leading-tight">OTK chek printerlari</h2>
         <span class="text-[11px] text-cyan-400 font-bold uppercase tracking-wider">Ta'mir saqlanganda shu patok printeridan chek chiqadi</span>
+    </div>
+    <div id="printers-live-pill"
+         class="ml-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+        <span id="printers-live-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="printers-live-text">Jonli · {{ server_time }}</span>
+        <button type="button" id="printers-refresh-btn" title="Hozir yangilash"
+                class="text-slate-300 hover:text-white transition cursor-pointer ml-0.5">
+            <i id="printers-refresh-icon" class="fa-solid fa-rotate text-[11px]"></i>
+        </button>
     </div>
 </div>
 {% endblock %}
@@ -24,14 +33,24 @@
             <div class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800"><span class="text-slate-500 text-xs">Server:</span> <span class="font-mono text-white">{{ server_url }}</span></div>
             <div class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800"><span class="text-slate-500 text-xs">Token:</span> <span class="font-mono text-white select-all">{{ token }}</span></div>
         </div>
-        <p class="text-xs {% if pending %}text-amber-400{% else %}text-slate-500{% endif %}">Navbatda: {{ pending }} ta chek{% if pending %} — agent ishlamayotgan yoki printer o'chiq bo'lishi mumkin{% endif %}.</p>
+        <div id="printers-queue-bar" class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <p id="pending-text" class="{% if pending %}text-amber-400 font-semibold{% else %}text-slate-400{% endif %}">
+                Navbatda: {{ pending }} ta chek{% if sending %} ({{ sending }} ta agentda){% endif %}{% if pending %} — agent ishlamayotgan yoki printer o'chiq bo'lishi mumkin{% else %} · hammasi chiqarilgan{% endif %}.
+            </p>
+            <p id="tablet-summary" class="{% if not tablet_total %}hidden {% endif %}font-semibold {% if tablet_online == tablet_total and tablet_total %}text-emerald-400{% elif tablet_online %}text-amber-400{% else %}text-rose-400{% endif %}">
+                Planshetlar: {{ tablet_online }}/{{ tablet_total }} ulangan
+            </p>
+        </div>
     </section>
 
-    <form method="POST" class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <form id="printers-config-form" method="POST" class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
         {% csrf_token %}
         <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-black text-white">Patoklar bo'yicha printerlar</h3>
-            <button class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black"><i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash</button>
+            <button id="printers-save-btn" type="submit"
+                    class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black cursor-pointer transition disabled:opacity-60">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Saqlash
+            </button>
         </div>
         <p class="text-xs text-slate-500 mb-3"><code class="text-slate-300">tablet</code> — printer shu patok OTK planshetiga USB bilan ulangan (planshetda Terry Jar Print ilovasi). LAN printer — IP manzil (masalan 192.168.1.53, port 9100). Agent kompyuteriga USB bilan ulangan printer — <code class="text-slate-300">usb:</code> + printer nomi (masalan usb:XP80). Bo'sh qoldirilsa printer o'chiriladi.</p>
         <div class="overflow-x-auto">
@@ -41,29 +60,39 @@
                 </thead>
                 <tbody>
                     {% for r in rows %}
-                    <tr class="border-t border-slate-800">
+                    <tr class="border-t border-slate-800" data-printer-row="{{ r.n }}">
                         <td class="px-2 py-1.5 font-black text-white">{{ r.code }}</td>
-                        <td class="px-2 py-1.5"><input name="host-{{ r.n }}" value="{{ r.printer.host|default:'' }}" placeholder="tablet, IP yoki usb:nomi"
-                            class="w-48 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono"></td>
-                        <td class="px-2 py-1.5"><input type="checkbox" name="active-{{ r.n }}" value="1" {% if not r.printer or r.printer.is_active %}checked{% endif %}></td>
-                        <td class="px-2 py-1.5 text-xs">
-                            {% if r.printer.host == 'tablet' %}
-                            {% if r.printer.last_seen_at and r.printer.last_seen_at >= online_since %}<span class="text-emerald-400 font-bold">● ulangan</span>
-                            {% elif r.printer.last_seen_at %}<span class="text-rose-400 font-bold">● uzilgan</span> <span class="text-slate-500">{{ r.printer.last_seen_at|date:"d.m H:i" }}</span>
-                            {% else %}<span class="text-slate-500">hali ulanmagan</span>{% endif %}
-                            {% else %}<span class="text-slate-600">—</span>{% endif %}
+                        <td class="px-2 py-1.5">
+                            <input name="host-{{ r.n }}" value="{{ r.host }}" data-server-value="{{ r.host }}"
+                                   placeholder="tablet, IP yoki usb:nomi"
+                                   class="printer-host-input w-48 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono">
                         </td>
-                        <td class="px-2 py-1.5 text-xs">
-                            {% if r.printer.last_at %}
-                            <span class="{% if r.printer.last_status == 'PRINTED' %}text-emerald-400{% elif r.printer.last_status == 'FAILED' %}text-rose-400{% else %}text-amber-400{% endif %}">{{ r.printer.last_status }}</span>
-                            <span class="text-slate-500">{{ r.printer.last_at|date:"d.m H:i" }}</span>
-                            {% if r.printer.last_error %}<span class="text-rose-400">· {{ r.printer.last_error|truncatechars:60 }}</span>{% endif %}
+                        <td class="px-2 py-1.5">
+                            <input type="checkbox" name="active-{{ r.n }}" value="1"
+                                   data-server-checked="{% if r.is_active %}1{% else %}0{% endif %}"
+                                   class="printer-active-input" {% if r.is_active %}checked{% endif %}>
+                        </td>
+                        <td class="px-2 py-1.5 text-xs" data-printer-tablet="{{ r.n }}">
+                            {% if r.tablet_state == 'online' %}
+                            <span class="inline-flex items-center gap-1.5 text-emerald-400 font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>ulangan</span>
+                            {% elif r.tablet_state == 'offline' %}
+                            <span class="text-rose-400 font-bold">● uzilgan</span> <span class="text-slate-500 font-mono">{{ r.tablet_seen }}</span>
+                            {% elif r.tablet_state == 'never' %}
+                            <span class="text-slate-500">hali ulanmagan</span>
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-2 py-1.5 text-xs" data-printer-last="{{ r.n }}">
+                            {% if r.last_at %}
+                            <span class="{% if r.last_status == 'PRINTED' %}text-emerald-400{% elif r.last_status == 'FAILED' %}text-rose-400{% else %}text-amber-400{% endif %} font-semibold">{{ r.last_status_label }}</span>
+                            <span class="text-slate-500 font-mono">{{ r.last_at }}</span>
+                            {% if r.last_error %}<span class="text-rose-400" title="{{ r.last_error_full }}">· {{ r.last_error }}</span>{% endif %}
                             {% else %}<span class="text-slate-600">—</span>{% endif %}
                         </td>
                         <td class="px-2 py-1.5 text-right">
-                            {% if r.printer %}
-                            <button formaction="{% url 'printers:test' r.n %}" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">Sinov cheki</button>
-                            {% endif %}
+                            <button type="submit" formaction="{% url 'printers:test' r.n %}" data-printer-test="{{ r.n }}"
+                                    class="{% if not r.has_printer %}hidden {% endif %}px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white cursor-pointer transition disabled:opacity-50">Sinov cheki</button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -73,34 +102,346 @@
     </form>
 
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <h3 class="text-sm font-black text-white mb-3">Oxirgi 50 ta chek</h3>
+        <div class="flex items-center justify-between gap-2 mb-3">
+            <h3 class="text-sm font-black text-white">Oxirgi 50 ta chek</h3>
+            <span class="text-[11px] text-slate-500">Avtomatik yangilanadi (2.5 s)</span>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="text-xs text-slate-400 text-left">
                     <tr><th class="px-2 py-1.5">Vaqt</th><th class="px-2 py-1.5">Patok</th><th class="px-2 py-1.5">Chek</th><th class="px-2 py-1.5">Holat</th><th class="px-2 py-1.5"></th></tr>
                 </thead>
-                <tbody>
-                    {% for job in jobs %}
-                    <tr class="border-t border-slate-800">
-                        <td class="px-2 py-1.5 text-slate-400 text-xs">{{ job.created_at|date:"d.m H:i:s" }}</td>
-                        <td class="px-2 py-1.5 font-bold text-white">#{{ job.printer.screen_number }}</td>
-                        <td class="px-2 py-1.5 text-slate-200">{{ job.title }}</td>
-                        <td class="px-2 py-1.5 text-xs">
-                            <span class="{% if job.status == 'PRINTED' %}text-emerald-400{% elif job.status == 'FAILED' %}text-rose-400{% else %}text-amber-400{% endif %}">{{ job.get_status_display }}</span>
-                            {% if job.error %}<span class="text-rose-400">· {{ job.error|truncatechars:60 }}</span>{% endif %}
-                        </td>
-                        <td class="px-2 py-1.5 text-right">
-                            <form method="POST" action="{% url 'printers:reprint' job.id %}">{% csrf_token %}
-                                <button class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">Qayta chiqarish</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="5" class="px-2 py-4 text-center text-slate-500">Hali chek yo'q</td></tr>
-                    {% endfor %}
+                <tbody id="jobs-tbody">
+                    {% include 'superadmin/_printers_jobs_rows.html' %}
                 </tbody>
             </table>
         </div>
     </section>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const LIVE_URL = "{% url 'printers:page' %}";
+    const REFRESH_MS = 2500;
+    const configForm = document.getElementById('printers-config-form');
+    const saveBtn = document.getElementById('printers-save-btn');
+    const jobsTbody = document.getElementById('jobs-tbody');
+    const refreshBtn = document.getElementById('printers-refresh-btn');
+    const refreshIcon = document.getElementById('printers-refresh-icon');
+    const csrfToken = (configForm.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+
+    let lastJobsSig = "{{ jobs_sig|escapejs }}";
+    const knownJobIds = new Set(
+        Array.from(jobsTbody.querySelectorAll('tr[data-job-id]'), tr => Number(tr.dataset.jobId))
+    );
+    const dirtyRows = new Set();
+    let inflight = false;
+    let queued = false;
+
+    function showToast(message, tone = 'ok') {
+        let wrap = document.getElementById('printers-toast');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'printers-toast';
+            document.body.appendChild(wrap);
+        }
+        const styles = tone === 'error'
+            ? 'bg-rose-950/95 text-rose-200 border-rose-700/80'
+            : tone === 'partial'
+                ? 'bg-amber-950/95 text-amber-200 border-amber-700/80'
+                : 'bg-emerald-950/95 text-emerald-200 border-emerald-700/80';
+        wrap.className = `fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-2xl border text-xs font-bold shadow-2xl ${styles}`;
+        wrap.textContent = message;
+        clearTimeout(wrap.hideTimer);
+        wrap.hideTimer = setTimeout(() => wrap.remove(), tone === 'ok' ? 3500 : 7000);
+    }
+
+    function setLiveIndicator(state, serverTime) {
+        const pill = document.getElementById('printers-live-pill');
+        const dot = document.getElementById('printers-live-dot');
+        const txt = document.getElementById('printers-live-text');
+        if (!pill || !dot || !txt) return;
+        if (state === 'ok') {
+            pill.className = 'ml-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30';
+            dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+            txt.textContent = `Jonli · ${serverTime}`;
+        } else if (state === 'session') {
+            pill.className = 'ml-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30';
+            dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+            txt.textContent = 'Sessiya tugadi — sahifani yangilang';
+        } else {
+            pill.className = 'ml-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-300 border border-rose-500/30';
+            dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+            txt.textContent = "Aloqa yo'q — qayta urinadi";
+        }
+    }
+
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = text;
+        return node;
+    }
+
+    function renderTabletCell(cell, row) {
+        const key = `${row.tablet_state}|${row.tablet_seen}`;
+        if (cell.dataset.sig === key) return;
+        cell.dataset.sig = key;
+
+        if (row.tablet_state === 'online') {
+            const badge = el('span', 'inline-flex items-center gap-1.5 text-emerald-400 font-bold');
+            badge.appendChild(el('span', 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'));
+            badge.appendChild(document.createTextNode('ulangan'));
+            cell.replaceChildren(badge);
+        } else if (row.tablet_state === 'offline') {
+            const label = el('span', 'text-rose-400 font-bold', '● uzilgan');
+            const sep = document.createTextNode(' ');
+            const ts = el('span', 'text-slate-500 font-mono', row.tablet_seen);
+            cell.replaceChildren(label, sep, ts);
+        } else if (row.tablet_state === 'never') {
+            cell.replaceChildren(el('span', 'text-slate-500', 'hali ulanmagan'));
+        } else {
+            cell.replaceChildren(el('span', 'text-slate-600', '—'));
+        }
+    }
+
+    function renderLastCell(cell, row) {
+        const key = `${row.last_status}|${row.last_at}|${row.last_error_full}`;
+        if (cell.dataset.sig === key) return;
+        cell.dataset.sig = key;
+
+        if (!row.last_at) {
+            cell.replaceChildren(el('span', 'text-slate-600', '—'));
+            return;
+        }
+        const colorCls = row.last_status === 'PRINTED'
+            ? 'text-emerald-400'
+            : row.last_status === 'FAILED'
+                ? 'text-rose-400'
+                : 'text-amber-400';
+        const parts = [
+            el('span', `${colorCls} font-semibold`, row.last_status_label || row.last_status),
+            document.createTextNode(' '),
+            el('span', 'text-slate-500 font-mono', row.last_at),
+        ];
+        if (row.last_error) {
+            parts.push(document.createTextNode(' '));
+            const errEl = el('span', 'text-rose-400', `· ${row.last_error}`);
+            errEl.title = row.last_error_full || row.last_error;
+            parts.push(errEl);
+        }
+        cell.replaceChildren(...parts);
+    }
+
+    function applyLive(data) {
+        if (!data || data.status !== 'OK') return;
+        setLiveIndicator('ok', data.server_time);
+
+        const pendingEl = document.getElementById('pending-text');
+        if (pendingEl) {
+            pendingEl.className = data.pending ? 'text-amber-400 font-semibold' : 'text-slate-400';
+            const sendingPart = data.sending ? ` (${data.sending} ta agentda)` : '';
+            const suffix = data.pending
+                ? " — agent ishlamayotgan yoki printer o'chiq bo'lishi mumkin."
+                : ' · hammasi chiqarilgan.';
+            pendingEl.textContent = `Navbatda: ${data.pending} ta chek${sendingPart}${suffix}`;
+        }
+
+        const tabletEl = document.getElementById('tablet-summary');
+        if (tabletEl) {
+            if (!data.tablet_total) {
+                tabletEl.classList.add('hidden');
+            } else {
+                tabletEl.classList.remove('hidden');
+                const cls = data.tablet_online === data.tablet_total
+                    ? 'text-emerald-400'
+                    : data.tablet_online
+                        ? 'text-amber-400'
+                        : 'text-rose-400';
+                tabletEl.className = `font-semibold ${cls}`;
+                tabletEl.textContent = `Planshetlar: ${data.tablet_online}/${data.tablet_total} ulangan`;
+            }
+        }
+
+        (data.rows || []).forEach(row => {
+            const tr = configForm.querySelector(`tr[data-printer-row="${row.n}"]`);
+            if (!tr) return;
+
+            const hostInput = tr.querySelector('.printer-host-input');
+            const activeInput = tr.querySelector('.printer-active-input');
+            const rowFocused = (document.activeElement === hostInput || document.activeElement === activeInput);
+
+            if (hostInput) hostInput.dataset.serverValue = row.host;
+            if (activeInput) activeInput.dataset.serverChecked = row.is_active ? '1' : '0';
+
+            if (!dirtyRows.has(row.n) && !rowFocused) {
+                if (hostInput && hostInput.value !== row.host) hostInput.value = row.host;
+                if (activeInput && activeInput.checked !== row.is_active) activeInput.checked = row.is_active;
+            }
+
+            const tabletCell = tr.querySelector(`[data-printer-tablet="${row.n}"]`);
+            if (tabletCell) renderTabletCell(tabletCell, row);
+
+            const lastCell = tr.querySelector(`[data-printer-last="${row.n}"]`);
+            if (lastCell) renderLastCell(lastCell, row);
+
+            const testBtn = tr.querySelector(`[data-printer-test="${row.n}"]`);
+            if (testBtn) testBtn.classList.toggle('hidden', !row.has_printer);
+        });
+
+        if (typeof data.jobs_html === 'string' && data.jobs_sig !== lastJobsSig) {
+            jobsTbody.innerHTML = data.jobs_html;
+            lastJobsSig = data.jobs_sig;
+            jobsTbody.querySelectorAll('tr[data-job-id]').forEach(tr => {
+                const jid = Number(tr.dataset.jobId);
+                if (!knownJobIds.has(jid)) {
+                    knownJobIds.add(jid);
+                    tr.classList.add('bg-cyan-500/15');
+                    setTimeout(() => tr.classList.remove('bg-cyan-500/15'), 1800);
+                }
+            });
+        }
+    }
+
+    async function refreshLive(forceAll = false) {
+        if (inflight) { queued = true; return; }
+        inflight = true;
+        if (refreshIcon) refreshIcon.classList.add('fa-spin');
+        try {
+            const params = new URLSearchParams({ partial: '1' });
+            if (!forceAll && lastJobsSig) params.set('sig', lastJobsSig);
+            const res = await fetch(`${LIVE_URL}?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store',
+            });
+            const ct = res.headers.get('content-type') || '';
+            if (res.redirected || !ct.includes('application/json')) {
+                setLiveIndicator('session');
+                return;
+            }
+            const data = await res.json();
+            if (!res.ok || data.status !== 'OK') throw new Error(data.message || res.status);
+            applyLive(data);
+        } catch (err) {
+            setLiveIndicator('error');
+        } finally {
+            inflight = false;
+            if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+            if (queued) { queued = false; refreshLive(); }
+        }
+    }
+
+    // Foydalanuvchi yozayotgan qatordagi o'zgarishlarni kuzatish (jonli yangilanish ustidan yozib yubormasligi uchun)
+    function updateRowDirty(tr) {
+        const n = Number(tr.dataset.printerRow);
+        const hostInput = tr.querySelector('.printer-host-input');
+        const activeInput = tr.querySelector('.printer-active-input');
+        const hostChanged = hostInput && hostInput.value.trim() !== (hostInput.dataset.serverValue || '');
+        const activeChanged = activeInput && (activeInput.checked ? '1' : '0') !== (activeInput.dataset.serverChecked || '1');
+        if (hostChanged || activeChanged) {
+            dirtyRows.add(n);
+            if (hostInput) {
+                hostInput.classList.add('ring-1', 'ring-amber-400/60');
+                hostInput.classList.remove('ring-rose-500');
+            }
+        } else {
+            dirtyRows.delete(n);
+            if (hostInput) hostInput.classList.remove('ring-1', 'ring-amber-400/60', 'ring-rose-500');
+        }
+    }
+
+    configForm.addEventListener('input', e => {
+        const tr = e.target.closest('tr[data-printer-row]');
+        if (tr) updateRowDirty(tr);
+    });
+    configForm.addEventListener('change', e => {
+        const tr = e.target.closest('tr[data-printer-row]');
+        if (tr) updateRowDirty(tr);
+    });
+
+    async function postAjax(url, body, btn) {
+        if (btn) btn.disabled = true;
+        try {
+            const opts = {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+            };
+            if (body) opts.body = body;
+            const res = await fetch(url, opts);
+            const ct = res.headers.get('content-type') || '';
+            if (res.redirected || !ct.includes('application/json')) {
+                window.location.reload();
+                return null;
+            }
+            return { res, data: await res.json() };
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function runJobAction(url, fallbackMsg, btn) {
+        try {
+            const out = await postAjax(url, null, btn);
+            if (!out) return;
+            showToast(out.data.message || (out.res.ok ? fallbackMsg : 'Xatolik'), out.res.ok ? 'ok' : 'error');
+            if (out.data.live) applyLive(out.data.live);
+        } catch (err) {
+            showToast("Tarmoq xatosi — qayta urinib ko'ring.", 'error');
+        }
+    }
+
+    // Saqlash va "Sinov cheki"ni sahifani qayta yuklamasdan bajarish
+    configForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const submitter = e.submitter;
+        const testAction = submitter ? submitter.getAttribute('formaction') : null;
+        if (testAction) {
+            await runJobAction(testAction, "Sinov cheki navbatga qo'yildi.", submitter);
+            return;
+        }
+
+        try {
+            const out = await postAjax(LIVE_URL, new FormData(configForm), saveBtn);
+            if (!out) return;
+            const { data } = out;
+            const errSet = new Set(data.error_screens || []);
+            Array.from(dirtyRows).forEach(n => {
+                if (!errSet.has(n)) dirtyRows.delete(n);
+            });
+            configForm.querySelectorAll('tr[data-printer-row]').forEach(tr => {
+                const n = Number(tr.dataset.printerRow);
+                const hostInput = tr.querySelector('.printer-host-input');
+                if (!hostInput) return;
+                hostInput.classList.remove('ring-amber-400/60', 'ring-rose-500');
+                if (errSet.has(n)) {
+                    dirtyRows.add(n);
+                    hostInput.classList.add('ring-1', 'ring-rose-500');
+                } else {
+                    hostInput.classList.remove('ring-1');
+                }
+            });
+            const tone = data.status === 'ERROR' ? 'error' : (data.status === 'PARTIAL' ? 'partial' : 'ok');
+            showToast(data.message || 'Saqlandi.', tone);
+            if (data.live) applyLive(data.live);
+        } catch (err) {
+            showToast("Saqlashda tarmoq xatosi yuz berdi.", 'error');
+        }
+    });
+
+    // "Qayta chiqarish"ni sahifani qayta yuklamasdan bajarish
+    jobsTbody.addEventListener('submit', async e => {
+        const form = e.target.closest('.reprint-form');
+        if (!form) return;
+        e.preventDefault();
+        await runJobAction(form.getAttribute('action'), "Chek qayta navbatga qo'yildi.", form.querySelector('button[type="submit"]'));
+    });
+
+    if (refreshBtn) refreshBtn.addEventListener('click', () => refreshLive(true));
+    setInterval(() => { if (document.visibilityState === 'visible') refreshLive(); }, REFRESH_MS);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshLive(); });
+    window.addEventListener('online', () => refreshLive(true));
+})();
+</script>
 {% endblock %}

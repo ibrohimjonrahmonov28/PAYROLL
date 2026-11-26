@@ -1,0 +1,31 @@
+{% for job in jobs %}
+<tr class="border-t border-slate-800 transition-colors duration-700" data-job-id="{{ job.id }}">
+    <td class="px-2 py-1.5 text-slate-400 text-xs font-mono whitespace-nowrap">{{ job.created_at|date:"d.m H:i:s" }}</td>
+    <td class="px-2 py-1.5 font-bold text-white whitespace-nowrap">{{ job.patok_code }} <span class="text-slate-500 font-normal text-xs">(#{{ job.printer.screen_number }})</span></td>
+    <td class="px-2 py-1.5 text-slate-200">{{ job.title }}</td>
+    <td class="px-2 py-1.5 text-xs">
+        {% if job.status == 'PRINTED' %}
+        <span class="text-emerald-400 font-semibold">{{ job.get_status_display }}</span>
+        {% elif job.status == 'FAILED' %}
+        <span class="text-rose-400 font-semibold">{{ job.get_status_display }}</span>
+        {% else %}
+        <span class="inline-flex items-center gap-1.5 text-amber-400 font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            {{ job.get_status_display }}
+        </span>
+        {% endif %}
+        {% if job.attempts and job.status != 'PRINTED' %}
+        <span class="text-slate-500 ml-1">({{ job.attempts }}/5)</span>
+        {% endif %}
+        {% if job.error %}<span class="text-rose-400" title="{{ job.error }}">· {{ job.error|truncatechars:60 }}</span>{% endif %}
+    </td>
+    <td class="px-2 py-1.5 text-right whitespace-nowrap">
+        <form method="POST" action="{% url 'printers:reprint' job.id %}" class="reprint-form inline-block" data-job-id="{{ job.id }}">
+            {% csrf_token %}
+            <button type="submit" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white cursor-pointer transition disabled:opacity-50">Qayta chiqarish</button>
+        </form>
+    </td>
+</tr>
+{% empty %}
+<tr><td colspan="5" class="px-2 py-4 text-center text-slate-500">Hali chek yo'q</td></tr>
+{% endfor %}
