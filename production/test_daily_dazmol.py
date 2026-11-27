@@ -153,6 +153,43 @@ class DailyDazmolRulesTest(TestCase):
         self.assertEqual(res.context['kpis']['primary_dazmol_qty'], 200)
         self.assertEqual(res.context['kpis']['egasiz_dazmol_qty'], 80)
 
+    def test_daily_page_patok_dazmol_pastal_breakdown(self):
+        """Patok Dazmoli ustunida shu terminalda urilgan barcha dazmol (asosiy, qo'shimcha, egasiz) pastallar kesimida chiqadi."""
+        res = self.client.get(reverse('production:sewing_statistics_daily') + '?all=1')
+        self.assertEqual(res.status_code, 200)
+
+        for p in res.context['patoks_data']:
+            self.assertEqual(sum(i['qty'] for i in p['patok_dazmol_pastal_items']), p['patok_dazmol_qty'])
+            self.assertEqual(
+                sum(i['qty'] for i in p['patok_dazmol_pastal_items'] if i['owner_type'] == 'egasiz'),
+                p['egasiz_dazmol_qty'],
+            )
+
+        by_sn = {p['screen_number']: p for p in res.context['patoks_data']}
+        self.assertEqual(
+            by_sn[1]['patok_dazmol_pastal_items'],
+            [{'code': 'P-B', 'qty': 30, 'owner_type': 'primary', 'owner_code': 'K1'}],
+        )
+        self.assertEqual(
+            by_sn[2]['patok_dazmol_pastal_items'],
+            [
+                {'code': 'P-A', 'qty': 50, 'owner_type': 'extra', 'owner_code': 'K1'},
+                {'code': 'P-K', 'qty': 15, 'owner_type': 'egasiz', 'owner_code': ''},
+            ],
+        )
+        self.assertEqual(
+            by_sn[5]['patok_dazmol_pastal_items'],
+            [{'code': 'P-A', 'qty': 50, 'owner_type': 'extra', 'owner_code': 'K1'}],
+        )
+        self.assertEqual(
+            by_sn[14]['patok_dazmol_pastal_items'],
+            [{'code': 'P-D', 'qty': 70, 'owner_type': 'primary', 'owner_code': 'U1'}],
+        )
+        html = res.content.decode('utf-8')
+        self.assertIn('50/P-A', html)
+        self.assertIn('15/P-K', html)
+        self.assertIn('30/P-B', html)
+
     def test_daily_page_template_lines_equal_report_lines(self):
         res = self.client.get(reverse('production:sewing_statistics_daily') + '?all=1')
         report_rows = self._report_rows()

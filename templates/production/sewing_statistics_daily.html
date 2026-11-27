@@ -312,10 +312,10 @@
                             Asosiy Dazmol
                             <span class="block text-[9px] font-semibold normal-case tracking-normal text-slate-500">shablon va pastal bo'yicha</span>
                         </th>
-                        <th class="py-3.5 px-3 text-center min-w-[120px]"
-                            title="Shu patok terminalida bugun skanerlangan yakuniy dazmol (pastal kimniki bo'lishidan qat'i nazar).">
+                        <th class="py-3.5 px-3 text-center min-w-[160px]"
+                            title="Shu patok terminalida bugun skanerlangan barcha yakuniy dazmol stikerlari yig'indisi (asosiy, qo'shimcha va egasiz pastallar hammasi).">
                             Patok Dazmoli
-                            <span class="block text-[9px] font-semibold normal-case tracking-normal text-slate-500">shu terminalda</span>
+                            <span class="block text-[9px] font-semibold normal-case tracking-normal text-slate-500">shu terminalda (pastallar)</span>
                         </th>
                         <th class="py-3.5 px-3 text-center">Bugun OTK</th>
                         <th class="py-3.5 px-3 text-center">Ta'mir / Brak</th>
@@ -534,14 +534,23 @@
                             {% endif %}
                         </td>
 
-                        <!-- 7. Patok Dazmoli: shu terminalda skanerlangan dazmol va undan egasizi -->
+                        <!-- 7. Patok Dazmoli: shu terminalda skanerlangan barcha dazmol (asosiy, qo'shimcha, egasiz) pastallar bo'yicha -->
                         <td class="py-3 px-3 text-center align-middle">
                             {% if p.patok_dazmol_qty > 0 %}
-                            <div class="inline-flex flex-col items-center gap-0.5">
+                            <div class="inline-flex flex-col items-center gap-1 min-w-[140px]">
                                 <div class="flex items-baseline gap-1">
                                     <span class="text-base font-black text-white digital-font">{{ p.patok_dazmol_qty }}</span>
                                     <span class="text-[10px] text-slate-500 font-semibold">dona</span>
                                 </div>
+                                {% if p.patok_dazmol_pastal_items %}
+                                <div class="flex items-center justify-center gap-1 flex-wrap pt-1 border-t border-slate-800/80 w-full">
+                                    {% for item in p.patok_dazmol_pastal_items %}
+                                    <span
+                                        class="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black border shadow-sm {% if item.owner_type == 'primary' %}bg-emerald-950/80 text-emerald-300 border-emerald-700/60{% elif item.owner_type == 'extra' %}bg-amber-950/80 text-amber-300 border-amber-700/60{% else %}bg-rose-950/80 text-rose-300 border-rose-700/60{% endif %}"
+                                        title="{% if item.owner_type == 'primary' %}Asosiy pastal {{ item.code }}: shu terminalda {{ item.qty }} dona dazmol urilgan{% elif item.owner_type == 'extra' %}Qo'shimcha ({{ item.owner_code }} pastali) {{ item.code }}: shu terminalda {{ item.qty }} dona dazmol urilgan{% else %}Egasiz (qabul qilinmagan) {{ item.code }}: shu terminalda {{ item.qty }} dona dazmol urilgan{% endif %}">{{ item.qty }}/{{ item.code }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                                 {% if p.egasiz_dazmol_qty > 0 %}
                                 <span class="px-1.5 py-0.5 rounded-md text-[10px] font-black whitespace-nowrap bg-amber-500/15 text-amber-300 border border-amber-500/30"
                                     title="Hech bir patokka qabul qilinmagan pastallar dazmoli. Hech kimga yozilmaydi va 18:00 hisobotga kirmaydi.">

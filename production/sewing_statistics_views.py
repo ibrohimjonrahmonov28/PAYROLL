@@ -18,7 +18,8 @@ from production.models import (
 )
 from production.services import get_patok_name, get_patok_code, get_patok_login, parse_patok_number
 from production.daily_dazmol import (
-    is_main_dazmol_operation, main_dazmol_operation_ids, get_day_window, compute_daily_dazmol, get_patok_accepted_pastals
+    is_main_dazmol_operation, main_dazmol_operation_ids, get_day_window,
+    compute_daily_dazmol, get_patok_accepted_pastals, get_box_owner_screen,
 )
 from screens.views import get_screen_data
 
@@ -1024,9 +1025,10 @@ def sewing_statistics_daily_view(request):
         # Patok kunlik normasi (modellar normasi asosida)
         patok_daily_norm = int(sum(sn_norms) / len(sn_norms)) if sn_norms else 1200
 
-        # Kunlik dazmolni aniqlash
+        # Kunlik dazmolni aniqlash (shu patok terminalida skanerlangan barcha yakuniy dazmol — asosiy, qo'shimcha, egasiz)
         sn_dazmol_qty = 0
         sn_dazmol_box_ids = set()
+        sn_dazmol_pastal_map = {}  # {(pastal_code, owner_type, owner_code): qty}
         operations_map = {}
 
         for t in t_list:
@@ -1038,6 +1040,20 @@ def sewing_statistics_daily_view(request):
             if is_dazmol:
                 sn_dazmol_qty += t.quantity
                 sn_dazmol_box_ids.add(t.box_id)
+                dbox = today_boxes_dict.get(t.box_id) or t.box
+                dpcode = ((dbox.pastal_code or '').strip() if dbox else '') or '—'
+                owner_sn = get_box_owner_screen(dbox)
+                if owner_sn == sn:
+                    owner_type = 'primary'
+                    owner_code = p_code
+                elif owner_sn is not None:
+                    owner_type = 'extra'
+                    owner_code = get_patok_code(owner_sn)
+                else:
+                    owner_type = 'egasiz'
+                    owner_code = ''
+                dkey = (dpcode, owner_type, owner_code)
+                sn_dazmol_pastal_map[dkey] = sn_dazmol_pastal_map.get(dkey, 0) + t.quantity
 
             if ao and ao.operation:
                 op_id = ao.id
@@ -1056,6 +1072,21 @@ def sewing_statistics_daily_view(request):
                     }
                 operations_map[op_id]['total_quantity'] += t.quantity
                 operations_map[op_id]['tickets_count'] += 1
+
+        _owner_type_rank = {'primary': 0, 'extra': 1, 'egasiz': 2}
+        patok_dazmol_pastal_items = [
+            {
+                'code': dpcode,
+                'qty': qty,
+                'owner_type': owner_type,
+                'owner_code': owner_code,
+            }
+            for (dpcode, owner_type, owner_code), qty in sorted(
+                sn_dazmol_pastal_map.items(),
+                key=lambda item: (_owner_type_rank[item[0][1]], item[0][0], item[0][2]),
+            )
+            if qty > 0
+        ]
 
         # Kunlik OTK, Kutmoqda, Ta'mir hisoblash
         pos = patok_otk_summary.get(sn, {
@@ -1441,6 +1472,7 @@ def sewing_statistics_daily_view(request):
             'workers': sn_workers,
             'workers_count': len(sn_workers),
             'pastal_dazmol_items': pastal_dazmol_items,
+            'patok_dazmol_pastal_items': patok_dazmol_pastal_items,
             'dazmol_templates': dazmol_templates,
             'egasiz_dazmol_qty': sn_egasiz_dazmol_qty,
             'primary_dazmol_total': primary_dazmol_total,
