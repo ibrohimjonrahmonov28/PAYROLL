@@ -3385,7 +3385,9 @@ def sewing_statistics_daily_report_view(request):
     branch_quvvats = [d['avg_quvvat'] for d in (koson_data, uychi_data) if d['active_patoks_count'] > 0]
     branch_foiz = [d['avg_foiz'] for d in (koson_data, uychi_data) if d['active_patoks_count'] > 0]
     factory = {
+        'total_norm': koson_data['total_norm'] + uychi_data['total_norm'],
         'total_dazmol': koson_data['total_dazmol'] + uychi_data['total_dazmol'],
+        'total_given_qty': koson_data['total_given_qty'] + uychi_data['total_given_qty'],
         'total_davomat': koson_data['total_davomat'] + uychi_data['total_davomat'],
         'avg_quvvat': round(sum(branch_quvvats) / len(branch_quvvats), 1) if branch_quvvats else 0.0,
         'avg_foiz': round(sum(branch_foiz) / len(branch_foiz), 1) if branch_foiz else 0.0,

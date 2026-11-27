@@ -507,7 +507,9 @@ def meto_hub_dispatch_uychi_view(request, batch_id: int):
 
     with transaction.atomic():
         batch.assigned_screen = screen_num
-        batch.save(update_fields=['assigned_screen'])
+        batch.dispatched_at = timezone.now()
+        batch.dispatched_by = request.user.get_full_name() or request.user.username
+        batch.save(update_fields=['assigned_screen', 'dispatched_at', 'dispatched_by'])
 
         Box.objects.filter(
             cutting_batch_item__batch=batch

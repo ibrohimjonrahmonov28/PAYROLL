@@ -332,6 +332,77 @@ class DailyDazmolRulesTest(TestCase):
         self.client.get(reverse('production:sewing_statistics_daily'))
         self.assertEqual(DailyPatokProgress.objects.get(screen_number=1, date=today).dazmol_qty, 130)
 
+    def test_daily_report_given_work_and_total_norm_and_png(self):
+        """
+        /sewing-statistics/daily-report/ va 18:00 PNG rasmida:
+        1. Har bir patokda bugun berilgan ishlar (ertalab qabul qilingan + hozir qabul kutayotgan) yig'indisi chiqishi
+        2. Kecha berilgan yoki rad etilgan pastallar bugungi berilgan ishga kirmasligi
+        3. ЖАМИ qatorida faol patoklar normalari yig'indisi (total_norm) va berilgan ish yig'indisi (total_given_qty) chiqishi
+        4. PNG rasm 8 ustunli (1360px) bo'lib xatosiz chizilishi
+        """
+        from PIL import Image
+        from production.daily_image_reports import generate_branch_report_image
+
+        Article.objects.filter(pk=self.art_f.pk).update(daily_norm=1000)
+        Article.objects.filter(pk=self.art_t.pk).update(daily_norm=800)
+
+        now = timezone.now()
+        yesterday = now - timedelta(days=1)
+
+        # K1 (sn=1): ertalab 1 ta pastal (400 dona, ACCEPTED) + hozir qabul kutayotgan 2 ta pastal (300 + 250 = 550, DISPATCHED)
+        self._pastal('P-G1', self.item_f, self.size_f, screen=1, status='ACCEPTED', received=True, qtys=[400], branch='HQ')
+        CuttingBatch.objects.filter(pastal_code='P-G1').update(dispatched_at=now, accepted_at=now)
+        self._pastal('P-G2', self.item_f, self.size_f, screen=1, status='DISPATCHED', received=False, qtys=[300], branch='HQ')
+        CuttingBatch.objects.filter(pastal_code='P-G2').update(dispatched_at=now)
+        self._pastal('P-G3', self.item_t, self.size_t, screen=1, status='DISPATCHED', received=False, qtys=[250], branch='HQ')
+        CuttingBatch.objects.filter(pastal_code='P-G3').update(dispatched_at=now)
+
+        # Kecha berilgan (kirmasligi kerak) va bugun rad etilgan (kirmasligi kerak)
+        self._pastal('P-YEST', self.item_f, self.size_f, screen=1, status='DISPATCHED', received=False, qtys=[777], branch='HQ')
+        CuttingBatch.objects.filter(pastal_code='P-YEST').update(dispatched_at=yesterday)
+        self._pastal('P-REJ', self.item_f, self.size_f, screen=1, status='REJECTED', received=False, qtys=[888], branch='HQ')
+        CuttingBatch.objects.filter(pastal_code='P-REJ').update(dispatched_at=now)
+
+        # U1 (sn=14): bugun berilgan 1 ta pastal (500 dona, ACCEPTED)
+        self._pastal('P-UG1', self.item_f, self.size_f, screen=14, status='ACCEPTED', received=False, qtys=[500], branch='UYCHI')
+        CuttingBatch.objects.filter(pastal_code='P-UG1').update(dispatched_at=now, accepted_at=now)
+
+        res = self.client.get(reverse('production:sewing_statistics_daily_report'))
+        self.assertEqual(res.status_code, 200)
+
+        hq = res.context['koson_data']
+        uychi = res.context['uychi_data']
+        factory = res.context['factory']
+
+        k1 = next(r for r in hq['rows'] if r['screen_number'] == 1)
+        self.assertEqual(k1['given_qty'], 950)           # 400 + 300 + 250
+        self.assertEqual(k1['given_pastals_count'], 3)
+        self.assertEqual(k1['given_accepted_qty'], 400)
+        self.assertEqual(k1['given_pending_qty'], 550)
+        self.assertEqual(k1['given_pending_count'], 2)
+
+        # K1 da 2 ta shablon: 1000 va 800 -> o'rtacha patok normasi = 900
+        self.assertEqual(k1['patok_norm'], 900)
+        self.assertEqual(hq['total_given_qty'], sum(r['given_qty'] for r in hq['rows']))
+        self.assertEqual(hq['total_given_qty'], 950)
+        self.assertEqual(hq['total_norm'], sum(r['patok_norm'] for r in hq['rows'] if r['is_active']))
+        self.assertGreater(hq['total_norm'], 0)
+
+        self.assertEqual(uychi['total_given_qty'], 500)
+        self.assertEqual(factory['total_given_qty'], hq['total_given_qty'] + uychi['total_given_qty'])
+        self.assertEqual(factory['total_norm'], hq['total_norm'] + uychi['total_norm'])
+
+        html = res.content.decode('utf-8')
+        self.assertIn('Берилган иш', html)
+        self.assertIn('950', html)
+        self.assertIn('2 кут.', html)
+
+        # PNG rasm 8 ustunli (1360px) bo'lib generatsiya qilinadi
+        img_buf = generate_branch_report_image(hq)
+        self.assertTrue(img_buf.getvalue().startswith(b'\x89PNG'))
+        img = Image.open(img_buf)
+        self.assertEqual(img.size[0], 1360)
+
 
 class MonthlyExcelUychiRowsTest(TestCase):
     """Oylik Excel: Uychi'da U1..U21 doim, undan keyingi patok shu oyda ishlagan bo'lsa qatori qo'shiladi."""

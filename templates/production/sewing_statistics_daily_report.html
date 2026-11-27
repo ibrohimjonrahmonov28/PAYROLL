@@ -127,11 +127,15 @@
             </a>
         </div>
 
-            <div class="px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs flex items-center gap-2"
-                title="Фабрика: иккала филиал асосий дазмоли йиғиндиси; фоиз — филиаллар ўртачасининг ўртачаси">
+            <div class="px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs flex flex-wrap items-center gap-2"
+                title="Фабрика: иккала филиал жами норма, асосий дазмол ва бугун берилган иш йиғиндиси; фоиз — филиаллар ўртачасининг ўртачаси">
                 <i class="fa-solid fa-industry text-emerald-400"></i>
                 <span class="text-slate-400 font-bold">Фабрика жами:</span>
                 <strong class="text-white font-mono">{{ factory.total_dazmol }} дона</strong>
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-400">Норма: <strong class="text-slate-200 font-mono">{{ factory.total_norm }}</strong></span>
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-400">Берилган: <strong class="text-indigo-300 font-mono">{{ factory.total_given_qty }}</strong></span>
                 <span class="text-slate-600">•</span>
                 <span class="text-slate-400">{{ factory.total_davomat }} нафар</span>
                 <span class="text-slate-600">•</span>
@@ -183,7 +187,7 @@
     </div>
 
     <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <!-- 1. Asosiy dazmol jami -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg"
             title="Патокка қабул қилинган пасталларнинг бугунги дазмоли (планшетда қабул қилинган ёки Уйчи омборидан патокка топширилган; қаерда дазмолланган бўлса ҳам)">
@@ -197,11 +201,28 @@
                 <span class="text-xs text-slate-400 font-semibold">дона</span>
             </div>
             <div class="mt-2 text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
-                Қабул қилинган пасталлар • {{ current_data.branch_title }}
+                Жами норма: <strong class="text-slate-300 font-mono">{{ current_data.total_norm|default:0 }}</strong> дона
             </div>
         </div>
 
-        <!-- 2. Jami Davomot -->
+        <!-- 2. Bugun berilgan ishlar -->
+        <div class="bg-slate-900 border border-indigo-900/40 rounded-2xl p-4 shadow-lg"
+            title="Шу куни патокларга жўнатилган барча пасталлар донаси йиғиндиси (қабул қилинганлари ҳам, ҳали қабул кутаётганлари ҳам)">
+            <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block">
+                <i class="fa-solid fa-boxes-stacked text-indigo-400 mr-1"></i> Берилган иш
+            </span>
+            <div class="flex items-baseline gap-2 mt-2">
+                <span class="text-3xl font-black text-indigo-300 font-mono">
+                    {{ current_data.total_given_qty|default:0 }}
+                </span>
+                <span class="text-xs text-slate-400 font-semibold">дона</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 border-t border-slate-800/80 pt-1.5">
+                {{ current_data.total_given_pastals_count|default:0 }} та пастал{% if current_data.total_given_pending_count > 0 %} • <span class="text-amber-300 font-bold">{{ current_data.total_given_pending_count }} кутмоқда</span>{% endif %}
+            </div>
+        </div>
+
+        <!-- 3. Jami Davomot -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 <i class="fa-solid fa-users text-purple-400 mr-1"></i> Давомот
@@ -217,7 +238,7 @@
             </div>
         </div>
 
-        <!-- 3. O'rtacha foiz (ish soni / normalarning o'rtachasi) -->
+        <!-- 4. O'rtacha foiz (ish soni / normalarning o'rtachasi) -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Ўртача фоиз
@@ -232,7 +253,7 @@
             </div>
         </div>
 
-        <!-- 4. Faol Patoklar Soni -->
+        <!-- 5. Faol Patoklar Soni -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 <i class="fa-solid fa-layer-group text-blue-400 mr-1"></i> Патоклар сони
@@ -249,7 +270,7 @@
         </div>
     </div>
 
-    <!-- 7 USTUNLI JADVAL: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз -->
+    <!-- 8 USTUNLI JADVAL: Паток, Иш номи, Норма, Иш сони, Берилган иш, Давомат, Операцион, Фоиз -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div class="p-4 bg-slate-900/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
@@ -267,8 +288,9 @@
             <p class="w-full text-[11px] text-slate-500">
                 <i class="fa-solid fa-circle-info text-cyan-400 mr-1"></i>
                 Иш сони — патокка қабул қилинган пасталлар дазмоли, нархлар шаблони бўйича; жами «Kunlik Patoklar» саҳифасидаги «Asosiy Dazmol» билан бир хил.
-                Норма — шаблон моделининг кунлик нормаси. Фоиз = иш сонлари йиғиндиси / нормаларнинг ўртача арифметиги,
-                масалан (100 + 900) / ((800 + 1000) / 2) = 111%. Паток рақамини босиб, ўша паток тафсилотини очинг.
+                Берилган иш — шу куни патокка жўнатилган барча пасталлар донаси йиғиндиси (қабул қилинган + қабул кутаётган).
+                Норма — шаблон моделининг кунлик нормаси; ЖАМИ да фаол патоклар нормалари йиғиндиси.
+                Фоиз = иш сонлари йиғиндиси / нормаларнинг ўртача арифметиги.
             </p>
         </div>
 
@@ -280,6 +302,7 @@
                         <th class="py-3 px-4">Иш номи</th>
                         <th class="py-3 px-4 w-24 text-center">Норма</th>
                         <th class="py-3 px-4 w-24 text-center">Иш сони</th>
+                        <th class="py-3 px-4 w-32 text-center" title="Шу куни патокка жўнатилган пасталлар сони йиғиндиси (қабул қилинган + қабул кутаётган)">Берилган иш</th>
                         <th class="py-3 px-4 w-24 text-center">Давомат</th>
                         <th class="py-3 px-4 w-28 text-center">Операцион</th>
                         <th class="py-3 px-4 w-28 text-center">Фоиз</th>
@@ -315,7 +338,7 @@
                                 {% for p in r.products %}
                                 <div class="h-5 flex items-center justify-center">{% if p.norm %}{{ p.norm }}{% else %}<span class="text-slate-600">—</span>{% endif %}</div>
                                 {% endfor %}
-                                {% if multi > 1 %}<div class="h-5 mt-1 pt-1 border-t border-transparent invisible" aria-hidden="true">0</div>{% endif %}
+                                {% if multi > 1 %}<div class="h-5 mt-1 pt-1 border-t border-slate-800/80 flex items-center justify-center text-slate-200 font-bold" title="Паток кунлик нормаси (ўртача)">{{ r.patok_norm }}</div>{% endif %}
                             </div>
                         </td>
 
@@ -329,12 +352,26 @@
                             </div>
                         </td>
 
-                        <!-- 5. Davomat -->
+                        <!-- 5. Berilgan ish (shu kuni patokka berilgan pastallar yig'indisi: qabul qilingan + qabul kutayotgan) -->
+                        <td class="py-3.5 px-4 text-center" {% if r.given_tooltip %}title="{{ r.given_tooltip }}"{% endif %}>
+                            {% if r.given_qty > 0 %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="font-black text-sm text-indigo-300">{{ r.given_qty }}</span>
+                                <span class="text-[10px] text-slate-400 font-sans">
+                                    {{ r.given_pastals_count }}p{% if r.given_pending_count > 0 %} • <span class="text-amber-300 font-bold">{{ r.given_pending_count }} кут.</span>{% endif %}
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 6. Davomat -->
                         <td class="py-3.5 px-4 text-center font-bold text-sm text-slate-200">
                             {% if r.davomat > 0 %}{{ r.davomat }}{% else %}<span class="text-slate-600">—</span>{% endif %}
                         </td>
 
-                        <!-- 6. Operatsion (shablon operatsiyalari aniqligi yig'indisi) -->
+                        <!-- 7. Operatsion (shablon operatsiyalari aniqligi yig'indisi) -->
                         <td class="py-3.5 px-4 text-center font-bold text-amber-300">
                             <div class="space-y-1">
                                 {% for p in r.products %}
@@ -344,7 +381,7 @@
                             </div>
                         </td>
 
-                        <!-- 7. Foiz: ish soni yig'indisi / normalarning o'rtacha arifmetigi -->
+                        <!-- 8. Foiz: ish soni yig'indisi / normalarning o'rtacha arifmetigi -->
                         <td class="py-3.5 px-4 text-center font-bold text-sm"
                             title="{{ r.dazmol_total }} / normalarning o'rtachasi">
                             {% if r.is_active and r.foiz > 0 %}
@@ -357,7 +394,7 @@
                     {% endwith %}
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="py-12 text-center text-slate-500">
+                        <td colspan="8" class="py-12 text-center text-slate-500">
                             Ushbu sana bo'yicha patoklar ma'lumotlari topilmadi.
                         </td>
                     </tr>
@@ -369,8 +406,16 @@
                     <tr class="bg-cyan-950/40 border-t-2 border-cyan-500/50 font-mono font-black text-sm">
                         <td class="py-4 px-4 text-center text-white font-sans uppercase tracking-wider">ЖАМИ</td>
                         <td class="py-4 px-4 text-slate-500">—</td>
-                        <td class="py-4 px-4 text-center text-slate-500">—</td>
+                        <td class="py-4 px-4 text-center text-white text-base" title="Фаол патоклар кунлик нормалари йиғиндиси">
+                            {{ current_data.total_norm|default:0 }}
+                        </td>
                         <td class="py-4 px-4 text-center text-cyan-300 text-base">{{ current_data.total_dazmol|default:0 }}</td>
+                        <td class="py-4 px-4 text-center text-indigo-300 text-base" title="Шу куни филиал патокларига берилган жами иш">
+                            <div>{{ current_data.total_given_qty|default:0 }}</div>
+                            {% if current_data.total_given_pastals_count > 0 %}
+                            <div class="text-[11px] text-slate-400 font-normal font-sans">({{ current_data.total_given_pastals_count }}p{% if current_data.total_given_pending_count > 0 %}, {{ current_data.total_given_pending_count }} кут.{% endif %})</div>
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-4 text-center text-white text-base">
                             <div>{{ current_data.total_davomat|default:0 }}</div>
                             {% if current_data.davomat_foiz > 0 %}

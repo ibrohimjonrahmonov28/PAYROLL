@@ -104,6 +104,67 @@ def get_assigned_batches_by_screen(screen_numbers) -> dict:
     return assigned_by_screen
 
 
+def get_given_work_by_screen(screen_numbers, day_start, day_end) -> dict:
+    """
+    {patok: {'qty', 'pastals_count', 'accepted_qty', 'accepted_count', 'pending_qty', 'pending_count', 'pastals'}} —
+    tanlangan kunda shu patokka berilgan (jo'natilgan) barcha pastallar soni yig'indisi:
+    ertalab berilib qabul qilingan (ACCEPTED) ham, hali qabul kutayotgan (DISPATCHED) pastallar ham kiradi.
+    Qaytarilgan (REJECTED/WAITING) pastallar kirmaydi.
+    """
+    screen_list = list(screen_numbers)
+    if not screen_list:
+        return {}
+
+    batches = CuttingBatch.objects.filter(
+        assigned_screen__in=screen_list,
+        dispatch_status__in=(
+            CuttingBatch.DispatchStatus.DISPATCHED,
+            CuttingBatch.DispatchStatus.ACCEPTED,
+        ),
+    ).filter(
+        Q(dispatched_at__range=(day_start, day_end)) |
+        Q(flow__patok_given_at__range=(day_start, day_end))
+    ).distinct().prefetch_related('items', 'items__boxes').order_by('dispatched_at', 'id')
+
+    by_screen = {}
+    for b in batches:
+        sn = b.assigned_screen
+        if not sn:
+            continue
+        box_qty = sum(
+            bx.quantity
+            for it in b.items.all()
+            for bx in it.boxes.all()
+            if bx.status != Box.Status.CANCELLED
+        )
+        qty = box_qty if box_qty > 0 else b.total_cut_qty
+        entry = by_screen.setdefault(sn, {
+            'qty': 0,
+            'pastals_count': 0,
+            'accepted_qty': 0,
+            'accepted_count': 0,
+            'pending_qty': 0,
+            'pending_count': 0,
+            'pastals': [],
+        })
+        entry['qty'] += qty
+        entry['pastals_count'] += 1
+        is_pending = (b.dispatch_status == CuttingBatch.DispatchStatus.DISPATCHED)
+        if is_pending:
+            entry['pending_qty'] += qty
+            entry['pending_count'] += 1
+        else:
+            entry['accepted_qty'] += qty
+            entry['accepted_count'] += 1
+        entry['pastals'].append({
+            'code': (b.pastal_code or b.name or f"#{b.batch_number}").strip(),
+            'qty': qty,
+            'status': b.dispatch_status,
+            'is_pending': is_pending,
+        })
+    return by_screen
+
+
 def patok_report_lines(dazmol, sn, sn_assigned) -> list:
     """
     18:00 hisobot qatorlari (TV ekranlar ham shuni ishlatadi, foizlar bir xil bo'lishi uchun): asosiy dazmolning
@@ -125,17 +186,15 @@ def patok_report_lines(dazmol, sn, sn_assigned) -> list:
 def get_branch_daily_report_data(branch: str, target_date: datetime.date = None, dazmol=None) -> dict:
     """
     Kosonsoy yoki Uychi filiali bo'yicha kunlik 18:00 hisobot ma'lumotlarini to'playdi:
-    5 ta ustun:
-    1. Паток № (1-паток..13-паток yoki 1-паток..21-паток)
-    2. Маҳсулот & Дазмол (Asosiy dazmol shablonlar bo'yicha, masalan: 329 / DC BELBOG'LI XALAT)
-    3. Давомот (Real faol chevarlar soni)
-    4. Операционка (Shablonning aniqlik yig'indisi)
-    5. Паток қуввати (%)
-
-    Dazmol = asosiy dazmol (production/daily_dazmol.py): patokka qabul qilingan pastallar dazmoli (planshetda qabul
-    qilingan yoki Uychi omboridan U-patokka topshirilgan), qayerda dazmollangan bo'lsa ham. /sewing-statistics/daily/ dagi
-    "Asosiy dazmol" bilan bir xil manba.
-    dazmol: oldindan hisoblangan DailyDazmol (bir so'rovda ikki filial uchun qayta hisoblamaslik uchun).
+    8 ta ustun:
+    1. Паток (1-паток..13-паток yoki 1-паток..27-паток)
+    2. Иш номи (narxlar shabloni)
+    3. Норма (model kunlik normasi; ЖАМИ da faol patoklar normalari yig'indisi)
+    4. Иш сони (Asosiy dazmol — production/daily_dazmol.py bilan yagona manba)
+    5. Берилган иш (shu kuni patokka jo'natilgan pastallar jami donasi: qabul qilingan + qabul kutayotgan)
+    6. Давомат (Real faol chevarlar soni)
+    7. Операцион (Shablonning aniqlik yig'indisi)
+    8. Фоиз (ish soni / o'rtacha norma)
     """
     if target_date is None:
         target_date = timezone.localdate()
@@ -155,14 +214,24 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         branch_key = 'UYCHI'
         branch_title = "УЙЧИ ТУМАНИ"
         branch_name_short = "Уйчи"
-        # Uychida U1..U21 (14..34) doim, undan keyingi patoklar shu kuni ishlagan bo'lsa (40 gacha) qo'shiladi
+        # Uychida U1..U21 (14..34) doim, undan keyingi patoklar shu kuni ishlagan yoki ish olgan bo'lsa (40 gacha) qo'shiladi
         last_scanned_sn = Ticket.objects.filter(
             status=Ticket.Status.SCANNED,
             scanned_at__range=(day_start, day_end),
             screen_number__gte=14
         ).aggregate(m=Max('screen_number'))['m'] or 0
         last_owner_sn = max((sn for sn, qty in dazmol.asosiy_by_patok.items() if sn >= 14 and qty > 0), default=0)
-        max_screen = min(40, max(34, last_scanned_sn, last_owner_sn))
+        last_given_sn = CuttingBatch.objects.filter(
+            assigned_screen__gte=14,
+            dispatch_status__in=(
+                CuttingBatch.DispatchStatus.DISPATCHED,
+                CuttingBatch.DispatchStatus.ACCEPTED,
+            ),
+        ).filter(
+            Q(dispatched_at__range=(day_start, day_end)) |
+            Q(flow__patok_given_at__range=(day_start, day_end))
+        ).aggregate(m=Max('assigned_screen'))['m'] or 0
+        max_screen = min(40, max(34, last_scanned_sn, last_owner_sn, last_given_sn))
         screen_numbers = list(range(14, max_screen + 1))
 
     # Shu kuni terminalida skaner bo'lgan patoklar (faollik uchun)
@@ -175,8 +244,16 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
     # Patokka qabul qilingan pastallar (dazmol bo'lmagan kuni shablon nomini ko'rsatish uchun)
     assigned_by_screen = get_assigned_batches_by_screen(screen_numbers)
 
+    # Shu kuni har bir patokka berilgan (jo'natilgan) pastallar yig'indisi (qabul qilingan + qabul kutayotgan)
+    given_by_screen = get_given_work_by_screen(screen_numbers, day_start, day_end)
+
     rows = []
     total_dazmol_sum = 0
+    total_norm_sum = 0
+    total_given_qty_sum = 0
+    total_given_pastals_sum = 0
+    total_given_pending_qty_sum = 0
+    total_given_pending_count_sum = 0
     total_davomat_sum = 0
     quvvat_values = []
     foiz_values = []
@@ -188,6 +265,15 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         patok_title = f"{patok_num}-паток"
 
         sn_assigned = assigned_by_screen.get(sn, [])
+        sn_given = given_by_screen.get(sn) or {
+            'qty': 0,
+            'pastals_count': 0,
+            'accepted_qty': 0,
+            'accepted_count': 0,
+            'pending_qty': 0,
+            'pending_count': 0,
+            'pastals': [],
+        }
 
         # Ekran statistikasi (Davomat, Aniqlik, Quvvat)
         screen_data = get_screen_data(sn, target_date)
@@ -209,17 +295,29 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
                 'aniqlik_value': g,
             })
         patok_dazmol_total = sum(p['dazmol_qty'] for p in products)
+        norms = [p['norm'] for p in products if p.get('norm')]
+        patok_norm = round(sum(norms) / len(norms)) if norms else 0
         max_group_aniqlik = max((p['aniqlik_value'] for p in products), default=0.0)
         foiz = patok_foiz(products)
 
         total_dazmol_sum += patok_dazmol_total
+        total_given_qty_sum += sn_given['qty']
+        total_given_pastals_sum += sn_given['pastals_count']
+        total_given_pending_qty_sum += sn_given['pending_qty']
+        total_given_pending_count_sum += sn_given['pending_count']
         total_davomat_sum += davomat
         dominant_aniqlik_sum += (max_group_aniqlik if max_group_aniqlik > 0 else float(screen_data.get('aniqlik', 0.0)))
 
         is_active = (sn in scanned_screens or patok_dazmol_total > 0 or davomat > 0)
         if is_active:
+            total_norm_sum += patok_norm
             quvvat_values.append(patok_quvvati)
             foiz_values.append(foiz)
+
+        given_tooltip = ", ".join(
+            f"{it['code']}: {it['qty']} ({'kutilmoqda' if it['is_pending'] else 'qabul'})"
+            for it in sn_given['pastals']
+        )
 
         row_item = {
             'screen_number': sn,
@@ -227,7 +325,16 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
             'patok_num': patok_num,
             'patok_title': patok_title,
             'products': products,
+            'patok_norm': patok_norm,
             'dazmol_total': patok_dazmol_total,
+            'given_qty': sn_given['qty'],
+            'given_pastals_count': sn_given['pastals_count'],
+            'given_accepted_qty': sn_given['accepted_qty'],
+            'given_accepted_count': sn_given['accepted_count'],
+            'given_pending_qty': sn_given['pending_qty'],
+            'given_pending_count': sn_given['pending_count'],
+            'given_pastals': sn_given['pastals'],
+            'given_tooltip': given_tooltip,
             'davomat': davomat,
             'patok_quvvati': patok_quvvati,
             'foiz': foiz,
@@ -260,7 +367,12 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
         'branch_name_short': branch_name_short,
         'target_date': target_date,
         'rows': rows,
+        'total_norm': total_norm_sum,
         'total_dazmol': total_dazmol_sum,
+        'total_given_qty': total_given_qty_sum,
+        'total_given_pastals_count': total_given_pastals_sum,
+        'total_given_pending_qty': total_given_pending_qty_sum,
+        'total_given_pending_count': total_given_pending_count_sum,
         'total_davomat': total_davomat_sum,
         'avg_quvvat': avg_quvvat,
         'avg_foiz': avg_foiz,
@@ -273,18 +385,23 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
 def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     """
     Pillow kutubxonasi yordamida foydalanuvchi taqdim etgan Excel uslubidagi
-    5 ustunli yuqori sifatli (1260px kenglikda) PNG rasm chizadi.
+    8 ustunli yuqori sifatli (1360px kenglikda) PNG rasm chizadi.
     Ustunlar:
-    1. Паток №
-    2. Маҳсулот & Дазмол
-    3. Давомот
-    4. Операционка
-    5. Паток қуввати
+    1. Паток
+    2. Иш номи
+    3. Норма
+    4. Иш сони
+    5. Берилган
+    6. Давомат
+    7. Операцион
+    8. Фоиз
     """
     branch_title = report_data['branch_title']
     target_date = report_data['target_date']
     rows = report_data['rows']
+    total_norm = report_data.get('total_norm', 0)
     total_dazmol = report_data['total_dazmol']
+    total_given_qty = report_data.get('total_given_qty', 0)
     total_davomat = report_data['total_davomat']
     avg_foiz = report_data.get('avg_foiz', 0.0)
     davomat_foiz = report_data['davomat_foiz']
@@ -298,6 +415,7 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     row_alt_bg = (248, 250, 252)                # Juft qatorlar foni
     total_bg = (218, 235, 254)                  # Jami qatori foni (#DAEBFE)
     text_color = (15, 23, 42)                   # Asosiy matn qora
+    text_blue = (30, 64, 175)                   # Berilgan ish ko'k
     text_green = (5, 150, 105)                  # Quvvat yashil
     text_muted = (100, 116, 139)                # Yordamchi matn kulrang
 
@@ -310,19 +428,20 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     font_total = _get_font(16, bold=True)
     font_sub_pct = _get_font(13, bold=True)
 
-    # Jadval o'lchamlari va ustun kengliklari (7 ustun: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз)
-    width = 1260
+    # Jadval o'lchamlari va ustun kengliklari (8 ustun: Паток, Иш номи, Норма, Иш сони, Берилган, Давомат, Операцион, Фоиз)
+    width = 1360
     margin_x = 30
     margin_top = 30
     margin_bottom = 30
 
     columns = [
-        ('patok', "Паток", 110),
-        ('name', "Иш номи", 380),
+        ('patok', "Паток", 105),
+        ('name', "Иш номи", 360),
         ('norm', "Норма", 120),
-        ('qty', "Иш сони", 130),
+        ('qty', "Иш сони", 125),
+        ('given', "Берилган", 135),
         ('davomat', "Давомат", 120),
-        ('op', "Операцион", 150),
+        ('op', "Операцион", 145),
         ('foiz', "Фоиз", 190),
     ]
     edges = [margin_x]
@@ -389,6 +508,12 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
             draw.text((center('qty'), line_y), qty_str, fill=text_color, font=font_cell_bold, anchor="mm")
             draw.text((center('op'), line_y), str(p['aniqlik']), fill=text_color, font=font_cell_bold, anchor="mm")
 
+        given_qty = r.get('given_qty', 0)
+        if given_qty > 0:
+            draw.text((center('given'), mid_y), f"{given_qty:,}".replace(",", " "), fill=text_blue, font=font_cell_bold, anchor="mm")
+        else:
+            draw.text((center('given'), mid_y), "—", fill=text_muted, font=font_cell, anchor="mm")
+
         davomat_str = str(r['davomat']) if r['davomat'] > 0 else "—"
         draw.text((center('davomat'), mid_y), davomat_str, fill=text_color, font=font_cell_bold, anchor="mm")
 
@@ -405,11 +530,14 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
         draw.line([(x, curr_y), (x, curr_y + total_row_h)], fill=border_dark, width=1)
     mid_y = curr_y + total_row_h // 2
     draw.text((center('patok'), mid_y), "ЖАМИ", fill=border_dark, font=font_total, anchor="mm")
+    norm_total_str = f"{total_norm:,}".replace(",", " ") if total_norm > 0 else "—"
+    draw.text((center('norm'), mid_y), norm_total_str, fill=border_dark if total_norm > 0 else text_muted, font=font_total, anchor="mm")
     draw.text((center('qty'), mid_y), f"{total_dazmol:,}".replace(",", " "), fill=border_dark, font=font_total, anchor="mm")
+    draw.text((center('given'), mid_y), f"{total_given_qty:,}".replace(",", " "), fill=text_blue if total_given_qty > 0 else text_muted, font=font_total, anchor="mm")
     draw.text((center('davomat'), mid_y - 8), str(total_davomat), fill=border_dark, font=font_total, anchor="mm")
     if davomat_foiz > 0:
         draw.text((center('davomat'), mid_y + 12), f"({davomat_foiz:.0f}%)", fill=text_muted, font=font_sub_pct, anchor="mm")
-    for key in ('name', 'norm', 'op'):
+    for key in ('name', 'op'):
         draw.text((center(key), mid_y), "—", fill=text_muted, font=font_total, anchor="mm")
     draw.text((center('foiz'), mid_y), f"{avg_foiz:.1f}%", fill=border_dark, font=font_total, anchor="mm")
 
@@ -448,7 +576,9 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
     except Exception as e:
         return {'success': False, 'message': f"Hisobot rasmini tayyorlashda xatolik: {str(e)}"}
 
+    tot_norm = f"{report_data.get('total_norm', 0):,}".replace(",", " ")
     tot_dazmol = f"{report_data['total_dazmol']:,}".replace(",", " ")
+    tot_given = f"{report_data.get('total_given_qty', 0):,}".replace(",", " ")
     tot_davomat = report_data['total_davomat']
     avg_foiz = report_data['avg_foiz']
     davomat_foiz = report_data['davomat_foiz']
@@ -457,7 +587,9 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
         f"📊 *TERRY JAR — КУНЛИК ИШЛАБ ЧИҚАРИШ ҲИСОБОТИ*\n"
         f"🏢 *Филиал:* {branch_name}\n"
         f"📅 *Сана:* {target_date.strftime('%d.%m.%Y')} (18:00 ҳолатига)\n\n"
+        f"🎯 *Жами норма:* *{tot_norm} дона*\n"
         f"👕 *Дазмолдан ўтган:* *{tot_dazmol} дона*\n"
+        f"📦 *Бугун берилган иш:* *{tot_given} дона*\n"
         f"👥 *Жами давомот:* *{tot_davomat} нафар* ({davomat_foiz:.0f}% таъминланганлик)\n"
         f"📈 *Ўртача фоиз (иш сони / норма):* *{avg_foiz}%*\n\n"
         f"📌 _Барча патоклар ва маҳсулотлар бўйича батафсил маълумот юқоридаги расмда кўрсатилган._"
