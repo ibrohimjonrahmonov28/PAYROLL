@@ -1249,15 +1249,17 @@ class MetoTabletTest(MetoFlowBase):
         resp = self.client.get(reverse('meto_hub_tablet'))
         self.assertEqual(resp.status_code, 302)
 
-        # 2) Sklad xodimi planshetga kiradi
+        # 2) Sklad xodimi planshetga kiradi — Kosonda 3 ta skaner bo'limi (Meto Sklad olib tashlangan)
         self.client.force_login(self.sklad)
         res = self.client.get(reverse('meto_hub_tablet'))
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "METO PLANSHET")
         self.assertContains(res, "1. Biriktirish")
-        self.assertContains(res, "2. Meto Sklad")
-        self.assertContains(res, "3. Yuk Xati")
-        self.assertContains(res, "4. Patokka Berish")
+        self.assertContains(res, "2. Yuk Xati")
+        self.assertContains(res, "3. Patokka Berish")
+        self.assertNotContains(res, "Meto Sklad")
+        self.assertNotContains(res, 'id="mode-storage"')
+        self.assertEqual(self.client.get(f"{reverse('meto_hub_tablet')}?mode=storage").context['default_mode'], 'link')
 
         # 3) /tayyorlov/planshet/ alias ham 200 beradi
         res_alias = self.client.get(reverse('meto_hub_planshet'))
@@ -1679,7 +1681,8 @@ class TayyorlovReviewFixesTest(MetoFlowBase):
 
     def test_tablet_json_escapes_script_tags(self):
         Article.objects.filter(id=self.article.id).update(name='Pijama </script><b>')
-        self.to_sklad()
+        self.ready()
+        meto_flow.request_verification([self.batch], self.sklad)
         self.client.force_login(self.sklad)
         page = self.client.get(reverse('meto_hub_tablet')).content.decode()
         self.assertNotIn('Pijama </script>', page)

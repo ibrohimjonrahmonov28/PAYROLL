@@ -423,26 +423,22 @@ def meto_tablet_view(request):
     screen_range = flow_logic.KOSON_SCREENS if branch == 'HQ' else flow_logic.UYCHI_SCREENS
     screens = [(n, get_patok_code(n)) for n in screen_range]
 
-    # Skladdagi pastallar, kg kutilayotganlar, kelayotgan yuklar, kutilayotgan yuk xatlari va patokdagi pastallar
-    kg_pending_cards = _tablet_kg_pending_cards() if branch == 'HQ' else []
+    # Skladdagi pastallar (Yuk xati va Patokka berishda kerak), kelayotgan yuklar, kutilayotgan yuk xatlari va patokdagi pastallar
     sklad_cards = _tablet_sklad_cards(branch)
     sklad_kg_qs = PastalFlow.objects.filter(stage=PastalFlow.Stage.SKLAD, branch=branch)
     if branch == 'HQ':
         sklad_kg_qs = sklad_kg_qs.filter(sklad_received_at__isnull=False)
     total_sklad_kg = flow_logic.format_kg(sklad_kg_qs.aggregate(s=Sum('batch__actual_weight_kg'))['s'])
-    packet_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'packet')
-    stiker_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'stiker_pending')
-    container_pending_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'container_pending')
-    ready_count = sum(1 for c in sklad_cards if c['packaging_status'] == 'ready')
 
     incoming = _tablet_incoming(branch)
     incoming_shipments = _tablet_incoming_shipments(branch)
     pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
     patok_rows = _tablet_patok_rows(branch)
 
-    # Boshlang'ich rejim (default_mode)
+    # Boshlang'ich rejim (default_mode): HQ da 3 rejim (Biriktirish, Yuk Xati, Patokka Berish); Uychida 3 rejim (Yuk Qabuli, Saqlash, Patokka Berish)
     req_mode = request.GET.get('mode')
-    if req_mode in ('link', 'storage', 'shipment', 'patok'):
+    allowed_modes = ('shipment', 'storage', 'patok') if branch == 'UYCHI' else ('link', 'shipment', 'patok')
+    if req_mode in allowed_modes:
         default_mode = req_mode
     elif branch == 'UYCHI':
         default_mode = 'shipment' if incoming_shipments or incoming else 'storage'
@@ -468,21 +464,13 @@ def meto_tablet_view(request):
         'patok_containers': patok_c,
         'total_containers': total_c,
         'total_sklad_kg': total_sklad_kg,
-        'kg_pending_cards': kg_pending_cards,
-        'stored_cards': sklad_cards,
         'sklad_cards': sklad_cards,
-        'packet_count': packet_count,
-        'stiker_pending_count': stiker_pending_count,
-        'container_pending_count': container_pending_count,
-        'ready_count': ready_count,
         'ready_cards': [c for c in sklad_cards if c['ready']],
         'incoming': incoming,
         'incoming_shipments': incoming_shipments,
         'pending_shipments': pending_shipments,
         'pending_shipments_json': _script_json(pending_shipments),
         'incoming_shipments_json': _script_json(incoming_shipments),
-        'kg_pending_cards_json': _script_json(kg_pending_cards),
-        'stored_cards_json': _script_json(sklad_cards),
         'locked_pastal': locked_pastal,
         'locked_pastal_json': _script_json(locked_pastal),
         'patok_rows': patok_rows,

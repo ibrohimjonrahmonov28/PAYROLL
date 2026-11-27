@@ -179,23 +179,11 @@
                 </span>
             </button>
 
-            <!-- Mode 2 (Koson): Meto Sklad (Saqlash & Kg) -->
-            <button type="button" onclick="switchMode('storage')" id="nav-btn-storage"
-                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'storage' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                <i class="fa-solid fa-warehouse"></i>
-                <span class="truncate">2. Meto Sklad</span>
-                {% if kg_pending_cards|length > 0 %}
-                <span id="nav-kg-badge" class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse" title="Kg kiritilishi kutilayotgan pastallar">Kg: {{ kg_pending_cards|length }}</span>
-                {% else %}
-                <span id="nav-stored-count" class="text-[10px] text-slate-400 font-mono">({{ stored_cards|length }})</span>
-                {% endif %}
-            </button>
-
-            <!-- Mode 3 (Koson): Yuk Xati -->
+            <!-- Mode 2 (Koson): Yuk Xati -->
             <button type="button" onclick="switchMode('shipment')" id="nav-btn-shipment"
                 class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'shipment' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-truck"></i>
-                <span class="truncate">3. Yuk Xati</span>
+                <span class="truncate">2. Yuk Xati</span>
                 {% if pending_shipments|length > 0 %}
                 <span class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse">{{ pending_shipments|length }}</span>
                 {% elif incoming|length > 0 %}
@@ -203,11 +191,11 @@
                 {% endif %}
             </button>
 
-            <!-- Mode 4 (Koson): Patokka Berish -->
+            <!-- Mode 3 (Koson): Patokka Berish -->
             <button type="button" onclick="switchMode('patok')" id="nav-btn-patok"
                 class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'patok' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-person-walking-arrow-right"></i>
-                <span class="truncate">4. Patokka Berish</span>
+                <span class="truncate">3. Patokka Berish</span>
             </button>
             {% endif %}
         </div>
@@ -840,13 +828,12 @@
             {% endif %}
         </div>
 
+        {% if branch == 'UYCHI' %}
         <!-- ============================================================== -->
-        <!-- MODE: SAQLASH / METO SKLAD (HQ & UYCHI OMBORLARI)              -->
+        <!-- MODE: SAQLASH (UYCHI OMBORI)                                   -->
         <!-- ============================================================== -->
         <div id="mode-storage"
             class="mode-view flex-1 {% if default_mode != 'storage' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
-            
-            {% if branch == 'UYCHI' %}
             <!-- ================= UYCHI OMBORI ================= -->
             <div class="flex items-center justify-between flex-shrink-0">
                 <div>
@@ -941,322 +928,8 @@
                 </div>
                 {% endfor %}
             </div>
-
-            {% else %}
-            <!-- ================= KOSON METO SKLAD (HQ) ================= -->
-            <!-- 1-QISM: TASNIFDAN CHIQQAN ISHLAR — KG KIRITISH KUTILAYOTGANLAR -->
-            <div class="bg-slate-900/90 border border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-xl flex-shrink-0 space-y-3">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-base flex-shrink-0">
-                            <i class="fa-solid fa-scale-balanced"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm sm:text-base font-black text-white">Tasnifdan Chiqqan Pastallar (Kg kiritish)</h3>
-                                <span id="kg-pending-badge" class="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs {% if kg_pending_cards|length > 0 %}animate-pulse{% endif %}">
-                                    {{ kg_pending_cards|length }} ta
-                                </span>
-                            </div>
-                            <p class="text-xs text-slate-400">Tasnifdan chiqqach har doim kg olinadi va saqlashga qo'yiladi. Quti yetmaganda paketlangan bo'lsa ham kg olinadi.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kg Pending Cards List -->
-                <div id="kg-pending-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {% for p in kg_pending_cards %}
-                    <div id="kg-pending-card-{{ p.batch_id }}"
-                        class="p-2.5 sm:p-3 rounded-2xl bg-slate-950/90 border border-amber-500/50 hover:border-amber-400 flex flex-wrap md:flex-nowrap items-center justify-between gap-3 shadow transition-all">
-                        
-                        <div class="flex items-center gap-2.5 min-w-[170px]">
-                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                                <i class="fa-solid fa-scale-balanced"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-sm font-black font-mono text-white">{{ p.pastal_code }}</span>
-                                    {% if p.boxes_count == 0 %}
-                                    <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
-                                        📦 Paketda
-                                    </span>
-                                    {% else %}
-                                    <span class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">
-                                        {{ p.boxes_count }} quti
-                                    </span>
-                                    {% endif %}
-                                </div>
-                                <span class="text-xs text-amber-400 font-bold block truncate max-w-[160px]">{{ p.order_number }} · {{ p.customer }}</span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2 min-w-[150px]">
-                            {% if p.image %}
-                            <img src="{{ p.image }}" alt="" class="w-7 h-7 rounded-lg object-cover border border-slate-800 bg-slate-900 flex-shrink-0">
-                            {% endif %}
-                            <div class="min-w-0">
-                                <span class="text-xs font-mono font-bold text-cyan-300 block truncate">{{ p.article_code }}</span>
-                                <span class="text-[11px] text-slate-400 block truncate max-w-[130px]">{{ p.article_name }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Sizes pills & Total -->
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <div class="flex flex-wrap gap-1 text-[11px]">
-                                {% for s in p.sizes %}
-                                <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
-                                    <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
-                                </span>
-                                {% endfor %}
-                            </div>
-                            <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs whitespace-nowrap">
-                                Jami: {{ p.total_tasnif }} dona
-                            </span>
-                        </div>
-
-                        <!-- Inline Kg Input & Action -->
-                        <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
-                            <div class="relative">
-                                <input type="number" step="0.01" inputmode="decimal" id="kg-input-{{ p.batch_id }}" placeholder="0.00"
-                                    class="w-24 sm:w-28 px-2.5 py-1.5 bg-slate-900 border-2 border-amber-500/70 rounded-xl text-white font-mono font-black text-center text-sm focus:outline-none focus:border-amber-400">
-                                <span class="absolute right-2 top-1.5 text-xs text-slate-500 font-bold pointer-events-none">kg</span>
-                            </div>
-                            <button type="button" id="kg-btn-{{ p.batch_id }}" onclick="submitTabletKg({{ p.batch_id }})"
-                                class="touch-btn px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 whitespace-nowrap">
-                                <i class="fa-solid fa-scale-balanced text-sm"></i>
-                                <span>Qabul</span>
-                            </button>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div id="kg-pending-empty" class="p-3 rounded-2xl bg-slate-950 border border-slate-800/80 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
-                        <span>Tasnifdan chiqqan barcha pastallarning kg si kiritilgan va omborga o'tgan.</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- 2-QISM: METO SKLAD — SAQLANAYOTGAN PASTALLAR -->
-            <div class="flex-1 overflow-hidden flex flex-col gap-3">
-                <!-- Header with Filters & Search -->
-                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <span class="text-sm font-black text-white flex items-center gap-1.5">
-                            <i class="fa-solid fa-boxes-stacked text-cyan-400"></i>
-                            <span>Skladdagi Pastallar</span>
-                            <span id="stored-total-badge" class="text-slate-400 font-mono">({{ stored_cards|length }})</span>
-                        </span>
-                        <span class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-bold inline-flex items-center gap-1.5">
-                            <i class="fa-solid fa-scale-balanced text-amber-400"></i>
-                            <span>Mavjud: <b id="tablet-total-kg" class="font-mono font-black text-white">{{ total_sklad_kg }}</b> kg</span>
-                        </span>
-                    </div>
-
-                    <!-- Filter pills (Barchasi, Paketda, Stiker, Konteyner, Tayyor) -->
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <button type="button" onclick="filterStoredCards('all', this)"
-                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-black transition bg-cyan-500 text-slate-950 shadow">
-                            Barchasi (<span id="filter-cnt-all">{{ stored_cards|length }}</span>)
-                        </button>
-                        <button type="button" onclick="filterStoredCards('packet', this)"
-                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-amber-300 hover:bg-slate-700">
-                            📦 Paketda (<span id="filter-cnt-packet">{{ packet_count }}</span>)
-                        </button>
-                        <button type="button" onclick="filterStoredCards('stiker_pending', this)"
-                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-purple-300 hover:bg-slate-700">
-                            🏷️ Stiker (<span id="filter-cnt-stiker">{{ stiker_pending_count }}</span>)
-                        </button>
-                        <button type="button" onclick="filterStoredCards('container_pending', this)"
-                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-rose-300 hover:bg-slate-700">
-                            🔗 Konteyner (<span id="filter-cnt-container">{{ container_pending_count }}</span>)
-                        </button>
-                        <button type="button" onclick="filterStoredCards('ready', this)"
-                            class="stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-emerald-300 hover:bg-slate-700">
-                            ✅ Tayyor (<span id="filter-cnt-ready">{{ ready_count }}</span>)
-                        </button>
-                    </div>
-
-                    <!-- Search Box -->
-                    <div class="w-full sm:w-60">
-                        <input type="text" id="stored-search-input" oninput="searchStoredCards(this.value)" placeholder="Qidirish (pastal, artikul)..."
-                            class="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
-                    </div>
-                </div>
-
-                <!-- Stored Pastals List Table (Replaces large cards with sleek list format) -->
-                <div id="stored-cards-grid" class="flex-1 overflow-auto rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl">
-                    <table class="w-full text-left border-collapse min-w-[960px] text-xs">
-                        <thead class="sticky top-0 bg-slate-950/95 backdrop-blur text-slate-400 font-bold uppercase text-[11px] border-b border-slate-800 z-10">
-                            <tr>
-                                <th class="py-3 px-3.5 whitespace-nowrap">Pastal / Buyurtma</th>
-                                <th class="py-3 px-3 whitespace-nowrap">Artikul</th>
-                                <th class="py-3 px-3 whitespace-nowrap">O'lchamlar & Jami</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">Quti · Chop · Kont</th>
-                                <th class="py-3 px-3 whitespace-nowrap">Og'irlik</th>
-                                <th class="py-3 px-3 whitespace-nowrap">Holati</th>
-                                <th class="py-3 px-3.5 text-right whitespace-nowrap">Amal</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-800/80">
-                            {% for card in stored_cards %}
-                            <tr id="stored-card-{{ card.batch_id }}"
-                                data-status="{{ card.packaging_status }}"
-                                data-search="{{ card.pastal_code|lower }} {{ card.order_number|lower }} {{ card.article_code|lower }} {{ card.article_name|lower }} {{ card.customer|lower }}"
-                                class="stored-card hover:bg-slate-800/50 transition-colors {% if card.packaging_status == 'packet' %}bg-amber-950/10{% elif card.packaging_status == 'stiker_pending' %}bg-purple-950/10{% elif card.packaging_status == 'container_pending' %}bg-rose-950/10{% else %}bg-emerald-950/10{% endif %}">
-                                
-                                <!-- Pastal / Buyurtma -->
-                                <td class="py-3 px-3.5 align-middle">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {% if card.packaging_status == 'packet' %}bg-amber-400 animate-pulse{% elif card.packaging_status == 'stiker_pending' %}bg-purple-400{% elif card.packaging_status == 'container_pending' %}bg-rose-400{% else %}bg-emerald-400{% endif %}"></span>
-                                        <div>
-                                            <span class="text-sm font-black font-mono text-white block">{{ card.pastal_code }}</span>
-                                            <span class="text-[11px] text-amber-400 font-bold block truncate max-w-[160px]">{{ card.order_number }} · {{ card.customer }}</span>
-                                            <span class="text-[10px] text-slate-500 font-mono">{{ card.sklad_received_at|default:"—" }}</span>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <!-- Artikul -->
-                                <td class="py-3 px-3 align-middle">
-                                    <div class="flex items-center gap-2.5">
-                                        {% if card.image %}
-                                        <img src="{{ card.image }}" alt="" class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950 flex-shrink-0">
-                                        {% endif %}
-                                        <div class="min-w-0">
-                                            <span class="font-mono font-bold text-cyan-300 block truncate text-xs">{{ card.article_code }}</span>
-                                            <span class="text-[11px] text-slate-400 block truncate max-w-[150px]">{{ card.article_name }}</span>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <!-- O'lchamlar & Jami -->
-                                <td class="py-3 px-3 align-middle">
-                                    <div class="flex flex-wrap gap-1 max-w-[220px]">
-                                        {% for s in card.sizes %}
-                                        <span class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[11px]">
-                                            <b class="text-white">{{ s.name }}</b>: {{ s.tasnif|default:"—" }}
-                                        </span>
-                                        {% endfor %}
-                                    </div>
-                                    <span class="text-[11px] font-bold text-cyan-300 block mt-1">
-                                        Jami: <b class="text-white font-mono text-xs">{{ card.total_tasnif }}</b> dona
-                                    </span>
-                                </td>
-
-                                <!-- Quti · Chop · Kont -->
-                                <td class="py-3 px-3 align-middle text-center">
-                                    <div class="inline-flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 shadow-sm">
-                                        <div class="text-center px-1">
-                                            <span class="text-[9px] uppercase text-slate-500 block font-bold">Quti</span>
-                                            <span class="font-mono font-black text-xs {% if card.boxes_count == 0 %}text-amber-400{% else %}text-white{% endif %}">
-                                                {% if card.boxes_count == 0 %}0 (Paket){% else %}{{ card.boxes_count }}{% endif %}
-                                            </span>
-                                        </div>
-                                        <span class="text-slate-700">|</span>
-                                        <div class="text-center px-1">
-                                            <span class="text-[9px] uppercase text-slate-500 block font-bold">Chop</span>
-                                            <span class="font-mono font-black text-xs {% if card.boxes_count and card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-purple-300{% endif %}">
-                                                {{ card.printed_count }}/{{ card.boxes_count }}
-                                            </span>
-                                        </div>
-                                        <span class="text-slate-700">|</span>
-                                        <div class="text-center px-1">
-                                            <span class="text-[9px] uppercase text-slate-500 block font-bold">Kont</span>
-                                            <span class="font-mono font-black text-xs {% if card.boxes_count and card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
-                                                {{ card.linked_count }}/{{ card.boxes_count }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {% if card.containers %}
-                                    <div class="flex flex-wrap justify-center gap-1 mt-1 max-w-[200px] mx-auto">
-                                        {% for c in card.containers %}
-                                        <span class="px-1.5 py-0.2 rounded bg-slate-950 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
-                                            {{ c }}
-                                        </span>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                </td>
-
-                                <!-- Og'irlik (Kg) -->
-                                <td class="py-3 px-3 align-middle whitespace-nowrap">
-                                    <div class="flex items-center gap-1.5">
-                                        <i class="fa-solid fa-scale-balanced text-amber-400 text-xs"></i>
-                                        <span class="text-white font-mono font-black text-sm">{{ card.weight_kg }} kg</span>
-                                        <button type="button" onclick="editTabletKg({{ card.batch_id }}, '{{ card.weight_kg }}')"
-                                            class="text-slate-400 hover:text-cyan-300 p-1 transition" title="Og'irlikni tahrirlash">
-                                            <i class="fa-solid fa-pencil text-[11px]"></i>
-                                        </button>
-                                    </div>
-                                </td>
-
-                                <!-- Holati -->
-                                <td class="py-3 px-3 align-middle whitespace-nowrap">
-                                    {% if card.packaging_status == 'packet' %}
-                                    <span class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-black text-[11px] inline-flex items-center gap-1.5 animate-pulse">
-                                        <i class="fa-solid fa-box-open"></i> PAKETDA
-                                    </span>
-                                    {% elif card.packaging_status == 'stiker_pending' %}
-                                    <span class="px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/50 text-purple-300 font-black text-[11px] inline-flex items-center gap-1.5">
-                                        <i class="fa-solid fa-tags"></i> STIKER KUTILMOQDA
-                                    </span>
-                                    {% elif card.packaging_status == 'container_pending' %}
-                                    <span class="px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/50 text-rose-300 font-black text-[11px] inline-flex items-center gap-1.5">
-                                        <i class="fa-solid fa-cubes"></i> KONTEYNER KUTILMOQDA
-                                    </span>
-                                    {% elif card.ready %}
-                                    <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-black text-[11px] inline-flex items-center gap-1.5">
-                                        <i class="fa-solid fa-circle-check"></i> TO'LIQ TAYYOR
-                                    </span>
-                                    {% endif %}
-                                </td>
-
-                                <!-- Amal -->
-                                <td class="py-3 px-3.5 align-middle text-right whitespace-nowrap">
-                                    {% if card.ready %}
-                                    <button type="button"
-                                        onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code|escapejs }}', {{ card.boxes_count }})"
-                                        class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 touch-btn inline-flex items-center gap-1.5 transition">
-                                        <i class="fa-solid fa-person-walking-arrow-right"></i> Patokka berish
-                                    </button>
-                                    {% elif card.packaging_status == 'container_pending' %}
-                                    <button type="button" onclick="switchMode('link')"
-                                        class="px-3 py-1.5 rounded-xl bg-cyan-600/30 hover:bg-cyan-600 border border-cyan-500/50 text-cyan-200 font-bold text-xs inline-flex items-center gap-1 transition">
-                                        <i class="fa-solid fa-link"></i> Biriktirish →
-                                    </button>
-                                    {% elif card.packaging_status == 'packet' %}
-                                    <span class="text-[11px] text-amber-400/80 font-bold inline-flex items-center gap-1">
-                                        <i class="fa-solid fa-triangle-exclamation"></i> Quti kutilmoqda
-                                    </span>
-                                    {% elif card.packaging_status == 'stiker_pending' %}
-                                    <span class="text-[11px] text-purple-400/80 font-bold inline-flex items-center gap-1">
-                                        <i class="fa-solid fa-tags"></i> Chop kutilmoqda
-                                    </span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="py-16 text-center text-slate-500 space-y-2">
-                                    <i class="fa-solid fa-boxes-stacked text-4xl block text-slate-600 mb-2"></i>
-                                    <p class="text-sm font-bold text-slate-400">Meto omborida hali saqlanayotgan pastallar yo'q.</p>
-                                    <p class="text-xs text-slate-500">Yuqoridagi ro'yxatdan tasnifdan chiqqan pastallarning kg sini kiritsangiz, shu yerga tushadi.</p>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            <tr id="stored-filter-empty" class="hidden">
-                                <td colspan="7" class="py-12 text-center text-slate-500">
-                                    <i class="fa-solid fa-filter text-2xl block text-slate-600 mb-2"></i>
-                                    <p class="text-xs font-bold text-slate-400">Tanlangan filter yoki qidiruv bo'yicha hech qanday pastal topilmadi.</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
         </div>
+        {% endif %}
 
         <!-- ============================================================== -->
         <!-- MODE 3: PATOKKA BERISH (TIKUVGA CHIQARISH)                      -->
@@ -1632,8 +1305,6 @@
         const CURRENT_BRANCH = '{{ branch }}';
         const PENDING_SHIPMENTS = {{ pending_shipments_json|default:'[]'|safe }};
         const INCOMING_SHIPMENTS = {{ incoming_shipments_json|default:'[]'|safe }};
-        const KG_PENDING_CARDS = {{ kg_pending_cards_json|default:'[]'|safe }};
-        const STORED_CARDS = {{ stored_cards_json|default:'[]'|safe }};
         const INITIAL_LOCKED_PASTAL = {{ locked_pastal_json|default:'null'|safe }};
         const SCREENS_DATA = [
             {% for n, code in screens %}
@@ -1779,6 +1450,9 @@
             if (CURRENT_BRANCH === 'UYCHI' && mode === 'link') {
                 mode = 'shipment';
             }
+            if (CURRENT_BRANCH !== 'UYCHI' && mode === 'storage') {
+                mode = 'link';
+            }
             currentMode = mode;
             document.querySelectorAll('.mode-view').forEach(el => el.classList.add('hidden'));
 
@@ -1786,7 +1460,7 @@
             if (targetView) targetView.classList.remove('hidden');
 
             // Nav tabs active styling
-            const modes = CURRENT_BRANCH === 'UYCHI' ? ['shipment', 'storage', 'patok'] : ['link', 'storage', 'shipment', 'patok'];
+            const modes = CURRENT_BRANCH === 'UYCHI' ? ['shipment', 'storage', 'patok'] : ['link', 'shipment', 'patok'];
             modes.forEach(m => {
                 const btn = document.getElementById('nav-btn-' + m);
                 if (!btn) return;
@@ -1828,137 +1502,6 @@
             } else {
                 if (recView) recView.classList.remove('hidden');
                 if (recBtn) recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
-            }
-        }
-
-        // =============================================================
-        // METO SKLAD: SUBMIT REAL KG & STORE TO WAREHOUSE
-        // =============================================================
-        async function submitTabletKg(batchId) {
-            const inputEl = document.getElementById('kg-input-' + batchId);
-            if (!inputEl) return;
-            const kgVal = (inputEl.value || '').trim();
-            if (!kgVal || parseFloat(kgVal) <= 0) {
-                playSoundError();
-                alert("Iltimos, haqiqiy og'irlikni (kg) to'g'ri kiriting!");
-                inputEl.focus();
-                return;
-            }
-
-            const btn = document.getElementById('kg-btn-' + batchId);
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Saqlanmoqda...';
-            }
-
-            const r = await postJSON("{% url 'meto_hub_tablet_kg_receive' %}", {
-                batch_id: batchId,
-                kg: kgVal
-            });
-
-            if (r.ok) {
-                playSoundSuccess();
-                // Slide out the pending card
-                const cardEl = document.getElementById('kg-pending-card-' + batchId);
-                if (cardEl) {
-                    cardEl.classList.add('transition-all', 'duration-300', 'opacity-0', 'scale-95', 'pointer-events-none');
-                    setTimeout(() => {
-                        cardEl.remove();
-                        const list = document.getElementById('kg-pending-list');
-                        if (list && list.children.length === 0) {
-                            list.innerHTML = `
-                                <div id="kg-pending-empty" class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 text-center text-slate-400 text-xs sm:text-sm flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
-                                    <span>Tasnifdan chiqqan barcha pastallarning kg si kiritilgan va omborga o'tgan.</span>
-                                </div>
-                            `;
-                        }
-                    }, 300);
-                }
-                setTimeout(() => location.reload(), 600);
-            } else {
-                playSoundError();
-                alert(r.data?.message || "Og'irlikni saqlashda xatolik yuz berdi");
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-scale-balanced text-base"></i><span>Skladga Qabul</span>';
-                }
-            }
-        }
-
-        async function editTabletKg(batchId, currentKg) {
-            const newKg = prompt("Yangi og'irlikni kiriting (kg):", currentKg || "");
-            if (newKg === null) return;
-            const cleanKg = newKg.trim();
-            if (!cleanKg || parseFloat(cleanKg) <= 0) {
-                alert("Og'irlik 0 dan katta bo'lishi kerak.");
-                return;
-            }
-            const r = await postJSON("{% url 'meto_hub_tablet_kg_receive' %}", {
-                batch_id: batchId,
-                kg: cleanKg
-            });
-            if (r.ok) {
-                playSoundSuccess();
-                location.reload();
-            } else {
-                playSoundError();
-                alert(r.data?.message || "Xatolik yuz berdi");
-            }
-        }
-
-        // =============================================================
-        // METO SKLAD: FILTER & SEARCH STORED PASTALS
-        // =============================================================
-        let currentStoredFilter = 'all';
-
-        function filterStoredCards(status, btnEl) {
-            currentStoredFilter = status;
-            document.querySelectorAll('.stored-filter-btn').forEach(btn => {
-                btn.className = 'stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700';
-            });
-            btnEl.className = 'stored-filter-btn px-3 py-1.5 rounded-xl text-xs font-black transition bg-cyan-500 text-slate-950 shadow';
-            applyStoredCardFilters();
-        }
-
-        function searchStoredCards(query) {
-            applyStoredCardFilters(query);
-        }
-
-        function applyStoredCardFilters(searchQuery) {
-            const searchVal = (searchQuery !== undefined ? searchQuery : (document.getElementById('stored-search-input')?.value || '')).trim().toLowerCase();
-            const cards = document.querySelectorAll('.stored-card');
-            let visibleCount = 0;
-            cards.forEach(card => {
-                const cardStatus = card.getAttribute('data-status');
-                const cardSearch = (card.getAttribute('data-search') || '').toLowerCase();
-
-                let matchesFilter = true;
-                if (currentStoredFilter === 'packet') matchesFilter = (cardStatus === 'packet');
-                else if (currentStoredFilter === 'stiker_pending') matchesFilter = (cardStatus === 'stiker_pending');
-                else if (currentStoredFilter === 'container_pending') matchesFilter = (cardStatus === 'container_pending');
-                else if (currentStoredFilter === 'ready') matchesFilter = (cardStatus === 'ready');
-
-                let matchesSearch = true;
-                if (searchVal) {
-                    matchesSearch = cardSearch.includes(searchVal);
-                }
-
-                if (matchesFilter && matchesSearch) {
-                    card.classList.remove('hidden');
-                    visibleCount++;
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
-
-            const emptyRow = document.getElementById('stored-filter-empty');
-            if (emptyRow) {
-                if (visibleCount === 0 && cards.length > 0) {
-                    emptyRow.classList.remove('hidden');
-                } else {
-                    emptyRow.classList.add('hidden');
-                }
             }
         }
     </script>
