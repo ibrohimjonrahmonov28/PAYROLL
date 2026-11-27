@@ -23,7 +23,6 @@ from production.meto_flow_views import active_tablet_locked_progress
 from production.models import (
     Box,
     Container,
-    ContainerEvent,
     PastalFlow,
     Shipment,
     ShipmentPastal,
@@ -433,24 +432,16 @@ def meto_tablet_view(request):
     incoming = _tablet_incoming(branch)
     incoming_shipments = _tablet_incoming_shipments(branch)
     pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
-    patok_rows = _tablet_patok_rows(branch)
 
-    # Boshlang'ich rejim (default_mode): HQ da 3 rejim (Biriktirish, Yuk Xati, Patokka Berish); Uychida 3 rejim (Yuk Qabuli, Saqlash, Patokka Berish)
+    # Boshlang'ich rejim (default_mode): HQ da 3 rejim (Biriktirish, Yuk Xati, Patokka Berish); Uychida 2 rejim (Yuk Qabuli, Ombor / Patokka Berish)
     req_mode = request.GET.get('mode')
-    allowed_modes = ('shipment', 'storage', 'patok') if branch == 'UYCHI' else ('link', 'shipment', 'patok')
+    allowed_modes = ('shipment', 'storage') if branch == 'UYCHI' else ('link', 'shipment', 'patok')
     if req_mode in allowed_modes:
         default_mode = req_mode
     elif branch == 'UYCHI':
         default_mode = 'shipment' if incoming_shipments or incoming else 'storage'
     else:
         default_mode = 'link'
-
-    # Oxirgi konteyner voqealari (oxirgi 15 tasi)
-    recent_events = (
-        ContainerEvent.objects.filter(branch=branch)
-        .select_related('container', 'box', 'user')
-        .order_by('-id')[:15]
-    )
 
     locked_pastal = active_tablet_locked_progress(request) if branch == 'HQ' else None
 
@@ -473,9 +464,7 @@ def meto_tablet_view(request):
         'incoming_shipments_json': _script_json(incoming_shipments),
         'locked_pastal': locked_pastal,
         'locked_pastal_json': _script_json(locked_pastal),
-        'patok_rows': patok_rows,
         'screens': screens,
-        'recent_events': recent_events,
     }
     return render(request, 'meto_hub/tablet.html', context)
 

@@ -1249,7 +1249,7 @@ class MetoTabletTest(MetoFlowBase):
         resp = self.client.get(reverse('meto_hub_tablet'))
         self.assertEqual(resp.status_code, 302)
 
-        # 2) Sklad xodimi planshetga kiradi — Kosonda 3 ta skaner bo'limi (Meto Sklad olib tashlangan)
+        # 2) Sklad xodimi planshetga kiradi — Kosonda 3 ta skaner bo'limi (ortiqcha bo'limlar olib tashlangan)
         self.client.force_login(self.sklad)
         res = self.client.get(reverse('meto_hub_tablet'))
         self.assertEqual(res.status_code, 200)
@@ -1259,6 +1259,12 @@ class MetoTabletTest(MetoFlowBase):
         self.assertContains(res, "3. Patokka Berish")
         self.assertNotContains(res, "Meto Sklad")
         self.assertNotContains(res, 'id="mode-storage"')
+        self.assertNotContains(res, 'id="sub-ship-load-view"')
+        self.assertNotContains(res, 'id="link-stepper"')
+        self.assertNotContains(res, '(20/20)')
+        self.assertNotContains(res, "20/20 to'liq")
+        self.assertNotIn('patok_rows', res.context)
+        self.assertNotIn('recent_events', res.context)
         self.assertEqual(self.client.get(f"{reverse('meto_hub_tablet')}?mode=storage").context['default_mode'], 'link')
 
         # 3) /tayyorlov/planshet/ alias ham 200 beradi
@@ -1348,21 +1354,38 @@ class MetoTabletTest(MetoFlowBase):
         self.assertEqual(c1.status, Container.Status.AT_PATOK)
 
     def test_tablet_uychi_branch_no_link_mode(self):
-        # 1) Uychi filialida quti bilan konteyner biriktirish rejimi ko'rsatilmaydi
+        # 1) Uychi filialida 2 ta bo'lim: 1. Yuk Qabuli va 2. Ombor / Patokka Berish (dublikat patok tabi yo'q)
         self.client.force_login(self.uychi)
         res = self.client.get(f"{reverse('meto_hub_tablet')}?branch=UYCHI")
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Uychi Filiali")
         self.assertContains(res, "1. Yuk Qabuli")
-        self.assertContains(res, "2. Saqlash")
-        self.assertContains(res, "3. Patokka Berish")
+        self.assertContains(res, "2. Ombor / Patokka Berish")
         self.assertNotContains(res, "1. Biriktirish")
         self.assertNotContains(res, 'id="mode-link"')
+        self.assertNotContains(res, 'id="mode-patok"')
         self.assertContains(res, 'id="mode-storage"')
+        self.assertEqual(self.client.get(f"{reverse('meto_hub_tablet')}?branch=UYCHI&mode=patok").context['default_mode'], 'storage')
 
         # 2) Uychi screens U1..U6 mavjud
         self.assertContains(res, "U1")
         self.assertContains(res, "U6")
+
+    def test_tablet_patok_mode_shows_only_ready_pastals(self):
+        # Tayyor pastal chiqadi, chala (konteynersiz) pastal Patokka Berish ro'yxatida chiqmaydi
+        ready_batch = self.cut('PAT-READY')
+        self.ready(ready_batch)
+        partial_batch = self.cut('PAT-CHALA')
+        self.to_sklad(partial_batch)
+        meto_flow.split_boxes(partial_batch, {}, self.sticker)
+        Box.objects.filter(cutting_batch_item__batch=partial_batch).update(is_printed=True)
+        meto_flow.sklad_receive(partial_batch, '10.0', self.sklad)
+
+        self.client.force_login(self.sklad)
+        res = self.client.get(reverse('meto_hub_tablet'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'PAT-READY')
+        self.assertNotContains(res, 'PAT-CHALA')
 
     def test_pending_verification_full_cycle(self):
         # Tayyorlov master selects pastal -> Request verification -> Meto tablet checks & dispatches -> Master prints -> Uychi receives

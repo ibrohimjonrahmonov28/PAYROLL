@@ -151,19 +151,12 @@
                 {% endif %}
             </button>
 
-            <!-- Mode 2 (Uychi): Omborda Saqlash -->
+            <!-- Mode 2 (Uychi): Ombor / Patokka Berish -->
             <button type="button" onclick="switchMode('storage')" id="nav-btn-storage"
                 class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'storage' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-warehouse"></i>
-                <span class="truncate">2. Saqlash</span>
-                <span class="text-[10px] text-slate-400 font-mono">({{ sklad_cards|length }})</span>
-            </button>
-
-            <!-- Mode 3 (Uychi): Patokka Berish -->
-            <button type="button" onclick="switchMode('patok')" id="nav-btn-patok"
-                class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'patok' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                <i class="fa-solid fa-person-walking-arrow-right"></i>
-                <span class="truncate">3. Patokka Berish</span>
+                <span class="truncate">2. Ombor / Patokka Berish</span>
+                <span class="text-[10px] opacity-80 font-mono">({{ sklad_cards|length }})</span>
             </button>
             {% else %}
             <!-- Mode 1 (Koson): Biriktirish -->
@@ -266,29 +259,6 @@
                             <i class="fa-solid fa-link-slash"></i>
                             <span id="unlink-toggle-text">Bekor Qilish Rejimi</span>
                         </button>
-                    </div>
-
-                    <!-- Compact Step Stepper Pills -->
-                    <div class="grid grid-cols-2 gap-2" id="link-stepper">
-                        <!-- Step 1 Pill -->
-                        <div id="step-pill-1"
-                            class="px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 bg-cyan-500/10 border-cyan-500 text-cyan-300">
-                            <div
-                                class="w-6 h-6 rounded-lg bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-xs flex-shrink-0">
-                                1
-                            </div>
-                            <span class="text-xs font-black text-white truncate">Quti stikerini uring</span>
-                        </div>
-
-                        <!-- Step 2 Pill -->
-                        <div id="step-pill-2"
-                            class="px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60">
-                            <div
-                                class="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 font-black flex items-center justify-center text-xs flex-shrink-0">
-                                2
-                            </div>
-                            <span class="text-xs font-black text-slate-300 truncate">Konteyner QR kodini uring</span>
-                        </div>
                     </div>
 
                     <!-- Direct Scanner Input Box (Always Focused) -->
@@ -487,13 +457,8 @@
 
                     <!-- Quick Help Footer -->
                     <div
-                        class="border-t border-slate-800 pt-2 mt-2 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
-                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato: «Bekor
-                            qilish»</span>
-                        <a href="{% url 'meto_hub_containers' %}" target="_blank"
-                            class="text-cyan-400 hover:underline font-bold">
-                            Konteynerlar <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
-                        </a>
+                        class="border-t border-slate-800 pt-2 mt-2 text-[11px] text-slate-400 flex-shrink-0">
+                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato biriktirilsa: «Bekor qilish» tugmasidan foydalaning</span>
                     </div>
                 </div>
             </div>
@@ -571,46 +536,37 @@
                 {% endfor %}
             </div>
             {% else %}
-            <!-- Sub-tab switcher (Tekshirish / Yuklash / Qabul Qilish) -->
+            {% if incoming|length > 0 %}
+            <!-- Sub-tab switcher (faqat Uychidan qaytgan yuk bo'lganda ko'rinadi) -->
             <div
-                class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl flex-shrink-0">
+                class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-2xl flex-shrink-0">
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="switchShipmentSubTab('pending')" id="sub-ship-pending-btn"
                         class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20">
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Tekshirish Kutayotganlar ({{ pending_shipments|length }})</span>
                     </button>
-                    <button type="button" onclick="switchShipmentSubTab('load')" id="sub-ship-load-btn"
-                        class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white">
-                        <i class="fa-solid fa-truck-loading"></i>
-                        <span>Skladdan Yuklash ({{ ready_cards|length }})</span>
-                    </button>
                     <button type="button" onclick="switchShipmentSubTab('receive')" id="sub-ship-receive-btn"
                         class="px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white">
                         <i class="fa-solid fa-truck-ramp-box"></i>
-                        <span>Kelgan Yukni Qabul Qilish ({{ incoming|length }})</span>
+                        <span>Qaytgan Yuklar ({{ incoming|length }})</span>
                     </button>
                 </div>
-
-                <div class="text-xs text-slate-400 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-info text-amber-400"></i>
-                    <span>Tekshiruv o'tkazish yoki yuk xati jo'natish</span>
-                </div>
             </div>
+            {% endif %}
 
             <!-- Sub-tab 0: TEKSHIRISH KUTAYOTGAN PASTALLAR (TAYYORLOVDAN YUBORILGAN) -->
-            <div id="sub-ship-pending-view" class="flex-1 overflow-hidden flex flex-col gap-4">
-                <div class="flex items-center justify-between">
+            <div id="sub-ship-pending-view" class="flex-1 overflow-hidden flex flex-col gap-3">
+                <div class="flex items-center justify-between flex-shrink-0">
                     <div>
                         <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-check text-amber-400"></i>
-                            <span>Tayyorlov Bo'limidan Tekshirishga Yuborilgan Yuk Xatlari</span>
+                            <span>Tekshirishga Yuborilgan Yuk Xatlari</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Yuk xatini tanlang va konteynerlarni skanerlang — 20/20 to'liq
-                            o'tgach jo'natish tugmasi ochiladi</p>
+                        <p class="text-xs text-slate-400">Yuk xatini tanlang va konteynerlarni skanerlang — barcha konteynerlar to'liq o'tgach jo'natish tugmasi ochiladi</p>
                     </div>
                     <div
-                        class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+                        class="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex-shrink-0">
                         <span>{{ pending_shipments|length }} ta kutilmoqda</span>
                     </div>
                 </div>
@@ -654,131 +610,23 @@
                     <div class="py-20 text-center text-slate-500 space-y-2">
                         <i class="fa-solid fa-inbox text-4xl block text-slate-600 mb-2"></i>
                         <p class="text-sm font-bold text-slate-400">Tekshirish kutayotgan yuk xatlari yo'q.</p>
-                        <p class="text-xs text-slate-500">Tayyorlov bo'limi (kompyuter) orqali pastallar tekshirishga
+                        <p class="text-xs text-slate-500">Bosh sklad (kompyuter) orqali pastallar tekshirishga
                             yuborilganda bu yerda avtomatik chiqadi.</p>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Sub-tab 1: UYCHIGA YUKLASH (KOSON HQ -> UYCHI) -->
-            <div id="sub-ship-load-view" class="flex-1 overflow-hidden flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
-                            <i class="fa-solid fa-boxes-stacked text-violet-400"></i>
-                            <span>Skladdagi To'liq Tayyor Pastallar</span>
-                        </h3>
-                        <p class="text-xs text-slate-400">Yuklamoqchi bo'lgan pastallarni tanlang va «Tekshirib yuklash»
-                            tugmasini bosing</p>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="selectAllShipPicks()"
-                            class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold touch-btn">
-                            Barchasini tanlash
-                        </button>
-                        <button type="button" onclick="startShipmentCheck()" id="ship-start-btn"
-                            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-600/20 touch-btn flex items-center gap-2">
-                            <i class="fa-solid fa-truck"></i>
-                            <span>Tekshirib Yuklash (<span id="ship-selected-count">0</span>)</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Pastals Grid for Shipment -->
-                <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
-                    {% for card in sklad_cards %}
-                    <div class="bg-slate-900 border {% if card.ready %}border-slate-800 hover:border-violet-500/50 cursor-pointer{% else %}border-slate-800/50 opacity-60{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all"
-                        onclick="toggleShipCardPick({{ card.batch_id }}, this)">
-                        <div class="space-y-3">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="flex items-center gap-3">
-                                    {% if card.ready and branch == 'HQ' %}
-                                    <input type="checkbox" value="{{ card.batch_id }}"
-                                        class="ship-card-checkbox w-5 h-5 rounded-lg accent-violet-500 cursor-pointer pointer-events-none">
-                                    {% else %}
-                                    <span
-                                        class="w-5 h-5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-600 text-[10px]">
-                                        <i class="fa-solid fa-lock"></i>
-                                    </span>
-                                    {% endif %}
-                                    <div>
-                                        <span class="text-sm font-black font-mono text-white block">{{ card.pastal_code
-                                            }}</span>
-                                        <span class="text-xs text-amber-400 font-bold block">{{ card.order_number
-                                            }}</span>
-                                    </div>
-                                </div>
-                                <span
-                                    class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono font-bold text-cyan-400">
-                                    {{ card.total_tasnif }} dona
-                                </span>
-                            </div>
-
-                            <!-- Model info -->
-                            <div class="text-xs text-slate-300">
-                                <span class="font-mono text-cyan-300">{{ card.article_code }}</span> · {{
-                                card.article_name }}
-                            </div>
-
-                            <!-- Boxes & Containers Info -->
-                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                    <span class="text-[10px] text-slate-500 block">Qutilar</span>
-                                    <span class="font-bold text-white font-mono">{{ card.boxes_count }}</span>
-                                </div>
-                                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                    <span class="text-[10px] text-slate-500 block">Chop etilgan</span>
-                                    <span
-                                        class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
-                                        {{ card.printed_count }}/{{ card.boxes_count }}
-                                    </span>
-                                </div>
-                                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                    <span class="text-[10px] text-slate-500 block">Konteynerda</span>
-                                    <span
-                                        class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
-                                        {{ card.linked_count }}/{{ card.boxes_count }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Card status footer -->
-                        <div
-                            class="pt-3 border-t border-slate-800/80 mt-3 flex items-center justify-between text-[11px]">
-                            {% if card.ready %}
-                            <span class="text-emerald-400 font-bold flex items-center gap-1">
-                                <i class="fa-solid fa-circle-check"></i> Yuklashga to'liq tayyor
-                            </span>
-                            {% else %}
-                            <span class="text-rose-400 font-bold flex items-center gap-1">
-                                <i class="fa-solid fa-triangle-exclamation"></i> Chala (hamma quti biriktirilmagan)
-                            </span>
-                            {% endif %}
-                            <span class="text-slate-500 font-mono">{{ card.weight_kg|default:"—" }} kg</span>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-span-full py-16 text-center text-slate-500">
-                        <i class="fa-solid fa-inbox text-4xl mb-3 block text-slate-600"></i>
-                        <p class="text-sm font-bold text-slate-400">Skladda pastallar topilmadi.</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Sub-tab 2: KELGAN YUKNI QABUL QILISH -->
-            <div id="sub-ship-receive-view" class="flex-1 overflow-hidden hidden flex flex-col gap-4">
-                <div class="flex items-center justify-between">
+            {% if incoming|length > 0 %}
+            <!-- Sub-tab 1: UYCHIDAN QAYTGAN YUKLAR -->
+            <div id="sub-ship-receive-view" class="flex-1 overflow-hidden hidden flex flex-col gap-3">
+                <div class="flex items-center justify-between flex-shrink-0">
                     <div>
                         <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
                             <i class="fa-solid fa-truck-ramp-box text-emerald-400"></i>
-                            <span>Yo'lda Kelayotgan Yuk Xatlari</span>
+                            <span>Uychidan Qaytgan Yuk Xatlari</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Yuk xatini tanlang va kelgan konteynerlarni skanerlab qabul
-                            qiling</p>
+                        <p class="text-xs text-slate-400">Qaytgan konteynerlarni skanerlab Bosh skladga qabul qiling</p>
                     </div>
                 </div>
 
@@ -793,15 +641,12 @@
                                     {{ item.shipment_number }}
                                 </span>
                                 <span class="text-xs font-bold text-white">{{ item.pastal_code }}</span>
-                                <span class="text-xs text-amber-400 font-bold font-mono">({{ item.order_number
-                                    }})</span>
+                                <span class="text-xs text-amber-400 font-bold font-mono">({{ item.order_number }})</span>
                             </div>
                             <div class="text-xs text-slate-400">
                                 <span>Haydovchi: <b class="text-slate-200">{{ item.driver|default:"—" }}</b></span>
-                                {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle
-                                        }}</b></span>{% endif %}
-                                {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{%
-                                endif %}
+                                {% if item.vehicle %}<span> · Mashina: <b class="text-slate-200">{{ item.vehicle }}</b></span>{% endif %}
+                                {% if item.phone %}<span> · Tel: <b class="text-slate-200">{{ item.phone }}</b></span>{% endif %}
                             </div>
                             <div class="text-[11px] text-slate-500">
                                 {{ item.source_branch }} → {{ item.destination_branch }} · {{ item.boxes_count }} ta
@@ -811,45 +656,47 @@
 
                         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                             <button type="button"
-                                onclick="startReceiveCheck({{ item.line_id }}, {{ item.batch_id }}, '{{ item.pastal_code }}', '{{ item.shipment_number }}')"
+                                onclick="startReceiveCheck({{ item.line_id }}, {{ item.batch_id }}, '{{ item.pastal_code|escapejs }}', '{{ item.shipment_number|escapejs }}')"
                                 class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center gap-1.5 whitespace-nowrap">
                                 <i class="fa-solid fa-qrcode"></i> Qabulni Skanerlash
                             </button>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="py-16 text-center text-slate-500">
-                        <i class="fa-solid fa-truck-fast text-4xl mb-3 block text-slate-600"></i>
-                        <p class="text-sm font-bold text-slate-400">Hozirda yo'lda kelayotgan yuk xatlari yo'q.</p>
-                    </div>
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
             {% endif %}
         </div>
 
         {% if branch == 'UYCHI' %}
         <!-- ============================================================== -->
-        <!-- MODE: SAQLASH (UYCHI OMBORI)                                   -->
+        <!-- MODE 2 (UYCHI): OMBOR / PATOKKA BERISH                         -->
         <!-- ============================================================== -->
         <div id="mode-storage"
-            class="mode-view flex-1 {% if default_mode != 'storage' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
-            <!-- ================= UYCHI OMBORI ================= -->
-            <div class="flex items-center justify-between flex-shrink-0">
+            class="mode-view flex-1 {% if default_mode != 'storage' %}hidden{% endif %} flex flex-col gap-3 overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
                 <div>
                     <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
                         <i class="fa-solid fa-warehouse text-cyan-400"></i>
-                        <span>Uychi Omborida Saqlanayotgan Yuklar</span>
+                        <span>Uychi Ombori — Saqlash va Patokka Berish</span>
                     </h3>
-                    <p class="text-xs text-slate-400">Kosondan qabul qilingan va patokka berish kutilayotgan konteynerlar</p>
+                    <p class="text-xs text-slate-400">Kosondan qabul qilingan pastallar — istalganini tanlab U-patokka chiqaring</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
+                    <div class="relative w-56 sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="uychi-storage-search" autocomplete="off"
+                            oninput="filterCardGrid(this.value, '.uychi-storage-card', 'uychi-storage-empty')"
+                            placeholder="Pastal, artikul, KONT-..."
+                            class="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+                    </div>
                     <div class="text-xs font-mono font-bold text-amber-200 bg-amber-500/15 border border-amber-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
                         <i class="fa-solid fa-scale-balanced text-amber-400"></i>
                         <span>Mavjud: <b class="text-white font-black">{{ total_sklad_kg }}</b> kg</span>
                     </div>
                     <div class="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1.5 rounded-xl">
-                        <span>Jami: {{ sklad_cards|length }} ta pastal</span>
+                        <span>Jami: {{ sklad_cards|length }} ta</span>
                     </div>
                 </div>
             </div>
@@ -857,7 +704,8 @@
             <!-- Stored Pastals Grid (Uychi) -->
             <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
                 {% for card in sklad_cards %}
-                <div class="bg-slate-900 border border-slate-800 hover:border-cyan-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
+                <div data-search="{{ card.pastal_code|lower }} {{ card.order_number|lower }} {{ card.article_code|lower }} {{ card.article_name|lower }} {{ card.customer|lower }} {{ card.containers|join:' '|lower }}"
+                    class="uychi-storage-card bg-slate-900 border border-slate-800 hover:border-cyan-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
                     <div class="space-y-3">
                         <div class="flex items-start justify-between gap-3">
                             <div>
@@ -911,10 +759,10 @@
                     <div class="pt-3 border-t border-slate-800 mt-3 flex items-center justify-between gap-2">
                         <span class="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            <span>Omborda saqlanmoqda</span>
+                            <span>Omborda tayyor</span>
                         </span>
                         <button type="button"
-                            onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
+                            onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code|escapejs }}', {{ card.boxes_count }})"
                             class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 touch-btn flex items-center gap-1.5 whitespace-nowrap">
                             <i class="fa-solid fa-person-walking-arrow-right"></i> Patokka Berish
                         </button>
@@ -924,46 +772,59 @@
                 <div class="col-span-full py-20 text-center text-slate-500 space-y-2">
                     <i class="fa-solid fa-warehouse text-4xl block text-slate-600 mb-2"></i>
                     <p class="text-sm font-bold text-slate-400">Uychi omborida saqlanayotgan pastallar yo'q.</p>
-                    <p class="text-xs text-slate-500">Kosondan kelgan yuk xatini qabul qilganingizdan so'ng, shu yerda saqlanadi.</p>
+                    <p class="text-xs text-slate-500">Kosondan kelgan yuk xatini qabul qilganingizdan so'ng, shu yerda chiqadi.</p>
                 </div>
                 {% endfor %}
+                <div id="uychi-storage-empty" class="hidden col-span-full py-14 text-center text-slate-500">
+                    <i class="fa-solid fa-magnifying-glass text-2xl mb-2 block text-slate-600"></i>
+                    <p class="text-xs font-bold text-slate-400">Qidiruv bo'yicha pastal topilmadi.</p>
+                </div>
             </div>
         </div>
-        {% endif %}
-
+        {% else %}
         <!-- ============================================================== -->
-        <!-- MODE 3: PATOKKA BERISH (TIKUVGA CHIQARISH)                      -->
+        <!-- MODE 3 (KOSON): PATOKKA BERISH (FAQAT TAYYOR PASTALLAR)        -->
         <!-- ============================================================== -->
         <div id="mode-patok"
-            class="mode-view flex-1 {% if default_mode != 'patok' %}hidden{% endif %} flex flex-col gap-4 overflow-hidden">
-            <div class="flex items-center justify-between flex-shrink-0">
+            class="mode-view flex-1 {% if default_mode != 'patok' %}hidden{% endif %} flex flex-col gap-3 overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
                 <div>
                     <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
                         <i class="fa-solid fa-person-walking-arrow-right text-emerald-400"></i>
-                        <span>{% if branch == 'UYCHI' %}Uychi Tikuv Patogiga Chiqarish{% else %}Skladdan Tikuv Patogiga
-                            Chiqarish{% endif %}</span>
+                        <span>Tikuv Patogiga Chiqarish</span>
+                        <span class="px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs">
+                            {{ ready_cards|length }} ta tayyor
+                        </span>
                     </h3>
-                    <p class="text-xs text-slate-400">Pastalni tanlang, qaysi patokka berilishini belgilang va
-                        konteynerlarni skanerlang</p>
+                    <p class="text-xs text-slate-400">Faqat barcha qutisi konteynerga biriktirilgan tayyor pastallar ko'rsatiladi</p>
+                </div>
+                <div class="relative w-60 sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="text" id="patok-search-input" autocomplete="off"
+                        oninput="filterCardGrid(this.value, '.patok-ready-card', 'patok-search-empty')"
+                        placeholder="Pastal, zakaz, artikul, KONT-..."
+                        class="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400">
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
-                {% for card in sklad_cards %}
-                <div
-                    class="bg-slate-900 border {% if card.ready %}border-slate-800 hover:border-emerald-500/50{% else %}border-slate-800/50 opacity-60{% endif %} rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
+                {% for card in ready_cards %}
+                <div data-search="{{ card.pastal_code|lower }} {{ card.order_number|lower }} {{ card.article_code|lower }} {{ card.article_name|lower }} {{ card.customer|lower }} {{ card.containers|join:' '|lower }}"
+                    class="patok-ready-card bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all">
                     <div class="space-y-3">
                         <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <span class="text-base font-black font-mono text-white block">{{ card.pastal_code
-                                    }}</span>
-                                <span class="text-xs text-amber-400 font-bold block">{{ card.order_number }} · {{
-                                    card.customer }}</span>
+                            <div class="min-w-0">
+                                <span class="text-base font-black font-mono text-white block">{{ card.pastal_code }}</span>
+                                <span class="text-xs text-amber-400 font-bold block truncate">{{ card.order_number }} · {{ card.customer }}</span>
                             </div>
-                            <span
-                                class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-black text-cyan-400">
-                                {{ card.total_tasnif }} dona
-                            </span>
+                            <div class="text-right flex-shrink-0 space-y-0.5">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono font-black text-cyan-400 block">
+                                    {{ card.total_tasnif }} dona
+                                </span>
+                                {% if card.weight_kg %}
+                                <span class="text-[11px] font-mono font-bold text-amber-300 block">{{ card.weight_kg }} kg</span>
+                                {% endif %}
+                            </div>
                         </div>
 
                         <!-- Model info -->
@@ -973,60 +834,51 @@
                                 class="w-8 h-8 rounded-lg object-cover border border-slate-800 bg-slate-950">
                             {% endif %}
                             <div class="min-w-0 text-xs">
-                                <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code
-                                    }}</span>
+                                <span class="font-mono font-bold text-cyan-300 block truncate">{{ card.article_code }}</span>
                                 <span class="text-[11px] text-slate-400 block truncate">{{ card.article_name }}</span>
                             </div>
                         </div>
 
-                        <!-- Stats Grid -->
-                        <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <span class="text-[10px] text-slate-500 block">Qutilar</span>
-                                <span class="font-bold text-white font-mono">{{ card.boxes_count }}</span>
+                        <!-- Containers Summary -->
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-slate-400">Tayyor konteynerlar:</span>
+                                <span class="font-mono font-black text-emerald-400">{{ card.linked_count }}/{{ card.boxes_count }} quti</span>
                             </div>
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <span class="text-[10px] text-slate-500 block">Chop etilgan</span>
-                                <span
-                                    class="font-bold font-mono {% if card.printed_count == card.boxes_count %}text-emerald-400{% else %}text-amber-400{% endif %}">
-                                    {{ card.printed_count }}/{{ card.boxes_count }}
-                                </span>
+                            {% if card.containers %}
+                            <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                                {% for c in card.containers %}
+                                <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] font-bold">{{ c }}</span>
+                                {% endfor %}
                             </div>
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <span class="text-[10px] text-slate-500 block">Konteynerda</span>
-                                <span
-                                    class="font-bold font-mono {% if card.linked_count == card.boxes_count %}text-emerald-400{% else %}text-rose-400{% endif %}">
-                                    {{ card.linked_count }}/{{ card.boxes_count }}
-                                </span>
-                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
                     <!-- Dispatch action -->
-                    <div class="pt-3 border-t border-slate-800 mt-3 flex items-center justify-between gap-2">
-                        {% if card.ready %}
+                    <div class="pt-3 border-t border-slate-800 mt-3">
                         <button type="button"
-                            onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code }}', {{ card.boxes_count }})"
+                            onclick="startPatokDispatch({{ card.batch_id }}, '{{ card.pastal_code|escapejs }}', {{ card.boxes_count }})"
                             class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/20 touch-btn flex items-center justify-center gap-2">
                             <i class="fa-solid fa-person-walking-arrow-right"></i>
                             <span>Patokka Tekshirib Berish</span>
                         </button>
-                        {% else %}
-                        <button type="button" disabled
-                            class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs opacity-50 cursor-not-allowed">
-                            Hali tayyor emas (biriktiring)
-                        </button>
-                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
-                <div class="col-span-full py-16 text-center text-slate-500">
-                    <i class="fa-solid fa-inbox text-4xl mb-3 block text-slate-600"></i>
-                    <p class="text-sm font-bold text-slate-400">Skladda patokka beriladigan pastal yo'q.</p>
+                <div class="col-span-full py-16 text-center text-slate-500 space-y-1.5">
+                    <i class="fa-solid fa-inbox text-4xl mb-2 block text-slate-600"></i>
+                    <p class="text-sm font-bold text-slate-400">Hozircha patokka berishga tayyor pastal yo'q.</p>
+                    <p class="text-xs text-slate-500">Pastal kg kiritilib, barcha qutisi konteynerga biriktirilgach shu yerda chiqadi.</p>
                 </div>
                 {% endfor %}
+                <div id="patok-search-empty" class="hidden col-span-full py-14 text-center text-slate-500">
+                    <i class="fa-solid fa-magnifying-glass text-2xl mb-2 block text-slate-600"></i>
+                    <p class="text-xs font-bold text-slate-400">Qidiruv bo'yicha pastal topilmadi.</p>
+                </div>
             </div>
         </div>
+        {% endif %}
 
     </main>
 
@@ -1205,7 +1057,7 @@
 
                 <div class="flex items-center gap-3">
                     <span id="verify-dispatch-hint" class="text-xs text-rose-400 font-bold hidden sm:inline">
-                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha pastallar (20/20) to'liq o'tishi
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha konteynerlar to'liq o'tishi
                         shart
                     </span>
                     <button type="button" id="verify-dispatch-btn" disabled onclick="submitVerifyDispatch()"
@@ -1444,13 +1296,13 @@
 
     <!-- MODE SWITCHER & GLOBAL NAVIGATION -->
     <script>
-        let currentMode = '{{ default_mode }}'; // 'link' | 'storage' | 'shipment' | 'patok'
+        let currentMode = '{{ default_mode }}'; // HQ: 'link' | 'shipment' | 'patok'; UYCHI: 'shipment' | 'storage'
 
         function switchMode(mode) {
-            if (CURRENT_BRANCH === 'UYCHI' && mode === 'link') {
-                mode = 'shipment';
-            }
-            if (CURRENT_BRANCH !== 'UYCHI' && mode === 'storage') {
+            if (CURRENT_BRANCH === 'UYCHI') {
+                if (mode === 'link') mode = 'shipment';
+                if (mode === 'patok') mode = 'storage';
+            } else if (mode === 'storage') {
                 mode = 'link';
             }
             currentMode = mode;
@@ -1460,7 +1312,7 @@
             if (targetView) targetView.classList.remove('hidden');
 
             // Nav tabs active styling
-            const modes = CURRENT_BRANCH === 'UYCHI' ? ['shipment', 'storage', 'patok'] : ['link', 'shipment', 'patok'];
+            const modes = CURRENT_BRANCH === 'UYCHI' ? ['shipment', 'storage'] : ['link', 'shipment', 'patok'];
             modes.forEach(m => {
                 const btn = document.getElementById('nav-btn-' + m);
                 if (!btn) return;
@@ -1479,30 +1331,37 @@
 
         function switchShipmentSubTab(tab) {
             const pendView = document.getElementById('sub-ship-pending-view');
-            const loadView = document.getElementById('sub-ship-load-view');
             const recView = document.getElementById('sub-ship-receive-view');
             const pendBtn = document.getElementById('sub-ship-pending-btn');
-            const loadBtn = document.getElementById('sub-ship-load-btn');
             const recBtn = document.getElementById('sub-ship-receive-btn');
 
             if (pendView) pendView.classList.add('hidden');
-            if (loadView) loadView.classList.add('hidden');
             if (recView) recView.classList.add('hidden');
 
             if (pendBtn) pendBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
-            if (loadBtn) loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
             if (recBtn) recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-slate-800 text-slate-300 hover:text-white';
 
             if (tab === 'pending') {
                 if (pendView) pendView.classList.remove('hidden');
                 if (pendBtn) pendBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20';
-            } else if (tab === 'load') {
-                if (loadView) loadView.classList.remove('hidden');
-                if (loadBtn) loadBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-violet-600 text-white shadow-lg shadow-violet-600/20';
             } else {
                 if (recView) recView.classList.remove('hidden');
                 if (recBtn) recBtn.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-2 bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
             }
+        }
+
+        function filterCardGrid(query, cardSelector, emptyId) {
+            const q = String(query || '').trim().toLowerCase();
+            const cards = document.querySelectorAll(cardSelector);
+            let visible = 0;
+            cards.forEach(card => {
+                const hay = (card.getAttribute('data-search') || '').toLowerCase();
+                const show = !q || hay.includes(q);
+                card.classList.toggle('hidden', !show);
+                if (show) visible++;
+            });
+            const emptyEl = document.getElementById(emptyId);
+            if (emptyEl) emptyEl.classList.toggle('hidden', !(visible === 0 && cards.length > 0));
         }
     </script>
 
@@ -1551,34 +1410,11 @@
             setTimeout(() => el.classList.remove(cls), ms);
         }
 
-        function updateLinkStepper() {
-            const pill1 = document.getElementById('step-pill-1');
-            const pill2 = document.getElementById('step-pill-2');
-            if (!pill1 || !pill2) return;
-            const base = 'px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 ';
-            const idle = base + 'bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
-            const done = base + 'bg-emerald-500/10 border-emerald-600 text-emerald-300';
-            if (isUnlinkMode) {
-                pill1.className = base + 'bg-rose-950/40 border-rose-500 text-rose-300';
-                pill2.className = base + 'bg-rose-950/40 border-rose-500 text-rose-300';
-            } else if (!currentBox && !currentContainer) {
-                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300';
-                pill2.className = idle;
-            } else if (currentBox) {
-                pill1.className = done;
-                pill2.className = base + 'bg-amber-500/10 border-amber-500 text-amber-300 animate-pulse';
-            } else {
-                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse';
-                pill2.className = done;
-            }
-        }
-
         function resetLinkSelection() {
             currentBox = null;
             currentContainer = null;
             renderBoxCard(null);
             renderContainerCard(null);
-            updateLinkStepper();
             renderPastalPanel();
         }
 
@@ -1615,7 +1451,6 @@
                     }
                 }
             }
-            updateLinkStepper();
             scanInput?.focus();
         }
 
@@ -1903,7 +1738,6 @@
             } else if (lockedPastal) {
                 displayedPastal = lockedPastal;
             }
-            updateLinkStepper();
             renderPastalPanel();
             setStatus(
                 lockedPastal
@@ -1917,7 +1751,6 @@
         function cancelContainerSelection() {
             currentContainer = null;
             renderContainerCard(null);
-            updateLinkStepper();
             setStatus("Konteyner tanlovi bekor qilindi. Bo'sh katta konteyner QR kodini uring.", "info");
             scanInput?.focus();
         }
@@ -1933,7 +1766,6 @@
             }
             renderBoxCard(null);
             renderContainerCard(null);
-            updateLinkStepper();
             renderPastalPanel();
             setStatus(
                 lockedPastal
@@ -2142,7 +1974,6 @@
                 renderBoxCard(r.data);
                 renderPastalPanel();
             }
-            updateLinkStepper();
 
             if (currentBox && currentContainer) {
                 await linkSelected();
@@ -2385,82 +2216,9 @@
     </script>
 
     <!-- ============================================================== -->
-    <!-- LOGIC 3: SHIPMENT DISPATCH & RECEIPT ACTIONS                   -->
+    <!-- LOGIC 3: RETURNED SHIPMENT RECEIPT ACTION                      -->
     <!-- ============================================================== -->
-    <template id="shipment-form-template">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
-            <label class="space-y-1 block">
-                <span class="text-xs font-bold text-slate-400">Mashina raqami</span>
-                <input name="vehicle" placeholder="01 A 777 AA" required
-                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono uppercase text-sm">
-            </label>
-            <label class="space-y-1 block">
-                <span class="text-xs font-bold text-slate-400">Haydovchi ismi</span>
-                <input name="driver" placeholder="Ali Valiyev" required
-                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm">
-            </label>
-            <label class="space-y-1 block">
-                <span class="text-xs font-bold text-slate-400">Telefon raqami</span>
-                <input name="phone" inputmode="tel" placeholder="+998 90 123 45 67"
-                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-mono">
-            </label>
-            <label class="space-y-1 block">
-                <span class="text-xs font-bold text-slate-400">Izoh</span>
-                <input name="notes" placeholder="Ixtiyoriy izoh..."
-                    class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm">
-            </label>
-        </div>
-    </template>
-
     <script>
-        function toggleShipCardPick(batchId, cardEl) {
-            const cb = cardEl.querySelector('.ship-card-checkbox');
-            if (!cb) return;
-            cb.checked = !cb.checked;
-            updateShipPicksCount();
-        }
-
-        function updateShipPicksCount() {
-            const checked = document.querySelectorAll('.ship-card-checkbox:checked');
-            document.getElementById('ship-selected-count').textContent = checked.length;
-            checked.forEach(cb => {
-                cb.closest('.bg-slate-900').classList.add('border-violet-500', 'bg-violet-950/20');
-            });
-            document.querySelectorAll('.ship-card-checkbox:not(:checked)').forEach(cb => {
-                cb.closest('.bg-slate-900').classList.remove('border-violet-500', 'bg-violet-950/20');
-            });
-        }
-
-        function selectAllShipPicks() {
-            const cbs = document.querySelectorAll('.ship-card-checkbox');
-            const allChecked = Array.from(cbs).every(cb => cb.checked);
-            cbs.forEach(cb => cb.checked = !allChecked);
-            updateShipPicksCount();
-        }
-
-        function startShipmentCheck() {
-            const ids = Array.from(document.querySelectorAll('.ship-card-checkbox:checked')).map(cb => parseInt(cb.value, 10));
-            if (!ids.length) {
-                alert("Uychiga yuklash uchun kamida bitta tayyor pastalni tanlang.");
-                return;
-            }
-
-            openCheckModalDialog({
-                title: `Uychiga Yuklash · ${ids.length} ta pastal`,
-                batchIds: ids,
-                formHtml: document.getElementById('shipment-form-template').innerHTML,
-                confirmText: "Yuk Xatini Tuzish va Chop Etish",
-                allowPartial: false,
-                submit: (scanned, form) => {
-                    return postJSON(`{% url 'meto_hub_flow_api_ship' %}`, {
-                        batch_ids: ids,
-                        scanned: scanned,
-                        ...form
-                    });
-                }
-            });
-        }
-
         function startReceiveCheck(lineId, batchId, pastalCode, shipNum) {
             openCheckModalDialog({
                 title: `Yuk Qabuli · ${shipNum} (${pastalCode})`,
@@ -2685,7 +2443,7 @@
                 dispatchBtn.disabled = true;
                 dispatchBtn.className = 'px-6 py-3 rounded-2xl bg-slate-800 text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed font-black text-sm sm:text-base touch-btn flex items-center gap-2 shadow-xl';
                 hint.className = 'text-xs text-rose-400 font-bold hidden sm:inline';
-                hint.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha pastallar (20/20) to\'liq o\'tishi shart';
+                hint.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i>Barcha konteynerlar to'liq o'tishi shart (${totalScannedAll}/${totalBoxesAll})`;
             }
         }
 
