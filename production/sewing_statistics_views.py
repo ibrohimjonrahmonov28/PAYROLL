@@ -786,16 +786,11 @@ def sewing_statistics_daily_view(request):
         'boxes_set': set(),
     })
 
-    otk_pastal_codes = set()
     for l in inspection_logs:
         if l.box_id:
             logs_by_box[l.box_id].append(l)
 
         b = boxes_for_otk.get(l.box_id) or (today_boxes_dict.get(l.box_id))
-        if b:
-            pcode = (b.pastal_code or '').strip()
-            if pcode:
-                otk_pastal_codes.add(pcode)
 
         b_sn = otk_box_screens_map.get(l.box_id) if l.box_id else None
         if not b_sn and b and b.assigned_screen:
@@ -829,16 +824,24 @@ def sewing_statistics_daily_view(request):
     # 4. Patok planshetida haqiqatan qabul qilingan (asosiy) pastallar. Faqat yuborilgan yoki Uychi omborida
     # qabul qilingan pastallar asosiyga kirmaydi: shu patokda skanerlansa, qo'shimcha pastal bo'lib ko'rinadi.
     screen_assigned_pastals_map = get_patok_accepted_pastals(activity_box_ids=today_box_ids | otk_box_ids)
-    all_assigned_pastal_codes = set()
-    for codes in screen_assigned_pastals_map.values():
-        all_assigned_pastal_codes |= codes
 
     # Asosiy / patok / egasiz dazmol (/daily-report/ bilan yagona manba: production/daily_dazmol.py)
     daily_dazmol = compute_daily_dazmol(day_start, day_end)
 
-    # 5. Bugungi, OTK o'tgan va biriktirilgan barcha tegishli pastallar qutilarini olish
-    active_pastal_codes = {b.pastal_code.strip() for b in today_boxes_dict.values() if b.pastal_code and b.pastal_code.strip()}
-    all_relevant_pastal_codes = set(active_pastal_codes) | set(all_assigned_pastal_codes) | otk_pastal_codes
+    # 5. Faqat shu kunda haqiqatan tikilgan yoki yakuniy dazmoli chiqqan pastallarning qutilarini olish
+    # (eski haftalardagi yopilmagan pastallar va faqat OTK o'tgan eski pastallar ro'yxatni to'ldirib yubormasligi uchun)
+    active_pastal_codes = {
+        b.pastal_code.strip()
+        for b in today_boxes_dict.values()
+        if b.pastal_code and b.pastal_code.strip()
+    }
+    dazmol_owner_pastal_codes = {
+        code
+        for pmap in daily_dazmol.pastals_by_patok.values()
+        for code, qty in pmap.items()
+        if qty > 0 and code and code != '—'
+    }
+    all_relevant_pastal_codes = active_pastal_codes | dazmol_owner_pastal_codes
 
     all_pastal_boxes = list(
         Box.objects.filter(
@@ -847,7 +850,7 @@ def sewing_statistics_daily_view(request):
         ).exclude(status=Box.Status.CANCELLED).distinct().select_related(
             'order__customer', 'article__model', 'cutting_batch_item__batch'
         )
-    )
+    ) if all_relevant_pastal_codes else []
     boxes_by_pastal = {}
     all_pbox_ids = []
     for b in all_pastal_boxes:
@@ -863,11 +866,10 @@ def sewing_statistics_daily_view(request):
             status=Ticket.Status.SCANNED,
             article_operation__operation_id__in=main_dazmol_op_ids,
         ).values_list('box_id', flat=True).distinct()
-    )
+    ) if all_pbox_ids else set()
 
     active_screens = sorted(
         set(tickets_by_screen.keys()) |
-        {sn for sn, pset in screen_assigned_pastals_map.items() if pset} |
         set(patok_otk_summary.keys()) |
         {sn for sn, qty in daily_dazmol.asosiy_by_patok.items() if qty > 0}
     )
@@ -945,52 +947,52 @@ def sewing_statistics_daily_view(request):
         # Agar patokda faqat dazmol skanerlangan bo'lsa (tikuv bo'lmasa), sn_today_boxes dan foydalanamiz
         active_sewing_boxes = sn_sewing_boxes if sn_sewing_boxes else sn_today_boxes
 
-        # Ushbu patokka rasman biriktirilgan pastallar (Asosiy)
+        # Ushbu patokka rasman biriktirilgan pastallar (Asosiy egasi)
         assigned_pastal_codes = screen_assigned_pastals_map.get(sn, set())
 
-        # Bugun ushbu patokda skanerlangan pastallar (Haqiqiy tikuv biletlari bo'yicha)
+        # Bugun ushbu patokda haqiqatan tikilgan pastallar (Haqiqiy tikuv biletlari bo'yicha;
+        # faqat OTK ko'rilgan eski pastallar tikilayotganlar ro'yxatiga qo'shilmaydi)
         sn_scanned_pastal_codes = set()
         for b in active_sewing_boxes:
             pcode = (b.pastal_code or "").strip()
             if pcode:
                 sn_scanned_pastal_codes.add(pcode)
-        for b in patok_otk_summary.get(sn, {}).get('boxes', []):
-            pcode = (b.pastal_code or "").strip()
-            if pcode:
-                sn_scanned_pastal_codes.add(pcode)
 
-        # Asosiy pastallarni filtrlash: agar butunlay yopilgan bo'lsa va bugun hech qanday harakat bo'lmagan bo'lsa, chiqarmaymiz
-        filtered_assigned_codes = set()
-        for pcode in assigned_pastal_codes:
-            p_boxes = boxes_by_pastal.get(pcode, [])
-            total_p_boxes = len(p_boxes)
-            closed_p_boxes = len([b for b in p_boxes if b.is_controlled])
-            repair_qty = sum(b.controlled_repair_qty for b in p_boxes)
-            is_pastal_closed = (total_p_boxes > 0 and closed_p_boxes == total_p_boxes and repair_qty == 0)
-            has_activity_today = (
-                (pcode in sn_scanned_pastal_codes) or
-                (today_dazmol_by_pastal.get(pcode, 0) > 0) or
-                any(b.id in logs_by_box for b in p_boxes)
-            )
-            if not is_pastal_closed or has_activity_today or total_p_boxes == 0:
-                filtered_assigned_codes.add(pcode)
+        # Shu patokning qabul qilingan pastallaridan bugun yakuniy dazmoli chiqqanlari (qayerda dazmollangan bo'lsa ham)
+        sn_dazmol_owned_codes = {
+            code for code, qty in daily_dazmol.pastals_by_patok.get(sn, {}).items()
+            if qty > 0 and code and code != '—'
+        }
 
-        sn_primary_pastal_codes = sorted(list(filtered_assigned_codes))
-        sn_extra_pastal_codes = sorted([c for c in sn_scanned_pastal_codes if c not in filtered_assigned_codes])
+        # Asosiy pastallar: faqat shu kunda shu patokda tikilgan YOKI yakuniy dazmoli chiqqan qabul qilingan pastallar
+        filtered_assigned_codes = (assigned_pastal_codes & sn_scanned_pastal_codes) | sn_dazmol_owned_codes
+
+        sn_primary_pastal_codes = sorted(filtered_assigned_codes)
+        # Qo'shimcha pastallar: boshqa patokniki bo'lib shu patokda bugun tikilgan barcha pastallar
+        sn_extra_pastal_codes = sorted(c for c in sn_scanned_pastal_codes if c not in filtered_assigned_codes)
         sn_pastal_codes = sn_primary_pastal_codes + sn_extra_pastal_codes
 
-        # Zakazlar va Modellarni yaxlitlash (bugun skanerlangan + biriktirilgan qutilar)
+        # Zakazlar va Modellarni yaxlitlash (bugun tikilgan + asosiy pastallar qutilari;
+        # agar patokda bugun faqat OTK harakati bo'lgan bo'lsa, OTK qutilaridan olinadi)
         orders_dict = {}
         models_dict = {}
         sn_norms = []
 
-        all_sn_candidate_boxes = list(active_sewing_boxes)
-        for b in patok_otk_summary.get(sn, {}).get('boxes', []):
-            if b not in all_sn_candidate_boxes:
+        all_sn_candidate_boxes = []
+        seen_candidate_box_ids = set()
+        for b in active_sewing_boxes:
+            if b.id not in seen_candidate_box_ids:
+                seen_candidate_box_ids.add(b.id)
                 all_sn_candidate_boxes.append(b)
         for pcode in sn_primary_pastal_codes:
             for b in boxes_by_pastal.get(pcode, []):
-                if b not in all_sn_candidate_boxes:
+                if b.id not in seen_candidate_box_ids:
+                    seen_candidate_box_ids.add(b.id)
+                    all_sn_candidate_boxes.append(b)
+        if not all_sn_candidate_boxes:
+            for b in patok_otk_summary.get(sn, {}).get('boxes', []):
+                if b.id not in seen_candidate_box_ids:
+                    seen_candidate_box_ids.add(b.id)
                     all_sn_candidate_boxes.append(b)
 
         for b in all_sn_candidate_boxes:

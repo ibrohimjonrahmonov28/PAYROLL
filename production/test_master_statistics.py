@@ -756,6 +756,266 @@ class MasterStatisticsComprehensiveTest(TestCase):
         self.assertIn('patok_quvvati', k1_data)
         self.assertIn('avg_patok_quvvati', res.context['kpis'])
 
+    def test_sewing_statistics_daily_excludes_stale_and_otk_only_pastals_keeps_extra(self):
+        """
+        Kunlik tikim statistikasi (/sewing-statistics/daily/) da:
+        1. Oldingi haftalardan qolib ketgan yopilmagan (0 harakatli) pastallar Asosiy ro'yxatga kirmasligi
+        2. Faqat shunday eski pastali bor ishsiz patok faol patoklar ro'yxatiga tushmasligi
+        3. Bugun faqat OTK tekshiruvi bo'lgan eski pastal Tikayotgan Pastallar va Zakaz/Modellarni to'ldirmasligi,
+           lekin Bugun OTK raqamlari 100% saqlanib qolishi
+        4. Bugun shu patokda tikilgan YOKI yakuniy DAZMOL chiqqan qabul qilingan pastallar Asosiyda chiqishi
+        5. Boshqa patokdan yordamga olib tikilgan qo'shimcha pastal (hatto 1 ta bilet bo'lsa ham) Qo'shimchada saqlanishi
+        6. Bugun faqat OTK harakati bo'lgan patok faol bo'lib qolishi, OTK raqami va fallback zakaz/modeli chiqishi
+        """
+        from datetime import timedelta
+        from production.models import BoxQualityInspectionLog
+
+        now = timezone.now()
+        today = timezone.localdate()
+        old_time = now - timedelta(days=15)
+
+        old_article = Article.objects.create(code="ART-OLD", name="Eski Model", daily_norm=800)
+        old_order = Order.objects.create(order_number="ORD-OLD-999", total_quantity=300)
+        old_order_item = OrderItem.objects.create(order=old_order, article=old_article, quantity=300)
+
+        dazmol_op = Operation.objects.create(code="DAZMOL-REG", name="DAZMOL")
+        art_dazmol = ArticleOperation.objects.create(
+            article=self.article,
+            operation=dazmol_op,
+            price_per_unit=Decimal("150.00"),
+            sequence=2,
+            is_active=True
+        )
+        worker = Worker.objects.create(first_name="Madina", last_name="Tikuvchi", worker_id="W-2001")
+
+        # 1. Eski yopilmagan pastal (Screen 1, bugun 0 harakat) -> Asosiyda chiqmasligi kerak
+        CuttingBatch.objects.create(
+            order_item=old_order_item,
+            batch_number=101,
+            pastal_code="OLD-ZOMBIE",
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        box_old_zombie = Box.objects.create(
+            order=old_order,
+            article=old_article,
+            pastal_number="OLD-ZOMBIE",
+            quantity=100,
+            box_number=101,
+            assigned_screen=1,
+            is_received_by_patok=True,
+            is_controlled=False,
+        )
+        Ticket.objects.create(
+            box=box_old_zombie,
+            article_operation=self.art_op,
+            worker=worker,
+            quantity=50,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=old_time,
+        )
+
+        # 2. Faqat eski yopilmagan pastali bor ishsiz patok (Screen 5, bugun 0 harakat) -> active_screens ga kirmasligi kerak
+        CuttingBatch.objects.create(
+            order_item=old_order_item,
+            batch_number=102,
+            pastal_code="IDLE-PATOK-OLD",
+            assigned_screen=5,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        Box.objects.create(
+            order=old_order,
+            article=old_article,
+            pastal_number="IDLE-PATOK-OLD",
+            quantity=80,
+            box_number=102,
+            assigned_screen=5,
+            is_received_by_patok=True,
+            is_controlled=False,
+        )
+
+        # 3. Screen 1 ning eski pastali: bugun faqat OTK tekshiruvi bor (0 tikuv, 0 dazmol)
+        CuttingBatch.objects.create(
+            order_item=old_order_item,
+            batch_number=103,
+            pastal_code="OTK-ONLY-OLD",
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        box_otk_only = Box.objects.create(
+            order=old_order,
+            article=old_article,
+            pastal_number="OTK-ONLY-OLD",
+            quantity=45,
+            box_number=103,
+            assigned_screen=1,
+            is_received_by_patok=True,
+            is_controlled=False,
+        )
+        Ticket.objects.create(
+            box=box_otk_only,
+            article_operation=self.art_op,
+            worker=worker,
+            quantity=45,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=old_time,
+        )
+        BoxQualityInspectionLog.objects.create(
+            box=box_otk_only,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=45,
+            first_sort_qty=40,
+            second_sort_qty=2,
+            repair_qty=3,
+            defect_qty=0,
+        )
+
+        # 4. Screen 1 ning bugun tikilgan asosiy pastali -> Asosiyda chiqishi kerak
+        CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=104,
+            pastal_code="TODAY-SEW",
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        box_today_sew = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            pastal_number="TODAY-SEW",
+            quantity=60,
+            box_number=104,
+            assigned_screen=1,
+            is_received_by_patok=True,
+        )
+        Ticket.objects.create(
+            box=box_today_sew,
+            article_operation=self.art_op,
+            worker=worker,
+            quantity=60,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=now,
+        )
+
+        # 5. Screen 1 ning boshqa ekranda (Screen 3) yakuniy DAZMOL chiqqan asosiy pastali -> Asosiyda chiqishi kerak
+        CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=105,
+            pastal_code="TODAY-DAZ",
+            assigned_screen=1,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        box_today_daz = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            pastal_number="TODAY-DAZ",
+            quantity=40,
+            box_number=105,
+            assigned_screen=1,
+            is_received_by_patok=True,
+        )
+        Ticket.objects.create(
+            box=box_today_daz,
+            article_operation=art_dazmol,
+            worker=worker,
+            quantity=40,
+            status=Ticket.Status.SCANNED,
+            screen_number=3,
+            scanned_at=now,
+        )
+
+        # 6. Boshqa patok (Screen 2) pastalidan Screen 1 ishchisi 1 ta bilet tikkan -> Qo'shimchada saqlanishi kerak
+        CuttingBatch.objects.create(
+            order_item=self.order_item,
+            batch_number=106,
+            pastal_code="EXTRA-HELP",
+            assigned_screen=2,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        box_extra = Box.objects.create(
+            order=self.order,
+            article=self.article,
+            pastal_number="EXTRA-HELP",
+            quantity=10,
+            box_number=106,
+            assigned_screen=2,
+            is_received_by_patok=True,
+        )
+        Ticket.objects.create(
+            box=box_extra,
+            article_operation=self.art_op,
+            worker=worker,
+            quantity=10,
+            status=Ticket.Status.SCANNED,
+            screen_number=1,
+            scanned_at=now,
+        )
+
+        # 7. Screen 6 da bugun faqat OTK harakati bor (0 tikuv, 0 dazmol) -> faol bo'lib qoladi, OTK & fallback order chiqadi
+        CuttingBatch.objects.create(
+            order_item=old_order_item,
+            batch_number=107,
+            pastal_code="S6-OTK-ONLY",
+            assigned_screen=6,
+            dispatch_status=CuttingBatch.DispatchStatus.ACCEPTED,
+        )
+        box_s6_otk = Box.objects.create(
+            order=old_order,
+            article=old_article,
+            pastal_number="S6-OTK-ONLY",
+            quantity=25,
+            box_number=107,
+            assigned_screen=6,
+            is_received_by_patok=True,
+        )
+        BoxQualityInspectionLog.objects.create(
+            box=box_s6_otk,
+            inspector=self.superadmin,
+            action_type=BoxQualityInspectionLog.ActionType.INITIAL,
+            inspected_qty=25,
+            first_sort_qty=24,
+            second_sort_qty=1,
+            repair_qty=0,
+            defect_qty=0,
+        )
+
+        url = reverse('production:sewing_statistics_daily') + f'?date={today.isoformat()}'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        patoks_by_sn = {p['screen_number']: p for p in res.context['patoks_data']}
+
+        # Ishsiz patok (Screen 5) ro'yxatga tushmasligi kerak
+        self.assertNotIn(5, patoks_by_sn)
+        # Screen 2 da bugun harakat bo'lmagan (faqat Screen 1 uning pastalini qo'shimcha tikkan)
+        self.assertNotIn(2, patoks_by_sn)
+
+        # K1 (Screen 1) tekshiruvi
+        k1 = patoks_by_sn[1]
+        self.assertEqual([p['pastal_code'] for p in k1['primary_pastals']], ['TODAY-DAZ', 'TODAY-SEW'])
+        self.assertEqual([p['pastal_code'] for p in k1['extra_pastals']], ['EXTRA-HELP'])
+        # Eski zombi va faqat OTK pastali zakaz/modellarni ifloslamasligi kerak
+        self.assertEqual([o['order_number'] for o in k1['orders']], ['ORD-101'])
+        self.assertEqual([m['model_name'] for m in k1['models']], ['Kofta'])
+        # Lekin K1 ning Bugun OTK raqamlari 100% saqlanishi kerak
+        self.assertEqual(k1['first_sort_qty'], 40)
+        self.assertEqual(k1['second_sort_qty'], 2)
+        self.assertEqual(k1['repair_qty'], 3)
+        self.assertEqual(k1['total_inspected_qty'], 45)
+        self.assertEqual(k1['primary_dazmol_total'], 40)
+
+        # Screen 6 (faqat OTK harakati bo'lgan patok) tekshiruvi
+        self.assertIn(6, patoks_by_sn)
+        k6 = patoks_by_sn[6]
+        self.assertEqual(k6['primary_pastals'], [])
+        self.assertEqual(k6['extra_pastals'], [])
+        self.assertEqual(k6['first_sort_qty'], 24)
+        self.assertEqual(k6['second_sort_qty'], 1)
+        self.assertEqual([o['order_number'] for o in k6['orders']], ['ORD-OLD-999'])
+
     def test_api_get_patoks_summary_branches_all_screens(self):
         """Master tablet patoklar xulosasida Kosonsoy (13 ta: K1..K13) va Uychi (27 ta: U1..U27) to'liq chiqishini tekshirish"""
         url_summary = reverse('production:master_tablet_patoks')
