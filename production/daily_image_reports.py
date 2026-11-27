@@ -385,23 +385,21 @@ def get_branch_daily_report_data(branch: str, target_date: datetime.date = None,
 def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     """
     Pillow kutubxonasi yordamida foydalanuvchi taqdim etgan Excel uslubidagi
-    8 ustunli yuqori sifatli (1360px kenglikda) PNG rasm chizadi.
+    7 ustunli yuqori sifatli (1260px kenglikda) PNG rasm chizadi.
     Ustunlar:
     1. Паток
     2. Иш номи
     3. Норма
     4. Иш сони
-    5. Берилган
-    6. Давомат
-    7. Операцион
-    8. Фоиз
+    5. Давомат
+    6. Операцион
+    7. Фоиз
     """
     branch_title = report_data['branch_title']
     target_date = report_data['target_date']
     rows = report_data['rows']
     total_norm = report_data.get('total_norm', 0)
     total_dazmol = report_data['total_dazmol']
-    total_given_qty = report_data.get('total_given_qty', 0)
     total_davomat = report_data['total_davomat']
     avg_foiz = report_data.get('avg_foiz', 0.0)
     davomat_foiz = report_data['davomat_foiz']
@@ -415,7 +413,6 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     row_alt_bg = (248, 250, 252)                # Juft qatorlar foni
     total_bg = (218, 235, 254)                  # Jami qatori foni (#DAEBFE)
     text_color = (15, 23, 42)                   # Asosiy matn qora
-    text_blue = (30, 64, 175)                   # Berilgan ish ko'k
     text_green = (5, 150, 105)                  # Quvvat yashil
     text_muted = (100, 116, 139)                # Yordamchi matn kulrang
 
@@ -428,20 +425,19 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     font_total = _get_font(16, bold=True)
     font_sub_pct = _get_font(13, bold=True)
 
-    # Jadval o'lchamlari va ustun kengliklari (8 ustun: Паток, Иш номи, Норма, Иш сони, Берилган, Давомат, Операцион, Фоиз)
-    width = 1360
+    # Jadval o'lchamlari va ustun kengliklari (7 ustun: Паток, Иш номи, Норма, Иш сони, Давомат, Операцион, Фоиз)
+    width = 1260
     margin_x = 30
     margin_top = 30
     margin_bottom = 30
 
     columns = [
-        ('patok', "Паток", 105),
-        ('name', "Иш номи", 360),
+        ('patok', "Паток", 110),
+        ('name', "Иш номи", 380),
         ('norm', "Норма", 120),
-        ('qty', "Иш сони", 125),
-        ('given', "Берилган", 135),
+        ('qty', "Иш сони", 130),
         ('davomat', "Давомат", 120),
-        ('op', "Операцион", 145),
+        ('op', "Операцион", 150),
         ('foiz', "Фоиз", 190),
     ]
     edges = [margin_x]
@@ -508,12 +504,6 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
             draw.text((center('qty'), line_y), qty_str, fill=text_color, font=font_cell_bold, anchor="mm")
             draw.text((center('op'), line_y), str(p['aniqlik']), fill=text_color, font=font_cell_bold, anchor="mm")
 
-        given_qty = r.get('given_qty', 0)
-        if given_qty > 0:
-            draw.text((center('given'), mid_y), f"{given_qty:,}".replace(",", " "), fill=text_blue, font=font_cell_bold, anchor="mm")
-        else:
-            draw.text((center('given'), mid_y), "—", fill=text_muted, font=font_cell, anchor="mm")
-
         davomat_str = str(r['davomat']) if r['davomat'] > 0 else "—"
         draw.text((center('davomat'), mid_y), davomat_str, fill=text_color, font=font_cell_bold, anchor="mm")
 
@@ -533,7 +523,6 @@ def generate_branch_report_image(report_data: dict) -> io.BytesIO:
     norm_total_str = f"{total_norm:,}".replace(",", " ") if total_norm > 0 else "—"
     draw.text((center('norm'), mid_y), norm_total_str, fill=border_dark if total_norm > 0 else text_muted, font=font_total, anchor="mm")
     draw.text((center('qty'), mid_y), f"{total_dazmol:,}".replace(",", " "), fill=border_dark, font=font_total, anchor="mm")
-    draw.text((center('given'), mid_y), f"{total_given_qty:,}".replace(",", " "), fill=text_blue if total_given_qty > 0 else text_muted, font=font_total, anchor="mm")
     draw.text((center('davomat'), mid_y - 8), str(total_davomat), fill=border_dark, font=font_total, anchor="mm")
     if davomat_foiz > 0:
         draw.text((center('davomat'), mid_y + 12), f"({davomat_foiz:.0f}%)", fill=text_muted, font=font_sub_pct, anchor="mm")
@@ -578,7 +567,6 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
 
     tot_norm = f"{report_data.get('total_norm', 0):,}".replace(",", " ")
     tot_dazmol = f"{report_data['total_dazmol']:,}".replace(",", " ")
-    tot_given = f"{report_data.get('total_given_qty', 0):,}".replace(",", " ")
     tot_davomat = report_data['total_davomat']
     avg_foiz = report_data['avg_foiz']
     davomat_foiz = report_data['davomat_foiz']
@@ -589,7 +577,6 @@ def send_single_branch_report(branch_key: str, target_date: datetime.date = None
         f"📅 *Сана:* {target_date.strftime('%d.%m.%Y')} (18:00 ҳолатига)\n\n"
         f"🎯 *Жами норма:* *{tot_norm} дона*\n"
         f"👕 *Дазмолдан ўтган:* *{tot_dazmol} дона*\n"
-        f"📦 *Бугун берилган иш:* *{tot_given} дона*\n"
         f"👥 *Жами давомот:* *{tot_davomat} нафар* ({davomat_foiz:.0f}% таъминланганлик)\n"
         f"📈 *Ўртача фоиз (иш сони / норма):* *{avg_foiz}%*\n\n"
         f"📌 _Барча патоклар ва маҳсулотлар бўйича батафсил маълумот юқоридаги расмда кўрсатилган._"

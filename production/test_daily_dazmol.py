@@ -397,11 +397,11 @@ class DailyDazmolRulesTest(TestCase):
         self.assertIn('950', html)
         self.assertIn('2 кут.', html)
 
-        # PNG rasm 8 ustunli (1360px) bo'lib generatsiya qilinadi
+        # PNG rasm 7 ustunli (1260px — Berilgan ustunisiz, lekin JAMI norma bilan) generatsiya qilinadi
         img_buf = generate_branch_report_image(hq)
         self.assertTrue(img_buf.getvalue().startswith(b'\x89PNG'))
         img = Image.open(img_buf)
-        self.assertEqual(img.size[0], 1360)
+        self.assertEqual(img.size[0], 1260)
 
 
 class MonthlyExcelUychiRowsTest(TestCase):
