@@ -1314,15 +1314,68 @@ def _box_problem(box, batch, current):
     return None
 
 
+TABLET_LOCK_SESSION_KEY = 'tablet_link_batch_id'
+
+
+def _batch_by_id(batch_id):
+    if not batch_id:
+        return None
+    return (
+        CuttingBatch.objects
+        .select_related('order_item__order', 'order_item__article')
+        .filter(id=batch_id)
+        .first()
+    )
+
+
+def active_tablet_locked_progress(request):
+    """Planshetda boshlangan va barcha qutisi hali konteynerga biriktirilmagan pastal (tugasa — qulf avtomatik ochiladi)."""
+    batch_id = request.session.get(TABLET_LOCK_SESSION_KEY)
+    if not batch_id:
+        return None
+    batch = _batch_by_id(batch_id)
+    if batch is None:
+        request.session.pop(TABLET_LOCK_SESSION_KEY, None)
+        return None
+    flow = PastalFlow.objects.filter(batch=batch).first()
+    if flow is not None and flow.stage != PastalFlow.Stage.SKLAD:
+        request.session.pop(TABLET_LOCK_SESSION_KEY, None)
+        return None
+    progress = flow_logic.batch_link_progress(batch)
+    if not progress or progress['total'] == 0 or progress['remaining'] == 0 or progress['linked'] == 0:
+        request.session.pop(TABLET_LOCK_SESSION_KEY, None)
+        return None
+    return progress
+
+
+def _pastal_lock_error(locked):
+    rem_codes = [b['box_code'] for b in locked['boxes'] if not b['container']]
+    preview = ', '.join(rem_codes[:3]) + ('...' if len(rem_codes) > 3 else '')
+    tail = f" ({preview})" if preview else ''
+    return (
+        f"Avval {locked['pastal']} pastalini to'liq yakunlang: "
+        f"{locked['linked']}/{locked['total']} biriktirilgan, yana {locked['remaining']} ta quti qoldi{tail}. "
+        f"Boshqa pastalga o'tib bo'lmaydi!"
+    )
+
+
 @_api('ship_any')
 def api_resolve(request):
     code = request.GET.get('code', '').strip()
+    enforce_lock = request.GET.get('enforce_lock') == '1'
+    locked = active_tablet_locked_progress(request) if enforce_lock else None
+
     container = flow_logic.find_container(code)
     if container is not None:
-        return JsonResponse({'status': 'OK', 'kind': 'container', 'code': container.code,
-                             'container_kind': container.get_kind_display(), 'state': flow_logic.container_state(container),
-                             'box': container.box.box_code if container.box_id else None,
-                             'problem': _container_problem(container)})
+        payload = {
+            'status': 'OK', 'kind': 'container', 'code': container.code,
+            'container_kind': container.get_kind_display(), 'state': flow_logic.container_state(container),
+            'box': container.box.box_code if container.box_id else None,
+            'problem': _container_problem(container),
+        }
+        if enforce_lock:
+            payload['locked_pastal'] = locked
+        return JsonResponse(payload)
     number = parse_container_code(code)
     if number is not None:   # format to'g'ri, lekin bunday konteyner yaratilmagan
         last = Container.objects.order_by('-number').values_list('number', flat=True).first()
@@ -1333,21 +1386,32 @@ def api_resolve(request):
         if _CYRILLIC.search(code):
             raise FlowError(f"«{code[:40]}» — klaviatura kirill (rus) tilida. Lotin (EN) ga o'tkazib, qayta uring.")
         raise FlowError(f"«{code[:40]}» — bunday stiker yoki konteyner topilmadi.")
-    batch = box.cutting_batch_item.batch if box.cutting_batch_item_id else None
+    batch = _batch_by_id(box.cutting_batch_item.batch_id) if box.cutting_batch_item_id else None
     current = Container.objects.filter(box=box).first()
-    problem = _box_problem(box, batch, current)
-    return JsonResponse({'status': 'OK', 'kind': 'box', 'box': box.box_code, 'razmer': box.razmer or '—',
-                         'qty': box.quantity, 'pastal': (batch.pastal_code or batch.name) if batch else '—',
-                         'cancelled': box.status == Box.Status.CANCELLED,
-                         'container': current.code if current else None,
-                         'will_adopt': bool(not problem and batch and not flow_logic.is_v2_batch(batch)),
-                         'problem': problem})
+    lock_blocked = bool(enforce_lock and locked and (batch is None or batch.id != locked['batch_id']))
+    problem = _pastal_lock_error(locked) if lock_blocked else _box_problem(box, batch, current)
+    progress = flow_logic.batch_link_progress(batch) if batch else None
+    payload = {
+        'status': 'OK', 'kind': 'box', 'box': box.box_code, 'razmer': box.razmer or '—',
+        'qty': box.quantity, 'pastal': (batch.pastal_code or batch.name) if batch else '—',
+        'batch_id': batch.id if batch else None,
+        'cancelled': box.status == Box.Status.CANCELLED,
+        'container': current.code if current else None,
+        'will_adopt': bool(not problem and batch and not flow_logic.is_v2_batch(batch)),
+        'problem': problem,
+        'pastal_progress': progress,
+    }
+    if enforce_lock:
+        payload['locked_pastal'] = locked
+        payload['lock_blocked'] = lock_blocked
+    return JsonResponse(payload)
 
 
 @_api('ship_any')
 @require_POST
 def api_link(request):
     data = _json(request)
+    enforce_lock = bool(data.get('enforce_lock'))
     box = flow_logic.resolve_box(data.get('box'))
     was_old = False
     if box is not None:   # boshqa xatolarni link_container o'zi aytadi
@@ -1356,16 +1420,51 @@ def api_link(request):
         else:
             was_old = True
             _require_branch(request.user, 'HQ')
+    if enforce_lock and box is not None:
+        locked = active_tablet_locked_progress(request)
+        if locked is not None:
+            box_batch_id = box.cutting_batch_item.batch_id if box.cutting_batch_item_id else None
+            if box_batch_id != locked['batch_id']:
+                raise FlowError(_pastal_lock_error(locked))
     container, box = flow_logic.link_container(data.get('box'), data.get('container'), request.user)
-    msg = (f"{box.box_code} → {container.code} biriktirildi (pastal Bosh skladga qo'shildi — kg kiriting)."
-           if was_old else f"{box.box_code} → {container.code} biriktirildi.")
-    return JsonResponse({'status': 'OK', 'message': msg, 'adopted': was_old})
+    batch = _batch_by_id(box.cutting_batch_item.batch_id) if box.cutting_batch_item_id else None
+    progress = flow_logic.batch_link_progress(batch) if batch else None
+    locked_pastal = None
+    if enforce_lock:
+        if progress and progress['remaining'] > 0:
+            request.session[TABLET_LOCK_SESSION_KEY] = batch.id
+            locked_pastal = progress
+        else:
+            request.session.pop(TABLET_LOCK_SESSION_KEY, None)
+            locked_pastal = None
+    if was_old:
+        msg = f"{box.box_code} → {container.code} biriktirildi (pastal Bosh skladga qo'shildi — kg kiriting)."
+    elif progress and progress['complete']:
+        msg = (f"{box.box_code} → {container.code} biriktirildi. "
+               f"{progress['pastal']} to'liq yakunlandi ({progress['linked']}/{progress['total']})!")
+    elif progress:
+        msg = (f"{box.box_code} → {container.code} biriktirildi "
+               f"({progress['pastal']}: {progress['linked']}/{progress['total']}, yana {progress['remaining']} ta qoldi).")
+    else:
+        msg = f"{box.box_code} → {container.code} biriktirildi."
+    payload = {
+        'status': 'OK',
+        'message': msg,
+        'adopted': was_old,
+        'batch_id': batch.id if batch else None,
+        'pastal_progress': progress,
+    }
+    if enforce_lock:
+        payload['locked_pastal'] = locked_pastal
+    return JsonResponse(payload)
 
 
 @_api('ship_any')
 @require_POST
 def api_unlink(request):
-    code = _json(request).get('code')
+    data = _json(request)
+    code = data.get('code')
+    enforce_lock = bool(data.get('enforce_lock'))
     container = flow_logic.find_container(code)
     if container is None:
         box = flow_logic.resolve_box(code)
@@ -1373,7 +1472,23 @@ def api_unlink(request):
     if container is not None:
         _require_branch(request.user, container.branch)
     container, box = flow_logic.unlink(code, request.user)
-    return JsonResponse({'status': 'OK', 'message': f"{container.code} bo'shatildi ({box.box_code} bilan bog'lanish bekor)."})
+    batch = _batch_by_id(box.cutting_batch_item.batch_id) if box.cutting_batch_item_id else None
+    progress = flow_logic.batch_link_progress(batch) if batch else None
+    payload = {
+        'status': 'OK',
+        'message': f"{container.code} bo'shatildi ({box.box_code} bilan bog'lanish bekor).",
+        'batch_id': batch.id if batch else None,
+        'pastal_progress': progress,
+    }
+    if enforce_lock:
+        locked = active_tablet_locked_progress(request)
+        if locked is None and batch is not None and progress and progress['linked'] > 0 and progress['remaining'] > 0:
+            flow = PastalFlow.objects.filter(batch=batch).first()
+            if flow is None or flow.stage == PastalFlow.Stage.SKLAD:
+                request.session[TABLET_LOCK_SESSION_KEY] = batch.id
+                locked = progress
+        payload['locked_pastal'] = locked
+    return JsonResponse(payload)
 
 
 @_api('ship_any')

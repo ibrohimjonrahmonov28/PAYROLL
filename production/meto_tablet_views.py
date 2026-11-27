@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 from accounts.models import User
 from production import meto_flow as flow_logic
 from production.meto_flow import can, get_patok_code
+from production.meto_flow_views import active_tablet_locked_progress
 from production.models import (
     Box,
     Container,
@@ -455,6 +456,8 @@ def meto_tablet_view(request):
         .order_by('-id')[:15]
     )
 
+    locked_pastal = active_tablet_locked_progress(request) if branch == 'HQ' else None
+
     context = {
         'branch': branch,
         'branch_label': "Koson Bosh Bino" if branch == 'HQ' else "Uychi Filiali",
@@ -480,6 +483,8 @@ def meto_tablet_view(request):
         'incoming_shipments_json': _script_json(incoming_shipments),
         'kg_pending_cards_json': _script_json(kg_pending_cards),
         'stored_cards_json': _script_json(sklad_cards),
+        'locked_pastal': locked_pastal,
+        'locked_pastal_json': _script_json(locked_pastal),
         'patok_rows': patok_rows,
         'screens': screens,
         'recent_events': recent_events,
@@ -513,6 +518,7 @@ def meto_tablet_state_api(request):
     incoming_shipments = _tablet_incoming_shipments(branch)
     pending_shipments = _tablet_pending_shipments() if branch == 'HQ' else []
     patok_rows = _tablet_patok_rows(branch)
+    locked_pastal = active_tablet_locked_progress(request) if branch == 'HQ' else None
 
     return JsonResponse({
         'status': 'OK',
@@ -534,6 +540,7 @@ def meto_tablet_state_api(request):
         'incoming_shipments': incoming_shipments,
         'pending_shipments': pending_shipments,
         'patok_rows': patok_rows,
+        'locked_pastal': locked_pastal,
     })
 
 

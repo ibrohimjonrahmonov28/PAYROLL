@@ -626,6 +626,31 @@ def check_list(batch):
     return rows
 
 
+def batch_link_progress(batch):
+    """Pastalning konteynerga biriktirish holati: nechta quti biriktirilgan, yana nechta quti qoldi va qutilar ro'yxati."""
+    if batch is None:
+        return None
+    rows = check_list(batch)
+    total = len(rows)
+    linked = sum(1 for r in rows if r['container'])
+    remaining = total - linked
+    order_item = batch.order_item if batch.order_item_id else None
+    order = order_item.order if order_item and order_item.order_id else None
+    article = order_item.article if order_item and order_item.article_id else None
+    return {
+        'batch_id': batch.id,
+        'pastal': batch.pastal_code or batch.name,
+        'order_number': order.order_number if order else '—',
+        'article_code': article.code if article else '—',
+        'article_name': article.name if article else '—',
+        'total': total,
+        'linked': linked,
+        'remaining': remaining,
+        'complete': total > 0 and remaining == 0,
+        'boxes': rows,
+    }
+
+
 def _unscanned(rows, scanned):
     numbers = {parse_container_code(code) for code in scanned or []}
     return [r['container'] for r in rows if r['container'] and parse_container_code(r['container']) not in numbers]

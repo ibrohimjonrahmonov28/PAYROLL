@@ -77,6 +77,21 @@
                 background-color: transparent;
             }
         }
+
+        .error-flash {
+            animation: flashRed 0.7s ease-out;
+        }
+
+        @keyframes flashRed {
+            0% {
+                box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.75);
+                background-color: rgba(159, 18, 57, 0.45);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+            }
+        }
     </style>
     {% include 'includes/theme_head.html' with keep_font=True %}
 </head>
@@ -156,6 +171,12 @@
                 class="touch-btn flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 {% if default_mode == 'link' %}bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i class="fa-solid fa-link"></i>
                 <span class="truncate">1. Biriktirish</span>
+                <span id="nav-link-lock-badge"
+                    class="{% if not locked_pastal %}hidden {% endif %}px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black font-mono flex items-center gap-1 flex-shrink-0"
+                    title="Tugallanmagan pastal qulflangan">
+                    <i class="fa-solid fa-lock text-[9px]"></i>
+                    <span id="nav-link-lock-text">{% if locked_pastal %}{{ locked_pastal.linked }}/{{ locked_pastal.total }}{% endif %}</span>
+                </span>
             </button>
 
             <!-- Mode 2 (Koson): Meto Sklad (Saqlash & Kg) -->
@@ -238,75 +259,67 @@
         <!-- MODE 1: BIRIKTIRISH (QUTI ↔ KONTEYNER) — FAQAT KOSON (HQ)      -->
         <!-- ============================================================== -->
         <div id="mode-link"
-            class="mode-view flex-1 min-h-0 {% if default_mode != 'link' %}hidden{% endif %} flex flex-col lg:flex-row gap-4 overflow-hidden">
-            <!-- Left Panel: Scanner & Current Linking State (60% width) -->
-            <div class="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto">
-                <!-- Visual Step Banner & Mode Controls -->
-                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+            class="mode-view flex-1 min-h-0 {% if default_mode != 'link' %}hidden{% endif %} flex flex-col lg:flex-row gap-3 overflow-hidden">
+            <!-- Left Panel: Compact Scanner + Compact Box/Container Strip + Active Pastal Lock Panel -->
+            <div class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+                <!-- Visual Step Banner & Scanner Controls (Compact for Tablet) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-3.5 shadow-xl space-y-2.5 flex-shrink-0">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
-                            <h2 class="text-base sm:text-lg font-black text-white" id="link-header-text">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                            <h2 class="text-sm sm:text-base font-black text-white" id="link-header-text">
                                 Qutini Katta Konteynerga Biriktirish
                             </h2>
                         </div>
 
                         <!-- Unlink mode toggle button -->
                         <button type="button" id="unlink-toggle-btn" onclick="toggleUnlinkMode()"
-                            class="touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60">
+                            class="touch-btn px-3 py-1.5 rounded-xl border text-xs font-black transition flex items-center gap-1.5 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60">
                             <i class="fa-solid fa-link-slash"></i>
                             <span id="unlink-toggle-text">Bekor Qilish Rejimi</span>
                         </button>
                     </div>
 
-                    <!-- Step Stepper Pills -->
-                    <div class="grid grid-cols-2 gap-3" id="link-stepper">
+                    <!-- Compact Step Stepper Pills -->
+                    <div class="grid grid-cols-2 gap-2" id="link-stepper">
                         <!-- Step 1 Pill -->
                         <div id="step-pill-1"
-                            class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10">
+                            class="px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 bg-cyan-500/10 border-cyan-500 text-cyan-300">
                             <div
-                                class="w-9 h-9 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-base flex-shrink-0">
+                                class="w-6 h-6 rounded-lg bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-xs flex-shrink-0">
                                 1
                             </div>
-                            <div class="min-w-0">
-                                <span class="text-[11px] uppercase font-bold text-slate-400 block">Birinchi qadam</span>
-                                <span class="text-xs sm:text-sm font-black text-white truncate block">Quti stikerini
-                                    uring</span>
-                            </div>
+                            <span class="text-xs font-black text-white truncate">Quti stikerini uring</span>
                         </div>
 
                         <!-- Step 2 Pill -->
                         <div id="step-pill-2"
-                            class="p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60">
+                            class="px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 bg-slate-950/60 border-slate-800 text-slate-500 opacity-60">
                             <div
-                                class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 font-black flex items-center justify-center text-base flex-shrink-0">
+                                class="w-6 h-6 rounded-lg bg-slate-800 text-slate-400 font-black flex items-center justify-center text-xs flex-shrink-0">
                                 2
                             </div>
-                            <div class="min-w-0">
-                                <span class="text-[11px] uppercase font-bold text-slate-400 block">Ikkinchi qadam</span>
-                                <span class="text-xs sm:text-sm font-black text-slate-300 truncate block">Konteyner QR
-                                    kodini uring</span>
-                            </div>
+                            <span class="text-xs font-black text-slate-300 truncate">Konteyner QR kodini uring</span>
                         </div>
                     </div>
 
                     <!-- Direct Scanner Input Box (Always Focused) -->
                     <div class="relative">
                         <div
-                            class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-cyan-400 text-lg">
+                            class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cyan-400 text-base">
                             <i class="fa-solid fa-barcode"></i>
                         </div>
                         <input type="text" id="scanner-input" autocomplete="off" autofocus
                             placeholder="Stiker yoki konteyner QR kodini skaner qiling..."
-                            class="w-full pl-12 pr-40 py-4 bg-slate-950 border-2 border-cyan-500/60 rounded-2xl text-white font-mono text-base sm:text-lg focus:outline-none focus:border-cyan-400 scanner-glow shadow-inner">
-                        <div class="absolute inset-y-0 right-2 flex items-center gap-1.5">
+                            class="w-full pl-10 pr-36 py-2.5 sm:py-3 bg-slate-950 border-2 border-cyan-500/60 rounded-xl text-white font-mono text-sm sm:text-base focus:outline-none focus:border-cyan-400 scanner-glow shadow-inner">
+                        <div class="absolute inset-y-0 right-1.5 flex items-center gap-1.5">
                             <button type="button" onclick="submitScanInput()"
-                                class="px-3 py-1.5 rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400 text-xs font-black touch-btn"
+                                class="px-3 py-1.5 rounded-lg bg-cyan-500 text-slate-950 hover:bg-cyan-400 text-xs font-black touch-btn"
                                 title="Kiritish (Enter)">
                                 OK
                             </button>
                             <button type="button" onclick="clearActiveScan()"
-                                class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white text-xs font-bold touch-btn"
+                                class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-bold touch-btn"
                                 title="Tozalash">
                                 Tozalash
                             </button>
@@ -315,87 +328,159 @@
 
                     <!-- Live Status Message Banner -->
                     <div id="scan-status-banner"
-                        class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300">
-                        <i class="fa-solid fa-info-circle text-base text-cyan-400"></i>
-                        <span id="scan-status-text">Tayyor. Quti stikerini yoki konteyner QR kodini uring (tartib muhim emas).</span>
+                        class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-2 text-cyan-300">
+                        <i id="scan-status-icon" class="fa-solid fa-info-circle text-sm text-cyan-400 flex-shrink-0"></i>
+                        <span id="scan-status-text" class="leading-snug">Tayyor. Quti stikerini yoki konteyner QR kodini uring (tartib muhim emas).</span>
                     </div>
                 </div>
 
-                <!-- Active Objects Preview Cards (Box Card & Container Card) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-                    <!-- Current Box Card -->
+                <!-- Compact Selected Box & Container Strip -->
+                <div class="grid grid-cols-2 gap-2.5 flex-shrink-0">
+                    <!-- Current Box Card (Compact) -->
                     <div id="active-box-card"
-                        class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
-                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        class="bg-slate-900 border border-slate-800 rounded-2xl px-3 py-2 shadow-md transition-all">
+                        <div class="flex items-center justify-between gap-1.5 pb-1.5 mb-1.5 border-b border-slate-800/80">
                             <span
-                                class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 truncate">
                                 <i class="fa-solid fa-box text-cyan-400"></i> Tanlangan Quti
                             </span>
-                            <span id="active-box-badge"
-                                class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
-                                Kutilmoqda
-                            </span>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <span id="active-box-badge"
+                                    class="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-slate-400">
+                                    Kutilmoqda
+                                </span>
+                                <button type="button" id="active-box-cancel-btn" onclick="cancelBoxSelection()"
+                                    class="hidden w-5 h-5 rounded bg-slate-800 hover:bg-rose-900/80 text-slate-400 hover:text-rose-200 flex items-center justify-center text-[10px] touch-btn"
+                                    title="Quti tanlovini bekor qilish">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
 
-                        <div id="active-box-body" class="py-6 text-center space-y-2">
+                        <div id="active-box-body" class="min-h-[38px] flex items-center gap-2.5">
                             <div
-                                class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                                class="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-sm flex-shrink-0">
                                 <i class="fa-solid fa-qrcode"></i>
                             </div>
-                            <p class="text-sm font-bold text-slate-400">Hali quti skanerlanmadi</p>
-                            <p class="text-xs text-slate-500">Stikerni skaner qilsangiz, ma'lumotlari shu yerda chiqadi
-                            </p>
-                        </div>
-
-                        <div id="active-box-footer" class="border-t border-slate-800 pt-3 hidden">
-                            <button type="button" onclick="cancelBoxSelection()"
-                                class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl touch-btn">
-                                Ushbu qutini bekor qilish
-                            </button>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-400 truncate">Hali quti skanerlanmadi</p>
+                                <p class="text-[10px] text-slate-500 truncate">Stikerni uring — pastal o'zi chiqadi</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Current Container Card -->
+                    <!-- Current Container Card (Compact) -->
                     <div id="active-container-card"
-                        class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between transition-all">
-                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        class="bg-slate-900 border border-slate-800 rounded-2xl px-3 py-2 shadow-md transition-all">
+                        <div class="flex items-center justify-between gap-1.5 pb-1.5 mb-1.5 border-b border-slate-800/80">
                             <span
-                                class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 truncate">
                                 <i class="fa-solid fa-cubes text-amber-400"></i> Katta Konteyner
                             </span>
-                            <span id="active-container-badge"
-                                class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400">
-                                2-qadam
-                            </span>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <span id="active-container-badge"
+                                    class="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-slate-400">
+                                    2-qadam
+                                </span>
+                                <button type="button" id="active-container-cancel-btn" onclick="cancelContainerSelection()"
+                                    class="hidden w-5 h-5 rounded bg-slate-800 hover:bg-rose-900/80 text-slate-400 hover:text-rose-200 flex items-center justify-center text-[10px] touch-btn"
+                                    title="Konteyner tanlovini bekor qilish">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
 
-                        <div id="active-container-body" class="py-6 text-center space-y-2">
+                        <div id="active-container-body" class="min-h-[38px] flex items-center gap-2.5">
                             <div
-                                class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
+                                class="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-sm flex-shrink-0">
                                 <i class="fa-solid fa-box-archive"></i>
                             </div>
-                            <p class="text-sm font-bold text-slate-400">Konteyner kutilmoqda</p>
-                            <p class="text-xs text-slate-500">Bo'sh katta konteyner QR kodini uring (qutidan oldin ham bo'ladi)</p>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-400 truncate">Konteyner kutilmoqda</p>
+                                <p class="text-[10px] text-slate-500 font-mono truncate">KONT-000123</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Pastal Progress & Strict Lock Panel -->
+                <div id="active-pastal-panel"
+                    class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-3 sm:p-3.5 shadow-xl flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden transition-all">
+                    <!-- Empty State -->
+                    <div id="pastal-panel-empty"
+                        class="flex-1 flex flex-col items-center justify-center text-center px-4 py-3 gap-2">
+                        <div
+                            class="w-11 h-11 rounded-2xl bg-slate-950 border border-slate-800 text-cyan-400/80 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <p class="text-sm font-black text-slate-200">Avtomatik Pastal Nazorati</p>
+                        <p class="text-xs text-slate-400 max-w-md">
+                            Stiker skanerlanganda pastal kodi avtomatik aniqlanadi va yana nechta qutini konteynerga
+                            biriktirish kerakligi shu yerda ko'rinadi. Boshlangan pastal to'liq yakunlanmaguncha boshqasiga
+                            o'tib bo'lmaydi.
+                        </p>
+                    </div>
+
+                    <!-- Active Pastal View -->
+                    <div id="pastal-panel-active" class="hidden flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+                        <!-- Top Row: Pastal Code + Remaining Hero Counter -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+                            <div class="min-w-0 space-y-0.5">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span id="pastal-lock-pill"
+                                        class="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wide inline-flex items-center gap-1 bg-cyan-500/15 border border-cyan-500/40 text-cyan-300">
+                                        <i class="fa-solid fa-barcode"></i> Avto-pastal
+                                    </span>
+                                    <span id="pastal-code-text"
+                                        class="text-lg sm:text-xl font-black font-mono text-white tracking-tight">—</span>
+                                </div>
+                                <p id="pastal-meta-text" class="text-[11px] text-slate-400 truncate"></p>
+                            </div>
+
+                            <!-- Prominent Remaining Count Box -->
+                            <div id="pastal-remaining-box"
+                                class="px-3.5 py-2 rounded-xl border-2 text-right flex-shrink-0 bg-amber-500/15 border-amber-500/60">
+                                <div id="pastal-remaining-main"
+                                    class="text-base sm:text-xl font-black leading-tight text-amber-300 font-mono">
+                                    Yana 0 ta quti
+                                </div>
+                                <div id="pastal-remaining-sub"
+                                    class="text-[11px] font-bold text-slate-300 font-mono">
+                                    0 / 0 biriktirildi
+                                </div>
+                            </div>
                         </div>
 
-                        <div id="active-container-footer" class="border-t border-slate-800 pt-3 text-center">
-                            <span class="text-[11px] text-slate-400 font-mono">Standart format: KONT-000123</span>
+                        <!-- Progress Bar -->
+                        <div class="flex items-center gap-2.5 flex-shrink-0">
+                            <div class="flex-1 h-2.5 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+                                <div id="pastal-progress-fill"
+                                    class="h-full rounded-full bg-amber-400 transition-all duration-300"
+                                    style="width: 0%;"></div>
+                            </div>
+                            <span id="pastal-progress-pct"
+                                class="text-xs font-mono font-black text-slate-300 w-10 text-right flex-shrink-0">0%</span>
+                        </div>
+
+                        <!-- Boxes Checklist (Remaining First, Then Linked) -->
+                        <div id="pastal-boxes-wrap"
+                            class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 border-t border-slate-800/80 pt-2">
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Right Panel: Live Journal / Recent Scans (compact, oxirgi 5 ta) -->
-            <div class="w-full lg:w-[380px] flex-shrink-0 max-h-[250px] lg:max-h-none flex flex-col gap-4 overflow-hidden">
+            <div class="w-full lg:w-[320px] xl:w-[350px] flex-shrink-0 max-h-[200px] lg:max-h-none flex flex-col overflow-hidden">
                 <div
-                    class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex-1 min-h-0 flex flex-col overflow-hidden">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5 flex-shrink-0">
+                    class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-xl flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <div
                                 class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
                             </div>
-                            <h3 class="text-sm font-black text-white">Oxirgi Biriktirilganlar <span class="text-[11px] font-semibold text-slate-400">(oxirgi 5 ta)</span></h3>
+                            <h3 class="text-xs sm:text-sm font-black text-white">Oxirgi Biriktirilganlar <span class="text-[10px] font-semibold text-slate-400">(5 ta)</span></h3>
                         </div>
                         <span class="text-xs text-slate-400 font-mono font-bold" id="session-count-pill">Jami: 0
                             ta</span>
@@ -414,8 +499,8 @@
 
                     <!-- Quick Help Footer -->
                     <div
-                        class="border-t border-slate-800 pt-2.5 mt-2.5 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
-                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato biriktirilsa: «Bekor
+                        class="border-t border-slate-800 pt-2 mt-2 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
+                        <span><i class="fa-solid fa-circle-question text-cyan-400 mr-1"></i>Xato: «Bekor
                             qilish»</span>
                         <a href="{% url 'meto_hub_containers' %}" target="_blank"
                             class="text-cyan-400 hover:underline font-bold">
@@ -1549,6 +1634,7 @@
         const INCOMING_SHIPMENTS = {{ incoming_shipments_json|default:'[]'|safe }};
         const KG_PENDING_CARDS = {{ kg_pending_cards_json|default:'[]'|safe }};
         const STORED_CARDS = {{ stored_cards_json|default:'[]'|safe }};
+        const INITIAL_LOCKED_PASTAL = {{ locked_pastal_json|default:'null'|safe }};
         const SCREENS_DATA = [
             {% for n, code in screens %}
             { id: {{ n }}, code: '{{ code }}' },
@@ -1884,6 +1970,8 @@
         // Tartib muhim emas: avval quti stikeri yoki avval konteyner — ikkalasi bo'lgach o'zi biriktiriladi
         let currentBox = null;        // api/resolve javobi (kind: 'box')
         let currentContainer = null;  // api/resolve javobi (kind: 'container')
+        let lockedPastal = INITIAL_LOCKED_PASTAL;    // server sessionda qulflangan pastal (remaining > 0)
+        let displayedPastal = INITIAL_LOCKED_PASTAL; // ekranda ko'rsatilayotgan pastal
         let isUnlinkMode = false;
         let sessionLogs = [];
         let linkQueue = Promise.resolve();   // tez ketma-ket skanerlar navbat bilan
@@ -1892,34 +1980,52 @@
         const statusText = document.getElementById('scan-status-text');
 
         function setStatus(text, type = 'info') {
+            if (!statusText) return;
             statusText.textContent = text;
             const banner = document.getElementById('scan-status-banner');
+            const icon = document.getElementById('scan-status-icon');
+            if (!banner) return;
             if (type === 'error') {
-                banner.className = 'p-3.5 rounded-2xl bg-rose-950/80 border border-rose-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-rose-200';
+                banner.className = 'px-3 py-2 rounded-xl bg-rose-950/80 border border-rose-700 text-xs sm:text-sm font-bold flex items-center gap-2 text-rose-200';
+                if (icon) icon.className = 'fa-solid fa-triangle-exclamation text-sm text-rose-400 flex-shrink-0';
+            } else if (type === 'warning') {
+                banner.className = 'px-3 py-2 rounded-xl bg-amber-950/70 border border-amber-600/80 text-xs sm:text-sm font-bold flex items-center gap-2 text-amber-200';
+                if (icon) icon.className = 'fa-solid fa-lock text-sm text-amber-400 flex-shrink-0';
             } else if (type === 'success') {
-                banner.className = 'p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-emerald-200';
+                banner.className = 'px-3 py-2 rounded-xl bg-emerald-950/80 border border-emerald-700 text-xs sm:text-sm font-bold flex items-center gap-2 text-emerald-200';
+                if (icon) icon.className = 'fa-solid fa-circle-check text-sm text-emerald-400 flex-shrink-0';
             } else {
-                banner.className = 'p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-3 text-cyan-300';
+                banner.className = 'px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm font-bold flex items-center gap-2 text-cyan-300';
+                if (icon) icon.className = 'fa-solid fa-info-circle text-sm text-cyan-400 flex-shrink-0';
             }
+        }
+
+        function flashElement(el, cls, ms = 650) {
+            if (!el) return;
+            el.classList.remove(cls);
+            void el.offsetWidth;
+            el.classList.add(cls);
+            setTimeout(() => el.classList.remove(cls), ms);
         }
 
         function updateLinkStepper() {
             const pill1 = document.getElementById('step-pill-1');
             const pill2 = document.getElementById('step-pill-2');
-            const base = 'p-3.5 rounded-2xl border-2 transition-all flex items-center gap-3 ';
+            if (!pill1 || !pill2) return;
+            const base = 'px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-2 ';
             const idle = base + 'bg-slate-950/60 border-slate-800 text-slate-500 opacity-60';
             const done = base + 'bg-emerald-500/10 border-emerald-600 text-emerald-300';
             if (isUnlinkMode) {
                 pill1.className = base + 'bg-rose-950/40 border-rose-500 text-rose-300';
                 pill2.className = base + 'bg-rose-950/40 border-rose-500 text-rose-300';
             } else if (!currentBox && !currentContainer) {
-                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10';
+                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300';
                 pill2.className = idle;
             } else if (currentBox) {
                 pill1.className = done;
-                pill2.className = base + 'bg-amber-500/10 border-amber-500 text-amber-300 shadow-lg shadow-amber-500/10 animate-pulse';
+                pill2.className = base + 'bg-amber-500/10 border-amber-500 text-amber-300 animate-pulse';
             } else {
-                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10 animate-pulse';
+                pill1.className = base + 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse';
                 pill2.className = done;
             }
         }
@@ -1930,9 +2036,10 @@
             renderBoxCard(null);
             renderContainerCard(null);
             updateLinkStepper();
+            renderPastalPanel();
         }
 
-        function toggleUnlinkMode() {
+        function toggleUnlinkMode(keepStatus = false) {
             if (!isUnlinkMode) {
                 if (!confirm("⚠️ DIQQAT! Konteynerni qutidan ajratish (bo'shatish) rejimini tasdiqlaysizmi?\nBu rejimda skanerlangan konteyner yoki quti bog'lanishdan chiqariladi.")) {
                     return;
@@ -1944,115 +2051,358 @@
             const btn = document.getElementById('unlink-toggle-btn');
             const text = document.getElementById('unlink-toggle-text');
             const header = document.getElementById('link-header-text');
+            if (!btn || !text || !header) return;
 
             if (isUnlinkMode) {
-                btn.className = 'touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-600/30';
+                btn.className = 'touch-btn px-3 py-1.5 rounded-xl border text-xs font-black transition flex items-center gap-1.5 bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-600/30';
                 text.textContent = 'Bekor Qilish Rejimi (FAOL)';
                 header.textContent = 'Konteynerni Qutidan Ajratish / Bo\'shatish';
-                setStatus("Bekor qilish rejimi yoqildi. Qutini yoki konteynerni uring — u bo'shatiladi.", "error");
+                if (!keepStatus) {
+                    setStatus("Bekor qilish rejimi yoqildi. Qutini yoki konteynerni uring — u bo'shatiladi.", "error");
+                }
             } else {
-                btn.className = 'touch-btn px-4 py-2 rounded-xl border text-xs font-black transition flex items-center gap-2 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60';
+                btn.className = 'touch-btn px-3 py-1.5 rounded-xl border text-xs font-black transition flex items-center gap-1.5 bg-slate-800 border-slate-700 text-rose-300 hover:bg-rose-950/60';
                 text.textContent = 'Bekor Qilish Rejimi';
                 header.textContent = 'Qutini Katta Konteynerga Biriktirish';
-                setStatus("Tayyor. Quti stikerini yoki konteyner QR kodini uring (tartib muhim emas).", "info");
+                if (!keepStatus) {
+                    if (lockedPastal) {
+                        setStatus(`🔒 ${lockedPastal.pastal} yakunlanmagan (${lockedPastal.linked}/${lockedPastal.total}, yana ${lockedPastal.remaining} ta quti qoldi). Qolgan qutilarni biriktiring.`, "warning");
+                    } else {
+                        setStatus("Tayyor. Quti stikerini yoki konteyner QR kodini uring (tartib muhim emas).", "info");
+                    }
+                }
             }
             updateLinkStepper();
-            scanInput.focus();
+            scanInput?.focus();
         }
 
         function renderBoxCard(boxData) {
             const card = document.getElementById('active-box-card');
             const body = document.getElementById('active-box-body');
             const badge = document.getElementById('active-box-badge');
-            const footer = document.getElementById('active-box-footer');
+            const cancelBtn = document.getElementById('active-box-cancel-btn');
+            if (!card || !body || !badge) return;
 
+            body.innerHTML = '';
             if (!boxData) {
-                badge.className = 'px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400';
+                badge.className = 'px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-slate-400';
                 badge.textContent = 'Kutilmoqda';
-                body.innerHTML = `
-                    <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
-                        <i class="fa-solid fa-qrcode"></i>
-                    </div>
-                    <p class="text-sm font-bold text-slate-400">Hali quti skanerlanmadi</p>
-                    <p class="text-xs text-slate-500">Stikerni skaner qilsangiz, ma'lumotlari shu yerda chiqadi</p>
-                `;
-                footer.classList.add('hidden');
+                cancelBtn?.classList.add('hidden');
                 card.classList.remove('border-cyan-500', 'bg-cyan-950/20');
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-sm flex-shrink-0';
+                iconWrap.innerHTML = '<i class="fa-solid fa-qrcode"></i>';
+                const info = document.createElement('div');
+                info.className = 'min-w-0';
+                const t1 = document.createElement('p');
+                t1.className = 'text-xs font-bold text-slate-400 truncate';
+                t1.textContent = 'Hali quti skanerlanmadi';
+                const t2 = document.createElement('p');
+                t2.className = 'text-[10px] text-slate-500 truncate';
+                t2.textContent = "Stikerni uring — pastal o'zi chiqadi";
+                info.append(t1, t2);
+                body.append(iconWrap, info);
                 return;
             }
 
-            badge.className = 'px-2 py-0.5 rounded-md bg-cyan-500 text-slate-950 font-black text-[10px] uppercase';
+            badge.className = 'px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-black text-[10px] uppercase';
             badge.textContent = 'Tanlandi';
-            body.innerHTML = `
-                <div class="space-y-1.5 text-left">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 uppercase font-bold">Quti kodi:</span>
-                        <span class="text-lg font-black font-mono text-cyan-400">${boxData.box}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-bold">Pastal:</span>
-                        <span class="text-sm font-black font-mono text-white">${boxData.pastal}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-bold">Razmer / Soni:</span>
-                        <span class="text-sm font-bold text-white"><b class="text-cyan-300 font-mono">${boxData.razmer}</b> · <b class="text-emerald-400 font-mono">${boxData.qty} dona</b></span>
-                    </div>
-                    ${boxData.container ? `<div class="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mt-2">Hozirgi konteyner: ${boxData.container}</div>` : ''}
-                </div>
-            `;
-            footer.classList.remove('hidden');
+            cancelBtn?.classList.remove('hidden');
             card.classList.add('border-cyan-500', 'bg-cyan-950/20');
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center text-sm flex-shrink-0';
+            iconWrap.innerHTML = '<i class="fa-solid fa-box-open"></i>';
+
+            const info = document.createElement('div');
+            info.className = 'min-w-0 flex-1';
+            const line1 = document.createElement('div');
+            line1.className = 'flex items-center justify-between gap-1.5';
+            const codeEl = document.createElement('span');
+            codeEl.className = 'text-sm sm:text-base font-black font-mono text-cyan-300 truncate';
+            codeEl.textContent = boxData.box;
+            const qtyEl = document.createElement('span');
+            qtyEl.className = 'text-[11px] font-black font-mono text-emerald-400 flex-shrink-0';
+            qtyEl.textContent = `${boxData.razmer} · ${boxData.qty} dona`;
+            line1.append(codeEl, qtyEl);
+
+            const line2 = document.createElement('p');
+            line2.className = 'text-[11px] text-slate-300 font-mono truncate';
+            line2.textContent = `Pastal: ${boxData.pastal}` + (boxData.container ? ` · ${boxData.container}` : '');
+
+            info.append(line1, line2);
+            body.append(iconWrap, info);
         }
 
         function renderContainerCard(cData) {
             const card = document.getElementById('active-container-card');
             const body = document.getElementById('active-container-body');
             const badge = document.getElementById('active-container-badge');
+            const cancelBtn = document.getElementById('active-container-cancel-btn');
+            if (!card || !body || !badge) return;
 
+            body.innerHTML = '';
             if (!cData) {
-                badge.className = 'px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-400';
+                badge.className = 'px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-slate-400';
                 badge.textContent = '2-qadam';
-                body.innerHTML = `
-                    <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-2xl mx-auto">
-                        <i class="fa-solid fa-box-archive"></i>
-                    </div>
-                    <p class="text-sm font-bold text-slate-400">Konteyner kutilmoqda</p>
-                    <p class="text-xs text-slate-500">Qutidan keyin bo'sh konteyner QR kodini uring</p>
-                `;
+                cancelBtn?.classList.add('hidden');
                 card.classList.remove('border-amber-500', 'bg-amber-950/20');
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 text-slate-600 flex items-center justify-center text-sm flex-shrink-0';
+                iconWrap.innerHTML = '<i class="fa-solid fa-box-archive"></i>';
+                const info = document.createElement('div');
+                info.className = 'min-w-0';
+                const t1 = document.createElement('p');
+                t1.className = 'text-xs font-bold text-slate-400 truncate';
+                t1.textContent = 'Konteyner kutilmoqda';
+                const t2 = document.createElement('p');
+                t2.className = 'text-[10px] text-slate-500 font-mono truncate';
+                t2.textContent = 'KONT-000123';
+                info.append(t1, t2);
+                body.append(iconWrap, info);
                 return;
             }
 
-            badge.className = 'px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 font-black text-[10px] uppercase';
+            badge.className = 'px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-black text-[10px] uppercase';
             badge.textContent = cData.state || 'Konteyner';
-            body.innerHTML = `
-                <div class="space-y-1.5 text-left">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 uppercase font-bold">Konteyner:</span>
-                        <span class="text-lg font-black font-mono text-amber-400">${cData.code}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-bold">Holati:</span>
-                        <span class="text-sm font-bold text-white">${cData.state}</span>
-                    </div>
-                    ${cData.box ? `<div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300">Ichidagi quti: <b class="text-cyan-400 font-mono">${cData.box}</b></div>` : ''}
-                </div>
-            `;
+            cancelBtn?.classList.remove('hidden');
             card.classList.add('border-amber-500', 'bg-amber-950/20');
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-sm flex-shrink-0';
+            iconWrap.innerHTML = '<i class="fa-solid fa-cubes"></i>';
+
+            const info = document.createElement('div');
+            info.className = 'min-w-0 flex-1';
+            const codeEl = document.createElement('p');
+            codeEl.className = 'text-sm sm:text-base font-black font-mono text-amber-300 truncate';
+            codeEl.textContent = cData.code;
+            const subEl = document.createElement('p');
+            subEl.className = 'text-[11px] text-slate-300 truncate';
+            subEl.textContent = cData.box ? `Ichidagi quti: ${cData.box}` : `Holati: ${cData.state || "Bo'sh"}`;
+
+            info.append(codeEl, subEl);
+            body.append(iconWrap, info);
+        }
+
+        function renderPastalPanel() {
+            // Top nav lock badge sync
+            const navBadge = document.getElementById('nav-link-lock-badge');
+            const navBadgeText = document.getElementById('nav-link-lock-text');
+            if (navBadge && navBadgeText) {
+                if (lockedPastal && lockedPastal.remaining > 0) {
+                    navBadge.classList.remove('hidden');
+                    navBadgeText.textContent = `${lockedPastal.linked}/${lockedPastal.total}`;
+                } else {
+                    navBadge.classList.add('hidden');
+                }
+            }
+
+            const panel = document.getElementById('active-pastal-panel');
+            const emptyEl = document.getElementById('pastal-panel-empty');
+            const activeEl = document.getElementById('pastal-panel-active');
+            if (!panel || !emptyEl || !activeEl) return;
+
+            const p = displayedPastal;
+            if (!p) {
+                panel.className = 'bg-slate-900 border-2 border-slate-800 rounded-2xl p-3 sm:p-3.5 shadow-xl flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden transition-all';
+                emptyEl.classList.remove('hidden');
+                activeEl.classList.add('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+            activeEl.classList.remove('hidden');
+
+            const isLocked = Boolean(lockedPastal && lockedPastal.batch_id === p.batch_id && p.remaining > 0);
+            const isComplete = Boolean(p.complete || (p.total > 0 && p.remaining === 0));
+            const pct = p.total > 0 ? Math.round((p.linked / p.total) * 100) : 0;
+
+            if (isComplete) {
+                panel.className = 'bg-emerald-950/25 border-2 border-emerald-500/80 rounded-2xl p-3 sm:p-3.5 shadow-xl flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden transition-all';
+            } else if (isLocked) {
+                panel.className = 'bg-amber-950/20 border-2 border-amber-500/80 rounded-2xl p-3 sm:p-3.5 shadow-xl flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden transition-all';
+            } else {
+                panel.className = 'bg-slate-900 border-2 border-cyan-500/60 rounded-2xl p-3 sm:p-3.5 shadow-xl flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden transition-all';
+            }
+
+            const pill = document.getElementById('pastal-lock-pill');
+            if (pill) {
+                if (isComplete) {
+                    pill.className = 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wide inline-flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/50 text-emerald-300';
+                    pill.innerHTML = '<i class="fa-solid fa-circle-check"></i> To\'liq yakunlandi · Keyingi pastalga o\'tish mumkin';
+                } else if (isLocked) {
+                    pill.className = 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wide inline-flex items-center gap-1 bg-amber-500/20 border border-amber-500/60 text-amber-300';
+                    pill.innerHTML = '<i class="fa-solid fa-lock"></i> Qulflangan · Tugatmaguncha boshqasiga o\'tib bo\'lmaydi';
+                } else {
+                    pill.className = 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wide inline-flex items-center gap-1 bg-cyan-500/15 border border-cyan-500/40 text-cyan-300';
+                    pill.innerHTML = '<i class="fa-solid fa-barcode"></i> Avto-aniqlangan pastal';
+                }
+            }
+
+            const codeEl = document.getElementById('pastal-code-text');
+            if (codeEl) codeEl.textContent = p.pastal || '—';
+
+            const metaEl = document.getElementById('pastal-meta-text');
+            if (metaEl) {
+                const parts = [];
+                if (p.order_number && p.order_number !== '—') parts.push(`Zakaz #${p.order_number}`);
+                if (p.article_code && p.article_code !== '—') parts.push(p.article_code);
+                if (p.article_name && p.article_name !== '—') parts.push(p.article_name);
+                metaEl.textContent = parts.join(' · ') || 'Pastal qutilari holati';
+            }
+
+            const remBox = document.getElementById('pastal-remaining-box');
+            const remMain = document.getElementById('pastal-remaining-main');
+            const remSub = document.getElementById('pastal-remaining-sub');
+            if (remBox && remMain && remSub) {
+                if (isComplete) {
+                    remBox.className = 'px-3.5 py-2 rounded-xl border-2 text-right flex-shrink-0 bg-emerald-500/20 border-emerald-500/70';
+                    remMain.className = 'text-base sm:text-xl font-black leading-tight text-emerald-300 font-mono';
+                    remMain.textContent = `${p.linked} / ${p.total} tayyor`;
+                    remSub.className = 'text-[11px] font-bold text-emerald-200';
+                    remSub.textContent = 'Barcha qutilar biriktirildi!';
+                } else {
+                    remBox.className = 'px-3.5 py-2 rounded-xl border-2 text-right flex-shrink-0 bg-amber-500/15 border-amber-500/70';
+                    remMain.className = 'text-base sm:text-xl font-black leading-tight text-amber-300 font-mono';
+                    remMain.textContent = `Yana ${p.remaining} ta quti qoldi`;
+                    remSub.className = 'text-[11px] font-bold text-slate-300 font-mono';
+                    remSub.textContent = `${p.linked} / ${p.total} biriktirilgan`;
+                }
+            }
+
+            const fillEl = document.getElementById('pastal-progress-fill');
+            const pctEl = document.getElementById('pastal-progress-pct');
+            if (fillEl) {
+                fillEl.style.width = `${pct}%`;
+                fillEl.className = `h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-400' : (isLocked ? 'bg-amber-400' : 'bg-cyan-400')}`;
+            }
+            if (pctEl) pctEl.textContent = `${pct}%`;
+
+            // Render boxes checklist: unlinked first (highlighted), then linked
+            const wrap = document.getElementById('pastal-boxes-wrap');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+
+            const boxes = Array.isArray(p.boxes) ? p.boxes : [];
+            const unlinkedBoxes = boxes.filter(b => !b.container);
+            const linkedBoxes = boxes.filter(b => Boolean(b.container));
+
+            if (unlinkedBoxes.length > 0) {
+                const sec = document.createElement('div');
+                sec.className = 'space-y-1.5';
+                const heading = document.createElement('div');
+                heading.className = 'text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5';
+                heading.innerHTML = '<i class="fa-solid fa-hourglass-half"></i>';
+                const hText = document.createElement('span');
+                hText.textContent = `Konteynerga biriktirilishi kerak (${unlinkedBoxes.length} ta):`;
+                heading.append(hText);
+
+                const grid = document.createElement('div');
+                grid.className = 'flex flex-wrap gap-1.5';
+                unlinkedBoxes.forEach(b => {
+                    const isSelected = Boolean(currentBox && currentBox.box === b.box_code);
+                    const chip = document.createElement('div');
+                    chip.className = isSelected
+                        ? 'px-2.5 py-1 rounded-lg border-2 border-cyan-400 bg-cyan-500/20 text-cyan-100 text-xs font-mono font-bold flex items-center gap-1.5 shadow'
+                        : 'px-2.5 py-1 rounded-lg border border-amber-500/50 bg-amber-950/40 text-amber-200 text-xs font-mono font-bold flex items-center gap-1.5';
+                    const codeSpan = document.createElement('span');
+                    codeSpan.className = 'font-black';
+                    codeSpan.textContent = b.box_code;
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = isSelected ? 'text-[10px] text-cyan-200' : 'text-[10px] text-amber-300/80';
+                    metaSpan.textContent = `· ${b.razmer} · ${b.qty}`;
+                    chip.append(codeSpan, metaSpan);
+                    if (isSelected) {
+                        const selTag = document.createElement('span');
+                        selTag.className = 'px-1 py-0.2 rounded bg-cyan-400 text-slate-950 text-[9px] font-black uppercase';
+                        selTag.textContent = 'Tanlangan';
+                        chip.append(selTag);
+                    }
+                    grid.append(chip);
+                });
+                sec.append(heading, grid);
+                wrap.append(sec);
+            }
+
+            if (linkedBoxes.length > 0) {
+                const sec = document.createElement('div');
+                sec.className = 'space-y-1.5';
+                const heading = document.createElement('div');
+                heading.className = 'text-[11px] font-bold uppercase tracking-wider text-emerald-400/90 flex items-center gap-1.5';
+                heading.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                const hText = document.createElement('span');
+                hText.textContent = `Biriktirilgan (${linkedBoxes.length} ta):`;
+                heading.append(hText);
+
+                const grid = document.createElement('div');
+                grid.className = 'flex flex-wrap gap-1.5';
+                linkedBoxes.forEach(b => {
+                    const chip = document.createElement('div');
+                    chip.className = 'px-2 py-0.5 rounded-lg border border-emerald-700/60 bg-emerald-950/40 text-emerald-200 text-[11px] font-mono flex items-center gap-1';
+                    const txt = document.createElement('span');
+                    txt.textContent = `✓ ${b.box_code} → ${b.container} (${b.razmer} · ${b.qty})`;
+                    chip.append(txt);
+                    grid.append(chip);
+                });
+                sec.append(heading, grid);
+                wrap.append(sec);
+            }
         }
 
         function cancelBoxSelection() {
-            resetLinkSelection();
-            setStatus("Tanlov bekor qilindi. Quti stikerini yoki konteyner QR kodini uring.", "info");
-            scanInput.focus();
+            currentBox = null;
+            renderBoxCard(null);
+            if (!lockedPastal && displayedPastal && displayedPastal.linked === 0) {
+                displayedPastal = null;
+            } else if (lockedPastal) {
+                displayedPastal = lockedPastal;
+            }
+            updateLinkStepper();
+            renderPastalPanel();
+            setStatus(
+                lockedPastal
+                    ? `Quti tanlovi bekor qilindi. ${lockedPastal.pastal} pastalining qolgan qutisini uring (yana ${lockedPastal.remaining} ta qoldi).`
+                    : "Quti tanlovi bekor qilindi. Quti stikerini yoki konteyner QR kodini uring.",
+                lockedPastal ? "warning" : "info"
+            );
+            scanInput?.focus();
+        }
+
+        function cancelContainerSelection() {
+            currentContainer = null;
+            renderContainerCard(null);
+            updateLinkStepper();
+            setStatus("Konteyner tanlovi bekor qilindi. Bo'sh katta konteyner QR kodini uring.", "info");
+            scanInput?.focus();
         }
 
         function clearActiveScan() {
-            scanInput.value = '';
-            cancelBoxSelection();
+            if (scanInput) scanInput.value = '';
+            currentBox = null;
+            currentContainer = null;
+            if (!lockedPastal) {
+                displayedPastal = null;
+            } else {
+                displayedPastal = lockedPastal;
+            }
+            renderBoxCard(null);
+            renderContainerCard(null);
+            updateLinkStepper();
+            renderPastalPanel();
+            setStatus(
+                lockedPastal
+                    ? `🔒 ${lockedPastal.pastal} yakunlanmagan (${lockedPastal.linked}/${lockedPastal.total}, yana ${lockedPastal.remaining} ta quti qoldi).`
+                    : "Tanlov tozalandi. Quti stikerini yoki konteyner QR kodini uring.",
+                lockedPastal ? "warning" : "info"
+            );
+            scanInput?.focus();
         }
 
         function submitScanInput() {
+            if (!scanInput) return;
             const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
             ev.autoEnter = true;   // "OK" — chala bilet kodini ham majburan yuboradi (_scan_auto_enter.html)
             scanInput.dispatchEvent(ev);
@@ -2063,6 +2413,7 @@
 
         function addSessionLog(ok, text, undoCode = null) {
             const list = document.getElementById('recent-logs-list');
+            if (!list) return;
             const empty = document.getElementById('empty-logs-placeholder');
             if (empty) empty.remove();
 
@@ -2102,75 +2453,132 @@
             while (list.children.length > MAX_RECENT_LOGS) list.lastChild.remove();
 
             sessionLogs.push({ ok, text });
-            document.getElementById('session-count-pill').textContent = `Jami: ${sessionLogs.filter(l => l.ok).length} ta`;
+            const countPill = document.getElementById('session-count-pill');
+            if (countPill) countPill.textContent = `Jami: ${sessionLogs.filter(l => l.ok).length} ta`;
+        }
+
+        function applyUnlinkState(data) {
+            if ('locked_pastal' in data) {
+                lockedPastal = data.locked_pastal || null;
+            }
+            if (lockedPastal) {
+                displayedPastal = lockedPastal;
+            } else if (data.pastal_progress && data.pastal_progress.linked > 0) {
+                displayedPastal = data.pastal_progress;
+            } else {
+                displayedPastal = null;
+            }
+            renderPastalPanel();
         }
 
         async function undoLink(code) {
             if (!confirm(`⚠️ DIQQAT! ${code} konteynerini qutidan ajratishni (bo'shatishni) tasdiqlaysizmi?`)) {
                 return;
             }
-            const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code });
+            const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code, enforce_lock: true });
             if (r.ok) {
                 playSoundSuccess();
-                addSessionLog(true, `${code} bo'shatildi (Bekor qilindi)`);
-                setStatus(`${code} muvaffaqiyatli bo'shatildi.`, 'success');
+                applyUnlinkState(r.data);
+                addSessionLog(true, r.data.message || `${code} bo'shatildi (Bekor qilindi)`);
+                setStatus(r.data.message || `${code} muvaffaqiyatli bo'shatildi.`, 'success');
             } else {
                 playSoundError();
                 setStatus(r.data.message || 'Xatolik', 'error');
             }
+            scanInput?.focus();
         }
 
         async function linkSelected() {
             const box = currentBox, container = currentContainer;
-            const r = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, { box: box.box, container: container.code });
+            const r = await postJSON(`{% url 'meto_hub_flow_api_link' %}`, {
+                box: box.box,
+                container: container.code,
+                enforce_lock: true,
+            });
             if (r.ok) {
                 playSoundSuccess();
+                if ('locked_pastal' in r.data) {
+                    lockedPastal = r.data.locked_pastal || null;
+                }
+                if (r.data.pastal_progress) {
+                    displayedPastal = r.data.pastal_progress;
+                } else {
+                    displayedPastal = lockedPastal;
+                }
                 const successMsg = r.data.message || `${box.box} → ${container.code} muvaffaqiyatli biriktirildi!`;
                 addSessionLog(true, successMsg, container.code);
                 setStatus(successMsg, "success");
 
-                // Flash card animation
-                document.getElementById('active-box-card')?.classList.add('success-flash');
-                document.getElementById('active-container-card')?.classList.add('success-flash');
-                setTimeout(() => {
-                    document.getElementById('active-box-card')?.classList.remove('success-flash');
-                    document.getElementById('active-container-card')?.classList.remove('success-flash');
-                }, 600);
+                flashElement(document.getElementById('active-box-card'), 'success-flash');
+                flashElement(document.getElementById('active-container-card'), 'success-flash');
+                if (displayedPastal && displayedPastal.complete) {
+                    flashElement(document.getElementById('active-pastal-panel'), 'success-flash');
+                }
             } else {
                 playSoundError();
                 setStatus(r.data.message || "Biriktirib bo'lmadi.", "error");
                 addSessionLog(false, r.data.message || 'Xatolik');
+                if (lockedPastal) {
+                    displayedPastal = lockedPastal;
+                    flashElement(document.getElementById('active-pastal-panel'), 'error-flash');
+                }
             }
-            resetLinkSelection();   // keyingi juftlik uchun boshidan
+            resetLinkSelection();   // keyingi juftlik uchun boshidan (renderPastalPanel ham yangilanadi)
         }
 
         async function handleLinkScan(raw) {
             // UNLINK MODE
             if (isUnlinkMode) {
-                const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code: raw });
+                const r = await postJSON(`{% url 'meto_hub_flow_api_unlink' %}`, { code: raw, enforce_lock: true });
                 if (r.ok) {
                     playSoundSuccess();
+                    applyUnlinkState(r.data);
                     addSessionLog(true, r.data.message || `${raw} bo'shatildi`);
-                    setStatus(r.data.message || 'Bo\'shatildi.', 'success');
+                    setStatus(r.data.message || "Bo'shatildi.", 'success');
                 } else {
                     playSoundError();
                     addSessionLog(false, r.data.message || 'Xatolik');
                     setStatus(r.data.message || 'Xatolik', 'error');
                 }
-                toggleUnlinkMode(); // Exit unlink mode back to normal
+                toggleUnlinkMode(true); // Bekor qilish rejimidan chiqadi, natija xabari saqlanadi
                 return;
             }
 
             // Quti stikeri (CONTROL / bilet / quti kodi) yoki konteyner QR — qaysi biri ekanini server aytadi
-            const r = await getJSON(`{% url 'meto_hub_flow_api_resolve' %}?code=${encodeURIComponent(raw)}`);
+            const r = await getJSON(`{% url 'meto_hub_flow_api_resolve' %}?code=${encodeURIComponent(raw)}&enforce_lock=1`);
             if (!r.ok) {
                 playSoundError();
                 setStatus(r.data.message || "Stiker yoki konteyner topilmadi.", "error");
                 addSessionLog(false, r.data.message || `${raw} topilmadi`);
                 return;
             }
+            if ('locked_pastal' in r.data) {
+                lockedPastal = r.data.locked_pastal || null;
+            }
+
+            if (r.data.lock_blocked) {
+                playSoundError();
+                displayedPastal = lockedPastal;
+                renderPastalPanel();
+                flashElement(document.getElementById('active-pastal-panel'), 'error-flash');
+                setStatus(r.data.problem, "error");
+                addSessionLog(false, r.data.problem);
+                return;
+            }
+
             if (r.data.problem) {   // bekor qilingan / allaqachon biriktirilgan / skladda emas / bo'sh emas / kichik
                 playSoundError();
+                if (r.data.kind === 'box' && r.data.pastal_progress) {
+                    if (!lockedPastal || lockedPastal.batch_id === r.data.pastal_progress.batch_id) {
+                        displayedPastal = r.data.pastal_progress;
+                    } else {
+                        displayedPastal = lockedPastal;
+                    }
+                    renderPastalPanel();
+                } else if (lockedPastal) {
+                    displayedPastal = lockedPastal;
+                    renderPastalPanel();
+                }
                 setStatus(r.data.problem, "error");
                 addSessionLog(false, r.data.problem);
                 return;
@@ -2179,9 +2587,17 @@
             if (r.data.kind === 'container') {
                 currentContainer = r.data;
                 renderContainerCard(r.data);
+                if (lockedPastal) {
+                    displayedPastal = lockedPastal;
+                }
+                renderPastalPanel();
             } else {
                 currentBox = r.data;
+                if (r.data.pastal_progress) {
+                    displayedPastal = r.data.pastal_progress;
+                }
                 renderBoxCard(r.data);
+                renderPastalPanel();
             }
             updateLinkStepper();
 
@@ -2192,10 +2608,24 @@
             playSoundBeep();
             if (currentBox) {
                 const adoptHint = currentBox.will_adopt ? " (eski pastal — Bosh skladga qo'shiladi)" : "";
-                setStatus(`Quti ${currentBox.box}${adoptHint} tanlandi. Endi bo'sh katta konteyner QR kodini uring.`, "info");
+                const p = currentBox.pastal_progress;
+                const remHint = p ? ` · ${p.pastal} (${p.linked}/${p.total}, yana ${p.remaining} ta quti qoldi)` : '';
+                setStatus(`Quti ${currentBox.box}${adoptHint}${remHint} tanlandi. Endi bo'sh katta konteyner QR kodini uring.`, "info");
             } else {
-                setStatus(`Konteyner ${currentContainer.code} tanlandi. Endi qutining stikerini (QR) uring — o'zi biriktiriladi.`, "info");
+                const lockHint = lockedPastal
+                    ? ` Endi ${lockedPastal.pastal} pastalining qolgan qutisini uring (yana ${lockedPastal.remaining} ta qoldi).`
+                    : " Endi qutining stikerini (QR) uring — o'zi biriktiriladi.";
+                setStatus(`Konteyner ${currentContainer.code} tanlandi.${lockHint}`, "info");
             }
+        }
+
+        // Boshlang'ich holatni chizish (sahifa yangilansa ham qulflangan pastal ko'rinib turadi)
+        renderPastalPanel();
+        if (lockedPastal) {
+            setStatus(
+                `🔒 ${lockedPastal.pastal} pastali yakunlanmagan (${lockedPastal.linked}/${lockedPastal.total} biriktirilgan, yana ${lockedPastal.remaining} ta quti qoldi). Avval qolgan qutilarni biriktiring.`,
+                "warning"
+            );
         }
 
         // Handle Scan input (Enter yoki avto-Enter)

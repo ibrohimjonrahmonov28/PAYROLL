@@ -2322,3 +2322,181 @@ class OldPastalContainerAdoptAndOtkReleaseTest(MetoFlowBase):
         # Hech biri PastalFlow ga o'tmagan
         self.assertFalse(PastalFlow.objects.filter(batch__in=[b_disp, b_scan, b_otk]).exists())
 
+
+class TabletPastalLockTest(MetoFlowBase):
+    """/tayyorlov/tablet/ — avtomatik pastal kodi, qolgan qutilar soni va pastal to'liq biriktirilmaguncha qulf."""
+
+    def _split_batch(self, code, m_boxes=2, l_boxes=1):
+        batch = self.cut(code)
+        self.to_sklad(batch)
+        first, second = self.items(batch)
+        meto_flow.split_boxes(batch, {first.id: {'boxes': m_boxes}, second.id: {'boxes': l_boxes}}, self.sticker)
+        Box.objects.filter(cutting_batch_item__batch=batch).update(is_printed=True)
+        return batch, self.boxes(batch)
+
+    def _resolve(self, code, enforce_lock=True):
+        params = {'code': code}
+        if enforce_lock:
+            params['enforce_lock'] = '1'
+        return self.client.get(reverse('meto_hub_flow_api_resolve'), params)
+
+    def test_tablet_locks_pastal_until_complete_and_survives_reload(self):
+        batch_a, boxes_a = self._split_batch('LOCK-A', m_boxes=2, l_boxes=1)   # 3 ta quti
+        batch_b, boxes_b = self._split_batch('LOCK-B', m_boxes=1, l_boxes=1)   # 2 ta quti
+        c1, c2, c3, c4, c5 = self.new_containers(5)
+        self.client.force_login(self.sklad)
+
+        # 1. Birinchi skaner: pastal avtomatik aniqlanadi va 0/3 (yana 3 ta qoldi) ko'rsatiladi
+        r0 = self._resolve(f'CONTROL:{boxes_a[0].box_code}').json()
+        self.assertEqual((r0['status'], r0['problem'], r0['lock_blocked']), ('OK', None, False))
+        self.assertEqual(r0['batch_id'], batch_a.id)
+        self.assertEqual(
+            (r0['pastal_progress']['pastal'], r0['pastal_progress']['total'],
+             r0['pastal_progress']['linked'], r0['pastal_progress']['remaining'], r0['pastal_progress']['complete']),
+            ('LOCK-A', 3, 0, 3, False),
+        )
+        self.assertIsNone(r0['locked_pastal'])
+
+        # 2. 1-quti biriktirilgach pastal QULFLANADI (1/3, yana 2 ta qoldi)
+        l1 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[0].box_code, 'container': c1.code, 'enforce_lock': True,
+        }).json()
+        self.assertEqual(l1['status'], 'OK')
+        self.assertEqual((l1['pastal_progress']['linked'], l1['pastal_progress']['remaining']), (1, 2))
+        self.assertEqual(l1['locked_pastal']['batch_id'], batch_a.id)
+        self.assertEqual(self.client.session.get('tablet_link_batch_id'), batch_a.id)
+
+        # 3. Planshet sahifasi yangilanganda (reload) va state API da ham qulf saqlanadi
+        page = self.client.get(reverse('meto_hub_tablet'))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page.context['locked_pastal']['batch_id'], batch_a.id)
+        self.assertEqual(page.context['locked_pastal']['remaining'], 2)
+        self.assertIn('active-pastal-panel', page.content.decode())
+        state = self.client.get(reverse('meto_hub_tablet_state')).json()
+        self.assertEqual(state['locked_pastal']['batch_id'], batch_a.id)
+        self.assertEqual(state['locked_pastal']['remaining'], 2)
+
+        # 4. Boshqa pastal (LOCK-B) stikerini urishga ruxsat YO'Q (resolve ham, link ham bloklaydi)
+        blocked_resolve = self._resolve(f'CONTROL:{boxes_b[0].box_code}').json()
+        self.assertTrue(blocked_resolve['lock_blocked'])
+        self.assertIn('LOCK-A', blocked_resolve['problem'])
+        self.assertIn('1/3', blocked_resolve['problem'])
+        self.assertIn('yana 2 ta quti qoldi', blocked_resolve['problem'])
+
+        blocked_link = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_b[0].box_code, 'container': c2.code, 'enforce_lock': True,
+        })
+        self.assertEqual(blocked_link.status_code, 400)
+        self.assertIn('LOCK-A', blocked_link.json()['message'])
+        self.assertFalse(Container.objects.filter(box=boxes_b[0]).exists())
+
+        # 5. Bo'sh konteynerni skanerlash (qutidan oldin ham) qulf paytida ruxsat etiladi
+        rc = self._resolve(c2.code).json()
+        self.assertEqual((rc['kind'], rc['problem'], rc['locked_pastal']['batch_id']), ('container', None, batch_a.id))
+
+        # 6. Qolgan 2 ta qutini biriktirish → 2/3 da hali qulflangan, 3/3 da qulf OCHILADI
+        l2 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[1].box_code, 'container': c2.code, 'enforce_lock': True,
+        }).json()
+        self.assertEqual((l2['pastal_progress']['linked'], l2['pastal_progress']['remaining']), (2, 1))
+        self.assertEqual(l2['locked_pastal']['batch_id'], batch_a.id)
+
+        l3 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[2].box_code, 'container': c3.code, 'enforce_lock': True,
+        }).json()
+        self.assertTrue(l3['pastal_progress']['complete'])
+        self.assertEqual((l3['pastal_progress']['linked'], l3['pastal_progress']['remaining']), (3, 0))
+        self.assertIsNone(l3['locked_pastal'])
+        self.assertNotIn('tablet_link_batch_id', self.client.session)
+
+        # 7. Endi LOCK-B ga o'tish bemalol ishlaydi va LOCK-B qulflanadi (1/2)
+        rb = self._resolve(f'CONTROL:{boxes_b[0].box_code}').json()
+        self.assertEqual((rb['problem'], rb['lock_blocked']), (None, False))
+        lb1 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_b[0].box_code, 'container': c4.code, 'enforce_lock': True,
+        }).json()
+        self.assertEqual(lb1['locked_pastal']['batch_id'], batch_b.id)
+        self.assertEqual(lb1['locked_pastal']['remaining'], 1)
+        # Boshqa konteyner qoldi
+        lb2 = self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_b[1].box_code, 'container': c5.code, 'enforce_lock': True,
+        }).json()
+        self.assertTrue(lb2['pastal_progress']['complete'])
+        self.assertIsNone(lb2['locked_pastal'])
+
+    def test_tablet_unlink_releases_at_zero_and_relocks_from_complete(self):
+        batch_a, boxes_a = self._split_batch('UNL-A', m_boxes=1, l_boxes=1)   # 2 ta quti
+        batch_b, boxes_b = self._split_batch('UNL-B', m_boxes=1, l_boxes=1)
+        c1, c2 = self.new_containers(2)
+        self.client.force_login(self.sklad)
+
+        # 1/2 biriktirildi → qulflandi
+        self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[0].box_code, 'container': c1.code, 'enforce_lock': True,
+        })
+        self.assertEqual(self.client.session.get('tablet_link_batch_id'), batch_a.id)
+
+        # Yagona biriktirilgan quti bekor qilinsa (0/2) → qulf ochiladi (adashib boshlangan pastalni bekor qilish)
+        u0 = self.post_json(self.sklad, reverse('meto_hub_flow_api_unlink'), {
+            'code': c1.code, 'enforce_lock': True,
+        }).json()
+        self.assertEqual(u0['status'], 'OK')
+        self.assertIsNone(u0['locked_pastal'])
+        self.assertEqual(self._resolve(f'CONTROL:{boxes_b[0].box_code}').json()['problem'], None)
+
+        # 2/2 yakunlab, so'ng bittasini bekor qilsa (1/2) → qayta qulflanadi (chala qolib ketmasin)
+        self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[0].box_code, 'container': c1.code, 'enforce_lock': True,
+        })
+        self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[1].box_code, 'container': c2.code, 'enforce_lock': True,
+        })
+        self.assertNotIn('tablet_link_batch_id', self.client.session)
+
+        u1 = self.post_json(self.sklad, reverse('meto_hub_flow_api_unlink'), {
+            'code': c2.code, 'enforce_lock': True,
+        }).json()
+        self.assertEqual(u1['locked_pastal']['batch_id'], batch_a.id)
+        self.assertEqual((u1['locked_pastal']['linked'], u1['locked_pastal']['remaining']), (1, 1))
+
+    def test_tablet_lock_auto_releases_when_remaining_box_cancelled_or_completed_elsewhere(self):
+        batch_a, boxes_a = self._split_batch('AUTO-A', m_boxes=1, l_boxes=1)
+        batch_b, boxes_b = self._split_batch('AUTO-B', m_boxes=1, l_boxes=1)
+        c1, c2 = self.new_containers(2)
+        self.client.force_login(self.sklad)
+
+        # 1/2 biriktirilib qulflandi
+        self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[0].box_code, 'container': c1.code, 'enforce_lock': True,
+        })
+        self.assertEqual(self.client.session.get('tablet_link_batch_id'), batch_a.id)
+
+        # Qolgan quti bekor qilinsa — qulf avtomatik ochiladi
+        Box.objects.filter(id=boxes_a[1].id).update(status=Box.Status.CANCELLED)
+        rb = self._resolve(f'CONTROL:{boxes_b[0].box_code}').json()
+        self.assertEqual((rb['problem'], rb['lock_blocked'], rb['locked_pastal']), (None, False, None))
+        self.assertNotIn('tablet_link_batch_id', self.client.session)
+
+        # Yana bir qulflash: boshqa qurilma qolgan qutini biriktirib qo'ysa ham planshet ochiladi
+        self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_b[0].box_code, 'container': c2.code, 'enforce_lock': True,
+        })
+        c3 = self.new_containers(1)[0]
+        meto_flow.link_container(f'CONTROL:{boxes_b[1].box_code}', c3.code, self.sklad)
+        page = self.client.get(reverse('meto_hub_tablet'))
+        self.assertIsNone(page.context['locked_pastal'])
+        self.assertNotIn('tablet_link_batch_id', self.client.session)
+
+    def test_tablet_locked_pastal_json_escapes_script_tags(self):
+        Article.objects.filter(id=self.article.id).update(name='Model </script><img src=x>')
+        batch_a, boxes_a = self._split_batch('XSS-A', m_boxes=1, l_boxes=1)
+        c1 = self.new_containers(1)[0]
+        self.client.force_login(self.sklad)
+        self.post_json(self.sklad, reverse('meto_hub_flow_api_link'), {
+            'box': boxes_a[0].box_code, 'container': c1.code, 'enforce_lock': True,
+        })
+        html = self.client.get(reverse('meto_hub_tablet')).content.decode()
+        self.assertNotIn('Model </script>', html)
+        self.assertIn('Model \\u003C/script\\u003E', html)
+
+
