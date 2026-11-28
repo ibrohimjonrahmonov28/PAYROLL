@@ -680,26 +680,46 @@ def _sklad_sections(request, branch):
     ctx = _sklad_list_ctx(request, branch)
     ctx.update({'incoming': list(_incoming(branch)), 'patok_rows': _patok_rows(branch)})
     if branch == 'HQ':
-        ctx['pending_shipments'] = (
+        pending_shipments = list(
             Shipment.objects.filter(source_branch='HQ', destination_branch='UYCHI', status=Shipment.Status.PENDING)
             .prefetch_related('lines__batch__order_item__article', 'lines__batch__items__boxes')
-            .order_by('-id'))
-        ctx['recent_dispatched'] = (
+            .order_by('-id')
+        )
+        recent_dispatched = list(
             Shipment.objects.filter(source_branch='HQ', destination_branch='UYCHI', status=Shipment.Status.IN_TRANSIT)
-            .prefetch_related('lines__batch')
-            .order_by('-id')[:5])
+            .prefetch_related('lines__batch__order_item__article')
+            .order_by('-id')[:50]
+        )
+        ctx['pending_shipments'] = pending_shipments
+        ctx['recent_dispatched'] = recent_dispatched
+        ctx['pending_shipments_count'] = len(pending_shipments)
+        ctx['recent_dispatched_count'] = len(recent_dispatched)
     return ctx
 
 
 def _sklad_partial(request, tab):
     """Jonli yangilanish (biriktirilgach darhol, aks holda har 20 soniyada): bo'laklar HTML + filtr sanoqlari."""
-    ctx = _sklad_sections(request, SKLAD_LIVE[tab])
+    branch = SKLAD_LIVE[tab]
+    ctx = _sklad_sections(request, branch)
     sections = {name: render_to_string(f'meto_hub/flow/_sklad_{name}.html', ctx, request=request)
                 for name in ('top', 'list', 'bottom')}
-    return JsonResponse({'status': 'OK', 'sections': sections, 'total': ctx['sklad_total'],
-                         'total_kg': ctx['sklad_total_kg'], 'shown_kg': ctx['sklad_shown_kg'],
-                         'total_all_count': ctx['sklad_total_count'],
-                         'counts': {key: n for key, _, n in ctx['sklad_filters']}})
+    payload = {
+        'status': 'OK',
+        'sections': sections,
+        'total': ctx['sklad_total'],
+        'total_kg': ctx['sklad_total_kg'],
+        'shown_kg': ctx['sklad_shown_kg'],
+        'total_all_count': ctx['sklad_total_count'],
+        'counts': {key: n for key, _, n in ctx['sklad_filters']},
+    }
+    if branch == 'HQ':
+        sections['dispatched-body'] = render_to_string('meto_hub/flow/_sklad_dispatched_list.html', ctx, request=request)
+        sections['pending-body'] = render_to_string('meto_hub/flow/_sklad_pending_list.html', ctx, request=request)
+        payload['ship_counts'] = {
+            'dispatched': ctx['recent_dispatched_count'],
+            'pending': ctx['pending_shipments_count'],
+        }
+    return JsonResponse(payload)
 
 
 def _ctx_sklad(request):

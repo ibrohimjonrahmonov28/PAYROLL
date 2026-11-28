@@ -74,6 +74,22 @@ Bosh sklad / Uychi sahifasi: jonli yangilanish va ro'yxat amallari.
                 Object.entries(data.counts).forEach(([key, n]) => {
                     document.querySelectorAll(`[data-count="${key}"]`).forEach(el => { el.textContent = n; });
                 });
+                if (data.ship_counts) {
+                    Object.entries(data.ship_counts).forEach(([key, n]) => {
+                        document.querySelectorAll(`[data-ship-count="${key}"]`).forEach(el => {
+                            el.textContent = n;
+                            if (el.closest('header')) {
+                                if (key === 'pending') {
+                                    el.className = 'px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black leading-none '
+                                        + (n > 0 ? 'bg-amber-400 text-slate-950 animate-pulse' : 'bg-slate-800 text-slate-400');
+                                } else {
+                                    el.className = 'px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black leading-none '
+                                        + (n > 0 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400');
+                                }
+                            }
+                        });
+                    });
+                }
                 if (data.total_kg !== undefined) {
                     const totalKgEl = document.getElementById('sklad-total-kg');
                     if (totalKgEl) totalKgEl.textContent = data.total_kg;
@@ -93,6 +109,26 @@ Bosh sklad / Uychi sahifasi: jonli yangilanish va ro'yxat amallari.
             }
         }
         window.refreshSklad = refresh;
+
+        window.closeSkladModal = function () {
+            ['dispatched', 'pending'].forEach(k => {
+                const m = document.getElementById(`sklad-modal-${k}`);
+                if (m) m.classList.add('hidden');
+            });
+        };
+
+        window.openSkladModal = function (kind) {
+            closeSkladModal();
+            const m = document.getElementById(`sklad-modal-${kind}`);
+            if (m) {
+                m.classList.remove('hidden');
+                refresh();
+            }
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeSkladModal();
+        });
 
         window.setSkladFilter = function (key) {
             state.f = key;

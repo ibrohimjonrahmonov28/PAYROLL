@@ -1,0 +1,36 @@
+{% comment %}Bosh sklad: "Jo'natilgan yuk xatlari — Chop etishga tayyor" modal ichki ro'yxati (?partial=1 da jonli yangilanadi).{% endcomment %}
+{% if recent_dispatched %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {% for s in recent_dispatched %}
+    <div class="p-4 rounded-xl bg-slate-950/90 border border-slate-800 hover:border-emerald-600/50 transition flex items-start justify-between gap-3 shadow-md">
+        <div class="min-w-0 space-y-1.5">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-black font-mono text-white">{{ s.number }}</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase">Yo'lda</span>
+                <span class="text-[11px] text-slate-400 font-mono">{{ s.created_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <p class="text-xs text-slate-400">
+                {{ s.lines.all|length }} ta pastal · Uychi filialiga{% if s.vehicle_number %} · {{ s.vehicle_number }}{% endif %}{% if s.driver_name %} · {{ s.driver_name }}{% endif %}
+            </p>
+            <div class="flex flex-wrap gap-1 pt-0.5">
+                {% for line in s.lines.all %}
+                <span class="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-200">{{ line.batch.pastal_code|default:line.batch.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <a href="{% url 'meto_hub_shipment_print' s.id %}" target="_blank"
+           class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 whitespace-nowrap transition flex-shrink-0">
+            <i class="fa-solid fa-print"></i> Chop etish
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="py-10 text-center space-y-2">
+    <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-500 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-truck-fast"></i>
+    </div>
+    <p class="text-sm font-bold text-slate-300">Hozircha jo'natilgan (yo'lda) yuk xatlari yo'q.</p>
+    <p class="text-xs text-slate-500">Meto planshetida tekshirib jo'natilgan yuk xatlari shu yerda chop etishga tayyor holda chiqadi.</p>
+</div>
+{% endif %}

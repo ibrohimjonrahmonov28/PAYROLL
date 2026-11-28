@@ -3,12 +3,58 @@ holat filtrlari va qidiruv, Koson patokiga berish (konteyner tekshiruvi) va Uych
 Uychidan qaytgan pastalni qabul, patokdagi pastallar. Ro'yxat jonli yangilanadi (_sklad_js.html).{% endcomment %}
 <div class="space-y-6">
     {% include 'meto_hub/flow/_link_panel.html' %}
-    <div id="sklad-top" class="space-y-6">{% include 'meto_hub/flow/_sklad_top.html' %}</div>
+    <div id="sklad-top" class="space-y-6 empty:hidden">{% include 'meto_hub/flow/_sklad_top.html' %}</div>
     <div class="space-y-3">
         {% include 'meto_hub/flow/_sklad_filters.html' %}
         <div id="sklad-list">{% include 'meto_hub/flow/_sklad_list.html' %}</div>
     </div>
     <div id="sklad-bottom" class="space-y-6">{% include 'meto_hub/flow/_sklad_bottom.html' %}</div>
+</div>
+
+<!-- Modal: Jo'natilgan yuk xatlari (Chop etishga tayyor) -->
+<div id="sklad-modal-dispatched" onclick="if (event.target === this) closeSkladModal()"
+    class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-800 bg-emerald-950/30 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h3 class="text-sm sm:text-base font-black text-emerald-300 flex items-center gap-2">
+                    <i class="fa-solid fa-truck-fast text-emerald-400"></i>
+                    <span>Jo'natilgan yuk xatlari — Chop etishga tayyor</span>
+                    <span data-ship-count="dispatched" class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs font-mono font-black">{{ recent_dispatched_count|default:0 }}</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Planshetda tekshirib Uychi filialiga jo'natilgan (yo'ldagi) yuk xatlari</p>
+            </div>
+            <button type="button" onclick="closeSkladModal()" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Yopish">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div id="sklad-dispatched-body" class="p-4 sm:p-5 overflow-y-auto flex-1">
+            {% include 'meto_hub/flow/_sklad_dispatched_list.html' %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Meto Planshetida tekshiruv kutayotgan yuk xatlari -->
+<div id="sklad-modal-pending" onclick="if (event.target === this) closeSkladModal()"
+    class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-800 bg-amber-950/30 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h3 class="text-sm sm:text-base font-black text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-tablet-screen-button text-amber-400"></i>
+                    <span>Meto Planshetida tekshiruv kutayotgan yuk xatlari</span>
+                    <span data-ship-count="pending" class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-mono font-black">{{ pending_shipments_count|default:0 }}</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Planshet orqali konteynerlar tekshirilmoqda — kerak bo'lsa bekor qilish mumkin</p>
+            </div>
+            <button type="button" onclick="closeSkladModal()" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Yopish">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div id="sklad-pending-body" class="p-4 sm:p-5 overflow-y-auto flex-1">
+            {% include 'meto_hub/flow/_sklad_pending_list.html' %}
+        </div>
+    </div>
 </div>
 
 {% include 'meto_hub/flow/_branch_js.html' %}

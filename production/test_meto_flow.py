@@ -1806,6 +1806,45 @@ class BoshSkladListTest(MetoFlowBase):
         res = self.client.get(reverse('meto_hub_flow_sklad'), {'partial': '1'})
         self.assertEqual(res.status_code, 302)
 
+    def test_header_shipment_buttons_and_live_modals(self):
+        # Bosh sklad sahifasida header tugmalari va alohida modallar chiqadi; asosiy #sklad-top bo'sh bo'ladi
+        page = self.client.get(reverse('meto_hub_flow_sklad'))
+        self.assertContains(page, 'id="sklad-hdr-dispatched"')
+        self.assertContains(page, 'id="sklad-hdr-pending"')
+        self.assertContains(page, 'id="sklad-modal-dispatched"')
+        self.assertContains(page, 'id="sklad-modal-pending"')
+        self.assertEqual(page.context['pending_shipments_count'], 1)
+        self.assertEqual(page.context['recent_dispatched_count'], 0)
+
+        before = self.partial()
+        self.assertEqual(before['ship_counts'], {'dispatched': 0, 'pending': 1})
+        self.assertEqual(before['sections']['top'].strip(), '')
+        self.assertIn('SK-TEKSHIR', before['sections']['pending-body'])
+        self.assertNotIn('SK-TEKSHIR', before['sections']['dispatched-body'])
+
+        # Planshetda yuk xati tasdiqlanib jo'natilgach: pending -> 0, dispatched -> 1
+        shipment = Shipment.objects.get(status=Shipment.Status.PENDING)
+        codes = [c.code for c in Container.objects.filter(box__cutting_batch_item__batch=self.tekshir)]
+        disp = self.post_json(
+            self.meto,
+            reverse('meto_hub_flow_api_shipment_dispatch', args=[shipment.id]),
+            {'scanned': codes, 'driver': 'Vali', 'vehicle': '01B777AA'},
+        )
+        self.assertEqual(disp.status_code, 200)
+
+        self.client.force_login(self.sklad)
+        after = self.partial()
+        self.assertEqual(after['ship_counts'], {'dispatched': 1, 'pending': 0})
+        self.assertIn(shipment.number, after['sections']['dispatched-body'])
+        self.assertIn(reverse('meto_hub_shipment_print', args=[shipment.id]), after['sections']['dispatched-body'])
+        self.assertNotIn(shipment.number, after['sections']['pending-body'])
+
+        # Uychi sahifasida HQ header tugmalari ko'rinmaydi
+        self.client.force_login(self.uychi)
+        uychi_page = self.client.get(reverse('meto_hub_flow_uychi'))
+        self.assertNotContains(uychi_page, 'id="sklad-hdr-dispatched"')
+        self.assertNotContains(uychi_page, 'id="sklad-hdr-pending"')
+
 
 class MetoTasnifKioskTest(MetoFlowBase):
     """Meto va Tasnif umumiy QR-birka plansheti (/tayyorlov/meto-tasnif/)."""

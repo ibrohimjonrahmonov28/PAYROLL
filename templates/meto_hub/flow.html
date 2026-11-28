@@ -22,6 +22,29 @@
 </div>
 {% endblock %}
 
+{% block header_actions %}
+{% if tab == 'sklad' %}
+<button type="button" id="sklad-hdr-dispatched" onclick="openSkladModal('dispatched')"
+    class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+    title="Jo'natilgan yuk xatlari — Chop etishga tayyor">
+    <i class="fa-solid fa-truck-fast text-emerald-400"></i>
+    <span class="hidden xl:inline">Jo'natilgan yuk xatlari</span>
+    <span class="hidden sm:inline xl:hidden">Jo'natilgan</span>
+    <span data-ship-count="dispatched"
+        class="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black leading-none {% if recent_dispatched_count %}bg-emerald-500 text-slate-950{% else %}bg-slate-800 text-slate-400{% endif %}">{{ recent_dispatched_count|default:0 }}</span>
+</button>
+<button type="button" id="sklad-hdr-pending" onclick="openSkladModal('pending')"
+    class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-black transition flex items-center gap-1.5 cursor-pointer"
+    title="Meto Planshetida tekshiruv kutayotgan yuk xatlari">
+    <i class="fa-solid fa-tablet-screen-button text-amber-400"></i>
+    <span class="hidden xl:inline">Tekshiruv kutayotgan</span>
+    <span class="hidden sm:inline xl:hidden">Tekshiruv</span>
+    <span data-ship-count="pending"
+        class="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black leading-none {% if pending_shipments_count %}bg-amber-400 text-slate-950 animate-pulse{% else %}bg-slate-800 text-slate-400{% endif %}">{{ pending_shipments_count|default:0 }}</span>
+</button>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 {% comment %}
 Tayyorlov bo'limining mustaqil sahifasi (/tayyorlov/<bolim>/, meto_flow_views.py::section_view, mantiq — meto_flow.py).
